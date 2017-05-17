@@ -53,6 +53,7 @@
 #include "dhcp/dhcp_client.h"
 #include "mdns/mdns_responder.h"
 #include "mibs/mib2_module.h"
+#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -430,15 +431,27 @@ void ipv4LinkChangeEvent(NetInterface *interface)
 
 void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t length)
 {
-   //Total number of input datagrams received from interfaces,
-   //including those received in error
-   MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInReceives, 1);
+   //Total number of input datagrams received, including those received in error
+   MIB2_INC_COUNTER32(ipGroup.ipInReceives, 1);
+   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInReceives, 1);
+   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInReceives, 1);
+   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInReceives, 1);
+   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInReceives, 1);
+
+   //Total number of octets received in input IP datagrams
+   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInOctets, length);
+   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInOctets, length);
+   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInOctets, length);
+   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInOctets, length);
 
    //Ensure the packet length is greater than 20 bytes
    if(length < sizeof(Ipv4Header))
    {
-      //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInHdrErrors, 1);
+      //Number of input IP datagrams discarded because the datagram frame
+      //didn't carry enough data
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInTruncatedPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInTruncatedPkts, 1);
+
       //Discard the received packet
       return;
    }
@@ -452,7 +465,10 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
    if(packet->version != IPV4_VERSION)
    {
       //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInHdrErrors, 1);
+      MIB2_INC_COUNTER32(ipGroup.ipInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+
       //Discard the received packet
       return;
    }
@@ -461,7 +477,10 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
    if(packet->headerLength < 5)
    {
       //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInHdrErrors, 1);
+      MIB2_INC_COUNTER32(ipGroup.ipInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+
       //Discard the received packet
       return;
    }
@@ -470,14 +489,22 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
    if(ntohs(packet->totalLength) < (packet->headerLength * 4))
    {
       //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInHdrErrors, 1);
+      MIB2_INC_COUNTER32(ipGroup.ipInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+
       //Discard the received packet
       return;
    }
-   if(ntohs(packet->totalLength) > length)
+
+   //Truncated packet?
+   if(length < ntohs(packet->totalLength))
    {
-      //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInHdrErrors, 1);
+      //Number of input IP datagrams discarded because the datagram frame
+      //didn't carry enough data
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInTruncatedPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInTruncatedPkts, 1);
+
       //Discard the received packet
       return;
    }
@@ -486,7 +513,10 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
    if(ipv4CheckSourceAddr(interface, packet->srcAddr))
    {
       //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInHdrErrors, 1);
+      MIB2_INC_COUNTER32(ipGroup.ipInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+
       //Discard the received packet
       return;
    }
@@ -497,7 +527,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
    //Destination address filtering
    if(ipv4CheckDestAddr(interface, packet->destAddr))
    {
-#if(IPV4_ROUTING_SUPPORT == ENABLED)
+#if (IPV4_ROUTING_SUPPORT == ENABLED)
       NetBuffer1 buffer;
 
       //Unfragmented datagrams fit in a single chunk
@@ -509,9 +539,11 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
       //Forward the packet according to the routing table
       ipv4ForwardPacket(interface, (NetBuffer *) &buffer, 0);
 #else
-      //Number of input datagrams discarded because the destination IP
-      //address was not a valid address
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInAddrErrors, 1);
+      //Number of input datagrams discarded because the destination IP address
+      //was not a valid address
+      MIB2_INC_COUNTER32(ipGroup.ipInAddrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInAddrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
 #endif
       //We are done
       return;
@@ -521,9 +553,12 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
    //Packets addressed to a tentative address should be silently discarded
    if(ipv4IsTentativeAddr(interface, packet->destAddr))
    {
-      //Number of input datagrams discarded because the destination IP
-      //address was not a valid address
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInAddrErrors, 1);
+      //Number of input datagrams discarded because the destination IP address
+      //was not a valid address
+      MIB2_INC_COUNTER32(ipGroup.ipInAddrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInAddrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
+
       //Discard the received packet
       return;
    }
@@ -535,11 +570,18 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
    {
       //Debug message
       TRACE_WARNING("Wrong IP header checksum!\r\n");
+
       //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInHdrErrors, 1);
+      MIB2_INC_COUNTER32(ipGroup.ipInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+
       //Discard incoming packet
       return;
    }
+
+   //Update IP statistics
+   ipv4UpdateInStats(interface, packet->destAddr, length);
 
    //Convert the total length from network byte order
    length = ntohs(packet->totalLength);
@@ -680,9 +722,11 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
    //Unreachable protocol?
    if(error == ERROR_PROTOCOL_UNREACHABLE)
    {
-      //Number of locally-addressed datagrams received successfully but
-      //discarded because of an unknown or unsupported protocol
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInUnknownProtos, 1);
+      //Number of locally-addressed datagrams received successfully but discarded
+      //because of an unknown or unsupported protocol
+      MIB2_INC_COUNTER32(ipGroup.ipInUnknownProtos, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInUnknownProtos, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInUnknownProtos, 1);
 
       //Send a Destination Unreachable message
       icmpSendErrorMessage(interface, ICMP_TYPE_DEST_UNREACHABLE,
@@ -692,7 +736,11 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
    {
       //Total number of input datagrams successfully delivered to IP
       //user-protocols
-      MIB2_INC_COUNTER32(mib2Base.ipGroup.ipInDelivers, 1);
+      MIB2_INC_COUNTER32(ipGroup.ipInDelivers, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInDelivers, 1);
+      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInDelivers, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInDelivers, 1);
+      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInDelivers, 1);
    }
 
    //Unreachable port?
@@ -722,9 +770,13 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
    size_t length;
    uint16_t id;
 
-   //Total number of IP datagrams which local IP user-protocols supplied
-   //to IP in requests for transmission
-   MIB2_INC_COUNTER32(mib2Base.ipGroup.ipOutRequests, 1);
+   //Total number of IP datagrams which local IP user-protocols supplied to IP
+   //in requests for transmission
+   MIB2_INC_COUNTER32(ipGroup.ipOutRequests, 1);
+   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutRequests, 1);
+   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutRequests, 1);
+   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutRequests, 1);
+   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutRequests, 1);
 
    //Retrieve the length of payload
    length = netBufferGetLength(buffer) - offset;
@@ -829,8 +881,12 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    //Destination address is the loopback address?
    else if(pseudoHeader->destAddr == IPV4_LOOPBACK_ADDR)
    {
-      //Not yet implemented...
-      return ERROR_NOT_IMPLEMENTED;
+      //Check source address
+      if(pseudoHeader->srcAddr != IPV4_LOOPBACK_ADDR)
+      {
+         //Destination address is not acceptable
+         return ERROR_INVALID_ADDRESS;
+      }
    }
 
 #if (ETH_SUPPORT == ENABLED)
@@ -886,7 +942,8 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
          {
             //Number of IP datagrams discarded because no route could be found
             //to transmit them to their destination
-            MIB2_INC_COUNTER32(mib2Base.ipGroup.ipOutNoRoutes, 1);
+            MIB2_INC_COUNTER32(ipGroup.ipOutNoRoutes, 1);
+            IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutNoRoutes, 1);
 
             //Report an error
             error = ERROR_NO_ROUTE;
@@ -896,6 +953,9 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
       //Successful address resolution?
       if(!error)
       {
+         //Update IP statistics
+         ipv4UpdateOutStats(interface, destIpAddr, length);
+
          //Debug message
          TRACE_INFO("Sending IPv4 packet (%" PRIuSIZE " bytes)...\r\n", length);
          //Dump IP header contents for debugging purpose
@@ -928,6 +988,9 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    //PPP interface?
    if(interface->nicDriver->type == NIC_TYPE_PPP)
    {
+      //Update IP statistics
+      ipv4UpdateOutStats(interface, pseudoHeader->destAddr, length);
+
       //Debug message
       TRACE_INFO("Sending IPv4 packet (%" PRIuSIZE " bytes)...\r\n", length);
       //Dump IP header contents for debugging purpose
@@ -1259,6 +1322,32 @@ uint_t ipv4GetAddrScope(Ipv4Addr ipAddr)
 
 
 /**
+ * @brief Calculate prefix length for a given subnet mask
+ * @param[in] mask Subnet mask
+ * @return Prefix length
+ **/
+
+uint_t ipv4GetPrefixLength(Ipv4Addr mask)
+{
+   uint_t i;
+
+   //Convert from network byte order to host byte order
+   mask = ntohl(mask);
+
+   //Count of the number of leading 1 bits in the network mask
+   for(i = 0; i < 32; i++)
+   {
+      //Check the value of the current bit
+      if(!(mask & (1 << (31 - i))))
+         break;
+   }
+
+   //Return prefix length
+   return i;
+}
+
+
+/**
  * @brief Join the specified host group
  * @param[in] interface Underlying network interface
  * @param[in] groupAddr IPv4 address identifying the host group to join
@@ -1436,6 +1525,90 @@ error_t ipv4MapMulticastAddrToMac(Ipv4Addr ipAddr, MacAddr *macAddr)
    //The specified host group address was successfully
    //mapped to a MAC-layer address
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Update IPv4 input statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destIpAddr Destination IP address
+ * @param[in] length Length of the incoming IP packet
+ **/
+
+void ipv4UpdateInStats(NetInterface *interface, Ipv4Addr destIpAddr, size_t length)
+{
+   //Check whether the destination address is a unicast, broadcast or multicast address
+   if(ipv4IsBroadcastAddr(interface, destIpAddr))
+   {
+      //Number of IP broadcast datagrams transmitted
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInBcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInBcastPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInBcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInBcastPkts, 1);
+   }
+   else if(ipv4IsMulticastAddr(destIpAddr))
+   {
+      //Number of IP multicast datagrams transmitted
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInMcastPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInMcastPkts, 1);
+
+      //Total number of octets transmitted in IP multicast datagrams
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInMcastOctets, length);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInMcastOctets, length);
+   }
+}
+
+
+/**
+ * @brief Update IPv4 output statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destIpAddr Destination IP address
+ * @param[in] length Length of the outgoing IP packet
+ **/
+
+void ipv4UpdateOutStats(NetInterface *interface, Ipv4Addr destIpAddr, size_t length)
+{
+   //Check whether the destination address is a unicast, broadcast or multicast address
+   if(ipv4IsBroadcastAddr(interface, destIpAddr))
+   {
+      //Number of IP broadcast datagrams transmitted
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutBcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutBcastPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutBcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutBcastPkts, 1);
+   }
+   else if(ipv4IsMulticastAddr(destIpAddr))
+   {
+      //Number of IP multicast datagrams transmitted
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutMcastPkts, 1);
+
+      //Total number of octets transmitted in IP multicast datagrams
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutMcastOctets, length);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutMcastOctets, length);
+   }
+
+   //Total number of IP datagrams that this entity supplied to the lower
+   //layers for transmission
+   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutTransmits, 1);
+   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutTransmits, 1);
+   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutTransmits, 1);
+   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutTransmits, 1);
+
+   //Total number of octets in IP datagrams delivered to the lower layers
+   //for transmission
+   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutOctets, length);
+   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutOctets, length);
+   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutOctets, length);
+   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutOctets, length);
 }
 
 

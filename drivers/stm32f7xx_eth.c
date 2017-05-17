@@ -207,10 +207,11 @@ error_t stm32f7xxEthInit(NetInterface *interface)
 }
 
 
-//STM32756G-EVAL, STM32F769I-EVAL, STM32F746G-DISCOVERY,
+//STM32756G-EVAL, STM32F769I-EVAL, STM32F746G-DISCOVERY, STM32F769I-DISCOVERY
 //Nucleo-F746ZG or Nucleo-F767ZI evaluation board?
 #if defined(USE_STM32756G_EVAL) || defined(USE_STM32F769I_EVAL) || \
-   defined(USE_STM32746G_DISCO) || defined(USE_STM32F7XX_NUCLEO_144)
+   defined(USE_STM32746G_DISCO) || defined(USE_STM32F769I_DISCO) || \
+   defined(USE_STM32F7XX_NUCLEO_144)
 
 /**
  * @brief GPIO configuration
@@ -323,8 +324,8 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    //GPIO_InitStructure.Pin = GPIO_PIN_10;
    //HAL_GPIO_Init(GPIOI, &GPIO_InitStructure);
 
-//STM32F746G-DISCOVERY evaluation board?
-#elif defined(USE_STM32746G_DISCO)
+//STM32F746G-DISCOVERY or STM32F769I-DISCOVERY evaluation board?
+#elif defined(USE_STM32746G_DISCO) || defined(USE_STM32F769I_DISCO)
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -350,9 +351,8 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-   //Configure ETH_RMII_RXER (PG2), RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13)
-   //and ETH_RMII_TXD1 (PG14)
-   GPIO_InitStructure.Pin = GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
+   //Configure ETH_RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13) and ETH_RMII_TXD1 (PG14)
+   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 
 //Nucleo-F746ZG or Nucleo-F767ZI evaluation board?

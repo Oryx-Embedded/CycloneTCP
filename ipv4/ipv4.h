@@ -362,11 +362,15 @@ error_t ipv4SelectSourceAddr(NetInterface **interface,
 bool_t ipv4IsBroadcastAddr(NetInterface *interface, Ipv4Addr ipAddr);
 
 uint_t ipv4GetAddrScope(Ipv4Addr ipAddr);
+uint_t ipv4GetPrefixLength(Ipv4Addr mask);
 
 error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
 error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
 
 error_t ipv4MapMulticastAddrToMac(Ipv4Addr ipAddr, MacAddr *macAddr);
+
+void ipv4UpdateInStats(NetInterface *interface, Ipv4Addr destIpAddr, size_t length);
+void ipv4UpdateOutStats(NetInterface *interface, Ipv4Addr destIpAddr, size_t length);
 
 error_t ipv4StringToAddr(const char_t *str, Ipv4Addr *ipAddr);
 char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);

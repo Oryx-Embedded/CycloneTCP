@@ -37,10 +37,10 @@
 
 //FTP server related functions
 void ftpServerControlEventHandler(FtpServerContext *context,
-   FtpClientConnection * connection, uint_t eventFlags);
+   FtpClientConnection *connection, uint_t eventFlags);
 
 void ftpServerDataEventHandler(FtpServerContext *context,
-   FtpClientConnection * connection, uint_t eventFlags);
+   FtpClientConnection *connection, uint_t eventFlags);
 
 void ftpServerSendData(FtpServerContext *context, FtpClientConnection *connection);
 void ftpServerReceiveData(FtpServerContext *context, FtpClientConnection *connection);

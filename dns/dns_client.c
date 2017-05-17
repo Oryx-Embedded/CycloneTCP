@@ -105,7 +105,7 @@ error_t dnsResolve(NetInterface *interface,
 
       //An identifier is used by the DNS client to match replies
       //with corresponding requests
-      entry->id = netGetRand();
+      entry->id = (uint16_t) netGetRand();
 
       //Callback function to be called when a DNS response is received
       error = udpAttachRxCallback(interface, entry->port, dnsProcessResponse, NULL);

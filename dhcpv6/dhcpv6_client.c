@@ -465,7 +465,7 @@ void dhcpv6ClientLinkChangeEvent(Dhcpv6ClientContext *context)
    switch(context->state)
    {
    case DHCPV6_STATE_INIT_CONFIRM:
-   case DHCPV6_STATE_CONFIRM :
+   case DHCPV6_STATE_CONFIRM:
    case DHCPV6_STATE_DAD:
    case DHCPV6_STATE_BOUND:
    case DHCPV6_STATE_RENEW:

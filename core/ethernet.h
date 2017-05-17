@@ -192,6 +192,9 @@ uint32_t ethCalcCrcEx(const NetBuffer *buffer, size_t offset, size_t length);
 
 NetBuffer *ethAllocBuffer(size_t length, size_t *offset);
 
+void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr);
+void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr, size_t length);
+
 error_t macStringToAddr(const char_t *str, MacAddr *macAddr);
 char_t *macAddrToString(const MacAddr *macAddr, char_t *str);
 

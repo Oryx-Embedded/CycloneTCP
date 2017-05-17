@@ -44,6 +44,7 @@
 #include "mdns/mdns_responder.h"
 #include "dns_sd/dns_sd.h"
 #include "mibs/mib2_module.h"
+#include "mibs/if_mib_module.h"
 #include "debug.h"
 
 //Tick counter to handle periodic operations
@@ -268,17 +269,9 @@ void nicNotifyLinkChange(NetInterface *interface)
       TRACE_INFO("Link is down (%s)...\r\n", interface->name);
    }
 
-   //Interface's current bandwidth
-   MIB2_SET_GAUGE32(interface->mibIfEntry->ifSpeed, interface->linkSpeed);
-
-   //The current operational state of the interface
-   if(interface->linkState)
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifOperStatus, MIB2_IF_OPER_STATUS_UP);
-   else
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifOperStatus, MIB2_IF_OPER_STATUS_DOWN);
-
    //The time at which the interface entered its current operational state
-   MIB2_SET_TIME_TICKS(interface->mibIfEntry->ifLastChange, osGetSystemTime() / 10);
+   MIB2_SET_TIME_TICKS(ifGroup.ifTable[interface->index].ifLastChange, osGetSystemTime() / 10);
+   IF_MIB_SET_TIME_TICKS(ifTable[interface->index].ifLastChange, osGetSystemTime() / 10);
 
 #if (IPV4_SUPPORT == ENABLED)
    //Notify IPv4 of link state changes

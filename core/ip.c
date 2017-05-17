@@ -483,6 +483,95 @@ NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
 
 
 /**
+ * @brief Compare IP addresses
+ * @param[in] ipAddr1 First IP address
+ * @param[in] ipAddr2 Second IP address
+ * @return Comparaison result
+ **/
+
+bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
+{
+   bool_t result;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 addresses?
+   if(ipAddr1->length == sizeof(Ipv4Addr) && ipAddr2->length == sizeof(Ipv4Addr))
+   {
+      //Compare IPv4 addresses
+      if(ipAddr1->ipv4Addr == ipAddr2->ipv4Addr)
+         result = TRUE;
+      else
+         result = FALSE;
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 addresses?
+   if(ipAddr1->length == sizeof(Ipv6Addr) && ipAddr2->length == sizeof(Ipv6Addr))
+   {
+      //Compare IPv6 addresses
+      result = ipv6CompAddr(&ipAddr1->ipv6Addr, &ipAddr2->ipv6Addr);
+   }
+   else
+#endif
+   //Unspecified IP addresses?
+   if(ipAddr1->length == 0 && ipAddr2->length == 0)
+   {
+      result = TRUE;
+   }
+   //Invalid IP addresses?
+   else
+   {
+      result = FALSE;
+   }
+
+   //Return TRUE if the IP addresses match, else FALSE
+   return result;
+}
+
+
+/**
+ * @brief Compare an IP address against the unspecified address
+ * @param[in] ipAddr IP address
+ * @return TRUE if the IP address is unspecified, else FALSE
+ **/
+
+bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr)
+{
+   bool_t result;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 address?
+   if(ipAddr->length == sizeof(Ipv4Addr))
+   {
+      //Compare IPv4 address
+      if(ipAddr->ipv4Addr == IPV4_UNSPECIFIED_ADDR)
+         result = TRUE;
+      else
+         result = FALSE;
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 address?
+   if(ipAddr->length == sizeof(Ipv6Addr))
+   {
+      //Compare IPv6 address
+      result = ipv6CompAddr(&ipAddr->ipv6Addr, &IPV6_UNSPECIFIED_ADDR);
+   }
+   else
+#endif
+   //Invalid IP address?
+   {
+      result = FALSE;
+   }
+
+   //Return TRUE if the IP address is unspecified, else FALSE
+   return result;
+}
+
+
+/**
  * @brief Join the specified host group
  * @param[in] interface Underlying network interface (optional parameter)
  * @param[in] groupAddr IP address identifying the host group to join
@@ -566,39 +655,6 @@ error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
    //Invalid IP address?
    {
       return ERROR_INVALID_ADDRESS;
-   }
-}
-
-
-/**
- * @brief Compare an IP address against the unspecified address
- * @param[in] ipAddr IP address
- * @return TRUE if the IP address is unspecified, else FALSE
- **/
-
-bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr)
-{
-#if (IPV4_SUPPORT == ENABLED)
-   //IPv4 address?
-   if(ipAddr->length == sizeof(Ipv4Addr))
-   {
-      //Compare IPv4 address
-      return (ipAddr->ipv4Addr == IPV4_UNSPECIFIED_ADDR) ? TRUE : FALSE;
-   }
-   else
-#endif
-#if (IPV6_SUPPORT == ENABLED)
-   //IPv6 address?
-   if(ipAddr->length == sizeof(Ipv6Addr))
-   {
-      //Compare IPv6 address
-      return ipv6CompAddr(&ipAddr->ipv6Addr, &IPV6_UNSPECIFIED_ADDR);
-   }
-   else
-#endif
-   //Invalid IP address?
-   {
-      return FALSE;
    }
 }
 

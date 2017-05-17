@@ -35,8 +35,6 @@
 
 //MIB-II related functions
 error_t mib2Init(void);
-void mib2Lock(void);
-void mib2Unlock(void);
 
 error_t mib2GetSysDescr(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
@@ -48,22 +46,25 @@ error_t mib2GetSysUpTime(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
 
 error_t mib2SetSysContact(const MibObject *object, const uint8_t *oid,
-   size_t oidLen, const MibVariant *value, size_t valueLen);
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
 error_t mib2GetSysContact(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
 
 error_t mib2SetSysName(const MibObject *object, const uint8_t *oid,
-   size_t oidLen, const MibVariant *value, size_t valueLen);
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
 error_t mib2GetSysName(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
 
 error_t mib2SetSysLocation(const MibObject *object, const uint8_t *oid,
-   size_t oidLen, const MibVariant *value, size_t valueLen);
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
 error_t mib2GetSysLocation(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2SetIfEntry(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
 error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
@@ -78,7 +79,7 @@ error_t mib2GetNextIpAddrEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen);
 
 error_t mib2SetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
-   size_t oidLen, const MibVariant *value, size_t valueLen);
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
 error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
@@ -86,8 +87,11 @@ error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
 error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen);
 
+error_t mib2GetTcpCurrEstab(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
 error_t mib2SetTcpConnEntry(const MibObject *object, const uint8_t *oid,
-   size_t oidLen, const MibVariant *value, size_t valueLen);
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
 error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);

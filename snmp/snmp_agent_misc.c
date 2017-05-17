@@ -51,15 +51,36 @@
 void snmpLockMib(SnmpAgentContext *context)
 {
    uint_t i;
+   bool_t flag;
+
+   //Initialize flag
+   flag = FALSE;
 
    //Loop through MIBs
-   for(i = 0; i < context->mibModuleCount; i++)
+   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
    {
-      //Lock access to MIB base
-      if(context->mibModule[i]->lock != NULL)
+      //Valid MIB?
+      if(context->mibModule[i] != NULL)
       {
-         context->mibModule[i]->lock();
+         //Any registered callback?
+         if(context->mibModule[i]->lock != NULL)
+         {
+            //Lock access to the MIB
+            context->mibModule[i]->lock();
+         }
+         else
+         {
+            //The MIB does not feature any lock/unlock mechanism
+            flag = TRUE;
+         }
       }
+   }
+
+   //Default lock/unlock sequence?
+   if(flag)
+   {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
    }
 }
 
@@ -71,15 +92,36 @@ void snmpLockMib(SnmpAgentContext *context)
 void snmpUnlockMib(SnmpAgentContext *context)
 {
    uint_t i;
+   bool_t flag;
+
+   //Initialize flag
+   flag = FALSE;
 
    //Loop through MIBs
-   for(i = 0; i < context->mibModuleCount; i++)
+   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
    {
-      //Unlock access to MIB base
-      if(context->mibModule[i]->unlock != NULL)
+      //Valid MIB?
+      if(context->mibModule[i] != NULL)
       {
-         context->mibModule[i]->unlock();
+         //Any registered callback?
+         if(context->mibModule[i]->unlock != NULL)
+         {
+            //Unlock access to the MIB
+            context->mibModule[i]->unlock();
+         }
+         else
+         {
+            //The MIB does not feature any lock/unlock mechanism
+            flag = TRUE;
+         }
       }
+   }
+
+   //Default lock/unlock sequence?
+   if(flag)
+   {
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
    }
 }
 
@@ -527,7 +569,8 @@ error_t snmpSetObjectValue(SnmpAgentContext *context, SnmpVarBind *var, bool_t c
 
    //Make sure the specified object is available for set operations
    if(object->access != MIB_ACCESS_WRITE_ONLY &&
-      object->access != MIB_ACCESS_READ_WRITE)
+      object->access != MIB_ACCESS_READ_WRITE &&
+      object->access != MIB_ACCESS_READ_CREATE)
    {
       //Report an error
       return ERROR_NOT_WRITABLE;
@@ -617,17 +660,8 @@ error_t snmpSetObjectValue(SnmpAgentContext *context, SnmpVarBind *var, bool_t c
    //Objects can be assigned a value using a callback function
    if(object->setValue != NULL)
    {
-      //Check whether the changes shall be committed to the MIB base
-      if(commit)
-      {
-         //Invoke callback function to assign object value
-         error = object->setValue(object, var->oid, var->oidLen, value, n);
-      }
-      else
-      {
-         //Successful write operation
-         error = NO_ERROR;
-      }
+      //Invoke callback function to assign object value
+      error = object->setValue(object, var->oid, var->oidLen, value, n, commit);
    }
    //Simple scalar objects can also be attached to a variable
    else if(object->value != NULL)
@@ -691,7 +725,8 @@ error_t snmpGetObjectValue(SnmpAgentContext *context, SnmpVarBind *var)
 
    //Make sure the specified object is available for get operations
    if(object->access != MIB_ACCESS_READ_ONLY &&
-      object->access != MIB_ACCESS_READ_WRITE)
+      object->access != MIB_ACCESS_READ_WRITE &&
+      object->access != MIB_ACCESS_READ_CREATE)
    {
       //Report an error
       return ERROR_ACCESS_DENIED;
@@ -828,95 +863,188 @@ error_t snmpGetNextObject(SnmpAgentContext *context, SnmpVarBind *var)
    error_t error;
    uint_t i;
    uint_t j;
+   size_t n;
+   uint_t numObjects;
    size_t nextOidLen;
    uint8_t *nextOid;
    const MibObject *object;
+   const MibObject *nextObject;
+
+   //Pointer to the next object
+   nextObject = NULL;
 
    //Buffer where to store the next object identifier
    nextOid = context->response.varBindList + context->response.varBindListLen;
 
    //Loop through MIBs
-   for(i = 0; i < context->mibModuleCount; i++)
+   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
    {
-      //Point the first object of the MIB
-      object = context->mibModule[i]->objects;
-
-      //Loop through objects
-      for(j = 0; j < context->mibModule[i]->numObjects; j++)
+      //Valid MIB?
+      if(context->mibModule[i] != NULL &&
+         context->mibModule[i]->numObjects > 0)
       {
-         //Scalar or tabular object?
-         if(object->getNext == NULL)
+         //Get the total number of objects
+         numObjects = context->mibModule[i]->numObjects;
+
+         //Point the last object of the MIB
+         object = &context->mibModule[i]->objects[numObjects - 1];
+
+         //Discard instance sub-identifier
+         n = MIN(var->oidLen, object->oidLen);
+
+         //Perform lexicographical comparison
+         if(oidComp(var->oid, n, object->oid, object->oidLen) <= 0)
          {
-            //Take in account the instance sub-identifier to determine
-            //the length of the OID
-            nextOidLen = object->oidLen + 1;
+            //Point the first object of the MIB
+            object = context->mibModule[i]->objects;
 
-            //Make sure the buffer is large enough to hold the entire OID
-            if((context->response.varBindListLen + nextOidLen) >
-               context->response.varBindListMaxLen)
+            //Loop through objects
+            for(j = 0; j < numObjects; j++)
             {
-               //Report an error
-               return ERROR_BUFFER_OVERFLOW;
-            }
+               //Make sure the current object is accessible
+               if(object->access == MIB_ACCESS_READ_ONLY ||
+                  object->access == MIB_ACCESS_READ_WRITE ||
+                  object->access == MIB_ACCESS_READ_CREATE)
+               {
+                  //Scalar or tabular object?
+                  if(object->getNext == NULL)
+                  {
+                     //Perform lexicographical comparison
+                     if(oidComp(var->oid, var->oidLen, object->oid, object->oidLen) <= 0)
+                     {
+                        //Save the closest object identifier that follows the
+                        //specified OID
+                        if(nextObject == NULL)
+                        {
+                           nextObject = object;
+                        }
+                        else if(oidComp(object->oid, object->oidLen,
+                           nextObject->oid, nextObject->oidLen) < 0)
+                        {
+                           nextObject = object;
+                        }
 
-            //Copy object identifier
-            memcpy(nextOid, object->oid, object->oidLen);
-            //Append instance sub-identifier
-            nextOid[nextOidLen - 1] = 0;
+                        //We are done
+                        break;
+                     }
+                  }
+                  else
+                  {
+                     //Discard instance sub-identifier
+                     n = MIN(var->oidLen, object->oidLen);
 
-            //Perform lexicographical comparison
-            if(oidComp(var->oid, var->oidLen, nextOid, nextOidLen) < 0)
-            {
-               //Replace the original OID with the name of the next object
-               var->oid = nextOid;
-               var->oidLen = nextOidLen;
+                     //Perform lexicographical comparison
+                     if(oidComp(var->oid, n, object->oid, object->oidLen) <= 0)
+                     {
+                        //Maximum acceptable size of the OID
+                        nextOidLen = context->response.varBindListMaxLen -
+                           context->response.varBindListLen;
 
-               //Save the length of the OID
-               context->response.oidLen = nextOidLen;
+                        //Search the MIB for the next object
+                        error = object->getNext(object, var->oid, var->oidLen,
+                           nextOid, &nextOidLen);
 
-               //The specified OID lexicographically precedes the name
-               //of the current object
-               return NO_ERROR;
+                        //Check status code
+                        if(error == NO_ERROR)
+                        {
+                           //Save the closest object identifier that follows the
+                           //specified OID
+                           if(nextObject == NULL)
+                           {
+                              nextObject = object;
+                           }
+                           else if(oidComp(object->oid, object->oidLen,
+                              nextObject->oid, nextObject->oidLen) < 0)
+                           {
+                              nextObject = object;
+                           }
+
+                           //We are done
+                           break;
+                        }
+                        else if(error != ERROR_OBJECT_NOT_FOUND)
+                        {
+                           //Exit immediately
+                           return error;
+                        }
+                     }
+                  }
+               }
+
+               //Point to the next object in the MIB
+               object++;
             }
          }
-         else
-         {
-            //Maximum acceptable size of the OID
-            nextOidLen = context->response.varBindListMaxLen -
-               context->response.varBindListLen;
-
-            //Search the MIB for the next object
-            error = object->getNext(object, var->oid, var->oidLen, nextOid, &nextOidLen);
-
-            //Check status code
-            if(error == NO_ERROR)
-            {
-               //Replace the original OID with the name of the next object
-               var->oid = nextOid;
-               var->oidLen = nextOidLen;
-
-               //Save the length of the OID
-               context->response.oidLen = nextOidLen;
-
-               //The specified OID lexicographically precedes the name
-               //of the current object
-               return NO_ERROR;
-            }
-            if(error != ERROR_OBJECT_NOT_FOUND)
-            {
-               //Exit immediately
-               return error;
-            }
-         }
-
-         //Point to the next object in the MIB
-         object++;
       }
    }
 
-   //The specified OID does not lexicographically precede the
-   //name of some object
-   return ERROR_OBJECT_NOT_FOUND;
+   //Next object found?
+   if(nextObject != NULL)
+   {
+      //Scalar or tabular object?
+      if(nextObject->getNext == NULL)
+      {
+         //Take in account the instance sub-identifier to determine
+         //the length of the OID
+         nextOidLen = nextObject->oidLen + 1;
+
+         //Make sure the buffer is large enough to hold the entire OID
+         if((context->response.varBindListLen + nextOidLen) <=
+            context->response.varBindListMaxLen)
+         {
+            //Copy object identifier
+            memcpy(nextOid, nextObject->oid, nextObject->oidLen);
+            //Append instance sub-identifier
+            nextOid[nextOidLen - 1] = 0;
+
+            //Replace the original OID with the name of the next object
+            var->oid = nextOid;
+            var->oidLen = nextOidLen;
+
+            //Save the length of the OID
+            context->response.oidLen = nextOidLen;
+
+            //The specified OID lexicographically precedes the name
+            //of the current object
+            error = NO_ERROR;
+         }
+         else
+         {
+            //Report an error
+            error = ERROR_BUFFER_OVERFLOW;
+         }
+      }
+      else
+      {
+         //Maximum acceptable size of the OID
+         nextOidLen = context->response.varBindListMaxLen -
+            context->response.varBindListLen;
+
+         //Search the MIB for the next object
+         error = nextObject->getNext(nextObject, var->oid, var->oidLen,
+            nextOid, &nextOidLen);
+
+         //Check status code
+         if(error == NO_ERROR)
+         {
+            //Replace the original OID with the name of the next object
+            var->oid = nextOid;
+            var->oidLen = nextOidLen;
+
+            //Save the length of the OID
+            context->response.oidLen = nextOidLen;
+         }
+      }
+   }
+   else
+   {
+      //The specified OID does not lexicographically precede the
+      //name of some object
+      error = ERROR_OBJECT_NOT_FOUND;
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -933,62 +1061,103 @@ error_t snmpFindMibObject(SnmpAgentContext *context,
    const uint8_t *oid, size_t oidLen, const MibObject **object)
 {
    error_t error;
+   int_t left;
+   int_t right;
+   int_t mid;
+   int_t res;
    uint_t i;
-   uint_t j;
-   const MibObject *p;
+   size_t n;
+   const MibObject *objects;
 
-   //Initialize status code
-   error = ERROR_OBJECT_NOT_FOUND;
+   //Initialize comparaison result
+   res = -1;
 
    //Loop through MIBs
-   for(i = 0; i < context->mibModuleCount; i++)
+   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT && res != 0; i++)
    {
-      //Point the first object of the MIB
-      p = context->mibModule[i]->objects;
-
-      //Loop through objects
-      for(j = 0; j < context->mibModule[i]->numObjects; j++)
+      //Valid MIB?
+      if(context->mibModule[i] != NULL &&
+         context->mibModule[i]->numObjects > 0)
       {
-         //Check the length of the OID
-         if(oidLen > p->oidLen)
-         {
-            //Compare object names
-            if(!memcmp(oid, p->oid, p->oidLen))
-            {
-               //Scalar object?
-               if(p->getNext == NULL)
-               {
-                  //The instance sub-identifier shall be 0 for scalar objects
-                  if(oidLen == (p->oidLen + 1) && oid[oidLen - 1] == 0)
-                  {
-                     //Return a pointer to the matching object
-                     *object = p;
-                     //No error to report
-                     error = NO_ERROR;
-                  }
-                  else
-                  {
-                     //No such instance...
-                     error = ERROR_INSTANCE_NOT_FOUND;
-                  }
-               }
-               //Tabular object?
-               else
-               {
-                  //Return a pointer to the matching object
-                  *object = p;
-                  //No error to report
-                  error = NO_ERROR;
-               }
+         //Point to the list of objects
+         objects = context->mibModule[i]->objects;
 
-               //Exit immediately
-               break;
+         //Index of the first item
+         left = 0;
+         //Index of the last item
+         right = context->mibModule[i]->numObjects - 1;
+
+         //Discard instance sub-identifier
+         n = MIN(oidLen, objects[right].oidLen);
+
+         //Check object identifier
+         if(oidComp(oid, oidLen, objects[left].oid, objects[left].oidLen) >= 0 &&
+            oidComp(oid, n, objects[right].oid, objects[right].oidLen) <= 0)
+         {
+            //Binary search algorithm
+            while(left <= right && res != 0)
+            {
+               //Calculate the index of the middle item
+               mid = left + (right - left) / 2;
+
+               //Discard instance sub-identifier
+               n = MIN(oidLen, objects[mid].oidLen);
+
+               //Perform lexicographic comparison
+               res = oidComp(oid, n, objects[mid].oid, objects[mid].oidLen);
+
+               //Check the result of the comparison
+               if(res > 0)
+                  left = mid + 1;
+               else if(res < 0)
+                  right = mid - 1;
             }
          }
-
-         //Point to the next object in the MIB
-         p++;
       }
+   }
+
+   //Object identifier found?
+   if(res == 0)
+   {
+      //Scalar object?
+      if(objects[mid].getNext == NULL)
+      {
+         //The instance sub-identifier shall be 0 for scalar objects
+         if(oidLen == (objects[mid].oidLen + 1) && oid[oidLen - 1] == 0)
+         {
+            //Return a pointer to the matching object
+            *object = &objects[mid];
+            //No error to report
+            error = NO_ERROR;
+         }
+         else
+         {
+            //No such instance...
+            error = ERROR_INSTANCE_NOT_FOUND;
+         }
+      }
+      //Tabular object?
+      else
+      {
+         //Check the length of the OID
+         if(oidLen > objects[mid].oidLen)
+         {
+            //Return a pointer to the matching object
+            *object = &objects[mid];
+            //No error to report
+            error = NO_ERROR;
+         }
+         else
+         {
+            //No such instance...
+            error = ERROR_INSTANCE_NOT_FOUND;
+         }
+      }
+   }
+   else
+   {
+      //No such object...
+      error = ERROR_OBJECT_NOT_FOUND;
    }
 
    //Return status code
@@ -1027,20 +1196,21 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
 
          //Total number of SNMP PDUs which were generated by the SNMP protocol
          //entity and for which the value of the error-status field is noSuchName
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutNoSuchNames, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutNoSuchNames, 1);
          break;
 
       case ERROR_WRONG_TYPE:
       case ERROR_WRONG_LENGTH:
       case ERROR_WRONG_ENCODING:
       case ERROR_WRONG_VALUE:
+      case ERROR_INCONSISTENT_VALUE:
          //Return badValue status code
          message->errorStatus = SNMP_ERROR_BAD_VALUE;
          message->errorIndex = index;
 
          //Total number of SNMP PDUs which were generated by the SNMP protocol
          //entity and for which the value of the error-status field is badValue
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutBadValues, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutBadValues, 1);
          break;
 
       case ERROR_READ_FAILED:
@@ -1052,7 +1222,7 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
 
          //Total number of SNMP PDUs which were generated by the SNMP protocol
          //entity and for which the value of the error-status field is genError
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutGenErrs, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutGenErrs, 1);
          break;
 
       case ERROR_BUFFER_OVERFLOW:
@@ -1062,7 +1232,7 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
 
          //Total number of SNMP PDUs which were generated by the SNMP protocol
          //entity and for which the value of the error-status field is tooBig
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutTooBigs, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutTooBigs, 1);
          break;
 
       default:
@@ -1115,6 +1285,12 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
          message->errorIndex = index;
          break;
 
+      case ERROR_INCONSISTENT_VALUE:
+         //Return inconsistentValue status code
+         message->errorStatus = SNMP_ERROR_INCONSISTENT_VALUE;
+         message->errorIndex = index;
+         break;
+
       case ERROR_READ_FAILED:
       case ERROR_WRITE_FAILED:
          //Return genError status code
@@ -1123,7 +1299,7 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
 
          //Total number of SNMP PDUs which were generated by the SNMP protocol
          //entity and for which the value of the error-status field is genError
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutGenErrs, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutGenErrs, 1);
          break;
 
       case ERROR_NOT_WRITABLE:
@@ -1139,7 +1315,7 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
 
          //Total number of SNMP PDUs which were generated by the SNMP protocol
          //entity and for which the value of the error-status field is tooBig
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutTooBigs, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutTooBigs, 1);
          break;
 
       default:

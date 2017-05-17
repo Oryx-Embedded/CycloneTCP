@@ -39,6 +39,7 @@
 #include "ipv6/ndp_cache.h"
 #include "ipv6/ndp_misc.h"
 #include "ipv6/ndp_router_adv.h"
+#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -755,6 +756,11 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    //Calculate ICMPv6 header checksum
    message->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
+
+   //Total number of ICMP messages which this entity attempted to send
+   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   //Increment per-message type ICMP counter
+   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_ROUTER_ADV], 1);
 
    //Debug message
    TRACE_INFO("Sending Router Advertisement message (%" PRIuSIZE " bytes)...\r\n", length);

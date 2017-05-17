@@ -302,6 +302,13 @@ uint_t ndpSendQueuedPackets(NetInterface *interface, NdpNeighborCacheEntry *entr
          //Ethernet interface?
          if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
          {
+            size_t length;
+
+            //Retrieve the length of the IPv6 packet
+            length = netBufferGetLength(item->buffer) - item->offset;
+            //Update IP statistics
+            ipv6UpdateOutStats(interface, &entry->ipAddr, length);
+
             //Send the IPv6 packet
             ethSendFrame(interface, &entry->macAddr,
                item->buffer, item->offset, ETH_TYPE_IPV6);

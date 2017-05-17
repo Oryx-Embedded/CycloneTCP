@@ -283,7 +283,7 @@ error_t ftpServerOpenDataConnection(FtpServerContext *context,
 
    //Debug message
    TRACE_INFO("FTP server: Opening data connection with client %s port %" PRIu16 "...\r\n",
-         ipAddrToString(&connection->remoteIpAddr, NULL), connection->remotePort);
+      ipAddrToString(&connection->remoteIpAddr, NULL), connection->remotePort);
 
    //Open data socket
    connection->dataSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);

@@ -411,6 +411,8 @@ typedef struct
 {
    Ipv6Addr prefix;             ///<IPv6 prefix information
    uint8_t prefixLength;        ///<IPv6 prefix length
+   bool_t onLinkFlag;           ///<On-link flag
+   bool_t autonomousFlag;       ///<Autonomous flag
    systime_t validLifetime;     ///<Valid lifetime
    systime_t preferredLifetime; ///<Preferred lifetime
    bool_t permanent;            ///<Permanently assigned prefix
@@ -426,6 +428,7 @@ typedef struct
 {
    Ipv6Addr addr;       ///<Router address
    systime_t lifetime;  ///<Router lifetime
+   uint8_t preference;  ///<Preference value
    bool_t permanent;    ///<Permanently assigned router
    systime_t timestamp; ///<Timestamp to manage entry lifetime
 } Ipv6RouterEntry;
@@ -534,6 +537,9 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
 
 error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
 error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
+
+void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length);
+void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length);
 
 error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr);
 char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str);

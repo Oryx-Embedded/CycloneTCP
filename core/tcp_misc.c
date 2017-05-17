@@ -41,6 +41,7 @@
 #include "ipv4/ipv4.h"
 #include "ipv6/ipv6.h"
 #include "mibs/mib2_module.h"
+#include "mibs/tcp_mib_module.h"
 #include "date_time.h"
 #include "debug.h"
 
@@ -241,14 +242,16 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    }
 
    //Total number of segments sent
-   MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpOutSegs, 1);
-   MIB2_INC_COUNTER64(mib2Base.tcpGroup.tcpHCOutSegs, 1);
+   MIB2_INC_COUNTER32(tcpGroup.tcpOutSegs, 1);
+   TCP_MIB_INC_COUNTER32(tcpOutSegs, 1);
+   TCP_MIB_INC_COUNTER64(tcpHCOutSegs, 1);
 
    //RST flag set?
    if(flags & TCP_FLAG_RST)
    {
       //Number of TCP segments sent containing the RST flag
-      MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpOutRsts, 1);
+      MIB2_INC_COUNTER32(tcpGroup.tcpOutRsts, 1);
+      TCP_MIB_INC_COUNTER32(tcpOutRsts, 1);
    }
 
    //Debug message
@@ -380,11 +383,13 @@ error_t tcpSendResetSegment(NetInterface *interface,
    }
 
    //Total number of segments sent
-   MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpOutSegs, 1);
-   MIB2_INC_COUNTER64(mib2Base.tcpGroup.tcpHCOutSegs, 1);
+   MIB2_INC_COUNTER32(tcpGroup.tcpOutSegs, 1);
+   TCP_MIB_INC_COUNTER32(tcpOutSegs, 1);
+   TCP_MIB_INC_COUNTER64(tcpHCOutSegs, 1);
 
    //Number of TCP segments sent containing the RST flag
-   MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpOutRsts, 1);
+   MIB2_INC_COUNTER32(tcpGroup.tcpOutRsts, 1);
+   TCP_MIB_INC_COUNTER32(tcpOutRsts, 1);
 
    //Debug message
    TRACE_DEBUG("%s: Sending TCP reset segment...\r\n",
@@ -1458,7 +1463,8 @@ error_t tcpRetransmitSegment(Socket *socket)
             break;
 
          //Total number of segments retransmitted
-         MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpRetransSegs, 1);
+         MIB2_INC_COUNTER32(tcpGroup.tcpRetransSegs, 1);
+         TCP_MIB_INC_COUNTER32(tcpRetransSegs, 1);
 
          //Dump TCP header contents for debugging purpose
          tcpDumpHeader(header, queueItem->length, socket->iss, socket->irs);
@@ -1515,16 +1521,15 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
    //Retrieve the size of the usable window
    u = n - (socket->sndNxt - socket->sndUna);
 
-   //The remote host should not shrink its window. However, we
-   //must be robust against window shrinking, which may cause
-   //the usable window to become negative
-   if((int_t) u < 0)
-      return NO_ERROR;
-
    //The Nagle algorithm discourages sending tiny segments when
    //the data to be sent increases in small increments
    while(socket->sndUser > 0)
    {
+      //The usable window size may become zero or negative,
+      //preventing packet transmission
+      if((int_t) u <= 0)
+         break;
+
       //Calculate the number of bytes to send at a time
       n = MIN(u, socket->sndUser);
       n = MIN(n, socket->smss);

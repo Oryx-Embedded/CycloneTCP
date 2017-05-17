@@ -38,6 +38,10 @@
 #include <string.h>
 #include <ctype.h>
 #include "core/net.h"
+#include "core/ip.h"
+#include "core/udp.h"
+#include "core/tcp_fsm.h"
+#include "core/raw_socket.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_frag.h"
 #include "ipv6/ipv6_misc.h"
@@ -51,9 +55,7 @@
 #include "ipv6/ndp_router_adv.h"
 #include "ipv6/slaac.h"
 #include "dhcpv6/dhcpv6_client.h"
-#include "core/udp.h"
-#include "core/tcp_fsm.h"
-#include "core/raw_socket.h"
+#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -513,6 +515,10 @@ error_t ipv6SetPrefix(NetInterface *interface,
    //Check prefix length
    if(length > 0)
    {
+      //Set On-link and Autonomous flags
+      entry->onLinkFlag = TRUE;
+      entry->autonomousFlag = FALSE;
+
       //Manually assigned prefixes have infinite lifetime
       entry->validLifetime = INFINITE_DELAY;
       entry->preferredLifetime = INFINITE_DELAY;
@@ -622,6 +628,8 @@ error_t ipv6SetDefaultRouter(NetInterface *interface, uint_t index, const Ipv6Ad
 
    //Set up router address
    entry->addr = *addr;
+   //Preference value
+   entry->preference = 0;
 
    //Valid IPv6 address?
    if(!ipv6CompAddr(addr, &IPV6_UNSPECIFIED_ADDR))
@@ -867,12 +875,32 @@ void ipv6ProcessPacket(NetInterface *interface,
    Ipv6Header *ipHeader;
    IpPseudoHeader pseudoHeader;
 
+   //Total number of input datagrams received, including those received in error
+   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInReceives, 1);
+   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInReceives, 1);
+   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInReceives, 1);
+   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInReceives, 1);
+
    //Retrieve the length of the IPv6 packet
    length = netBufferGetLength(ipPacket);
 
+   //Total number of octets received in input IP datagrams
+   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInOctets, length);
+   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInOctets, length);
+   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInOctets, length);
+   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInOctets, length);
+
    //Ensure the packet length is greater than 40 bytes
    if(length < sizeof(Ipv6Header))
+   {
+      //Number of input IP datagrams discarded because the datagram frame
+      //didn't carry enough data
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInTruncatedPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInTruncatedPkts, 1);
+
+      //Discard the received packet
       return;
+   }
 
    //Point to the IPv6 header
    ipHeader = netBufferAt(ipPacket, ipPacketOffset);
@@ -887,13 +915,37 @@ void ipv6ProcessPacket(NetInterface *interface,
 
    //Check IP version number
    if(ipHeader->version != IPV6_VERSION)
+   {
+      //Number of input datagrams discarded due to errors in their IP headers
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+
+      //Discard the received packet
       return;
+   }
+
    //Ensure the payload length is correct before processing the packet
    if(ntohs(ipHeader->payloadLength) > (length - sizeof(Ipv6Header)))
+   {
+      //Number of input IP datagrams discarded because the datagram frame
+      //didn't carry enough data
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInTruncatedPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInTruncatedPkts, 1);
+
+      //Discard the received packet
       return;
+   }
+
    //Source address filtering
    if(ipv6CheckSourceAddr(interface, &ipHeader->srcAddr))
+   {
+      //Number of input datagrams discarded due to errors in their IP headers
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInHdrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+
+      //Discard the received packet
       return;
+   }
 
 #if defined(IPV6_PACKET_FORWARD_HOOK)
    IPV6_PACKET_FORWARD_HOOK(interface, ipPacket, ipPacketOffset);
@@ -901,14 +953,22 @@ void ipv6ProcessPacket(NetInterface *interface,
    //Destination address filtering
    if(ipv6CheckDestAddr(interface, &ipHeader->destAddr))
    {
-#if(IPV6_ROUTING_SUPPORT == ENABLED)
+#if (IPV6_ROUTING_SUPPORT == ENABLED)
       //Forward the packet according to the routing table
       ipv6ForwardPacket(interface, ipPacket, ipPacketOffset);
+#else
+      //Number of input datagrams discarded because the destination IP address
+      //was not a valid address
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInAddrErrors, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
 #endif
       //We are done
       return;
    }
 #endif
+
+   //Update IP statistics
+   ipv6UpdateInStats(interface, &ipHeader->destAddr, length);
 
    //Calculate the effective length of the multi-part buffer
    length = ipPacketOffset + sizeof(Ipv6Header) +
@@ -943,8 +1003,8 @@ void ipv6ProcessPacket(NetInterface *interface,
       pseudoHeader.ipv6Data.length = htonl(length - i);
       pseudoHeader.ipv6Data.nextHeader = *type;
 
-      //Each extension header is identified by the
-      //Next Header field of the preceding header
+      //Each extension header is identified by the Next Header field of
+      //the preceding header
       switch(*type)
       {
       //Hop-by-Hop Options header?
@@ -1023,6 +1083,14 @@ void ipv6ProcessPacket(NetInterface *interface,
             //Process incoming TCP segment
             tcpProcessSegment(interface, &pseudoHeader, ipPacket, i);
          }
+         else
+         {
+            //Number of input datagrams discarded because the destination IP address
+            //was not a valid address
+            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInAddrErrors, 1);
+            IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
+         }
+
          //Exit immediately
          return;
 #endif
@@ -1046,6 +1114,14 @@ void ipv6ProcessPacket(NetInterface *interface,
                   ICMPV6_CODE_PORT_UNREACHABLE, 0, ipPacket, ipPacketOffset);
             }
          }
+         else
+         {
+            //Number of input datagrams discarded because the destination IP address
+            //was not a valid address
+            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInAddrErrors, 1);
+            IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
+         }
+
          //Exit immediately
          return;
 #endif
@@ -1070,6 +1146,13 @@ void ipv6ProcessPacket(NetInterface *interface,
             //Send an ICMP Parameter Problem message
             icmpv6SendErrorMessage(interface, ICMPV6_TYPE_PARAM_PROBLEM,
                ICMPV6_CODE_UNKNOWN_NEXT_HEADER, n, ipPacket, ipPacketOffset);
+         }
+         else
+         {
+            //Number of input datagrams discarded because the destination IP address
+            //was not a valid address
+            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInAddrErrors, 1);
+            IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
          }
 
          //Discard incoming packet
@@ -1477,6 +1560,13 @@ error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    size_t length;
    size_t pathMtu;
 
+   //Total number of IP datagrams which local IP user-protocols supplied to IP
+   //in requests for transmission
+   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutRequests, 1);
+   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutRequests, 1);
+   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutRequests, 1);
+   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutRequests, 1);
+
    //Retrieve the length of payload
    length = netBufferGetLength(buffer) - offset;
 
@@ -1603,7 +1693,7 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    packet->srcAddr = pseudoHeader->srcAddr;
    packet->destAddr = pseudoHeader->destAddr;
 
-   //Check whether the source address is acceptable
+   //Ensure the source address is valid
    error = ipv6CheckSourceAddr(interface, &pseudoHeader->srcAddr);
    //Invalid source address?
    if(error)
@@ -1618,8 +1708,12 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    //Destination address is the loopback address?
    else if(ipv6CompAddr(&pseudoHeader->destAddr, &IPV6_LOOPBACK_ADDR))
    {
-      //Not yet implemented...
-      return ERROR_NOT_IMPLEMENTED;
+      //Check source address
+      if(!ipv6CompAddr(&pseudoHeader->srcAddr, &IPV6_LOOPBACK_ADDR))
+      {
+         //Destination address is not acceptable
+         return ERROR_INVALID_ADDRESS;
+      }
    }
 
 #if (ETH_SUPPORT == ENABLED)
@@ -1672,6 +1766,12 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
                entry->timestamp = osGetSystemTime();
             }
          }
+         else if(error == ERROR_NO_ROUTE)
+         {
+            //Number of IP datagrams discarded because no route could be found
+            //to transmit them to their destination
+            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutNoRoutes, 1);
+         }
       }
 
       //Successful next-hop determination?
@@ -1692,6 +1792,9 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
          //Successful address resolution?
          if(error == NO_ERROR)
          {
+            //Update IP statistics
+            ipv6UpdateOutStats(interface, &destIpAddr, length);
+
             //Debug message
             TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
             //Dump IP header contents for debugging purpose
@@ -1725,6 +1828,9 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    //PPP interface?
    if(interface->nicDriver->type == NIC_TYPE_PPP)
    {
+      //Update IP statistics
+      ipv6UpdateOutStats(interface, &pseudoHeader->destAddr, length);
+
       //Debug message
       TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
       //Dump IP header contents for debugging purpose
@@ -1738,6 +1844,9 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    //6LoWPAN interface?
    if(interface->nicDriver->type == NIC_TYPE_6LOWPAN)
    {
+      //Update IP statistics
+      ipv6UpdateOutStats(interface, &pseudoHeader->destAddr, length);
+
       //Debug message
       TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
       //Dump IP header contents for debugging purpose
@@ -1902,6 +2011,74 @@ error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAd
 
    //The specified IPv6 address does not exist
    return ERROR_ADDRESS_NOT_FOUND;
+}
+
+
+/**
+ * @brief Update IPv6 input statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destIpAddr Destination IP address
+ * @param[in] length Length of the incoming IP packet
+ **/
+
+void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length)
+{
+   //Check whether the destination address is a unicast or multicast address
+   if(ipv6IsMulticastAddr(destIpAddr))
+   {
+      //Number of IP multicast datagrams transmitted
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInMcastPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInMcastPkts, 1);
+
+      //Total number of octets transmitted in IP multicast datagrams
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInMcastOctets, length);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInMcastOctets, length);
+   }
+}
+
+
+/**
+ * @brief Update IPv6 output statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destIpAddr Destination IP address
+ * @param[in] length Length of the outgoing IP packet
+ **/
+
+void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length)
+{
+   //Check whether the destination address is a unicast or multicast address
+   if(ipv6IsMulticastAddr(destIpAddr))
+   {
+      //Number of IP multicast datagrams transmitted
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutMcastPkts, 1);
+
+      //Total number of octets transmitted in IP multicast datagrams
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutMcastOctets, length);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutMcastOctets, length);
+   }
+
+   //Total number of IP datagrams that this entity supplied to the lower
+   //layers for transmission
+   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutTransmits, 1);
+   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutTransmits, 1);
+   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutTransmits, 1);
+   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutTransmits, 1);
+
+   //Total number of octets in IP datagrams delivered to the lower layers
+   //for transmission
+   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutOctets, length);
+   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutOctets, length);
+   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutOctets, length);
+   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutOctets, length);
 }
 
 

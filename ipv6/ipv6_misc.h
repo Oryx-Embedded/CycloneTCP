@@ -36,8 +36,9 @@
 //IPv6 related functions
 Ipv6AddrState ipv6GetAddrState(NetInterface *interface, const Ipv6Addr *addr);
 
-error_t ipv6SetAddr(NetInterface *interface, uint_t index, const Ipv6Addr *addr,
-   Ipv6AddrState state, systime_t validLifetime, systime_t preferredLifetime, bool_t permanent);
+error_t ipv6SetAddr(NetInterface *interface, uint_t index,
+   const Ipv6Addr *addr, Ipv6AddrState state, systime_t validLifetime,
+   systime_t preferredLifetime, bool_t permanent);
 
 void ipv6AddAddr(NetInterface *interface, const Ipv6Addr *addr,
    uint32_t validLifetime, uint32_t preferredLifetime);
@@ -45,12 +46,13 @@ void ipv6AddAddr(NetInterface *interface, const Ipv6Addr *addr,
 void ipv6RemoveAddr(NetInterface *interface, const Ipv6Addr *addr);
 
 void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
-   uint_t length, uint32_t validLifetime, uint32_t preferredLifetime);
+   uint_t length, bool_t onLinkFlag, bool_t autonomousFlag,
+   uint32_t validLifetime, uint32_t preferredLifetime);
 
 void ipv6RemovePrefix(NetInterface *interface, const Ipv6Addr *prefix, uint_t length);
 
-void ipv6AddDefaultRouter(NetInterface *interface,
-   const Ipv6Addr *addr, uint16_t lifetime);
+void ipv6AddDefaultRouter(NetInterface *interface, const Ipv6Addr *addr,
+   uint16_t lifetime, uint8_t preference);
 
 void ipv6RemoveDefaultRouter(NetInterface *interface, const Ipv6Addr *addr);
 
@@ -80,6 +82,6 @@ error_t ipv6ComputeSolicitedNodeAddr(const Ipv6Addr *ipAddr,
 
 error_t ipv6MapMulticastAddrToMac(const Ipv6Addr *ipAddr, MacAddr *macAddr);
 
-void ipv6GenerateLinkLocalAddr(const Eui64* interfaceId, Ipv6Addr *ipAddr);
+void ipv6GenerateLinkLocalAddr(const Eui64 *interfaceId, Ipv6Addr *ipAddr);
 
 #endif

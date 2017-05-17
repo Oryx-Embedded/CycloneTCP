@@ -63,7 +63,7 @@
 
 //Maximum number of MIBs
 #ifndef SNMP_AGENT_MAX_MIB_COUNT
-   #define SNMP_AGENT_MAX_MIB_COUNT 4
+   #define SNMP_AGENT_MAX_MIB_COUNT 8
 #elif (SNMP_AGENT_MAX_MIB_COUNT < 1)
    #error SNMP_AGENT_MAX_MIB_COUNT parameter is not valid
 #endif
@@ -103,7 +103,6 @@ typedef struct
    size_t enterpriseOidLen;                              ///<Length of the enterprise OID
    SnmpUserInfo userTable[SNMP_AGENT_MAX_USER_COUNT];    ///<List of users
    const MibModule *mibModule[SNMP_AGENT_MAX_MIB_COUNT]; ///<MIB modules
-   uint_t mibModuleCount;                                ///<Number of MIB modules
    Socket *socket;                                       ///<Underlying socket
    IpAddr remoteIpAddr;                                  ///<IP address of the remote SNMP engine
    uint16_t remotePort;                                  ///<Source port used by the remote SNMP engine
@@ -141,6 +140,9 @@ error_t snmpAgentStart(SnmpAgentContext *context);
 
 error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module);
 error_t snmpAgentUnloadMib(SnmpAgentContext *context, const MibModule *module);
+
+error_t snmpAgentSetVersion(SnmpAgentContext *context,
+   SnmpVersion versionMin, SnmpVersion versionMax);
 
 error_t snmpAgentSetEngineBoots(SnmpAgentContext *context, int32_t engineBoots);
 error_t snmpAgentGetEngineBoots(SnmpAgentContext *context, int32_t *engineBoots);

@@ -53,7 +53,9 @@ typedef enum
    ICMP_TYPE_TIMESTAMP_REQUEST = 13,
    ICMP_TYPE_TIMESTAMP_REPLY   = 14,
    ICMP_TYPE_INFO_REQUEST      = 15,
-   ICMP_TYPE_INFO_REPLY        = 16
+   ICMP_TYPE_INFO_REPLY        = 16,
+   ICMP_TYPE_ADDR_MASK_REQUEST = 17,
+   ICMP_TYPE_ADDR_MASK_REPLY   = 18
 } IcmpType;
 
 
@@ -190,6 +192,9 @@ void icmpProcessEchoRequest(NetInterface *interface,
 
 error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code,
    uint8_t parameter, const NetBuffer *ipPacket, size_t ipPacketOffset);
+
+void icmpUpdateInStats(uint8_t type);
+void icmpUpdateOutStats(uint8_t type);
 
 void icmpDumpMessage(const IcmpHeader *message);
 void icmpDumpEchoMessage(const IcmpEchoMessage *message);

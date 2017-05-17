@@ -69,7 +69,7 @@ static const char months[13][4] =
  **/
 
 void ftpServerControlEventHandler(FtpServerContext *context,
-   FtpClientConnection * connection, uint_t eventFlags)
+   FtpClientConnection *connection, uint_t eventFlags)
 {
    error_t error;
    size_t n;
@@ -157,7 +157,7 @@ void ftpServerControlEventHandler(FtpServerContext *context,
  **/
 
 void ftpServerDataEventHandler(FtpServerContext *context,
-   FtpClientConnection * connection, uint_t eventFlags)
+   FtpClientConnection *connection, uint_t eventFlags)
 {
    //Any connection attempt?
    if(connection->dataState == FTP_DATA_STATE_LISTEN)

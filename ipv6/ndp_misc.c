@@ -76,8 +76,8 @@ void ndpParsePrefixInfoOption(NetInterface *interface, NdpPrefixInfoOption *opti
       //If the prefix is not already present in the Prefix List, create a new
       //entry for the prefix. If the prefix is already present in the list,
       //reset its invalidation timer
-      ipv6AddPrefix(interface, &option->prefix, option->prefixLength,
-         ntohl(option->validLifetime), ntohl(option->preferredLifetime));
+      ipv6AddPrefix(interface, &option->prefix, option->prefixLength, option->l,
+         option->a, ntohl(option->validLifetime), ntohl(option->preferredLifetime));
    }
    else
    {

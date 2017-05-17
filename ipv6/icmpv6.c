@@ -47,6 +47,7 @@
 #include "ipv6/mld.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv.h"
+#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -95,15 +96,20 @@ void icmpv6ProcessMessage(NetInterface *interface, Ipv6PseudoHeader *pseudoHeade
    size_t length;
    Icmpv6Header *header;
 
+   //Total number of ICMP messages which the entity received
+   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsInMsgs, 1);
+
    //Retrieve the length of the ICMPv6 message
    length = netBufferGetLength(buffer) - offset;
 
    //Ensure the message length is correct
    if(length < sizeof(Icmpv6Header))
    {
-      //Debug message
-      TRACE_WARNING("ICMPv6 message length is invalid!\r\n");
-      //Exit immediately
+      //Number of ICMP messages which the entity received but determined
+      //as having ICMP-specific errors
+      IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsInErrors, 1);
+
+      //Silently discard incoming message
       return;
    }
 
@@ -125,6 +131,11 @@ void icmpv6ProcessMessage(NetInterface *interface, Ipv6PseudoHeader *pseudoHeade
    {
       //Debug message
       TRACE_WARNING("Wrong ICMPv6 header checksum!\r\n");
+
+      //Number of ICMP messages which the entity received but determined
+      //as having ICMP-specific errors
+      IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsInErrors, 1);
+
       //Exit immediately
       return;
    }
@@ -142,6 +153,9 @@ void icmpv6ProcessMessage(NetInterface *interface, Ipv6PseudoHeader *pseudoHeade
          return;
       }
    }
+
+   //Increment per-message type ICMP counter
+   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsInPkts[header->type], 1);
 
    //Check the type of message
    switch(header->type)
@@ -263,7 +277,7 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
 
 #if (IPV6_PMTU_SUPPORT == ENABLED)
    uint32_t tentativePathMtu;
-   Ipv6Header* ipHeader;
+   Ipv6Header *ipHeader;
 #endif
 
    //Retrieve the length of the Packet Too Big message
@@ -414,6 +428,11 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
       //Message checksum calculation
       replyHeader->checksum = ipCalcUpperLayerChecksumEx(&replyPseudoHeader,
          sizeof(Ipv6PseudoHeader), reply, replyOffset, replyLength);
+
+      //Total number of ICMP messages which this entity attempted to send
+      IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+      //Increment per-message type ICMP counter
+      IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_ECHO_REPLY], 1);
 
       //Debug message
       TRACE_INFO("Sending ICMPv6 Echo Reply message (%" PRIuSIZE " bytes)...\r\n", replyLength);
@@ -568,6 +587,11 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type, uint8_t co
          //Message checksum calculation
          icmpHeader->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
             sizeof(Ipv6PseudoHeader), icmpMessage, offset, length);
+
+         //Total number of ICMP messages which this entity attempted to send
+         IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+         //Increment per-message type ICMP counter
+         IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[type], 1);
 
          //Debug message
          TRACE_INFO("Sending ICMPv6 Error message (%" PRIuSIZE " bytes)...\r\n", length);

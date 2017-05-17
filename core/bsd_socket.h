@@ -234,8 +234,8 @@ typedef struct sockaddr_in6
 
 typedef struct fd_set
 {
-  int_t fd_count;
-  int_t fd_array[FD_SETSIZE];
+   int_t fd_count;
+   int_t fd_array[FD_SETSIZE];
 } fd_set;
 
 
@@ -245,8 +245,8 @@ typedef struct fd_set
 
 typedef struct timeval
 {
-   uint32_t tv_sec;
-   uint32_t tv_usec;
+   int32_t tv_sec;
+   int32_t tv_usec;
 } timeval;
 
 

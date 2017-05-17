@@ -166,7 +166,7 @@ typedef __start_packed struct
    uint8_t type : 4;   //0
    uint8_t dup : 1;
    uint8_t qos : 2;
-   uint8_t retain: 1;
+   uint8_t retain : 1;
 #else
    uint8_t retain : 1; //0
    uint8_t qos : 2;

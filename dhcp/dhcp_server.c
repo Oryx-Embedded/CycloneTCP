@@ -923,7 +923,7 @@ DhcpServerBinding *dhcpServerCreateBinding(DhcpServerContext *context)
  **/
 
 DhcpServerBinding *dhcpServerFindBindingByMacAddr(DhcpServerContext *context,
-   const MacAddr* macAddr)
+   const MacAddr *macAddr)
 {
    uint_t i;
    DhcpServerBinding *binding;

@@ -134,9 +134,6 @@ error_t netInit(void)
    //Clear configuration data for each interface
    memset(netInterface, 0, sizeof(netInterface));
 
-   //Save the number of interfaces
-   MIB2_SET_INTEGER(mib2Base.ifGroup.ifNumber, NET_INTERFACE_COUNT);
-
    //Loop through network interfaces
    for(i = 0; i < NET_INTERFACE_COUNT; i++)
    {
@@ -145,26 +142,13 @@ error_t netInit(void)
 
       //Default interface name
       sprintf(interface->name, "eth%u", i);
-      //Default interface identifier
+
+      //Zero-based index
+      interface->index = i;
+      //Unique number identifying the interface
       interface->id = i;
       //Default PHY address
       interface->phyAddr = UINT8_MAX;
-
-#if (MIB2_SUPPORT == ENABLED)
-      //MIB ifEntry object
-      interface->mibIfEntry = &mib2Base.ifGroup.ifTable[i];
-#endif
-
-      //Interface identifier
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifIndex, i + 1);
-      //Interface name
-      MIB2_SET_OCTET_STRING(interface->mibIfEntry->ifDescr, interface->name, strlen(interface->name));
-      MIB2_SET_OCTET_STRING_LEN(interface->mibIfEntry->ifDescrLen, strlen(interface->name));
-      //Default interface type
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifType, MIB2_IF_TYPE_OTHER);
-      //Default interface state
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifAdminStatus, MIB2_IF_ADMIN_STATUS_DOWN);
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifOperStatus, MIB2_IF_OPER_STATUS_DOWN);
    }
 
    //Create a mutex to prevent simultaneous access to the callback table
@@ -329,10 +313,6 @@ error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr)
    //Generate the 64-bit interface identifier
    macAddrToEui64(macAddr, &interface->eui64);
 
-   //Interface's physical address
-   MIB2_SET_OCTET_STRING(interface->mibIfEntry->ifPhysAddress, &interface->macAddr, 6);
-   MIB2_SET_OCTET_STRING_LEN(interface->mibIfEntry->ifPhysAddressLen, 6);
-
    //Release exclusive access
    osReleaseMutex(&netMutex);
 #endif
@@ -453,10 +433,6 @@ error_t netSetInterfaceId(NetInterface *interface, uint32_t id)
 
 error_t netSetInterfaceName(NetInterface *interface, const char_t *name)
 {
-#if (MIB2_SUPPORT == ENABLED)
-   size_t n;
-#endif
-
    //Check parameters
    if(interface == NULL || name == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -466,15 +442,6 @@ error_t netSetInterfaceName(NetInterface *interface, const char_t *name)
 
    //Set interface name
    strSafeCopy(interface->name, name, NET_MAX_IF_NAME_LEN);
-
-#if (MIB2_SUPPORT == ENABLED)
-   //Get the length of the string
-   n = strlen(interface->name);
-
-   //Text string containing information about the interface
-   MIB2_SET_OCTET_STRING(interface->mibIfEntry->ifDescr, interface->name, n);
-   MIB2_SET_OCTET_STRING_LEN(interface->mibIfEntry->ifDescrLen, n);
-#endif
 
    //Release exclusive access
    osReleaseMutex(&netMutex);
@@ -556,37 +523,8 @@ error_t netSetDriver(NetInterface *interface, const NicDriver *driver)
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
-
    //Set Ethernet MAC driver
    interface->nicDriver = driver;
-
-   //Set interface type
-   if(driver->type == NIC_TYPE_ETHERNET)
-   {
-      //Ethernet interface
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifType, MIB2_IF_TYPE_ETHERNET_CSMACD);
-   }
-   else if(driver->type == NIC_TYPE_PPP)
-   {
-      //PPP interface
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifType, MIB2_IF_TYPE_PPP);
-   }
-   else if(driver->type == NIC_TYPE_6LOWPAN)
-   {
-      //IEEE 802.15.4 WPAN interface
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifType, MIB2_IF_TYPE_IEEE_802_15_4);
-   }
-   else
-   {
-      //Unknown interface type
-      MIB2_SET_INTEGER(interface->mibIfEntry->ifType, MIB2_IF_TYPE_OTHER);
-   }
-
-   //Set interface MTU
-   MIB2_SET_INTEGER(interface->mibIfEntry->ifMtu, driver->mtu);
-   //Update interface state
-   MIB2_SET_INTEGER(interface->mibIfEntry->ifAdminStatus, MIB2_IF_ADMIN_STATUS_UP);
-
    //Release exclusive access
    osReleaseMutex(&netMutex);
 
@@ -827,10 +765,6 @@ error_t netConfigInterface(NetInterface *interface)
       //Any error to report?
       if(error)
          break;
-
-      //Interface's physical address
-      MIB2_SET_OCTET_STRING(interface->mibIfEntry->ifPhysAddress, &interface->macAddr, 6);
-      MIB2_SET_OCTET_STRING_LEN(interface->mibIfEntry->ifPhysAddressLen, 6);
 #endif
 
 #if (IPV4_SUPPORT == ENABLED)
@@ -1317,7 +1251,7 @@ void netTick(void)
 #endif
 
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
-NBNS_CLIENT_SUPPORT == ENABLED)
+   NBNS_CLIENT_SUPPORT == ENABLED)
    //Increment tick counter
    dnsTickCounter += NET_TICK_INTERVAL;
 
@@ -1395,30 +1329,30 @@ error_t netInitRand(uint32_t seed)
 
 /**
  * @brief Get a random value
- * @return Error code
+ * @return Random value
  **/
 
 uint32_t netGetRand(void)
 {
-   uint32_t result;
+   uint32_t value;
 
    //Use a linear congruential generator (LCG) to update the state of the PRNG
    prngState *= 1103515245;
    prngState += 12345;
-   result = (prngState >> 16) & 0x07FF;
+   value = (prngState >> 16) & 0x07FF;
 
    prngState *= 1103515245;
    prngState += 12345;
-   result <<= 10;
-   result |= (prngState >> 16) & 0x03FF;
+   value <<= 10;
+   value |= (prngState >> 16) & 0x03FF;
 
    prngState *= 1103515245;
    prngState += 12345;
-   result <<= 10;
-   result |= (prngState >> 16) & 0x03FF;
+   value <<= 10;
+   value |= (prngState >> 16) & 0x03FF;
 
-   //Return the resulting value
-   return result;
+   //Return the random value
+   return value;
 }
 
 
@@ -1431,8 +1365,22 @@ uint32_t netGetRand(void)
 
 int32_t netGetRandRange(int32_t min, int32_t max)
 {
-   //Return a random value in the given range
-   return min + netGetRand() % (max - min + 1);
+   int32_t value;
+
+   //Valid parameters?
+   if(max > min)
+   {
+      //Pick up a random value in the given range
+      value = min + (netGetRand() % (max - min + 1));
+   }
+   else
+   {
+      //Use default value
+      value = min;
+   }
+
+   //Return the random value
+   return value;
 }
 
 

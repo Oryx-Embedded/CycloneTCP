@@ -151,7 +151,7 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
 DhcpServerBinding *dhcpServerCreateBinding(DhcpServerContext *context);
 
 DhcpServerBinding *dhcpServerFindBindingByMacAddr(DhcpServerContext *context,
-   const MacAddr* macAddr);
+   const MacAddr *macAddr);
 
 DhcpServerBinding *dhcpServerFindBindingByIpAddr(DhcpServerContext *context,
    Ipv4Addr ipAddr);

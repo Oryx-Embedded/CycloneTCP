@@ -129,6 +129,8 @@ error_t autoIpInit(AutoIpContext *context, const AutoIpSettings *settings)
 
 error_t autoIpStart(AutoIpContext *context)
 {
+   NetInterface *interface;
+
    //Check parameter
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -138,6 +140,16 @@ error_t autoIpStart(AutoIpContext *context)
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
+
+   //Point to the underlying network interface
+   interface = context->settings.interface;
+
+   //The host address is not longer valid
+   interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
+   interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+
+   //Clear subnet mask
+   interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
 
    //Start Auto-IP operation
    context->running = TRUE;
@@ -443,13 +455,13 @@ void autoIpLinkChangeEvent(AutoIpContext *context)
       interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
       interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
 
+      //Clear subnet mask
+      interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
+
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
       //Restart mDNS probing process
       mdnsResponderStartProbing(interface->mdnsResponderContext);
 #endif
-
-      //Clear subnet mask
-      interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
    }
 
    //Reinitialize state machine

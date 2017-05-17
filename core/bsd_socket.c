@@ -1539,7 +1539,7 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
    fd_set *fds;
 
    //Parse all the descriptor sets
-   for(i = 0; i < 3; i ++)
+   for(i = 0; i < 3; i++)
    {
       //Select the suitable descriptor set
       switch(i)
@@ -1582,7 +1582,7 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
    }
 
    //Parse all the descriptor sets
-   for(i = 0; i < 3; i ++)
+   for(i = 0; i < 3; i++)
    {
       //Select the suitable descriptor set
       switch(i)
@@ -1631,7 +1631,7 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
    n = 0;
 
    //Parse all the descriptor sets
-   for(i = 0; i < 3; i ++)
+   for(i = 0; i < 3; i++)
    {
       //Select the suitable descriptor set
       switch(i)

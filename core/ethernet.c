@@ -43,6 +43,7 @@
 #include "ipv4/ipv4.h"
 #include "ipv6/ipv6.h"
 #include "mibs/mib2_module.h"
+#include "mibs/if_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -174,13 +175,17 @@ void ethProcessFrame(NetInterface *interface, EthHeader *ethFrame, size_t length
    uint32_t crc;
 
    //Total number of octets received on the interface
-   MIB2_INC_COUNTER32(interface->mibIfEntry->ifInOctets, length);
+   MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInOctets, length);
+   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInOctets, length);
+   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInOctets, length);
 
    //Ensure the length of the incoming frame is valid
    if(length < sizeof(EthHeader))
    {
       //Number of inbound packets that contained errors
-      MIB2_INC_COUNTER32(interface->mibIfEntry->ifInErrors, 1);
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInErrors, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInErrors, 1);
+
       //Discard the received frame
       return;
    }
@@ -197,7 +202,9 @@ void ethProcessFrame(NetInterface *interface, EthHeader *ethFrame, size_t length
       if(length < (sizeof(EthHeader) + ETH_CRC_SIZE))
       {
          //Number of inbound packets that contained errors
-         MIB2_INC_COUNTER32(interface->mibIfEntry->ifInErrors, 1);
+         MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInErrors, 1);
+         IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInErrors, 1);
+
          //Discard the received frame
          return;
       }
@@ -210,8 +217,11 @@ void ethProcessFrame(NetInterface *interface, EthHeader *ethFrame, size_t length
          {
             //Debug message
             TRACE_WARNING("Wrong CRC detected!\r\n");
+
             //Number of inbound packets that contained errors
-            MIB2_INC_COUNTER32(interface->mibIfEntry->ifInErrors, 1);
+            MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInErrors, 1);
+            IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInErrors, 1);
+
             //Discard the received frame
             return;
          }
@@ -228,22 +238,15 @@ void ethProcessFrame(NetInterface *interface, EthHeader *ethFrame, size_t length
    {
       //Number of inbound packets which were chosen to be discarded
       //even though no errors had been detected
-      MIB2_INC_COUNTER32(interface->mibIfEntry->ifInDiscards, 1);
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+
       //Discard the received frame
       return;
    }
 
-   //Check whether the destination address is a group address
-   if(macIsMulticastAddr(&ethFrame->destAddr))
-   {
-      //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(interface->mibIfEntry->ifInNUcastPkts, 1);
-   }
-   else
-   {
-      //Number of unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(interface->mibIfEntry->ifInUcastPkts, 1);
-   }
+   //Update Ethernet statistics
+   ethUpdateInStats(interface, &ethFrame->destAddr);
 
 #if (RAW_SOCKET_SUPPORT == ENABLED)
    //Allow raw sockets to process Ethernet packets
@@ -295,7 +298,9 @@ void ethProcessFrame(NetInterface *interface, EthHeader *ethFrame, size_t length
 
       //Number of packets received via the interface which were
       //discarded because of an unknown or unsupported protocol
-      MIB2_INC_COUNTER32(interface->mibIfEntry->ifInUnknownProtos , 1);
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInUnknownProtos, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUnknownProtos, 1);
+
       break;
    }
 }
@@ -378,22 +383,8 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
       length += sizeof(crc);
    }
 
-   //Total number of octets transmitted out of the interface
-   MIB2_INC_COUNTER32(interface->mibIfEntry->ifOutOctets, length);
-
-   //Check whether the destination address is a group address
-   if(macIsMulticastAddr(&header->destAddr))
-   {
-      //Total number of non-unicast packets that higher-level protocols
-      //requested be transmitted
-      MIB2_INC_COUNTER32(interface->mibIfEntry->ifOutNUcastPkts, 1);
-   }
-   else
-   {
-      //Total number of unicast packets that higher-level protocols
-      //requested be transmitted
-      MIB2_INC_COUNTER32(interface->mibIfEntry->ifOutUcastPkts, 1);
-   }
+   //Update Ethernet statistics
+   ethUpdateOutStats(interface, &header->destAddr, length);
 
    //Debug message
    TRACE_DEBUG("Sending Ethernet frame (%" PRIuSIZE " bytes)...\r\n", length);
@@ -422,7 +413,7 @@ error_t ethCheckDestAddr(NetInterface *interface, const MacAddr *macAddr)
    //Filter out any invalid addresses
    error_t error = ERROR_INVALID_ADDRESS;
 
-   //Host address?
+   //Interface MAC address?
    if(macCompAddr(macAddr, &interface->macAddr))
    {
       error = NO_ERROR;
@@ -741,6 +732,86 @@ NetBuffer *ethAllocBuffer(size_t length, size_t *offset)
 
    //Return a pointer to the freshly allocated buffer
    return buffer;
+}
+
+
+/**
+ * @brief Update Ethernet input statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destIpAddr Destination MAC address
+ **/
+
+void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr)
+{
+   //Check whether the destination address is a unicast, broadcast or multicast address
+   if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
+   {
+      //Number of non-unicast packets delivered to a higher-layer protocol
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
+
+      //Number of broadcast packets delivered to a higher-layer protocol
+      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInBroadcastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInBroadcastPkts, 1);
+   }
+   else if(macIsMulticastAddr(destMacAddr))
+   {
+      //Number of non-unicast packets delivered to a higher-layer protocol
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
+
+      //Number of multicast packets delivered to a higher-layer protocol
+      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInMulticastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInMulticastPkts, 1);
+   }
+   else
+   {
+      //Number of unicast packets delivered to a higher-layer protocol
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInUcastPkts, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUcastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInUcastPkts, 1);
+   }
+}
+
+
+/**
+ * @brief Update Ethernet output statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destIpAddr Destination MAC address
+ * @param[in] length Length of the outgoing Ethernet frame
+ **/
+
+void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr, size_t length)
+{
+   //Total number of octets transmitted out of the interface
+   MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutOctets, length);
+   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
+   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutOctets, length);
+
+   //Check whether the destination address is a unicast, broadcast or multicast address
+   if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
+   {
+      //Number of non-unicast packets that higher-level protocols requested be transmitted
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
+
+      //Number of broadcast packets that higher-level protocols requested be transmitted
+      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutBroadcastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutBroadcastPkts, 1);
+   }
+   else if(macIsMulticastAddr(destMacAddr))
+   {
+      //Number of non-unicast packets that higher-level protocols requested be transmitted
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
+
+      //Number of multicast packets that higher-level protocols requested be transmitted
+      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutMulticastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutMulticastPkts, 1);
+   }
+   else
+   {
+      //Number of unicast packets that higher-level protocols requested be transmitted
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutUcastPkts, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutUcastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutUcastPkts, 1);
+   }
 }
 
 

@@ -475,7 +475,7 @@ error_t snmpEncryptData(const SnmpUserInfo *user, SnmpMessage *message, uint64_t
 
       //The data to be encrypted is treated as sequence of octets. Its length
       //should be an integral multiple of 8
-      if(message->length % 8)
+      if((message->length % 8) != 0)
       {
          //If it is not, the data is padded at the end as necessary
          n = 8 - (message->length % 8);
@@ -623,7 +623,7 @@ error_t snmpDecryptData(const SnmpUserInfo *user, SnmpMessage *message)
 
       //Before decryption, the encrypted data length is verified. The length
       //of the encrypted data must be a multiple of 8 octets
-      if(message->length % 8)
+      if((message->length % 8) != 0)
          return ERROR_DECRYPTION_FAILED;
 
       //Check the length of the msgPrivacyParameters field

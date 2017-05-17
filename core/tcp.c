@@ -37,6 +37,7 @@
 #include "core/tcp_misc.h"
 #include "core/tcp_timer.h"
 #include "mibs/mib2_module.h"
+#include "mibs/tcp_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -199,7 +200,8 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePo
 
       //Number of times TCP connections have made a direct transition to
       //the SYN-SENT state from the CLOSED state
-      MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpActiveOpens, 1);
+      MIB2_INC_COUNTER32(tcpGroup.tcpActiveOpens, 1);
+      TCP_MIB_INC_COUNTER32(tcpActiveOpens, 1);
    }
 
    //Wait for the connection to be established
@@ -399,7 +401,8 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
 
                //Number of times TCP connections have made a direct transition to
                //the SYN-RECEIVED state from the LISTEN state
-               MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpPassiveOpens, 1);
+               MIB2_INC_COUNTER32(tcpGroup.tcpPassiveOpens, 1);
+               TCP_MIB_INC_COUNTER32(tcpPassiveOpens, 1);
 
                //We are done...
                break;

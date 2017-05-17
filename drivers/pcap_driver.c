@@ -30,6 +30,7 @@
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
 //Dependencies
+#include <stdlib.h>
 #include "core/net.h"
 #include "drivers/pcap_driver.h"
 #include "debug.h"

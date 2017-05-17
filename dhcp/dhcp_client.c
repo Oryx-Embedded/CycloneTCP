@@ -167,6 +167,8 @@ error_t dhcpClientInit(DhcpClientContext *context, const DhcpClientSettings *set
 
 error_t dhcpClientStart(DhcpClientContext *context)
 {
+   NetInterface *interface;
+
    //Check parameter
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -176,6 +178,16 @@ error_t dhcpClientStart(DhcpClientContext *context)
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
+
+   //Point to the underlying network interface
+   interface = context->settings.interface;
+
+   //The host address is not longer valid
+   interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
+   interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+
+   //Clear subnet mask
+   interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
 
    //Start DHCP client
    context->running = TRUE;
@@ -348,13 +360,13 @@ void dhcpClientLinkChangeEvent(DhcpClientContext *context)
       interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
       interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
 
+      //Clear subnet mask
+      interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
+
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
       //Restart mDNS probing process
       mdnsResponderStartProbing(interface->mdnsResponderContext);
 #endif
-
-      //Clear subnet mask
-      interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
    }
 
    //Check whether the client already has a valid lease
@@ -406,12 +418,12 @@ void dhcpClientStateInit(DhcpClientContext *context)
       //Wait for the link to be up before starting DHCP configuration
       if(interface->linkState)
       {
-         //The client should wait for a random time to
-         //desynchronize the use of DHCP at startup
+         //The client should wait for a random time to desynchronize
+         //the use of DHCP at startup
          delay = netGetRandRange(0, DHCP_CLIENT_INIT_DELAY);
 
-         //Record the time at which the client started
-         //the address acquisition process
+         //Record the time at which the client started the address
+         //acquisition process
          context->configStartTime = osGetSystemTime();
          //Clear flag
          context->timeoutEventDone = FALSE;
@@ -587,12 +599,12 @@ void dhcpClientStateInitReboot(DhcpClientContext *context)
       //Wait for the link to be up before starting DHCP configuration
       if(interface->linkState)
       {
-         //The client should wait for a random time to
-         //desynchronize the use of DHCP at startup
+         //The client should wait for a random time to desynchronize
+         //the use of DHCP at startup
          delay = netGetRandRange(0, DHCP_CLIENT_INIT_DELAY);
 
-         //Record the time at which the client started
-         //the address acquisition process
+         //Record the time at which the client started the address
+         //acquisition process
          context->configStartTime = osGetSystemTime();
          //Clear flag
          context->timeoutEventDone = FALSE;
@@ -1444,7 +1456,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
    option = dhcpGetOption(message, length, DHCP_OPT_IP_ADDRESS_LEASE_TIME);
 
    //Failed to retrieve specified option?
-   if(option == NULL  || option->length != 4)
+   if(option == NULL || option->length != 4)
       return;
 
    //Record the lease time
@@ -1519,7 +1531,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
       //Retrieve DNS Server option
       option = dhcpGetOption(message, length, DHCP_OPT_DNS_SERVER);
 
-       //The specified option has been found?
+      //The specified option has been found?
       if(option != NULL && !(option->length % sizeof(Ipv4Addr)))
       {
          //Get the number of addresses provided in the response

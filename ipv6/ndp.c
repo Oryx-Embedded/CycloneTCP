@@ -47,6 +47,7 @@
 #include "ipv6/ndp_cache.h"
 #include "ipv6/ndp_misc.h"
 #include "ipv6/slaac.h"
+#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -458,7 +459,7 @@ void ndpProcessRouterAdv(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    {
       //Add a new entry in the Default Router List
       ipv6AddDefaultRouter(interface, &pseudoHeader->srcAddr,
-         ntohs(message->routerLifetime));
+         ntohs(message->routerLifetime), message->prf);
 
       //The host should send at least one solicitation in the case where
       //an advertisement is received prior to having sent a solicitation
@@ -1428,6 +1429,11 @@ error_t ndpSendRouterSol(NetInterface *interface)
    message->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
 
+   //Total number of ICMP messages which this entity attempted to send
+   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   //Increment per-message type ICMP counter
+   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_ROUTER_SOL], 1);
+
    //Debug message
    TRACE_INFO("Sending Router Solicitation message (%" PRIuSIZE " bytes)...\r\n", length);
    //Dump message contents for debugging purpose
@@ -1537,6 +1543,11 @@ error_t ndpSendNeighborSol(NetInterface *interface,
    //Calculate ICMPv6 header checksum
    message->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
+
+   //Total number of ICMP messages which this entity attempted to send
+   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   //Increment per-message type ICMP counter
+   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_NEIGHBOR_SOL], 1);
 
    //Debug message
    TRACE_INFO("Sending Neighbor Solicitation message (%" PRIuSIZE " bytes)...\r\n", length);
@@ -1665,6 +1676,11 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    //Calculate ICMPv6 header checksum
    message->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
+
+   //Total number of ICMP messages which this entity attempted to send
+   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   //Increment per-message type ICMP counter
+   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_NEIGHBOR_ADV], 1);
 
    //Debug message
    TRACE_INFO("Sending Neighbor Advertisement message (%" PRIuSIZE " bytes)...\r\n", length);
@@ -1823,6 +1839,11 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
       //Message checksum calculation
       message->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
          sizeof(Ipv6PseudoHeader), buffer, offset, length);
+
+      //Total number of ICMP messages which this entity attempted to send
+      IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+      //Increment per-message type ICMP counter
+      IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_REDIRECT], 1);
 
       //Debug message
       TRACE_INFO("Sending Redirect message (%" PRIuSIZE " bytes)...\r\n", length);

@@ -636,7 +636,7 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
          ipAddr.ipv6Addr = inputMessage->peerAddress;
 
          //Select the relevant port number to use
-          if(outputMessage->msgType == DHCPV6_MSG_TYPE_RELAY_REPL)
+         if(outputMessage->msgType == DHCPV6_MSG_TYPE_RELAY_REPL)
             port = DHCPV6_SERVER_PORT;
          else
             port = DHCPV6_CLIENT_PORT;

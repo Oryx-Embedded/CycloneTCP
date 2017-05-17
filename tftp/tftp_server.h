@@ -206,39 +206,5 @@ error_t tftpServerInit(TftpServerContext *context, const TftpServerSettings *set
 error_t tftpServerStart(TftpServerContext *context);
 
 void tftpServerTask(TftpServerContext *context);
-void tftpServerTick(TftpServerContext *context);
-
-void tftpServerAcceptRequest(TftpServerContext *context);
-
-void tftpServerProcessPacket(TftpServerContext *context,
-   TftpClientConnection *connection);
-
-void tftpServerProcessRrqPacket(TftpServerContext *context, const IpAddr *clientIpAddr,
-   uint16_t clientPort, const TftpRrqPacket *rrqPacket, size_t length);
-
-void tftpServerProcessWrqPacket(TftpServerContext *context, const IpAddr *clientIpAddr,
-   uint16_t clientPort, const TftpWrqPacket *wrqPacket, size_t length);
-
-void tftpServerProcessDataPacket(TftpClientConnection *connection,
-   const TftpDataPacket *dataPacket, size_t length);
-
-void tftpServerProcessAckPacket(TftpClientConnection *connection,
-   const TftpAckPacket *ackPacket, size_t length);
-
-void tftpServerProcessErrorPacket(TftpClientConnection *connection,
-   const TftpErrorPacket *errorPacket, size_t length);
-
-error_t tftpServerSendDataPacket(TftpClientConnection *connection);
-error_t tftpServerSendAckPacket(TftpClientConnection *connection);
-
-error_t tftpServerSendErrorPacket(TftpClientConnection *connection,
-   uint16_t errorCode, const char_t *errorMsg);
-
-error_t tftpServerRetransmitPacket(TftpClientConnection *connection);
-
-TftpClientConnection *tftpServerOpenConnection(TftpServerContext *context,
-   const IpAddr *clientIpAddr, uint16_t clientPort);
-
-void tftpServerCloseConnection(TftpClientConnection *connection);
 
 #endif

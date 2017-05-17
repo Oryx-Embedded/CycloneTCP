@@ -44,6 +44,7 @@
 #include "ipv6/ipv6.h"
 #include "ipv6/icmpv6.h"
 #include "ipv6/mld.h"
+#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -477,6 +478,13 @@ error_t mldSendListenerReport(NetInterface *interface, Ipv6Addr *ipAddr)
    message->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
       sizeof(Ipv6PseudoHeader), buffer, offset, sizeof(MldMessage));
 
+   //Total number of ICMP messages which this entity attempted to send
+   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+
+   //Increment per-message type ICMP counter
+   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[
+      ICMPV6_TYPE_MULTICAST_LISTENER_REPORT_V1], 1);
+
    //Debug message
    TRACE_INFO("Sending MLD message (%" PRIuSIZE " bytes)...\r\n", sizeof(MldMessage));
    //Dump message contents for debugging purpose
@@ -543,6 +551,13 @@ error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr)
    //Message checksum calculation
    message->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
       sizeof(Ipv6PseudoHeader), buffer, offset, sizeof(MldMessage));
+
+   //Total number of ICMP messages which this entity attempted to send
+   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+
+   //Increment per-message type ICMP counter
+   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[
+      ICMPV6_TYPE_MULTICAST_LISTENER_DONE_V1], 1);
 
    //Debug message
    TRACE_INFO("Sending MLD message (%" PRIuSIZE " bytes)...\r\n", sizeof(MldMessage));

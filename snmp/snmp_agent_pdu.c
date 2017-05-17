@@ -35,6 +35,8 @@
 #include "snmp/snmp_agent_pdu.h"
 #include "snmp/snmp_agent_misc.h"
 #include "mibs/mib2_module.h"
+#include "mibs/snmp_mib_module.h"
+#include "mibs/snmp_usm_mib_module.h"
 #include "crypto.h"
 #include "asn1.h"
 #include "oid.h"
@@ -94,7 +96,7 @@ error_t snmpProcessPdu(SnmpAgentContext *context)
    {
       //Total number of SNMP Get-Response PDUs which have been generated
       //by the SNMP protocol entity
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutGetResponses, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpOutGetResponses, 1);
 
       //Format PDU header
       error = snmpWritePduHeader(&context->response);
@@ -128,7 +130,7 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
 
       //Total number of SNMP Get-Request PDUs which have been accepted and
       //processed by the SNMP protocol entity
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInGetRequests, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInGetRequests, 1);
    }
    else if(context->request.pduType == SNMP_PDU_GET_NEXT_REQUEST)
    {
@@ -137,7 +139,7 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
 
       //Total number of SNMP Get-NextRequest PDUs which have been accepted
       //and processed by the SNMP protocol entity
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInGetNexts, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInGetNexts, 1);
    }
 
    //Enforce access policy
@@ -146,7 +148,8 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
    {
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which represented an SNMP operation which was not allowed by the SNMP
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInBadCommunityUses, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
+      SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
 
       //Report an error
       return ERROR_ACCESS_DENIED;
@@ -274,7 +277,7 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
          //Total number of MIB objects which have been retrieved successfully
          //by the SNMP protocol entity as the result of receiving valid SNMP
          //Get-Request and Get-NextRequest PDUs
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInTotalReqVars, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpInTotalReqVars, 1);
       }
 
       //Append variable binding to the list
@@ -360,7 +363,8 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
    {
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which represented an SNMP operation which was not allowed by the SNMP
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInBadCommunityUses, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
+      SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
 
       //Report an error
       return ERROR_ACCESS_DENIED;
@@ -472,7 +476,7 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
          //Total number of MIB objects which have been retrieved successfully
          //by the SNMP protocol entity as the result of receiving valid SNMP
          //Get-Request and Get-NextRequest PDUs
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInTotalReqVars, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpInTotalReqVars, 1);
       }
 
       //Append variable binding to the list
@@ -562,7 +566,7 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
 
    //Total number of SNMP Set-Request PDUs which have been accepted and
    //processed by the SNMP protocol entity
-   MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInSetRequests, 1);
+   MIB2_INC_COUNTER32(snmpGroup.snmpInSetRequests, 1);
 
    //Enforce access policy
    if(context->user->mode != SNMP_ACCESS_WRITE_ONLY &&
@@ -570,7 +574,8 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
    {
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which represented an SNMP operation which was not allowed by the SNMP
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInBadCommunityUses, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
+      SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
 
       //Report an error
       return ERROR_ACCESS_DENIED;
@@ -586,6 +591,9 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
    //first phase, each variable binding is validated
    p = context->request.varBindList;
    length = context->request.varBindListLen;
+
+   //Lock access to MIB bases
+   snmpLockMib(context);
 
    //Loop through the list
    for(index = 1; length > 0; index++)
@@ -615,9 +623,6 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
       p = context->request.varBindList;
       length = context->request.varBindListLen;
 
-      //Lock access to MIB bases
-      snmpLockMib(context);
-
       //Loop through the list
       for(index = 1; length > 0; index++)
       {
@@ -636,16 +641,16 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
          //Total number of MIB objects which have been altered successfully
          //by the SNMP protocol entity as the result of receiving valid
          //SNMP Set-Request PDUs
-         MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInTotalSetVars, 1);
+         MIB2_INC_COUNTER32(snmpGroup.snmpInTotalSetVars, 1);
 
          //Advance data pointer
          p += n;
          length -= n;
       }
-
-      //Unlock access to MIB bases
-      snmpUnlockMib(context);
    }
+
+   //Unlock access to MIB bases
+   snmpUnlockMib(context);
 
    //Any error to report?
    if(error)
@@ -937,7 +942,7 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
 
    //Total number of SNMP Trap PDUs which have been generated by
    //the SNMP protocol entity
-   MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutTraps, 1);
+   MIB2_INC_COUNTER32(snmpGroup.snmpOutTraps, 1);
 
    //Format PDU header
    error = snmpWritePduHeader(&context->response);
@@ -959,6 +964,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
 
 #if (SNMP_V3_SUPPORT == ENABLED)
    size_t n;
+   uint32_t counter;
    SnmpVarBind var;
 
    //Initialize SNMP message
@@ -1002,51 +1008,92 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    if(error)
       return error;
 
-   //Encode the object value using ASN.1 rules
-   error = snmpEncodeUnsignedInt32(1, context->response.buffer, &n);
-   //Any error to report?
-   if(error)
-      return error;
+   //Initialize counter value
+   counter = 1;
 
    //Check error indication
    switch(errorIndication)
    {
    case ERROR_UNSUPPORTED_SECURITY_LEVEL:
+      //Total number of packets received by the SNMP engine which were dropped
+      //because they requested a securityLevel that was unknown to the SNMP
+      //engine or otherwise unavailable
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnsupportedSecLevels , 1);
+      SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsUnsupportedSecLevels);
+
       //Add the usmStatsUnsupportedSecLevels counter in the varBindList
       var.oid = usmStatsUnsupportedSecLevelsObject;
       var.oidLen = sizeof(usmStatsUnsupportedSecLevelsObject);
       break;
+
    case ERROR_NOT_IN_TIME_WINDOW:
+      //Total number of packets received by the SNMP engine which were dropped
+      //because they appeared outside of the authoritative SNMP engine's window
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsNotInTimeWindows , 1);
+      SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsNotInTimeWindows);
+
       //Add the usmStatsNotInTimeWindows counter in the varBindList
       var.oid = usmStatsNotInTimeWindowsObject;
       var.oidLen = sizeof(usmStatsNotInTimeWindowsObject);
       break;
+
    case ERROR_UNKNOWN_USER_NAME:
+      //Total number of packets received by the SNMP engine which were dropped
+      //because they referenced a user that was not known to the SNMP engine
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnknownUserNames , 1);
+      SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsUnknownUserNames);
+
       //Add the usmStatsUnknownUserNames counter in the varBindList
       var.oid = usmStatsUnknownUserNamesObject;
       var.oidLen = sizeof(usmStatsUnknownUserNamesObject);
       break;
+
    case ERROR_UNKNOWN_ENGINE_ID:
+      //Total number of packets received by the SNMP engine which were dropped
+      //because they referenced an snmpEngineID that was not known to the SNMP
+      //engine
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnknownEngineIDs , 1);
+      SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsUnknownEngineIDs);
+
       //Add the usmStatsUnknownEngineIDs counter in the varBindList
       var.oid = usmStatsUnknownEngineIdsObject;
       var.oidLen = sizeof(usmStatsUnknownEngineIdsObject);
       break;
+
    case ERROR_AUTHENTICATION_FAILED:
+      //Total number of packets received by the SNMP engine which were dropped
+      //because they didn't contain the expected digest value
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsWrongDigests , 1);
+      SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsWrongDigests);
+
       //Add the usmStatsWrongDigests counter in the varBindList
       var.oid = usmStatsWrongDigestsObject;
       var.oidLen = sizeof(usmStatsWrongDigestsObject);
       break;
+
    case ERROR_DECRYPTION_FAILED:
+      //Total number of packets received by the SNMP engine which were dropped
+      //because they could not be decrypted
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsDecryptionErrors , 1);
+      SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsDecryptionErrors);
+
       //Add the usmStatsDecryptionErrors counter in the varBindList
       var.oid = usmStatsDecryptionErrorsObject;
       var.oidLen = sizeof(usmStatsDecryptionErrorsObject);
       break;
+
    default:
       //Just for sanity's sake...
       var.oid = NULL;
       var.oidLen = 0;
       break;
    }
+
+   //Encode the object value using ASN.1 rules
+   error = snmpEncodeUnsignedInt32(counter, context->response.buffer, &n);
+   //Any error to report?
+   if(error)
+      return error;
 
    //The counter is encoded in ASN.1 format
    var.objClass = ASN1_CLASS_APPLICATION;

@@ -229,7 +229,7 @@ error_t pppHdlcDriverSendPacket(NetInterface *interface,
          {
             if(p[j] < PPP_MASK_CHAR)
             {
-                //Check whether the character is flagged
+               //Check whether the character is flagged
                if(accm & (1 << p[j]))
                {
                   pppHdlcDriverWriteTxQueue(context, PPP_ESC_CHAR);

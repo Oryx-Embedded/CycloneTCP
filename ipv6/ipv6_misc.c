@@ -89,8 +89,9 @@ Ipv6AddrState ipv6GetAddrState(NetInterface *interface, const Ipv6Addr *addr)
  * @return Error code
  **/
 
-error_t ipv6SetAddr(NetInterface *interface, uint_t index, const Ipv6Addr *addr,
-   Ipv6AddrState state, systime_t validLifetime, systime_t preferredLifetime, bool_t permanent)
+error_t ipv6SetAddr(NetInterface *interface, uint_t index,
+   const Ipv6Addr *addr, Ipv6AddrState state, systime_t validLifetime,
+   systime_t preferredLifetime, bool_t permanent)
 {
    error_t error;
    Ipv6AddrEntry *entry;
@@ -355,18 +356,22 @@ void ipv6RemoveAddr(NetInterface *interface, const Ipv6Addr *addr)
  * @param[in] interface Underlying network interface
  * @param[in] prefix IPv6 prefix
  * @param[in] length The number of leading bits in the prefix that are valid
+ * @param[in] onLinkFlag On-link flag
+ * @param[in] autonomousFlag Autonomous flag
  * @param[in] validLifetime Valid lifetime, in seconds
  * @param[in] preferredLifetime Preferred lifetime, in seconds
  **/
 
 void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
-   uint_t length, uint32_t validLifetime, uint32_t preferredLifetime)
+   uint_t length, bool_t onLinkFlag, bool_t autonomousFlag,
+   uint32_t validLifetime, uint32_t preferredLifetime)
 {
    uint_t i;
    Ipv6PrefixEntry *entry;
    Ipv6PrefixEntry *firstFreeEntry;
 
-   //Keep track of the first free entry
+   //Initialize variables
+   entry = NULL;
    firstFreeEntry = NULL;
 
    //Loop through the Prefix List
@@ -411,6 +416,10 @@ void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
          //Save the IPv6 prefix
          entry->prefix = *prefix;
          entry->prefixLength = length;
+
+         //Save On-link and Autonomous flags
+         entry->onLinkFlag = onLinkFlag;
+         entry->autonomousFlag = autonomousFlag;
 
          //Check the valid lifetime
          if(validLifetime != NDP_INFINITE_LIFETIME)
@@ -499,16 +508,18 @@ void ipv6RemovePrefix(NetInterface *interface, const Ipv6Addr *prefix, uint_t le
  * @param[in] interface Underlying network interface
  * @param[in] addr IPv6 address of the router
  * @param[in] lifetime Router lifetime, in seconds
+ * @param[in] preference Preference value
  **/
 
-void ipv6AddDefaultRouter(NetInterface *interface,
-   const Ipv6Addr *addr, uint16_t lifetime)
+void ipv6AddDefaultRouter(NetInterface *interface, const Ipv6Addr *addr,
+   uint16_t lifetime, uint8_t preference)
 {
    uint_t i;
    Ipv6RouterEntry *entry;
    Ipv6RouterEntry *firstFreeEntry;
 
-   //Keep track of the first free entry
+   //Initialize variables
+   entry = NULL;
    firstFreeEntry = NULL;
 
    //Loop through the Default Router List
@@ -550,6 +561,8 @@ void ipv6AddDefaultRouter(NetInterface *interface,
          entry->addr = *addr;
          //The lifetime associated with the default router
          entry->lifetime = lifetime * 1000;
+         //Save preference value
+         entry->preference = preference;
          //Save current time
          entry->timestamp = osGetSystemTime();
       }
@@ -665,10 +678,9 @@ void ipv6FlushPrefixList(NetInterface *interface)
          //The IPv6 prefix should be preserved if it has been manually assigned
          if(!entry->permanent)
          {
-            //Clear the current entry
+            //Remove the entry from the Prefix List
             entry->prefix = IPV6_UNSPECIFIED_ADDR;
             entry->prefixLength = 0;
-            //Remove the entry from the Prefix List
             entry->validLifetime = 0;
          }
       }
@@ -1120,12 +1132,18 @@ bool_t ipv6IsAnycastAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
 
 bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2, size_t length)
 {
-   size_t n = length / 8;
-   size_t m = length % 8;
+   size_t n;
+   size_t m;
+   uint8_t mask;
 
    //Ensure the prefix length is valid
    if(length > 128)
       return FALSE;
+
+   //Number of complete bytes
+   n = length / 8;
+   //Number of bits in the last byte, if any
+   m = length % 8;
 
    //Compare the first part
    if(n > 0)
@@ -1138,7 +1156,7 @@ bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2, size_t l
    if(m > 0)
    {
       //Calculate the mask to be applied
-      uint8_t mask = ((1 << m) - 1) << (8 - m);
+      mask = ((1 << m) - 1) << (8 - m);
 
       //Check remaining bits
       if((ipAddr1->b[n] & mask) != (ipAddr2->b[n] & mask))
@@ -1328,7 +1346,7 @@ error_t ipv6MapMulticastAddrToMac(const Ipv6Addr *ipAddr, MacAddr *macAddr)
  * @param[out] ipAddr Corresponding IPv6 link-local address
  **/
 
-void ipv6GenerateLinkLocalAddr(const Eui64* interfaceId, Ipv6Addr *ipAddr)
+void ipv6GenerateLinkLocalAddr(const Eui64 *interfaceId, Ipv6Addr *ipAddr)
 {
    //A link-local address is formed by combining the well-known
    //link-local prefix fe80::/10 with the interface identifier

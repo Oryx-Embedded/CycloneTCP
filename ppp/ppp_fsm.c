@@ -56,7 +56,7 @@ void pppUpEvent(PppContext *context, PppFsm *fsm,
       pppChangeState(fsm, PPP_STATE_2_CLOSED);
       break;
    case PPP_STATE_1_STARTING:
-       //Initialize restart counter
+      //Initialize restart counter
       callbacks->initRestartCount(context, PPP_MAX_CONFIGURE);
       //Send Configure-Request packet
       callbacks->sendConfigureReq(context);
@@ -276,7 +276,7 @@ void pppTimeoutEvent(PppContext *context, PppFsm *fsm,
          break;
       case PPP_STATE_8_ACK_SENT:
          //Send Configuration-Request packet
-          callbacks->sendConfigureReq(context);
+         callbacks->sendConfigureReq(context);
          //Stay in current state
          break;
       default:

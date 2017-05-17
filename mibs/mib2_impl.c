@@ -58,7 +58,7 @@ error_t mib2Init(void)
 #endif
 
    //Debug message
-   TRACE_INFO("Initializing standard MIB-II base...\r\n");
+   TRACE_INFO("Initializing MIB-II base...\r\n");
 
    //Clear MIB-II base
    memset(&mib2Base, 0, sizeof(mib2Base));
@@ -102,6 +102,9 @@ error_t mib2Init(void)
    //Point to the interfaces group
    ifGroup = &mib2Base.ifGroup;
 
+   //ifNumber object
+   ifGroup->ifNumber = NET_INTERFACE_COUNT;
+
    //Interfaces table entry
    for(i = 0; i < NET_INTERFACE_COUNT; i++)
    {
@@ -142,28 +145,6 @@ error_t mib2Init(void)
 
 
 /**
- * @brief Lock MIB-II base
- **/
-
-void mib2Lock(void)
-{
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
-}
-
-
-/**
- * @brief Unlock MIB-II base
- **/
-
-void mib2Unlock(void)
-{
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
-}
-
-
-/**
  * @brief Get sysUpTime object value
  * @param[in] object Pointer to the MIB object descriptor
  * @param[in] oid Object identifier (object name and instance identifier)
@@ -178,8 +159,29 @@ error_t mib2GetSysUpTime(const MibObject *object, const uint8_t *oid,
 {
    //Get object value
    value->timeTicks = osGetSystemTime() / 10;
+
    //Successful processing
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Set ifEntry object value
+ * @param[in] object Pointer to the MIB object descriptor
+ * @param[in] oid Object identifier (object name and instance identifier)
+ * @param[in] oidLen Length of the OID, in bytes
+ * @param[in] value Object value
+ * @param[in] valueLen Length of the object value, in bytes
+ * @param[in] commit This flag tells whether the changes shall be committed
+ *   to the MIB base
+ * @return Error code
+ **/
+
+error_t mib2SetIfEntry(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
+{
+   //Not implemented
+   return ERROR_WRITE_FAILED;
 }
 
 
@@ -200,11 +202,12 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    uint_t index;
    Mib2IfEntry *entry;
+   NetInterface *interface;
 
    //Point to the instance identifier
    n = object->oidLen;
 
-   //The ifIndex is used as instance identifier
+   //ifIndex is used as instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
@@ -218,6 +221,8 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    if(index < 1 || index > NET_INTERFACE_COUNT)
       return ERROR_INSTANCE_NOT_FOUND;
 
+   //Point to the underlying interface
+   interface = &netInterface[index - 1];
    //Point to the interface table entry
    entry = &mib2Base.ifGroup.ifTable[index - 1];
 
@@ -225,18 +230,21 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    if(!strcmp(object->name, "ifIndex"))
    {
       //Get object value
-      value->integer = entry->ifIndex;
+      value->integer = index;
    }
    //ifDescr object?
    else if(!strcmp(object->name, "ifDescr"))
    {
+      //Retrieve the length of the interface name
+      n = strlen(interface->name);
+
       //Make sure the buffer is large enough to hold the entire object
-      if(*valueLen >= entry->ifDescrLen)
+      if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, entry->ifDescr, entry->ifDescrLen);
+         memcpy(value->octetString, interface->name, n);
          //Return object length
-         *valueLen = entry->ifDescrLen;
+         *valueLen = n;
       }
       else
       {
@@ -247,31 +255,61 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    //ifType object?
    else if(!strcmp(object->name, "ifType"))
    {
-      //Get object value
-      value->integer = entry->ifType;
+      //Sanity check
+      if(interface->nicDriver != NULL)
+      {
+         //Get interface type
+         switch(interface->nicDriver->type)
+         {
+         //Ethernet interface
+         case NIC_TYPE_ETHERNET:
+            value->integer = MIB2_IF_TYPE_ETHERNET_CSMACD;
+            break;
+         //PPP interface
+         case NIC_TYPE_PPP:
+            value->integer = MIB2_IF_TYPE_PPP;
+            break;
+         //IEEE 802.15.4 WPAN interface
+         case NIC_TYPE_6LOWPAN:
+            value->integer = MIB2_IF_TYPE_IEEE_802_15_4;
+            break;
+         //Unknown interface type
+         default:
+            value->integer = MIB2_IF_TYPE_OTHER;
+            break;
+         }
+      }
+      else
+      {
+         //Unknown interface type
+         value->integer = MIB2_IF_TYPE_OTHER;
+      }
    }
    //ifMtu object?
    else if(!strcmp(object->name, "ifMtu"))
    {
-      //Get object value
-      value->integer = entry->ifMtu;
+      //Get interface MTU
+      if(interface->nicDriver != NULL)
+         value->integer = interface->nicDriver->mtu;
+      else
+         value->integer = 0;
    }
    //ifSpeed object?
    else if(!strcmp(object->name, "ifSpeed"))
    {
-      //Get object value
-      value->gauge32 = entry->ifSpeed;
+      //Get interface's current bandwidth
+      value->gauge32 = interface->linkSpeed;
    }
    //ifPhysAddress object?
    else if(!strcmp(object->name, "ifPhysAddress"))
    {
       //Make sure the buffer is large enough to hold the entire object
-      if(*valueLen >= entry->ifPhysAddressLen)
+      if(*valueLen >= MIB2_PHYS_ADDRESS_SIZE)
       {
          //Copy object value
-         memcpy(value->octetString, entry->ifPhysAddress, entry->ifPhysAddressLen);
+         macCopyAddr(value->octetString, &interface->macAddr);
          //Return object length
-         *valueLen = entry->ifPhysAddressLen;
+         *valueLen = MIB2_PHYS_ADDRESS_SIZE;
       }
       else
       {
@@ -282,14 +320,20 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    //ifAdminStatus object?
    else if(!strcmp(object->name, "ifAdminStatus"))
    {
-      //Get object value
-      value->integer = entry->ifAdminStatus;
+      //Check whether the interface is enabled for operation
+      if(interface->nicDriver != NULL)
+         value->integer = MIB2_IF_ADMIN_STATUS_UP;
+      else
+         value->integer = MIB2_IF_ADMIN_STATUS_DOWN;
    }
    //ifOperStatus object?
    else if(!strcmp(object->name, "ifOperStatus"))
    {
-      //Get object value
-      value->integer = entry->ifOperStatus;
+      //Get the current operational state of the interface
+      if(interface->linkState)
+         value->integer = MIB2_IF_OPER_STATUS_UP;
+      else
+         value->integer = MIB2_IF_OPER_STATUS_DOWN;
    }
    //ifLastChange object?
    else if(!strcmp(object->name, "ifLastChange"))
@@ -428,7 +472,7 @@ error_t mib2GetNextIfEntry(const MibObject *object, const uint8_t *oid,
       //Append the instance identifier to the OID prefix
       n = object->oidLen;
 
-      //The ifIndex is used as instance identifier
+      //ifIndex is used as instance identifier
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
       //Any error to report?
       if(error)
@@ -475,7 +519,7 @@ error_t mib2GetIpAddrEntry(const MibObject *object, const uint8_t *oid,
    //Point to the instance identifier
    n = object->oidLen;
 
-   //The ipAdEntAddr is used as instance identifier
+   //ipAdEntAddr is used as instance identifier
    error = mibDecodeIpv4Addr(oid, oidLen, &n, &ipAddr);
    //Invalid instance identifier?
    if(error)
@@ -588,7 +632,7 @@ error_t mib2GetNextIpAddrEntry(const MibObject *object, const uint8_t *oid,
          //Append the instance identifier to the OID prefix
          n = object->oidLen;
 
-         //The ipAdEntAddr is used as instance identifier
+         //ipAdEntAddr is used as instance identifier
          error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, interface->ipv4Context.addr);
          //Any error to report?
          if(error)
@@ -620,7 +664,7 @@ error_t mib2GetNextIpAddrEntry(const MibObject *object, const uint8_t *oid,
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
 
-   //The ipAdEntAddr is used as instance identifier
+   //ipAdEntAddr is used as instance identifier
    error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, interface->ipv4Context.addr);
    //Any error to report?
    if(error)
@@ -640,11 +684,13 @@ error_t mib2GetNextIpAddrEntry(const MibObject *object, const uint8_t *oid,
  * @param[in] oidLen Length of the OID, in bytes
  * @param[in] value Object value
  * @param[in] valueLen Length of the object value, in bytes
+ * @param[in] commit This flag tells whether the changes shall be committed
+ *   to the MIB base
  * @return Error code
  **/
 
 error_t mib2SetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
-   size_t oidLen, const MibVariant *value, size_t valueLen)
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
    //Not implemented
    return ERROR_WRITE_FAILED;
@@ -674,13 +720,13 @@ error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
    //Point to the instance identifier
    n = object->oidLen;
 
-   //The ipNetToMediaIfIndex is used as 1st instance identifier
+   //ipNetToMediaIfIndex is used as 1st instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
       return error;
 
-   //The ipNetToMediaNetAddress is used as 2nd instance identifier
+   //ipNetToMediaNetAddress is used as 2nd instance identifier
    error = mibDecodeIpv4Addr(oid, oidLen, &n, &ipAddr);
    //Invalid instance identifier?
    if(error)
@@ -803,13 +849,13 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
             //Append the instance identifier to the OID prefix
             n = object->oidLen;
 
-            //The ipNetToMediaIfIndex is used as 1st instance identifier
+            //ipNetToMediaIfIndex is used as 1st instance identifier
             error = mibEncodeIndex(nextOid, *nextOidLen, &n, i);
             //Any error to report?
             if(error)
                return error;
 
-            //The ipNetToMediaNetAddress is used as 2nd instance identifier
+            //ipNetToMediaNetAddress is used as 2nd instance identifier
             error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, entry->ipAddr);
             //Any error to report?
             if(error)
@@ -851,13 +897,13 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
 
-   //The ipNetToMediaIfIndex is used as 1st instance identifier
+   //ipNetToMediaIfIndex is used as 1st instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
    //Any error to report?
    if(error)
       return error;
 
-   //The ipNetToMediaNetAddress is used as 2nd instance identifier
+   //ipNetToMediaNetAddress is used as 2nd instance identifier
    error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, ipAddr);
    //Any error to report?
    if(error)
@@ -869,6 +915,57 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
    return NO_ERROR;
 }
 
+#endif
+#if (TCP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
+
+/**
+ * @brief Get tcpCurrEstab object value
+ * @param[in] object Pointer to the MIB object descriptor
+ * @param[in] oid Object identifier (object name and instance identifier)
+ * @param[in] oidLen Length of the OID, in bytes
+ * @param[out] value Object value
+ * @param[in,out] valueLen Length of the object value, in bytes
+ * @return Error code
+ **/
+
+error_t mib2GetTcpCurrEstab(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen)
+{
+   uint_t i;
+   Socket *socket;
+
+   //Initialize object value
+   value->gauge32 = 0;
+
+   //Loop through socket descriptors
+   for(i = 0; i < SOCKET_MAX_COUNT; i++)
+   {
+      //Point to current socket
+      socket = &socketTable[i];
+
+      //TCP socket?
+      if(socket->type == SOCKET_TYPE_STREAM)
+      {
+         //Filter out IPv6 connections
+         if(socket->localIpAddr.length != sizeof(Ipv6Addr) &&
+            socket->remoteIpAddr.length != sizeof(Ipv6Addr))
+         {
+            //Check current state
+            if(socket->state == TCP_STATE_ESTABLISHED ||
+               socket->state == TCP_STATE_CLOSE_WAIT)
+            {
+               //Number of TCP connections for which the current state
+               //is either ESTABLISHED or CLOSE-WAIT
+               value->gauge32++;
+            }
+         }
+      }
+   }
+
+   //Return status code
+   return NO_ERROR;
+}
+
 
 /**
  * @brief Set tcpConnEntry object value
@@ -877,11 +974,13 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
  * @param[in] oidLen Length of the OID, in bytes
  * @param[out] value Object value
  * @param[in] valueLen Length of the object value, in bytes
+ * @param[in] commit This flag tells whether the changes shall be committed
+ *   to the MIB base
  * @return Error code
  **/
 
 error_t mib2SetTcpConnEntry(const MibObject *object, const uint8_t *oid,
-   size_t oidLen, const MibVariant *value, size_t valueLen)
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
    //Not implemented
    return ERROR_WRITE_FAILED;
@@ -913,25 +1012,25 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
    //Point to the instance identifier
    n = object->oidLen;
 
-   //The tcpConnLocalAddress is used as 1st instance identifier
+   //tcpConnLocalAddress is used as 1st instance identifier
    error = mibDecodeIpv4Addr(oid, oidLen, &n, &localIpAddr);
    //Invalid instance identifier?
    if(error)
       return error;
 
-   //The tcpConnLocalPort is used as 2nd instance identifier
+   //tcpConnLocalPort is used as 2nd instance identifier
    error = mibDecodePort(oid, oidLen, &n, &localPort);
    //Invalid instance identifier?
    if(error)
       return error;
 
-   //The tcpConnRemAddress is used as 3rd instance identifier
+   //tcpConnRemAddress is used as 3rd instance identifier
    error = mibDecodeIpv4Addr(oid, oidLen, &n, &remoteIpAddr);
    //Invalid instance identifier?
    if(error)
       return error;
 
-   //The tcpConnRemPort is used as 4th instance identifier
+   //tcpConnRemPort is used as 4th instance identifier
    error = mibDecodePort(oid, oidLen, &n, &remotePort);
    //Invalid instance identifier?
    if(error)
@@ -948,7 +1047,7 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
       socket = &socketTable[i];
 
       //TCP socket?
-      if(socketTable[i].type == SOCKET_TYPE_STREAM)
+      if(socket->type == SOCKET_TYPE_STREAM)
       {
          //Check local IP address
          if(socket->localIpAddr.length == sizeof(Ipv6Addr))
@@ -1099,7 +1198,7 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
       socket = &socketTable[i];
 
       //TCP socket?
-      if(socketTable[i].type == SOCKET_TYPE_STREAM)
+      if(socket->type == SOCKET_TYPE_STREAM)
       {
          //Filter out IPv6 connections
          if(socket->localIpAddr.length != sizeof(Ipv6Addr) &&
@@ -1108,25 +1207,25 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
             //Append the instance identifier to the OID prefix
             n = object->oidLen;
 
-            //The tcpConnLocalAddress is used as 1st instance identifier
+            //tcpConnLocalAddress is used as 1st instance identifier
             error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, socket->localIpAddr.ipv4Addr);
             //Any error to report?
             if(error)
                return error;
 
-            //The tcpConnLocalPort is used as 2nd instance identifier
+            //tcpConnLocalPort is used as 2nd instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->localPort);
             //Any error to report?
             if(error)
                return error;
 
-            //The tcpConnRemAddress is used as 3rd instance identifier
+            //tcpConnRemAddress is used as 3rd instance identifier
             error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, socket->remoteIpAddr.ipv4Addr);
             //Any error to report?
             if(error)
                return error;
 
-            //The tcpConnRemPort is used as 4th instance identifier
+            //tcpConnRemPort is used as 4th instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->remotePort);
             //Any error to report?
             if(error)
@@ -1178,25 +1277,25 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
 
-   //The tcpConnLocalAddress is used as 1st instance identifier
+   //tcpConnLocalAddress is used as 1st instance identifier
    error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, localIpAddr);
    //Any error to report?
    if(error)
       return error;
 
-   //The tcpConnLocalPort is used as 2nd instance identifier
+   //tcpConnLocalPort is used as 2nd instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, localPort);
    //Any error to report?
    if(error)
       return error;
 
-   //The tcpConnRemAddress is used as 3rd instance identifier
+   //tcpConnRemAddress is used as 3rd instance identifier
    error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, remoteIpAddr);
    //Any error to report?
    if(error)
       return error;
 
-   //The tcpConnRemPort is used as 4th instance identifier
+   //tcpConnRemPort is used as 4th instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, remotePort);
    //Any error to report?
    if(error)
@@ -1208,6 +1307,8 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    return NO_ERROR;
 }
 
+#endif
+#if (UDP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
 
 /**
  * @brief Get udpEntry object value
@@ -1231,13 +1332,13 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
    //Point to the instance identifier
    n = object->oidLen;
 
-   //The udpLocalAddress is used as 1st instance identifier
+   //udpLocalAddress is used as 1st instance identifier
    error = mibDecodeIpv4Addr(oid, oidLen, &n, &localIpAddr);
    //Invalid instance identifier?
    if(error)
       return error;
 
-   //The udpLocalPort is used as 2nd instance identifier
+   //udpLocalPort is used as 2nd instance identifier
    error = mibDecodePort(oid, oidLen, &n, &localPort);
    //Invalid instance identifier?
    if(error)
@@ -1254,7 +1355,7 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
       Socket *socket = &socketTable[i];
 
       //UDP socket?
-      if(socketTable[i].type == SOCKET_TYPE_DGRAM)
+      if(socket->type == SOCKET_TYPE_DGRAM)
       {
          //Check local IP address
          if(socket->localIpAddr.length == sizeof(Ipv6Addr))
@@ -1354,8 +1455,8 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
       //Point to current socket
       Socket *socket = &socketTable[i];
 
-      //TCP socket?
-      if(socketTable[i].type == SOCKET_TYPE_DGRAM)
+      //UDP socket?
+      if(socket->type == SOCKET_TYPE_DGRAM)
       {
          //Filter out IPv6 connections
          if(socket->localIpAddr.length != sizeof(Ipv6Addr) &&
@@ -1364,13 +1465,13 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
             //Append the instance identifier to the OID prefix
             n = object->oidLen;
 
-            //The udpLocalAddress is used as 1st instance identifier
+            //udpLocalAddress is used as 1st instance identifier
             error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, socket->localIpAddr.ipv4Addr);
             //Any error to report?
             if(error)
                return error;
 
-            //The udpLocalPort is used as 2nd instance identifier
+            //udpLocalPort is used as 2nd instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->localPort);
             //Any error to report?
             if(error)
@@ -1416,13 +1517,13 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
          //Append the instance identifier to the OID prefix
          n = object->oidLen;
 
-         //The udpLocalAddress is used as 1st instance identifier
+         //udpLocalAddress is used as 1st instance identifier
          error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, IPV4_UNSPECIFIED_ADDR);
          //Any error to report?
          if(error)
             return error;
 
-         //The udpLocalPort is used as 2nd instance identifier
+         //udpLocalPort is used as 2nd instance identifier
          error = mibEncodePort(nextOid, *nextOidLen, &n, entry->port);
          //Any error to report?
          if(error)
@@ -1463,13 +1564,13 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
 
-   //The udpLocalAddress is used as 1st instance identifier
+   //udpLocalAddress is used as 1st instance identifier
    error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, localIpAddr);
    //Any error to report?
    if(error)
       return error;
 
-   //The udpLocalPort is used as 2nd instance identifier
+   //udpLocalPort is used as 2nd instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, localPort);
    //Any error to report?
    if(error)

@@ -301,12 +301,12 @@ typedef __start_packed struct
    uint8_t reserved : 3;
    uint8_t opcode : 4;
    uint8_t mask : 1;        //1
-   uint8_t payloadLen: 7;
+   uint8_t payloadLen : 7;
 #else
    uint8_t opcode : 4;      //0
    uint8_t reserved : 3;
    uint8_t fin : 1;
-   uint8_t payloadLen: 7;   //1
+   uint8_t payloadLen : 7;  //1
    uint8_t mask : 1;
 #endif
    uint8_t extPayloadLen[]; //2

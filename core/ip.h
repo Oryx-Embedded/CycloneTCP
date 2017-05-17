@@ -106,10 +106,11 @@ uint16_t ipCalcUpperLayerChecksumEx(const void *pseudoHeader,
 
 NetBuffer *ipAllocBuffer(size_t length, size_t *offset);
 
+bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
+bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr);
+
 error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
 error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
-
-bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr);
 
 error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr);
 char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str);

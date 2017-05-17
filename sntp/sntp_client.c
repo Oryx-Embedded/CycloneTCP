@@ -52,7 +52,7 @@
  * @return Error code
  **/
 
- error_t sntpClientGetTimestamp(NetInterface *interface,
+error_t sntpClientGetTimestamp(NetInterface *interface,
    const IpAddr *serverIpAddr, NtpTimestamp *timestamp)
 {
    error_t error;
@@ -281,7 +281,7 @@ void sntpDumpMessage(const NtpHeader *message, size_t length)
 {
 #if (SNTP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
    uint8_t *p;
-   NtpAuthData* authData;
+   NtpAuthData *authData;
 
    //Point to the beginning of the message
    p = (uint8_t *) message;

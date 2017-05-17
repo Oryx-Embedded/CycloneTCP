@@ -56,7 +56,6 @@ struct _NetInterface;
 #include "mdns/mdns_responder.h"
 #include "mdns/mdns_common.h"
 #include "dns_sd/dns_sd.h"
-#include "mibs/mib2_module.h"
 #include "cpu_endian.h"
 #include "error.h"
 
@@ -145,6 +144,7 @@ struct _NetInterface;
 
 struct _NetInterface
 {
+   uint_t index;                                  ///<Zero-based index
    uint32_t id;                                   ///<A unique number identifying the interface
    Eui64 eui64;                                   ///<EUI-64 interface identifier
    char_t name[NET_MAX_IF_NAME_LEN + 1];          ///<A unique name identifying the interface
@@ -215,10 +215,6 @@ struct _NetInterface
 
 #if (PPP_SUPPORT == ENABLED)
    PppContext *pppContext;                        ///<PPP context
-#endif
-
-#if (MIB2_SUPPORT == ENABLED)
-   Mib2IfEntry *mibIfEntry;
 #endif
 };
 

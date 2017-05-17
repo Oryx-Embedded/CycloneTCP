@@ -39,6 +39,7 @@
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
 #include "mibs/mib2_module.h"
+#include "mibs/udp_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -142,7 +143,8 @@ error_t udpProcessDatagram(NetInterface *interface,
    {
       //Number of received UDP datagrams that could not be delivered for
       //reasons other than the lack of an application at the destination port
-      MIB2_INC_COUNTER32(mib2Base.udpGroup.udpInErrors, 1);
+      MIB2_INC_COUNTER32(udpGroup.udpInErrors, 1);
+      UDP_MIB_INC_COUNTER32(udpInErrors, 1);
 
       //Report an error
       return ERROR_INVALID_HEADER;
@@ -171,7 +173,8 @@ error_t udpProcessDatagram(NetInterface *interface,
 
          //Number of received UDP datagrams that could not be delivered for
          //reasons other than the lack of an application at the destination port
-         MIB2_INC_COUNTER32(mib2Base.udpGroup.udpInErrors, 1);
+         MIB2_INC_COUNTER32(udpGroup.udpInErrors, 1);
+         UDP_MIB_INC_COUNTER32(udpInErrors, 1);
 
          //Report an error
          return ERROR_WRONG_CHECKSUM;
@@ -371,8 +374,9 @@ error_t udpProcessDatagram(NetInterface *interface,
    udpUpdateEvents(socket);
 
    //Total number of UDP datagrams delivered to UDP users
-   MIB2_INC_COUNTER32(mib2Base.udpGroup.udpInDatagrams, 1);
-   MIB2_INC_COUNTER64(mib2Base.udpGroup.udpHCInDatagrams, 1);
+   MIB2_INC_COUNTER32(udpGroup.udpInDatagrams, 1);
+   UDP_MIB_INC_COUNTER32(udpInDatagrams, 1);
+   UDP_MIB_INC_COUNTER64(udpHCInDatagrams, 1);
 
    //Successful processing
    return NO_ERROR;
@@ -545,8 +549,9 @@ error_t udpSendDatagramEx(NetInterface *interface, uint16_t srcPort, const IpAdd
       header->checksum = 0xFFFF;
 
    //Total number of UDP datagrams sent from this entity
-   MIB2_INC_COUNTER32(mib2Base.udpGroup.udpOutDatagrams, 1);
-   MIB2_INC_COUNTER64(mib2Base.udpGroup.udpHCOutDatagrams, 1);
+   MIB2_INC_COUNTER32(udpGroup.udpOutDatagrams, 1);
+   UDP_MIB_INC_COUNTER32(udpOutDatagrams, 1);
+   UDP_MIB_INC_COUNTER64(udpHCOutDatagrams, 1);
 
    //Debug message
    TRACE_INFO("Sending UDP datagram (%" PRIuSIZE " bytes)\r\n", length);
@@ -871,13 +876,15 @@ error_t udpInvokeRxCallback(NetInterface *interface, const IpPseudoHeader *pseud
    {
       //Total number of received UDP datagrams for which there was
       //no application at the destination port
-      MIB2_INC_COUNTER32(mib2Base.udpGroup.udpNoPorts, 1);
+      MIB2_INC_COUNTER32(udpGroup.udpNoPorts, 1);
+      UDP_MIB_INC_COUNTER32(udpNoPorts, 1);
    }
    else
    {
       //Total number of UDP datagrams delivered to UDP users
-      MIB2_INC_COUNTER32(mib2Base.udpGroup.udpInDatagrams, 1);
-      MIB2_INC_COUNTER64(mib2Base.udpGroup.udpHCInDatagrams, 1);
+      MIB2_INC_COUNTER32(udpGroup.udpInDatagrams, 1);
+      UDP_MIB_INC_COUNTER32(udpInDatagrams, 1);
+      UDP_MIB_INC_COUNTER64(udpHCInDatagrams, 1);
    }
 
    //Return status code

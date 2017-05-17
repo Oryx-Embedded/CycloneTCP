@@ -66,11 +66,97 @@ typedef enum
 
 typedef enum
 {
-   MIB_ACCESS_NONE       = 0,
-   MIB_ACCESS_READ_ONLY  = 1,
-   MIB_ACCESS_WRITE_ONLY = 2,
-   MIB_ACCESS_READ_WRITE = 3
+   MIB_ACCESS_NONE        = 0,
+   MIB_ACCESS_WRITE_ONLY  = 1,
+   MIB_ACCESS_READ_ONLY   = 2,
+   MIB_ACCESS_READ_WRITE  = 3,
+   MIB_ACCESS_READ_CREATE = 4,
+   MIB_ACCESS_FOR_NOTIFY  = 5
 } MibAccess;
+
+
+/**
+ * @brief Truth value
+ **/
+
+typedef enum
+{
+   MIB_TRUTH_VALUE_TRUE  = 1,
+   MIB_TRUTH_VALUE_FALSE = 2
+} MibTruthValue;
+
+
+/**
+ * @brief Row status
+ **/
+
+typedef enum
+{
+   MIB_ROW_STATUS_ACTIVE          = 1,
+   MIB_ROW_STATUS_NOT_IN_SERVICE  = 2,
+   MIB_ROW_STATUS_NOT_READY       = 3,
+   MIB_ROW_STATUS_CREATE_AND_GO   = 4,
+   MIB_ROW_STATUS_CREATE_AND_WAIT = 5,
+   MIB_ROW_STATUS_DESTROY         = 6
+} MibRowStatus;
+
+
+/**
+ * @brief Storage type
+ **/
+
+typedef enum
+{
+   MIB_STORAGE_TYPE_OTHER        = 1,
+   MIB_STORAGE_TYPE_VOLATILE     = 2,
+   MIB_STORAGE_TYPE_NON_VOLATILE = 3,
+   MIB_STORAGE_TYPE_PERMANENT    = 4,
+   MIB_STORAGE_TYPE_READ_ONLY    = 5,
+} MibStorageType;
+
+
+/**
+ * @brief Internet address types
+ **/
+
+typedef enum
+{
+   INET_ADDR_TYPE_UNKNOWN = 0,
+   INET_ADDR_TYPE_IPV4    = 1,
+   INET_ADDR_TYPE_IPV6    = 2,
+   INET_ADDR_TYPE_IPV4Z   = 3,
+   INET_ADDR_TYPE_IPV6Z   = 4,
+   INET_ADDR_TYPE_DNS     = 16
+} InetAddrType;
+
+
+/**
+ * @brief Internet address scope
+ **/
+
+typedef enum
+{
+   INET_SCOPE_TYPE_RESERVED           = 0,
+   INET_SCOPE_TYPE_INTERFACE_LOCAL    = 1,
+   INET_SCOPE_TYPE_LINK_LOCAL         = 2,
+   INET_SCOPE_TYPE_SUBNET_LOCAL       = 3,
+   INET_SCOPE_TYPE_ADMIN_LOCAL        = 4,
+   INET_SCOPE_TYPE_SITE_LOCAL         = 5,
+   INET_SCOPE_TYPE_ORGANIZATION_LOCAL = 8,
+   INET_SCOPE_TYPE_GLOBAL             = 14
+} InetScopeType;
+
+
+/**
+ * @brief IP protocol version
+ **/
+
+typedef enum
+{
+   INET_VERSION_UNKNOWN = 0,
+   INET_VERSION_IPV4    = 1,
+   INET_VERSION_IPV6    = 2
+} InetVersion;
 
 
 //CodeWarrior or Win32 compiler?
@@ -93,6 +179,7 @@ typedef __start_packed struct
       uint8_t ipAddr[4];
       uint32_t counter32;
       uint32_t gauge32;
+      uint32_t unsigned32;
       uint32_t timeTicks;
       uint64_t counter64;
    };
@@ -110,7 +197,7 @@ typedef __start_packed struct
  **/
 
 typedef error_t (*MibSetValue)(const MibObject *object, const uint8_t *oid,
-   size_t oidLen, const MibVariant *value, size_t valueLen);
+   size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
 
 /**
@@ -158,6 +245,20 @@ typedef error_t (*MibInit)(void);
 
 
 /**
+ * @brief Load MIB
+ **/
+
+typedef error_t (*MibLoad)(void *context);
+
+
+/**
+ * @brief Unload MIB
+ **/
+
+typedef void (*MibUnload)(void *context);
+
+
+/**
  * @brief Lock MIB
  **/
 
@@ -177,9 +278,14 @@ typedef void (*MibUnlock)(void);
 
 typedef struct
 {
+   const char_t *name;
+   uint8_t oid[MIB_MAX_OID_SIZE];
+   size_t oidLen;
    const MibObject *objects;
    uint_t numObjects;
    MibInit init;
+   MibLoad load;
+   MibUnload unload;
    MibLock lock;
    MibUnlock unlock;
 } MibModule;
@@ -189,10 +295,30 @@ typedef struct
 error_t mibEncodeIndex(uint8_t *oid, size_t maxOidLen, size_t *pos, uint_t index);
 error_t mibDecodeIndex(const uint8_t *oid, size_t oidLen, size_t *pos, uint_t *index);
 
-error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, Ipv4Addr ipAddr);
-error_t mibDecodeIpv4Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv4Addr *ipAddr);
+error_t mibEncodeUnsigned32(uint8_t *oid, size_t maxOidLen, size_t *pos, uint32_t value);
+error_t mibDecodeUnsigned32(const uint8_t *oid, size_t oidLen, size_t *pos, uint32_t *value);
+
+error_t mibEncodeOctetString(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const uint8_t *data, size_t dataLen);
+
+error_t mibDecodeOctetString(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint8_t *data, size_t maxDataLen, size_t *dataLen);
 
 error_t mibEncodePort(uint8_t *oid, size_t maxOidLen, size_t *pos, uint16_t port);
 error_t mibDecodePort(const uint8_t *oid, size_t oidLen, size_t *pos, uint16_t *port);
+
+error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const MacAddr *macAddr);
+error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos, MacAddr *macAddr);
+
+error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, Ipv4Addr ipAddr);
+error_t mibDecodeIpv4Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv4Addr *ipAddr);
+
+error_t mibEncodeIpv6Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, const Ipv6Addr *ipAddr);
+error_t mibDecodeIpv6Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv6Addr *ipAddr);
+
+error_t mibEncodeIpAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const IpAddr *ipAddr);
+error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos, IpAddr *ipAddr);
+
+int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
 
 #endif

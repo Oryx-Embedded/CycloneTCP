@@ -174,6 +174,7 @@ ArpCacheEntry *arpFindEntry(NetInterface *interface, Ipv4Addr ipAddr)
 void arpSendQueuedPackets(NetInterface *interface, ArpCacheEntry *entry)
 {
    uint_t i;
+   size_t length;
    ArpQueueItem *item;
 
    //Check current state
@@ -184,6 +185,11 @@ void arpSendQueuedPackets(NetInterface *interface, ArpCacheEntry *entry)
       {
          //Point to the current queue item
          item = &entry->queue[i];
+
+         //Retrieve the length of the IPv4 packet
+         length = netBufferGetLength(item->buffer) - item->offset;
+         //Update IP statistics
+         ipv4UpdateOutStats(interface, entry->ipAddr, length);
 
          //Send the IPv4 packet
          ethSendFrame(interface, &entry->macAddr,

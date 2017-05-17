@@ -763,9 +763,6 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
 
    //Properly terminate the Status-Line
    p += sprintf(p, "\r\n");
-   //The Server response-header field contains information about the
-   //software used by the origin server to handle the request
-   p += sprintf(p, "Server: Oryx Embedded HTTP Server\r\n");
 
    //Valid location?
    if(connection->response.location != NULL)
@@ -854,7 +851,7 @@ error_t httpSend(HttpConnection *connection,
    const void *data, size_t length, uint_t flags)
 {
 #if (NET_RTOS_SUPPORT == ENABLED)
-      error_t error;
+   error_t error;
 
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
    //Check whether a secure connection is being used
@@ -901,6 +898,7 @@ error_t httpSend(HttpConnection *connection,
 error_t httpReceive(HttpConnection *connection,
    void *data, size_t size, size_t *received, uint_t flags)
 {
+#if (NET_RTOS_SUPPORT == ENABLED)
    error_t error;
 
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
@@ -919,6 +917,55 @@ error_t httpReceive(HttpConnection *connection,
 
    //Return status code
    return error;
+#else
+   error_t error;
+   char_t c;
+   size_t i;
+   size_t n;
+
+   //Number of data bytes that are pending in the receive buffer
+   n = connection->bufferLen - connection->bufferPos;
+
+   //Any data to be copied?
+   if(n > 0)
+   {
+      //Limit the number of bytes to read at a time
+      n = MIN(n, size);
+
+      //The HTTP_FLAG_BREAK_CHAR flag causes the function to stop reading
+      //data as soon as the specified break character is encountered
+      if(flags & HTTP_FLAG_BREAK_CHAR)
+      {
+         //Retrieve the break character code
+         c = LSB(flags);
+
+         //Search for the specified break character
+         for(i = 0; i < n && connection->buffer[connection->bufferPos + i] != c; i++);
+
+         //Adjust the number of data to read
+         n = MIN(n, i + 1);
+      }
+
+      //Copy data to user buffer
+      memcpy(data, connection->buffer + connection->bufferPos, n);
+
+      //Advance current position
+      connection->bufferPos += n;
+      //Total number of data that have been read
+      *received = n;
+
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //No more data available...
+      error = ERROR_END_OF_STREAM;
+   }
+
+   //Return status code
+   return error;
+#endif
 }
 
 

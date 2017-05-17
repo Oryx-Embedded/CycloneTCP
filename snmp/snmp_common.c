@@ -1454,7 +1454,7 @@ error_t snmpEncodeInt32(int32_t value, uint8_t *dest, size_t *length)
       return ERROR_INVALID_PARAMETER;
 
    //The integer is encoded MSB first
-   value = htobe32(value);
+   value = (int32_t) htobe32(value);
    //Cast the integer to byte array
    src = (uint8_t *) &value;
 

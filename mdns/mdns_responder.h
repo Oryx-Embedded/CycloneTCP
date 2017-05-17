@@ -123,11 +123,11 @@ struct _MdnsResponderContext;
 
 typedef enum
 {
-   MDNS_STATE_INIT,
-   MDNS_STATE_WAITING,
-   MDNS_STATE_PROBING,
-   MDNS_STATE_ANNOUNCING,
-   MDNS_STATE_IDLE
+   MDNS_STATE_INIT       = 0,
+   MDNS_STATE_WAITING    = 1,
+   MDNS_STATE_PROBING    = 2,
+   MDNS_STATE_ANNOUNCING = 3,
+   MDNS_STATE_IDLE       = 4
 } MdnsState;
 
 

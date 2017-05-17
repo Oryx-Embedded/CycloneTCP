@@ -562,8 +562,16 @@ error_t m2sxxxEthUpdateMacConfig(NetInterface *interface)
    else
    {
       //The link operates at 10 Mbps
-      temp = SYSREG->MAC_CR & ~MAC_CR_ETH_LINE_SPEED;
-      SYSREG->MAC_CR = temp | MAC_CR_ETH_LINE_SPEED_10MBPS;
+      if((SYSREG->MAC_CR & MAC_CR_ETH_PHY_MODE) == MAC_CR_ETH_PHY_MODE_MII)
+      {
+         temp = SYSREG->MAC_CR & ~MAC_CR_ETH_LINE_SPEED;
+         SYSREG->MAC_CR = temp | MAC_CR_ETH_LINE_SPEED_100MBPS;
+      }
+      else
+      {
+         temp = SYSREG->MAC_CR & ~MAC_CR_ETH_LINE_SPEED;
+         SYSREG->MAC_CR = temp | MAC_CR_ETH_LINE_SPEED_10MBPS;
+      }
 
       //Configure the RMII module with the current operating speed
       MAC->INTERFACE_CTRL &= ~INTERFACE_CTRL_SPEED;

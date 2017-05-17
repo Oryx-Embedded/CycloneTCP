@@ -145,27 +145,27 @@ error_t pppDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
    //Check protocol field
    switch(protocol)
    {
-      //LCP packet?
-      case PPP_PROTOCOL_LCP:
-         error = lcpDumpPacket(packet, length);
-         break;
-      //NCP packet?
-      case PPP_PROTOCOL_IPCP:
-      case PPP_PROTOCOL_IPV6CP:
-         error = ncpDumpPacket(packet, length, protocol);
-         break;
-      //PAP packet?
-      case PPP_PROTOCOL_PAP:
-         error = papDumpPacket(packet, length);
-         break;
-      //CHAP packet?
-      case PPP_PROTOCOL_CHAP:
-         error = chapDumpPacket(packet, length);
-         break;
-      //Unknown protocol?
-      default:
-         error = ERROR_FAILURE;
-         break;
+   //LCP packet?
+   case PPP_PROTOCOL_LCP:
+      error = lcpDumpPacket(packet, length);
+      break;
+   //NCP packet?
+   case PPP_PROTOCOL_IPCP:
+   case PPP_PROTOCOL_IPV6CP:
+      error = ncpDumpPacket(packet, length, protocol);
+      break;
+   //PAP packet?
+   case PPP_PROTOCOL_PAP:
+      error = papDumpPacket(packet, length);
+      break;
+   //CHAP packet?
+   case PPP_PROTOCOL_CHAP:
+      error = chapDumpPacket(packet, length);
+      break;
+   //Unknown protocol?
+   default:
+      error = ERROR_FAILURE;
+      break;
    }
 
    //Return status code

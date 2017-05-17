@@ -78,13 +78,6 @@
    #error MIB2_SYS_LOCATION_SIZE parameter is not valid
 #endif
 
-//Size of ifDescr object
-#ifndef MIB2_IF_DESCR_SIZE
-   #define MIB2_IF_DESCR_SIZE 16
-#elif (MIB2_IF_DESCR_SIZE < 1)
-   #error MIB2_IF_DESCR_SIZE parameter is not valid
-#endif
-
 //Size of ifSpecific object
 #ifndef MIB2_IF_SPECIFIC_SIZE
    #define MIB2_IF_SPECIFIC_SIZE 16
@@ -108,21 +101,11 @@
 
 //Macro definitions
 #if (MIB2_SUPPORT == ENABLED)
-   #define MIB2_SET_INTEGER(name, value) name = value
-   #define MIB2_SET_GAUGE32(name, value) name = value
-   #define MIB2_SET_TIME_TICKS(name, value) name = value
-   #define MIB2_SET_OCTET_STRING(name, value, length) memcpy(name, value, length)
-   #define MIB2_SET_OCTET_STRING_LEN(name, length) name = length
-   #define MIB2_INC_COUNTER32(name, value) name += value
-   #define MIB2_INC_COUNTER64(name, value) name += value
+   #define MIB2_SET_TIME_TICKS(name, value) mib2Base.name = value
+   #define MIB2_INC_COUNTER32(name, value) mib2Base.name += value
 #else
-   #define MIB2_SET_INTEGER(name, value)
-   #define MIB2_SET_GAUGE32(name, value)
    #define MIB2_SET_TIME_TICKS(name, value)
-   #define MIB2_SET_OCTET_STRING(name, value, length)
-   #define MIB2_SET_OCTET_STRING_LEN(name, length)
    #define MIB2_INC_COUNTER32(name, value)
-   #define MIB2_INC_COUNTER64(name, value)
 #endif
 
 
@@ -278,16 +261,6 @@ typedef struct
 
 typedef struct
 {
-   int32_t ifIndex;
-   char_t ifDescr[MIB2_IF_DESCR_SIZE];
-   size_t ifDescrLen;
-   int32_t ifType;
-   int32_t ifMtu;
-   uint32_t ifSpeed;
-   uint8_t ifPhysAddress[MIB2_PHYS_ADDRESS_SIZE];
-   size_t ifPhysAddressLen;
-   int32_t ifAdminStatus;
-   int32_t ifOperStatus;
    uint32_t ifLastChange;
    uint32_t ifInOctets;
    uint32_t ifInUcastPkts;
@@ -395,14 +368,11 @@ typedef struct
    uint32_t tcpPassiveOpens;
    uint32_t tcpAttemptFails;
    uint32_t tcpEstabResets;
-   uint32_t tcpCurrEstab;
    uint32_t tcpInSegs;
    uint32_t tcpOutSegs;
    uint32_t tcpRetransSegs;
    uint32_t tcpInErrs;
    uint32_t tcpOutRsts;
-   uint64_t tcpHCInSegs;
-   uint64_t tcpHCOutSegs;
 } Mib2TcpGroup;
 
 
@@ -416,8 +386,6 @@ typedef struct
    uint32_t udpNoPorts;
    uint32_t udpInErrors;
    uint32_t udpOutDatagrams;
-   uint64_t udpHCInDatagrams;
-   uint64_t udpHCOutDatagrams;
 } Mib2UdpGroup;
 
 

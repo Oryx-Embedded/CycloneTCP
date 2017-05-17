@@ -160,7 +160,7 @@ error_t wilc1000Init(NetInterface *interface)
       }
 
       //Retrieve current MAC addresses
-      status = m2m_wifi_get_mac_address(staMacAddr.b, apMacAddr.b);
+      status = m2m_wifi_get_mac_address(apMacAddr.b, staMacAddr.b);
 
       //Check status code
       if(status != M2M_SUCCESS)
@@ -187,7 +187,7 @@ error_t wilc1000Init(NetInterface *interface)
             apMacAddr = interface->macAddr;
 
          //Assign MAC addresses
-         status = m2m_wifi_set_mac_address(apMacAddr.b, staMacAddr.b);
+         status = m2m_wifi_set_mac_address(staMacAddr.b, apMacAddr.b);
 
          //Check status code
          if(status != M2M_SUCCESS)

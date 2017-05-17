@@ -36,6 +36,7 @@
 #include "snmp/snmp_agent_pdu.h"
 #include "snmp/snmp_agent_misc.h"
 #include "mibs/mib2_module.h"
+#include "mibs/snmp_mib_module.h"
 #include "crypto.h"
 #include "asn1.h"
 #include "oid.h"
@@ -57,7 +58,8 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
 
    //Total number of messages delivered to the SNMP entity from the
    //transport service
-   MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInPkts, 1);
+   MIB2_INC_COUNTER32(snmpGroup.snmpInPkts, 1);
+   SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInPkts, 1);
 
    //Refresh SNMP engine time
    snmpRefreshEngineTime(context);
@@ -116,7 +118,8 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
 
       //Total number of SNMP messages which were delivered to the SNMP
       //protocol entity and were for an unsupported SNMP version
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInBadVersions, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInBadVersions, 1);
+      SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadVersions, 1);
 
       //Discard incoming SNMP message
       error = ERROR_INVALID_VERSION;
@@ -127,13 +130,21 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
    {
       //Total number of messages which were passed from the SNMP protocol
       //entity to the transport service
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutPkts, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpOutPkts, 1);
    }
    else if(error == ERROR_INVALID_TAG)
    {
       //Total number of ASN.1 or BER errors encountered by the SNMP protocol
       //entity when decoding received SNMP messages
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInASNParseErrs, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInASNParseErrs, 1);
+      SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInASNParseErrs, 1);
+   }
+   else if(error == ERROR_BUFFER_OVERFLOW)
+   {
+      //Total number of PDUs delivered to the SNMP entity which were silently
+      //dropped because the size of the reply was greater than the maximum
+      //message size
+      SNMP_MIB_INC_COUNTER32(snmpGroup.snmpSilentDrops, 1);
    }
 
    //Return status code
@@ -171,7 +182,8 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
 
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which used a SNMP community name not known to said entity
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInBadCommunityNames, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityNames, 1);
+      SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityNames, 1);
 
       //Report an error
       return ERROR_UNKNOWN_USER_NAME;
@@ -225,7 +237,8 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
 
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which used a SNMP community name not known to said entity
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpInBadCommunityNames, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityNames, 1);
+      SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityNames, 1);
 
       //Report an error
       return ERROR_UNKNOWN_USER_NAME;

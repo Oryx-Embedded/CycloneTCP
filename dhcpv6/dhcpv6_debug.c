@@ -259,7 +259,7 @@ error_t dhcpv6DumpOptions(const uint8_t *options, size_t length, uint_t level)
       case DHCPV6_OPTION_ORO:
          error = dhcpv6DumpOroOption(option, level);
          break;
-       //Preference option
+      //Preference option
       case DHCPV6_OPTION_PREFERENCE:
          error = dhcpv6DumpPreferenceOption(option, level);
          break;

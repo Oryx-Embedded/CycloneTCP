@@ -51,6 +51,7 @@
 #include "ipv4/ipv4.h"
 #include "ipv6/ipv6.h"
 #include "mibs/mib2_module.h"
+#include "mibs/tcp_mib_module.h"
 #include "date_time.h"
 #include "debug.h"
 
@@ -76,8 +77,9 @@ void tcpProcessSegment(NetInterface *interface,
    TcpHeader *segment;
 
    //Total number of segments received, including those received in error
-   MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpInSegs, 1);
-   MIB2_INC_COUNTER64(mib2Base.tcpGroup.tcpHCInSegs, 1);
+   MIB2_INC_COUNTER32(tcpGroup.tcpInSegs, 1);
+   TCP_MIB_INC_COUNTER32(tcpInSegs, 1);
+   TCP_MIB_INC_COUNTER64(tcpHCInSegs, 1);
 
    //A TCP implementation must silently discard an incoming
    //segment that is addressed to a broadcast or multicast
@@ -122,8 +124,11 @@ void tcpProcessSegment(NetInterface *interface,
    {
       //Debug message
       TRACE_WARNING("TCP segment length is invalid!\r\n");
+
       //Total number of segments received in error
-      MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpInErrs, 1);
+      MIB2_INC_COUNTER32(tcpGroup.tcpInErrs, 1);
+      TCP_MIB_INC_COUNTER32(tcpInErrs, 1);
+
       //Exit immediately
       return;
    }
@@ -133,8 +138,11 @@ void tcpProcessSegment(NetInterface *interface,
    {
       //Debug message
       TRACE_WARNING("TCP header length is invalid!\r\n");
+
       //Total number of segments received in error
-      MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpInErrs, 1);
+      MIB2_INC_COUNTER32(tcpGroup.tcpInErrs, 1);
+      TCP_MIB_INC_COUNTER32(tcpInErrs, 1);
+
       //Exit immediately
       return;
    }
@@ -145,8 +153,11 @@ void tcpProcessSegment(NetInterface *interface,
    {
       //Debug message
       TRACE_WARNING("Wrong TCP header checksum!\r\n");
+
       //Total number of segments received in error
-      MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpInErrs, 1);
+      MIB2_INC_COUNTER32(tcpGroup.tcpInErrs, 1);
+      TCP_MIB_INC_COUNTER32(tcpInErrs, 1);
+
       //Exit immediately
       return;
    }
@@ -572,7 +583,8 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
 
          //Number of times TCP connections have made a direct transition to the
          //CLOSED state from either the SYN-SENT state or the SYN-RECEIVED state
-         MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpAttemptFails, 1);
+         MIB2_INC_COUNTER32(tcpGroup.tcpAttemptFails, 1);
+         TCP_MIB_INC_COUNTER32(tcpAttemptFails, 1);
       }
 
       //Drop the segment and return
@@ -680,7 +692,8 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
 
       //Number of times TCP connections have made a direct transition to the
       //CLOSED state from either the SYN-SENT state or the SYN-RECEIVED state
-      MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpAttemptFails, 1);
+      MIB2_INC_COUNTER32(tcpGroup.tcpAttemptFails, 1);
+      TCP_MIB_INC_COUNTER32(tcpAttemptFails, 1);
 
       //Return immediately
       return;
@@ -753,7 +766,8 @@ void tcpStateEstablished(Socket *socket, TcpHeader *segment,
 
       //Number of times TCP connections have made a direct transition to the
       //CLOSED state from either the ESTABLISHED state or the CLOSE-WAIT state
-      MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpEstabResets, 1);
+      MIB2_INC_COUNTER32(tcpGroup.tcpEstabResets, 1);
+      TCP_MIB_INC_COUNTER32(tcpEstabResets, 1);
 
       //Return immediately
       return;
@@ -828,7 +842,8 @@ void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
 
       //Number of times TCP connections have made a direct transition to the
       //CLOSED state from either the ESTABLISHED state or the CLOSE-WAIT state
-      MIB2_INC_COUNTER32(mib2Base.tcpGroup.tcpEstabResets, 1);
+      MIB2_INC_COUNTER32(tcpGroup.tcpEstabResets, 1);
+      TCP_MIB_INC_COUNTER32(tcpEstabResets, 1);
 
       //Return immediately
       return;

@@ -231,7 +231,6 @@ error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module)
 {
    error_t error;
    uint_t i;
-   uint_t j;
 
    //Check parameters
    if(context == NULL || module == NULL)
@@ -243,7 +242,7 @@ error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module)
    osAcquireMutex(&context->mutex);
 
    //Loop through existing MIBs
-   for(i = 0; i < context->mibModuleCount; i++)
+   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
    {
       //Check whether the specified MIB module is already loaded
       if(context->mibModule[i] == module)
@@ -251,39 +250,36 @@ error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module)
    }
 
    //MIB module found?
-   if(i < context->mibModuleCount)
+   if(i < SNMP_AGENT_MAX_MIB_COUNT)
    {
-      //Prevent the SNMP agent from loading the specified MIB multiple times
+      //Prevent the SNMP agent from loading the same MIB multiple times
       error = NO_ERROR;
    }
    else
    {
-      //Make sure there is enough room to add the specified MIB
-      if(context->mibModuleCount < SNMP_AGENT_MAX_MIB_COUNT)
+      //Loop through existing MIBs
+      for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
       {
-         //Loop through existing MIBs
-         for(i = 0; i < context->mibModuleCount; i++)
+         //Check if the current entry is available
+         if(context->mibModule[i] == NULL)
+            break;
+      }
+
+      //Make sure there is enough room to add the specified MIB
+      if(i < SNMP_AGENT_MAX_MIB_COUNT)
+      {
+         //Invoke user callback, if any
+         if(module->load != NULL)
+            error = module->load(context);
+         else
+            error = NO_ERROR;
+
+         //Check status code
+         if(!error)
          {
-            //Compare object identifiers
-            if(oidComp(module->objects[0].oid, module->objects[0].oidLen,
-               context->mibModule[i]->objects[0].oid, context->mibModule[i]->objects[0].oidLen) < 0)
-            {
-               //Make room for the new MIB
-               for(j = context->mibModuleCount; j > i; j--)
-                  context->mibModule[j] = context->mibModule[j - 1];
-
-               //We are done
-               break;
-            }
+            //Add the MIB to the list
+            context->mibModule[i] = module;
          }
-
-         //Insert the new MIB to the list
-         context->mibModule[i] = module;
-         //Update the number of MIBs
-         context->mibModuleCount++;
-
-         //Successful processing
-         error = NO_ERROR;
       }
       else
       {
@@ -311,7 +307,6 @@ error_t snmpAgentUnloadMib(SnmpAgentContext *context, const MibModule *module)
 {
    error_t error;
    uint_t i;
-   uint_t j;
 
    //Check parameters
    if(context == NULL || module == NULL)
@@ -321,7 +316,7 @@ error_t snmpAgentUnloadMib(SnmpAgentContext *context, const MibModule *module)
    osAcquireMutex(&context->mutex);
 
    //Loop through existing MIBs
-   for(i = 0; i < context->mibModuleCount; i++)
+   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
    {
       //Check whether the specified MIB module is already loaded
       if(context->mibModule[i] == module)
@@ -329,14 +324,17 @@ error_t snmpAgentUnloadMib(SnmpAgentContext *context, const MibModule *module)
    }
 
    //MIB module found?
-   if(i < context->mibModuleCount)
+   if(i < SNMP_AGENT_MAX_MIB_COUNT)
    {
-      //Update the number of MIBs
-      context->mibModuleCount--;
+      //Any registered callback?
+      if(context->mibModule[i]->unload != NULL)
+      {
+         //Invoke user callback function
+         context->mibModule[i]->unload(context);
+      }
 
-      //Remove the specified MIB from the list
-      for(j = i; j < context->mibModuleCount; j++)
-         context->mibModule[j] = context->mibModule[j + 1];
+      //Remove the MIB from the list
+      context->mibModule[i] = NULL;
 
       //Successful processing
       error = NO_ERROR;
@@ -352,6 +350,38 @@ error_t snmpAgentUnloadMib(SnmpAgentContext *context, const MibModule *module)
 
    //Return status code
    return error;
+}
+
+
+/**
+ * @brief Set minimum and maximum versions permitted
+ * @param[in] context Pointer to the SNMP agent context
+ * @param[in] versionMin Minimum version accepted by the SNMP agent
+ * @param[in] versionMax Maximum version accepted by the SNMP agent
+ * @return Error code
+ **/
+
+error_t snmpAgentSetVersion(SnmpAgentContext *context,
+   SnmpVersion versionMin, SnmpVersion versionMax)
+{
+   //Check parameters
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+   if(versionMin > versionMax)
+      return ERROR_INVALID_PARAMETER;
+
+   //Acquire exclusive access to the SNMP agent context
+   osAcquireMutex(&context->mutex);
+
+   //Set minimum and maximum versions permitted
+   context->settings.versionMin = versionMin;
+   context->settings.versionMax = versionMax;
+
+   //Release exclusive access to the SNMP agent context
+   osReleaseMutex(&context->mutex);
+
+   //Successful processing
+   return NO_ERROR;
 }
 
 
@@ -941,7 +971,7 @@ error_t snmpAgentSendTrap(SnmpAgentContext *context, const IpAddr *destIpAddr,
 
       //Total number of messages which were passed from the SNMP protocol
       //entity to the transport service
-      MIB2_INC_COUNTER32(mib2Base.snmpGroup.snmpOutPkts, 1);
+      MIB2_INC_COUNTER32(snmpGroup.snmpOutPkts, 1);
 
       //Debug message
       TRACE_INFO("Sending SNMP message to %s port %" PRIu16
