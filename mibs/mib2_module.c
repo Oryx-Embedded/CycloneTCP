@@ -30,7 +30,7 @@
  * - RFC 1213: MIB for Network Management of TCP/IP-based internets (version 2)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -62,6 +62,7 @@ Mib2Base mib2Base;
 
 const MibObject mib2Objects[] =
 {
+#if (MIB2_SYS_GROUP_SUPPORT == ENABLED)
    //sysDescr object (1.3.6.1.2.1.1.1)
    {
       "sysDescr",
@@ -212,6 +213,8 @@ const MibObject mib2Objects[] =
       NULL,
       NULL
    },
+#endif
+#if (MIB2_IF_GROUP_SUPPORT == ENABLED)
    //ifNumber object (1.3.6.1.2.1.2.1)
    {
       "ifNumber",
@@ -557,7 +560,8 @@ const MibObject mib2Objects[] =
       mib2GetIfEntry,
       mib2GetNextIfEntry
    },
-#if (IPV4_SUPPORT == ENABLED)
+#endif
+#if (MIB2_IP_GROUP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
    //ipForwarding object (1.3.6.1.2.1.4.1)
    {
       "ipForwarding",
@@ -993,6 +997,8 @@ const MibObject mib2Objects[] =
       NULL,
       NULL
    },
+#endif
+#if (MIB2_ICMP_GROUP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
    //icmpInMsgs object (1.3.6.1.2.1.5.1)
    {
       "icmpInMsgs",
@@ -1384,7 +1390,7 @@ const MibObject mib2Objects[] =
       NULL
    },
 #endif
-#if (TCP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
+#if (MIB2_TCP_GROUP_SUPPORT == ENABLED && TCP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
    //tcpRtoAlgorithm object (1.3.6.1.2.1.6.1)
    {
       "tcpRtoAlgorithm",
@@ -1671,7 +1677,7 @@ const MibObject mib2Objects[] =
       NULL
    },
 #endif
-#if (UDP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
+#if (MIB2_UDP_GROUP_SUPPORT == ENABLED && UDP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
    //udpInDatagrams object (1.3.6.1.2.1.7.1)
    {
       "udpInDatagrams",
@@ -1763,6 +1769,7 @@ const MibObject mib2Objects[] =
       mib2GetNextUdpEntry
    },
 #endif
+#if (MIB2_SNMP_GROUP_SUPPORT == ENABLED)
    //snmpInPkts object (1.3.6.1.2.1.11.1)
    {
       "snmpInPkts",
@@ -2183,6 +2190,7 @@ const MibObject mib2Objects[] =
       NULL,
       NULL
    }
+#endif
 };
 
 

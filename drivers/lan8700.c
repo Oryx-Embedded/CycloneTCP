@@ -1,6 +1,6 @@
 /**
- * @file ksz8031.c
- * @brief KSZ8031 Ethernet PHY transceiver
+ * @file lan8700.c
+ * @brief LAN8700 Ethernet PHY transceiver
  *
  * @section License
  *
@@ -31,49 +31,49 @@
 
 //Dependencies
 #include "core/net.h"
-#include "drivers/ksz8031.h"
+#include "drivers/lan8700.h"
 #include "debug.h"
 
 
 /**
- * @brief KSZ8031 Ethernet PHY driver
+ * @brief LAN8700 Ethernet PHY driver
  **/
 
-const PhyDriver ksz8031PhyDriver =
+const PhyDriver lan8700PhyDriver =
 {
-   ksz8031Init,
-   ksz8031Tick,
-   ksz8031EnableIrq,
-   ksz8031DisableIrq,
-   ksz8031EventHandler,
+   lan8700Init,
+   lan8700Tick,
+   lan8700EnableIrq,
+   lan8700DisableIrq,
+   lan8700EventHandler,
 };
 
 
 /**
- * @brief KSZ8031 PHY transceiver initialization
+ * @brief LAN8700 PHY transceiver initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t ksz8031Init(NetInterface *interface)
+error_t lan8700Init(NetInterface *interface)
 {
    //Debug message
-   TRACE_INFO("Initializing KSZ8031...\r\n");
+   TRACE_INFO("Initializing LAN8700...\r\n");
 
    //Initialize external interrupt line driver
    if(interface->extIntDriver != NULL)
       interface->extIntDriver->init();
 
-   //Reset PHY transceiver
-   ksz8031WritePhyReg(interface, KSZ8031_PHY_REG_BMCR, BMCR_RESET);
+   //Reset PHY transceiver (soft reset)
+   lan8700WritePhyReg(interface, LAN8700_PHY_REG_BMCR, BMCR_RESET);
    //Wait for the reset to complete
-   while(ksz8031ReadPhyReg(interface, KSZ8031_PHY_REG_BMCR) & BMCR_RESET);
+   while(lan8700ReadPhyReg(interface, LAN8700_PHY_REG_BMCR) & BMCR_RESET);
 
    //Dump PHY registers for debugging purpose
-   ksz8031DumpPhyReg(interface);
+   lan8700DumpPhyReg(interface);
 
    //The PHY will generate interrupts when link status changes are detected
-   ksz8031WritePhyReg(interface, KSZ8031_PHY_REG_ICSR, ICSR_LINK_DOWN_IE | ICSR_LINK_UP_IE);
+   lan8700WritePhyReg(interface, LAN8700_PHY_REG_IMR, IMR_AN_COMPLETE | IMR_LINK_DOWN);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -86,11 +86,11 @@ error_t ksz8031Init(NetInterface *interface)
 
 
 /**
- * @brief KSZ8031 timer handler
+ * @brief LAN8700 timer handler
  * @param[in] interface Underlying network interface
  **/
 
-void ksz8031Tick(NetInterface *interface)
+void lan8700Tick(NetInterface *interface)
 {
    uint16_t value;
    bool_t linkState;
@@ -99,7 +99,7 @@ void ksz8031Tick(NetInterface *interface)
    if(interface->extIntDriver == NULL)
    {
       //Read basic status register
-      value = ksz8031ReadPhyReg(interface, KSZ8031_PHY_REG_BMSR);
+      value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_BMSR);
       //Retrieve current link state
       linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
 
@@ -128,7 +128,7 @@ void ksz8031Tick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ksz8031EnableIrq(NetInterface *interface)
+void lan8700EnableIrq(NetInterface *interface)
 {
    //Enable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
@@ -141,7 +141,7 @@ void ksz8031EnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ksz8031DisableIrq(NetInterface *interface)
+void lan8700DisableIrq(NetInterface *interface)
 {
    //Disable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
@@ -150,51 +150,51 @@ void ksz8031DisableIrq(NetInterface *interface)
 
 
 /**
- * @brief KSZ8031 event handler
+ * @brief LAN8700 event handler
  * @param[in] interface Underlying network interface
  **/
 
-void ksz8031EventHandler(NetInterface *interface)
+void lan8700EventHandler(NetInterface *interface)
 {
    uint16_t value;
 
    //Read status register to acknowledge the interrupt
-   value = ksz8031ReadPhyReg(interface, KSZ8031_PHY_REG_ICSR);
+   value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_ISR);
 
    //Link status change?
-   if(value & (ICSR_LINK_DOWN_IF | ICSR_LINK_UP_IF))
+   if(value & (IMR_AN_COMPLETE | IMR_LINK_DOWN))
    {
       //Any link failure condition is latched in the BMSR register... Reading
       //the register twice will always return the actual link status
-      value = ksz8031ReadPhyReg(interface, KSZ8031_PHY_REG_BMSR);
-      value = ksz8031ReadPhyReg(interface, KSZ8031_PHY_REG_BMSR);
+      value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_BMSR);
+      value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_BMSR);
 
       //Link is up?
       if(value & BMSR_LINK_STATUS)
       {
-         //Read PHY control register
-         value = ksz8031ReadPhyReg(interface, KSZ8031_PHY_REG_PHYCON1);
+         //Read PHY special control/status register
+         value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_PSCSR);
 
          //Check current operation mode
-         switch(value & PHYCON1_OP_MODE_MASK)
+         switch(value & PSCSR_HCDSPEED_MASK)
          {
          //10BASE-T
-         case PHYCON1_OP_MODE_10BT:
+         case PSCSR_HCDSPEED_10BT:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
          //10BASE-T full-duplex
-         case PHYCON1_OP_MODE_10BT_FD:
+         case PSCSR_HCDSPEED_10BT_FD:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
          //100BASE-TX
-         case PHYCON1_OP_MODE_100BTX:
+         case PSCSR_HCDSPEED_100BTX:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
          //100BASE-TX full-duplex
-         case PHYCON1_OP_MODE_100BTX_FD:
+         case PSCSR_HCDSPEED_100BTX_FD:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
@@ -230,7 +230,7 @@ void ksz8031EventHandler(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void ksz8031WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
+void lan8700WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 {
    uint8_t phyAddr;
 
@@ -238,7 +238,7 @@ void ksz8031WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
    if(interface->phyAddr < 32)
       phyAddr = interface->phyAddr;
    else
-      phyAddr = KSZ8031_PHY_ADDR;
+      phyAddr = LAN8700_PHY_ADDR;
 
    //Write the specified PHY register
    interface->nicDriver->writePhyReg(phyAddr, address, data);
@@ -252,7 +252,7 @@ void ksz8031WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
  * @return Register value
  **/
 
-uint16_t ksz8031ReadPhyReg(NetInterface *interface, uint8_t address)
+uint16_t lan8700ReadPhyReg(NetInterface *interface, uint8_t address)
 {
    uint8_t phyAddr;
 
@@ -260,7 +260,7 @@ uint16_t ksz8031ReadPhyReg(NetInterface *interface, uint8_t address)
    if(interface->phyAddr < 32)
       phyAddr = interface->phyAddr;
    else
-      phyAddr = KSZ8031_PHY_ADDR;
+      phyAddr = LAN8700_PHY_ADDR;
 
    //Read the specified PHY register
    return interface->nicDriver->readPhyReg(phyAddr, address);
@@ -272,7 +272,7 @@ uint16_t ksz8031ReadPhyReg(NetInterface *interface, uint8_t address)
  * @param[in] interface Underlying network interface
  **/
 
-void ksz8031DumpPhyReg(NetInterface *interface)
+void lan8700DumpPhyReg(NetInterface *interface)
 {
    uint8_t i;
 
@@ -280,7 +280,7 @@ void ksz8031DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, ksz8031ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, lan8700ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

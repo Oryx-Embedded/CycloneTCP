@@ -28,7 +28,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level

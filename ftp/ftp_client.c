@@ -31,7 +31,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -81,7 +81,8 @@ error_t ftpSetPort(FtpClientContext *context, const IpAddr *ipAddr, uint16_t por
       for(p = context->buffer; *p != '\0'; p++)
       {
          //Change dots to commas
-         if(*p == '.') *p = ',';
+         if(*p == '.')
+            *p = ',';
       }
 
       //Append port number

@@ -28,7 +28,7 @@
  * any data it receives. Refer to RFC 862 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -135,7 +135,8 @@ void tcpEchoListenerTask(void *param)
       //Accept an incoming connection
       clientSocket = socketAccept(serverSocket, &clientIpAddr, &clientPort);
       //Check whether a valid connection request has been received
-      if(!clientSocket) continue;
+      if(!clientSocket)
+         continue;
 
       //Debug message
       TRACE_INFO("Echo service: connection established with client %s port %" PRIu16 "\r\n",

@@ -28,7 +28,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level

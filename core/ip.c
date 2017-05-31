@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -38,7 +38,7 @@
 #include "ipv6/ipv6_misc.h"
 #include "debug.h"
 
-//Special IP address
+//Special IP addresses
 const IpAddr IP_ADDR_ANY = {0};
 const IpAddr IP_ADDR_UNSPECIFIED = {0};
 
@@ -95,8 +95,9 @@ error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
  * This function selects the source address and the relevant network interface
  * to be used in order to join the specified destination address
  *
- * @param[in,out] interface A pointer to a valid network interface may be provided as
- *   a hint. The function returns a pointer identifying the interface to be used
+ * @param[in,out] interface A pointer to a valid network interface may be
+ *   provided as a hint. The function returns a pointer identifying the
+ *   interface to be used
  * @param[in] destAddr Destination IP address
  * @param[out] srcAddr Local IP address to be used
  * @return Error code
@@ -105,14 +106,18 @@ error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
 error_t ipSelectSourceAddr(NetInterface **interface,
    const IpAddr *destAddr, IpAddr *srcAddr)
 {
+   error_t error;
+
 #if (IPV4_SUPPORT == ENABLED)
    //The destination address is an IPv4 address?
    if(destAddr->length == sizeof(Ipv4Addr))
    {
       //An IPv4 address is expected
       srcAddr->length = sizeof(Ipv4Addr);
+
       //Get the most appropriate source address to use
-      return ipv4SelectSourceAddr(interface, destAddr->ipv4Addr, &srcAddr->ipv4Addr);
+      error = ipv4SelectSourceAddr(interface, destAddr->ipv4Addr,
+         &srcAddr->ipv4Addr);
    }
    else
 #endif
@@ -122,363 +127,21 @@ error_t ipSelectSourceAddr(NetInterface **interface,
    {
       //An IPv6 address is expected
       srcAddr->length = sizeof(Ipv6Addr);
+
       //Get the most appropriate source address to use
-      return ipv6SelectSourceAddr(interface, &destAddr->ipv6Addr, &srcAddr->ipv6Addr);
+      error = ipv6SelectSourceAddr(interface, &destAddr->ipv6Addr,
+         &srcAddr->ipv6Addr);
    }
    else
 #endif
    //The destination address is not valid?
    {
       //Report an error
-      return ERROR_INVALID_ADDRESS;
-   }
-}
-
-
-/**
- * @brief IP checksum calculation
- * @param[in] data Pointer to the data over which to calculate the IP checksum
- * @param[in] length Number of bytes to process
- * @return Checksum value
- **/
-
-uint16_t ipCalcChecksum(const void *data, size_t length)
-{
-   //Checksum preset value
-   uint32_t checksum = 0x0000;
-
-   //Process all the data
-   while(length > 1)
-   {
-      //Update checksum value
-      checksum += *((uint16_t *) data);
-      //Point to the next 16-bit word
-      data = (uint16_t *) data + 1;
-      //Adjust the number of remaining words to process
-      length -= 2;
+      error = ERROR_INVALID_ADDRESS;
    }
 
-   //Add left-over byte, if any
-   if(length > 0)
-      checksum += *((uint8_t *) data);
-
-   //Fold 32-bit sum to 16 bits
-   while(checksum >> 16)
-      checksum = (checksum & 0xFFFF) + (checksum >> 16);
-
-   //Return 1's complement value
-   return checksum ^ 0xFFFF;
-}
-
-
-/**
- * @brief Calculate IP checksum over a multi-part buffer
- * @param[in] buffer Pointer to the multi-part buffer
- * @param[in] offset Offset from the beginning of the buffer
- * @param[in] length Number of bytes to process
- * @return Checksum value
- **/
-
-uint16_t ipCalcChecksumEx(const NetBuffer *buffer, size_t offset, size_t length)
-{
-   uint_t i;
-   uint_t m;
-   uint_t n;
-   bool_t odd;
-   uint8_t *data;
-   uint32_t checksum;
-
-   //Checksum preset value
-   checksum = 0x0000;
-   //Total number of bytes processed
-   n = 0;
-
-   //Loop through data chunks
-   for(i = 0; i < buffer->chunkCount && n < length; i++)
-   {
-      //Is there any data to process in the current chunk?
-      if(offset < buffer->chunk[i].length)
-      {
-         //Check whether the total number of bytes already processed is odd
-         odd = (n & 1) ? TRUE : FALSE;
-
-         //Point to the first data byte
-         data = (uint8_t *) buffer->chunk[i].address + offset;
-
-         //Number of bytes available in the current chunk
-         m = buffer->chunk[i].length - offset;
-         //Limit the number of byte to process
-         m = MIN(m, length - n);
-
-         //Now adjust the total length
-         n += m;
-
-         //Data buffer is not aligned on 16-bit boundaries?
-         if((uint_t) data & 1)
-         {
-            //The total number of bytes is even?
-            if(!odd)
-            {
-               //Fold 32-bit sum to 16 bits
-               while(checksum >> 16)
-                  checksum = (checksum & 0xFFFF) + (checksum >> 16);
-               //Swap checksum value
-               checksum = ((checksum >> 8) | (checksum << 8)) & 0xFFFF;
-            }
-
-            //Restore the alignment on 16-bit boundaries
-            if(m > 0)
-            {
-#ifdef _CPU_BIG_ENDIAN
-               //Update checksum value
-               checksum += *data;
-#else
-               //Update checksum value
-               checksum += *data << 8;
-#endif
-               //Point to the next byte
-               data += 1;
-               m -= 1;
-            }
-
-            //Process the data 2 bytes at a time
-            while(m > 1)
-            {
-               //Update checksum value
-               checksum += *((uint16_t *) data);
-               //Point to the next 16-bit word
-               data += 2;
-               m -= 2;
-            }
-
-            //Add left-over byte, if any
-            if(m > 0)
-            {
-#ifdef _CPU_BIG_ENDIAN
-               //Update checksum value
-               checksum += *data << 8;
-#else
-               //Update checksum value
-               checksum += *data;
-#endif
-            }
-
-            //Restore checksum endianness
-            if(!odd)
-            {
-               //Fold 32-bit sum to 16 bits
-               while(checksum >> 16)
-                  checksum = (checksum & 0xFFFF) + (checksum >> 16);
-               //Swap checksum value
-               checksum = ((checksum >> 8) | (checksum << 8)) & 0xFFFF;
-            }
-         }
-         //Data buffer is aligned on 16-bit boundaries?
-         else
-         {
-            //The total number of bytes is odd?
-            if(odd)
-            {
-               //Fold 32-bit sum to 16 bits
-               while(checksum >> 16)
-                  checksum = (checksum & 0xFFFF) + (checksum >> 16);
-               //Swap checksum value
-               checksum = ((checksum >> 8) | (checksum << 8)) & 0xFFFF;
-            }
-
-            //Process the data 2 bytes at a time
-            while(m > 1)
-            {
-               //Update checksum value
-               checksum += *((uint16_t *) data);
-               //Point to the next 16-bit word
-               data += 2;
-               m -= 2;
-            }
-
-            //Add left-over byte, if any
-            if(m > 0)
-            {
-#ifdef _CPU_BIG_ENDIAN
-               //Update checksum value
-               checksum += *data << 8;
-#else
-               //Update checksum value
-               checksum += *data;
-#endif
-            }
-
-            //Restore checksum endianness
-            if(odd)
-            {
-               //Fold 32-bit sum to 16 bits
-               while(checksum >> 16)
-                  checksum = (checksum & 0xFFFF) + (checksum >> 16);
-               //Swap checksum value
-               checksum = ((checksum >> 8) | (checksum << 8)) & 0xFFFF;
-            }
-         }
-
-         //Process the next block from the start
-         offset = 0;
-      }
-      else
-      {
-         //Skip the current chunk
-         offset -= buffer->chunk[i].length;
-      }
-   }
-
-   //Fold 32-bit sum to 16 bits
-   while(checksum >> 16)
-      checksum = (checksum & 0xFFFF) + (checksum >> 16);
-
-   //Return 1's complement value
-   return checksum ^ 0xFFFF;
-}
-
-
-/**
- * @brief Calculate IP upper-layer checksum
- * @param[in] pseudoHeader Pointer to the pseudo header
- * @param[in] pseudoHeaderLength Pseudo header length
- * @param[in] data Pointer to the upper-layer data
- * @param[in] dataLength Upper-layer data length
- * @return Checksum value
- **/
-
-uint16_t ipCalcUpperLayerChecksum(const void *pseudoHeader,
-   size_t pseudoHeaderLength, const void *data, size_t dataLength)
-{
-   //Checksum preset value
-   uint32_t checksum = 0x0000;
-
-   //Process pseudo header
-   while(pseudoHeaderLength > 1)
-   {
-      //Update checksum value
-      checksum += *((uint16_t *) pseudoHeader);
-      //Point to the next 16-bit word
-      pseudoHeader = (uint16_t *) pseudoHeader + 1;
-      //Adjust the number of remaining words to process
-      pseudoHeaderLength -= 2;
-   }
-
-   //Process upper-layer data
-   while(dataLength > 1)
-   {
-      //Update checksum value
-      checksum += *((uint16_t *) data);
-      //Point to the next 16-bit word
-      data = (uint16_t *) data + 1;
-      //Adjust the number of remaining words to process
-      dataLength -= 2;
-   }
-
-   //Add left-over byte, if any
-   if(dataLength > 0)
-   {
-#ifdef _CPU_BIG_ENDIAN
-      //Update checksum value
-      checksum += *((uint8_t *) data) << 8;
-#else
-      //Update checksum value
-      checksum += *((uint8_t *) data);
-#endif
-   }
-
-   //Fold 32-bit sum to 16 bits
-   while(checksum >> 16)
-      checksum = (checksum & 0xFFFF) + (checksum >> 16);
-
-   //Return 1's complement value
-   return checksum ^ 0xFFFF;
-}
-
-
-/**
- * @brief Calculate IP upper-layer checksum over a multi-part buffer
- * @param[in] pseudoHeader Pointer to the pseudo header
- * @param[in] pseudoHeaderLength Pseudo header length
- * @param[in] buffer Multi-part buffer containing the upper-layer data
- * @param[in] offset Offset from the first data byte to process
- * @param[in] length Number of data bytes to process
- * @return Checksum value
- **/
-
-uint16_t ipCalcUpperLayerChecksumEx(const void *pseudoHeader,
-   size_t pseudoHeaderLength, const NetBuffer *buffer, size_t offset, size_t length)
-{
-   uint32_t checksum;
-
-   //Process upper-layer data
-   checksum = ipCalcChecksumEx(buffer, offset, length);
-   //Calculate 1's complement value
-   checksum = checksum ^ 0xFFFF;
-
-   //Process pseudo header
-   while(pseudoHeaderLength > 1)
-   {
-      //Update checksum value
-      checksum += *((uint16_t *) pseudoHeader);
-      //Point to the next 16-bit word
-      pseudoHeader = (uint16_t *) pseudoHeader + 1;
-      //Adjust the number of remaining words to process
-      pseudoHeaderLength -= 2;
-   }
-
-   //Fold 32-bit sum to 16 bits
-   while(checksum >> 16)
-      checksum = (checksum & 0xFFFF) + (checksum >> 16);
-
-   //Return 1's complement value
-   return checksum ^ 0xFFFF;
-}
-
-
-/**
- * @brief Allocate a buffer to hold an IP packet
- * @param[in] length Desired payload length
- * @param[out] offset Offset to the first byte of the payload
- * @return The function returns a pointer to the newly allocated
- *   buffer. If the system is out of resources, NULL is returned
- **/
-
-NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
-{
-   size_t headerLength;
-   NetBuffer *buffer;
-
-#if (IPV6_SUPPORT == ENABLED)
-   //Maximum overhead when using IPv6
-   headerLength = sizeof(Ipv6Header) + sizeof(Ipv6FragmentHeader);
-#else
-   //Maximum overhead when using IPv4
-   headerLength = sizeof(Ipv4Header);
-#endif
-
-#if (ETH_SUPPORT == ENABLED)
-   //Allocate a buffer to hold the Ethernet header and the IP packet
-   buffer = ethAllocBuffer(length + headerLength, offset);
-#elif (PPP_SUPPORT == ENABLED)
-   //Allocate a buffer to hold the PPP header and the IP packet
-   buffer = pppAllocBuffer(length + headerLength, offset);
-#else
-   //Allocate a buffer to hold the IP packet
-   buffer = netBufferAlloc(length + headerLength);
-   //Clear offset value
-   *offset = 0;
-#endif
-
-   //Successful memory allocation?
-   if(buffer != NULL)
-   {
-      //Offset to the first byte of the payload
-      *offset += headerLength;
-   }
-
-   //Return a pointer to the freshly allocated buffer
-   return buffer;
+   //Return status code
+   return error;
 }
 
 
@@ -499,9 +162,13 @@ bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
    {
       //Compare IPv4 addresses
       if(ipAddr1->ipv4Addr == ipAddr2->ipv4Addr)
+      {
          result = TRUE;
+      }
       else
+      {
          result = FALSE;
+      }
    }
    else
 #endif
@@ -546,9 +213,13 @@ bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr)
    {
       //Compare IPv4 address
       if(ipAddr->ipv4Addr == IPV4_UNSPECIFIED_ADDR)
+      {
          result = TRUE;
+      }
       else
+      {
          result = FALSE;
+      }
    }
    else
 #endif
@@ -630,16 +301,21 @@ error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
 
 error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
 {
+   error_t error;
+
    //Use default network interface?
    if(interface == NULL)
       interface = netGetDefaultInterface();
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 multicast address?
    if(groupAddr->length == sizeof(Ipv4Addr))
    {
       //Drop membership
-      return ipv4LeaveMulticastGroup(interface, groupAddr->ipv4Addr);
+      error = ipv4LeaveMulticastGroup(interface, groupAddr->ipv4Addr);
    }
    else
 #endif
@@ -648,14 +324,310 @@ error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
    if(groupAddr->length == sizeof(Ipv6Addr))
    {
       //Drop membership
-      return ipv6LeaveMulticastGroup(interface, &groupAddr->ipv6Addr);
+      error = ipv6LeaveMulticastGroup(interface, &groupAddr->ipv6Addr);
    }
    else
 #endif
    //Invalid IP address?
    {
-      return ERROR_INVALID_ADDRESS;
+      error = ERROR_INVALID_ADDRESS;
    }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief IP checksum calculation
+ * @param[in] data Pointer to the data over which to calculate the IP checksum
+ * @param[in] length Number of bytes to process
+ * @return Checksum value
+ **/
+
+uint16_t ipCalcChecksum(const void *data, size_t length)
+{
+   uint32_t temp;
+   uint32_t checksum;
+   const uint8_t *p;
+
+   //Checksum preset value
+   checksum = 0x0000;
+
+   //Point to the data over which to calculate the IP checksum
+   p = (const uint8_t *) data;
+
+   //Pointer not aligned on a 16-bit boundary?
+   if(((uint_t) p & 1) != 0)
+   {
+      if(length >= 1)
+      {
+#ifdef _CPU_BIG_ENDIAN
+         //Update checksum value
+         checksum += (uint32_t) *p;
+#else
+         //Update checksum value
+         checksum += (uint32_t) *p << 8;
+#endif
+         //Restore the alignment on 16-bit boundaries
+         p++;
+         //Number of bytes left to process
+         length--;
+      }
+   }
+
+   //Pointer not aligned on a 32-bit boundary?
+   if(((uint_t) p & 2) != 0)
+   {
+      if(length >= 2)
+      {
+         //Update checksum value
+         checksum += (uint32_t) *((uint16_t *) p);
+
+         //Restore the alignment on 32-bit boundaries
+         p += 2;
+         //Number of bytes left to process
+         length -= 2;
+      }
+   }
+
+   //Process the data 4 bytes at a time
+   while(length >= 4)
+   {
+      //Update checksum value
+      temp = checksum + *((uint32_t *) p);
+
+      //Add carry bit, if any
+      if(temp < checksum)
+      {
+         checksum = temp + 1;
+      }
+      else
+      {
+         checksum = temp;
+      }
+
+      //Point to the next 32-bit word
+      p += 4;
+      //Number of bytes left to process
+      length -= 4;
+   }
+
+   //Fold 32-bit sum to 16 bits
+   checksum = (checksum & 0xFFFF) + (checksum >> 16);
+
+   //Add left-over 16-bit word, if any
+   if(length >= 2)
+   {
+      //Update checksum value
+      checksum += (uint32_t) *((uint16_t *) p);
+
+      //Point to the next byte
+      p += 2;
+      //Number of bytes left to process
+      length -= 2;
+   }
+
+   //Add left-over byte, if any
+   if(length >= 1)
+   {
+#ifdef _CPU_BIG_ENDIAN
+      //Update checksum value
+      checksum += (uint32_t) *p << 8;
+#else
+      //Update checksum value
+      checksum += (uint32_t) *p;
+#endif
+   }
+
+   //Fold 32-bit sum to 16 bits (first pass)
+   checksum = (checksum & 0xFFFF) + (checksum >> 16);
+   //Fold 32-bit sum to 16 bits (second pass)
+   checksum = (checksum & 0xFFFF) + (checksum >> 16);
+
+   //Restore checksum endianness
+   if(((uint_t) data & 1) != 0)
+   {
+      //Swap checksum value
+      checksum = ((checksum >> 8) | (checksum << 8)) & 0xFFFF;
+   }
+
+   //Return 1's complement value
+   return checksum ^ 0xFFFF;
+}
+
+
+/**
+ * @brief Calculate IP checksum over a multi-part buffer
+ * @param[in] buffer Pointer to the multi-part buffer
+ * @param[in] offset Offset from the beginning of the buffer
+ * @param[in] length Number of bytes to process
+ * @return Checksum value
+ **/
+
+uint16_t ipCalcChecksumEx(const NetBuffer *buffer, size_t offset, size_t length)
+{
+   uint_t i;
+   uint_t n;
+   uint_t pos;
+   uint8_t *data;
+   uint32_t checksum;
+
+   //Checksum preset value
+   checksum = 0x0000;
+
+   //Current position in the multi-part buffer
+   pos = 0;
+
+   //Loop through data chunks
+   for(i = 0; i < buffer->chunkCount && pos < length; i++)
+   {
+      //Is there any data to process in the current chunk?
+      if(offset < buffer->chunk[i].length)
+      {
+         //Point to the first data byte
+         data = (uint8_t *) buffer->chunk[i].address + offset;
+
+         //Number of bytes available in the current chunk
+         n = buffer->chunk[i].length - offset;
+         //Limit the number of byte to process
+         n = MIN(n, length - pos);
+
+         //Take care of alignment issues
+         if((pos & 1) != 0)
+         {
+            //Swap checksum value
+            checksum = ((checksum >> 8) | (checksum << 8)) & 0xFFFF;
+         }
+
+         //Process data chunk
+         checksum += ipCalcChecksum(data, n) ^ 0xFFFF;
+         //Fold 32-bit sum to 16 bits
+         checksum = (checksum & 0xFFFF) + (checksum >> 16);
+
+         //Restore checksum endianness
+         if((pos & 1) != 0)
+         {
+            //Swap checksum value
+            checksum = ((checksum >> 8) | (checksum << 8)) & 0xFFFF;
+         }
+
+         //Advance current position
+         pos += n;
+         //Process the next block from the start
+         offset = 0;
+      }
+      else
+      {
+         //Skip the current chunk
+         offset -= buffer->chunk[i].length;
+      }
+   }
+
+   //Return 1's complement value
+   return checksum ^ 0xFFFF;
+}
+
+
+/**
+ * @brief Calculate IP upper-layer checksum
+ * @param[in] pseudoHeader Pointer to the pseudo header
+ * @param[in] pseudoHeaderLength Pseudo header length
+ * @param[in] data Pointer to the upper-layer data
+ * @param[in] dataLength Upper-layer data length
+ * @return Checksum value
+ **/
+
+uint16_t ipCalcUpperLayerChecksum(const void *pseudoHeader,
+   size_t pseudoHeaderLength, const void *data, size_t dataLength)
+{
+   uint32_t checksum;
+
+   //Process pseudo header
+   checksum = ipCalcChecksum(pseudoHeader, pseudoHeaderLength) ^ 0xFFFF;
+   //Process upper-layer data
+   checksum += ipCalcChecksum(data, dataLength) ^ 0xFFFF;
+   //Fold 32-bit sum to 16 bits
+   checksum = (checksum & 0xFFFF) + (checksum >> 16);
+
+   //Return 1's complement value
+   return checksum ^ 0xFFFF;
+}
+
+
+/**
+ * @brief Calculate IP upper-layer checksum over a multi-part buffer
+ * @param[in] pseudoHeader Pointer to the pseudo header
+ * @param[in] pseudoHeaderLength Pseudo header length
+ * @param[in] buffer Multi-part buffer containing the upper-layer data
+ * @param[in] offset Offset from the first data byte to process
+ * @param[in] length Number of data bytes to process
+ * @return Checksum value
+ **/
+
+uint16_t ipCalcUpperLayerChecksumEx(const void *pseudoHeader,
+   size_t pseudoHeaderLength, const NetBuffer *buffer, size_t offset, size_t length)
+{
+   uint32_t checksum;
+
+   //Process pseudo header
+   checksum = ipCalcChecksum(pseudoHeader, pseudoHeaderLength) ^ 0xFFFF;
+   //Process upper-layer data
+   checksum += ipCalcChecksumEx(buffer, offset, length) ^ 0xFFFF;
+   //Fold 32-bit sum to 16 bits
+   checksum = (checksum & 0xFFFF) + (checksum >> 16);
+
+   //Return 1's complement value
+   return checksum ^ 0xFFFF;
+}
+
+
+/**
+ * @brief Allocate a buffer to hold an IP packet
+ * @param[in] length Desired payload length
+ * @param[out] offset Offset to the first byte of the payload
+ * @return The function returns a pointer to the newly allocated
+ *   buffer. If the system is out of resources, NULL is returned
+ **/
+
+NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
+{
+   size_t headerLength;
+   NetBuffer *buffer;
+
+#if (IPV6_SUPPORT == ENABLED)
+   //Maximum overhead when using IPv6
+   headerLength = sizeof(Ipv6Header) + sizeof(Ipv6FragmentHeader);
+#else
+   //Maximum overhead when using IPv4
+   headerLength = sizeof(Ipv4Header);
+#endif
+
+#if (ETH_SUPPORT == ENABLED)
+   //Allocate a buffer to hold the Ethernet header and the IP packet
+   buffer = ethAllocBuffer(length + headerLength, offset);
+#elif (PPP_SUPPORT == ENABLED)
+   //Allocate a buffer to hold the PPP header and the IP packet
+   buffer = pppAllocBuffer(length + headerLength, offset);
+#else
+   //Allocate a buffer to hold the IP packet
+   buffer = netBufferAlloc(length + headerLength);
+   //Clear offset value
+   *offset = 0;
+#endif
+
+   //Successful memory allocation?
+   if(buffer != NULL)
+   {
+      //Offset to the first byte of the payload
+      *offset += headerLength;
+   }
+
+   //Return a pointer to the freshly allocated buffer
+   return buffer;
 }
 
 
@@ -668,6 +640,8 @@ error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
 
 error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr)
 {
+   error_t error;
+
 #if (IPV6_SUPPORT == ENABLED)
    //IPv6 address?
    if(strchr(str, ':'))
@@ -675,7 +649,7 @@ error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr)
       //IPv6 addresses are 16-byte long
       ipAddr->length = sizeof(Ipv6Addr);
       //Convert the string to IPv6 address
-      return ipv6StringToAddr(str, &ipAddr->ipv6Addr);
+      error = ipv6StringToAddr(str, &ipAddr->ipv6Addr);
    }
    else
 #endif
@@ -686,15 +660,18 @@ error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr)
       //IPv4 addresses are 4-byte long
       ipAddr->length = sizeof(Ipv4Addr);
       //Convert the string to IPv4 address
-      return ipv4StringToAddr(str, &ipAddr->ipv4Addr);
+      error = ipv4StringToAddr(str, &ipAddr->ipv4Addr);
    }
    else
 #endif
    //Invalid IP address?
    {
       //Report an error
-      return ERROR_FAILURE;
+      error = ERROR_FAILURE;
    }
+
+   //Return status code
+   return error;
 }
 
 
@@ -728,10 +705,16 @@ char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str)
    //Invalid IP address?
    {
       static char_t c;
-      //The str parameter is optional
-      if(!str) str = &c;
+
+      //The last parameter is optional
+      if(str == NULL)
+      {
+         str = &c;
+      }
+
       //Properly terminate the string
       str[0] = '\0';
+
       //Return an empty string
       return str;
    }

@@ -28,7 +28,7 @@
  * simply throws away any data it receives. Refer to RFC 863 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -126,7 +126,8 @@ void tcpDiscardListenerTask(void *param)
       //Accept an incoming connection
       clientSocket = socketAccept(serverSocket, &clientIpAddr, &clientPort);
       //Check whether a valid connection request has been received
-      if(!clientSocket) continue;
+      if(!clientSocket)
+         continue;
 
       //Debug message
       TRACE_INFO("Discard service: connection established with client %s port %" PRIu16 "\r\n",
@@ -215,7 +216,8 @@ void tcpDiscardConnectionTask(void *param)
    //Compute total duration
    duration = osGetSystemTime() - startTime;
    //Avoid division by zero...
-   if(!duration) duration = 1;
+   if(!duration)
+      duration = 1;
 
    //Debug message
    TRACE_INFO("Discard service: %" PRIuSIZE " bytes "

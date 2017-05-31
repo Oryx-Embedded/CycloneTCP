@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Dependencies
@@ -144,6 +144,8 @@ error_t mib2Init(void)
 }
 
 
+#if (MIB2_SYS_GROUP_SUPPORT == ENABLED)
+
 /**
  * @brief Get sysUpTime object value
  * @param[in] object Pointer to the MIB object descriptor
@@ -164,6 +166,8 @@ error_t mib2GetSysUpTime(const MibObject *object, const uint8_t *oid,
    return NO_ERROR;
 }
 
+#endif
+#if (MIB2_IF_GROUP_SUPPORT == ENABLED)
 
 /**
  * @brief Set ifEntry object value
@@ -494,8 +498,8 @@ error_t mib2GetNextIfEntry(const MibObject *object, const uint8_t *oid,
    return ERROR_OBJECT_NOT_FOUND;
 }
 
-
-#if (IPV4_SUPPORT == ENABLED)
+#endif
+#if (MIB2_IP_GROUP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
 
 /**
  * @brief Get ipAddrEntry object value
@@ -916,7 +920,7 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
 }
 
 #endif
-#if (TCP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
+#if (MIB2_TCP_GROUP_SUPPORT == ENABLED && TCP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
 
 /**
  * @brief Get tcpCurrEstab object value
@@ -1308,7 +1312,7 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
 }
 
 #endif
-#if (UDP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
+#if (MIB2_UDP_GROUP_SUPPORT == ENABLED && UDP_SUPPORT == ENABLED && IPV4_SUPPORT == ENABLED)
 
 /**
  * @brief Get udpEntry object value

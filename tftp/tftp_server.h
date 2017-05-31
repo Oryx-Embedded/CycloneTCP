@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 #ifndef _TFTP_SERVER_H
@@ -31,7 +31,7 @@
 
 //Dependencies
 #include "core/net.h"
-#include "tftp_common.h"
+#include "tftp/tftp_common.h"
 
 //TFTP server support
 #ifndef TFTP_SERVER_SUPPORT

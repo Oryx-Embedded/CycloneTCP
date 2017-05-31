@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -198,8 +198,8 @@ error_t rx63nEthInit(NetInterface *interface)
 }
 
 
-//RX63N Demonstration Kit?
-#if defined(USE_RDK_RX63N)
+//RDK RX63N or RSK RX63N evaluation board?
+#if defined(USE_RDK_RX63N) || defined(USE_RSK_RX63N)
 
 /**
  * @brief GPIO configuration
@@ -212,6 +212,7 @@ void rx63nEthInitGpio(NetInterface *interface)
    MPC.PWPR.BIT.B0WI = 0;
    MPC.PWPR.BIT.PFSWE = 1;
 
+#if defined(USE_RDK_RX63N)
    //Select RMII interface mode
    MPC.PFENET.BIT.PHYMODE = 0;
 
@@ -258,6 +259,83 @@ void rx63nEthInitGpio(NetInterface *interface)
    //Configure RMII_CRS_DV (PB7)
    PORTB.PMR.BIT.B7 = 1;
    MPC.PB7PFS.BYTE = 0x12;
+
+#elif defined(USE_RSK_RX63N)
+   //Select MII interface mode
+   MPC.PFENET.BIT.PHYMODE = 1;
+
+   //Configure ET_MDIO (P71)
+   PORT7.PMR.BIT.B1 = 1;
+   MPC.P71PFS.BYTE = 0x11;
+
+   //Configure ET_MDC (P72)
+   PORT7.PMR.BIT.B2 = 1;
+   MPC.P72PFS.BYTE = 0x11;
+
+   //Configure ET_ERXD1 (P74)
+   PORT7.PMR.BIT.B4 = 1;
+   MPC.P74PFS.BYTE = 0x11;
+
+   //Configure ET_ERXD0 P75)
+   PORT7.PMR.BIT.B5 = 1;
+   MPC.P75PFS.BYTE = 0x11;
+
+   //Configure ET_RX_CLK (P76)
+   PORT7.PMR.BIT.B6 = 1;
+   MPC.P76PFS.BYTE = 0x11;
+
+   //Configure ET_RX_ER (P77)
+   PORT7.PMR.BIT.B7 = 1;
+   MPC.P77PFS.BYTE = 0x11;
+
+   //Configure ET_TX_EN (P80)
+   PORT8.PMR.BIT.B0 = 1;
+   MPC.P80PFS.BYTE = 0x11;
+
+   //Configure ET_ETXD0 (P81)
+   PORT8.PMR.BIT.B1 = 1;
+   MPC.P81PFS.BYTE = 0x11;
+
+   //Configure ET_ETXD1 (P82)
+   PORT8.PMR.BIT.B2 = 1;
+   MPC.P82PFS.BYTE = 0x11;
+
+   //Configure ET_CRS (P83)
+   PORT8.PMR.BIT.B3 = 1;
+   MPC.P83PFS.BYTE = 0x11;
+
+   //Configure ET_ERXD3 (PC0)
+   PORTC.PMR.BIT.B0 = 1;
+   MPC.PC0PFS.BYTE = 0x11;
+
+   //Configure ET_ERXD2 (PC1)
+   PORTC.PMR.BIT.B1 = 1;
+   MPC.PC1PFS.BYTE = 0x11;
+
+   //Configure ET_RX_DV (PC2)
+   PORTC.PMR.BIT.B2 = 1;
+   MPC.PC2PFS.BYTE = 0x11;
+
+   //Configure ET_TX_ER (PC3)
+   PORTC.PMR.BIT.B3 = 1;
+   MPC.PC3PFS.BYTE = 0x11;
+
+   //Configure ET_TX_CLK (PC4)
+   PORTC.PMR.BIT.B4 = 1;
+   MPC.PC4PFS.BYTE = 0x11;
+
+   //Configure ET_ETXD2 (PC5)
+   PORTC.PMR.BIT.B5 = 1;
+   MPC.PC5PFS.BYTE = 0x11;
+
+   //Configure ET_ETXD3 (PC6)
+   PORTC.PMR.BIT.B6 = 1;
+   MPC.PC6PFS.BYTE = 0x11;
+
+   //Configure ET_COL (PC7)
+   PORTC.PMR.BIT.B7 = 1;
+   MPC.PC7PFS.BYTE = 0x11;
+#endif
 
    //Lock MPC registers
    MPC.PWPR.BIT.PFSWE = 0;

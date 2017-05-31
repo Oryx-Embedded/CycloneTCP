@@ -1,5 +1,5 @@
 /**
- * @file tftp_client.h
+ * @file tftp_client_misc.h
  * @brief Helper functions for TFTP client
  *
  * @section License
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 #ifndef _TFTP_CLIENT_MISC_H
@@ -31,7 +31,7 @@
 
 //Dependencies
 #include "core/net.h"
-#include "tftp_client.h"
+#include "tftp/tftp_client.h"
 
 //TFTP client related functions
 error_t tftpClientOpenConnection(TftpClientContext *context);

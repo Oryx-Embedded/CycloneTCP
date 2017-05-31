@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Dependencies
@@ -114,7 +114,6 @@ error_t mibDecodeUnsigned32(const uint8_t *oid, size_t oidLen, size_t *pos, uint
  * @param[in] oid Pointer to the object identifier
  * @param[in] maxOidLen Maximum number of bytes the OID can hold
  * @param[in,out] pos Offset where to write the instance identifier
- * @param[in] value Unsigned 32-bit integer
  * @param[in] data Pointer to the octet string
  * @param[in] dataLen Length of the octet string, in bytes
  * @return Error code

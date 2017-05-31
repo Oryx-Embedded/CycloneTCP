@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 #ifndef _ETHERNET_H
@@ -187,13 +187,13 @@ error_t ethCheckDestAddr(NetInterface *interface, const MacAddr *macAddr);
 error_t ethAcceptMulticastAddr(NetInterface *interface, const MacAddr *macAddr);
 error_t ethDropMulticastAddr(NetInterface *interface, const MacAddr *macAddr);
 
+void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr);
+void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr, size_t length);
+
 uint32_t ethCalcCrc(const void *data, size_t length);
 uint32_t ethCalcCrcEx(const NetBuffer *buffer, size_t offset, size_t length);
 
 NetBuffer *ethAllocBuffer(size_t length, size_t *offset);
-
-void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr);
-void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr, size_t length);
 
 error_t macStringToAddr(const char_t *str, MacAddr *macAddr);
 char_t *macAddrToString(const MacAddr *macAddr, char_t *str);

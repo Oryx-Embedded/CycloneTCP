@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -106,8 +106,10 @@ error_t wilc1000Init(NetInterface *interface)
 {
    int8_t status;
    tstrWifiInitParam param;
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4)
    MacAddr staMacAddr;
    MacAddr apMacAddr;
+#endif
 
    //STA or AP mode?
    if(interface->nicDriver == &wilc1000StaDriver)
@@ -133,7 +135,6 @@ error_t wilc1000Init(NetInterface *interface)
       {
          //Low-level initialization
          status = nm_bsp_init();
-
          //Check status code
          if(status != M2M_SUCCESS)
             break;
@@ -153,15 +154,65 @@ error_t wilc1000Init(NetInterface *interface)
 
          //Initialize WILC1000 controller
          status = m2m_wifi_init(&param);
-
          //Check status code
          if(status != M2M_SUCCESS)
             break;
+
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 3)
+         //Optionally set the station MAC address
+         if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+         {
+            //Use the factory preprogrammed station address
+            status = m2m_wifi_get_mac_address(interface->macAddr.b);
+            //Check status code
+            if(status != M2M_SUCCESS)
+               break;
+
+            //Generate the 64-bit interface identifier
+            macAddrToEui64(&interface->macAddr, &interface->eui64);
+         }
+         else
+         {
+            //Override the factory preprogrammed address
+            status = m2m_wifi_set_mac_address(interface->macAddr.b);
+            //Check status code
+            if(status != M2M_SUCCESS)
+               break;
+         }
+#endif
+      }
+      else
+      {
+         //Initialization was already done
+         status = M2M_SUCCESS;
       }
 
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 3)
+      //STA or AP mode?
+      if(interface->nicDriver == &wilc1000StaDriver)
+      {
+         //Check whether the AP interface has been initialized first
+         if(wilc1000ApInterface != NULL)
+         {
+            //Copy MAC address
+            interface->macAddr = wilc1000ApInterface->macAddr;
+            interface->eui64 = wilc1000ApInterface->eui64;
+         }
+      }
+      else
+      {
+         //Check whether the STA interface has been initialized first
+         if(wilc1000StaInterface != NULL)
+         {
+            //Copy MAC
+            interface->macAddr = wilc1000StaInterface->macAddr;
+            interface->eui64 = wilc1000StaInterface->eui64;
+         }
+      }
+
+#elif (M2M_FIRMWARE_VERSION_MAJOR_NO == 4)
       //Retrieve current MAC addresses
       status = m2m_wifi_get_mac_address(apMacAddr.b, staMacAddr.b);
-
       //Check status code
       if(status != M2M_SUCCESS)
          break;
@@ -188,11 +239,11 @@ error_t wilc1000Init(NetInterface *interface)
 
          //Assign MAC addresses
          status = m2m_wifi_set_mac_address(staMacAddr.b, apMacAddr.b);
-
          //Check status code
          if(status != M2M_SUCCESS)
             break;
       }
+#endif
 
       //End of exception handling block
    } while(0);
@@ -315,9 +366,14 @@ error_t wilc1000SendPacket(NetInterface *interface,
       return NO_ERROR;
    }
 
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 3)
+   //Copy user data to the transmit buffer
+   netBufferRead(txBuffer, buffer, offset, length);
+#elif (M2M_FIRMWARE_VERSION_MAJOR_NO == 4)
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer + M2M_ETHERNET_HDR_OFFSET + M2M_ETH_PAD_SIZE,
       buffer, offset, length);
+#endif
 
    //STA or AP mode?
    if(interface == wilc1000StaInterface)
@@ -536,8 +592,8 @@ void wilc1000AppWifiEvent(uint8_t msgType, void *msg)
 void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
 {
    size_t length;
-   uint8_t *packet;
    tstrM2mIpCtrlBuf *ctrl;
+   uint8_t *packet;
 
    //Debug message
    TRACE_DEBUG("WILC1000 RX event callback\r\n");
@@ -551,8 +607,14 @@ void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
       //Debug message
       TRACE_DEBUG("  M2M_WIFI_RESP_ETHERNET_RX_PACKET\r\n");
 
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 3)
+      //Point to the beginning of the packet
+      packet = rxBuffer;
+#elif (M2M_FIRMWARE_VERSION_MAJOR_NO == 4)
       //Point to the beginning of the packet
       packet = rxBuffer + ctrl->u8DataOffset;
+#endif
+
       //Retrieve the length of the packet
       length = ctrl->u16DataSize;
 
@@ -585,7 +647,7 @@ void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
                   macCopyAddr(packet, wilc1000ApInterface->macAddr.b);
             }
 
-            //Pass the packet to the upper layer (STA mode)
+            //Pass the packet to the upper layer (AP mode)
             nicProcessPacket(wilc1000ApInterface, packet, length);
          }
       }

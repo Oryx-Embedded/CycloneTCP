@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 #ifndef _MIB2_MODULE_H
@@ -41,6 +41,55 @@
    #define MIB2_SUPPORT DISABLED
 #elif (MIB2_SUPPORT != ENABLED && MIB2_SUPPORT != DISABLED)
    #error MIB2_SUPPORT parameter is not valid
+#endif
+
+//System group support
+#ifndef MIB2_SYS_GROUP_SUPPORT
+   #define MIB2_SYS_GROUP_SUPPORT ENABLED
+#elif (MIB2_SYS_GROUP_SUPPORT != ENABLED && MIB2_SYS_GROUP_SUPPORT != DISABLED)
+   #error MIB2_SYS_GROUP_SUPPORT parameter is not valid
+#endif
+
+//Interface group support
+#ifndef MIB2_IF_GROUP_SUPPORT
+   #define MIB2_IF_GROUP_SUPPORT ENABLED
+#elif (MIB2_IF_GROUP_SUPPORT != ENABLED && MIB2_IF_GROUP_SUPPORT != DISABLED)
+   #error MIB2_IF_GROUP_SUPPORT parameter is not valid
+#endif
+
+//IP group support
+#ifndef MIB2_IP_GROUP_SUPPORT
+   #define MIB2_IP_GROUP_SUPPORT ENABLED
+#elif (MIB2_IP_GROUP_SUPPORT != ENABLED && MIB2_IP_GROUP_SUPPORT != DISABLED)
+   #error MIB2_IP_GROUP_SUPPORT parameter is not valid
+#endif
+
+//ICMP group support
+#ifndef MIB2_ICMP_GROUP_SUPPORT
+   #define MIB2_ICMP_GROUP_SUPPORT ENABLED
+#elif (MIB2_ICMP_GROUP_SUPPORT != ENABLED && MIB2_ICMP_GROUP_SUPPORT != DISABLED)
+   #errorMIB2_ICMP_GROUP_SUPPORT parameter is not valid
+#endif
+
+//TCP group support
+#ifndef MIB2_TCP_GROUP_SUPPORT
+   #define MIB2_TCP_GROUP_SUPPORT ENABLED
+#elif (MIB2_TCP_GROUP_SUPPORT != ENABLED && MIB2_TCP_GROUP_SUPPORT != DISABLED)
+   #error MIB2_TCP_GROUP_SUPPORT parameter is not valid
+#endif
+
+//UDP group support
+#ifndef MIB2_UDP_GROUP_SUPPORT
+   #define MIB2_UDP_GROUP_SUPPORT ENABLED
+#elif (MIB2_UDP_GROUP_SUPPORT != ENABLED && MIB2_UDP_GROUP_SUPPORT != DISABLED)
+   #error MIB2_UDP_GROUP_SUPPORT parameter is not valid
+#endif
+
+//SNMP group support
+#ifndef MIB2_SNMP_GROUP_SUPPORT
+   #define MIB2_SNMP_GROUP_SUPPORT ENABLED
+#elif (MIB2_SNMP_GROUP_SUPPORT != ENABLED && MIB2_SNMP_GROUP_SUPPORT != DISABLED)
+   #error MIB2_SNMP_GROUP_SUPPORT parameter is not valid
 #endif
 
 //Size of sysDescr object

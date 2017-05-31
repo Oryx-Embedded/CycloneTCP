@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -105,7 +105,6 @@ void tftpClientCloseConnection(TftpClientContext *context)
 /**
  * @brief Process TFTP client events
  * @param[in] context Pointer to the TFTP client context
- * @param[in] timeout Maximum time to wait before returning
  * @return Error code
  **/
 
@@ -179,8 +178,8 @@ error_t tftpClientProcessEvents(TftpClientContext *context)
 /**
  * @brief Process incoming packet
  * @param[in] context Pointer to the TFTP client context
- * @param[in] remoteIpAddr Source IP address
- * @param[in] remotePort Source port number
+ * @param[in] srcIpAddr Source IP address
+ * @param[in] srcPort Source port number
  **/
 
 void tftpClientProcessPacket(TftpClientContext *context,

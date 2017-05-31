@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -578,6 +578,86 @@ error_t ethDropMulticastAddr(NetInterface *interface, const MacAddr *macAddr)
 
 
 /**
+ * @brief Update Ethernet input statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destMacAddr Destination MAC address
+ **/
+
+void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr)
+{
+   //Check whether the destination address is a unicast, broadcast or multicast address
+   if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
+   {
+      //Number of non-unicast packets delivered to a higher-layer protocol
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
+
+      //Number of broadcast packets delivered to a higher-layer protocol
+      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInBroadcastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInBroadcastPkts, 1);
+   }
+   else if(macIsMulticastAddr(destMacAddr))
+   {
+      //Number of non-unicast packets delivered to a higher-layer protocol
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
+
+      //Number of multicast packets delivered to a higher-layer protocol
+      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInMulticastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInMulticastPkts, 1);
+   }
+   else
+   {
+      //Number of unicast packets delivered to a higher-layer protocol
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInUcastPkts, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUcastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInUcastPkts, 1);
+   }
+}
+
+
+/**
+ * @brief Update Ethernet output statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destMacAddr Destination MAC address
+ * @param[in] length Length of the outgoing Ethernet frame
+ **/
+
+void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr, size_t length)
+{
+   //Total number of octets transmitted out of the interface
+   MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutOctets, length);
+   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
+   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutOctets, length);
+
+   //Check whether the destination address is a unicast, broadcast or multicast address
+   if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
+   {
+      //Number of non-unicast packets that higher-level protocols requested be transmitted
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
+
+      //Number of broadcast packets that higher-level protocols requested be transmitted
+      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutBroadcastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutBroadcastPkts, 1);
+   }
+   else if(macIsMulticastAddr(destMacAddr))
+   {
+      //Number of non-unicast packets that higher-level protocols requested be transmitted
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
+
+      //Number of multicast packets that higher-level protocols requested be transmitted
+      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutMulticastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutMulticastPkts, 1);
+   }
+   else
+   {
+      //Number of unicast packets that higher-level protocols requested be transmitted
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutUcastPkts, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutUcastPkts, 1);
+      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutUcastPkts, 1);
+   }
+}
+
+
+/**
  * @brief Ethernet CRC calculation
  * @param[in] data Pointer to the data over which to calculate the CRC
  * @param[in] length Number of bytes to process
@@ -736,86 +816,6 @@ NetBuffer *ethAllocBuffer(size_t length, size_t *offset)
 
 
 /**
- * @brief Update Ethernet input statistics
- * @param[in] interface Underlying network interface
- * @param[in] destIpAddr Destination MAC address
- **/
-
-void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr)
-{
-   //Check whether the destination address is a unicast, broadcast or multicast address
-   if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
-   {
-      //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
-
-      //Number of broadcast packets delivered to a higher-layer protocol
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInBroadcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInBroadcastPkts, 1);
-   }
-   else if(macIsMulticastAddr(destMacAddr))
-   {
-      //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
-
-      //Number of multicast packets delivered to a higher-layer protocol
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInMulticastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInMulticastPkts, 1);
-   }
-   else
-   {
-      //Number of unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInUcastPkts, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInUcastPkts, 1);
-   }
-}
-
-
-/**
- * @brief Update Ethernet output statistics
- * @param[in] interface Underlying network interface
- * @param[in] destIpAddr Destination MAC address
- * @param[in] length Length of the outgoing Ethernet frame
- **/
-
-void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr, size_t length)
-{
-   //Total number of octets transmitted out of the interface
-   MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutOctets, length);
-   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
-   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutOctets, length);
-
-   //Check whether the destination address is a unicast, broadcast or multicast address
-   if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
-   {
-      //Number of non-unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
-
-      //Number of broadcast packets that higher-level protocols requested be transmitted
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutBroadcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutBroadcastPkts, 1);
-   }
-   else if(macIsMulticastAddr(destMacAddr))
-   {
-      //Number of non-unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
-
-      //Number of multicast packets that higher-level protocols requested be transmitted
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutMulticastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutMulticastPkts, 1);
-   }
-   else
-   {
-      //Number of unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutUcastPkts, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutUcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutUcastPkts, 1);
-   }
-}
-
-
-/**
  * @brief Convert a string representation of a MAC address to a binary MAC address
  * @param[in] str NULL-terminated string representing the MAC address
  * @param[out] macAddr Binary representation of the MAC address
@@ -835,7 +835,9 @@ error_t macStringToAddr(const char_t *str, MacAddr *macAddr)
       if(isxdigit((uint8_t) *str))
       {
          //First digit to be decoded?
-         if(value < 0) value = 0;
+         if(value < 0)
+            value = 0;
+
          //Update the value of the current byte
          if(isdigit((uint8_t) *str))
             value = (value * 16) + (*str - '0');
@@ -843,6 +845,7 @@ error_t macStringToAddr(const char_t *str, MacAddr *macAddr)
             value = (value * 16) + (*str - 'A' + 10);
          else
             value = (value * 16) + (*str - 'a' + 10);
+
          //Check resulting value
          if(value > 0xFF)
          {
@@ -948,7 +951,9 @@ error_t eui64StringToAddr(const char_t *str, Eui64 *eui64)
       if(isxdigit((uint8_t) *str))
       {
          //First digit to be decoded?
-         if(value < 0) value = 0;
+         if(value < 0)
+            value = 0;
+
          //Update the value of the current byte
          if(isdigit((uint8_t) *str))
             value = (value * 16) + (*str - '0');
@@ -956,6 +961,7 @@ error_t eui64StringToAddr(const char_t *str, Eui64 *eui64)
             value = (value * 16) + (*str - 'A' + 10);
          else
             value = (value * 16) + (*str - 'a' + 10);
+
          //Check resulting value
          if(value > 0xFF)
          {

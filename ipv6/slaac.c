@@ -31,7 +31,7 @@
  * - RFC 6106: IPv6 Router Advertisement Options for DNS Configuration
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level

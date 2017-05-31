@@ -1,6 +1,6 @@
 /**
- * @file lan9303.h
- * @brief LAN9303 Ethernet switch
+ * @file lan8700.h
+ * @brief LAN8700 Ethernet PHY transceiver
  *
  * @section License
  *
@@ -26,30 +26,36 @@
  * @version 1.7.8
  **/
 
-#ifndef _LAN9303_H
-#define _LAN9303_H
+#ifndef _LAN8700_H
+#define _LAN8700_H
 
 //Dependencies
 #include "core/nic.h"
 
-//LAN9303 ports
-#define LAN9303_PORT1               1
-#define LAN9303_PORT2               2
+//PHY address
+#ifndef LAN8700_PHY_ADDR
+   #define LAN8700_PHY_ADDR 0
+#elif (LAN8700_PHY_ADDR < 0 || LAN8700_PHY_ADDR > 31)
+   #error LAN8700_PHY_ADDR parameter is not valid
+#endif
 
-//LAN9303 PHY registers
-#define LAN9303_PHY_REG_BMCR        0x00
-#define LAN9303_PHY_REG_BMSR        0x01
-#define LAN9303_PHY_REG_PHYIDR1     0x02
-#define LAN9303_PHY_REG_PHYIDR2     0x03
-#define LAN9303_PHY_REG_ANAR        0x04
-#define LAN9303_PHY_REG_ANLPAR      0x05
-#define LAN9303_PHY_REG_ANER        0x06
-#define LAN9303_PHY_REG_MCSR        0x11
-#define LAN9303_PHY_REG_SMR         0x12
-#define LAN9303_PHY_REG_SCSIR       0x1B
-#define LAN9303_PHY_REG_PISR        0x1D
-#define LAN9303_PHY_REG_PIMR        0x1E
-#define LAN9303_PHY_REG_PSCSR       0x1F
+//LAN8700 registers
+#define LAN8700_PHY_REG_BMCR        0x00
+#define LAN8700_PHY_REG_BMSR        0x01
+#define LAN8700_PHY_REG_PHYIDR1     0x02
+#define LAN8700_PHY_REG_PHYIDR2     0x03
+#define LAN8700_PHY_REG_ANAR        0x04
+#define LAN8700_PHY_REG_ANLPAR      0x05
+#define LAN8700_PHY_REG_ANER        0x06
+#define LAN8700_PHY_REG_SRR         0x10
+#define LAN8700_PHY_REG_MCSR        0x11
+#define LAN8700_PHY_REG_SMR         0x12
+#define LAN8700_PHY_REG_SECR        0x1A
+#define LAN8700_PHY_REG_SCSIR       0x1B
+#define LAN8700_PHY_REG_SITCR       0x1C
+#define LAN8700_PHY_REG_ISR         0x1D
+#define LAN8700_PHY_REG_IMR         0x1E
+#define LAN8700_PHY_REG_PSCSR       0x1F
 
 //BMCR register
 #define BMCR_RESET                  (1 << 15)
@@ -68,9 +74,6 @@
 #define BMSR_100BTX                 (1 << 13)
 #define BMSR_10BT_FD                (1 << 12)
 #define BMSR_10BT                   (1 << 11)
-#define BMSR_100BT2_FD              (1 << 10)
-#define BMSR_100BT2                 (1 << 9)
-#define BMSR_EXTENTED_STATUS        (1 << 8)
 #define BMSR_AN_COMPLETE            (1 << 5)
 #define BMSR_REMOTE_FAULT           (1 << 4)
 #define BMSR_AN_ABLE                (1 << 3)
@@ -79,9 +82,11 @@
 #define BMSR_EXTENDED_CAP           (1 << 0)
 
 //ANAR register
+#define ANAR_NP                     (1 << 15)
 #define ANAR_RF                     (1 << 13)
 #define ANAR_PAUSE1                 (1 << 11)
 #define ANAR_PAUSE0                 (1 << 10)
+#define ANAR_100BT4                 (1 << 9)
 #define ANAR_100BTX_FD              (1 << 8)
 #define ANAR_100BTX                 (1 << 7)
 #define ANAR_10BT_FD                (1 << 6)
@@ -96,8 +101,7 @@
 #define ANLPAR_NP                   (1 << 15)
 #define ANLPAR_ACK                  (1 << 14)
 #define ANLPAR_RF                   (1 << 13)
-#define ANLPAR_PAUSE1               (1 << 11)
-#define ANLPAR_PAUSE0               (1 << 10)
+#define ANLPAR_PAUSE                (1 << 10)
 #define ANLPAR_100BT4               (1 << 9)
 #define ANLPAR_100BTX_FD            (1 << 8)
 #define ANLPAR_100BTX               (1 << 7)
@@ -116,11 +120,24 @@
 #define ANER_PAGE_RX                (1 << 1)
 #define ANER_LP_AN_ABLE             (1 << 0)
 
+//SRR register
+#define SRR_SILICON_REVISON3        (1 << 9)
+#define SRR_SILICON_REVISON2        (1 << 8)
+#define SRR_SILICON_REVISON1        (1 << 7)
+#define SRR_SILICON_REVISON0        (1 << 6)
+
 //MCSR register
 #define MCSR_EDPWRDOWN              (1 << 13)
+#define MCSR_LOWSQEN                (1 << 11)
+#define MCSR_MDPREBP                (1 << 10)
+#define MCSR_FARLOOPBACK            (1 << 9)
+#define MCSR_ALTINT                 (1 << 6)
+#define MCSR_PHYADBP                (1 << 3)
+#define MCSR_FORCE_GOOD_LINK_STATUS (1 << 2)
 #define MCSR_ENERGYON               (1 << 1)
 
 //SMR register
+#define SMR_MIIMODE                 (1 << 14)
 #define SMR_MODE2                   (1 << 7)
 #define SMR_MODE1                   (1 << 6)
 #define SMR_MODE0                   (1 << 5)
@@ -131,12 +148,10 @@
 #define SMR_PHYAD0                  (1 << 0)
 
 //SCSIR register
-#define SCSIR_AMDIXCTRL             (1 << 15)
-#define SCSIR_AMDIXEN               (1 << 14)
-#define SCSIR_AMDIXSTATE            (1 << 13)
-#define SCSIR_SQEOFF                (1 << 11)
-#define SCSIR_VCOOFF_LP             (1 << 10)
-#define SCSIR_XPOL                  (1 << 4)
+#define SCSIR_AMDIXCTRL            (1 << 15)
+#define SCSIR_CH_SELECT            (1 << 13)
+#define SCSIR_SQEOFF               (1 << 11)
+#define SCSIR_XPOL                 (1 << 4)
 
 //ISR register
 #define ISR_ENERGYON                (1 << 7)
@@ -158,9 +173,14 @@
 
 //PSCSR register
 #define PSCSR_AUTODONE              (1 << 12)
+#define PSCSR_GPO2                  (1 << 9)
+#define PSCSR_GPO1                  (1 << 8)
+#define PSCSR_GPO0                  (1 << 7)
+#define PSCSR_ENABLE_4B5B           (1 << 6)
 #define PSCSR_HCDSPEED2             (1 << 4)
 #define PSCSR_HCDSPEED1             (1 << 3)
 #define PSCSR_HCDSPEED0             (1 << 2)
+#define PSCSR_SCRAMBLE_DISABLE      (1 << 0)
 
 //Speed indication
 #define PSCSR_HCDSPEED_MASK         (7 << 2)
@@ -169,34 +189,22 @@
 #define PSCSR_HCDSPEED_10BT_FD      (5 << 2)
 #define PSCSR_HCDSPEED_100BTX_FD    (6 << 2)
 
-//LAN9303 Ethernet switch driver
-extern const PhyDriver lan9303PhyDriver;
+//LAN8700 Ethernet PHY driver
+extern const PhyDriver lan8700PhyDriver;
 
-//LAN9303 related functions
-error_t lan9303Init(NetInterface *interface);
+//LAN8700 related functions
+error_t lan8700Init(NetInterface *interface);
 
-bool_t lan9303GetLinkState(NetInterface *interface, uint8_t port);
+void lan8700Tick(NetInterface *interface);
 
-void lan9303Tick(NetInterface *interface);
+void lan8700EnableIrq(NetInterface *interface);
+void lan8700DisableIrq(NetInterface *interface);
 
-void lan9303EnableIrq(NetInterface *interface);
-void lan9303DisableIrq(NetInterface *interface);
+void lan8700EventHandler(NetInterface *interface);
 
-void lan9303EventHandler(NetInterface *interface);
+void lan8700WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data);
+uint16_t lan8700ReadPhyReg(NetInterface *interface, uint8_t address);
 
-void lan9303WritePhyReg(NetInterface *interface,
-   uint8_t port, uint8_t address, uint16_t data);
-
-uint16_t lan9303ReadPhyReg(NetInterface *interface,
-   uint8_t port, uint8_t address);
-
-void lan9303DumpPhyReg(NetInterface *interface, uint8_t port);
-
-void lan9303WriteSmiReg(NetInterface *interface, uint16_t address,
-   uint32_t data);
-
-uint32_t lan9303ReadSmiReg(NetInterface *interface, uint16_t address);
-
-void lan9303DumpSmiReg(NetInterface *interface);
+void lan8700DumpPhyReg(NetInterface *interface);
 
 #endif

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 #ifndef _IP_H
@@ -95,6 +95,12 @@ error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
 error_t ipSelectSourceAddr(NetInterface **interface,
    const IpAddr *destAddr, IpAddr *srcAddr);
 
+bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
+bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr);
+
+error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
+error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
+
 uint16_t ipCalcChecksum(const void *data, size_t length);
 uint16_t ipCalcChecksumEx(const NetBuffer *buffer, size_t offset, size_t length);
 
@@ -105,12 +111,6 @@ uint16_t ipCalcUpperLayerChecksumEx(const void *pseudoHeader,
    size_t pseudoHeaderLength, const NetBuffer *buffer, size_t offset, size_t length);
 
 NetBuffer *ipAllocBuffer(size_t length, size_t *offset);
-
-bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
-bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr);
-
-error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
-error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
 
 error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr);
 char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str);

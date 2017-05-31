@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.6
+ * @version 1.7.8
  **/
 
 //Switch to the appropriate trace level
@@ -201,9 +201,10 @@ error_t pic32mzEthInit(NetInterface *interface)
 }
 
 
-//PIC32MZ EC Starter Kit, PIC32MZ EF Starter Kit or IoT Ethernet Kit?
+//PIC32MZ EC Starter Kit, PIC32MZ EF Starter Kit, PIC32MZ EF Curiosity
+//or IoT Ethernet Kit?
 #if defined(USE_PIC32MZ_EC_STARTER_KIT) || defined(USE_PIC32MZ_EF_STARTER_KIT) || \
-   defined(USE_IOT_ETHERNET_KIT)
+   defined(USE_PIC32MZ_EF_CURIOSITY) || defined(USE_IOT_ETHERNET_KIT)
 
 /**
  * @brief GPIO configuration
@@ -224,6 +225,19 @@ void pic32mzEthInitGpio(NetInterface *interface)
    ANSELHCLR = _ANSELH_ANSH4_MASK;
    //Disable analog pad on ERXD1 (AN41/RH5)
    ANSELHCLR = _ANSELH_ANSH5_MASK;
+
+//PIC32MZ EF Curiosity?
+#elif defined(USE_PIC32MZ_EF_CURIOSITY)
+   //Disable analog pad on ERXERR (AN6/RB11)
+   ANSELBCLR = _ANSELB_ANSB11_MASK;
+   //Disable analog pad on ERXD0 (AN7/RB12)
+   ANSELBCLR = _ANSELB_ANSB12_MASK;
+   //Disable analog pad on ERXD1 (AN8/RB13)
+   ANSELBCLR = _ANSELB_ANSB13_MASK;
+   //Disable analog pad on ERXDV (AN12/RG8)
+   ANSELGCLR = _ANSELG_ANSG8_MASK;
+   //Disable analog pad on EREFCLK (AN11/RG9)
+   ANSELGCLR = _ANSELG_ANSG9_MASK;
 
 //IoT Ethernet Kit?
 #elif defined(USE_IOT_ETHERNET_KIT)
