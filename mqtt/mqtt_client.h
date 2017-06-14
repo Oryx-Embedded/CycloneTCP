@@ -139,6 +139,11 @@
 struct _MqttClientContext;
 #define MqttClientContext struct _MqttClientContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief MQTT client states
@@ -381,5 +386,10 @@ error_t mqttClientDisconnect(MqttClientContext *context);
 error_t mqttClientClose(MqttClientContext *context);
 
 error_t mqttClientProcessEvents(MqttClientContext *context, systime_t timeout);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -48,6 +48,11 @@
    #error RAW_SOCKET_RX_QUEUE_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //Raw socket related functions
 error_t rawSocketProcessIpPacket(NetInterface *interface,
    IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset);
@@ -68,5 +73,10 @@ error_t rawSocketReceiveEthPacket(Socket *socket,
    void *data, size_t size, size_t *received, uint_t flags);
 
 void rawSocketUpdateEvents(Socket *socket);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -62,6 +62,11 @@
 //The amount of overhead added by relay forwarding
 #define DHCPV6_RELAY_FORW_OVERHEAD (sizeof(Dhcpv6RelayMessage) + 2 * sizeof(Dhcpv6Option) + sizeof(uint32_t))
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DHCPv6 relay agent settings
@@ -108,5 +113,10 @@ void dhcpv6RelayTask(void *param);
 
 error_t dhcpv6ForwardClientMessage(Dhcpv6RelayContext *context, uint_t index);
 error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

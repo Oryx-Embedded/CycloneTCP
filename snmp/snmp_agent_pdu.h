@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "snmp/snmp_agent.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //SNMP agent related functions
 error_t snmpProcessPdu(SnmpAgentContext *context);
 
@@ -45,5 +50,10 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
    const SnmpTrapObject *objectList, uint_t objectListSize);
 
 error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

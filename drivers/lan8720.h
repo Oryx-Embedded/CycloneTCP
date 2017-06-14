@@ -188,6 +188,11 @@
 #define PSCSR_HCDSPEED_10BT_FD      (5 << 2)
 #define PSCSR_HCDSPEED_100BTX_FD    (6 << 2)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //LAN8720 Ethernet PHY driver
 extern const PhyDriver lan8720PhyDriver;
 
@@ -205,5 +210,10 @@ void lan8720WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t lan8720ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void lan8720DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

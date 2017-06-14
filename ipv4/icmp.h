@@ -32,6 +32,11 @@
 //Dependencies
 #include "core/net.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief ICMP message type
@@ -199,5 +204,10 @@ void icmpUpdateOutStats(uint8_t type);
 void icmpDumpMessage(const IcmpHeader *message);
 void icmpDumpEchoMessage(const IcmpEchoMessage *message);
 void icmpDumpErrorMessage(const IcmpErrorMessage *message);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

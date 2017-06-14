@@ -130,6 +130,11 @@
 struct _DhcpClientContext;
 #define DhcpClientContext struct _DhcpClientContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DHCP FSM states
@@ -263,5 +268,10 @@ void dhcpClientChangeState(DhcpClientContext *context,
    DhcpState newState, systime_t delay);
 
 void dhcpClientDumpConfig(DhcpClientContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

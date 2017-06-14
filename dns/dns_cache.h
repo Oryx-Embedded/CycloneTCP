@@ -68,6 +68,11 @@
    #error DNS_CACHE_MAX_POLLING_INTERVAL parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DNS cache entry states
@@ -120,5 +125,10 @@ DnsCacheEntry *dnsFindEntry(NetInterface *interface,
    const char_t *name, HostType type, HostnameResolver protocol);
 
 void dnsTick(void);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "snmp/snmp_agent.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //SNMP agent related functions
 void snmpLockMib(SnmpAgentContext *context);
 void snmpUnlockMib(SnmpAgentContext *context);
@@ -59,5 +64,10 @@ error_t snmpFindMibObject(SnmpAgentContext *context,
    const uint8_t *oid, size_t oidLen, const MibObject **object);
 
 error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t index);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

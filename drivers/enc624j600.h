@@ -439,6 +439,11 @@
 #define RSV_CARRIER_EVENT          0x00000004
 #define RSV_PACKET_IGNORED         0x00000001
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief ENC624J600 driver context
@@ -493,5 +498,10 @@ uint32_t enc624j600CalcCrc(const void *data, size_t length);
 
 void enc624j600DumpReg(NetInterface *interface);
 void enc624j600DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -62,6 +62,11 @@
 //mDNS IPv4 multicast group
 #define MDNS_IPV4_MULTICAST_ADDR IPV4_ADDR(224, 0, 0, 251)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief mDNS message
@@ -113,5 +118,10 @@ int_t mdnsCompareRecord(const MdnsMessage *message1, size_t offset1,
 
 bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message, const char_t *instance,
    const char_t *service, const char_t *domain, uint16_t rtype);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

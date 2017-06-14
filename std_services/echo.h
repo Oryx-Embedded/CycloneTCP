@@ -62,6 +62,11 @@
 //Echo service port
 #define ECHO_PORT 7
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Echo service context
@@ -82,5 +87,10 @@ void tcpEchoConnectionTask(void *param);
 //UDP echo service related functions
 error_t udpEchoStart(void);
 void udpEchoTask(void *param);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

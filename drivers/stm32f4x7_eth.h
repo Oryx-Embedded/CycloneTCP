@@ -153,6 +153,11 @@
 #define ETH_RDES6_RTSL   0xFFFFFFFF
 #define ETH_RDES7_RTSH   0xFFFFFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Enhanced TX DMA descriptor
@@ -214,5 +219,10 @@ void stm32f4x7EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t stm32f4x7EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t stm32f4x7EthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

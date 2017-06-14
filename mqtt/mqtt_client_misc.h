@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "mqtt/mqtt_client.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //MQTT client related functions
 void mqttClientChangeState(MqttClientContext *context, MqttClientState newState);
 
@@ -64,5 +69,10 @@ error_t mqttDeserializeShort(uint8_t *buffer, size_t bufferLen,
 
 error_t mqttDeserializeString(uint8_t *buffer, size_t bufferLen,
    size_t *pos, char_t **string, size_t *stringLen);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

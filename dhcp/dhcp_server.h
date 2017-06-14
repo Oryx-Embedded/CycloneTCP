@@ -67,6 +67,11 @@
    #error DHCP_SERVER_MAX_DNS_SERVERS parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DHCP binding
@@ -157,5 +162,10 @@ DhcpServerBinding *dhcpServerFindBindingByIpAddr(DhcpServerContext *context,
    Ipv4Addr ipAddr);
 
 error_t dhcpServerGetNextIpAddr(DhcpServerContext *context, Ipv4Addr *ipAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -32,6 +32,11 @@
 //Dependencies
 #include "ftp/ftp_server.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //FTP server related functions
 void ftpServerProcessCmd(FtpServerContext *context,
    FtpClientConnection *connection);
@@ -122,5 +127,10 @@ void ftpServerProcessRnto(FtpServerContext *context,
 
 void ftpServerProcessDele(FtpServerContext *context,
    FtpClientConnection *connection, char_t *param);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

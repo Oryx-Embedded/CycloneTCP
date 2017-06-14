@@ -47,6 +47,11 @@
    #error NDP_ROUTER_ADV_TICK_INTERVAL parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief IPv6 prefix information
@@ -148,5 +153,10 @@ void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    const NetBuffer *buffer, size_t offset, uint8_t hopLimit);
 
 error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

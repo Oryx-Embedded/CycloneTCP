@@ -288,6 +288,11 @@
 #define EDCR_ED_DATA_COUNT1        (1 << 1)
 #define EDCR_ED_DATA_COUNT0        (1 << 0)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //DP83848 Ethernet PHY driver
 extern const PhyDriver dp83848PhyDriver;
 
@@ -305,5 +310,10 @@ void dp83848WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t dp83848ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void dp83848DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

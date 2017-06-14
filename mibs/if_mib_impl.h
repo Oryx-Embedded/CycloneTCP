@@ -32,6 +32,11 @@
 //Dependencies
 #include "mibs/mib_common.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //Interfaces Group MIB related functions
 error_t ifMibInit(void);
 
@@ -70,5 +75,10 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
 
 error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

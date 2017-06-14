@@ -138,6 +138,11 @@
 #define ENET_RBD10_TIMESTAMP_H     0xFFFF
 #define ENET_RBD11_TIMESTAMP_L     0xFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //Kinetis KV5x Ethernet MAC driver
 extern const NicDriver mkv5xEthDriver;
 
@@ -164,5 +169,10 @@ void mkv5xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t mkv5xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t mkv5xEthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

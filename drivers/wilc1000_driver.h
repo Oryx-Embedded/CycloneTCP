@@ -46,6 +46,11 @@
    #error WILC1000_RX_BUFFER_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //WILC1000 driver (STA mode)
 extern const NicDriver wilc1000StaDriver;
 //WILC1000 driver (AP mode)
@@ -69,5 +74,10 @@ bool_t wilc1000GetAddrRefCount(NetInterface *interface, const MacAddr *macAddr);
 
 void wilc1000AppWifiEvent(uint8_t msgType, void *msg);
 void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

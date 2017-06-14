@@ -32,6 +32,11 @@
 //Dependencies
 #include "core/tcp.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //TCP related functions
 error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    uint32_t ackNum, size_t length, bool_t addToQueue);
@@ -87,5 +92,10 @@ void tcpWriteRxBuffer(Socket *socket, uint32_t seqNum,
 void tcpReadRxBuffer(Socket *socket, uint32_t seqNum, uint8_t *data, size_t length);
 
 void tcpDumpHeader(const TcpHeader *segment, size_t length, uint32_t iss, uint32_t irs);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

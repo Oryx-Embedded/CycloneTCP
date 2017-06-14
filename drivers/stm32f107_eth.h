@@ -140,6 +140,11 @@
 #define ETH_RDES2_RBAP1 0xFFFFFFFF
 #define ETH_RDES3_RBAP2 0xFFFFFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit DMA descriptor
@@ -193,5 +198,10 @@ void stm32f107EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t stm32f107EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t stm32f107EthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

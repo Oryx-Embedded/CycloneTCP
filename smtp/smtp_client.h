@@ -114,6 +114,11 @@
 #define SMTP_REPLY_CODE_4YZ(code) ((code) >= 400 && (code) < 500)
 #define SMTP_REPLY_CODE_5YZ(code) ((code) >= 500 && (code) < 600)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Recipient type
@@ -212,5 +217,10 @@ error_t smtpSendCommand(SmtpClientContext *context, const char_t *command,
 
 error_t smtpWrite(SmtpClientContext *context, const void *data, size_t length, uint_t flags);
 error_t smtpRead(SmtpClientContext *context, void *data, size_t size, size_t *received, uint_t flags);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

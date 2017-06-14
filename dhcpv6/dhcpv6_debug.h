@@ -37,6 +37,11 @@
 //Check current trace level
 #if (DHCPV6_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //Related functions
 error_t dhcpv6DumpMessage(const void *message, size_t length);
 error_t dhcpv6DumpOptions(const uint8_t *options, size_t length, uint_t level);
@@ -65,6 +70,11 @@ error_t dhcpv6DumpDomainListOption(const Dhcpv6Option *option, uint_t level);
 
 #else
    #define dhcpv6DumpMessage(message, length)
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   }
 #endif
 
 #endif

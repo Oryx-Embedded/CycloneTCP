@@ -104,6 +104,11 @@
 
 #if !defined(_SAMA5D3_GIGABIT_ETH_H)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 /**
  * @brief Transmit buffer descriptor
  **/
@@ -153,5 +158,10 @@ error_t sama5d3EthUpdateMacConfig(NetInterface *interface);
 
 void sama5d3EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t sama5d3EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

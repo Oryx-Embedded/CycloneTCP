@@ -93,6 +93,11 @@
 #define SMI_READ  0x00000002
 #define SMI_TA    0x00000002
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit DMA descriptor
@@ -163,5 +168,10 @@ void a2fxxxm3EthWriteSmi(uint32_t data, uint_t length);
 uint32_t a2fxxxm3EthReadSmi(uint_t length);
 
 uint32_t a2fxxxm3EthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

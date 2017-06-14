@@ -77,6 +77,11 @@
 //Helper macro for defining a buffer
 #define N(size) (((size) + NET_MEM_POOL_BUFFER_SIZE - 1) / NET_MEM_POOL_BUFFER_SIZE)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Structure describing a chunk of data
@@ -137,5 +142,10 @@ size_t netBufferWrite(NetBuffer *dest,
 
 size_t netBufferRead(void *dest, const NetBuffer *src,
    size_t srcOffset, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

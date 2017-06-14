@@ -222,7 +222,7 @@ error_t snmpUsmMibSetUsmUserEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    uint8_t userEngineId[SNMP_MAX_CONTEXT_ENGINE_SIZE];
    size_t userEngineIdLen;
-   uint8_t userName[SNMP_MAX_USER_NAME_LEN];
+   char_t userName[SNMP_MAX_USER_NAME_LEN];
    size_t userNameLen;
    SnmpAgentContext *context;
 
@@ -237,7 +237,7 @@ error_t snmpUsmMibSetUsmUserEntry(const MibObject *object, const uint8_t *oid,
       return error;
 
    //usmUserName is used as 2nd instance identifier
-   error = mibDecodeOctetString(oid, oidLen, &n, userName,
+   error = mibDecodeOctetString(oid, oidLen, &n, (uint8_t *) userName,
       SNMP_MAX_USER_NAME_LEN, &userNameLen);
    //Invalid instance identifier?
    if(error)
@@ -314,15 +314,13 @@ error_t snmpUsmMibSetUsmUserEntry(const MibObject *object, const uint8_t *oid,
    else if(!strcmp(object->name, "usmUserStorageType"))
    {
       //Set object value
-      int32_t temp = value->integer;
+      //int32_t temp = value->integer;
    }
    //usmUserStatus object?
    else if(!strcmp(object->name, "usmUserStatus"))
    {
       //Set object value
-      int32_t temp = value->integer;
-
-      TRACE_ERROR("usmUserStatus = 0%u\r\n", temp);
+      //int32_t temp = value->integer;
    }
    //Unknown object?
    else
@@ -353,7 +351,7 @@ error_t snmpUsmMibGetUsmUserEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    uint8_t userEngineId[SNMP_MAX_CONTEXT_ENGINE_SIZE];
    size_t userEngineIdLen;
-   uint8_t userName[SNMP_MAX_USER_NAME_LEN];
+   char_t userName[SNMP_MAX_USER_NAME_LEN];
    size_t userNameLen;
    SnmpAgentContext *context;
    SnmpUserInfo *user;
@@ -369,7 +367,7 @@ error_t snmpUsmMibGetUsmUserEntry(const MibObject *object, const uint8_t *oid,
       return error;
 
    //usmUserName is used as 2nd instance identifier
-   error = mibDecodeOctetString(oid, oidLen, &n, userName,
+   error = mibDecodeOctetString(oid, oidLen, &n, (uint8_t *) userName,
       SNMP_MAX_USER_NAME_LEN, &userNameLen);
    //Invalid instance identifier?
    if(error)
@@ -662,7 +660,7 @@ error_t snmpUsmMibGetNextUsmUserEntry(const MibObject *object, const uint8_t *oi
 
          //usmUserName is used as 2nd instance identifier
          error = mibEncodeOctetString(nextOid, *nextOidLen, &n,
-            curUser->name, strlen(curUser->name));
+            (uint8_t *) curUser->name, strlen(curUser->name));
          //Any error to report?
          if(error)
             return error;
@@ -708,7 +706,7 @@ error_t snmpUsmMibGetNextUsmUserEntry(const MibObject *object, const uint8_t *oi
 
    //usmUserName is used as 2nd instance identifier
    error = mibEncodeOctetString(nextOid, *nextOidLen, &n,
-      user->name, strlen(user->name));
+      (uint8_t *) user->name, strlen(user->name));
    //Any error to report?
    if(error)
       return error;

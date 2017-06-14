@@ -53,6 +53,11 @@
    #error PCAP_DRIVER_TIMEOUT parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //PCAP driver
 extern const NicDriver pcapDriver;
 
@@ -72,5 +77,10 @@ error_t pcapDriverSendPacket(NetInterface *interface,
 error_t pcapDriverSetMulticastFilter(NetInterface *interface);
 
 void pcapDriverTask(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

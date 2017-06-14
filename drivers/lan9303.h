@@ -169,6 +169,11 @@
 #define PSCSR_HCDSPEED_10BT_FD      (5 << 2)
 #define PSCSR_HCDSPEED_100BTX_FD    (6 << 2)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //LAN9303 Ethernet switch driver
 extern const PhyDriver lan9303PhyDriver;
 
@@ -198,5 +203,10 @@ void lan9303WriteSmiReg(NetInterface *interface, uint16_t address,
 uint32_t lan9303ReadSmiReg(NetInterface *interface, uint16_t address);
 
 void lan9303DumpSmiReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

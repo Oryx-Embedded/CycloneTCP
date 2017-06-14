@@ -71,6 +71,11 @@
    #error MDNS_MAX_LIFETIME parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //mDNS related functions
 error_t mdnsClientResolve(NetInterface *interface,
    const char_t *name, HostType type, IpAddr *ipAddr);
@@ -79,5 +84,10 @@ error_t mdnsClientSendQuery(DnsCacheEntry *entry);
 
 void mdnsClientParseAnRecord(NetInterface *interface,
    const MdnsMessage *message, size_t offset, const DnsResourceRecord *record);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

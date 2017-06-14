@@ -125,6 +125,11 @@
 #define GMAC_RX_BAD_FCS        0x00002000
 #define GMAC_RX_LENGTH         0x00001FFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit buffer descriptor
@@ -172,5 +177,10 @@ error_t sam4eEthUpdateMacConfig(NetInterface *interface);
 
 void sam4eEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t sam4eEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

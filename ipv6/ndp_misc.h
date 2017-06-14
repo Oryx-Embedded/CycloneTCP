@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "ipv6/ndp.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //NDP related functions
 void ndpParsePrefixInfoOption(NetInterface *interface, NdpPrefixInfoOption *option);
 
@@ -57,5 +62,10 @@ void ndpAddOption(void *message, size_t *messageLength,
 void *ndpGetOption(uint8_t *options, size_t length, uint8_t type);
 
 error_t ndpCheckOptions(const uint8_t *options, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

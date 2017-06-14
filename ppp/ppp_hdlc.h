@@ -32,6 +32,11 @@
 //Dependencies
 #include "core/nic.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //PPP HDLC driver
 extern const NicDriver pppHdlcDriver;
 
@@ -62,5 +67,10 @@ uint8_t pppHdlcDriverReadRxQueue(PppContext *context);
 
 bool_t pppHdlcDriverReadTxQueue(NetInterface *interface, int_t *c);
 bool_t pppHdlcDriverWriteRxQueue(NetInterface *interface, uint8_t c);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

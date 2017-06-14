@@ -295,6 +295,11 @@
 #define RX_HASH_CRC_DA                 0x001FF000
 #define RX_HASH_CRC_SA                 0x000001FF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit descriptor
@@ -366,5 +371,10 @@ void lpc23xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t lpc23xxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t lpc23xxEthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

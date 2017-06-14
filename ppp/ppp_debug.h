@@ -39,6 +39,11 @@
 //Check current trace level
 #if (PPP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //PPP related functions
 error_t pppDumpPacket(const PppPacket *packet, size_t length, PppProtocol protocol);
 error_t lcpDumpPacket(const PppPacket *packet, size_t length);
@@ -52,6 +57,11 @@ error_t ipv6cpDumpOptions(const PppOption *option, size_t length);
 
 #else
    #define pppDumpPacket(packet, length, protocol)
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   }
 #endif
 
 #endif

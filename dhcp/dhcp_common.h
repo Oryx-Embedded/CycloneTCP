@@ -50,6 +50,11 @@
 //Infinite lifetime representation
 #define DHCP_INFINITE_TIME 0xFFFFFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DHCP opcodes
@@ -232,5 +237,10 @@ void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
 
 DhcpOption *dhcpGetOption(const DhcpMessage *message,
    size_t length, uint8_t optionCode);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

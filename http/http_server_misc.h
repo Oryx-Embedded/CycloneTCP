@@ -32,6 +32,11 @@
 //Dependencies
 #include "http/http_server.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //HTTP server related functions
 error_t httpReadRequestHeader(HttpConnection *connection);
 error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine);
@@ -69,5 +74,10 @@ error_t httpDecodePercentEncodedString(const char_t *input,
 
 void httpConvertArrayToHexString(const uint8_t *input,
    size_t inputLength, char_t *output);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

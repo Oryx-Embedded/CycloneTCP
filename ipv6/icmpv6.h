@@ -32,6 +32,11 @@
 //Dependencies
 #include "core/net.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief ICMPv6 message type
@@ -253,5 +258,10 @@ void icmpv6DumpDestUnreachableMessage(const Icmpv6DestUnreachableMessage *messag
 void icmpv6DumpPacketTooBigMessage(const Icmpv6PacketTooBigMessage *message);
 void icmpv6DumpEchoMessage(const Icmpv6EchoMessage *message);
 void icmpv6DumpErrorMessage(const Icmpv6ErrorMessage *message);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -35,6 +35,11 @@
 //TFTP port number
 #define TFTP_PORT 69
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief TFTP opcodes
@@ -134,6 +139,11 @@ typedef __start_packed struct
 //CodeWarrior or Win32 compiler?
 #if defined(__CWCC__) || defined(_WIN32)
    #pragma pack(pop)
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   }
 #endif
 
 #endif

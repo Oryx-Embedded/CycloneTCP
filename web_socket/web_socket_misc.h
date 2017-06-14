@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "web_socket/web_socket.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief HTTP status code
@@ -77,5 +82,10 @@ error_t webSocketDecodePercentEncodedString(const char_t *input,
 
 bool_t webSocketCheckUtf8Stream(WebSocketUtf8Context *context,
    const uint8_t *data, size_t length, size_t remaining);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -157,6 +157,11 @@
    #define MIB2_INC_COUNTER32(name, value)
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief System services
@@ -501,5 +506,10 @@ typedef struct
 extern Mib2Base mib2Base;
 extern const MibObject mib2Objects[];
 extern const MibModule mib2Module;
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

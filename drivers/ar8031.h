@@ -337,6 +337,11 @@
 #define CHIP_CONFIG_MODE_CFG1            (1 << 1)
 #define CHIP_CONFIG_MODE_CFG0            (1 << 0)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //AR8031 Ethernet PHY driver
 extern const PhyDriver ar8031PhyDriver;
 
@@ -354,5 +359,10 @@ void ar8031WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data);
 uint16_t ar8031ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ar8031DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

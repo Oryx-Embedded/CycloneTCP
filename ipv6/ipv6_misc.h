@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "ipv6/ipv6.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //IPv6 related functions
 Ipv6AddrState ipv6GetAddrState(NetInterface *interface, const Ipv6Addr *addr);
 
@@ -83,5 +88,10 @@ error_t ipv6ComputeSolicitedNodeAddr(const Ipv6Addr *ipAddr,
 error_t ipv6MapMulticastAddrToMac(const Ipv6Addr *ipAddr, MacAddr *macAddr);
 
 void ipv6GenerateLinkLocalAddr(const Eui64 *interfaceId, Ipv6Addr *ipAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

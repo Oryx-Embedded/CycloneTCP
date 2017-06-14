@@ -372,6 +372,11 @@
 #define CPSW_ALE_WORD0_VLAN_MEMBER_LIST_MASK   (7 << 0)
 #define CPSW_ALE_WORD0_VLAN_MEMBER_LIST(n)     ((n) << 0)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief ALE table entry
@@ -456,5 +461,10 @@ uint_t am335xEthFindVlanAddrEntry(uint_t vlanId, MacAddr *macAddr);
 error_t am335xEthAddVlanEntry(uint_t port, uint_t vlanId);
 error_t am335xEthAddVlanAddrEntry(uint_t port, uint_t vlanId, MacAddr *macAddr);
 error_t am335xEthDeleteVlanAddrEntry(uint_t port, uint_t vlanId, MacAddr *macAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

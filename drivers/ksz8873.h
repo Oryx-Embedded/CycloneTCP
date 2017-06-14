@@ -123,6 +123,11 @@
 #define PHYSCS_PWRSAVE              (1 << 2)
 #define PHYSCS_REMOTE_LOOPBACK      (1 << 1)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //KSZ8873 Ethernet switch driver
 extern const PhyDriver ksz8873PhyDriver;
 
@@ -145,5 +150,10 @@ uint16_t ksz8873ReadPhyReg(NetInterface *interface,
    uint8_t port, uint8_t address);
 
 void ksz8873DumpPhyReg(NetInterface *interface, uint8_t port);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

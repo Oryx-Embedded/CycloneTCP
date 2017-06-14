@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "web_socket/web_socket.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //WebSocket related functions
 error_t webSocketOpenConnection(WebSocket *webSocket);
 
@@ -47,5 +52,10 @@ error_t webSocketSendData(WebSocket *webSocket, const void *data,
 
 error_t webSocketReceiveData(WebSocket *webSocket, void *data,
    size_t size, size_t *received, uint_t flags);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

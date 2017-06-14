@@ -32,6 +32,11 @@
 //Dependencies
 #include "http/http_server.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //SSI related functions
 error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t level);
 
@@ -45,5 +50,10 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, siz
 error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, size_t length);
 
 error_t ssiSearchTag(const char_t *s, size_t sLen, const char_t *tag, size_t tagLen, uint_t *pos);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

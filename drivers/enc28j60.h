@@ -375,6 +375,11 @@
 #define RSV_CARRIER_EVENT       0x0004
 #define RSV_DROP_EVENT          0x0001
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief ENC28J60 driver context
@@ -430,5 +435,10 @@ uint32_t enc28j60CalcCrc(const void *data, size_t length);
 
 void enc28j60DumpReg(NetInterface *interface);
 void enc28j60DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

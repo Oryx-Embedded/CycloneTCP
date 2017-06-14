@@ -47,6 +47,11 @@
 //Maximum size of MQTT header
 #define MQTT_MAX_HEADER_SIZE 5
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief MQTT protocol level
@@ -191,6 +196,11 @@ typedef __start_packed struct
 //CodeWarrior or Win32 compiler?
 #if defined(__CWCC__) || defined(_WIN32)
    #pragma pack(pop)
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   }
 #endif
 
 #endif

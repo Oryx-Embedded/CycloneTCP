@@ -54,6 +54,11 @@
    #error CHAP_MAX_CHALLENGES parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief CHAP states
@@ -209,5 +214,10 @@ error_t chapSendSuccess(PppContext *context);
 error_t chapSendFailure(PppContext *context);
 
 bool_t chapCheckPassword(PppContext *context, const char_t *password);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

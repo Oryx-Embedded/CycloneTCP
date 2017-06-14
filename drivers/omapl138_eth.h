@@ -274,6 +274,11 @@
 #define EMAC_RX_WORD3_NOMATCH           0x00010000
 #define EMAC_RX_WORD3_PACKET_LENGTH     0x0000FFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief TX buffer descriptor
@@ -331,5 +336,10 @@ error_t omapl138EthUpdateMacConfig(NetInterface *interface);
 
 void omapl138EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t omapl138EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -46,6 +46,11 @@
    #error LM3S_ETH_IRQ_PRIORITY parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //Stellaris LM3S Ethernet driver
 extern const NicDriver lm3sEthDriver;
 
@@ -70,5 +75,10 @@ void lm3sEthWritePhyReg(uint8_t address, uint16_t data);
 uint16_t lm3sEthReadPhyReg(uint8_t address);
 
 void lm3sEthDumpPhyReg(void);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

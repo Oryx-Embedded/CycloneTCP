@@ -32,6 +32,11 @@
 //Dependencies
 #include "mibs/mib_common.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //SNMP MIB related functions
 error_t snmpMibInit(void);
 error_t snmpMibLoad(void *context);
@@ -75,5 +80,10 @@ error_t snmpMibSetSnmpSetSerialNo(const MibObject *object, const uint8_t *oid,
 
 error_t snmpMibGetSnmpSetSerialNo(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -77,6 +77,11 @@
 //Compare EUI-64 addresses
 #define eui64CompAddr(eui64Addr1, eui64Addr2) (!memcmp(eui64Addr1, eui64Addr2, sizeof(Eui64)))
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief MAC address flags
@@ -204,5 +209,10 @@ char_t *eui64AddrToString(const Eui64 *eui64, char_t *str);
 void macAddrToEui64(const MacAddr *macAddr, Eui64 *interfaceId);
 
 void ethDumpHeader(const EthHeader *ethHeader);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

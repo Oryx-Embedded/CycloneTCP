@@ -48,6 +48,11 @@
    #define IP_MIB_INC_COUNTER64(name, value)
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief IP forwarding state
@@ -334,5 +339,10 @@ typedef struct
 extern IpMibBase ipMibBase;
 extern const MibObject ipMibObjects[];
 extern const MibModule ipMibModule;
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

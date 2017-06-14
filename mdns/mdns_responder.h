@@ -116,6 +116,11 @@
 struct _MdnsResponderContext;
 #define MdnsResponderContext struct _MdnsResponderContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief mDNS responder states
@@ -242,5 +247,10 @@ error_t mdnsResponderAddIpv6ReversePtrRecord(NetInterface *interface,
 
 error_t mdnsResponderAddNsecRecord(NetInterface *interface,
    MdnsMessage *message, bool_t cacheFlush, uint32_t ttl);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

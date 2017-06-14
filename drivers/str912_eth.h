@@ -267,6 +267,11 @@
    ENET_RDES_STATUS_LC | ENET_RDES_STATUS_RF | \
    ENET_RDES_STATUS_WT | ENET_RDES_STATUS_OL)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit DMA descriptor
@@ -320,5 +325,10 @@ void str912EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t str912EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t str912EthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

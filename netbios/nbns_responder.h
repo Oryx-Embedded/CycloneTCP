@@ -42,11 +42,21 @@
    #error NBNS_RESPONDER_SUPPORT parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //NBNS related functions
 void nbnsProcessQuery(NetInterface *interface, const Ipv4PseudoHeader *pseudoHeader,
    const UdpHeader *udpHeader, const NbnsHeader *message, size_t length);
 
 error_t nbnsSendResponse(NetInterface *interface,
    const IpAddr *destIpAddr, uint16_t destPort, uint16_t id);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

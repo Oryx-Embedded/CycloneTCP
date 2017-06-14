@@ -65,6 +65,11 @@
 #define MAC_TR_R     HWREG(ETH_BASE + MAC_O_TR)
 #define MAC_TS_R     HWREG(ETH_BASE + MAC_O_TS)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //F28M35x Ethernet MAC driver
 extern const NicDriver f28m35xEthDriver;
 
@@ -89,5 +94,10 @@ error_t f28m35xEthUpdateMacConfig(NetInterface *interface);
 
 void f28m35xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t f28m35xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

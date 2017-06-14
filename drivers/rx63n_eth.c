@@ -157,8 +157,15 @@ error_t rx63nEthInit(NetInterface *interface)
 
    //Set descriptor length (16 bytes)
    EDMAC.EDMR.BIT.DL = 0;
+
+#ifdef _CPU_BIG_ENDIAN
+   //Select big endian mode
+   EDMAC.EDMR.BIT.DE = 0;
+#else
    //Select little endian mode
    EDMAC.EDMR.BIT.DE = 1;
+#endif
+
    //Use store and forward mode
    EDMAC.TFTR.BIT.TFT = 0;
 

@@ -78,6 +78,11 @@
 //Maximum size of TFTP packets
 #define TFTP_CLIENT_MAX_PACKET_SIZE (sizeof(TftpDataPacket) + TFTP_CLIENT_BLOCK_SIZE)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief File access modes
@@ -154,5 +159,10 @@ error_t tftpClientReadFile(TftpClientContext *context,
 
 error_t tftpClientFlushFile(TftpClientContext *context);
 void tftpClientCloseFile(TftpClientContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

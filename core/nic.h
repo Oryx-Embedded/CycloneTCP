@@ -53,6 +53,11 @@
    #error NIC_CONTEXT_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief NIC types
@@ -242,5 +247,10 @@ error_t nicSetMulticastFilter(NetInterface *interface);
 
 void nicProcessPacket(NetInterface *interface, void *packet, size_t length);
 void nicNotifyLinkChange(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

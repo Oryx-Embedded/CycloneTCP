@@ -147,6 +147,11 @@
 #define SMI_READ           0x00000002
 #define SMI_TA             0x00000002
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit DMA descriptor
@@ -201,5 +206,10 @@ uint16_t s7g2EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 void s7g2EthWriteSmi(uint32_t data, uint_t length);
 uint32_t s7g2EthReadSmi(uint_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

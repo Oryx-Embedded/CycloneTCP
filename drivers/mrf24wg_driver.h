@@ -46,6 +46,11 @@
    #error MRF24WG_RX_BUFFER_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief TX buffer
@@ -78,5 +83,10 @@ error_t mrf24wgSetMulticastFilter(NetInterface *interface);
 
 void mrf24wgAppWifiEvent(uint8_t msgType, void *msg);
 void mrf24wgAppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

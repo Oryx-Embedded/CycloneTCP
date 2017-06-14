@@ -102,6 +102,11 @@
 #define AT91C_EMAC_RX_OFFSET         0x00003000
 #define AT91C_EMAC_RX_LENGTH         0x00000FFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit buffer descriptor
@@ -153,5 +158,10 @@ uint16_t sam7xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 //Wrapper for the interrupt service routine
 void emacIrqWrapper(void);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

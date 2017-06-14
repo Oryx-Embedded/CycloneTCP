@@ -59,6 +59,11 @@ struct _Socket;
    #error SOCKET_EPHEMERAL_PORT_MAX parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Socket types
@@ -349,5 +354,10 @@ error_t socketGetEvents(Socket *socket, uint_t *eventFlags);
 
 error_t getHostByName(NetInterface *interface,
    const char_t *name, IpAddr *ipAddr, uint_t flags);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

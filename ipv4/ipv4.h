@@ -155,6 +155,11 @@ struct _Ipv4PseudoHeader;
    (interface->ipv4Context.addrState == IPV4_ADDR_STATE_TENTATIVE && \
    interface->ipv4Context.addr == ipAddr)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief IPv4 address scopes
@@ -376,5 +381,10 @@ error_t ipv4StringToAddr(const char_t *str, Ipv4Addr *ipAddr);
 char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
 
 void ipv4DumpHeader(const Ipv4Header *ipHeader);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

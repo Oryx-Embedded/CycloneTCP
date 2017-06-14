@@ -33,6 +33,11 @@
 #include "ipv4/ipv4.h"
 #include "ipv6/ipv6.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief IP supported protocols
@@ -114,5 +119,10 @@ NetBuffer *ipAllocBuffer(size_t length, size_t *offset);
 
 error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr);
 char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

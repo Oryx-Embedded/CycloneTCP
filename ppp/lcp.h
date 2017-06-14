@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "ppp/ppp.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief LCP option types
@@ -242,5 +247,10 @@ error_t lcpParsePfcOption(PppContext *context,
 
 error_t lcpParseAcfcOption(PppContext *context,
    LcpAcfcOption *option, PppConfigurePacket *outPacket);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -62,6 +62,11 @@
 //Discard service port
 #define DISCARD_PORT 9
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Discard service context
@@ -82,5 +87,10 @@ void tcpDiscardConnectionTask(void *param);
 //UDP discard service related functions
 error_t udpDiscardStart(void);
 void udpDiscardTask(void *param);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

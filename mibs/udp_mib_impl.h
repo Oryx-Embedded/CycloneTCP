@@ -32,6 +32,11 @@
 //Dependencies
 #include "mibs/mib_common.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //UDP MIB related functions
 error_t udpMibInit(void);
 
@@ -40,5 +45,10 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
 
 error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

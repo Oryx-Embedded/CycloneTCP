@@ -115,6 +115,11 @@
 #define EMAC_RX_OFFSET         0x00003000
 #define EMAC_RX_LENGTH         0x00000FFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit buffer descriptor
@@ -162,5 +167,10 @@ error_t sam3xEthUpdateMacConfig(NetInterface *interface);
 
 void sam3xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t sam3xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

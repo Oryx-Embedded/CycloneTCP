@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "ppp/ppp.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //PPP related functions
 error_t pppSendConfigureAckNak(PppContext *context,
    const PppConfigurePacket *configureReqPacket, PppProtocol protocol, PppCode code);
@@ -54,5 +59,10 @@ error_t pppSendEchoRep(PppContext *context,
 
 error_t pppAddOption(PppConfigurePacket *packet, uint8_t optionType,
    const void *optionValue, uint8_t optionLen);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

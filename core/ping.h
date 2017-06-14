@@ -58,6 +58,11 @@
 //Size of the internal buffer
 #define PING_BUFFER_SIZE (sizeof(IcmpEchoMessage) + PING_MAX_DATA_SIZE)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Ping context
@@ -92,5 +97,10 @@ error_t pingWaitForReply(PingContext *context,
    IpAddr *targetIpAddr, systime_t *rtt);
 
 void pingRelease(PingContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

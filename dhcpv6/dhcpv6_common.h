@@ -50,6 +50,11 @@
 //Infinite lifetime representation
 #define DHCPV6_INFINITE_TIME 0xFFFFFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DUID types
@@ -433,5 +438,10 @@ Dhcpv6Option *dhcpv6GetOption(const uint8_t *options,
 
 int32_t dhcpv6Rand(int32_t value);
 int32_t dhcpv6RandRange(int32_t min, int32_t max);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

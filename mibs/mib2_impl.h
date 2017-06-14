@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "mibs/mib2_module.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //MIB-II related functions
 error_t mib2Init(void);
 
@@ -104,5 +109,10 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
 
 error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

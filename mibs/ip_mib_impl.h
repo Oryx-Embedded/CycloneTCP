@@ -32,6 +32,11 @@
 //Dependencies
 #include "mibs/mib_common.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //IP MIB related functions
 error_t ipMibInit(void);
 
@@ -133,5 +138,10 @@ error_t ipMibGetIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oid,
 
 error_t ipMibGetNextIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

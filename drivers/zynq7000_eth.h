@@ -227,6 +227,11 @@
 #define XEMACPS_RX_BAD_FCS               0x00002000
 #define XEMACPS_RX_LENGTH                0x00001FFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit buffer descriptor
@@ -274,5 +279,10 @@ error_t zynq7000EthUpdateMacConfig(NetInterface *interface);
 
 void zynq7000EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t zynq7000EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

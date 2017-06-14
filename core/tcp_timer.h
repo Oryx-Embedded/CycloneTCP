@@ -29,6 +29,11 @@
 #ifndef _TCP_TIMER_H
 #define _TCP_TIMER_H
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //TCP timer related functions
 void tcpTick(void);
 
@@ -39,5 +44,10 @@ bool_t tcpTimerRunning(TcpTimer *timer);
 bool_t tcpTimerElapsed(TcpTimer *timer);
 
 systime_t tcpTimerGetInterval(TcpTimer *timer);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

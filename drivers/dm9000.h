@@ -352,6 +352,11 @@
 #define DM9000_LBK_MAC     (1 << 1)
 #define DM9000_LBK_PHY     (2 << 1)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DM9000 driver context
@@ -392,5 +397,10 @@ void dm9000WritePhyReg(uint8_t address, uint16_t data);
 uint16_t dm9000ReadPhyReg(uint8_t address);
 
 uint32_t dm9000CalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

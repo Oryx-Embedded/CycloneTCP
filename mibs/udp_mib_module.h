@@ -48,6 +48,11 @@
    #define UDP_MIB_INC_COUNTER64(name, value)
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief UDP MIB base
@@ -68,5 +73,10 @@ typedef struct
 extern UdpMibBase udpMibBase;
 extern const MibObject udpMibObjects[];
 extern const MibModule udpMibModule;
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -64,6 +64,11 @@
 #define DNS_SET_NSEC_BITMAP(bitmap, type) bitmap[(type) / 8] |= 0x80 >> ((type) % 8)
 #define DNS_CLR_NSEC_BITMAP(bitmap, type) bitmap[(type) / 8] &= ~(0x80 >> ((type) % 8))
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DNS opcodes
@@ -235,5 +240,10 @@ int_t dnsCompareName(const DnsHeader *message, size_t length,
 
 int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t pos1,
    const DnsHeader *message2, size_t length2, size_t pos2, uint_t level);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

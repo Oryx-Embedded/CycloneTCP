@@ -254,6 +254,11 @@
 #define PHYCON2_SQE_TEST_EN         (1 << 1)
 #define PHYCON2_SCRAMBLER_DIS       (1 << 0)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //KSZ8051 Ethernet PHY driver
 extern const PhyDriver ksz8051PhyDriver;
 
@@ -271,5 +276,10 @@ void ksz8051WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t ksz8051ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ksz8051DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

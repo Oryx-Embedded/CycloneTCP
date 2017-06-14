@@ -269,6 +269,11 @@
 #define PAGSEL_PAGE_SEL1            (1 << 1)
 #define PAGSEL_PAGE_SEL0            (1 << 0)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //RTL8211 Ethernet PHY driver
 extern const PhyDriver rtl8211PhyDriver;
 
@@ -286,5 +291,10 @@ void rtl8211WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t rtl8211ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void rtl8211DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

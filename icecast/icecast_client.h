@@ -87,6 +87,11 @@
    #error ICECAST_CLIENT_METADATA_MAX_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Icecast client settings
@@ -144,5 +149,10 @@ void icecastClientTask(void *param);
 
 error_t icecastClientConnect(IcecastClientContext *context);
 error_t icecastClientProcessMetadata(IcecastClientContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

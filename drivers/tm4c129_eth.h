@@ -170,6 +170,11 @@
 #define EMAC_RDES6_RTSL   0xFFFFFFFF
 #define EMAC_RDES7_RTSH   0xFFFFFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Enhanced TX DMA descriptor
@@ -231,5 +236,10 @@ uint16_t tm4c129EthReadPhyReg(uint8_t regAddr);
 void tm4c129EthDumpPhyReg(void);
 
 uint32_t tm4c129EthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -47,6 +47,11 @@
 #define NBNS_ENCODE_H(c) ('A' + (((c) >> 4) & 0x0F))
 #define NBNS_ENCODE_L(c) ('A' + ((c) & 0x0F))
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief NBNS flags
@@ -134,5 +139,10 @@ size_t nbnsParseName(const NbnsHeader *message,
 
 bool_t nbnsCompareName(const NbnsHeader *message,
    size_t length, size_t pos, const char_t *name);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

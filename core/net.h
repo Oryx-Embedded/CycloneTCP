@@ -137,6 +137,11 @@ struct _NetInterface;
    #error NET_TICK_INTERVAL parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Structure describing a network interface
@@ -287,5 +292,10 @@ error_t netAttachLinkChangeCallback(NetInterface *interface,
 error_t netDetachLinkChangeCallback(uint_t cookie);
 
 void netInvokeLinkChangeCallback(NetInterface *interface, bool_t linkState);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

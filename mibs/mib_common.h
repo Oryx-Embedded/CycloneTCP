@@ -43,6 +43,11 @@
 struct _MibObject;
 #define MibObject struct _MibObject
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief MIB object types
@@ -320,5 +325,10 @@ error_t mibEncodeIpAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const IpAdd
 error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos, IpAddr *ipAddr);
 
 int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

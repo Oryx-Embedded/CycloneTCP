@@ -36,4 +36,14 @@
 //Daytime service port
 #define DAYTIME_PORT 13
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
+
 #endif

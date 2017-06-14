@@ -100,6 +100,11 @@
 //SNMPv3 message header overhead
 #define SNMP_V3_MSG_HEADER_OVERHEAD 105
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief SNMP version identifiers
@@ -303,5 +308,10 @@ error_t snmpEncodeUnsignedInt64(uint64_t value, uint8_t *dest, size_t *length);
 error_t snmpDecodeInt32(const uint8_t *src, size_t length, int32_t *value);
 error_t snmpDecodeUnsignedInt32(const uint8_t *src, size_t length, uint32_t *value);
 error_t snmpDecodeUnsignedInt64(const uint8_t *src, size_t length, uint64_t *value);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

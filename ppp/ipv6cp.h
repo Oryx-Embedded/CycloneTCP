@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "ppp/ppp.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief IPV6CP option types
@@ -147,5 +152,10 @@ error_t ipv6cpParseOption(PppContext *context, PppOption *option,
 
 error_t ipv6cpParseInterfaceIdOption(PppContext *context,
    Ipv6cpInterfaceIdOption *option, PppConfigurePacket *outPacket);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

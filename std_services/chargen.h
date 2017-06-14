@@ -62,6 +62,11 @@
 //Chargen service port
 #define CHARGEN_PORT 19
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Chargen service context
@@ -82,5 +87,10 @@ void tcpChargenConnectionTask(void *param);
 //UDP chargen service related functions
 error_t udpChargenStart(void);
 void udpChargenTask(void *param);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

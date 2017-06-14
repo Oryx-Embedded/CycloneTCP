@@ -87,6 +87,11 @@
 struct _DnsSdContext;
 #define DnsSdContext struct _DnsSdContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief FSM state change callback
@@ -201,5 +206,10 @@ error_t dnsSdAddTxtRecord(NetInterface *interface, MdnsMessage *message,
 
 error_t dnsSdAddNsecRecord(NetInterface *interface, MdnsMessage *message,
    const DnsSdService *service, bool_t cacheFlush, uint32_t ttl);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

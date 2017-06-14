@@ -136,6 +136,11 @@
 struct _AutoIpContext;
 #define AutoIpContext struct _AutoIpContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Auto-IP FSM states
@@ -216,5 +221,10 @@ void autoIpChangeState(AutoIpContext *context,
 void autoIpGenerateAddr(Ipv4Addr *ipAddr);
 
 void autoIpDumpConfig(AutoIpContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

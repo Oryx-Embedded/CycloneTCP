@@ -161,6 +161,11 @@
 //FTPS data port number (implicit mode)
 #define FTPS_DATA_PORT 989
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Control connection state
@@ -330,5 +335,10 @@ error_t ftpServerStart(FtpServerContext *context);
 error_t ftpServerSetHomeDir(FtpClientConnection *connection, const char_t *homeDir);
 
 void ftpServerTask(FtpServerContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

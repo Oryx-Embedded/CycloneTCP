@@ -39,10 +39,20 @@
    #error IPV6_PMTU_SUPPORT parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //Path MTU discovery related functions
 size_t ipv6GetPathMtu(NetInterface *interface, const Ipv6Addr *destAddr);
 
 void ipv6UpdatePathMtu(NetInterface *interface,
    const Ipv6Addr *destAddr, size_t tentativePathMtu);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

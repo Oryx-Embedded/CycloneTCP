@@ -178,6 +178,11 @@
 #define PHYCON_OP_MODE_100BTX_FD (6 << 2)
 #define PHYCON_OP_MODE_ISOLATE   (7 << 2)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //KSZ8721 Ethernet PHY driver
 extern const PhyDriver ksz8721PhyDriver;
 
@@ -195,5 +200,10 @@ void ksz8721WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t ksz8721ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ksz8721DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

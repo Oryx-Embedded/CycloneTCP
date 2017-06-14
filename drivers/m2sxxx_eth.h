@@ -290,6 +290,11 @@
 #define DMA_DESC_EMPTY_FLAG               0x80000000
 #define DMA_DESC_SIZE_MASK                0x00000FFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit DMA descriptor
@@ -339,5 +344,10 @@ error_t m2sxxxEthUpdateMacConfig(NetInterface *interface);
 
 void m2sxxxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t m2sxxxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -199,6 +199,11 @@
 //Infinite lifetime
 #define NDP_INFINITE_LIFETIME 0xFFFFFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Neighbor Discovery options
@@ -622,5 +627,10 @@ void ndpDumpRouterAdvMessage(const NdpRouterAdvMessage *message);
 void ndpDumpNeighborSolMessage(const NdpNeighborSolMessage *message);
 void ndpDumpNeighborAdvMessage(const NdpNeighborAdvMessage *message);
 void ndpDumpRedirectMessage(const NdpRedirectMessage *message);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

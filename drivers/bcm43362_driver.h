@@ -32,6 +32,11 @@
 //Dependencies
 #include "core/nic.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //BCM43362 driver (STA mode)
 extern const NicDriver bcm43362StaDriver;
 //BCM43362 driver (AP mode)
@@ -54,5 +59,10 @@ error_t bcm43362SetMulticastFilter(NetInterface *interface);
 
 void bcm43362AppWifiEvent(uint8_t msgType, void *msg);
 void bcm43362AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

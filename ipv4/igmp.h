@@ -75,6 +75,11 @@
 //All-Routers address
 #define IGMP_ALL_ROUTERS_ADDR IPV4_ADDR(224, 0, 0, 2)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief IGMP host states
@@ -153,5 +158,10 @@ error_t igmpSendLeaveGroupMessage(NetInterface *interface, Ipv4Addr ipAddr);
 uint32_t igmpRand(uint32_t max);
 
 void igmpDumpMessage(const IgmpMessage *message);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

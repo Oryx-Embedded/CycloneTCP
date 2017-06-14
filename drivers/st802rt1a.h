@@ -279,6 +279,11 @@
 #define RS1B_LOCK_ERROR_DETECT    (1 << 4)
 #define RS1B_MLT3_ERROR_DETECT    (1 << 3)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //ST802RT1A Ethernet PHY driver
 extern const PhyDriver st802rt1aPhyDriver;
 
@@ -296,5 +301,10 @@ void st802rt1aWritePhyReg(NetInterface *interface, uint8_t address, uint16_t dat
 uint16_t st802rt1aReadPhyReg(NetInterface *interface, uint8_t address);
 
 void st802rt1aDumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -133,6 +133,11 @@
 #define SMI_READ           0x00000002
 #define SMI_TA             0x00000002
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit DMA descriptor
@@ -187,5 +192,10 @@ uint16_t rx63nEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 void rx63nEthWriteSmi(uint32_t data, uint_t length);
 uint32_t rx63nEthReadSmi(uint_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

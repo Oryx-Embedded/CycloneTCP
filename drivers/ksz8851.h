@@ -432,6 +432,11 @@
 #define TX_CTRL_TXIC             0x8000
 #define TX_CTRL_TXFID            0x003F
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief TX packet header
@@ -499,5 +504,10 @@ void ksz8851ClearBit(NetInterface *interface, uint8_t address, uint16_t mask);
 uint32_t ksz8851CalcCrc(const void *data, size_t length);
 
 void ksz8851DumpReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

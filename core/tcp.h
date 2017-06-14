@@ -216,6 +216,11 @@
 //Sequence number comparison macro
 #define TCP_CMP_SEQ(a, b) ((int32_t) ((a) - (b)))
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief TCP FSM states
@@ -432,5 +437,10 @@ error_t tcpAbort(Socket *socket);
 TcpState tcpGetState(Socket *socket);
 
 Socket *tcpKillOldestConnection(void);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -32,6 +32,11 @@
 //Dependencies
 #include "http/http_server.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //HTTP authentication related functions
 bool_t httpCheckPassword(HttpConnection *connection,
    const char_t *password, HttpAuthMode mode);
@@ -44,5 +49,10 @@ error_t httpGenerateNonce(HttpServerContext *context,
 
 error_t httpVerifyNonce(HttpServerContext *context,
    const char_t *nonce, const char_t *nc);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

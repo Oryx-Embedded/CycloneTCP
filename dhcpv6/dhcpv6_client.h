@@ -226,6 +226,11 @@
 struct _Dhcpv6ClientContext;
 #define Dhcpv6ClientContext struct _Dhcpv6ClientContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief DHCPv6 client FSM states
@@ -406,5 +411,10 @@ void dhcpv6ClientChangeState(Dhcpv6ClientContext *context,
    Dhcpv6State newState, systime_t delay);
 
 void dhcpv6ClientDumpConfig(Dhcpv6ClientContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -50,6 +50,11 @@
    #define IF_MIB_INC_COUNTER64(name, value)
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Interface types
@@ -178,5 +183,10 @@ typedef struct
 extern IfMibBase ifMibBase;
 extern const MibObject ifMibObjects[];
 extern const MibModule ifMibModule;
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

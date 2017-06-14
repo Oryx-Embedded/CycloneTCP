@@ -205,6 +205,11 @@
 #define ETH_RDES3_OWN           0x80000000
 #define ETH_RDES3_CTXT          0x40000000
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit descriptor
@@ -258,5 +263,10 @@ void stm32h7xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t stm32h7xxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t stm32h7xxEthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

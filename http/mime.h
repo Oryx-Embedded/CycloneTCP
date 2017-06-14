@@ -37,6 +37,11 @@
    #define MIME_CUSTOM_TYPES
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief MIME type
@@ -51,5 +56,10 @@ typedef struct
 
 //MIME related functions
 const char_t *mimeGetType(const char_t *filename);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

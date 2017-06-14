@@ -139,6 +139,11 @@ struct _Ipv6PseudoHeader;
 #define ipv6GetLinkLocalAddrState(interface) \
    (interface->ipv6Context.addrList[0].state)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief IPv6 address scopes
@@ -545,5 +550,10 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr);
 char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str);
 
 void ipv6DumpHeader(const Ipv6Header *ipHeader);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

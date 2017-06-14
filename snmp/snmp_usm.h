@@ -176,6 +176,11 @@
    #define SNMP_MSG_ENCRYPTION_OVERHEAD 0
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * SNMP message flags
@@ -300,5 +305,10 @@ error_t snmpAuthIncomingMessage(const SnmpUserInfo *user, SnmpMessage *message);
 
 error_t snmpEncryptData(const SnmpUserInfo *user, SnmpMessage *message, uint64_t *salt);
 error_t snmpDecryptData(const SnmpUserInfo *user, SnmpMessage *message);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

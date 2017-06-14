@@ -149,6 +149,11 @@ struct _PppContext;
 ///PPP Control field
 #define PPP_CTRL_FIELD 0x03
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief PPP phases
@@ -513,5 +518,10 @@ uint16_t pppCalcFcs(const uint8_t *data, size_t length);
 uint16_t pppCalcFcsEx(const NetBuffer *buffer, size_t offset, size_t length);
 
 NetBuffer *pppAllocBuffer(size_t length, size_t *offset);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

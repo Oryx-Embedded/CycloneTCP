@@ -257,6 +257,11 @@
 #define PHYCON_1000BT_MS_STATUS       (1 << 2)
 #define PHYCON_LINK_STATUS_CHECK_FAIL (1 << 0)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //KSZ9031 Ethernet PHY driver
 extern const PhyDriver ksz9031PhyDriver;
 
@@ -274,5 +279,10 @@ void ksz9031WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t ksz9031ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ksz9031DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

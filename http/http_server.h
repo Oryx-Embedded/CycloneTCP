@@ -287,6 +287,11 @@ struct _HttpServerContext;
 struct _HttpConnection;
 #define HttpConnection struct _HttpConnection
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief HTTP version numbers
@@ -648,5 +653,10 @@ WebSocket *httpUpgradeToWebSocket(HttpConnection *connection);
 //Miscellaneous functions
 error_t httpDecodePercentEncodedString(const char_t *input,
    char_t *output, size_t outputSize);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -157,6 +157,11 @@
 #define FD_CLR(s, fds) selectFdClr(fds, s)
 #define FD_ISSET(s, fds) selectFdIsSet(fds, s)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Length type
@@ -315,6 +320,11 @@ const char_t *inet_ntoa(in_addr in, char_t *cp);
 int_t inet_pton(int_t af, const char_t *src, void *dst);
 const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size);
 
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   }
 #endif
 
 #endif

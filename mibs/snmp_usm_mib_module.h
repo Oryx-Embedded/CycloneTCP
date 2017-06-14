@@ -49,6 +49,11 @@
    #define SNMP_USM_MIB_GET_COUNTER32(value, name)
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief SNMP USM MIB base
@@ -71,5 +76,10 @@ typedef struct
 extern SnmpUsmMibBase snmpUsmMibBase;
 extern const MibObject snmpUsmMibObjects[];
 extern const MibModule snmpUsmMibModule;
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

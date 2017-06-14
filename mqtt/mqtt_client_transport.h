@@ -29,6 +29,11 @@
 #ifndef _MQTT_CLIENT_IO_H
 #define _MQTT_CLIENT_IO_H
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //MQTT client related functions
 error_t mqttClientOpenConnection(MqttClientContext *context);
 
@@ -46,5 +51,10 @@ error_t mqttClientReceiveData(MqttClientContext *context,
    void *data, size_t size, size_t *received, uint_t flags);
 
 error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

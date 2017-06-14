@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "ppp/ppp.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief This-Layer-Up callback function
@@ -202,5 +207,10 @@ void pppRcvEchoReqEvent(PppContext *context, PppFsm *fsm,
    const PppCallbacks *callbacks, const PppEchoPacket *echoReqPacket);
 
 void pppChangeState(PppFsm *fsm, PppState newState);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -47,6 +47,11 @@
 struct _SlaacContext;
 #define SlaacContext struct _SlaacContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Link state change callback
@@ -106,5 +111,10 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
 error_t slaacGenerateLinkLocalAddr(SlaacContext *context);
 
 void slaacDumpConfig(SlaacContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

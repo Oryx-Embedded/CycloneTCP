@@ -54,6 +54,11 @@
    #error PAP_MAX_REQUESTS parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief PAP states
@@ -177,5 +182,10 @@ error_t papSendAuthAck(PppContext *context, uint8_t identifier);
 error_t papSendAuthNak(PppContext *context, uint8_t identifier);
 
 bool_t papCheckPassword(PppContext *context, const char_t *password);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

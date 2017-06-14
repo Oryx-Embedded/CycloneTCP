@@ -106,6 +106,11 @@
 struct _FtpClientContext;
 #define FtpClientContext struct _FtpClientContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Connection options
@@ -227,6 +232,11 @@ error_t ftpRegisterTlsInitCallback(FtpClientContext *context,
 error_t ftpInitControlTlsContext(FtpClientContext *context);
 error_t ftpInitDataTlsContext(FtpClientContext *context);
 
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   }
 #endif
 
 #endif

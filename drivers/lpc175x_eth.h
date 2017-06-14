@@ -342,6 +342,11 @@
 #define SMI_READ                       0x00000002
 #define SMI_TA                         0x00000002
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit descriptor
@@ -415,5 +420,10 @@ void lpc175xEthWriteSmi(uint32_t data, uint_t length);
 uint32_t lpc175xEthReadSmi(uint_t length);
 
 uint32_t lpc175xEthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

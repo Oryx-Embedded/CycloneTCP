@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "ipv6/ndp.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //NDP related functions
 NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface);
 NdpNeighborCacheEntry *ndpFindNeighborCacheEntry(NetInterface *interface, const Ipv6Addr *ipAddr);
@@ -46,5 +51,10 @@ void ndpFlushQueuedPackets(NetInterface *interface, NdpNeighborCacheEntry *entry
 NdpDestCacheEntry *ndpCreateDestCacheEntry(NetInterface *interface);
 NdpDestCacheEntry *ndpFindDestCacheEntry(NetInterface *interface, const Ipv6Addr *destAddr);
 void ndpFlushDestCache(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

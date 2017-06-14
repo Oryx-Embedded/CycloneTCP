@@ -264,6 +264,11 @@
 #define PHYCON2_REMOTE_LOOPBACK     (1 << 2)
 #define PHYCON2_SCRAMBLER_DIS       (1 << 0)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //KSZ8091 Ethernet PHY driver
 extern const PhyDriver ksz8091PhyDriver;
 
@@ -281,5 +286,10 @@ void ksz8091WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t ksz8091ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ksz8091DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

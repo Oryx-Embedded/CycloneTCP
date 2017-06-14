@@ -32,6 +32,11 @@
 //Dependencies
 #include "core/tcp.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //TCP FSM related functions
 void tcpProcessSegment(NetInterface *interface,
    IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset);
@@ -63,5 +68,10 @@ void tcpStateFinWait2(Socket *socket, TcpHeader *segment,
 void tcpStateClosing(Socket *socket, TcpHeader *segment, size_t length);
 
 void tcpStateTimeWait(Socket *socket, TcpHeader *segment, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

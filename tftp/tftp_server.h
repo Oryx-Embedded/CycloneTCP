@@ -105,6 +105,11 @@ struct _TftpClientConnection;
 struct _TftpServerContext;
 #define TftpServerContext struct _TftpServerContext
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief TFTP connection state
@@ -206,5 +211,10 @@ error_t tftpServerInit(TftpServerContext *context, const TftpServerSettings *set
 error_t tftpServerStart(TftpServerContext *context);
 
 void tftpServerTask(TftpServerContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -37,6 +37,11 @@
 //Check current trace level
 #if (DHCP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //Related functions
 error_t dhcpDumpMessage(const DhcpMessage *message, size_t length);
 error_t dhcpDumpMessageType(const DhcpOption *option);
@@ -52,6 +57,11 @@ error_t dhcpDumpRawData(const DhcpOption *option);
 
 #else
    #define dhcpDumpMessage(message, length)
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   }
 #endif
 
 #endif

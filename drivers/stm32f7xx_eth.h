@@ -160,6 +160,11 @@
 #define SMI_READ         0x00000002
 #define SMI_TA           0x00000002
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Enhanced TX DMA descriptor
@@ -224,5 +229,10 @@ void stm32f7xxEthWriteSmi(uint32_t data, uint_t length);
 uint32_t stm32f7xxEthReadSmi(uint_t length);
 
 uint32_t stm32f7xxEthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

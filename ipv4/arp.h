@@ -100,6 +100,11 @@
 //Protocol type
 #define ARP_PROTOCOL_TYPE_IPV4 0x0800
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief ARP opcodes
@@ -219,5 +224,10 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr targetIpAddr,
    const MacAddr *targetMacAddr, const MacAddr *destMacAddr);
 
 void arpDumpPacket(const ArpPacket *arpPacket);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

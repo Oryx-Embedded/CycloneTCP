@@ -55,6 +55,11 @@
    #error UDP_RX_QUEUE_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 //CodeWarrior or Win32 compiler?
 #if defined(__CWCC__) || defined(_WIN32)
@@ -136,5 +141,10 @@ error_t udpInvokeRxCallback(NetInterface *interface, const IpPseudoHeader *pseud
    const UdpHeader *header, const NetBuffer *buffer, size_t offset);
 
 void udpDumpHeader(const UdpHeader *datagram);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

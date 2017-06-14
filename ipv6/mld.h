@@ -56,6 +56,11 @@
 //Hop Limit used by MLD messages
 #define MLD_HOP_LIMIT 1
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief MLD node states
@@ -119,5 +124,10 @@ error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr);
 uint32_t mldRand(uint32_t max);
 
 void mldDumpMessage(const MldMessage *message);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

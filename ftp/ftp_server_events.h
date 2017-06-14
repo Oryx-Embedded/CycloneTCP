@@ -35,6 +35,11 @@
 //Time constant
 #define FTP_SERVER_180_DAYS (180 * 86400)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //FTP server related functions
 void ftpServerControlEventHandler(FtpServerContext *context,
    FtpClientConnection *connection, uint_t eventFlags);
@@ -44,5 +49,10 @@ void ftpServerDataEventHandler(FtpServerContext *context,
 
 void ftpServerSendData(FtpServerContext *context, FtpClientConnection *connection);
 void ftpServerReceiveData(FtpServerContext *context, FtpClientConnection *connection);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

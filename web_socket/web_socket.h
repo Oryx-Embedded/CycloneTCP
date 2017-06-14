@@ -174,6 +174,11 @@
 struct _WebSocket;
 #define WebSocket struct _WebSocket
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief WebSocket endpoint types
@@ -502,5 +507,10 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
 bool_t webSocketIsRxReady(WebSocket *webSocket);
 error_t webSocketShutdown(WebSocket *webSocket);
 void webSocketClose(WebSocket *webSocket);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

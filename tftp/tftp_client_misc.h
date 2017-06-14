@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "tftp/tftp_client.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //TFTP client related functions
 error_t tftpClientOpenConnection(TftpClientContext *context);
 void tftpClientCloseConnection(TftpClientContext *context);
@@ -64,5 +69,10 @@ error_t tftpClientSendErrorPacket(TftpClientContext *context,
    uint16_t errorCode, const char_t *errorMsg);
 
 error_t tftpClientRetransmitPacket(TftpClientContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

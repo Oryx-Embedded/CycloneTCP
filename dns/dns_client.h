@@ -77,6 +77,11 @@
    #error DNS_MAX_LIFETIME parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //DNS related functions
 error_t dnsResolve(NetInterface *interface,
    const char_t *name, HostType type, IpAddr *ipAddr);
@@ -85,5 +90,10 @@ error_t dnsSendQuery(DnsCacheEntry *entry);
 
 void dnsProcessResponse(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
    const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *params);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

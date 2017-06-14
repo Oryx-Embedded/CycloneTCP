@@ -72,6 +72,11 @@
    #error NBNS_MAX_LIFETIME parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //NBNS related functions
 error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr);
 
@@ -79,5 +84,10 @@ error_t nbnsSendQuery(DnsCacheEntry *entry);
 
 void nbnsProcessResponse(NetInterface *interface, const Ipv4PseudoHeader *pseudoHeader,
    const UdpHeader *udpHeader, const NbnsHeader *message, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

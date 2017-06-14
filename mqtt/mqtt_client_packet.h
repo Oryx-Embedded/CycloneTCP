@@ -33,6 +33,11 @@
 #include "core/net.h"
 #include "mqtt/mqtt_client.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //MQTT client related functions
 error_t mqttClientReceivePacket(MqttClientContext *context);
 error_t mqttClientProcessPacket(MqttClientContext *context);
@@ -83,5 +88,10 @@ error_t mqttClientFormatUnsubscribe(MqttClientContext *context,
 
 error_t mqttClientFormatPingReq(MqttClientContext *context);
 error_t mqttClientFormatDisconnect(MqttClientContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

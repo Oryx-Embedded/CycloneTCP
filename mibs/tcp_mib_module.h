@@ -48,6 +48,11 @@
    #define TCP_MIB_INC_COUNTER64(name, value)
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief RTO calculation algorithm
@@ -111,5 +116,10 @@ typedef struct
 extern TcpMibBase tcpMibBase;
 extern const MibObject tcpMibObjects[];
 extern const MibModule tcpMibModule;
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

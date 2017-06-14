@@ -265,6 +265,11 @@
 #define PSCSR_HCDSPEED_10BT_FD     (5 << 2)
 #define PSCSR_HCDSPEED_100BTX_FD   (6 << 2)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //uPD60611 Ethernet PHY driver
 extern const PhyDriver upd60611PhyDriver;
 
@@ -282,5 +287,10 @@ void upd60611WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data
 uint16_t upd60611ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void upd60611DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

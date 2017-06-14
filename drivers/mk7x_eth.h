@@ -138,6 +138,11 @@
 #define ENET_RBD10_TIMESTAMP_H     0xFFFF
 #define ENET_RBD11_TIMESTAMP_L     0xFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //Kinetis K7x Ethernet MAC driver
 extern const NicDriver mk7xEthDriver;
 
@@ -164,5 +169,10 @@ void mk7xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t mk7xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t mk7xEthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

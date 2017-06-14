@@ -68,6 +68,11 @@
    #error SNMP_AGENT_MAX_MIB_COUNT parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Random data generation callback function
@@ -174,5 +179,10 @@ error_t snmpAgentSendTrap(SnmpAgentContext *context, const IpAddr *destIpAddr,
    uint_t specificTrapCode, const SnmpTrapObject *objectList, uint_t objectListSize);
 
 void snmpAgentTask(SnmpAgentContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

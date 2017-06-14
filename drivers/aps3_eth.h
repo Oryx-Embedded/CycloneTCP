@@ -113,6 +113,11 @@
 #define RX_DESC_CRC_ERROR               0x0080
 #define RX_DESC_MEMORY_ERROR            0x0100
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief TX DMA descriptor
@@ -167,5 +172,10 @@ void aps3EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t aps3EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t aps3EthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

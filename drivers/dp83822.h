@@ -406,6 +406,11 @@
 #define PHYRCR_SOFT_RESET           (1 << 15)
 #define PHYRCR_DIGITAL_RESTART      (1 << 14)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //DP83822 Ethernet PHY driver
 extern const PhyDriver dp83822PhyDriver;
 
@@ -423,5 +428,10 @@ void dp83822WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t dp83822ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void dp83822DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

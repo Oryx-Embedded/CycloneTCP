@@ -510,6 +510,11 @@
 #define PSF_CFG_PSF_PCF_RD         (1 << 5)
 #define PSF_CFG_PSF_ERR_EN         (1 << 4)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //DP83620 Ethernet PHY driver
 extern const PhyDriver dp83620PhyDriver;
 
@@ -527,5 +532,10 @@ void dp83620WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t dp83620ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void dp83620DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

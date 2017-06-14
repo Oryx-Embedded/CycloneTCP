@@ -199,6 +199,11 @@
 #define DSCSR_ANMB_SIGNAL_LINK_READY_FAILED  0x0007
 #define DSCSR_ANMB_AN_SUCCESS                0x0008
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //DM9161 Ethernet PHY driver
 extern const PhyDriver dm9161PhyDriver;
 
@@ -216,5 +221,10 @@ void dm9161WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data);
 uint16_t dm9161ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void dm9161DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

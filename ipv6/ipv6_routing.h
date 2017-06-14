@@ -47,6 +47,11 @@
    #error IPV6_ROUTING_TABLE_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Routing table entry
@@ -75,5 +80,10 @@ error_t ipv6DeleteAllRoutes(void);
 
 error_t ipv6ForwardPacket(NetInterface *srcInterface,
    NetBuffer *ipPacket, size_t ipPacketOffset);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -210,6 +210,11 @@
 #define PHYCON2_OP_MODE_10BT_FD     (5 << 2)
 #define PHYCON2_OP_MODE_100BTX_FD   (6 << 2)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //KSZ8041 Ethernet PHY driver
 extern const PhyDriver ksz8041PhyDriver;
 
@@ -227,5 +232,10 @@ void ksz8041WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
 uint16_t ksz8041ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ksz8041DumpPhyReg(NetInterface *interface);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

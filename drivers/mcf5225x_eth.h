@@ -98,6 +98,11 @@
 #define FEC_RX_BD_OV  0x0002
 #define FEC_RX_BD_TR  0x0001
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Transmit buffer descriptor
@@ -149,5 +154,10 @@ void mcf5225xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t mcf5225xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t mcf5225xEthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

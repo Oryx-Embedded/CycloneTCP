@@ -36,6 +36,11 @@
 //Subnet mask
 #define IPCP_DEFAULT_SUBNET_MASK IPV4_ADDR(255, 255, 255, 255)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief IPCP option types
@@ -216,5 +221,10 @@ error_t ipcpParseOption(PppContext *context, PppOption *option,
 
 error_t ipcpParseIpAddressOption(PppContext *context,
    IpcpIpAddressOption *option, PppConfigurePacket *outPacket);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

@@ -82,6 +82,11 @@
    #define SNMP_MIB_INC_COUNTER32(name, value)
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief System services
@@ -173,5 +178,10 @@ typedef struct
 extern SnmpMibBase snmpMibBase;
 extern const MibObject snmpMibObjects[];
 extern const MibModule snmpMibModule;
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

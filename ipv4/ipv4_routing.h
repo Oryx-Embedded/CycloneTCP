@@ -47,6 +47,11 @@
    #error IPV4_ROUTING_TABLE_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Routing table entry
@@ -75,5 +80,10 @@ error_t ipv4DeleteAllRoutes(void);
 
 error_t ipv4ForwardPacket(NetInterface *srcInterface,
    const NetBuffer *ipPacket, size_t ipPacketOffset);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

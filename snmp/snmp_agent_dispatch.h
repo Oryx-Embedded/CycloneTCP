@@ -33,11 +33,21 @@
 #include "core/net.h"
 #include "snmp/snmp_agent.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //SNMP agent related functions
 error_t snmpProcessMessage(SnmpAgentContext *context);
 
 error_t snmpv1ProcessMessage(SnmpAgentContext *context);
 error_t snmpv2cProcessMessage(SnmpAgentContext *context);
 error_t snmpv3ProcessMessage(SnmpAgentContext *context);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

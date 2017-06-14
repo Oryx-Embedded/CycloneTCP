@@ -32,6 +32,11 @@
 //Dependencies
 #include "ftp/ftp_server.h"
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //FTP server related functions
 uint16_t ftpServerGetPassivePort(FtpServerContext *context);
 
@@ -55,5 +60,10 @@ uint_t ftpServerGetFilePermissions(FtpServerContext *context,
 
 const char_t *ftpServerStripRootDir(FtpServerContext *context, const char_t *path);
 const char_t *ftpServerStripHomeDir(FtpClientConnection *connection, const char_t *path);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

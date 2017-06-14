@@ -144,6 +144,11 @@
 #define ETH_RX_STATUS2_LONG_EVENT         0x00010000
 #define ETH_RX_STATUS2_BYTE_COUNT         0x0000FFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief TX buffer descriptor
@@ -200,5 +205,10 @@ void pic32mzEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 uint16_t pic32mzEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
 uint32_t pic32mzEthCalcCrc(const void *data, size_t length);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

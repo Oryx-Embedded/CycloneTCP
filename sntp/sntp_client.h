@@ -26,6 +26,9 @@
  * @version 1.7.8
  **/
 
+#ifndef _SNTP_CLIENT_H
+#define _SNTP_CLIENT_H
+
 //Dependencies
 #include "core/net.h"
 #include "core/socket.h"
@@ -62,6 +65,12 @@
 #define NTP_PORT 123
 //Maximum size of NTP packets
 #define NTP_MESSAGE_MAX_SIZE 68
+
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 /**
  * @brief Leap indicator
@@ -190,3 +199,10 @@ error_t sntpParseResponse(SntpClientContext *context,
 
 void sntpDumpMessage(const NtpHeader *message, size_t length);
 void sntpDumpTimestamp(const NtpTimestamp *timestamp);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
+
+#endif

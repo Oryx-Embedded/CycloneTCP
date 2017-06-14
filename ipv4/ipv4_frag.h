@@ -72,6 +72,11 @@
 //Infinity is implemented by a very large integer
 #define IPV4_INFINITY 0xFFFF
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 
 //CodeWarrior or Win32 compiler?
 #if defined(__CWCC__) || defined(_WIN32)
@@ -140,5 +145,10 @@ void ipv4FlushFragQueue(NetInterface *interface);
 
 Ipv4HoleDesc *ipv4FindHole(Ipv4FragDesc *frag, uint16_t offset);
 void ipv4DumpHoleList(Ipv4FragDesc *frag);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

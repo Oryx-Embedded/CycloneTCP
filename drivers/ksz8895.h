@@ -136,6 +136,11 @@
 #define PHYCON1_OP_MODE_10BT_FD     (5 << 8)
 #define PHYCON1_OP_MODE_100BTX_FD   (6 << 8)
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //KSZ8895 Ethernet switch driver
 extern const PhyDriver ksz8895PhyDriver;
 
@@ -158,5 +163,10 @@ uint16_t ksz8895ReadPhyReg(NetInterface *interface,
    uint8_t port, uint8_t address);
 
 void ksz8895DumpPhyReg(NetInterface *interface, uint8_t port);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif

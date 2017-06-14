@@ -46,6 +46,11 @@
    #error WINC1500_RX_BUFFER_SIZE parameter is not valid
 #endif
 
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
 //WINC1500 driver
 extern const NicDriver winc1500Driver;
 
@@ -66,5 +71,10 @@ error_t winc1500SetMulticastFilter(NetInterface *interface);
 
 void winc1500AppWifiEvent(uint8_t msgType, void *msg);
 void winc1500AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
 
 #endif
