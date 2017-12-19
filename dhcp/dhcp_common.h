@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _DHCP_COMMON_H
@@ -233,7 +233,7 @@ typedef __start_packed struct
 
 //DHCP related functions
 void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
-   const void *optionValue, size_t optionLength);
+   const void *optionValue, size_t optionLen);
 
 DhcpOption *dhcpGetOption(const DhcpMessage *message,
    size_t length, uint8_t optionCode);

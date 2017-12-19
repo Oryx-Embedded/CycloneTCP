@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _IPV6_FRAG_H
@@ -35,9 +35,16 @@
 
 //IPv6 fragmentation support
 #ifndef IPV6_FRAG_SUPPORT
-   #define IPV6_FRAG_SUPPORT DISABLED
+   #define IPV6_FRAG_SUPPORT ENABLED
 #elif (IPV6_FRAG_SUPPORT != ENABLED && IPV6_FRAG_SUPPORT != DISABLED)
    #error IPV6_FRAG_SUPPORT parameter is not valid
+#endif
+
+//Support for overlapping fragments
+#ifndef IPV6_OVERLAPPING_FRAG_SUPPORT
+   #define IPV6_OVERLAPPING_FRAG_SUPPORT ENABLED
+#elif (IPV6_OVERLAPPING_FRAG_SUPPORT != ENABLED && IPV6_OVERLAPPING_FRAG_SUPPORT != DISABLED)
+   #error IPV6_OVERLAPPING_FRAG_SUPPORT parameter is not valid
 #endif
 
 //Reassembly algorithm tick interval

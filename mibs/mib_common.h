@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _MIB_COMMON_H
@@ -72,11 +72,11 @@ typedef enum
 typedef enum
 {
    MIB_ACCESS_NONE        = 0,
-   MIB_ACCESS_WRITE_ONLY  = 1,
-   MIB_ACCESS_READ_ONLY   = 2,
-   MIB_ACCESS_READ_WRITE  = 3,
-   MIB_ACCESS_READ_CREATE = 4,
-   MIB_ACCESS_FOR_NOTIFY  = 5
+   MIB_ACCESS_FOR_NOTIFY  = 1,
+   MIB_ACCESS_WRITE_ONLY  = 2,
+   MIB_ACCESS_READ_ONLY   = 3,
+   MIB_ACCESS_READ_WRITE  = 4,
+   MIB_ACCESS_READ_CREATE = 5,
 } MibAccess;
 
 
@@ -97,6 +97,7 @@ typedef enum
 
 typedef enum
 {
+   MIB_ROW_STATUS_UNUSED          = 0,
    MIB_ROW_STATUS_ACTIVE          = 1,
    MIB_ROW_STATUS_NOT_IN_SERVICE  = 2,
    MIB_ROW_STATUS_NOT_READY       = 3,
@@ -297,32 +298,65 @@ typedef struct
 
 
 //MIB related functions
-error_t mibEncodeIndex(uint8_t *oid, size_t maxOidLen, size_t *pos, uint_t index);
-error_t mibDecodeIndex(const uint8_t *oid, size_t oidLen, size_t *pos, uint_t *index);
+error_t mibEncodeIndex(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   uint_t index);
 
-error_t mibEncodeUnsigned32(uint8_t *oid, size_t maxOidLen, size_t *pos, uint32_t value);
-error_t mibDecodeUnsigned32(const uint8_t *oid, size_t oidLen, size_t *pos, uint32_t *value);
+error_t mibDecodeIndex(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint_t *index);
+
+error_t mibEncodeUnsigned32(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   uint32_t value);
+
+error_t mibDecodeUnsigned32(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint32_t *value);
+
+error_t mibEncodeString(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const char_t *string, bool_t implied);
+
+error_t mibDecodeString(const uint8_t *oid, size_t oidLen, size_t *pos,
+   char_t *string, size_t maxStringLen, bool_t implied);
 
 error_t mibEncodeOctetString(uint8_t *oid, size_t maxOidLen, size_t *pos,
-   const uint8_t *data, size_t dataLen);
+   const uint8_t *data, size_t dataLen, bool_t implied);
 
 error_t mibDecodeOctetString(const uint8_t *oid, size_t oidLen, size_t *pos,
-   uint8_t *data, size_t maxDataLen, size_t *dataLen);
+   uint8_t *data, size_t maxDataLen, size_t *dataLen, bool_t implied);
 
-error_t mibEncodePort(uint8_t *oid, size_t maxOidLen, size_t *pos, uint16_t port);
-error_t mibDecodePort(const uint8_t *oid, size_t oidLen, size_t *pos, uint16_t *port);
+error_t mibEncodeObjectIdentifier(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const uint8_t *objectId, size_t objectIdLen, bool_t implied);
 
-error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const MacAddr *macAddr);
-error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos, MacAddr *macAddr);
+error_t mibDecodeObjectIdentifier(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint8_t *objectId, size_t maxObjectIdLen, size_t *objectIdLen, bool_t implied);
 
-error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, Ipv4Addr ipAddr);
-error_t mibDecodeIpv4Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv4Addr *ipAddr);
+error_t mibEncodePort(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   uint16_t port);
 
-error_t mibEncodeIpv6Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, const Ipv6Addr *ipAddr);
-error_t mibDecodeIpv6Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv6Addr *ipAddr);
+error_t mibDecodePort(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint16_t *port);
 
-error_t mibEncodeIpAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const IpAddr *ipAddr);
-error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos, IpAddr *ipAddr);
+error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const MacAddr *macAddr);
+
+error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   MacAddr *macAddr);
+
+error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   Ipv4Addr ipAddr);
+
+error_t mibDecodeIpv4Addr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   Ipv4Addr *ipAddr);
+
+error_t mibEncodeIpv6Addr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const Ipv6Addr *ipAddr);
+
+error_t mibDecodeIpv6Addr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   Ipv6Addr *ipAddr);
+
+error_t mibEncodeIpAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const IpAddr *ipAddr);
+
+error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   IpAddr *ipAddr);
 
 int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
 

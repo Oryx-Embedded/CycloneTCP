@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _FTP_CLIENT_H
@@ -91,7 +91,7 @@
 
 //SSL/TLS supported?
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   #include "crypto.h"
+   #include "core/crypto.h"
    #include "tls.h"
 #endif
 

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -34,8 +34,8 @@
 #include "core/net.h"
 #include "web_socket/web_socket.h"
 #include "web_socket/web_socket_auth.h"
-#include "base64.h"
-#include "md5.h"
+#include "encoding/base64.h"
+#include "hash/md5.h"
 #include "str.h"
 #include "debug.h"
 
@@ -301,13 +301,13 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
 /**
  * @brief Convert byte array to hex string
  * @param[in] input Point to the byte array
- * @param[in] inputLength Length of the byte array
+ * @param[in] inputLen Length of the byte array
  * @param[out] output NULL-terminated string resulting from the conversion
  * @return Error code
  **/
 
 void webSocketConvertArrayToHexString(const uint8_t *input,
-   size_t inputLength, char_t *output)
+   size_t inputLen, char_t *output)
 {
    size_t i;
 
@@ -319,7 +319,7 @@ void webSocketConvertArrayToHexString(const uint8_t *input,
    };
 
    //Process byte array
-   for(i = 0; i < inputLength; i++)
+   for(i = 0; i < inputLen; i++)
    {
       //Convert upper nibble
       output[i * 2] = hexDigit[(input[i] >> 4) & 0x0F];

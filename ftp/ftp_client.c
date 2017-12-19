@@ -31,7 +31,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -1468,11 +1468,15 @@ error_t ftpInitControlTlsContext(FtpClientContext *context)
       if(error)
          break;
 
-      //Save SSL session
-      error = tlsSaveSession(context->controlTlsContext, &context->tlsSession);
-      //Any error to report?
-      if(error)
-         break;
+      //Ensure the session ID is valid
+      if(context->controlTlsContext->sessionIdLen > 0)
+      {
+         //Save SSL/TLS session
+         error = tlsSaveSession(context->controlTlsContext, &context->tlsSession);
+         //Any error to report?
+         if(error)
+            break;
+      }
 
       //End of exception handling block
    } while(0);

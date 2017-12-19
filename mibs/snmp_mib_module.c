@@ -28,7 +28,7 @@
  * of an SNMP entity. Refer to RFC 3418 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -39,9 +39,9 @@
 #include "mibs/mib_common.h"
 #include "mibs/snmp_mib_module.h"
 #include "mibs/snmp_mib_impl.h"
-#include "crypto.h"
-#include "asn1.h"
-#include "oid.h"
+#include "core/crypto.h"
+#include "encoding/asn1.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -391,6 +391,36 @@ const MibObject snmpMibObjects[] =
       NULL,
       NULL
    },
+   //snmpTrapOID object (1.3.6.1.6.3.1.1.4.1)
+   {
+      "snmpTrapOID",
+      {43, 6, 1, 6, 3, 1, 1, 4, 1},
+      9,
+      ASN1_CLASS_UNIVERSAL,
+      ASN1_TYPE_OBJECT_IDENTIFIER,
+      MIB_ACCESS_FOR_NOTIFY,
+      NULL,
+      NULL,
+      0,
+      NULL,
+      snmpv2MibGetSnmpTrapOID,
+      NULL
+   },
+   //snmpTrapEnterprise object (1.3.6.1.6.3.1.1.4.3)
+   {
+      "snmpTrapEnterprise",
+      {43, 6, 1, 6, 3, 1, 1, 4, 3},
+      9,
+      ASN1_CLASS_UNIVERSAL,
+      ASN1_TYPE_OBJECT_IDENTIFIER,
+      MIB_ACCESS_FOR_NOTIFY,
+      NULL,
+      NULL,
+      0,
+      NULL,
+      snmpv2MibGetSnmpTrapEnterprise,
+      NULL
+   },
    //snmpSetSerialNo object (1.3.6.1.6.3.1.1.6.1)
    {
       "snmpSetSerialNo",
@@ -415,7 +445,7 @@ const MibObject snmpMibObjects[] =
 
 const MibModule snmpMibModule =
 {
-   "SNMP-MIB",
+   "SNMPv2-MIB",
    {43, 6, 1, 6, 3, 1},
    6,
    snmpMibObjects,
@@ -423,8 +453,8 @@ const MibModule snmpMibModule =
    snmpMibInit,
    snmpMibLoad,
    snmpMibUnload,
-   NULL,
-   NULL
+   snmpMibLock,
+   snmpMibUnlock
 };
 
 #endif

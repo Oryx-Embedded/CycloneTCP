@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -231,7 +231,14 @@ void ethProcessFrame(NetInterface *interface, EthHeader *ethFrame, size_t length
       memcpy(&crc, (uint8_t *) ethFrame + length - ETH_CRC_SIZE, ETH_CRC_SIZE);
       //Reseed the pseudo-random number generator
       netInitRand(crc);
+
+      //Update the length of the Ethernet frame
+      length -= ETH_CRC_SIZE;
    }
+
+#if defined(ETH_FRAME_FORWARD_HOOK)
+   ETH_FRAME_FORWARD_HOOK(interface, ethFrame, length);
+#endif
 
    //Frame filtering based on destination MAC address
    if(ethCheckDestAddr(interface, &ethFrame->destAddr))
@@ -250,15 +257,11 @@ void ethProcessFrame(NetInterface *interface, EthHeader *ethFrame, size_t length
 
 #if (RAW_SOCKET_SUPPORT == ENABLED)
    //Allow raw sockets to process Ethernet packets
-   rawSocketProcessEthPacket(interface, ethFrame, length - ETH_CRC_SIZE);
+   rawSocketProcessEthPacket(interface, ethFrame, length);
 #endif
 
    //Calculate the length of the data payload
    length -= sizeof(EthHeader);
-
-   //Check whether the CRC is included in the received frame
-   if(!interface->nicDriver->autoCrcStrip)
-      length -= ETH_CRC_SIZE;
 
    //Check Ethernet type field
    switch(ntohs(ethFrame->type))
@@ -283,7 +286,7 @@ void ethProcessFrame(NetInterface *interface, EthHeader *ethFrame, size_t length
       buffer.chunkCount = 1;
       buffer.maxChunkCount = 1;
       buffer.chunk[0].address = ethFrame->data;
-      buffer.chunk[0].length = length;
+      buffer.chunk[0].length = (uint16_t) length;
       buffer.chunk[0].size = 0;
 
       //Process incoming IPv6 packet

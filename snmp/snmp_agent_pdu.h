@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _SNMP_AGENT_PDU_H
@@ -44,10 +44,6 @@ error_t snmpProcessPdu(SnmpAgentContext *context);
 error_t snmpProcessGetRequestPdu(SnmpAgentContext *context);
 error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context);
 error_t snmpProcessSetRequestPdu(SnmpAgentContext *context);
-
-error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
-   const char_t *username, uint_t genericTrapType, uint_t specificTrapCode,
-   const SnmpTrapObject *objectList, uint_t objectListSize);
 
 error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication);
 

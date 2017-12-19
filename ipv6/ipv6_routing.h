@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _IPV6_ROUTING_H
@@ -61,7 +61,7 @@ typedef struct
 {
    bool_t valid;            ///<Valid entry
    Ipv6Addr prefix;         ///<Destination
-   uint_t prefixLength;     ///<IPv6 prefix length
+   uint_t prefixLen;        ///<IPv6 prefix length
    NetInterface *interface; ///<Outgoing network interface
    Ipv6Addr nextHop;        ///<Next hop
    uint_t metric;           ///<Metric value
@@ -72,10 +72,10 @@ typedef struct
 error_t ipv6InitRouting(void);
 error_t ipv6EnableRouting(NetInterface *interface, bool_t enable);
 
-error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLength,
+error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
    NetInterface *interface, const Ipv6Addr *nextHop, uint_t metric);
 
-error_t ipv6DeleteRoute(const Ipv6Addr *prefix, uint_t prefixLength);
+error_t ipv6DeleteRoute(const Ipv6Addr *prefix, uint_t prefixLen);
 error_t ipv6DeleteAllRoutes(void);
 
 error_t ipv6ForwardPacket(NetInterface *srcInterface,

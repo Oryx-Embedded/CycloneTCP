@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _IP_H
@@ -110,10 +110,10 @@ uint16_t ipCalcChecksum(const void *data, size_t length);
 uint16_t ipCalcChecksumEx(const NetBuffer *buffer, size_t offset, size_t length);
 
 uint16_t ipCalcUpperLayerChecksum(const void *pseudoHeader,
-   size_t pseudoHeaderLength, const void *data, size_t dataLength);
+   size_t pseudoHeaderLen, const void *data, size_t dataLen);
 
 uint16_t ipCalcUpperLayerChecksumEx(const void *pseudoHeader,
-   size_t pseudoHeaderLength, const NetBuffer *buffer, size_t offset, size_t length);
+   size_t pseudoHeaderLen, const NetBuffer *buffer, size_t offset, size_t length);
 
 NetBuffer *ipAllocBuffer(size_t length, size_t *offset);
 

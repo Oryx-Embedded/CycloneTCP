@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -91,14 +91,14 @@ error_t ipv6EnableRouting(NetInterface *interface, bool_t enable)
 /**
  * @brief Add a new entry in the IPv6 routing table
  * @param[in] prefix Network destination
- * @param[in] prefixLength Length of the prefix, in bits
+ * @param[in] prefixLen Length of the prefix, in bits
  * @param[in] interface Network interface where to forward the packet
  * @param[in] nextHop IPv6 address of the next hop
  * @param[in] metric Metric value
  * @return Error code
  **/
 
-error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLength,
+error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
    NetInterface *interface, const Ipv6Addr *nextHop, uint_t metric)
 {
    error_t error;
@@ -126,10 +126,10 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLength,
       if(entry->valid)
       {
          //Check prefix length
-         if(entry->prefixLength == prefixLength)
+         if(entry->prefixLen == prefixLen)
          {
             //Check whether the current entry matches the specified destination
-            if(ipv6CompPrefix(&entry->prefix, prefix, prefixLength))
+            if(ipv6CompPrefix(&entry->prefix, prefix, prefixLen))
                break;
          }
       }
@@ -151,7 +151,7 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLength,
    {
       //Network destination
       entry->prefix = *prefix;
-      entry->prefixLength = prefixLength;
+      entry->prefixLen = prefixLen;
 
       //Interface where to forward the packet
       entry->interface = interface;
@@ -187,11 +187,11 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLength,
 /**
  * @brief Remove an entry from the IPv6 routing table
  * @param[in] prefix Network destination
- * @param[in] prefixLength Length of the prefix, in bits
+ * @param[in] prefixLen Length of the prefix, in bits
  * @return Error code
  **/
 
-error_t ipv6DeleteRoute(const Ipv6Addr *prefix, uint_t prefixLength)
+error_t ipv6DeleteRoute(const Ipv6Addr *prefix, uint_t prefixLen)
 {
    error_t error;
    uint_t i;
@@ -213,10 +213,10 @@ error_t ipv6DeleteRoute(const Ipv6Addr *prefix, uint_t prefixLength)
       if(entry->valid)
       {
          //Check prefix length
-         if(entry->prefixLength == prefixLength)
+         if(entry->prefixLen == prefixLen)
          {
             //Check whether the current entry matches the specified destination
-            if(ipv6CompPrefix(&entry->prefix, prefix, prefixLength))
+            if(ipv6CompPrefix(&entry->prefix, prefix, prefixLen))
             {
                //Delete current entry
                entry->valid = FALSE;
@@ -268,7 +268,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
    error_t error;
    uint_t i;
    uint_t metric;
-   uint_t prefixLength;
+   uint_t prefixLen;
    bool_t match;
    size_t length;
    size_t destOffset;
@@ -330,7 +330,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
       //Lowest metric value
       metric = UINT_MAX;
       //Longest prefix length
-      prefixLength = 0;
+      prefixLen = 0;
       //Outgoing network interface
       destInterface = NULL;
 
@@ -355,16 +355,16 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
                if(entry->interface->ipv6Context.isRouter)
                {
                   //Compare the destination address with the current entry for a match
-                  if(ipv6CompPrefix(&ipHeader->destAddr, &entry->prefix, entry->prefixLength))
+                  if(ipv6CompPrefix(&ipHeader->destAddr, &entry->prefix, entry->prefixLen))
                   {
                      //The longest matching route is the most specific route to the
                      //destination IPv6 address...
-                     if(entry->prefixLength > prefixLength)
+                     if(entry->prefixLen > prefixLen)
                      {
                         //Give the current route the higher precedence
                         match = TRUE;
                      }
-                     else if(entry->prefixLength == prefixLength)
+                     else if(entry->prefixLen == prefixLen)
                      {
                         //If multiple entries with the longest match are found, the
                         //router uses the lowest metric to select the best route
@@ -383,7 +383,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
             {
                //Select the current route
                metric = entry->metric;
-               prefixLength = entry->prefixLength;
+               prefixLen = entry->prefixLen;
 
                //Outgoing interface on which to forward the packet
                destInterface = entry->interface;

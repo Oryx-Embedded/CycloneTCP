@@ -23,13 +23,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Dependencies
 #include "core/net.h"
 #include "mibs/mib_common.h"
-#include "oid.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 
@@ -42,7 +42,8 @@
  * @return Error code
  **/
 
-error_t mibEncodeIndex(uint8_t *oid, size_t maxOidLen, size_t *pos, uint_t index)
+error_t mibEncodeIndex(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   uint_t index)
 {
    //Encode instance identifier
    return oidEncodeSubIdentifier(oid, maxOidLen, pos, index);
@@ -58,22 +59,24 @@ error_t mibEncodeIndex(uint8_t *oid, size_t maxOidLen, size_t *pos, uint_t index
  * @return Error code
  **/
 
-error_t mibDecodeIndex(const uint8_t *oid, size_t oidLen, size_t *pos, uint_t *index)
+error_t mibDecodeIndex(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint_t *index)
 {
    error_t error;
    uint32_t value;
 
    //Decode instance identifier
    error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
-   //Invalid sub-identifier?
-   if(error)
-      return error;
 
-   //Save index value
-   *index = value;
+   //Check status code
+   if(!error)
+   {
+      //Save index value
+      *index = (uint_t) value;
+   }
 
-   //Successful processing
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
@@ -86,7 +89,8 @@ error_t mibDecodeIndex(const uint8_t *oid, size_t oidLen, size_t *pos, uint_t *i
  * @return Error code
  **/
 
-error_t mibEncodeUnsigned32(uint8_t *oid, size_t maxOidLen, size_t *pos, uint32_t value)
+error_t mibEncodeUnsigned32(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   uint32_t value)
 {
    //Encode instance identifier
    return oidEncodeSubIdentifier(oid, maxOidLen, pos, value);
@@ -102,10 +106,63 @@ error_t mibEncodeUnsigned32(uint8_t *oid, size_t maxOidLen, size_t *pos, uint32_
  * @return Error code
  **/
 
-error_t mibDecodeUnsigned32(const uint8_t *oid, size_t oidLen, size_t *pos, uint32_t *value)
+error_t mibDecodeUnsigned32(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint32_t *value)
 {
    //Decode instance identifier
    return oidDecodeSubIdentifier(oid, oidLen, pos, value);
+}
+
+
+/**
+ * @brief Encode instance identifier (string)
+ * @param[in] oid Pointer to the object identifier
+ * @param[in] maxOidLen Maximum number of bytes the OID can hold
+ * @param[in,out] pos Offset where to write the instance identifier
+ * @param[in] string NULL-terminated string
+ * @param[in] implied Specifies whether the index is preceded by the IMPLIED keyword
+ * @return Error code
+ **/
+
+error_t mibEncodeString(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const char_t *string, bool_t implied)
+{
+   //Encode string
+   return mibEncodeOctetString(oid, maxOidLen, pos, (const uint8_t *) string,
+      strlen(string), implied);
+}
+
+
+/**
+ * @brief Decode instance identifier (string)
+ * @param[in] oid Pointer to the object identifier
+ * @param[in] oidLen Length of the OID, in bytes
+ * @param[in,out] pos Offset where to read the instance identifier
+ * @param[out] string NULL-terminated string
+ * @param[in] maxStringLen Maximum number of characters the string can hold
+ * @param[in] implied Specifies whether the index is preceded by the IMPLIED keyword
+ * @return Error code
+ **/
+
+error_t mibDecodeString(const uint8_t *oid, size_t oidLen, size_t *pos,
+   char_t *string, size_t maxStringLen, bool_t implied)
+{
+   error_t error;
+   size_t stringLen;
+
+   //Decode string
+   error = mibDecodeOctetString(oid, oidLen, pos, (uint8_t *) string,
+      maxStringLen, &stringLen, implied);
+
+   //Check status code
+   if(!error)
+   {
+      //Properly terminate the string with a NULL character
+      string[stringLen] = '\0';
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -116,20 +173,25 @@ error_t mibDecodeUnsigned32(const uint8_t *oid, size_t oidLen, size_t *pos, uint
  * @param[in,out] pos Offset where to write the instance identifier
  * @param[in] data Pointer to the octet string
  * @param[in] dataLen Length of the octet string, in bytes
+ * @param[in] implied Specifies whether the index is preceded by the IMPLIED keyword
  * @return Error code
  **/
 
 error_t mibEncodeOctetString(uint8_t *oid, size_t maxOidLen, size_t *pos,
-   const uint8_t *data, size_t dataLen)
+   const uint8_t *data, size_t dataLen, bool_t implied)
 {
    error_t error;
    uint_t i;
 
-   //Encode the length of the octet string
-   error = oidEncodeSubIdentifier(oid, maxOidLen, pos, dataLen);
-   //Any error to report?
-   if(error)
-      return error;
+   //Check whether the index is preceded by the IMPLIED keyword
+   if(!implied)
+   {
+      //Encode the length of the octet string
+      error = oidEncodeSubIdentifier(oid, maxOidLen, pos, dataLen);
+      //Any error to report?
+      if(error)
+         return error;
+   }
 
    //Encode the octet string
    for(i = 0; i < dataLen; i++)
@@ -154,30 +216,45 @@ error_t mibEncodeOctetString(uint8_t *oid, size_t maxOidLen, size_t *pos,
  * @param[out] data Buffer where to store the octet string
  * @param[in] maxDataLen Maximum number of bytes the buffer can hold
  * @param[out] dataLen Length of the octet string, in bytes
+ * @param[in] implied Specifies whether the index is preceded by the IMPLIED keyword
  * @return Error code
  **/
 
 error_t mibDecodeOctetString(const uint8_t *oid, size_t oidLen, size_t *pos,
-   uint8_t *data, size_t maxDataLen, size_t *dataLen)
+   uint8_t *data, size_t maxDataLen, size_t *dataLen, bool_t implied)
 {
    error_t error;
    uint_t i;
-   uint32_t length;
+   uint32_t n;
    uint32_t value;
 
-   //Decode the length of the octet string
-   error = oidDecodeSubIdentifier(oid, oidLen, pos, &length);
-   //Any error to report?
-   if(error)
-      return error;
-
-   //Make sure the length of the octet string is valid
-   if(length > maxDataLen)
-      return ERROR_INSTANCE_NOT_FOUND;
+   //Check whether the index is preceded by the IMPLIED keyword
+   if(!implied)
+   {
+      //Decode the length of the octet string
+      error = oidDecodeSubIdentifier(oid, oidLen, pos, &n);
+      //Any error to report?
+      if(error)
+         return error;
+   }
 
    //Decode the octet string
-   for(i = 0; i < length; i++)
+   for(i = 0; ; i++)
    {
+      //Check whether the index is preceded by the IMPLIED keyword
+      if(!implied)
+      {
+         //Check loop condition
+         if(i >= n)
+            break;
+      }
+      else
+      {
+         //Check loop condition
+         if(*pos >= oidLen)
+            break;
+      }
+
       //Decode the current sub-identifier
       error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
       //Invalid sub-identifier?
@@ -185,15 +262,202 @@ error_t mibDecodeOctetString(const uint8_t *oid, size_t oidLen, size_t *pos,
          return error;
 
       //Each byte of the octet string must be in the range 0-255
-      if(value > 255)
+      if(value > UINT8_MAX)
+         return ERROR_INSTANCE_NOT_FOUND;
+
+      //Ensure the output buffer is large enough to hold of the octet string
+      if(i >= maxDataLen)
          return ERROR_INSTANCE_NOT_FOUND;
 
       //Save the current byte
-      data[i] = value & 0xFF;
+      data[i] = (uint8_t) value;
    }
 
    //Return the length of the octet string
-   *dataLen = length;
+   *dataLen = i;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Encode instance identifier (object identifier)
+ * @param[in] oid Pointer to the object identifier
+ * @param[in] maxOidLen Maximum number of bytes the OID can hold
+ * @param[in,out] pos Offset where to write the instance identifier
+ * @param[in] objectId Object identifier to be encoded
+ * @param[in] objectIdLen Length of the object identifier, in bytes
+ * @param[in] implied Specifies whether the index is preceded by the IMPLIED keyword
+ * @return Error code
+ **/
+
+error_t mibEncodeObjectIdentifier(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const uint8_t *objectId, size_t objectIdLen, bool_t implied)
+{
+   error_t error;
+   uint32_t n;
+   uint32_t value;
+   size_t objectIdPos;
+
+   //Check whether the index is preceded by the IMPLIED keyword
+   if(!implied)
+   {
+      //Check the length of the object identifier
+      if(objectIdLen > 0)
+      {
+         //Calculate the number of sub-identifiers in the value
+         for(n = 2, objectIdPos = 1; objectIdPos < objectIdLen; n++)
+         {
+            //Decode the current sub-identifier
+            error = oidDecodeSubIdentifier(objectId, objectIdLen,
+               &objectIdPos, &value);
+            //Invalid sub-identifier?
+            if(error)
+               return error;
+         }
+      }
+      else
+      {
+         n = 0;
+      }
+
+      //Encode the number of sub-identifiers in the value
+      error = oidEncodeSubIdentifier(oid, maxOidLen, pos, n);
+      //Any error to report?
+      if(error)
+         return error;
+   }
+
+   //Check the length of the object identifier
+   if(objectIdLen > 0)
+   {
+      //Encode the first sub-identifier
+      error = oidEncodeSubIdentifier(oid, maxOidLen, pos, objectId[0] / 40);
+      //Any error to report?
+      if(error)
+         return error;
+
+      //Encode the second sub-identifier
+      error = oidEncodeSubIdentifier(oid, maxOidLen, pos, objectId[0] % 40);
+      //Any error to report?
+      if(error)
+         return error;
+
+      //Sanity check
+      if((*pos + objectIdLen - 1) > maxOidLen)
+         return ERROR_BUFFER_OVERFLOW;
+
+      //Encode the rest of the object identifier
+      memcpy(oid + *pos, objectId + 1, objectIdLen - 1);
+
+      //Update offset value
+      *pos += objectIdLen - 1;
+   }
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Decode instance identifier (object identifier)
+ * @param[in] oid Pointer to the object identifier
+ * @param[in] oidLen Length of the OID, in bytes
+ * @param[in,out] pos Offset where to read the instance identifier
+ * @param[out] objectId Buffer where to store the object identifier
+ * @param[in] maxObjectIdLen Maximum number of bytes the buffer can hold
+ * @param[out] objectIdLen Length of the object identifier, in bytes
+ * @param[in] implied Specifies whether the index is preceded by the IMPLIED keyword
+ * @return Error code
+ **/
+
+error_t mibDecodeObjectIdentifier(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint8_t *objectId, size_t maxObjectIdLen, size_t *objectIdLen, bool_t implied)
+{
+   error_t error;
+   uint32_t i;
+   uint32_t n;
+   uint32_t value;
+
+   //Length of the object identifier, in bytes
+   *objectIdLen = 0;
+
+   //Check whether the index is preceded by the IMPLIED keyword
+   if(!implied)
+   {
+      //Decode the number of sub-identifiers in the value
+      error = oidDecodeSubIdentifier(oid, oidLen, pos, &n);
+      //Invalid sub-identifier?
+      if(error)
+         return error;
+   }
+
+   //Decode object identifier
+   for(i = 0; ; i++)
+   {
+      //Check whether the index is preceded by the IMPLIED keyword
+      if(!implied)
+      {
+         //Check loop condition
+         if(i >= n)
+            break;
+      }
+      else
+      {
+         //Check loop condition
+         if(*pos >= oidLen)
+            break;
+      }
+
+      //Decode the current sub-identifier
+      error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
+      //Invalid sub-identifier?
+      if(error)
+         return error;
+
+      //First node?
+      if(i == 0)
+      {
+         //Check the value of the first sub-identifier
+         if(value > 6)
+            return ERROR_INVALID_SYNTAX;
+
+         //Check the length of the output buffer
+         if(maxObjectIdLen == 0)
+            return ERROR_BUFFER_OVERFLOW;
+
+         //Encode the first sub-identifier
+         objectId[0] = value * 40;
+         //Prepare to decode the next node
+         *objectIdLen = 1;
+      }
+      //Second node?
+      else if(i == 1)
+      {
+         //Check the value of the second sub-identifier
+         if(value > 39)
+            return ERROR_INVALID_SYNTAX;
+
+         //Check the length of the output buffer
+         if(maxObjectIdLen == 0)
+            return ERROR_BUFFER_OVERFLOW;
+
+         //Encode the second sub-identifier
+         objectId[0] |= value;
+         //Prepare to decode the next node
+         *objectIdLen = 1;
+      }
+      else
+      {
+         //Encode the current sub-identifier
+         error = oidEncodeSubIdentifier(objectId, maxObjectIdLen,
+            objectIdLen, value);
+         //Invalid sub-identifier?
+         if(error)
+            return error;
+      }
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -209,7 +473,8 @@ error_t mibDecodeOctetString(const uint8_t *oid, size_t oidLen, size_t *pos,
  * @return Error code
  **/
 
-error_t mibEncodePort(uint8_t *oid, size_t maxOidLen, size_t *pos, uint16_t port)
+error_t mibEncodePort(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   uint16_t port)
 {
    //Encode instance identifier
    return oidEncodeSubIdentifier(oid, maxOidLen, pos, port);
@@ -225,7 +490,8 @@ error_t mibEncodePort(uint8_t *oid, size_t maxOidLen, size_t *pos, uint16_t port
  * @return Error code
  **/
 
-error_t mibDecodePort(const uint8_t *oid, size_t oidLen, size_t *pos, uint16_t *port)
+error_t mibDecodePort(const uint8_t *oid, size_t oidLen, size_t *pos,
+   uint16_t *port)
 {
    error_t error;
    uint32_t value;
@@ -257,7 +523,8 @@ error_t mibDecodePort(const uint8_t *oid, size_t oidLen, size_t *pos, uint16_t *
  * @return Error code
  **/
 
-error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const MacAddr *macAddr)
+error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const MacAddr *macAddr)
 {
    error_t error;
    uint_t i;
@@ -292,7 +559,8 @@ error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const MacA
  * @return Error code
  **/
 
-error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos, MacAddr *macAddr)
+error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   MacAddr *macAddr)
 {
    error_t error;
    uint_t i;
@@ -340,7 +608,8 @@ error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos, MacAddr
  * @return Error code
  **/
 
-error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, Ipv4Addr ipAddr)
+error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   Ipv4Addr ipAddr)
 {
    error_t error;
    uint_t i;
@@ -373,7 +642,8 @@ error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, Ipv4Addr 
  * @return Error code
  **/
 
-error_t mibDecodeIpv4Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv4Addr *ipAddr)
+error_t mibDecodeIpv4Addr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   Ipv4Addr *ipAddr)
 {
    error_t error;
    uint_t i;
@@ -414,7 +684,8 @@ error_t mibDecodeIpv4Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv4Ad
  * @return Error code
  **/
 
-error_t mibEncodeIpv6Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, const Ipv6Addr *ipAddr)
+error_t mibEncodeIpv6Addr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const Ipv6Addr *ipAddr)
 {
    error_t error;
    uint_t i;
@@ -443,7 +714,8 @@ error_t mibEncodeIpv6Addr(uint8_t *oid, size_t maxOidLen, size_t *pos, const Ipv
  * @return Error code
  **/
 
-error_t mibDecodeIpv6Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv6Addr *ipAddr)
+error_t mibDecodeIpv6Addr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   Ipv6Addr *ipAddr)
 {
    error_t error;
    uint_t i;
@@ -480,7 +752,8 @@ error_t mibDecodeIpv6Addr(const uint8_t *oid, size_t oidLen, size_t *pos, Ipv6Ad
  * @return Error code
  **/
 
-error_t mibEncodeIpAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const IpAddr *ipAddr)
+error_t mibEncodeIpAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const IpAddr *ipAddr)
 {
    error_t error;
 
@@ -557,7 +830,8 @@ error_t mibEncodeIpAddr(uint8_t *oid, size_t maxOidLen, size_t *pos, const IpAdd
  * @return Error code
  **/
 
-error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos, IpAddr *ipAddr)
+error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   IpAddr *ipAddr)
 {
    error_t error;
    uint32_t type;

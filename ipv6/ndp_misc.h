@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _NDP_MISC_H
@@ -56,8 +56,8 @@ error_t ndpSelectNextHop(NetInterface *interface, const Ipv6Addr *destAddr,
 
 void ndpUpdateNextHop(NetInterface *interface, const Ipv6Addr *nextHop);
 
-void ndpAddOption(void *message, size_t *messageLength,
-   uint8_t type, const void *value, size_t length);
+void ndpAddOption(void *message, size_t *messageLen, uint8_t type,
+   const void *value, size_t length);
 
 void *ndpGetOption(uint8_t *options, size_t length, uint8_t type);
 

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -452,7 +452,7 @@ error_t pppHdlcDriverReceiveAtCommand(NetInterface *interface, char_t *data, siz
          data[i + 1] = '\0';
          valid = TRUE;
       }
-      else if(i >= 11 && !memcmp(data + i - 11, "CLIENTSERVER", 12))
+      else if(i >= 5 && !memcmp(data + i - 5, "SERVER", 6))
       {
          data[i + 1] = '\0';
          valid = TRUE;
@@ -674,20 +674,16 @@ bool_t pppHdlcDriverWriteRxQueue(NetInterface *interface, uint8_t c)
       //Update the length of the queue
       context->rxBufferLen++;
 
-      //Check PPP connection state
-      if(interface->pppContext->pppPhase != PPP_PHASE_DEAD)
+      //0x7E flag found?
+      if(c == PPP_FLAG_CHAR)
       {
-         //0x7E flag found?
-         if(c == PPP_FLAG_CHAR)
-         {
-            //Increment frame counter
-            context->rxFrameCount++;
+         //Increment frame counter
+         context->rxFrameCount++;
 
-            //A complete HDLC frame has been received
-            interface->nicEvent = TRUE;
-            //Notify the TCP/IP stack of the event
-            flag = osSetEventFromIsr(&netEvent);
-         }
+         //A complete HDLC frame has been received
+         interface->nicEvent = TRUE;
+         //Notify the TCP/IP stack of the event
+         flag = osSetEventFromIsr(&netEvent);
       }
    }
 

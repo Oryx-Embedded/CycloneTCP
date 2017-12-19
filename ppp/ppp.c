@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -959,7 +959,7 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       buffer.chunkCount = 1;
       buffer.maxChunkCount = 1;
       buffer.chunk[0].address = frame;
-      buffer.chunk[0].length = length;
+      buffer.chunk[0].length = (uint16_t) length;
       buffer.chunk[0].size = 0;
 
       //Process incoming IPv6 packet

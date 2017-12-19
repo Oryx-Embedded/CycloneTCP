@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -38,7 +38,7 @@
 #include "web_socket/web_socket_transport.h"
 #include "web_socket/web_socket_misc.h"
 #include "str.h"
-#include "base64.h"
+#include "encoding/base64.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -37,9 +37,9 @@
 #include "snmp/snmp_agent_misc.h"
 #include "mibs/mib2_module.h"
 #include "mibs/snmp_mib_module.h"
-#include "crypto.h"
-#include "asn1.h"
-#include "oid.h"
+#include "core/crypto.h"
+#include "encoding/asn1.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -61,8 +61,10 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
    MIB2_INC_COUNTER32(snmpGroup.snmpInPkts, 1);
    SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInPkts, 1);
 
+#if (SNMP_V3_SUPPORT == ENABLED)
    //Refresh SNMP engine time
    snmpRefreshEngineTime(context);
+#endif
 
    //Message parsing initialization
    snmpInitMessage(&context->request);
@@ -160,9 +162,10 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
 
 error_t snmpv1ProcessMessage(SnmpAgentContext *context)
 {
-   error_t error;
-
 #if (SNMP_V1_SUPPORT == ENABLED)
+   error_t error;
+   SnmpUserEntry *community;
+
    //Parse community name
    error = snmpParseCommunity(&context->request);
    //Any error to report?
@@ -171,11 +174,11 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
 
    //Information about the community name is extracted from the local
    //configuration datastore
-   context->user = snmpFindUser(context, context->request.community,
+   community = snmpFindCommunityEntry(context, context->request.community,
       context->request.communityLen);
 
    //Invalid community name?
-   if(context->user == NULL)
+   if(community == NULL || community->status != MIB_ROW_STATUS_ACTIVE)
    {
       //Debug message
       TRACE_WARNING("  Invalid community name!\r\n");
@@ -189,6 +192,9 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
       return ERROR_UNKNOWN_USER_NAME;
    }
 
+   //Save the security profile associated with the current community
+   context->user = *community;
+
    //Process PDU
    error = snmpProcessPdu(context);
    //Any error to report?
@@ -197,13 +203,12 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
 
    //Format SNMP message header
    error = snmpWriteMessageHeader(&context->response);
-#else
-   //Report an error
-   error = ERROR_INVALID_VERSION;
-#endif
-
    //Return status code
    return error;
+#else
+   //Report an error
+   return ERROR_INVALID_VERSION;
+#endif
 }
 
 
@@ -215,9 +220,10 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
 
 error_t snmpv2cProcessMessage(SnmpAgentContext *context)
 {
-   error_t error;
-
 #if (SNMP_V2C_SUPPORT == ENABLED)
+   error_t error;
+   SnmpUserEntry *community;
+
    //Parse community name
    error = snmpParseCommunity(&context->request);
    //Any error to report?
@@ -226,11 +232,11 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
 
    //Information about the community name is extracted from the local
    //configuration datastore
-   context->user = snmpFindUser(context, context->request.community,
+   community = snmpFindCommunityEntry(context, context->request.community,
       context->request.communityLen);
 
    //Invalid community name?
-   if(context->user == NULL)
+   if(community == NULL || community->status != MIB_ROW_STATUS_ACTIVE)
    {
       //Debug message
       TRACE_WARNING("  Invalid community name!\r\n");
@@ -244,6 +250,9 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
       return ERROR_UNKNOWN_USER_NAME;
    }
 
+   //Save the security profile associated with the current community
+   context->user = *community;
+
    //Process PDU
    error = snmpProcessPdu(context);
    //Any error to report?
@@ -252,13 +261,12 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
 
    //Format SNMP message header
    error = snmpWriteMessageHeader(&context->response);
-#else
-   //Report an error
-   error = ERROR_INVALID_VERSION;
-#endif
-
    //Return status code
    return error;
+#else
+   //Report an error
+   return ERROR_INVALID_VERSION;
+#endif
 }
 
 
@@ -270,9 +278,10 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
 
 error_t snmpv3ProcessMessage(SnmpAgentContext *context)
 {
-   error_t error;
-
 #if (SNMP_V3_SUPPORT == ENABLED)
+   error_t error;
+   SnmpUserEntry *user;
+
    //Parse msgGlobalData field
    error = snmpParseGlobalData(&context->request);
    //Any error to report?
@@ -288,23 +297,81 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
    //Start of exception handling block
    do
    {
-      //Information about the value of the msgUserName field is extracted
-      //from the local configuration datastore
-      context->user = snmpFindUser(context, context->request.msgUserName,
-         context->request.msgUserNameLen);
+#if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
+      if(context->request.msgUserNameLen == 0 && context->request.msgFlags == 0)
+      {
+         //Clear the security profile
+         memset(&context->user, 0, sizeof(SnmpUserEntry));
+      }
+      else if(context->informContextEngineLen > 0 &&
+         !oidComp(context->request.msgAuthEngineId, context->request.msgAuthEngineIdLen,
+         context->informContextEngine, context->informContextEngineLen))
+      {
+         //Information about the value of the msgUserName field is extracted
+         //from the local configuration datastore
+         user = snmpFindUserEntry(context, context->request.msgUserName,
+            context->request.msgUserNameLen);
 
-      //Check security parameters
-      error = snmpCheckSecurityParameters(context->user, &context->request,
-         context->contextEngine, context->contextEngineLen);
-      //Invalid security parameters?
-      if(error)
-         break;
+         //Check security parameters
+         error = snmpCheckSecurityParameters(user, &context->request,
+            context->informContextEngine, context->informContextEngineLen);
+         //Invalid security parameters?
+         if(error)
+            break;
+
+         //Save the security profile associated with the current user
+         context->user = *user;
+
+         //Localize the authentication key with the engine ID of the
+         //remote SNMP device
+         if(context->user.authProtocol != SNMP_AUTH_PROTOCOL_NONE)
+         {
+            //Key localization algorithm
+            error = snmpLocalizeKey(context->user.authProtocol,
+               context->informContextEngine, context->informContextEngineLen,
+               &context->user.rawAuthKey, &context->user.localizedAuthKey);
+            //Any error to report?
+            if(error)
+               break;
+         }
+
+         //Localize the privacy key with the engine ID of the remote
+         //SNMP device
+         if(context->user.privProtocol != SNMP_AUTH_PROTOCOL_NONE)
+         {
+            //Key localization algorithm
+            error = snmpLocalizeKey(context->user.authProtocol,
+               context->informContextEngine, context->informContextEngineLen,
+               &context->user.rawPrivKey, &context->user.localizedPrivKey);
+            //Any error to report?
+            if(error)
+               break;
+         }
+      }
+      else
+#endif
+      {
+         //Information about the value of the msgUserName field is extracted
+         //from the local configuration datastore
+         user = snmpFindUserEntry(context, context->request.msgUserName,
+            context->request.msgUserNameLen);
+
+         //Check security parameters
+         error = snmpCheckSecurityParameters(user, &context->request,
+            context->contextEngine, context->contextEngineLen);
+         //Invalid security parameters?
+         if(error)
+            break;
+
+         //Save the security profile associated with the current user
+         context->user = *user;
+      }
 
       //Check whether the authFlag is set
       if(context->request.msgFlags & SNMP_MSG_FLAG_AUTH)
       {
          //Authenticate incoming SNMP message
-         error = snmpAuthIncomingMessage(context->user, &context->request);
+         error = snmpAuthIncomingMessage(&context->user, &context->request);
          //Data authentication failed?
          if(error)
             break;
@@ -320,11 +387,23 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
       if(context->request.msgFlags & SNMP_MSG_FLAG_PRIV)
       {
          //Decrypt data
-         error = snmpDecryptData(context->user, &context->request);
+         error = snmpDecryptData(&context->user, &context->request);
          //Data decryption failed?
          if(error)
             break;
       }
+
+      //Parse scopedPDU
+      error = snmpParseScopedPdu(&context->request);
+      //Any error to report?
+      if(error)
+         break;
+
+      //Process PDU
+      error = snmpProcessPdu(context);
+      //Any error to report?
+      if(error)
+        break;
 
       //End of exception handling block
    } while(0);
@@ -335,27 +414,22 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
       error == ERROR_UNKNOWN_USER_NAME ||
       error == ERROR_UNKNOWN_ENGINE_ID ||
       error == ERROR_AUTHENTICATION_FAILED ||
-      error == ERROR_DECRYPTION_FAILED)
+      error == ERROR_DECRYPTION_FAILED ||
+      error == ERROR_UNAVAILABLE_CONTEXT ||
+      error == ERROR_UNKNOWN_CONTEXT)
    {
-      //Report the error indication to the remote SNMP engine using a Report-PDU
-      error = snmpFormatReportPdu(context, error);
+      //When the reportable flag is used, if its value is one, a Report-PDU
+      //must be returned to the sender
+      if(context->request.msgFlags & SNMP_MSG_FLAG_REPORTABLE)
+         error = snmpFormatReportPdu(context, error);
+
       //Any error to report?
       if(error)
          return error;
    }
    else if(error == NO_ERROR)
    {
-      //Parse scopedPDU
-      error = snmpParseScopedPdu(&context->request);
-      //Any error to report?
-      if(error)
-         return error;
-
-      //Process PDU
-      error = snmpProcessPdu(context);
-      //Any error to report?
-      if(error)
-         return error;
+      //Continue processing
    }
    else
    {
@@ -363,44 +437,49 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
       return error;
    }
 
-   //Format scopedPDU
-   error = snmpWriteScopedPdu(&context->response);
-   //Any error to report?
-   if(error)
-      return error;
-
-   //Check whether the privFlag is set
-   if(context->response.msgFlags & SNMP_MSG_FLAG_PRIV)
+   //Any response?
+   if(context->response.length > 0)
    {
-      //Encrypt data
-      error = snmpEncryptData(context->user, &context->response, &context->salt);
+      //Format scopedPDU
+      error = snmpWriteScopedPdu(&context->response);
       //Any error to report?
       if(error)
          return error;
-   }
 
-   //Format SNMP message header
-   error = snmpWriteMessageHeader(&context->response);
-   //Any error to report?
-   if(error)
-      return error;
+      //Check whether the privFlag is set
+      if(context->response.msgFlags & SNMP_MSG_FLAG_PRIV)
+      {
+         //Encrypt data
+         error = snmpEncryptData(&context->user, &context->response,
+            &context->salt);
+         //Any error to report?
+         if(error)
+            return error;
+      }
 
-   //Check whether the authFlag is set
-   if(context->response.msgFlags & SNMP_MSG_FLAG_AUTH)
-   {
-      //Authenticate outgoing SNMP message
-      error = snmpAuthOutgoingMessage(context->user, &context->response);
+      //Format SNMP message header
+      error = snmpWriteMessageHeader(&context->response);
       //Any error to report?
       if(error)
          return error;
+
+      //Check whether the authFlag is set
+      if(context->response.msgFlags & SNMP_MSG_FLAG_AUTH)
+      {
+         //Authenticate outgoing SNMP message
+         error = snmpAuthOutgoingMessage(&context->user, &context->response);
+         //Any error to report?
+         if(error)
+            return error;
+      }
    }
+
+   //Successful processing
+   return NO_ERROR;
 #else
    //Report an error
-   error = ERROR_INVALID_VERSION;
+   return ERROR_INVALID_VERSION;
 #endif
-
-   //Return status code
-   return error;
 }
 
 #endif

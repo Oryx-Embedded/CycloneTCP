@@ -1,6 +1,6 @@
 /**
  * @file snmp_agent_misc.c
- * @brief SNMP agent (miscellaneous functions)
+  * @brief Helper functions for SNMP agent
  *
  * @section License
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -34,18 +34,27 @@
 #include "core/net.h"
 #include "snmp/snmp_agent.h"
 #include "snmp/snmp_agent_misc.h"
+#include "snmp/snmp_agent_object.h"
 #include "mibs/mib2_module.h"
-#include "crypto.h"
-#include "asn1.h"
-#include "oid.h"
+#include "core/crypto.h"
+#include "encoding/asn1.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
 #if (SNMP_AGENT_SUPPORT == ENABLED)
 
+//sysUpTime.0 object (1.3.6.1.2.1.1.3.0)
+static const uint8_t sysUpTimeObject[] = {43, 6, 1, 2, 1, 1, 3, 0};
+//snmpTrapOID.0 object (1.3.6.1.6.3.1.1.4.1.0)
+static const uint8_t snmpTrapOidObject[] = {43, 6, 1, 6, 3, 1, 1, 4, 1, 0};
+//snmpTraps object (1.3.6.1.6.3.1.1.5)
+static const uint8_t snmpTrapsObject[] = {43, 6, 1, 6, 3, 1, 1, 5};
+
 
 /**
  * @brief Lock MIB bases
+ * @param[in] context Pointer to the SNMP agent context
  **/
 
 void snmpLockMib(SnmpAgentContext *context)
@@ -57,16 +66,16 @@ void snmpLockMib(SnmpAgentContext *context)
    flag = FALSE;
 
    //Loop through MIBs
-   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
+   for(i = 0; i < SNMP_AGENT_MAX_MIBS; i++)
    {
       //Valid MIB?
-      if(context->mibModule[i] != NULL)
+      if(context->mibTable[i] != NULL)
       {
          //Any registered callback?
-         if(context->mibModule[i]->lock != NULL)
+         if(context->mibTable[i]->lock != NULL)
          {
             //Lock access to the MIB
-            context->mibModule[i]->lock();
+            context->mibTable[i]->lock();
          }
          else
          {
@@ -87,6 +96,7 @@ void snmpLockMib(SnmpAgentContext *context)
 
 /**
  * @brief Unlock MIB bases
+ * @param[in] context Pointer to the SNMP agent context
  **/
 
 void snmpUnlockMib(SnmpAgentContext *context)
@@ -98,16 +108,16 @@ void snmpUnlockMib(SnmpAgentContext *context)
    flag = FALSE;
 
    //Loop through MIBs
-   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
+   for(i = 0; i < SNMP_AGENT_MAX_MIBS; i++)
    {
       //Valid MIB?
-      if(context->mibModule[i] != NULL)
+      if(context->mibTable[i] != NULL)
       {
          //Any registered callback?
-         if(context->mibModule[i]->unlock != NULL)
+         if(context->mibTable[i]->unlock != NULL)
          {
             //Unlock access to the MIB
-            context->mibModule[i]->unlock();
+            context->mibTable[i]->unlock();
          }
          else
          {
@@ -127,197 +137,107 @@ void snmpUnlockMib(SnmpAgentContext *context)
 
 
 /**
- * @brief Initialize a GetResponse-PDU
+ * @brief Create a new community entry
  * @param[in] context Pointer to the SNMP agent context
- * @return Error code
+ * @return Pointer to the newly created entry
  **/
 
-error_t snmpInitResponse(SnmpAgentContext *context)
+SnmpUserEntry *snmpCreateCommunityEntry(SnmpAgentContext *context)
 {
-   error_t error;
-
-   //Initialize SNMP message
-   snmpInitMessage(&context->response);
-
-   //SNMP version identifier
-   context->response.version = context->request.version;
-
-#if (SNMP_V1_SUPPORT == ENABLED || SNMP_V2C_SUPPORT == ENABLED)
-   //Community name
-   context->response.community = context->request.community;
-   context->response.communityLen = context->request.communityLen;
-#endif
-
-#if (SNMP_V3_SUPPORT == ENABLED)
-   //Message identifier
-   context->response.msgId = context->request.msgId;
-   //Maximum message size supported by the sender
-   context->response.msgMaxSize = SNMP_MAX_MSG_SIZE;
-
-   //Bit fields which control processing of the message
-   context->response.msgFlags = context->request.msgFlags &
-      (SNMP_MSG_FLAG_AUTH | SNMP_MSG_FLAG_PRIV);
-
-   //Security model used by the sender
-   context->response.msgSecurityModel = context->request.msgSecurityModel;
-
-   //Authoritative engine identifier
-   context->response.msgAuthEngineId = context->contextEngine;
-   context->response.msgAuthEngineIdLen = context->contextEngineLen;
-
-   //Number of times the SNMP engine has rebooted
-   context->response.msgAuthEngineBoots = context->engineBoots;
-   //Number of seconds since last reboot
-   context->response.msgAuthEngineTime = context->engineTime;
-
-   //User name
-   context->response.msgUserName = context->request.msgUserName;
-   context->response.msgUserNameLen = context->request.msgUserNameLen;
-
-   //Authentication parameters
-   context->response.msgAuthParameters = NULL;
-   context->response.msgAuthParametersLen = context->request.msgAuthParametersLen;
-
-   //Privacy parameters
-   context->response.msgPrivParameters = context->privParameters;
-   context->response.msgPrivParametersLen = context->request.msgPrivParametersLen;
-
-   //Context engine identifier
-   context->response.contextEngineId = context->contextEngine;
-   context->response.contextEngineIdLen = context->contextEngineLen;
-
-   //Context name
-   context->response.contextName = context->request.contextName;
-   context->response.contextNameLen = context->request.contextNameLen;
-#endif
-
-   //PDU type
-   context->response.pduType = SNMP_PDU_GET_RESPONSE;
-   //Request identifier
-   context->response.requestId = context->request.requestId;
-
-   //Make room for the message header at the beginning of the buffer
-   error = snmpComputeMessageOverhead(&context->response);
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Refresh SNMP engine time
- * @param[in] context Pointer to the SNMP agent context
- **/
-
-void snmpRefreshEngineTime(SnmpAgentContext *context)
-{
-#if (SNMP_V3_SUPPORT == ENABLED)
-   systime_t delta;
-   int32_t newEngineTime;
-
-   //Number of seconds elapsed since the last call
-   delta = (osGetSystemTime() - context->systemTime) / 1000;
-   //Increment SNMP engine time
-   newEngineTime = context->engineTime + delta;
-
-   //Check whether the SNMP engine time has rolled over
-   if(newEngineTime < context->engineTime)
-   {
-      //If snmpEngineTime ever reaches its maximum value (2147483647), then
-      //snmpEngineBoots is incremented as if the SNMP engine has re-booted
-      //and snmpEngineTime is reset to zero and starts incrementing again
-      context->engineBoots++;
-      context->engineTime = 0;
-   }
-   else
-   {
-      //Update SNMP engine time
-      context->engineTime = newEngineTime;
-   }
-
-   //Save timestamp
-   context->systemTime += delta * 1000;
-#endif
-}
-
-
-/**
- * @brief Replay protection
- * @param[in] context Pointer to the SNMP agent context
- * @param[in,out] message Pointer to the incoming SNMP message
- * @return Error code
- **/
-
-error_t snmpCheckEngineTime(SnmpAgentContext *context, SnmpMessage *message)
-{
-   error_t error = NO_ERROR;
-
-#if (SNMP_V3_SUPPORT == ENABLED)
-   //If any of the following conditions is true, then the message is
-   //considered to be outside of the time window
-   if(context->engineBoots == INT32_MAX)
-   {
-      //The local value of snmpEngineBoots is 2147483647
-      error = ERROR_NOT_IN_TIME_WINDOW;
-   }
-   else if(context->engineBoots != message->msgAuthEngineBoots)
-   {
-      //The value of the msgAuthoritativeEngineBoots field differs from
-      //the local value of snmpEngineBoots
-      error = ERROR_NOT_IN_TIME_WINDOW;
-   }
-   else if((context->engineTime - message->msgAuthEngineTime) > SNMP_TIME_WINDOW ||
-      (message->msgAuthEngineTime - context->engineTime) > SNMP_TIME_WINDOW)
-   {
-      //The value of the msgAuthoritativeEngineTime field differs from the
-      //local notion of snmpEngineTime by more than +/- 150 seconds
-      error = ERROR_NOT_IN_TIME_WINDOW;
-   }
-#endif
-
-   //If the message is considered to be outside of the time window then an
-   //error indication (notInTimeWindow) is returned to the calling module
-   return error;
-}
-
-
-/**
- * @brief Find user in the local configuration datastore
- * @param[in] context Pointer to the SNMP agent context
- * @param[in] name Pointer to the user name
- * @param[in] length Length of the user name
- * @return Security profile corresponding to the specified user name
- **/
-
-SnmpUserInfo *snmpFindUser(SnmpAgentContext *context,
-   const char_t *name, size_t length)
-{
-   uint_t i;
-   SnmpUserInfo *entry;
+   SnmpUserEntry *entry;
 
    //Initialize pointer
    entry = NULL;
 
+#if (SNMP_V1_SUPPORT == ENABLED || SNMP_V2C_SUPPORT == ENABLED)
    //Sanity check
-   if(name != NULL)
+   if(context != NULL)
    {
-      //Loop through the local configuration datastore
-      for(i = 0; i < SNMP_AGENT_MAX_USER_COUNT; i++)
+      uint_t i;
+
+      //Loop through the list of community strings
+      for(i = 0; i < SNMP_AGENT_MAX_COMMUNITIES; i++)
       {
-         //Compare user names
-         if(strlen(context->userTable[i].name) == length)
+         //Check current status
+         if(context->communityTable[i].status == MIB_ROW_STATUS_UNUSED)
          {
-            if(!strncmp(context->userTable[i].name, name, length))
+            //An unused entry has been found
+            entry = &context->communityTable[i];
+            //We are done
+            break;
+         }
+      }
+
+      //Check whether the table runs out of space
+      if(entry == NULL)
+      {
+         //Loop through the list of community strings
+         for(i = 0; i < SNMP_AGENT_MAX_COMMUNITIES; i++)
+         {
+            //Check current status
+            if(context->communityTable[i].status == MIB_ROW_STATUS_NOT_READY)
             {
-               //A matching entry has been found
-               entry = &context->userTable[i];
+               //Reuse the current entry
+               entry = &context->communityTable[i];
                //We are done
                break;
             }
          }
       }
    }
+#endif
 
-   //Return the security profile that corresponds to the specified user name
+   //Return a pointer to the newly created entry
+   return entry;
+}
+
+
+/**
+ * @brief Search the community table for a given community string
+ * @param[in] context Pointer to the SNMP agent context
+ * @param[in] community Pointer to the community string
+ * @param[in] length Length of the community string
+ * @return Pointer to the maching entry
+ **/
+
+SnmpUserEntry *snmpFindCommunityEntry(SnmpAgentContext *context,
+   const char_t *community, size_t length)
+{
+   SnmpUserEntry *entry;
+
+   //Initialize pointer
+   entry = NULL;
+
+#if (SNMP_V1_SUPPORT == ENABLED || SNMP_V2C_SUPPORT == ENABLED)
+   //Sanity check
+   if(context != NULL && community != NULL)
+   {
+      uint_t i;
+
+      //Loop through the list of community string
+      for(i = 0; i < SNMP_AGENT_MAX_COMMUNITIES; i++)
+      {
+         //Check current status
+         if(context->communityTable[i].status != MIB_ROW_STATUS_UNUSED)
+         {
+            //Check the length of the community string
+            if(strlen(context->communityTable[i].name) == length)
+            {
+               //Compare community strings
+               if(!strncmp(context->communityTable[i].name, community, length))
+               {
+                  //A matching entry has been found
+                  entry = &context->communityTable[i];
+                  //We are done
+                  break;
+               }
+            }
+         }
+      }
+   }
+#endif
+
+   //Return a pointer to the matching entry
    return entry;
 }
 
@@ -543,625 +463,143 @@ error_t snmpCopyVarBindingList(SnmpAgentContext *context)
 
 
 /**
- * @brief Assign object value
+ * @brief Format the variable binding list for Trap-PDU or SNMPv2-Trap-PDU
  * @param[in] context Pointer to the SNMP agent context
- * @param[in] var Variable binding
- * @param[in] commit This flag tells whether the changes should be
- *   committed to the MIB base
+ * @param[in] genericTrapType Generic trap type
+ * @param[in] specificTrapCode Specific code
+ * @param[in] objectList List of object names
+ * @param[in] objectListSize Number of entries in the list
  * @return Error code
  **/
 
-error_t snmpSetObjectValue(SnmpAgentContext *context, SnmpVarBind *var, bool_t commit)
+error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
+   uint_t genericTrapType, uint_t specificTrapCode,
+   const SnmpTrapObject *objectList, uint_t objectListSize)
 {
    error_t error;
+   uint_t i;
    size_t n;
-   MibVariant *value;
-   const MibObject *object;
+   systime_t time;
+   SnmpMessage *message;
+   SnmpVarBind var;
 
-   //Search the MIB for the specified object
-   error = snmpFindMibObject(context, var->oid, var->oidLen, &object);
-   //Cannot found the specified object?
-   if(error)
-      return error;
+   //Point to the SNMP message
+   message = &context->response;
 
-   //Debug message
-   TRACE_INFO("  %s\r\n", object->name);
-
-   //Make sure the specified object is available for set operations
-   if(object->access != MIB_ACCESS_WRITE_ONLY &&
-      object->access != MIB_ACCESS_READ_WRITE &&
-      object->access != MIB_ACCESS_READ_CREATE)
+#if (SNMP_V2C_SUPPORT == ENABLED || SNMP_V3_SUPPORT == ENABLED)
+   //SNMPv2c or SNMPv3 version?
+   if(message->version == SNMP_VERSION_2C || message->version == SNMP_VERSION_3)
    {
-      //Report an error
-      return ERROR_NOT_WRITABLE;
-   }
+      //Get current time
+      time = osGetSystemTime() / 10;
 
-   //Check class
-   if(var->objClass != object->objClass)
-      return ERROR_WRONG_TYPE;
-   //Check type
-   if(var->objType != object->objType)
-      return ERROR_WRONG_TYPE;
+      //Encode the object value using ASN.1 rules
+      error = snmpEncodeUnsignedInt32(time, message->buffer, &n);
+      //Any error to report?
+      if(error)
+         return error;
 
-   //Point to the object value
-   value = (MibVariant *) var->value;
-   //Get the length of the object value
-   n = var->valueLen;
+      //The first two variable bindings in the variable binding list of an
+      //SNMPv2-Trap-PDU are sysUpTime.0 and snmpTrapOID.0 respectively
+      var.oid = sysUpTimeObject;
+      var.oidLen = sizeof(sysUpTimeObject);
+      var.objClass = ASN1_CLASS_APPLICATION;
+      var.objType = MIB_TYPE_TIME_TICKS;
+      var.value = message->buffer;
+      var.valueLen = n;
 
-   //Check object class
-   if(object->objClass == ASN1_CLASS_UNIVERSAL)
-   {
-      //Check object type
-      if(object->objType == ASN1_TYPE_INTEGER)
+      //Append sysUpTime.0 to the variable binding list
+      error = snmpWriteVarBinding(context, &var);
+      //Any error to report?
+      if(error)
+         return error;
+
+      //Generic or enterprise-specific trap?
+      if(genericTrapType < SNMP_TRAP_ENTERPRISE_SPECIFIC)
       {
-         int32_t val;
+         //Retrieve the length of the snmpTraps OID
+         n = sizeof(snmpTrapsObject);
+         //Copy the OID
+         memcpy(message->buffer, snmpTrapsObject, n);
 
-         //Integer objects use ASN.1 encoding rules
-         error = snmpDecodeInt32(var->value, n, &val);
-         //Conversion failed?
-         if(error)
-            return ERROR_WRONG_ENCODING;
+         //For generic traps, the SNMPv2 snmpTrapOID parameter shall be
+         //the corresponding trap as defined in section 2 of RFC 3418
+         message->buffer[n] = genericTrapType + 1;
 
-         //Point to the scratch buffer
-         value = (MibVariant *) context->response.buffer;
-         //Save resulting value
-         value->integer = val;
-         //Integer size
-         n = sizeof(int32_t);
-      }
-   }
-   else if(object->objClass == ASN1_CLASS_APPLICATION)
-   {
-      //Check object type
-      if(object->objType == MIB_TYPE_IP_ADDRESS)
-      {
-         //IpAddress objects have fixed size
-         if(n != object->valueSize)
-            return ERROR_WRONG_LENGTH;
-      }
-      else if(object->objType == MIB_TYPE_COUNTER32 ||
-         object->objType == MIB_TYPE_GAUGE32 ||
-         object->objType == MIB_TYPE_TIME_TICKS)
-      {
-         uint32_t val;
-
-         //Counter32, Gauge32 and TimeTicks objects use ASN.1 encoding rules
-         error = snmpDecodeUnsignedInt32(var->value, n, &val);
-         //Conversion failed?
-         if(error)
-            return ERROR_WRONG_ENCODING;
-
-         //Point to the scratch buffer
-         value = (MibVariant *) context->response.buffer;
-         //Save resulting value
-         value->counter32 = val;
-         //Integer size
-         n = sizeof(uint32_t);
-      }
-      else if(object->objType == MIB_TYPE_COUNTER64)
-      {
-         uint64_t val;
-
-         //Counter64 objects use ASN.1 encoding rules
-         error = snmpDecodeUnsignedInt64(var->value, n, &val);
-         //Conversion failed?
-         if(error)
-            return ERROR_WRONG_ENCODING;
-
-         //Point to the scratch buffer
-         value = (MibVariant *) context->response.buffer;
-         //Save resulting value
-         value->counter64 = val;
-         //Integer size
-         n = sizeof(uint64_t);
-      }
-   }
-
-   //Objects can be assigned a value using a callback function
-   if(object->setValue != NULL)
-   {
-      //Invoke callback function to assign object value
-      error = object->setValue(object, var->oid, var->oidLen, value, n, commit);
-   }
-   //Simple scalar objects can also be attached to a variable
-   else if(object->value != NULL)
-   {
-      //Check the length of the object
-      if(n <= object->valueSize)
-      {
-         //Check whether the changes shall be committed to the MIB base
-         if(commit)
-         {
-            //Record the length of the object value
-            if(object->valueLen != NULL)
-               *object->valueLen = n;
-
-            //Set object value
-            memcpy(object->value, value, n);
-         }
-
-         //Successful write operation
-         error = NO_ERROR;
+         //Update the length of the snmpTrapOID parameter
+         n++;
       }
       else
       {
-         //Invalid length
-         error = ERROR_WRONG_LENGTH;
+         //Retrieve the length of the enterprise OID
+         n = context->enterpriseOidLen;
+
+         //For enterprise specific traps, the SNMPv2 snmpTrapOID parameter shall
+         //be the concatenation of the SNMPv1 enterprise OID and two additional
+         //sub-identifiers, '0' and the SNMPv1 specific trap parameter. Refer
+         //to RFC 3584, section 3.1 and RFC 2578, section 8.5
+         memcpy(message->buffer, context->enterpriseOid, n);
+
+         //Concatenate the '0' sub-identifier
+         message->buffer[n++] = 0;
+
+         //Concatenate the specific trap parameter
+         message->buffer[n] = specificTrapCode % 128;
+
+         //Loop as long as necessary
+         for(i = 1; specificTrapCode > 128; i++)
+         {
+            //Split the binary representation into 7 bit chunks
+            specificTrapCode /= 128;
+            //Make room for the new chunk
+            memmove(message->buffer + n + 1, message->buffer + n, i);
+            //Set the most significant bit in the current chunk
+            message->buffer[n] = OID_MORE_FLAG | (specificTrapCode % 128);
+         }
+
+         //Update the length of the snmpTrapOID parameter
+         n += i;
       }
+
+      //The snmpTrapOID.0 variable occurs as the second variable
+      //binding in every SNMPv2-Trap-PDU
+      var.oid = snmpTrapOidObject;
+      var.oidLen = sizeof(snmpTrapOidObject);
+      var.objClass = ASN1_CLASS_UNIVERSAL;
+      var.objType = ASN1_TYPE_OBJECT_IDENTIFIER;
+      var.value = message->buffer;
+      var.valueLen = n;
+
+      //Append snmpTrapOID.0 to the variable binding list
+      error = snmpWriteVarBinding(context, &var);
+      //Any error to report?
+      if(error)
+         return error;
    }
-   else
+#endif
+
+   //Loop through the list of objects
+   for(i = 0; i < objectListSize; i++)
    {
-      //Report an error
-      error = ERROR_WRITE_FAILED;
-   }
-
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Retrieve object value
- * @param[in] context Pointer to the SNMP agent context
- * @param[out] var Variable binding
- * @return Error code
- **/
-
-error_t snmpGetObjectValue(SnmpAgentContext *context, SnmpVarBind *var)
-{
-   error_t error;
-   size_t n;
-   MibVariant *value;
-   const MibObject *object;
-
-   //Search the MIB for the specified object
-   error = snmpFindMibObject(context, var->oid, var->oidLen, &object);
-   //Cannot found the specified object?
-   if(error)
-      return error;
-
-   //Debug message
-   TRACE_INFO("  %s\r\n", object->name);
-
-   //Make sure the specified object is available for get operations
-   if(object->access != MIB_ACCESS_READ_ONLY &&
-      object->access != MIB_ACCESS_READ_WRITE &&
-      object->access != MIB_ACCESS_READ_CREATE)
-   {
-      //Report an error
-      return ERROR_ACCESS_DENIED;
-   }
-
-   //Buffer where to store the object value
-   value = (MibVariant *) (context->response.varBindList +
-      context->response.varBindListLen + context->response.oidLen);
-
-   //Number of bytes available in the buffer
-   n = context->response.varBindListMaxLen -
-      (context->response.varBindListLen + context->response.oidLen);
-
-   //Check object class
-   if(object->objClass == ASN1_CLASS_UNIVERSAL)
-   {
-      //Check object type
-      if(object->objType == ASN1_TYPE_INTEGER)
-      {
-         //Make sure the buffer is large enough
-         if(n < object->valueSize)
-            return ERROR_BUFFER_OVERFLOW;
-
-         //Integer objects have fixed size
-         n = object->valueSize;
-      }
-   }
-   else if(object->objClass == ASN1_CLASS_APPLICATION)
-   {
-      //Check object type
-      if(object->objType == MIB_TYPE_IP_ADDRESS ||
-         object->objType == MIB_TYPE_COUNTER32 ||
-         object->objType == MIB_TYPE_GAUGE32 ||
-         object->objType == MIB_TYPE_TIME_TICKS ||
-         object->objType == MIB_TYPE_COUNTER64)
-      {
-         //Make sure the buffer is large enough
-         if(n < object->valueSize)
-            return ERROR_BUFFER_OVERFLOW;
-
-         //IpAddress, Counter32, Gauge32, TimeTicks and
-         //Counter64 objects have fixed size
-         n = object->valueSize;
-      }
-   }
-
-   //Object value can be retrieved using a callback function
-   if(object->getValue != NULL)
-   {
-      //Invoke callback function to retrieve object value
-      error = object->getValue(object, var->oid, var->oidLen, value, &n);
-   }
-   //Simple scalar objects can also be attached to a variable
-   else if(object->value != NULL)
-   {
-      //Get the length of the object value
-      if(object->valueLen != NULL)
-         n = *object->valueLen;
+      //Get object identifier
+      var.oid = objectList[i].oid;
+      var.oidLen = objectList[i].oidLen;
 
       //Retrieve object value
-      memcpy(value, object->value, n);
-      //Successful read operation
-      error = NO_ERROR;
-   }
-   else
-   {
-      //Report an error
-      error = ERROR_READ_FAILED;
-   }
+      error = snmpGetObjectValue(context, message, &var);
+      //Any error to report?
+      if(error)
+         return error;
 
-   //Unable to retrieve object value?
-   if(error)
-      return error;
-
-   //Check object class
-   if(object->objClass == ASN1_CLASS_UNIVERSAL)
-   {
-      //Check object type
-      if(object->objType == ASN1_TYPE_INTEGER)
-      {
-         //Encode Integer objects using ASN.1 rules
-         error = snmpEncodeInt32(value->integer, (uint8_t *) value, &n);
-      }
-      else
-      {
-         //No conversion required for OctetString and ObjectIdentifier objects
-         error = NO_ERROR;
-      }
-   }
-   else if(object->objClass == ASN1_CLASS_APPLICATION)
-   {
-      //Check object type
-      if(object->objType == MIB_TYPE_COUNTER32 ||
-         object->objType == MIB_TYPE_GAUGE32 ||
-         object->objType == MIB_TYPE_TIME_TICKS)
-      {
-         //Encode Counter32, Gauge32 and TimeTicks objects using ASN.1 rules
-         error = snmpEncodeUnsignedInt32(value->counter32, (uint8_t *) value, &n);
-      }
-      else if(object->objType == MIB_TYPE_COUNTER64)
-      {
-         //Encode Counter64 objects using ASN.1 rules
-         error = snmpEncodeUnsignedInt64(value->counter64, (uint8_t *) value, &n);
-      }
-      else
-      {
-         //No conversion required for Opaque objects
-         error = NO_ERROR;
-      }
+      //Append variable binding to the list
+      error = snmpWriteVarBinding(context, &var);
+      //Any error to report?
+      if(error)
+         return error;
    }
 
-   //Save object class and type
-   var->objClass = object->objClass;
-   var->objType = object->objType;
-
-   //Save object value
-   var->value = (uint8_t *) value;
-   var->valueLen = n;
-
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Search MIBs for the next object
- * @param[in] context Pointer to the SNMP agent context
- * @param[in] var Variable binding
- * @return Error pointer
- **/
-
-error_t snmpGetNextObject(SnmpAgentContext *context, SnmpVarBind *var)
-{
-   error_t error;
-   uint_t i;
-   uint_t j;
-   size_t n;
-   uint_t numObjects;
-   size_t nextOidLen;
-   uint8_t *nextOid;
-   const MibObject *object;
-   const MibObject *nextObject;
-
-   //Pointer to the next object
-   nextObject = NULL;
-
-   //Buffer where to store the next object identifier
-   nextOid = context->response.varBindList + context->response.varBindListLen;
-
-   //Loop through MIBs
-   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT; i++)
-   {
-      //Valid MIB?
-      if(context->mibModule[i] != NULL &&
-         context->mibModule[i]->numObjects > 0)
-      {
-         //Get the total number of objects
-         numObjects = context->mibModule[i]->numObjects;
-
-         //Point the last object of the MIB
-         object = &context->mibModule[i]->objects[numObjects - 1];
-
-         //Discard instance sub-identifier
-         n = MIN(var->oidLen, object->oidLen);
-
-         //Perform lexicographical comparison
-         if(oidComp(var->oid, n, object->oid, object->oidLen) <= 0)
-         {
-            //Point the first object of the MIB
-            object = context->mibModule[i]->objects;
-
-            //Loop through objects
-            for(j = 0; j < numObjects; j++)
-            {
-               //Make sure the current object is accessible
-               if(object->access == MIB_ACCESS_READ_ONLY ||
-                  object->access == MIB_ACCESS_READ_WRITE ||
-                  object->access == MIB_ACCESS_READ_CREATE)
-               {
-                  //Scalar or tabular object?
-                  if(object->getNext == NULL)
-                  {
-                     //Perform lexicographical comparison
-                     if(oidComp(var->oid, var->oidLen, object->oid, object->oidLen) <= 0)
-                     {
-                        //Save the closest object identifier that follows the
-                        //specified OID
-                        if(nextObject == NULL)
-                        {
-                           nextObject = object;
-                        }
-                        else if(oidComp(object->oid, object->oidLen,
-                           nextObject->oid, nextObject->oidLen) < 0)
-                        {
-                           nextObject = object;
-                        }
-
-                        //We are done
-                        break;
-                     }
-                  }
-                  else
-                  {
-                     //Discard instance sub-identifier
-                     n = MIN(var->oidLen, object->oidLen);
-
-                     //Perform lexicographical comparison
-                     if(oidComp(var->oid, n, object->oid, object->oidLen) <= 0)
-                     {
-                        //Maximum acceptable size of the OID
-                        nextOidLen = context->response.varBindListMaxLen -
-                           context->response.varBindListLen;
-
-                        //Search the MIB for the next object
-                        error = object->getNext(object, var->oid, var->oidLen,
-                           nextOid, &nextOidLen);
-
-                        //Check status code
-                        if(error == NO_ERROR)
-                        {
-                           //Save the closest object identifier that follows the
-                           //specified OID
-                           if(nextObject == NULL)
-                           {
-                              nextObject = object;
-                           }
-                           else if(oidComp(object->oid, object->oidLen,
-                              nextObject->oid, nextObject->oidLen) < 0)
-                           {
-                              nextObject = object;
-                           }
-
-                           //We are done
-                           break;
-                        }
-                        else if(error != ERROR_OBJECT_NOT_FOUND)
-                        {
-                           //Exit immediately
-                           return error;
-                        }
-                     }
-                  }
-               }
-
-               //Point to the next object in the MIB
-               object++;
-            }
-         }
-      }
-   }
-
-   //Next object found?
-   if(nextObject != NULL)
-   {
-      //Scalar or tabular object?
-      if(nextObject->getNext == NULL)
-      {
-         //Take in account the instance sub-identifier to determine
-         //the length of the OID
-         nextOidLen = nextObject->oidLen + 1;
-
-         //Make sure the buffer is large enough to hold the entire OID
-         if((context->response.varBindListLen + nextOidLen) <=
-            context->response.varBindListMaxLen)
-         {
-            //Copy object identifier
-            memcpy(nextOid, nextObject->oid, nextObject->oidLen);
-            //Append instance sub-identifier
-            nextOid[nextOidLen - 1] = 0;
-
-            //Replace the original OID with the name of the next object
-            var->oid = nextOid;
-            var->oidLen = nextOidLen;
-
-            //Save the length of the OID
-            context->response.oidLen = nextOidLen;
-
-            //The specified OID lexicographically precedes the name
-            //of the current object
-            error = NO_ERROR;
-         }
-         else
-         {
-            //Report an error
-            error = ERROR_BUFFER_OVERFLOW;
-         }
-      }
-      else
-      {
-         //Maximum acceptable size of the OID
-         nextOidLen = context->response.varBindListMaxLen -
-            context->response.varBindListLen;
-
-         //Search the MIB for the next object
-         error = nextObject->getNext(nextObject, var->oid, var->oidLen,
-            nextOid, &nextOidLen);
-
-         //Check status code
-         if(error == NO_ERROR)
-         {
-            //Replace the original OID with the name of the next object
-            var->oid = nextOid;
-            var->oidLen = nextOidLen;
-
-            //Save the length of the OID
-            context->response.oidLen = nextOidLen;
-         }
-      }
-   }
-   else
-   {
-      //The specified OID does not lexicographically precede the
-      //name of some object
-      error = ERROR_OBJECT_NOT_FOUND;
-   }
-
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Search MIBs for the given object
- * @param[in] context Pointer to the SNMP agent context
- * @param[in] oid Object identifier
- * @param[in] oidLen Length of the OID
- * @param[out] object Pointer the MIB object descriptor
- * @return Error code
- **/
-
-error_t snmpFindMibObject(SnmpAgentContext *context,
-   const uint8_t *oid, size_t oidLen, const MibObject **object)
-{
-   error_t error;
-   int_t left;
-   int_t right;
-   int_t mid;
-   int_t res;
-   uint_t i;
-   size_t n;
-   const MibObject *objects;
-
-   //Initialize comparaison result
-   res = -1;
-
-   //Loop through MIBs
-   for(i = 0; i < SNMP_AGENT_MAX_MIB_COUNT && res != 0; i++)
-   {
-      //Valid MIB?
-      if(context->mibModule[i] != NULL &&
-         context->mibModule[i]->numObjects > 0)
-      {
-         //Point to the list of objects
-         objects = context->mibModule[i]->objects;
-
-         //Index of the first item
-         left = 0;
-         //Index of the last item
-         right = context->mibModule[i]->numObjects - 1;
-
-         //Discard instance sub-identifier
-         n = MIN(oidLen, objects[right].oidLen);
-
-         //Check object identifier
-         if(oidComp(oid, oidLen, objects[left].oid, objects[left].oidLen) >= 0 &&
-            oidComp(oid, n, objects[right].oid, objects[right].oidLen) <= 0)
-         {
-            //Binary search algorithm
-            while(left <= right && res != 0)
-            {
-               //Calculate the index of the middle item
-               mid = left + (right - left) / 2;
-
-               //Discard instance sub-identifier
-               n = MIN(oidLen, objects[mid].oidLen);
-
-               //Perform lexicographic comparison
-               res = oidComp(oid, n, objects[mid].oid, objects[mid].oidLen);
-
-               //Check the result of the comparison
-               if(res > 0)
-                  left = mid + 1;
-               else if(res < 0)
-                  right = mid - 1;
-            }
-         }
-      }
-   }
-
-   //Object identifier found?
-   if(res == 0)
-   {
-      //Scalar object?
-      if(objects[mid].getNext == NULL)
-      {
-         //The instance sub-identifier shall be 0 for scalar objects
-         if(oidLen == (objects[mid].oidLen + 1) && oid[oidLen - 1] == 0)
-         {
-            //Return a pointer to the matching object
-            *object = &objects[mid];
-            //No error to report
-            error = NO_ERROR;
-         }
-         else
-         {
-            //No such instance...
-            error = ERROR_INSTANCE_NOT_FOUND;
-         }
-      }
-      //Tabular object?
-      else
-      {
-         //Check the length of the OID
-         if(oidLen > objects[mid].oidLen)
-         {
-            //Return a pointer to the matching object
-            *object = &objects[mid];
-            //No error to report
-            error = NO_ERROR;
-         }
-         else
-         {
-            //No such instance...
-            error = ERROR_INSTANCE_NOT_FOUND;
-         }
-      }
-   }
-   else
-   {
-      //No such object...
-      error = ERROR_OBJECT_NOT_FOUND;
-   }
-
-   //Return status code
-   return error;
+   //Successful processing
+   return NO_ERROR;
 }
 
 
@@ -1178,7 +616,7 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
    //SNMPv1 version?
    if(message->version == SNMP_VERSION_1)
    {
-      //Set error-status and error-index fields
+      //Set error-status and error-index fields (refer to RFC 2576, section 4.3)
       switch(status)
       {
       case NO_ERROR:
@@ -1187,9 +625,20 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
          message->errorIndex = 0;
          break;
 
+      case ERROR_BUFFER_OVERFLOW:
+         //Return tooBig status code
+         message->errorStatus = SNMP_ERROR_TOO_BIG;
+         message->errorIndex = 0;
+
+         //Total number of SNMP PDUs which were generated by the SNMP protocol
+         //entity and for which the value of the error-status field is tooBig
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutTooBigs, 1);
+         break;
+
       case ERROR_OBJECT_NOT_FOUND:
       case ERROR_INSTANCE_NOT_FOUND:
       case ERROR_ACCESS_DENIED:
+      case ERROR_AUTHORIZATION_FAILED:
          //Return noSuchName status code
          message->errorStatus = SNMP_ERROR_NO_SUCH_NAME;
          message->errorIndex = index;
@@ -1225,16 +674,6 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
          MIB2_INC_COUNTER32(snmpGroup.snmpOutGenErrs, 1);
          break;
 
-      case ERROR_BUFFER_OVERFLOW:
-         //Return tooBig status code
-         message->errorStatus = SNMP_ERROR_TOO_BIG;
-         message->errorIndex = 0;
-
-         //Total number of SNMP PDUs which were generated by the SNMP protocol
-         //entity and for which the value of the error-status field is tooBig
-         MIB2_INC_COUNTER32(snmpGroup.snmpOutTooBigs, 1);
-         break;
-
       default:
          //If the parsing of the request fails, the SNMP agent discards
          //the message and performs no further actions
@@ -1251,6 +690,27 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
          //Return noError status code
          message->errorStatus = SNMP_ERROR_NONE;
          message->errorIndex = 0;
+         break;
+
+      case ERROR_BUFFER_OVERFLOW:
+         //Return tooBig status code
+         message->errorStatus = SNMP_ERROR_TOO_BIG;
+         message->errorIndex = 0;
+
+         //Total number of SNMP PDUs which were generated by the SNMP protocol
+         //entity and for which the value of the error-status field is tooBig
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutTooBigs, 1);
+         break;
+
+      case ERROR_READ_FAILED:
+      case ERROR_WRITE_FAILED:
+         //Return genError status code
+         message->errorStatus = SNMP_ERROR_GENERIC;
+         message->errorIndex = index;
+
+         //Total number of SNMP PDUs which were generated by the SNMP protocol
+         //entity and for which the value of the error-status field is genError
+         MIB2_INC_COUNTER32(snmpGroup.snmpOutGenErrs, 1);
          break;
 
       case ERROR_OBJECT_NOT_FOUND:
@@ -1291,31 +751,16 @@ error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t ind
          message->errorIndex = index;
          break;
 
-      case ERROR_READ_FAILED:
-      case ERROR_WRITE_FAILED:
-         //Return genError status code
-         message->errorStatus = SNMP_ERROR_GENERIC;
-         message->errorIndex = index;
-
-         //Total number of SNMP PDUs which were generated by the SNMP protocol
-         //entity and for which the value of the error-status field is genError
-         MIB2_INC_COUNTER32(snmpGroup.snmpOutGenErrs, 1);
+      case ERROR_AUTHORIZATION_FAILED:
+         //Return authorizationError status code
+         message->errorStatus = SNMP_ERROR_AUTHORIZATION;
+         message->errorIndex = 0;
          break;
 
       case ERROR_NOT_WRITABLE:
          //Return notWritable status code
          message->errorStatus = SNMP_ERROR_NOT_WRITABLE;
          message->errorIndex = index;
-         break;
-
-      case ERROR_BUFFER_OVERFLOW:
-         //Return tooBig status code
-         message->errorStatus = SNMP_ERROR_TOO_BIG;
-         message->errorIndex = 0;
-
-         //Total number of SNMP PDUs which were generated by the SNMP protocol
-         //entity and for which the value of the error-status field is tooBig
-         MIB2_INC_COUNTER32(snmpGroup.snmpOutTooBigs, 1);
          break;
 
       default:

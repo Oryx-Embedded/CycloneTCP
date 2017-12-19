@@ -29,7 +29,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -602,7 +602,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
       buffer.chunkCount = 1;
       buffer.maxChunkCount = 1;
       buffer.chunk[0].address = packet;
-      buffer.chunk[0].length = length;
+      buffer.chunk[0].length = (uint16_t) length;
 
       //Pass the IPv4 datagram to the higher protocol layer
       ipv4ProcessDatagram(interface, (NetBuffer *) &buffer);
@@ -1168,6 +1168,20 @@ error_t ipv4SelectSourceAddr(NetInterface **interface,
          continue;
       }
 
+      //Check whether the destination address matches the default gateway
+      if(bestInterface->ipv4Context.defaultGateway == destAddr)
+      {
+         //Select the next interface in the list
+         continue;
+      }
+      else if(currentInterface->ipv4Context.defaultGateway == destAddr)
+      {
+         //Give the current interface the higher precedence
+         bestInterface = currentInterface;
+         //Select the next interface in the list
+         continue;
+      }
+
       //Prefer appropriate scope
       if(ipv4GetAddrScope(currentInterface->ipv4Context.addr) <
          ipv4GetAddrScope(bestInterface->ipv4Context.addr))
@@ -1208,6 +1222,14 @@ error_t ipv4SelectSourceAddr(NetInterface **interface,
          bestInterface = currentInterface;
          //Select the next interface in the list
          continue;
+      }
+
+      //Use longest subnet mask
+      if(ntohl(currentInterface->ipv4Context.subnetMask) >
+         ntohl(bestInterface->ipv4Context.subnetMask))
+      {
+         //Give the current interface the higher precedence
+         bestInterface = currentInterface;
       }
    }
 

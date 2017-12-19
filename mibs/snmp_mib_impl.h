@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _SNMP_MIB_IMPL_H
@@ -41,6 +41,8 @@
 error_t snmpMibInit(void);
 error_t snmpMibLoad(void *context);
 void snmpMibUnload(void *context);
+void snmpMibLock(void);
+void snmpMibUnlock(void);
 
 error_t snmpMibGetSysDescr(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
@@ -74,6 +76,12 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
 
 error_t snmpMibGetNextSysOREntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen);
+
+error_t snmpv2MibGetSnmpTrapOID(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t snmpv2MibGetSnmpTrapEnterprise(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
 
 error_t snmpMibSetSnmpSetSerialNo(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);

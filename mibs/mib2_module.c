@@ -30,7 +30,7 @@
  * - RFC 1213: MIB for Network Management of TCP/IP-based internets (version 2)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -40,9 +40,9 @@
 #include "core/net.h"
 #include "mibs/mib2_module.h"
 #include "mibs/mib2_impl.h"
-#include "crypto.h"
-#include "asn1.h"
-#include "oid.h"
+#include "core/crypto.h"
+#include "encoding/asn1.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration

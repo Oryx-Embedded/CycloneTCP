@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _NET_H
@@ -60,13 +60,13 @@ struct _NetInterface;
 #include "error.h"
 
 //Version string
-#define NET_VERSION_STRING "1.7.8"
+#define NET_VERSION_STRING "1.8.0"
 //Major version
 #define NET_MAJOR_VERSION 1
 //Minor version
-#define NET_MINOR_VERSION 7
+#define NET_MINOR_VERSION 8
 //Revision number
-#define NET_REV_NUMBER 8
+#define NET_REV_NUMBER 0
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT

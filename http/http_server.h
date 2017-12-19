@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -252,26 +252,26 @@
 
 //HTTP over SSL/TLS supported?
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-   #include "crypto.h"
+   #include "core/crypto.h"
    #include "tls.h"
 #endif
 
 //Basic authentication supported?
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED)
-   #include "crypto.h"
-   #include "base64.h"
+   #include "core/crypto.h"
+   #include "encoding/base64.h"
 #endif
 
 //Digest authentication supported?
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-   #include "crypto.h"
-   #include "md5.h"
+   #include "core/crypto.h"
+   #include "hash/md5.h"
 #endif
 
 //WebSocket supported?
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
-   #include "crypto.h"
-   #include "base64.h"
+   #include "core/crypto.h"
+   #include "encoding/base64.h"
 #endif
 
 //HTTP port number

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _NET_MEM_H
@@ -33,22 +33,6 @@
 #include "net_config.h"
 #include "os_port.h"
 #include "error.h"
-
-//Deprecated properties
-#ifdef MEM_POOL_SUPPORT
-   #warning MEM_POOL_SUPPORT property is deprecated. NET_MEM_POOL_SUPPORT should be used instead.
-   #define NET_MEM_POOL_SUPPORT MEM_POOL_SUPPORT
-#endif
-
-#ifdef MEM_POOL_BUFFER_COUNT
-   #warning MEM_POOL_BUFFER_COUNT property is deprecated. NET_MEM_POOL_BUFFER_COUNT should be used instead.
-   #define NET_MEM_POOL_BUFFER_COUNT MEM_POOL_BUFFER_COUNT
-#endif
-
-#ifdef MEM_POOL_BUFFER_SIZE
-   #warning MEM_POOL_BUFFER_SIZE property is deprecated. NET_MEM_POOL_BUFFER_SIZE should be used instead.
-   #define NET_MEM_POOL_BUFFER_SIZE MEM_POOL_BUFFER_SIZE
-#endif
 
 //Use fixed-size blocks allocation?
 #ifndef NET_MEM_POOL_SUPPORT

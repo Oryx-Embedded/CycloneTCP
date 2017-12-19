@@ -33,7 +33,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -297,7 +297,7 @@ error_t tftpClientWriteFile(TftpClientContext *context,
             totalLength += n;
          }
 
-         //Check whther the send buffer is full
+         //Check whether the send buffer is full
          if(context->outDataLen >= TFTP_CLIENT_BLOCK_SIZE)
          {
             //The block number increases by one for each new block of data

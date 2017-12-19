@@ -31,7 +31,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -75,8 +75,15 @@ void dhcpClientGetDefaultSettings(DhcpClientSettings *settings)
    //Use default interface
    settings->interface = netGetDefaultInterface();
 
+#if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    //Use default host name
    strcpy(settings->hostname, "");
+#endif
+
+#if (DHCP_CLIENT_ID_OPTION_SUPPORT == ENABLED)
+   //Use default client identifier
+   settings->clientIdLength = 0;
+#endif
 
    //Support for quick configuration using rapid commit
    settings->rapidCommit = FALSE;
@@ -125,6 +132,7 @@ error_t dhcpClientInit(DhcpClientContext *context, const DhcpClientSettings *set
    //Save user settings
    context->settings = *settings;
 
+#if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    //No DHCP host name defined?
    if(settings->hostname[0] == '\0')
    {
@@ -138,6 +146,7 @@ error_t dhcpClientInit(DhcpClientContext *context, const DhcpClientSettings *set
       //Properly terminate the string with a NULL character
       context->settings.hostname[n] = '\0';
    }
+#endif
 
    //Callback function to be called when a DHCP message is received
    error = udpAttachRxCallback(interface, DHCP_CLIENT_PORT,
@@ -956,12 +965,14 @@ void dhcpClientStateRebinding(DhcpClientContext *context)
 error_t dhcpClientSendDiscover(DhcpClientContext *context)
 {
    error_t error;
-   size_t length;
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
    DhcpMessage *message;
    IpAddr destIpAddr;
+#if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
+   size_t length;
+#endif
 
    //DHCP message type
    const uint8_t messageType = DHCP_MESSAGE_TYPE_DISCOVER;
@@ -999,6 +1010,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    dhcpAddOption(message, DHCP_OPT_DHCP_MESSAGE_TYPE,
       &messageType, sizeof(messageType));
 
+#if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    //Retrieve the length of the host name
    length = strlen(context->settings.hostname);
 
@@ -1009,6 +1021,17 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
       dhcpAddOption(message, DHCP_OPT_HOST_NAME,
          context->settings.hostname, length);
    }
+#endif
+
+#if (DHCP_CLIENT_ID_OPTION_SUPPORT == ENABLED)
+   //Any client identifier defined?
+   if(context->settings.clientIdLength > 0)
+   {
+      //DHCP servers use this value to index their database of address bindings
+      dhcpAddOption(message, DHCP_OPT_CLIENT_IDENTIFIER,
+         context->settings.clientId, context->settings.clientIdLength);
+   }
+#endif
 
    //Check whether rapid commit is enabled
    if(context->settings.rapidCommit)
@@ -1049,12 +1072,14 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
 error_t dhcpClientSendRequest(DhcpClientContext *context)
 {
    error_t error;
-   size_t length;
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
    DhcpMessage *message;
    IpAddr destIpAddr;
+#if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
+   size_t length;
+#endif
 
    //DHCP message type
    const uint8_t messageType = DHCP_MESSAGE_TYPE_REQUEST;
@@ -1105,6 +1130,7 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    dhcpAddOption(message, DHCP_OPT_DHCP_MESSAGE_TYPE,
       &messageType, sizeof(messageType));
 
+#if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    //Retrieve the length of the host name
    length = strlen(context->settings.hostname);
 
@@ -1115,6 +1141,17 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
       dhcpAddOption(message, DHCP_OPT_HOST_NAME,
          context->settings.hostname, length);
    }
+#endif
+
+#if (DHCP_CLIENT_ID_OPTION_SUPPORT == ENABLED)
+   //Any client identifier defined?
+   if(context->settings.clientIdLength > 0)
+   {
+      //DHCP servers use this value to index their database of address bindings
+      dhcpAddOption(message, DHCP_OPT_CLIENT_IDENTIFIER,
+         context->settings.clientId, context->settings.clientIdLength);
+   }
+#endif
 
    //Server Identifier option
    if(context->state == DHCP_STATE_REQUESTING)

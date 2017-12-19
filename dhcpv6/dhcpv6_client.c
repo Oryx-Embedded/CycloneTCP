@@ -31,7 +31,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -2029,8 +2029,8 @@ error_t dhcpv6ClientParseIaNaOption(Dhcpv6ClientContext *context,
    }
    else if(status == DHCPV6_STATUS_NOT_ON_LINK)
    {
-      //The prefix for the address is not appropriate for the
-      //link to which the client is attached
+      //The prefix for the address is not appropriate for the link to which the
+      //client is attached
       return ERROR_NOT_ON_LINK;
    }
    else if(status != DHCPV6_STATUS_SUCCESS)

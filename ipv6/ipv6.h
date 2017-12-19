@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _IPV6_H
@@ -270,7 +270,7 @@ __start_packed struct _Ipv6Header
    uint8_t trafficClassL : 4;
 #endif
    uint16_t flowLabelL;       //2-3
-   uint16_t payloadLength;    //4-5
+   uint16_t payloadLen;       //4-5
    uint8_t nextHeader;        //6
    uint8_t hopLimit;          //7
    Ipv6Addr srcAddr;          //8-23
@@ -338,7 +338,7 @@ __start_packed struct _Ipv6FragmentHeader
 typedef __start_packed struct
 {
    uint8_t nextHeader;          //0
-   uint8_t payloadLength;       //1
+   uint8_t payloadLen;          //1
    uint16_t reserved;           //2-3
    uint32_t securityParamIndex; //4-7
    uint32_t sequenceNumber;     //8-11
@@ -415,7 +415,7 @@ typedef struct
 typedef struct
 {
    Ipv6Addr prefix;             ///<IPv6 prefix information
-   uint8_t prefixLength;        ///<IPv6 prefix length
+   uint8_t prefixLen;           ///<IPv6 prefix length
    bool_t onLinkFlag;           ///<On-link flag
    bool_t autonomousFlag;       ///<Autonomous flag
    systime_t validLifetime;     ///<Valid lifetime
@@ -532,7 +532,7 @@ error_t ipv6ParseEspHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
 
 error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t optOffset, size_t optLength);
+   size_t ipPacketOffset, size_t optionOffset, size_t optionLen);
 
 error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    NetBuffer *buffer, size_t offset, uint8_t hopLimit);

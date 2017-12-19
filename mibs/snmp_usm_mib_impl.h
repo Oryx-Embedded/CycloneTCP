@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _SNMP_USM_MIB_IMPL_H
@@ -44,19 +44,19 @@ void snmpUsmMibUnload(void *context);
 void snmpUsmMibLock(void);
 void snmpUsmMibUnlock(void);
 
-error_t snmpUsmMibSetUsmUserSpinLock(const MibObject *object, const uint8_t *oid,
+error_t snmpUsmMibSetUserSpinLock(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
-error_t snmpUsmMibGetUsmUserSpinLock(const MibObject *object, const uint8_t *oid,
+error_t snmpUsmMibGetUserSpinLock(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
 
-error_t snmpUsmMibSetUsmUserEntry(const MibObject *object, const uint8_t *oid,
+error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit);
 
-error_t snmpUsmMibGetUsmUserEntry(const MibObject *object, const uint8_t *oid,
+error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
 
-error_t snmpUsmMibGetNextUsmUserEntry(const MibObject *object, const uint8_t *oid,
+error_t snmpUsmMibGetNextUserEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen);
 
 //C++ guard

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _WEB_SOCKET_AUTH_H
@@ -44,7 +44,7 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value);
 size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output);
 
 void webSocketConvertArrayToHexString(const uint8_t *input,
-   size_t inputLength, char_t *output);
+   size_t inputLen, char_t *output);
 
 //C++ guard
 #ifdef __cplusplus

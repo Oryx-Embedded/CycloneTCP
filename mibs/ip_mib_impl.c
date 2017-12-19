@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -40,9 +40,9 @@
 #include "mibs/mib_common.h"
 #include "mibs/ip_mib_module.h"
 #include "mibs/ip_mib_impl.h"
-#include "crypto.h"
-#include "asn1.h"
-#include "oid.h"
+#include "core/crypto.h"
+#include "encoding/asn1.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -1108,7 +1108,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
          if(prefixList[i].validLifetime > 0)
          {
             //Compare prefix length against the specified value
-            if(prefixList[i].prefixLength == length)
+            if(prefixList[i].prefixLen == length)
             {
                //Check whether the current entry matches the specified prefix
                if(ipv6CompPrefix(&prefixList[i].prefix, &prefix.ipv6Addr, length))
@@ -1325,7 +1325,7 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
             //Retrieve current prefix
             curPrefix.length = sizeof(Ipv6Addr);
             curPrefix.ipv6Addr = prefixList[i].prefix;
-            curLength = prefixList[i].prefixLength;
+            curLength = prefixList[i].prefixLen;
 
             //Append the instance identifier to the OID prefix
             n = object->oidLen;

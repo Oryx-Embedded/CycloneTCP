@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -35,9 +35,9 @@
 #include "mibs/snmp_mib_module.h"
 #include "mibs/snmp_mib_impl.h"
 #include "snmp/snmp_agent.h"
-#include "crypto.h"
-#include "asn1.h"
-#include "oid.h"
+#include "core/crypto.h"
+#include "encoding/asn1.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -136,6 +136,24 @@ void snmpMibUnload(void *context)
 
 
 /**
+ * @brief Lock SNMP MIB base
+ **/
+
+void snmpMibLock(void)
+{
+}
+
+
+/**
+ * @brief Unlock SNMP MIB base
+ **/
+
+void snmpMibUnlock(void)
+{
+}
+
+
+/**
  * @brief Get sysUpTime object value
  * @param[in] object Pointer to the MIB object descriptor
  * @param[in] oid Object identifier (object name and instance identifier)
@@ -189,19 +207,17 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > SNMP_AGENT_MAX_MIB_COUNT)
+   if(index < 1 || index > SNMP_AGENT_MAX_MIBS)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpMibBase.context;
-
    //Sanity check
    if(context == NULL)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Point to the MIB
-   mibModule = context->mibModule[index - 1];
-
+   mibModule = context->mibTable[index - 1];
    //Make sure the MIB is properly loaded
    if(mibModule == NULL)
       return ERROR_INSTANCE_NOT_FOUND;
@@ -281,7 +297,6 @@ error_t snmpMibGetNextSysOREntry(const MibObject *object, const uint8_t *oid,
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpMibBase.context;
-
    //Sanity check
    if(context == NULL)
       return ERROR_OBJECT_NOT_FOUND;
@@ -294,10 +309,10 @@ error_t snmpMibGetNextSysOREntry(const MibObject *object, const uint8_t *oid,
    memcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through existing MIBs
-   for(index = 1; index <= SNMP_AGENT_MAX_MIB_COUNT; index++)
+   for(index = 1; index <= SNMP_AGENT_MAX_MIBS; index++)
    {
       //Make sure the MIB is properly loaded
-      if(context->mibModule[index - 1] != NULL)
+      if(context->mibTable[index - 1] != NULL)
       {
          //Append the instance identifier to the OID prefix
          n = object->oidLen;
@@ -323,6 +338,64 @@ error_t snmpMibGetNextSysOREntry(const MibObject *object, const uint8_t *oid,
    //The specified OID does not lexicographically precede the name
    //of some object
    return ERROR_OBJECT_NOT_FOUND;
+}
+
+
+/**
+ * @brief Get snmpTrapOID object value
+ * @param[in] object Pointer to the MIB object descriptor
+ * @param[in] oid Object identifier (object name and instance identifier)
+ * @param[in] oidLen Length of the OID, in bytes
+ * @param[out] value Object value
+ * @param[in,out] valueLen Length of the object value, in bytes
+ * @return Error code
+ **/
+
+error_t snmpv2MibGetSnmpTrapOID(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen)
+{
+   //Not implemented
+   *valueLen = 0;
+
+   //Return status code
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Get snmpTrapEnterprise object value
+ * @param[in] object Pointer to the MIB object descriptor
+ * @param[in] oid Object identifier (object name and instance identifier)
+ * @param[in] oidLen Length of the OID, in bytes
+ * @param[out] value Object value
+ * @param[in,out] valueLen Length of the object value, in bytes
+ * @return Error code
+ **/
+
+error_t snmpv2MibGetSnmpTrapEnterprise(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen)
+{
+   SnmpAgentContext *context;
+
+   //Point to the SNMP agent context
+   context = (SnmpAgentContext *) snmpMibBase.context;
+   //Sanity check
+   if(context == NULL)
+      return ERROR_OBJECT_NOT_FOUND;
+
+   //Make sure the buffer is large enough to hold the enterprise OID
+   if(*valueLen < context->enterpriseOidLen)
+      return ERROR_BUFFER_OVERFLOW;
+
+   //Copy enterprise OID
+   memcpy(value->octetString, context->enterpriseOid,
+      context->enterpriseOidLen);
+
+   //Return object length
+   *valueLen = context->enterpriseOidLen;
+
+   //Return status code
+   return NO_ERROR;
 }
 
 

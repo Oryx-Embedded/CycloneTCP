@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -384,7 +384,7 @@ void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
       if(entry->validLifetime)
       {
          //Compare prefix length against the specified value
-         if(entry->prefixLength == length)
+         if(entry->prefixLen == length)
          {
             //Check whether the current entry matches the specified prefix
             if(ipv6CompPrefix(&entry->prefix, prefix, length))
@@ -415,7 +415,7 @@ void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
       {
          //Save the IPv6 prefix
          entry->prefix = *prefix;
-         entry->prefixLength = length;
+         entry->prefixLen = length;
 
          //Save On-link and Autonomous flags
          entry->onLinkFlag = onLinkFlag;
@@ -482,7 +482,7 @@ void ipv6RemovePrefix(NetInterface *interface, const Ipv6Addr *prefix, uint_t le
       if(entry->validLifetime)
       {
          //Compare prefix length against the specified value
-         if(entry->prefixLength == length)
+         if(entry->prefixLen == length)
          {
             //Check whether the current entry matches the specified prefix
             if(ipv6CompPrefix(&entry->prefix, prefix, length))
@@ -493,7 +493,7 @@ void ipv6RemovePrefix(NetInterface *interface, const Ipv6Addr *prefix, uint_t le
                   //When removing an entry from the Prefix List, there is no need
                   //to purge any entries from the Destination or Neighbor Caches
                   entry->prefix = IPV6_UNSPECIFIED_ADDR;
-                  entry->prefixLength = 0;
+                  entry->prefixLen = 0;
                   entry->validLifetime = 0;
                }
             }
@@ -680,7 +680,7 @@ void ipv6FlushPrefixList(NetInterface *interface)
          {
             //Remove the entry from the Prefix List
             entry->prefix = IPV6_UNSPECIFIED_ADDR;
-            entry->prefixLength = 0;
+            entry->prefixLen = 0;
             entry->validLifetime = 0;
          }
       }
@@ -1037,7 +1037,7 @@ bool_t ipv6IsOnLink(NetInterface *interface, const Ipv6Addr *ipAddr)
       if(entry->validLifetime > 0)
       {
          //Check the specified address against the prefix
-         if(ipv6CompPrefix(ipAddr, &entry->prefix, entry->prefixLength))
+         if(ipv6CompPrefix(ipAddr, &entry->prefix, entry->prefixLen))
          {
             //The specified IPv6 address is on-link
             return TRUE;

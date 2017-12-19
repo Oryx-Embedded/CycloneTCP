@@ -31,7 +31,7 @@
  * - RFC 6106: IPv6 Router Advertisement Options for DNS Configuration
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -635,7 +635,7 @@ void slaacDumpConfig(SlaacContext *context)
    {
       TRACE_INFO("  Prefix %u = %s/%" PRIu8 "\r\n", i + 1,
          ipv6AddrToString(&ipv6Context->prefixList[i].prefix, NULL),
-         ipv6Context->prefixList[i].prefixLength);
+         ipv6Context->prefixList[i].prefixLen);
    }
 
    //Default routers

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -535,21 +535,21 @@ uint16_t ipCalcChecksumEx(const NetBuffer *buffer, size_t offset, size_t length)
 /**
  * @brief Calculate IP upper-layer checksum
  * @param[in] pseudoHeader Pointer to the pseudo header
- * @param[in] pseudoHeaderLength Pseudo header length
+ * @param[in] pseudoHeaderLen Pseudo header length
  * @param[in] data Pointer to the upper-layer data
- * @param[in] dataLength Upper-layer data length
+ * @param[in] dataLen Upper-layer data length
  * @return Checksum value
  **/
 
 uint16_t ipCalcUpperLayerChecksum(const void *pseudoHeader,
-   size_t pseudoHeaderLength, const void *data, size_t dataLength)
+   size_t pseudoHeaderLen, const void *data, size_t dataLen)
 {
    uint32_t checksum;
 
    //Process pseudo header
-   checksum = ipCalcChecksum(pseudoHeader, pseudoHeaderLength) ^ 0xFFFF;
+   checksum = ipCalcChecksum(pseudoHeader, pseudoHeaderLen) ^ 0xFFFF;
    //Process upper-layer data
-   checksum += ipCalcChecksum(data, dataLength) ^ 0xFFFF;
+   checksum += ipCalcChecksum(data, dataLen) ^ 0xFFFF;
    //Fold 32-bit sum to 16 bits
    checksum = (checksum & 0xFFFF) + (checksum >> 16);
 
@@ -561,7 +561,7 @@ uint16_t ipCalcUpperLayerChecksum(const void *pseudoHeader,
 /**
  * @brief Calculate IP upper-layer checksum over a multi-part buffer
  * @param[in] pseudoHeader Pointer to the pseudo header
- * @param[in] pseudoHeaderLength Pseudo header length
+ * @param[in] pseudoHeaderLen Pseudo header length
  * @param[in] buffer Multi-part buffer containing the upper-layer data
  * @param[in] offset Offset from the first data byte to process
  * @param[in] length Number of data bytes to process
@@ -569,12 +569,12 @@ uint16_t ipCalcUpperLayerChecksum(const void *pseudoHeader,
  **/
 
 uint16_t ipCalcUpperLayerChecksumEx(const void *pseudoHeader,
-   size_t pseudoHeaderLength, const NetBuffer *buffer, size_t offset, size_t length)
+   size_t pseudoHeaderLen, const NetBuffer *buffer, size_t offset, size_t length)
 {
    uint32_t checksum;
 
    //Process pseudo header
-   checksum = ipCalcChecksum(pseudoHeader, pseudoHeaderLength) ^ 0xFFFF;
+   checksum = ipCalcChecksum(pseudoHeader, pseudoHeaderLen) ^ 0xFFFF;
    //Process upper-layer data
    checksum += ipCalcChecksumEx(buffer, offset, length) ^ 0xFFFF;
    //Fold 32-bit sum to 16 bits
@@ -595,26 +595,26 @@ uint16_t ipCalcUpperLayerChecksumEx(const void *pseudoHeader,
 
 NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
 {
-   size_t headerLength;
+   size_t headerLen;
    NetBuffer *buffer;
 
 #if (IPV6_SUPPORT == ENABLED)
    //Maximum overhead when using IPv6
-   headerLength = sizeof(Ipv6Header) + sizeof(Ipv6FragmentHeader);
+   headerLen = sizeof(Ipv6Header) + sizeof(Ipv6FragmentHeader);
 #else
    //Maximum overhead when using IPv4
-   headerLength = sizeof(Ipv4Header);
+   headerLen = sizeof(Ipv4Header);
 #endif
 
 #if (ETH_SUPPORT == ENABLED)
    //Allocate a buffer to hold the Ethernet header and the IP packet
-   buffer = ethAllocBuffer(length + headerLength, offset);
+   buffer = ethAllocBuffer(length + headerLen, offset);
 #elif (PPP_SUPPORT == ENABLED)
    //Allocate a buffer to hold the PPP header and the IP packet
-   buffer = pppAllocBuffer(length + headerLength, offset);
+   buffer = pppAllocBuffer(length + headerLen, offset);
 #else
    //Allocate a buffer to hold the IP packet
-   buffer = netBufferAlloc(length + headerLength);
+   buffer = netBufferAlloc(length + headerLen);
    //Clear offset value
    *offset = 0;
 #endif
@@ -623,7 +623,7 @@ NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
    if(buffer != NULL)
    {
       //Offset to the first byte of the payload
-      *offset += headerLength;
+      *offset += headerLen;
    }
 
    //Return a pointer to the freshly allocated buffer

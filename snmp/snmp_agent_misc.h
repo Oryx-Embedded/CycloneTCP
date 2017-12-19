@@ -1,6 +1,6 @@
 /**
  * @file snmp_agent_misc.h
- * @brief SNMP agent (miscellaneous functions)
+ * @brief Helper functions for SNMP agent
  *
  * @section License
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _SNMP_AGENT_MISC_H
@@ -42,13 +42,10 @@
 void snmpLockMib(SnmpAgentContext *context);
 void snmpUnlockMib(SnmpAgentContext *context);
 
-error_t snmpInitResponse(SnmpAgentContext *context);
+SnmpUserEntry *snmpCreateCommunityEntry(SnmpAgentContext *context);
 
-void snmpRefreshEngineTime(SnmpAgentContext *context);
-error_t snmpCheckEngineTime(SnmpAgentContext *context, SnmpMessage *message);
-
-SnmpUserInfo *snmpFindUser(SnmpAgentContext *context,
-   const char_t *name, size_t length);
+SnmpUserEntry *snmpFindCommunityEntry(SnmpAgentContext *context,
+   const char_t *community, size_t length);
 
 error_t snmpParseVarBinding(const uint8_t *p,
    size_t length, SnmpVarBind *var, size_t *consumed);
@@ -56,12 +53,9 @@ error_t snmpParseVarBinding(const uint8_t *p,
 error_t snmpWriteVarBinding(SnmpAgentContext *context, const SnmpVarBind *var);
 error_t snmpCopyVarBindingList(SnmpAgentContext *context);
 
-error_t snmpSetObjectValue(SnmpAgentContext *context, SnmpVarBind *var, bool_t commit);
-error_t snmpGetObjectValue(SnmpAgentContext *context, SnmpVarBind *var);
-error_t snmpGetNextObject(SnmpAgentContext *context, SnmpVarBind *var);
-
-error_t snmpFindMibObject(SnmpAgentContext *context,
-   const uint8_t *oid, size_t oidLen, const MibObject **object);
+error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
+   uint_t genericTrapType, uint_t specificTrapCode,
+   const SnmpTrapObject *objectList, uint_t objectListSize);
 
 error_t snmpTranslateStatusCode(SnmpMessage *message, error_t status, uint_t index);
 

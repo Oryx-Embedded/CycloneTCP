@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,8 +42,8 @@
 #if (PPP_SUPPORT == ENABLED && CHAP_SUPPORT == ENABLED)
 
 //Additional dependencies
-#include "crypto.h"
-#include "md5.h"
+#include "core/crypto.h"
+#include "hash/md5.h"
 
 
 /**

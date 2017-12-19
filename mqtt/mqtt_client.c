@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -554,32 +554,47 @@ error_t mqttClientPublish(MqttClientContext *context,
    error = NO_ERROR;
 
    //Send PUBLISH packet and wait for PUBACK/PUBCOMP packet to be received
-   do
+   while(!error)
    {
       //Check current state
       if(context->state == MQTT_CLIENT_STATE_IDLE)
       {
-         //Format PUBLISH packet
-         error = mqttClientFormatPublish(context, topic, message, length, qos, retain);
-
-         //Check status code
-         if(!error)
+         //Check for transmission completion
+         if(context->packetType == MQTT_PACKET_TYPE_INVALID)
          {
-            //Save the packet identifier used to send the PUBLISH packet
-            if(packetId != NULL)
-               *packetId = context->packetId;
+            //Format PUBLISH packet
+            error = mqttClientFormatPublish(context, topic, message,
+               length, qos, retain);
 
-            //Debug message
-            TRACE_INFO("MQTT: Sending PUBLISH packet (%" PRIuSIZE " bytes)...\r\n", context->packetLen);
-            TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);
+            //Check status code
+            if(!error)
+            {
+               //Save the packet identifier used to send the PUBLISH packet
+               if(packetId != NULL)
+                  *packetId = context->packetId;
 
-            //Save the type of the MQTT packet to be sent
-            context->packetType = MQTT_PACKET_TYPE_PUBLISH;
-            //Point to the beginning of the packet
-            context->packetPos = 0;
+               //Debug message
+               TRACE_INFO("MQTT: Sending PUBLISH packet (%" PRIuSIZE " bytes)...\r\n",
+                  context->packetLen);
 
-            //Send PUBLISH packet
-            mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+               //Dump the contents of the PUBLISH packet
+               TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);
+
+               //Save the type of the MQTT packet to be sent
+               context->packetType = MQTT_PACKET_TYPE_PUBLISH;
+               //Point to the beginning of the packet
+               context->packetPos = 0;
+
+               //Send PUBLISH packet
+               mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+            }
+         }
+         else
+         {
+            //Reset packet type
+            context->packetType = MQTT_PACKET_TYPE_INVALID;
+            //We are done
+            break;
          }
       }
       else if(context->state == MQTT_CLIENT_STATE_SENDING_PACKET)
@@ -592,8 +607,6 @@ error_t mqttClientPublish(MqttClientContext *context,
          //The last parameter is optional
          if(packetId != NULL)
          {
-            //Reset packet type
-            context->packetType = MQTT_PACKET_TYPE_INVALID;
             //Do not wait for PUBACK/PUBCOMP packet
             mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
          }
@@ -602,8 +615,6 @@ error_t mqttClientPublish(MqttClientContext *context,
             //Check QoS level
             if(qos == MQTT_QOS_LEVEL_0)
             {
-               //Reset packet type
-               context->packetType = MQTT_PACKET_TYPE_INVALID;
                //No response is sent by the receiver and no retry is performed by the sender
                mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
             }
@@ -621,8 +632,6 @@ error_t mqttClientPublish(MqttClientContext *context,
       }
       else if(context->state == MQTT_CLIENT_STATE_PACKET_RECEIVED)
       {
-         //Reset packet type
-         context->packetType = MQTT_PACKET_TYPE_INVALID;
          //A PUBACK/PUBCOMP packet has been received
          mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
       }
@@ -631,13 +640,7 @@ error_t mqttClientPublish(MqttClientContext *context,
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
-
-      //Any error to report?
-      if(error)
-         break;
-
-      //Evaluate the loop condition
-   } while(context->state != MQTT_CLIENT_STATE_IDLE);
+   }
 
    //Return status code
    return error;
@@ -667,32 +670,46 @@ error_t mqttClientSubscribe(MqttClientContext *context,
    error = NO_ERROR;
 
    //Send SUBSCRIBE packet and wait for SUBACK packet to be received
-   do
+   while(!error)
    {
       //Check current state
       if(context->state == MQTT_CLIENT_STATE_IDLE)
       {
-         //Format SUBSCRIBE packet
-         error = mqttClientFormatSubscribe(context, topic, qos);
-
-         //Check status code
-         if(!error)
+         //Check for transmission completion
+         if(context->packetType == MQTT_PACKET_TYPE_INVALID)
          {
-            //Save the packet identifier used to send the SUBSCRIBE packet
-            if(packetId != NULL)
-               *packetId = context->packetId;
+            //Format SUBSCRIBE packet
+            error = mqttClientFormatSubscribe(context, topic, qos);
 
-            //Debug message
-            TRACE_INFO("MQTT: Sending SUBSCRIBE packet (%" PRIuSIZE " bytes)...\r\n", context->packetLen);
-            TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);
+            //Check status code
+            if(!error)
+            {
+               //Save the packet identifier used to send the SUBSCRIBE packet
+               if(packetId != NULL)
+                  *packetId = context->packetId;
 
-            //Save the type of the MQTT packet to be sent
-            context->packetType = MQTT_PACKET_TYPE_SUBSCRIBE;
-            //Point to the beginning of the packet
-            context->packetPos = 0;
+               //Debug message
+               TRACE_INFO("MQTT: Sending SUBSCRIBE packet (%" PRIuSIZE " bytes)...\r\n",
+                  context->packetLen);
 
-            //Send SUBSCRIBE packet
-            mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+               //Dump the contents of the SUBSCRIBE packet
+               TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);
+
+               //Save the type of the MQTT packet to be sent
+               context->packetType = MQTT_PACKET_TYPE_SUBSCRIBE;
+               //Point to the beginning of the packet
+               context->packetPos = 0;
+
+               //Send SUBSCRIBE packet
+               mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+            }
+         }
+         else
+         {
+            //Reset packet type
+            context->packetType = MQTT_PACKET_TYPE_INVALID;
+            //We are done
+            break;
          }
       }
       else if(context->state == MQTT_CLIENT_STATE_SENDING_PACKET)
@@ -705,8 +722,6 @@ error_t mqttClientSubscribe(MqttClientContext *context,
          //The last parameter is optional
          if(packetId != NULL)
          {
-            //Reset packet type
-            context->packetType = MQTT_PACKET_TYPE_INVALID;
             //Do not wait for SUBACK packet
             mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
          }
@@ -723,8 +738,6 @@ error_t mqttClientSubscribe(MqttClientContext *context,
       }
       else if(context->state == MQTT_CLIENT_STATE_PACKET_RECEIVED)
       {
-         //Reset packet type
-         context->packetType = MQTT_PACKET_TYPE_INVALID;
          //A SUBACK packet has been received
          mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
       }
@@ -733,13 +746,7 @@ error_t mqttClientSubscribe(MqttClientContext *context,
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
-
-      //Any error to report?
-      if(error)
-         break;
-
-      //Evaluate the loop condition
-   } while(context->state != MQTT_CLIENT_STATE_IDLE);
+   }
 
    //Return status code
    return error;
@@ -767,32 +774,46 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
    error = NO_ERROR;
 
    //Send UNSUBSCRIBE packet and wait for UNSUBACK packet to be received
-   do
+   while(!error)
    {
       //Check current state
       if(context->state == MQTT_CLIENT_STATE_IDLE)
       {
-         //Format UNSUBSCRIBE packet
-         error = mqttClientFormatUnsubscribe(context, topic);
-
-         //Check status code
-         if(!error)
+         //Check for transmission completion
+         if(context->packetType == MQTT_PACKET_TYPE_INVALID)
          {
-            //Save the packet identifier used to send the UNSUBSCRIBE packet
-            if(packetId != NULL)
-               *packetId = context->packetId;
+            //Format UNSUBSCRIBE packet
+            error = mqttClientFormatUnsubscribe(context, topic);
 
-            //Debug message
-            TRACE_INFO("MQTT: Sending UNSUBSCRIBE packet (%" PRIuSIZE " bytes)...\r\n", context->packetLen);
-            TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);
+            //Check status code
+            if(!error)
+            {
+               //Save the packet identifier used to send the UNSUBSCRIBE packet
+               if(packetId != NULL)
+                  *packetId = context->packetId;
 
-            //Save the type of the MQTT packet to be sent
-            context->packetType = MQTT_PACKET_TYPE_UNSUBSCRIBE;
-            //Point to the beginning of the packet
-            context->packetPos = 0;
+               //Debug message
+               TRACE_INFO("MQTT: Sending UNSUBSCRIBE packet (%" PRIuSIZE " bytes)...\r\n",
+                  context->packetLen);
 
-            //Send UNSUBSCRIBE packet
-            mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+               //Dump the contents of the UNSUBSCRIBE packet
+               TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);
+
+               //Save the type of the MQTT packet to be sent
+               context->packetType = MQTT_PACKET_TYPE_UNSUBSCRIBE;
+               //Point to the beginning of the packet
+               context->packetPos = 0;
+
+               //Send UNSUBSCRIBE packet
+               mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+            }
+         }
+         else
+         {
+            //Reset packet type
+            context->packetType = MQTT_PACKET_TYPE_INVALID;
+            //We are done
+            break;
          }
       }
       else if(context->state == MQTT_CLIENT_STATE_SENDING_PACKET)
@@ -805,8 +826,6 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
          //The last parameter is optional
          if(packetId != NULL)
          {
-            //Reset packet type
-            context->packetType = MQTT_PACKET_TYPE_INVALID;
             //Do not wait for UNSUBACK packet
             mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
          }
@@ -823,8 +842,6 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
       }
       else if(context->state == MQTT_CLIENT_STATE_PACKET_RECEIVED)
       {
-         //Reset packet type
-         context->packetType = MQTT_PACKET_TYPE_INVALID;
          //An UNSUBACK packet has been received
          mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
       }
@@ -833,13 +850,7 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
-
-      //Any error to report?
-      if(error)
-         break;
-
-      //Evaluate the loop condition
-   } while(context->state != MQTT_CLIENT_STATE_IDLE);
+   }
 
    //Return status code
    return error;
@@ -865,32 +876,46 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
    error = NO_ERROR;
 
    //Send PINGREQ packet and wait for PINGRESP packet to be received
-   do
+   while(!error)
    {
       //Check current state
       if(context->state == MQTT_CLIENT_STATE_IDLE)
       {
-         //Format PINGREQ packet
-         error = mqttClientFormatPingReq(context);
-
-         //Check status code
-         if(!error)
+         //Check for transmission completion
+         if(context->packetType == MQTT_PACKET_TYPE_INVALID)
          {
-            //Debug message
-            TRACE_INFO("MQTT: Sending PINGREQ packet (%" PRIuSIZE " bytes)...\r\n", context->packetLen);
-            TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);
+            //Format PINGREQ packet
+            error = mqttClientFormatPingReq(context);
 
-            //Save the type of the MQTT packet to be sent
-            context->packetType = MQTT_PACKET_TYPE_PINGREQ;
-            //Point to the beginning of the packet
-            context->packetPos = 0;
+            //Check status code
+            if(!error)
+            {
+               //Debug message
+               TRACE_INFO("MQTT: Sending PINGREQ packet (%" PRIuSIZE " bytes)...\r\n",
+                  context->packetLen);
 
-            //Send PINGREQ packet
-            mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+               //Dump the contents of the PINGREQ packet
+               TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);
 
-            //Save the time at which the request was sent
-            if(rtt != NULL)
-               context->pingTimestamp = osGetSystemTime();
+               //Save the type of the MQTT packet to be sent
+               context->packetType = MQTT_PACKET_TYPE_PINGREQ;
+               //Point to the beginning of the packet
+               context->packetPos = 0;
+
+               //Send PINGREQ packet
+               mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+
+               //Save the time at which the request was sent
+               if(rtt != NULL)
+                  context->pingTimestamp = osGetSystemTime();
+            }
+         }
+         else
+         {
+            //Reset packet type
+            context->packetType = MQTT_PACKET_TYPE_INVALID;
+            //We are done
+            break;
          }
       }
       else if(context->state == MQTT_CLIENT_STATE_SENDING_PACKET)
@@ -908,8 +933,6 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
          }
          else
          {
-            //Reset packet type
-            context->packetType = MQTT_PACKET_TYPE_INVALID;
             //Do not wait for PINGRESP packet
             mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
          }
@@ -928,8 +951,6 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
             *rtt = osGetSystemTime() - context->pingTimestamp;
          }
 
-         //Reset packet type
-         context->packetType = MQTT_PACKET_TYPE_INVALID;
          //A PINGRESP packet has been received
          mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
       }
@@ -938,13 +959,7 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
-
-      //Any error to report?
-      if(error)
-         break;
-
-      //Evaluate the loop condition
-   } while(context->state != MQTT_CLIENT_STATE_IDLE);
+   }
 
    //Return status code
    return error;

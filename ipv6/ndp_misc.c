@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -270,7 +270,7 @@ void ndpUpdatePrefixList(NetInterface *interface)
          {
             //When removing an entry from the Prefix List, there is no need
             //to purge any entries from the Destination or Neighbor Caches
-            ipv6RemovePrefix(interface, &entry->prefix, entry->prefixLength);
+            ipv6RemovePrefix(interface, &entry->prefix, entry->prefixLen);
          }
       }
    }
@@ -579,47 +579,47 @@ void ndpUpdateNextHop(NetInterface *interface, const Ipv6Addr *unreachableNextHo
 /**
  * @brief Append an option to a NDP message
  * @param[in] message Pointer to the NDP message
- * @param[in,out] messageLength Length of the entire message
+ * @param[in,out] messageLen Length of the entire message
  * @param[in] type Option type
  * @param[in] value Option value
  * @param[in] length Length of the option value
  **/
 
-void ndpAddOption(void *message, size_t *messageLength,
-   uint8_t type, const void *value, size_t length)
+void ndpAddOption(void *message, size_t *messageLen, uint8_t type,
+   const void *value, size_t length)
 {
-   size_t optionLength;
-   size_t paddingLength;
+   size_t optionLen;
+   size_t paddingLen;
    NdpOption *option;
 
    //Length of the option in units of 8 bytes including the type and length fields
-   optionLength = (length + sizeof(NdpOption) + 7) / 8;
+   optionLen = (length + sizeof(NdpOption) + 7) / 8;
 
    //Sanity check
-   if(optionLength <= UINT8_MAX)
+   if(optionLen <= UINT8_MAX)
    {
       //Point to the buffer where the option is to be written
-      option = (NdpOption *) ((uint8_t *) message + *messageLength);
+      option = (NdpOption *) ((uint8_t *) message + *messageLen);
 
       //Option type
       option->type = type;
       //Option length
-      option->length = (uint8_t) optionLength;
+      option->length = (uint8_t) optionLen;
       //Option value
       memcpy(option->value, value, length);
 
       //Options should be padded when necessary to ensure that they end on
       //their natural 64-bit boundaries
-      if((length + sizeof(NdpOption)) < (optionLength * 8))
+      if((length + sizeof(NdpOption)) < (optionLen * 8))
       {
          //Determine the amount of padding data to append
-         paddingLength = (optionLength * 8) - length - sizeof(NdpOption);
+         paddingLen = (optionLen * 8) - length - sizeof(NdpOption);
          //Write padding data
-         memset(option->value + length, 0, paddingLength);
+         memset(option->value + length, 0, paddingLen);
       }
 
       //Adjust the length of the NDP message
-      *messageLength += optionLength * 8;
+      *messageLen += optionLen * 8;
    }
 }
 

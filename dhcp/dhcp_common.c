@@ -31,7 +31,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -51,11 +51,11 @@
  * @param[in] message Pointer to the DHCP message
  * @param[in] optionCode Option code
  * @param[in] optionValue Option value
- * @param[in] optionLength Length of the option value
+ * @param[in] optionLen Length of the option value
  **/
 
 void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
-   const void *optionValue, size_t optionLength)
+   const void *optionValue, size_t optionLen)
 {
    size_t n;
    DhcpOption *option;
@@ -78,7 +78,7 @@ void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
    }
 
    //Sanity check
-   if(optionLength <= UINT8_MAX)
+   if(optionLen <= UINT8_MAX)
    {
       //Point to the buffer where the option is to be written
       option = (DhcpOption *) (message->options + n);
@@ -86,9 +86,9 @@ void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
       //Option code
       option->code = optionCode;
       //Option length
-      option->length = (uint8_t) optionLength;
+      option->length = (uint8_t) optionLen;
       //Option value
-      memcpy(option->value, optionValue, optionLength);
+      memcpy(option->value, optionValue, optionLen);
 
       //Jump to next the next option
       n += sizeof(DhcpOption) + option->length;

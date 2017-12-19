@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _SNMP_USM_MIB_MODULE_H
@@ -69,6 +69,7 @@ typedef struct
    uint32_t usmStatsWrongDigests;
    uint32_t usmStatsDecryptionErrors;
    int32_t usmUserSpinLock;
+   SnmpUserEntry tempUser;
 } SnmpUsmMibBase;
 
 

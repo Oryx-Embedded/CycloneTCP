@@ -31,7 +31,7 @@
  * - RFC 4001: Textual Conventions for Internet Network Addresses
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,9 +42,9 @@
 #include "mibs/mib_common.h"
 #include "mibs/ip_mib_module.h"
 #include "mibs/ip_mib_impl.h"
-#include "crypto.h"
-#include "asn1.h"
-#include "oid.h"
+#include "core/crypto.h"
+#include "encoding/asn1.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration

@@ -30,7 +30,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -1714,9 +1714,9 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
    error_t error;
    size_t offset;
    size_t length;
-   size_t ipPacketLength;
-   size_t optionLength;
-   size_t paddingLength;
+   size_t ipPacketLen;
+   size_t optionLen;
+   size_t paddingLen;
    NetBuffer *buffer;
    NdpRedirectMessage *message;
    NdpRedirectedHeaderOption *option;
@@ -1726,10 +1726,10 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
    uint8_t padding[8];
 
    //Retrieve the length of the forwarded IPv6 packet
-   ipPacketLength = netBufferGetLength(ipPacket) - ipPacketOffset;
+   ipPacketLen = netBufferGetLength(ipPacket) - ipPacketOffset;
 
    //Check the length of the IPv6 packet
-   if(ipPacketLength < sizeof(Ipv6Header))
+   if(ipPacketLen < sizeof(Ipv6Header))
       return ERROR_INVALID_LENGTH;
 
    //Point to the header of the invoking packet
@@ -1776,23 +1776,23 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
 
    //Retrieve the length of the IPv6 packet that triggered the sending
    //of the Redirect
-   ipPacketLength = netBufferGetLength(ipPacket) - ipPacketOffset;
+   ipPacketLen = netBufferGetLength(ipPacket) - ipPacketOffset;
 
    //Return as much of the forwarded IPv6 packet as can fit without
    //the redirect packet exceeding the minimum IPv6 MTU
-   ipPacketLength = MIN(ipPacketLength, IPV6_DEFAULT_MTU -
+   ipPacketLen = MIN(ipPacketLen, IPV6_DEFAULT_MTU -
       sizeof(NdpRedirectedHeaderOption) - length);
 
    //Length of the Redirected Header option in units of 8 bytes including
    //the type and length fields
-   optionLength = (ipPacketLength + sizeof(NdpOption) + 7) / 8;
+   optionLen = (ipPacketLen + sizeof(NdpOption) + 7) / 8;
 
    //Add Redirected Header option
    option = (NdpRedirectedHeaderOption *) ((uint8_t *) message + length);
 
    //Format Redirected Header option
    option->type = NDP_OPT_REDIRECTED_HEADER;
-   option->length = (uint8_t) optionLength;
+   option->length = (uint8_t) optionLen;
    option->reserved1 = 0;
    option->reserved2 = 0;
 
@@ -1803,23 +1803,23 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
    netBufferSetLength(buffer, offset + length);
 
    //Copy the contents of the forwarded IPv6 packet
-   error = netBufferConcat(buffer, ipPacket, ipPacketOffset, ipPacketLength);
+   error = netBufferConcat(buffer, ipPacket, ipPacketOffset, ipPacketLen);
 
    //Check status code
    if(!error)
    {
       //Options should be padded when necessary to ensure that they end on
       //their natural 64-bit boundaries
-      if((ipPacketLength + sizeof(NdpRedirectedHeaderOption)) < (optionLength * 8))
+      if((ipPacketLen + sizeof(NdpRedirectedHeaderOption)) < (optionLen * 8))
       {
          //Determine the amount of padding data to append
-         paddingLength = (optionLength * 8) - ipPacketLength -
+         paddingLen = (optionLen * 8) - ipPacketLen -
             sizeof(NdpRedirectedHeaderOption);
 
          //Prepare padding data
-         memset(padding, 0, paddingLength);
+         memset(padding, 0, paddingLen);
          //Append padding bytes
-         error = netBufferAppend(buffer, padding, paddingLength);
+         error = netBufferAppend(buffer, padding, paddingLen);
       }
    }
 

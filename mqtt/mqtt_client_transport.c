@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
  *
- * This file is part of CycloneSSL Open.
+ * This file is part of CycloneTCP Open.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -245,8 +245,19 @@ error_t mqttClientEstablishConnection(MqttClientContext *context,
       //Check status code
       if(!error)
       {
-         //Establish a SSL/TLS session
+         //Perform SSL/TLS handshake
          error = tlsConnect(context->tlsContext);
+      }
+
+      //Successful connection?
+      if(!error)
+      {
+         //Ensure the session ID is valid
+         if(context->tlsContext->sessionIdLen > 0)
+         {
+            //Save SSL/TLS session
+            error = tlsSaveSession(context->tlsContext, &context->tlsSession);
+         }
       }
    }
 #endif
@@ -350,7 +361,7 @@ error_t mqttClientShutdownConnection(MqttClientContext *context)
       //Check status code
       if(!error)
       {
-         //Connect to the MQTT server using WebSocket
+         //Shutdown WebSocket connection
          error = webSocketShutdown(context->webSocket);
       }
    }

@@ -31,7 +31,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -98,40 +98,40 @@ Dhcpv6StatusCode dhcpv6GetStatusCode(const uint8_t *options, size_t length)
 /**
  * @brief Add an option to a DHCPv6 message
  * @param[in] message Pointer to the DHCPv6 message
- * @param[in,out] messageLength Length of the overall DHCPv6 message
+ * @param[in,out] messageLen Length of the overall DHCPv6 message
  * @param[in] optionCode Option code
  * @param[in] optionValue Option value
- * @param[in] optionLength Length of the option value
+ * @param[in] optionLen Length of the option value
  * @return If the option was successfully added, a pointer to the freshly
  *   created option is returned. Otherwise NULL pointer is returned
  **/
 
-Dhcpv6Option *dhcpv6AddOption(void *message, size_t *messageLength,
-   uint16_t optionCode, const void *optionValue, size_t optionLength)
+Dhcpv6Option *dhcpv6AddOption(void *message, size_t *messageLen,
+   uint16_t optionCode, const void *optionValue, size_t optionLen)
 {
    Dhcpv6Option *option;
 
    //Check the length of the DHCPv6 message
-   if(*messageLength < sizeof(Dhcpv6Message))
+   if(*messageLen < sizeof(Dhcpv6Message))
       return NULL;
    //Check the length of the option
-   if(optionLength > UINT16_MAX)
+   if(optionLen > UINT16_MAX)
       return NULL;
 
    //Make sure there is enough room to add the option
-   if((*messageLength + sizeof(Dhcpv6Option) + optionLength) > DHCPV6_MAX_MSG_SIZE)
+   if((*messageLen + sizeof(Dhcpv6Option) + optionLen) > DHCPV6_MAX_MSG_SIZE)
       return NULL;
 
    //Point to the end of the DHCPv6 message
-   option = (Dhcpv6Option *) ((uint8_t *) message + *messageLength);
+   option = (Dhcpv6Option *) ((uint8_t *) message + *messageLen);
    //Write specified option at current location
    option->code = htons(optionCode);
-   option->length = htons(optionLength);
+   option->length = htons(optionLen);
    //Copy option data
-   memcpy(option->value, optionValue, optionLength);
+   memcpy(option->value, optionValue, optionLen);
 
    //Update the length of the DHCPv6 message
-   *messageLength += sizeof(Dhcpv6Option) + optionLength;
+   *messageLen += sizeof(Dhcpv6Option) + optionLen;
    //Return a pointer to the freshly created option
    return option;
 }
@@ -140,16 +140,16 @@ Dhcpv6Option *dhcpv6AddOption(void *message, size_t *messageLength,
 /**
  * @brief Add a suboption under an existing base option
  * @param[in] baseOption Pointer to the base option
- * @param[in,out] messageLength Length of the overall DHCPv6 message
+ * @param[in,out] messageLen Length of the overall DHCPv6 message
  * @param[in] optionCode Option code
  * @param[in] optionValue Option value
- * @param[in] optionLength Length of the option value
+ * @param[in] optionLen Length of the option value
  * @return If the option was successfully added, a pointer to the freshly
  *   created option is returned. Otherwise NULL pointer is returned
  **/
 
-Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLength,
-   uint16_t optionCode, const void *optionValue, size_t optionLength)
+Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLen,
+   uint16_t optionCode, const void *optionValue, size_t optionLen)
 {
    uint_t n;
    Dhcpv6Option *option;
@@ -158,14 +158,14 @@ Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLength
    if(baseOption == NULL)
       return NULL;
    //Check the length of the DHCPv6 message
-   if(*messageLength < sizeof(Dhcpv6Message))
+   if(*messageLen < sizeof(Dhcpv6Message))
       return NULL;
    //Check the length of the suboption
-   if(optionLength > UINT16_MAX)
+   if(optionLen > UINT16_MAX)
       return NULL;
 
    //Make sure there is enough room to add the option
-   if((*messageLength + sizeof(Dhcpv6Option) + optionLength) > DHCPV6_MAX_MSG_SIZE)
+   if((*messageLen + sizeof(Dhcpv6Option) + optionLen) > DHCPV6_MAX_MSG_SIZE)
       return NULL;
 
    //Get the actual length of the base option
@@ -176,17 +176,17 @@ Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLength
 
    //Write specified option at current location
    option->code = htons(optionCode);
-   option->length = htons(optionLength);
+   option->length = htons(optionLen);
    //Copy option data
-   memcpy(option->value, optionValue, optionLength);
+   memcpy(option->value, optionValue, optionLen);
 
    //Update the length of the base option
-   n += sizeof(Dhcpv6Option) + optionLength;
+   n += sizeof(Dhcpv6Option) + optionLen;
    //Convert the 16-bit value to network byte order
    baseOption->length = htons(n);
 
    //Update the length of the DHCPv6 message
-   *messageLength += sizeof(Dhcpv6Option) + optionLength;
+   *messageLen += sizeof(Dhcpv6Option) + optionLen;
    //Return a pointer to the freshly created option
    return option;
 }

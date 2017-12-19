@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _IPV4_FRAG_H
@@ -35,7 +35,7 @@
 
 //IPv4 fragmentation support
 #ifndef IPV4_FRAG_SUPPORT
-   #define IPV4_FRAG_SUPPORT DISABLED
+   #define IPV4_FRAG_SUPPORT ENABLED
 #elif (IPV4_FRAG_SUPPORT != ENABLED && IPV4_FRAG_SUPPORT != DISABLED)
    #error IPV4_FRAG_SUPPORT parameter is not valid
 #endif
@@ -122,7 +122,7 @@ typedef struct
 {
    systime_t timestamp;         ///<Time at which the first fragment was received
    size_t headerLength;         ///<Length of the header
-   size_t dataLength;           ///<Length of the payload
+   size_t dataLen;              ///<Length of the payload
    uint16_t firstHole;          ///<Index of the first hole
    Ipv4ReassemblyBuffer buffer; ///<Buffer containing the reassembled datagram
 } Ipv4FragDesc;

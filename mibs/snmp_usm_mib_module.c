@@ -29,7 +29,7 @@
  * Refer to RFC 3414 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 //Switch to the appropriate trace level
@@ -40,9 +40,9 @@
 #include "mibs/mib_common.h"
 #include "mibs/snmp_usm_mib_module.h"
 #include "mibs/snmp_usm_mib_impl.h"
-#include "crypto.h"
-#include "asn1.h"
-#include "oid.h"
+#include "core/crypto.h"
+#include "encoding/asn1.h"
+#include "encoding/oid.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -163,8 +163,8 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       sizeof(int32_t),
-      snmpUsmMibSetUsmUserSpinLock,
-      snmpUsmMibGetUsmUserSpinLock,
+      snmpUsmMibSetUserSpinLock,
+      snmpUsmMibGetUserSpinLock,
       NULL
    },
    //usmUserSecurityName object (1.3.6.1.6.3.15.1.2.2.1.3)
@@ -179,8 +179,8 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       0,
       NULL,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserCloneFrom object (1.3.6.1.6.3.15.1.2.2.1.4)
    {
@@ -193,9 +193,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       0,
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserAuthProtocol object (1.3.6.1.6.3.15.1.2.2.1.5)
    {
@@ -208,9 +208,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       0,
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserAuthKeyChange object (1.3.6.1.6.3.15.1.2.2.1.6)
    {
@@ -223,9 +223,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       0,
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserOwnAuthKeyChange object (1.3.6.1.6.3.15.1.2.2.1.7)
    {
@@ -238,9 +238,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       0,
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserPrivProtocol object (1.3.6.1.6.3.15.1.2.2.1.8)
    {
@@ -253,9 +253,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       0,
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserPrivKeyChange object (1.3.6.1.6.3.15.1.2.2.1.9)
    {
@@ -268,9 +268,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       0,
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserOwnPrivKeyChange object (1.3.6.1.6.3.15.1.2.2.1.10)
    {
@@ -283,9 +283,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       0,
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserPublic object (1.3.6.1.6.3.15.1.2.2.1.11)
    {
@@ -298,9 +298,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       0,
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserStorageType object (1.3.6.1.6.3.15.1.2.2.1.12)
    {
@@ -313,9 +313,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       sizeof(int32_t),
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    },
    //usmUserStatus object (1.3.6.1.6.3.15.1.2.2.1.13)
    {
@@ -328,9 +328,9 @@ const MibObject snmpUsmMibObjects[] =
       NULL,
       NULL,
       sizeof(int32_t),
-      snmpUsmMibSetUsmUserEntry,
-      snmpUsmMibGetUsmUserEntry,
-      snmpUsmMibGetNextUsmUserEntry
+      snmpUsmMibSetUserEntry,
+      snmpUsmMibGetUserEntry,
+      snmpUsmMibGetNextUserEntry
    }
 };
 

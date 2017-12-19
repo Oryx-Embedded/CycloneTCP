@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _SMTP_CLIENT_H
@@ -83,22 +83,22 @@
 
 //SMTP over SSL/TLS supported?
 #if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-   #include "crypto.h"
+   #include "core/crypto.h"
    #include "tls.h"
 #endif
 
 //LOGIN or PLAIN authentication supported?
 #if (SMTP_CLIENT_LOGIN_AUTH_SUPPORT == ENABLED || SMTP_CLIENT_PLAIN_AUTH_SUPPORT == ENABLED)
-   #include "crypto.h"
-   #include "base64.h"
+   #include "core/crypto.h"
+   #include "encoding/base64.h"
 #endif
 
 //CRAM-MD5 authentication supported?
 #if (SMTP_CLIENT_CRAM_MD5_AUTH_SUPPORT == ENABLED)
-   #include "crypto.h"
-   #include "base64.h"
-   #include "hmac.h"
-   #include "md5.h"
+   #include "core/crypto.h"
+   #include "encoding/base64.h"
+   #include "mac/hmac.h"
+   #include "hash/md5.h"
 #endif
 
 //SMTP port number

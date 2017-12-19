@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _DHCPV6_COMMON_H
@@ -387,7 +387,7 @@ typedef __start_packed struct
 {
    uint32_t preferredLifetime; //0-3
    uint32_t validLifetime;     //4-7
-   uint8_t prefixLength;       //8
+   uint8_t prefixLen;          //8
    Ipv6Addr prefix;            //9-24
    uint8_t options[];          //25
 } __end_packed Dhcpv6IaPrefixOption;
@@ -427,11 +427,11 @@ extern const Ipv6Addr DHCPV6_ALL_SERVERS_ADDR;
 //DHCPv6 related functions
 Dhcpv6StatusCode dhcpv6GetStatusCode(const uint8_t *options, size_t length);
 
-Dhcpv6Option *dhcpv6AddOption(void *message, size_t *messageLength,
-   uint16_t optionCode, const void *optionValue, size_t optionLength);
+Dhcpv6Option *dhcpv6AddOption(void *message, size_t *messageLen,
+   uint16_t optionCode, const void *optionValue, size_t optionLen);
 
-Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLength,
-   uint16_t optionCode, const void *optionValue, size_t optionLength);
+Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLen,
+   uint16_t optionCode, const void *optionValue, size_t optionLen);
 
 Dhcpv6Option *dhcpv6GetOption(const uint8_t *options,
    size_t optionsLength, uint16_t optionCode);

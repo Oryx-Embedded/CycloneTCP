@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.7.8
+ * @version 1.8.0
  **/
 
 #ifndef _NET_LEGACY_H
@@ -196,5 +196,13 @@
 
 #define DhcpClientCtx DhcpClientContext
 #define Dhcpv6ClientCtx Dhcpv6ClientContext
+
+#ifdef SNMP_AGENT_MAX_MIB_COUNT
+   #define SNMP_AGENT_MAX_MIBS SNMP_AGENT_MAX_MIB_COUNT
+#endif
+
+#ifdef SNMP_AGENT_MAX_USER_COUNT
+   #define SNMP_AGENT_MAX_USERS SNMP_AGENT_MAX_USER_COUNT
+#endif
 
 #endif
