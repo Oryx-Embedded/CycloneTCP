@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _IPV4_H
@@ -207,7 +207,9 @@ typedef enum
    IPV4_PROTOCOL_ICMP = 1,
    IPV4_PROTOCOL_IGMP = 2,
    IPV4_PROTOCOL_TCP  = 6,
-   IPV4_PROTOCOL_UDP  = 17
+   IPV4_PROTOCOL_UDP  = 17,
+   IPV4_PROTOCOL_ESP  = 50,
+   IPV4_PROTOCOL_AH   = 51
 } Ipv4Protocol;
 
 

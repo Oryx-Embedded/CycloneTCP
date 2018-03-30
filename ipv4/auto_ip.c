@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 5227: IPv4 Address Conflict Detection
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -377,7 +377,7 @@ void autoIpTick(AutoIpContext *context)
    }
    else if(context->state == AUTO_IP_STATE_CONFIGURED)
    {
-      //Address Conflict Detection is an ongoing process that is in effect
+      //Address Conflict Detection is an on-going process that is in effect
       //for as long as a host is using an IPv4 link-local address
       if(interface->ipv4Context.addrConflict)
       {

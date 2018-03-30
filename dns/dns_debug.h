@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _DNS_DEBUG_H
@@ -34,18 +34,16 @@
 #include "dns/dns_common.h"
 #include "debug.h"
 
-//Check current trace level
-#if (DNS_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
-
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
 #endif
 
-void dnsDumpMessage(const DnsHeader *message, size_t length);
-size_t dnsDumpQuestion(const DnsHeader *message, size_t length, size_t pos, char_t *buffer);
-size_t dnsDumpResourceRecord(const DnsHeader *message, size_t length, size_t pos, char_t *buffer);
-
+//Check current trace level
+#if (DNS_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
+   void dnsDumpMessage(const DnsHeader *message, size_t length);
+   size_t dnsDumpQuestion(const DnsHeader *message, size_t length, size_t pos, char_t *buffer);
+   size_t dnsDumpResourceRecord(const DnsHeader *message, size_t length, size_t pos, char_t *buffer);
 #else
    #define dnsDumpMessage(message, length)
 #endif

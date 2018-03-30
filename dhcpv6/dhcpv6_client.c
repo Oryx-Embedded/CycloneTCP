@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -1433,19 +1433,19 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming DHCPv6 message
  * @param[in] offset Offset to the first byte of the DHCPv6 message
- * @param[in] params Pointer to the DHCPv6 client context
+ * @param[in] param Pointer to the DHCPv6 client context
  **/
 
 void dhcpv6ClientProcessMessage(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, void *params)
+   const NetBuffer *buffer, size_t offset, void *param)
 {
    size_t length;
    Dhcpv6ClientContext *context;
    Dhcpv6Message *message;
 
    //Point to the DHCPv6 client context
-   context = (Dhcpv6ClientContext *) params;
+   context = (Dhcpv6ClientContext *) param;
 
    //Retrieve the length of the DHCPv6 message
    length = netBufferGetLength(buffer) - offset;

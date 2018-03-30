@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -476,8 +476,9 @@ void am335xEthInitInstance(NetInterface *interface)
 }
 
 
-//BeagleBone Black TMDSSK3358 or SBC DIVA board?
-#if defined(USE_BEAGLEBONE_BLACK) || defined(USE_TMDSSK3358) || defined(USE_SBC_DIVA)
+//BeagleBone Black, TMDSSK3358, OSD3358-SM-RED or SBC DIVA board?
+#if defined(USE_BEAGLEBONE_BLACK) || defined(USE_TMDSSK3358) || \
+   defined(USE_OSD3358_SM_RED) || defined(USE_SBC_DIVA)
 
 /**
  * @brief GPIO configuration
@@ -587,6 +588,44 @@ void am335xEthInitGpio(NetInterface *interface)
    CONTROL_CONF_GPMC_A_R(9) = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(2);
    //Configure RGMII2_RD3 (GPIO1_24/GPMC_A8)
    CONTROL_CONF_GPMC_A_R(8) = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(2);
+
+   //Configure MDIO (GPIO0_0)
+   CONTROL_CONF_MDIO_DATA_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_PULLUPSEL |
+      CONTROL_CONF_MUXMODE(0);
+
+   //Configure MDC (GPIO0_1)
+   CONTROL_CONF_MDIO_CLK_R = CONTROL_CONF_PULLUPSEL | CONTROL_CONF_MUXMODE(0);
+
+//OSD3358-SM-RED board?
+#elif defined(USE_OSD3358_SM_RED)
+   //Select RGMII interface mode for both port 1
+   CONTROL_GMII_SEL_R = CONTROL_GMII_SEL_GMII1_SEL_RGMII;
+
+   //Configure RGMII1_TCLK (GPIO3_9)
+   CONTROL_CONF_MII1_TXCLK_R = CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_TCTL (GPIO3_3)
+   CONTROL_CONF_MII1_TXEN_R = CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_TD0 (GPIO0_28)
+   CONTROL_CONF_MII1_TXD0_R = CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_TD1 (GPIO0_21)
+   CONTROL_CONF_MII1_TXD1_R = CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_TD2 (GPIO0_17)
+   CONTROL_CONF_MII1_TXD2_R = CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_TD3 (GPIO0_16)
+   CONTROL_CONF_MII1_TXD3_R = CONTROL_CONF_MUXMODE(2);
+
+   //Configure RGMII1_RCLK (GPIO3_10)
+   CONTROL_CONF_MII1_RXCLK_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_RCTL (GPIO3_4)
+   CONTROL_CONF_MII1_RXDV_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_RD0 (GPIO2_21)
+   CONTROL_CONF_MII1_RXD0_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(2);
+   //Configure /RGMII1_RD1 (GPIO2_20)
+   CONTROL_CONF_MII1_RXD1_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_RD2 (GPIO2_19)
+   CONTROL_CONF_MII1_RXD2_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(2);
+   //Configure RGMII1_RD3 (GPIO2_18)
+   CONTROL_CONF_MII1_RXD3_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(2);
 
    //Configure MDIO (GPIO0_0)
    CONTROL_CONF_MDIO_DATA_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_PULLUPSEL |
@@ -1021,7 +1060,7 @@ void am335xEthEventHandler(NetInterface *interface)
                if(interface != NULL)
                {
                   //Copy data from the receive buffer
-                  memcpy(buffer, (uint8_t *) rxCurBufferDesc->word1, n);
+                  memcpy(buffer, (uint8_t *) rxCurBufferDesc->word1, (n + 3) & ~3UL);
 
                   //Packet successfully received
                   error = NO_ERROR;
@@ -1105,8 +1144,9 @@ void am335xEthEventHandler(NetInterface *interface)
 error_t am335xEthSendPacketPort1(NetInterface *interface,
    const NetBuffer *buffer, size_t offset)
 {
+   static uint8_t temp[AM335X_ETH_TX_BUFFER_SIZE];
    size_t length;
-   uint32_t temp;
+   uint32_t value;
 
    //Retrieve the length of the packet
    length = netBufferGetLength(buffer) - offset;
@@ -1128,30 +1168,31 @@ error_t am335xEthSendPacketPort1(NetInterface *interface,
    txCurBufferDesc1->word0 = (uint32_t) NULL;
 
    //Copy user data to the transmit buffer
-   netBufferRead((uint8_t *) txCurBufferDesc1->word1, buffer, offset, length);
+   netBufferRead(temp, buffer, offset, length);
+   memcpy((uint8_t *) txCurBufferDesc1->word1, temp, (length + 3) & ~3UL);
 
    //Set the length of the buffer
    txCurBufferDesc1->word2 = length & CPSW_TX_WORD2_BUFFER_LENGTH;
 
    //Set the length of the packet
-   temp = length & CPSW_TX_WORD3_PACKET_LENGTH;
+   value = length & CPSW_TX_WORD3_PACKET_LENGTH;
    //Set SOP and EOP flags as the data fits in a single buffer
-   temp |= CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP;
+   value |= CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP;
    //Redirect the packet to the relevant port number
-   temp |= CPSW_TX_WORD3_TO_PORT_EN | CPSW_TX_WORD3_TO_PORT_1;
+   value |= CPSW_TX_WORD3_TO_PORT_EN | CPSW_TX_WORD3_TO_PORT_1;
 
    //Give the ownership of the descriptor to the DMA
-   txCurBufferDesc1->word3 = CPSW_TX_WORD3_OWNER | temp;
+   txCurBufferDesc1->word3 = CPSW_TX_WORD3_OWNER | value;
 
    //Link the current descriptor to the previous descriptor
    txCurBufferDesc1->prev->word0 = (uint32_t) txCurBufferDesc1;
 
    //Read the status flags of the previous descriptor
-   temp = txCurBufferDesc1->prev->word3 & (CPSW_TX_WORD3_SOP |
+   value = txCurBufferDesc1->prev->word3 & (CPSW_TX_WORD3_SOP |
       CPSW_TX_WORD3_EOP | CPSW_TX_WORD3_OWNER | CPSW_TX_WORD3_EOQ);
 
    //Misqueued buffer condition?
-   if(temp == (CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP | CPSW_TX_WORD3_EOQ))
+   if(value == (CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP | CPSW_TX_WORD3_EOQ))
    {
       //Clear the misqueued buffer condition
       txCurBufferDesc1->prev->word3 = 0;
@@ -1188,8 +1229,9 @@ error_t am335xEthSendPacketPort1(NetInterface *interface,
 error_t am335xEthSendPacketPort2(NetInterface *interface,
    const NetBuffer *buffer, size_t offset)
 {
+   static uint8_t temp[AM335X_ETH_TX_BUFFER_SIZE];
    size_t length;
-   uint32_t temp;
+   uint32_t value;
 
    //Retrieve the length of the packet
    length = netBufferGetLength(buffer) - offset;
@@ -1211,30 +1253,31 @@ error_t am335xEthSendPacketPort2(NetInterface *interface,
    txCurBufferDesc2->word0 = (uint32_t) NULL;
 
    //Copy user data to the transmit buffer
-   netBufferRead((uint8_t *) txCurBufferDesc2->word1, buffer, offset, length);
+   netBufferRead(temp, buffer, offset, length);
+   memcpy((uint8_t *) txCurBufferDesc2->word1, temp, (length + 3) & ~3UL);
 
    //Set the length of the buffer
    txCurBufferDesc2->word2 = length & CPSW_TX_WORD2_BUFFER_LENGTH;
 
    //Set the length of the packet
-   temp = length & CPSW_TX_WORD3_PACKET_LENGTH;
+   value = length & CPSW_TX_WORD3_PACKET_LENGTH;
    //Set SOP and EOP flags as the data fits in a single buffer
-   temp |= CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP;
+   value |= CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP;
    //Redirect the packet to the relevant port number
-   temp |= CPSW_TX_WORD3_TO_PORT_EN | CPSW_TX_WORD3_TO_PORT_2;
+   value |= CPSW_TX_WORD3_TO_PORT_EN | CPSW_TX_WORD3_TO_PORT_2;
 
    //Give the ownership of the descriptor to the DMA
-   txCurBufferDesc2->word3 = CPSW_TX_WORD3_OWNER | temp;
+   txCurBufferDesc2->word3 = CPSW_TX_WORD3_OWNER | value;
 
    //Link the current descriptor to the previous descriptor
    txCurBufferDesc2->prev->word0 = (uint32_t) txCurBufferDesc2;
 
    //Read the status flags of the previous descriptor
-   temp = txCurBufferDesc2->prev->word3 & (CPSW_TX_WORD3_SOP |
+   value = txCurBufferDesc2->prev->word3 & (CPSW_TX_WORD3_SOP |
       CPSW_TX_WORD3_EOP | CPSW_TX_WORD3_OWNER | CPSW_TX_WORD3_EOQ);
 
    //Misqueued buffer condition?
-   if(temp == (CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP | CPSW_TX_WORD3_EOQ))
+   if(value == (CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP | CPSW_TX_WORD3_EOQ))
    {
       //Clear the misqueued buffer condition
       txCurBufferDesc2->prev->word3 = 0;

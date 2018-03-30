@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _DHCP_DEBUG_H
@@ -36,25 +36,21 @@
 #include "ppp/ipcp.h"
 #include "debug.h"
 
-//Check current trace level
-#if (PPP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
-
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
 #endif
 
-//PPP related functions
-error_t pppDumpPacket(const PppPacket *packet, size_t length, PppProtocol protocol);
-error_t lcpDumpPacket(const PppPacket *packet, size_t length);
-error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protocol);
-error_t papDumpPacket(const PppPacket *packet, size_t length);
-error_t chapDumpPacket(const PppPacket *packet, size_t length);
-
-error_t lcpDumpOptions(const PppOption *option, size_t length);
-error_t ipcpDumpOptions(const PppOption *option, size_t length);
-error_t ipv6cpDumpOptions(const PppOption *option, size_t length);
-
+//Check current trace level
+#if (PPP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
+   error_t pppDumpPacket(const PppPacket *packet, size_t length, PppProtocol protocol);
+   error_t lcpDumpPacket(const PppPacket *packet, size_t length);
+   error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protocol);
+   error_t papDumpPacket(const PppPacket *packet, size_t length);
+   error_t chapDumpPacket(const PppPacket *packet, size_t length);
+   error_t lcpDumpOptions(const PppOption *option, size_t length);
+   error_t ipcpDumpOptions(const PppOption *option, size_t length);
+   error_t ipv6cpDumpOptions(const PppOption *option, size_t length);
 #else
    #define pppDumpPacket(packet, length, protocol)
 #endif

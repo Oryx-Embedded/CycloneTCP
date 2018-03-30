@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -182,11 +182,11 @@ void tcpProcessSegment(NetInterface *interface,
          continue;
 
 #if (IPV4_SUPPORT == ENABLED)
-      //An IPv4 packet was received?
+      //IPv4 packet received?
       if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
       {
          //Destination IP address filtering
-         if(socket->localIpAddr.length)
+         if(socket->localIpAddr.length != 0)
          {
             //An IPv4 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv4Addr))
@@ -195,8 +195,9 @@ void tcpProcessSegment(NetInterface *interface,
             if(socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
                continue;
          }
+
          //Source IP address filtering
-         if(socket->remoteIpAddr.length)
+         if(socket->remoteIpAddr.length != 0)
          {
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
@@ -209,11 +210,11 @@ void tcpProcessSegment(NetInterface *interface,
       else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-      //An IPv6 packet was received?
+      //IPv6 packet received?
       if(pseudoHeader->length == sizeof(Ipv6PseudoHeader))
       {
          //Destination IP address filtering
-         if(socket->localIpAddr.length)
+         if(socket->localIpAddr.length != 0)
          {
             //An IPv6 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv6Addr))
@@ -222,8 +223,9 @@ void tcpProcessSegment(NetInterface *interface,
             if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
                continue;
          }
+
          //Source IP address filtering
-         if(socket->remoteIpAddr.length)
+         if(socket->remoteIpAddr.length != 0)
          {
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
@@ -235,15 +237,16 @@ void tcpProcessSegment(NetInterface *interface,
       }
       else
 #endif
-      //An invalid packet was received?
+      //Invalid packet received?
       {
          //This should never occur...
          continue;
       }
 
       //Keep track of the first matching socket in the LISTEN state
-      if(socket->state == TCP_STATE_LISTEN && !passiveSocket)
+      if(socket->state == TCP_STATE_LISTEN && passiveSocket == NULL)
          passiveSocket = socket;
+
       //Source port filtering
       if(socket->remotePort != ntohs(segment->srcPort))
          continue;
@@ -439,8 +442,12 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
    //Check the SYN bit
    if(segment->flags & TCP_FLAG_SYN)
    {
-      //The SYN queue is empty?
-      if(!socket->synQueue)
+      //Silently drop duplicate SYN segments
+      if(tcpIsDuplicateSyn(socket, pseudoHeader, segment))
+         return;
+
+      //Check whether the SYN queue is empty
+      if(socket->synQueue == NULL)
       {
          //Allocate memory to save incoming data
          queueItem = memPoolAlloc(sizeof(TcpSynQueueItem));
@@ -452,11 +459,11 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
          //Point to the very first item
          queueItem = socket->synQueue;
 
-         //Reach the last item in the receive queue
-         for(i = 1; queueItem->next; i++)
+         //Reach the last item in the SYN queue
+         for(i = 1; queueItem->next != NULL; i++)
             queueItem = queueItem->next;
 
-         //Make sure the receive queue is not full
+         //Make sure the SYN queue is not full
          if(i >= socket->synQueueSize)
             return;
 
@@ -515,6 +522,7 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
 
       //Get the maximum segment size
       option = tcpGetOption(segment, TCP_OPTION_MAX_SEGMENT_SIZE);
+
       //Specified option found?
       if(option != NULL && option->length == 4)
       {

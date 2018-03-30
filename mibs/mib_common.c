@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Dependencies
@@ -904,15 +904,23 @@ int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
 
    //Compare length fields
    if(ipAddr1->length < ipAddr2->length)
-      return -1;
+   {
+      res = -1;
+   }
    else if(ipAddr1->length > ipAddr2->length)
-      return 1;
+   {
+      res = 1;
+   }
    else if(ipAddr1->length == 0)
-      return 0;
-
-   //Compare IP addresses
-   res = memcmp((uint8_t *) ipAddr1 + sizeof(size_t),
-      (uint8_t *) ipAddr2 + sizeof(size_t), ipAddr1->length);
+   {
+      res = 0;
+   }
+   else
+   {
+      //Compare IP addresses
+      res = memcmp((uint8_t *) ipAddr1 + sizeof(size_t),
+         (uint8_t *) ipAddr2 + sizeof(size_t), ipAddr1->length);
+   }
 
    //Return comparison result
    return res;

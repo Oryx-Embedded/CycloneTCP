@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -248,6 +248,7 @@ void aps3EthEnableIrq(NetInterface *interface)
    //Enable Ethernet MAC interrupts
    irq[IRQ_ETH_TX].ien = 1;
    irq[IRQ_ETH_RX].ien = 1;
+
    //Enable Ethernet PHY interrupts
    interface->phyDriver->enableIrq(interface);
 }
@@ -263,6 +264,7 @@ void aps3EthDisableIrq(NetInterface *interface)
    //Disable Ethernet MAC interrupts
    irq[IRQ_ETH_TX].ien = 0;
    irq[IRQ_ETH_RX].ien = 0;
+
    //Disable Ethernet PHY interrupts
    interface->phyDriver->disableIrq(interface);
 }

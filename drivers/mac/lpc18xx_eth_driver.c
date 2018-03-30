@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -186,7 +186,9 @@ error_t lpc18xxEthInit(NetInterface *interface)
 
    //Enable the desired DMA interrupts
    LPC_ETHERNET->DMA_INT_EN = ETHERNET_DMA_INT_EN_NIE_Msk |
-      ETHERNET_DMA_INT_EN_RIE_Msk | ETHERNET_DMA_INT_EN_TIE_Msk;
+      ETHERNET_DMA_INT_EN_AIE_Msk | ETHERNET_DMA_INT_EN_RIE_Msk |
+      ETHERNET_DMA_INT_EN_OVE_Msk | ETHERNET_DMA_INT_EN_TIE_Msk |
+      ETHERNET_DMA_INT_EN_UNE_Msk;
 
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
    NVIC_SetPriorityGrouping(LPC18XX_ETH_IRQ_PRIORITY_GROUPING);
@@ -379,10 +381,10 @@ void ETHERNET_IRQHandler(void)
    status = LPC_ETHERNET->DMA_STAT;
 
    //A packet has been transmitted?
-   if(status & ETHERNET_DMA_STAT_TI_Msk)
+   if(status & (ETHERNET_DMA_STAT_TI_Msk | ETHERNET_DMA_STAT_UNF_Msk))
    {
-      //Clear TI interrupt flag
-      LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_TI_Msk;
+      //Clear TI and UNF interrupt flags
+      LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_TI_Msk | ETHERNET_DMA_STAT_UNF_Msk;
 
       //Check whether the TX buffer is available for writing
       if(!(txCurDmaDesc->tdes0 & ETH_TDES0_OWN))
@@ -393,10 +395,11 @@ void ETHERNET_IRQHandler(void)
    }
 
    //A packet has been received?
-   if(status & ETHERNET_DMA_STAT_RI_Msk)
+   if(status & (ETHERNET_DMA_STAT_RI_Msk | ETHERNET_DMA_STAT_OVF_Msk))
    {
-      //Disable RIE interrupt
-      LPC_ETHERNET->DMA_INT_EN &= ~ETHERNET_DMA_INT_EN_RIE_Msk;
+      //Disable RIE and OVE interrupts
+      LPC_ETHERNET->DMA_INT_EN &= ~(ETHERNET_DMA_INT_EN_RIE_Msk |
+         ETHERNET_DMA_INT_EN_OVE_Msk);
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -404,8 +407,8 @@ void ETHERNET_IRQHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Clear NIS interrupt flag
-   LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_NIS_Msk;
+   //Clear NIS and AIS interrupt flags
+   LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_NIS_Msk | ETHERNET_DMA_STAT_AIE_Msk;
 
    //Leave interrupt service routine
    osExitIsr(flag);
@@ -422,10 +425,10 @@ void lpc18xxEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(LPC_ETHERNET->DMA_STAT & ETHERNET_DMA_STAT_RI_Msk)
+   if(LPC_ETHERNET->DMA_STAT & (ETHERNET_DMA_STAT_RI_Msk | ETHERNET_DMA_STAT_OVF_Msk))
    {
-      //Clear interrupt flag
-      LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_RI_Msk;
+      //Clear RI and OVF interrupt flags
+      LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_RI_Msk | ETHERNET_DMA_STAT_OVF_Msk;
 
       //Process all pending packets
       do
@@ -438,8 +441,10 @@ void lpc18xxEthEventHandler(NetInterface *interface)
    }
 
    //Re-enable DMA interrupts
-   LPC_ETHERNET->DMA_INT_EN |= ETHERNET_DMA_INT_EN_NIE_Msk |
-      ETHERNET_DMA_INT_EN_RIE_Msk | ETHERNET_DMA_INT_EN_TIE_Msk;
+   LPC_ETHERNET->DMA_INT_EN = ETHERNET_DMA_INT_EN_NIE_Msk |
+      ETHERNET_DMA_INT_EN_AIE_Msk | ETHERNET_DMA_INT_EN_RIE_Msk |
+      ETHERNET_DMA_INT_EN_OVE_Msk | ETHERNET_DMA_INT_EN_TIE_Msk |
+      ETHERNET_DMA_INT_EN_UNE_Msk;
 }
 
 

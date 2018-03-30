@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -971,8 +971,11 @@ void netTask(void)
          osReleaseMutex(&netMutex);
       }
 
+      //Get current time
+      time = osGetSystemTime();
+
       //Check current time
-      if(timeCompare(time, netTimestamp) > 0)
+      if(timeCompare(time, netTimestamp) >= 0)
       {
          //Get exclusive access
          osAcquireMutex(&netMutex);
@@ -1388,13 +1391,13 @@ int32_t netGetRandRange(int32_t min, int32_t max)
  * @brief Register link change callback
  * @param[in] interface Underlying network interface
  * @param[in] callback Callback function to be called when the link state changed
- * @param[in] params Callback function parameter (optional)
+ * @param[in] param Callback function parameter (optional)
  * @param[out] cookie Identifier that can be used to unregister the callback function
  * @return Error code
  **/
 
 error_t netAttachLinkChangeCallback(NetInterface *interface,
-   LinkChangeCallback callback, void *params, uint_t *cookie)
+   LinkChangeCallback callback, void *param, uint_t *cookie)
 {
    uint_t i;
    LinkChangeCallbackDesc *entry;
@@ -1414,7 +1417,7 @@ error_t netAttachLinkChangeCallback(NetInterface *interface,
          //Create a new entry
          entry->interface = interface;
          entry->callback = callback;
-         entry->params = params;
+         entry->param = param;
          //We are done
          break;
       }
@@ -1487,7 +1490,7 @@ void netInvokeLinkChangeCallback(NetInterface *interface, bool_t linkState)
          if(entry->interface == NULL || entry->interface == interface)
          {
             //Invoke user callback function
-            entry->callback(interface, linkState, entry->params);
+            entry->callback(interface, linkState, entry->param);
          }
       }
    }

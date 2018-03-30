@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -724,6 +724,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    //Authoritative engine identifier
    context->response.msgAuthEngineId = context->contextEngine;
    context->response.msgAuthEngineIdLen = context->contextEngineLen;
+
    //Number of times the SNMP engine has rebooted
    context->response.msgAuthEngineBoots = context->engineBoots;
    //Number of seconds since last reboot
@@ -732,6 +733,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    //Context engine identifier
    context->response.contextEngineId = context->contextEngine;
    context->response.contextEngineIdLen = context->contextEngineLen;
+
    //Context name
    context->response.contextName = context->contextName;
    context->response.contextNameLen = strlen(context->contextName);
@@ -740,6 +742,28 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    context->response.pduType = SNMP_PDU_REPORT;
    //Request identifier
    context->response.requestId = context->request.requestId;
+
+   //If the message is considered to be outside of the time window, the error
+   //must be reported with a securityLevel of authNoPriv (refer to RFC 3414,
+   //section 3.2)
+   if(errorIndication == ERROR_NOT_IN_TIME_WINDOW)
+   {
+      //Bit fields which control processing of the message
+      context->response.msgFlags = context->request.msgFlags &
+         (SNMP_MSG_FLAG_AUTH | SNMP_MSG_FLAG_PRIV);
+
+      //User name
+      context->response.msgUserName = context->request.msgUserName;
+      context->response.msgUserNameLen = context->request.msgUserNameLen;
+
+      //Authentication parameters
+      context->response.msgAuthParameters = NULL;
+      context->response.msgAuthParametersLen = context->request.msgAuthParametersLen;
+
+      //Privacy parameters
+      context->response.msgPrivParameters = context->privParameters;
+      context->response.msgPrivParametersLen = context->request.msgPrivParametersLen;
+   }
 
    //Make room for the message header at the beginning of the buffer
    error = snmpComputeMessageOverhead(&context->response);

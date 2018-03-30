@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _TCP_MISC_H
@@ -44,12 +44,17 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
 error_t tcpSendResetSegment(NetInterface *interface,
    IpPseudoHeader *pseudoHeader, TcpHeader *segment, size_t length);
 
-error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value, uint8_t length);
+error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
+   uint8_t length);
+
 TcpOption *tcpGetOption(TcpHeader *segment, uint8_t kind);
 
 error_t tcpCheckSequenceNumber(Socket *socket, TcpHeader *segment, size_t length);
 error_t tcpCheckSyn(Socket *socket, TcpHeader *segment, size_t length);
 error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length);
+
+bool_t tcpIsDuplicateSyn(Socket *socket, IpPseudoHeader *pseudoHeader,
+   TcpHeader *segment);
 
 bool_t tcpIsDuplicateAck(Socket *socket, TcpHeader *segment, size_t length);
 
@@ -89,9 +94,11 @@ error_t tcpReadTxBuffer(Socket *socket, uint32_t seqNum,
 void tcpWriteRxBuffer(Socket *socket, uint32_t seqNum,
    const NetBuffer *data, size_t dataOffset, size_t length);
 
-void tcpReadRxBuffer(Socket *socket, uint32_t seqNum, uint8_t *data, size_t length);
+void tcpReadRxBuffer(Socket *socket, uint32_t seqNum, uint8_t *data,
+   size_t length);
 
-void tcpDumpHeader(const TcpHeader *segment, size_t length, uint32_t iss, uint32_t irs);
+void tcpDumpHeader(const TcpHeader *segment, size_t length, uint32_t iss,
+   uint32_t irs);
 
 //C++ guard
 #ifdef __cplusplus

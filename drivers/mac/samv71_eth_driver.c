@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -186,6 +186,8 @@ error_t samv71EthInit(NetInterface *interface)
    GMAC->GMAC_RBSRPQ[0] = GMAC_RBSRPQ_RBS(SAMV71_ETH_DUMMY_BUFFER_SIZE / 64);
    GMAC->GMAC_RBSRPQ[1] = GMAC_RBSRPQ_RBS(SAMV71_ETH_DUMMY_BUFFER_SIZE / 64);
    GMAC->GMAC_RBSRPQ[2] = GMAC_RBSRPQ_RBS(SAMV71_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC->GMAC_RBSRPQ[3] = GMAC_RBSRPQ_RBS(SAMV71_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC->GMAC_RBSRPQ[4] = GMAC_RBSRPQ_RBS(SAMV71_ETH_DUMMY_BUFFER_SIZE / 64);
 
    //Initialize hash table
    GMAC->GMAC_HRB = 0;
@@ -205,6 +207,8 @@ error_t samv71EthInit(NetInterface *interface)
    GMAC->GMAC_IDRPQ[0] = 0xFFFFFFFF;
    GMAC->GMAC_IDRPQ[1] = 0xFFFFFFFF;
    GMAC->GMAC_IDRPQ[2] = 0xFFFFFFFF;
+   GMAC->GMAC_IDRPQ[3] = 0xFFFFFFFF;
+   GMAC->GMAC_IDRPQ[4] = 0xFFFFFFFF;
 
    //Only the desired ones are enabled
    GMAC->GMAC_IER = GMAC_IER_HRESP | GMAC_IER_ROVR | GMAC_IER_TCOMP | GMAC_IER_TFC |
@@ -348,12 +352,16 @@ void samv71EthInitBufferDesc(NetInterface *interface)
    GMAC->GMAC_TBQBAPQ[0] = (uint32_t) dummyTxBufferDesc;
    GMAC->GMAC_TBQBAPQ[1] = (uint32_t) dummyTxBufferDesc;
    GMAC->GMAC_TBQBAPQ[2] = (uint32_t) dummyTxBufferDesc;
+   GMAC->GMAC_TBQBAPQ[3] = (uint32_t) dummyTxBufferDesc;
+   GMAC->GMAC_TBQBAPQ[4] = (uint32_t) dummyTxBufferDesc;
 
    //Start location of the RX descriptor list
    GMAC->GMAC_RBQB = (uint32_t) rxBufferDesc;
    GMAC->GMAC_RBQBAPQ[0] = (uint32_t) dummyRxBufferDesc;
    GMAC->GMAC_RBQBAPQ[1] = (uint32_t) dummyRxBufferDesc;
    GMAC->GMAC_RBQBAPQ[2] = (uint32_t) dummyRxBufferDesc;
+   GMAC->GMAC_RBQBAPQ[3] = (uint32_t) dummyRxBufferDesc;
+   GMAC->GMAC_RBQBAPQ[4] = (uint32_t) dummyRxBufferDesc;
 }
 
 
@@ -423,6 +431,8 @@ void GMAC_Handler(void)
    isr = GMAC->GMAC_ISRPQ[0];
    isr = GMAC->GMAC_ISRPQ[1];
    isr = GMAC->GMAC_ISRPQ[2];
+   isr = GMAC->GMAC_ISRPQ[3];
+   isr = GMAC->GMAC_ISRPQ[4];
    isr = GMAC->GMAC_ISR;
    tsr = GMAC->GMAC_TSR;
    rsr = GMAC->GMAC_RSR;

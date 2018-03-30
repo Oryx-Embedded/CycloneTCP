@@ -1,10 +1,10 @@
 /**
  * @file dhcpv6_common.h
- * @brief Functions common to DHCPv6 client, server and relay agent
+ * @brief Definitions common to DHCPv6 client, server and relay agent
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _DHCPV6_COMMON_H

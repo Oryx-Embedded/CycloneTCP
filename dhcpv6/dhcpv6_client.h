@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _DHCPV6_CLIENT_H
@@ -375,7 +375,7 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
 
 void dhcpv6ClientProcessMessage(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, void *params);
+   const NetBuffer *buffer, size_t offset, void *param);
 
 void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
    const Dhcpv6Message *message, size_t length);

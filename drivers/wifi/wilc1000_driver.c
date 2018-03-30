@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -145,7 +145,9 @@ error_t wilc1000Init(NetInterface *interface)
          //Register callback functions
          param.pfAppWifiCb = wilc1000AppWifiEvent;
          param.pfAppMonCb = NULL;
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 3)
          param.strEthInitParam.pfAppWifiCb = NULL;
+#endif
          param.strEthInitParam.pfAppEthCb = wilc1000AppEthEvent;
 
          //Set receive buffer
@@ -379,12 +381,20 @@ error_t wilc1000SendPacket(NetInterface *interface,
    if(interface == wilc1000StaInterface)
    {
       //Send packet
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
+      status = m2m_wifi_send_ethernet_pkt(txBuffer, length, STATION_INTERFACE);
+#else
       status = m2m_wifi_send_ethernet_pkt(txBuffer, length);
+#endif
    }
    else
    {
       //Send packet
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
+      status = m2m_wifi_send_ethernet_pkt(txBuffer, length, AP_INTERFACE);
+#else
       status = m2m_wifi_send_ethernet_pkt_ifc1(txBuffer, length);
+#endif
    }
 
    //The transmitter can accept another packet
@@ -527,7 +537,11 @@ void wilc1000AppWifiEvent(uint8_t msgType, void *msg)
       stateChangedMsg = (tstrM2mWifiStateChanged*) msg;
 
       //Check interface identifier
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
+      if(stateChangedMsg->u8IfcId == STATION_INTERFACE)
+#else
       if(stateChangedMsg->u8IfcId == INTERFACE_1)
+#endif
       {
          //Check whether STA mode is enabled
          if(wilc1000StaInterface != NULL)
@@ -548,7 +562,11 @@ void wilc1000AppWifiEvent(uint8_t msgType, void *msg)
             nicNotifyLinkChange(wilc1000StaInterface);
          }
       }
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
+      else if(stateChangedMsg->u8IfcId == AP_INTERFACE)
+#else
       else if(stateChangedMsg->u8IfcId == INTERFACE_2)
+#endif
       {
          //Check whether AP mode is enabled
          if(wilc1000ApInterface != NULL)
@@ -592,14 +610,22 @@ void wilc1000AppWifiEvent(uint8_t msgType, void *msg)
 void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
 {
    size_t length;
-   tstrM2mIpCtrlBuf *ctrl;
    uint8_t *packet;
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
+   tstrM2MDataBufCtrl *ctrl;
+#else
+   tstrM2mIpCtrlBuf *ctrl;
+#endif
 
    //Debug message
    TRACE_DEBUG("WILC1000 RX event callback\r\n");
 
    //Point to the control buffer
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
+   ctrl = (tstrM2MDataBufCtrl *) ctrlBuf;
+#else
    ctrl = (tstrM2mIpCtrlBuf *) ctrlBuf;
+#endif
 
    //Check message type
    if(msgType == M2M_WIFI_RESP_ETHERNET_RX_PACKET)
@@ -619,7 +645,11 @@ void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
       length = ctrl->u16DataSize;
 
       //Check interface identifier
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
+      if(ctrl->u8IfcId == STATION_INTERFACE)
+#else
       if(ctrl->u8IfcId == INTERFACE_1)
+#endif
       {
          //Valid interface?
          if(wilc1000StaInterface != NULL)
@@ -635,7 +665,11 @@ void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
             nicProcessPacket(wilc1000StaInterface, packet, length);
          }
       }
+#if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
+      else if(ctrl->u8IfcId == AP_INTERFACE)
+#else
       else if(ctrl->u8IfcId == INTERFACE_2)
+#endif
       {
          //Valid interface?
          if(wilc1000ApInterface != NULL)

@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -134,7 +134,7 @@ error_t fm4EthInit(NetInterface *interface)
    //Wait for the reset to complete
    while(FM4_ETHERNET_MAC0->BMR_f.SWR);
 
-   //Ensure that ongoing AHB transactions are complete
+   //Ensure that on-going AHB transactions are complete
    while(FM4_ETHERNET_MAC0->AHBSR_f.AHBS);
 
    //Adjust MDC clock range depending on HCLK frequency

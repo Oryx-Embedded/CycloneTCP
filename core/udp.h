@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _UDP_H
@@ -92,7 +92,7 @@ typedef __start_packed struct
  **/
 
 typedef void (*UdpRxCallback)(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *header, const NetBuffer *buffer, size_t offset, void *params);
+   const UdpHeader *header, const NetBuffer *buffer, size_t offset, void *param);
 
 
 /**
@@ -104,7 +104,7 @@ typedef struct
    NetInterface *interface;
    uint16_t port;
    UdpRxCallback callback;
-   void *params;
+   void *param;
 } UdpRxCallbackDesc;
 
 
@@ -133,7 +133,7 @@ NetBuffer *udpAllocBuffer(size_t length, size_t *offset);
 void udpUpdateEvents(Socket *socket);
 
 error_t udpAttachRxCallback(NetInterface *interface,
-   uint16_t port, UdpRxCallback callback, void *params);
+   uint16_t port, UdpRxCallback callback, void *param);
 
 error_t udpDetachRxCallback(NetInterface *interface, uint16_t port);
 

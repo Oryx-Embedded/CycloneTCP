@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -28,7 +28,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -84,14 +84,14 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          continue;
 
 #if (IPV4_SUPPORT == ENABLED)
-      //An IPv4 packet was received?
+      //IPv4 packet received?
       if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
       {
          //Check protocol field
          if(socket->protocol != pseudoHeader->ipv4Data.protocol)
             continue;
          //Destination IP address filtering
-         if(socket->localIpAddr.length)
+         if(socket->localIpAddr.length != 0)
          {
             //An IPv4 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv4Addr))
@@ -100,8 +100,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
             if(socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
                continue;
          }
+
          //Source IP address filtering
-         if(socket->remoteIpAddr.length)
+         if(socket->remoteIpAddr.length != 0)
          {
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
@@ -114,7 +115,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-      //An IPv6 packet was received?
+      //IPv6 packet received?
       if(pseudoHeader->length == sizeof(Ipv6PseudoHeader))
       {
          //Check protocol field
@@ -122,7 +123,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
             continue;
 
          //Destination IP address filtering
-         if(socket->localIpAddr.length)
+         if(socket->localIpAddr.length != 0)
          {
             //An IPv6 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv6Addr))
@@ -133,7 +134,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          }
 
          //Source IP address filtering
-         if(socket->remoteIpAddr.length)
+         if(socket->remoteIpAddr.length != 0)
          {
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
@@ -145,7 +146,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       }
       else
 #endif
-      //An invalid packet was received?
+      //Invalid packet received?
       {
          //This should never occur...
          continue;

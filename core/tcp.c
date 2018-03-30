@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -275,7 +275,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
    while(1)
    {
       //The SYN queue is empty?
-      if(!socket->synQueue)
+      if(socket->synQueue == NULL)
       {
          //Set the events the application is interested in
          socket->eventMask = SOCKET_EVENT_RX_READY;
@@ -291,7 +291,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
       }
 
       //Check whether the queue is still empty
-      if(!socket->synQueue)
+      if(socket->synQueue == NULL)
       {
          //Timeout error
          newSocket = NULL;
@@ -299,7 +299,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
          break;
       }
 
-      //Point to the first item in the receive queue
+      //Point to the first item in the SYN queue
       queueItem = socket->synQueue;
 
       //Return the client IP address and port number
@@ -330,13 +330,15 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
          newSocket->rxBuffer.maxChunkCount = arraysize(newSocket->rxBuffer.chunk);
 
          //Allocate transmit buffer
-         error = netBufferSetLength((NetBuffer *) &newSocket->txBuffer, newSocket->txBufferSize);
+         error = netBufferSetLength((NetBuffer *) &newSocket->txBuffer,
+            newSocket->txBufferSize);
 
          //Check status code
          if(!error)
          {
             //Allocate receive buffer
-            error = netBufferSetLength((NetBuffer *) &newSocket->rxBuffer, newSocket->rxBufferSize);
+            error = netBufferSetLength((NetBuffer *) &newSocket->rxBuffer,
+               newSocket->rxBufferSize);
          }
 
          //Transmit and receive buffers successfully allocated?
@@ -957,8 +959,12 @@ TcpState tcpGetState(Socket *socket)
 Socket *tcpKillOldestConnection(void)
 {
    uint_t i;
+   systime_t time;
    Socket *socket;
    Socket *oldestSocket;
+
+   //Get current time
+   time = osGetSystemTime();
 
    //Keep track of the oldest socket in the TIME-WAIT state
    oldestSocket = NULL;
@@ -981,8 +987,8 @@ Socket *tcpKillOldestConnection(void)
                //Save socket handle
                oldestSocket = socket;
             }
-            else if(timeCompare(socket->timeWaitTimer.startTime,
-               oldestSocket->timeWaitTimer.startTime) < 0)
+            if((time - socket->timeWaitTimer.startTime) >
+               (time - oldestSocket->timeWaitTimer.startTime))
             {
                //Save socket handle
                oldestSocket = socket;

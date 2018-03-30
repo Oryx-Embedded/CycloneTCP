@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,11 +23,15 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
-#ifndef _MQTT_CLIENT_IO_H
-#define _MQTT_CLIENT_IO_H
+#ifndef _MQTT_CLIENT_TRANSPORT_H
+#define _MQTT_CLIENT_TRANSPORT_H
+
+//Dependencies
+#include "core/net.h"
+#include "mqtt/mqtt_client.h"
 
 //C++ guard
 #ifdef __cplusplus

@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -115,7 +115,6 @@ const NicDriver esp32WifiApDriver =
 error_t esp32WifiInit(NetInterface *interface)
 {
    esp_err_t ret;
-   wifi_init_config_t config;
 
    //Initialize status code
    ret = ESP_OK;
@@ -135,26 +134,11 @@ error_t esp32WifiInit(NetInterface *interface)
    //Initialization sequence is performed once at startup
    if(esp32WifiStaInterface == NULL && esp32WifiApInterface == NULL)
    {
-      //Set default event handlers
-      esp_event_set_default_wifi_handlers();
-
-      //Set Wi-Fi configuration parameters
-      config.event_handler = &esp_event_send;
-      config.wpa_crypto_funcs = g_wifi_default_wpa_crypto_funcs;
-      config.static_rx_buf_num = CONFIG_ESP32_WIFI_STATIC_RX_BUFFER_NUM;
-      config.dynamic_rx_buf_num = CONFIG_ESP32_WIFI_DYNAMIC_RX_BUFFER_NUM;
-      config.tx_buf_type = CONFIG_ESP32_WIFI_TX_BUFFER_TYPE;
-      config.static_tx_buf_num = WIFI_STATIC_TX_BUFFER_NUM;
-      config.dynamic_tx_buf_num = WIFI_DYNAMIC_TX_BUFFER_NUM;
-      config.ampdu_enable = WIFI_AMPDU_ENABLED;
-      config.nvs_enable = WIFI_NVS_ENABLED;
-      config.nano_enable = WIFI_NANO_FORMAT_ENABLED;
-      config.tx_ba_win = WIFI_DEFAULT_TX_BA_WIN;
-      config.rx_ba_win = WIFI_DEFAULT_RX_BA_WIN;
-      config.magic = WIFI_INIT_CONFIG_MAGIC;
+      //Set default configuration
+      wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
 
       //Initialize Wi-Fi driver
-      ret = esp_wifi_init_internal(&config);
+      ret = esp_wifi_init(&config);
 
       //Check status code
       if(ret == ESP_OK)
@@ -575,7 +559,7 @@ esp_err_t esp32WifiStaRxCallback(void *buffer, uint16_t length, void *eb)
    {
       //Get exclusive access
       osAcquireMutex(&netMutex);
-      //Process link state change event
+      //Pass the packet to the upper layer
       nicProcessPacket(esp32WifiStaInterface, buffer, length);
       //Release exclusive access
       osReleaseMutex(&netMutex);
@@ -607,7 +591,7 @@ esp_err_t esp32WifiApRxCallback(void *buffer, uint16_t length, void *eb)
    {
       //Get exclusive access
       osAcquireMutex(&netMutex);
-      //Process link state change event
+      //Pass the packet to the upper layer
       nicProcessPacket(esp32WifiApInterface, buffer, length);
       //Release exclusive access
       osReleaseMutex(&netMutex);

@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _DHCP_DEBUG_H
@@ -34,27 +34,24 @@
 #include "dhcp/dhcp_common.h"
 #include "debug.h"
 
-//Check current trace level
-#if (DHCP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
-
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
 #endif
 
-//Related functions
-error_t dhcpDumpMessage(const DhcpMessage *message, size_t length);
-error_t dhcpDumpMessageType(const DhcpOption *option);
-error_t dhcpDumpParamRequestList(const DhcpOption *option);
-error_t dhcpDumpBoolean(const DhcpOption *option);
-error_t dhcpDumpInt8(const DhcpOption *option);
-error_t dhcpDumpInt16(const DhcpOption *option);
-error_t dhcpDumpInt32(const DhcpOption *option);
-error_t dhcpDumpString(const DhcpOption *option);
-error_t dhcpDumpIpv4Addr(const DhcpOption *option);
-error_t dhcpDumpIpv4AddrList(const DhcpOption *option);
-error_t dhcpDumpRawData(const DhcpOption *option);
-
+//Check current trace level
+#if (DHCP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
+   error_t dhcpDumpMessage(const DhcpMessage *message, size_t length);
+   error_t dhcpDumpMessageType(const DhcpOption *option);
+   error_t dhcpDumpParamRequestList(const DhcpOption *option);
+   error_t dhcpDumpBoolean(const DhcpOption *option);
+   error_t dhcpDumpInt8(const DhcpOption *option);
+   error_t dhcpDumpInt16(const DhcpOption *option);
+   error_t dhcpDumpInt32(const DhcpOption *option);
+   error_t dhcpDumpString(const DhcpOption *option);
+   error_t dhcpDumpIpv4Addr(const DhcpOption *option);
+   error_t dhcpDumpIpv4AddrList(const DhcpOption *option);
+   error_t dhcpDumpRawData(const DhcpOption *option);
 #else
    #define dhcpDumpMessage(message, length)
 #endif

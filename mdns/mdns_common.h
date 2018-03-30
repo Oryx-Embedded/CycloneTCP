@@ -1,10 +1,10 @@
 /**
  * @file mdns_common.h
- * @brief Functions common to mDNS client and mDNS responder
+ * @brief Definitions common to mDNS client and mDNS responder
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _MDNS_COMMON_H
@@ -93,7 +93,7 @@ extern const Ipv6Addr MDNS_IPV6_MULTICAST_ADDR;
 error_t mdnsInit(NetInterface *interface);
 
 void mdnsProcessMessage(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *params);
+   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *param);
 
 void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response);
 

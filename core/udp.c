@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -194,18 +194,18 @@ error_t udpProcessDatagram(NetInterface *interface,
       if(socket->interface && socket->interface != interface)
          continue;
       //Check destination port number
-      if(socket->localPort != ntohs(header->destPort))
+      if(socket->localPort == 0 || socket->localPort != ntohs(header->destPort))
          continue;
       //Source port number filtering
-      if(socket->remotePort && socket->remotePort != ntohs(header->srcPort))
+      if(socket->remotePort != 0 && socket->remotePort != ntohs(header->srcPort))
          continue;
 
 #if (IPV4_SUPPORT == ENABLED)
-      //An IPv4 packet was received?
+      //IPv4 packet received?
       if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
       {
          //Destination IP address filtering
-         if(socket->localIpAddr.length)
+         if(socket->localIpAddr.length != 0)
          {
             //An IPv4 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv4Addr))
@@ -216,7 +216,7 @@ error_t udpProcessDatagram(NetInterface *interface,
          }
 
          //Source IP address filtering
-         if(socket->remoteIpAddr.length)
+         if(socket->remoteIpAddr.length != 0)
          {
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
@@ -229,11 +229,11 @@ error_t udpProcessDatagram(NetInterface *interface,
       else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-      //An IPv6 packet was received?
+      //IPv6 packet received?
       if(pseudoHeader->length == sizeof(Ipv6PseudoHeader))
       {
          //Destination IP address filtering
-         if(socket->localIpAddr.length)
+         if(socket->localIpAddr.length != 0)
          {
             //An IPv6 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv6Addr))
@@ -244,7 +244,7 @@ error_t udpProcessDatagram(NetInterface *interface,
          }
 
          //Source IP address filtering
-         if(socket->remoteIpAddr.length)
+         if(socket->remoteIpAddr.length != 0)
          {
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
@@ -256,7 +256,7 @@ error_t udpProcessDatagram(NetInterface *interface,
       }
       else
 #endif
-      //An invalid packet was received?
+      //Invalid packet received?
       {
          //This should never occur...
          continue;
@@ -716,12 +716,12 @@ void udpUpdateEvents(Socket *socket)
  * @param[in] interface Underlying network interface
  * @param[in] port UDP port number
  * @param[in] callback Callback function to be called when a datagram is received
- * @param[in] params Callback function parameter (optional)
+ * @param[in] param Callback function parameter (optional)
  * @return Error code
  **/
 
 error_t udpAttachRxCallback(NetInterface *interface,
-   uint16_t port, UdpRxCallback callback, void *params)
+   uint16_t port, UdpRxCallback callback, void *param)
 {
    uint_t i;
    UdpRxCallbackDesc *entry;
@@ -742,7 +742,7 @@ error_t udpAttachRxCallback(NetInterface *interface,
          entry->interface = interface;
          entry->port = port;
          entry->callback = callback;
-         entry->params = params;
+         entry->param = param;
          //We are done
          break;
       }
@@ -822,7 +822,7 @@ error_t udpInvokeRxCallback(NetInterface *interface, const IpPseudoHeader *pseud
 {
    error_t error;
    uint_t i;
-   void *params;
+   void *param;
    UdpRxCallbackDesc *entry;
 
    //Initialize status code
@@ -846,19 +846,19 @@ error_t udpInvokeRxCallback(NetInterface *interface, const IpPseudoHeader *pseud
             //Does the specified port number match the current entry?
             if(entry->port == ntohs(header->destPort))
             {
-               //Retrieve callback parameters
-               params = entry->params;
+               //Retrieve callback parameter
+               param = entry->param;
 
                //Release mutex to prevent any deadlock
-               if(params == NULL)
+               if(param == NULL)
                   osReleaseMutex(&udpCallbackMutex);
 
                //Invoke user callback function
                entry->callback(interface, pseudoHeader,
-                  header, buffer, offset, params);
+                  header, buffer, offset, param);
 
                //Acquire mutex
-               if(params == NULL)
+               if(param == NULL)
                   osAcquireMutex(&udpCallbackMutex);
 
                //A matching entry has been found

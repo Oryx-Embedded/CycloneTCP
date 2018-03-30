@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -416,7 +416,8 @@ error_t tcpSendResetSegment(NetInterface *interface,
  * @return Error code
  **/
 
-error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value, uint8_t length)
+error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
+   uint8_t length)
 {
    uint_t i;
    size_t paddingSize;
@@ -593,12 +594,17 @@ error_t tcpCheckSyn(Socket *socket, TcpHeader *segment, size_t length)
    //Check the SYN bit
    if(segment->flags & TCP_FLAG_SYN)
    {
-      //If this step is reached, the SYN is in the window.
-      //It is an error and a reset shall be sent in response
+      //If this step is reached, the SYN is in the window. It is an error
+      //and a reset shall be sent in response
       if(segment->flags & TCP_FLAG_ACK)
+      {
          tcpSendSegment(socket, TCP_FLAG_RST, segment->ackNum, 0, 0, FALSE);
+      }
       else
-         tcpSendSegment(socket, TCP_FLAG_RST | TCP_FLAG_ACK, 0, segment->seqNum + length + 1, 0, FALSE);
+      {
+         tcpSendSegment(socket, TCP_FLAG_RST | TCP_FLAG_ACK, 0,
+            segment->seqNum + length + 1, 0, FALSE);
+      }
 
       //Return immediately
       return ERROR_FAILURE;
@@ -801,6 +807,82 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
 
 
 /**
+ * @brief Test whether the incoming SYN segment is a duplicate
+ * @param[in] socket Handle referencing the current socket
+ * @param[in] pseudoHeader TCP pseudo header
+ * @param[in] segment Pointer to the TCP segment to check
+ * @return TRUE if the SYN segment is duplicate, else FALSE
+ **/
+
+bool_t tcpIsDuplicateSyn(Socket *socket, IpPseudoHeader *pseudoHeader,
+   TcpHeader *segment)
+{
+   bool_t flag;
+   TcpSynQueueItem *queueItem;
+
+   //Initialize flag
+   flag = FALSE;
+
+   //Point to the very first item
+   queueItem = socket->synQueue;
+
+   //Loop through the SYN queue
+   while(queueItem != NULL)
+   {
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 packet received?
+      if(queueItem->srcAddr.length == sizeof(Ipv4Addr) &&
+         queueItem->destAddr.length == sizeof(Ipv4Addr) &&
+         pseudoHeader->length == sizeof(Ipv4PseudoHeader))
+      {
+         //Check source and destination addresses
+         if(queueItem->srcAddr.ipv4Addr == pseudoHeader->ipv4Data.srcAddr &&
+            queueItem->destAddr.ipv4Addr == pseudoHeader->ipv4Data.destAddr)
+         {
+            //Check source port
+            if(queueItem->srcPort == segment->srcPort)
+            {
+               //Duplicate SYN
+               flag = TRUE;
+            }
+         }
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 packet received?
+      if(queueItem->srcAddr.length == sizeof(Ipv6Addr) &&
+         queueItem->destAddr.length == sizeof(Ipv6Addr) &&
+         pseudoHeader->length == sizeof(Ipv6PseudoHeader))
+      {
+         //Check source and destination addresses
+         if(ipv6CompAddr(&queueItem->srcAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr) &&
+            ipv6CompAddr(&queueItem->destAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+         {
+            //Check source port
+            if(queueItem->srcPort == segment->srcPort)
+            {
+               //Duplicate SYN
+               flag = TRUE;
+            }
+         }
+      }
+      else
+#endif
+      {
+         //Just for sanity
+      }
+
+      //Next item
+      queueItem = queueItem->next;
+   }
+
+   //Return TRUE if the SYN segment is a duplicate
+   return flag;
+}
+
+
+/**
  * @brief Test whether the incoming acknowledgment is a duplicate
  * @param[in] socket Handle referencing the current socket
  * @param[in] segment Pointer to the TCP segment to check
@@ -810,8 +892,10 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
 
 bool_t tcpIsDuplicateAck(Socket *socket, TcpHeader *segment, size_t length)
 {
+   bool_t flag;
+
    //An ACK is considered a duplicate when the following conditions are met
-   bool_t flag = FALSE;
+   flag = FALSE;
 
    //The receiver of the ACK has outstanding data
    if(socket->retransmitQueue != NULL)
@@ -822,12 +906,12 @@ bool_t tcpIsDuplicateAck(Socket *socket, TcpHeader *segment, size_t length)
          //the SYN and FIN bits are both off
          if(!(segment->flags & (TCP_FLAG_SYN | TCP_FLAG_FIN)))
          {
-            //The acknowledgment number is equal to the greatest
-            //acknowledgment received on the given connection
+            //The acknowledgment number is equal to the greatest acknowledgment
+            //received on the given connection
             if(segment->ackNum == socket->sndUna)
             {
-               //The advertised window in the incoming acknowledgment equals the
-               //advertised window in the last incoming acknowledgment
+               //The advertised window in the incoming acknowledgment equals
+               //the advertised window in the last incoming acknowledgment
                if(segment->window == socket->sndWnd)
                {
                   //Duplicate ACK
@@ -870,8 +954,8 @@ void tcpFastRetransmit(Socket *socket)
    tcpRetransmitSegment(socket);
 
    //cwnd must set to ssthresh plus 3*SMSS. This artificially inflates the
-   //congestion window by the number of segments (three) that have left
-   //the network and which the receiver has buffered
+   //congestion window by the number of segments (three) that have left the
+   //network and which the receiver has buffered
    socket->cwnd = socket->ssthresh + TCP_FAST_RETRANSMIT_THRES * socket->smss;
 
    //Enter the fast recovery procedure
@@ -890,8 +974,8 @@ void tcpFastRetransmit(Socket *socket)
 void tcpFastRecovery(Socket *socket, TcpHeader *segment, uint_t n)
 {
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
-   //Check whether this ACK acknowledges all of the data up to and
-   //including recover
+   //Check whether this ACK acknowledges all of the data up to and including
+   //recover
    if(TCP_CMP_SEQ(segment->ackNum, socket->recover) > 0)
    {
       //This is a full acknowledgment
@@ -1009,9 +1093,10 @@ void tcpProcessSegmentData(Socket *socket, TcpHeader *segment,
    //Check whether the segment was received out of order
    if(TCP_CMP_SEQ(leftEdge, socket->rcvNxt) > 0)
    {
-      //Out of order data segments should be acknowledged
-      //immediately, in order to accelerate loss recovery
-      tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+      //Out of order data segments should be acknowledged immediately, in
+      //order to accelerate loss recovery
+      tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
+         FALSE);
    }
    else
    {
@@ -1026,7 +1111,9 @@ void tcpProcessSegmentData(Socket *socket, TcpHeader *segment,
       socket->rcvWnd -= length;
 
       //Acknowledge the received data (delayed ACK not supported)
-      tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+      tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
+         FALSE);
+
       //Notify user task that data is available
       tcpUpdateEvents(socket);
    }
@@ -1076,13 +1163,11 @@ void tcpUpdateRetransmitQueue(Socket *socket)
       //Point to the TCP header
       header = (TcpHeader *) queueItem->header;
 
-      //SYN segment?
+      //Calculate the length of the TCP segment
       if(header->flags & TCP_FLAG_SYN)
          length = 1;
-      //FIN segment?
       else if(header->flags & TCP_FLAG_FIN)
          length = queueItem->length + 1;
-      //Segment containing data?
       else
          length = queueItem->length;
 
@@ -1373,10 +1458,12 @@ bool_t tcpComputeRto(Socket *socket)
          //Calculate the next retransmission timeout
          socket->rto = socket->srtt + 4 * socket->rttvar;
 
-         //Whenever RTO is computed, if it is less than 1 second, then
-         //the RTO should be rounded up to 1 second
+         //Whenever RTO is computed, if it is less than 1 second, then the RTO
+         //should be rounded up to 1 second
          socket->rto = MAX(socket->rto, TCP_MIN_RTO);
-         //A maximum value may be placed on RTO provided it is at least 60 seconds
+
+         //A maximum value may be placed on RTO provided it is at least 60
+         //seconds
          socket->rto = MIN(socket->rto, TCP_MAX_RTO);
 
          //Debug message
@@ -1457,7 +1544,8 @@ error_t tcpRetransmitSegment(Socket *socket)
             break;
 
          //Copy data from send buffer
-         error = tcpReadTxBuffer(socket, ntohl(header->seqNum), buffer, queueItem->length);
+         error = tcpReadTxBuffer(socket, ntohl(header->seqNum), buffer,
+            queueItem->length);
          //Any error to report?
          if(error)
             break;
@@ -1469,10 +1557,10 @@ error_t tcpRetransmitSegment(Socket *socket)
          //Dump TCP header contents for debugging purpose
          tcpDumpHeader(header, queueItem->length, socket->iss, socket->irs);
 
-         //Retransmit the lost segment without waiting for the
-         //retransmission timer to expire
-         error = ipSendDatagram(socket->interface,
-            &queueItem->pseudoHeader, buffer, offset, 0);
+         //Retransmit the lost segment without waiting for the retransmission
+         //timer to expire
+         error = ipSendDatagram(socket->interface, &queueItem->pseudoHeader,
+            buffer, offset, 0);
 
          //End of exception handling block
       } while(0);
@@ -1747,7 +1835,7 @@ void tcpUpdateEvents(Socket *socket)
    {
       //If the socket is currently in the listen state, it will be marked
       //as readable if an incoming connection request has been received
-      if(socket->synQueue)
+      if(socket->synQueue != NULL)
          socket->eventFlags |= SOCKET_EVENT_RX_READY;
    }
    else if(socket->state != TCP_STATE_SYN_SENT &&
@@ -1941,7 +2029,8 @@ void tcpWriteRxBuffer(Socket *socket, uint32_t seqNum,
  * @param[in] length Number of data to read
  **/
 
-void tcpReadRxBuffer(Socket *socket, uint32_t seqNum, uint8_t *data, size_t length)
+void tcpReadRxBuffer(Socket *socket, uint32_t seqNum, uint8_t *data,
+   size_t length)
 {
    //Offset of the first byte to read in the circular buffer
    size_t offset = (seqNum - socket->irs - 1) % socket->rxBufferSize;
@@ -1973,7 +2062,8 @@ void tcpReadRxBuffer(Socket *socket, uint32_t seqNum, uint8_t *data, size_t leng
  * @param[in] irs Initial receive sequence number (needed to compute relative ACK number)
  **/
 
-void tcpDumpHeader(const TcpHeader *segment, size_t length, uint32_t iss, uint32_t irs)
+void tcpDumpHeader(const TcpHeader *segment, size_t length, uint32_t iss,
+   uint32_t irs)
 {
    //Dump TCP header contents
    TRACE_DEBUG("%" PRIu16 " > %" PRIu16 ": %c%c%c%c%c%c seq=%" PRIu32 "(%" PRIu32 ")"

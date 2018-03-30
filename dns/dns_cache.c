@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -99,8 +99,12 @@ void dnsFlushCache(NetInterface *interface)
 DnsCacheEntry *dnsCreateEntry(void)
 {
    uint_t i;
+   systime_t time;
    DnsCacheEntry *entry;
    DnsCacheEntry *oldestEntry;
+
+   //Get current time
+   time = osGetSystemTime();
 
    //Keep track of the oldest entry
    oldestEntry = &dnsCache[0];
@@ -121,8 +125,10 @@ DnsCacheEntry *dnsCreateEntry(void)
       }
 
       //Keep track of the oldest entry in the table
-      if(timeCompare(entry->timestamp, oldestEntry->timestamp) < 0)
+      if((time - entry->timestamp) > (time - oldestEntry->timestamp))
+      {
          oldestEntry = entry;
+      }
    }
 
    //The oldest entry is removed whenever the table runs out of space

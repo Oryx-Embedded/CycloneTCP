@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _IPV6_H
@@ -185,7 +185,7 @@ typedef enum
    IPV6_ROUTING_HEADER        = 43,
    IPV6_FRAGMENT_HEADER       = 44,
    IPV6_ESP_HEADER            = 50,
-   IPV6_AUTH_HEADER           = 51,
+   IPV6_AH_HEADER             = 51,
    IPV6_ICMPV6_HEADER         = 58,
    IPV6_NO_NEXT_HEADER        = 59,
    IPV6_DEST_OPT_HEADER       = 60

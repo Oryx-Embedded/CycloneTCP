@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _KSZ8061_DRIVER_H
@@ -55,6 +55,7 @@
 #define KSZ8061_PHY_REG_OMSS        0x17
 #define KSZ8061_PHY_REG_EXCON       0x18
 #define KSZ8061_PHY_REG_ICSR        0x1B
+#define KSZ8061_PHY_REG_FUNCTION    0x1C
 #define KSZ8061_PHY_REG_LINKMDCS    0x1D
 #define KSZ8061_PHY_REG_PHYCON1     0x1E
 #define KSZ8061_PHY_REG_PHYCON2     0x1F
@@ -203,6 +204,9 @@
 #define ICSR_LINK_DOWN_IF           (1 << 2)
 #define ICSR_REMOTE_FAULT_IF        (1 << 1)
 #define ICSR_LINK_UP_IF             (1 << 0)
+
+//FUNCTION register
+#define FUNCTION_LOCAL_LOOPBACK     (1 << 5)
 
 //LINKMDCS register
 #define LINKMDCS_CABLE_DIAG_EN      (1 << 15)

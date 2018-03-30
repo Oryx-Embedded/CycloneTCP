@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -44,35 +44,39 @@
 /**
  * @brief Initialize MQTT client context
  * @param[in] context Pointer to the MQTT client context
+ * @return Error code
  **/
 
-void mqttClientInit(MqttClientContext *context)
+error_t mqttClientInit(MqttClientContext *context)
 {
-   //Sanity check
-   if(context != NULL)
-   {
-      //Clear MQTT client context
-      memset(context, 0, sizeof(MqttClientContext));
+   //Make sure the MQTT client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
 
-      //Default protocol version
-      context->settings.protocolLevel = MQTT_PROTOCOL_LEVEL_3_1_1;
-      //Default transport protocol
-      context->settings.transportProtocol = MQTT_TRANSPORT_PROTOCOL_TCP;
-      //Default keep-alive time interval
-      context->settings.keepAlive = MQTT_CLIENT_DEFAULT_KEEP_ALIVE;
-      //Default communication timeout
-      context->settings.timeout = MQTT_CLIENT_DEFAULT_TIMEOUT;
+   //Clear MQTT client context
+   memset(context, 0, sizeof(MqttClientContext));
+
+   //Default protocol version
+   context->settings.protocolLevel = MQTT_PROTOCOL_LEVEL_3_1_1;
+   //Default transport protocol
+   context->settings.transportProtocol = MQTT_TRANSPORT_PROTOCOL_TCP;
+   //Default keep-alive time interval
+   context->settings.keepAlive = MQTT_CLIENT_DEFAULT_KEEP_ALIVE;
+   //Default communication timeout
+   context->settings.timeout = MQTT_CLIENT_DEFAULT_TIMEOUT;
 
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-      //Default resource name (for WebSocket connections only)
-      strcpy(context->settings.uri, "/");
+   //Default resource name (for WebSocket connections only)
+   strcpy(context->settings.uri, "/");
 #endif
 
-      //Initialize state machine
-      context->state = MQTT_CLIENT_STATE_CLOSED;
-      //Initialize packet identifier
-      context->packetId = 0;
-   }
+   //Initialize state machine
+   context->state = MQTT_CLIENT_STATE_CLOSED;
+   //Initialize packet identifier
+   context->packetId = 0;
+
+   //Successful initialization
+   return NO_ERROR;
 }
 
 

@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -337,7 +337,7 @@ struct _MqttClientContext
 
 
 //MQTT client related functions
-void mqttClientInit(MqttClientContext *context);
+error_t mqttClientInit(MqttClientContext *context);
 void mqttClientInitCallbacks(MqttClientCallbacks *callbacks);
 
 error_t mqttClientRegisterCallbacks(MqttClientContext *context,

@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -33,6 +33,7 @@
 #include "core/net.h"
 #include "snmp/snmp_agent.h"
 #include "snmp/snmp_agent_message.h"
+#include "mibs/snmp_mpd_mib_module.h"
 #include "core/crypto.h"
 #include "encoding/asn1.h"
 #include "debug.h"
@@ -274,14 +275,8 @@ error_t snmpParseMessageHeader(SnmpMessage *message)
    length = message->bufferLen;
 
    //The SNMP message is encapsulated within a sequence
-   error = asn1ReadTag(p, length, &tag);
+   error = asn1ReadSequence(p, length, &tag);
    //Failed to decode ASN.1 tag?
-   if(error)
-      return error;
-
-   //Enforce encoding, class and type
-   error = asn1CheckTag(&tag, TRUE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_SEQUENCE);
-   //The tag does not match the criteria?
    if(error)
       return error;
 
@@ -489,14 +484,8 @@ error_t snmpParseGlobalData(SnmpMessage *message)
    Asn1Tag tag;
 
    //Read the msgGlobalData field
-   error = asn1ReadTag(message->pos, message->length, &tag);
+   error = asn1ReadSequence(message->pos, message->length, &tag);
    //Failed to decode ASN.1 tag?
-   if(error)
-      return error;
-
-   //Enforce encoding, class and type
-   error = asn1CheckTag(&tag, TRUE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_SEQUENCE);
-   //The tag does not match the criteria?
    if(error)
       return error;
 
@@ -558,6 +547,19 @@ error_t snmpParseGlobalData(SnmpMessage *message)
 
    //Save the bit field
    message->msgFlags = tag.value[0];
+
+   //If the authFlag is not set and privFlag is set, then the snmpInvalidMsgs
+   //counter is incremented and the message is silently discarded
+   if(!(message->msgFlags & SNMP_MSG_FLAG_AUTH) &&
+      (message->msgFlags & SNMP_MSG_FLAG_PRIV))
+   {
+      //Total number of packets received by the SNMP engine which were dropped
+      //because there were invalid or inconsistent components in the message
+      SNMP_MPD_MIB_INC_COUNTER32(snmpInvalidMsgs, 1);
+
+      //The message is discarded without further processing
+      return ERROR_FAILURE;
+   }
 
    //Point to the next field
    p += tag.totalLength;
@@ -720,14 +722,8 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
    if(message->msgSecurityModel == SNMP_SECURITY_MODEL_USM)
    {
       //The USM security parameters are encapsulated within a sequence
-      error = asn1ReadTag(p, length, &tag);
+      error = asn1ReadSequence(p, length, &tag);
       //Failed to decode ASN.1 tag?
-      if(error)
-         return error;
-
-      //Enforce encoding, class and type
-      error = asn1CheckTag(&tag, TRUE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_SEQUENCE);
-      //The tag does not match the criteria?
       if(error)
          return error;
 
@@ -839,7 +835,12 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
    }
    else
    {
-      //The security model is not supported
+      //Total number of packets received by the SNMP engine which were dropped
+      //because they referenced a securityModel that was not known to or
+      //supported by the SNMP engine
+      SNMP_MPD_MIB_INC_COUNTER32(snmpUnknownSecurityModels, 1);
+
+      //The message is discarded without further processing
       return ERROR_FAILURE;
    }
 
@@ -1050,14 +1051,8 @@ error_t snmpParseScopedPdu(SnmpMessage *message)
    Asn1Tag tag;
 
    //Read the scopedPDU field
-   error = asn1ReadTag(message->pos, message->length, &tag);
+   error = asn1ReadSequence(message->pos, message->length, &tag);
    //Failed to decode ASN.1 tag?
-   if(error)
-      return error;
-
-   //Enforce encoding, class and type
-   error = asn1CheckTag(&tag, TRUE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_SEQUENCE);
-   //The tag does not match the criteria?
    if(error)
       return error;
 
@@ -1297,14 +1292,8 @@ error_t snmpParsePduHeader(SnmpMessage *message)
    length -= tag.totalLength;
 
    //The variable bindings are encapsulated within a sequence
-   error = asn1ReadTag(p, length, &tag);
+   error = asn1ReadSequence(p, length, &tag);
    //Failed to decode ASN.1 tag?
-   if(error)
-      return error;
-
-   //Enforce encoding, class and type
-   error = asn1CheckTag(&tag, TRUE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_SEQUENCE);
-   //The tag does not match the criteria?
    if(error)
       return error;
 

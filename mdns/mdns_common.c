@@ -1,10 +1,10 @@
 /**
  * @file mdns_common.c
- * @brief Functions common to mDNS client and mDNS responder
+ * @brief Definitions common to mDNS client and mDNS responder
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -105,11 +105,11 @@ error_t mdnsInit(NetInterface *interface)
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming mDNS message
  * @param[in] offset Offset to the first byte of the mDNS message
- * @param[in] params Callback function parameter (not used)
+ * @param[in] param Callback function parameter (not used)
  **/
 
 void mdnsProcessMessage(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *params)
+   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *param)
 {
    size_t length;
    DnsHeader *dnsHeader;

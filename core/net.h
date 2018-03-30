@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _NET_H
@@ -60,13 +60,13 @@ struct _NetInterface;
 #include "error.h"
 
 //Version string
-#define NET_VERSION_STRING "1.8.0"
+#define NET_VERSION_STRING "1.8.2"
 //Major version
 #define NET_MAJOR_VERSION 1
 //Minor version
 #define NET_MINOR_VERSION 8
 //Revision number
-#define NET_REV_NUMBER 0
+#define NET_REV_NUMBER 2
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -228,7 +228,7 @@ struct _NetInterface
  * @brief Link change callback
  **/
 
-typedef void (*LinkChangeCallback)(NetInterface *interface, bool_t linkState, void *params);
+typedef void (*LinkChangeCallback)(NetInterface *interface, bool_t linkState, void *param);
 
 
 /**
@@ -239,7 +239,7 @@ typedef struct
 {
    NetInterface *interface;
    LinkChangeCallback callback;
-   void *params;
+   void *param;
 } LinkChangeCallbackDesc;
 
 
@@ -287,7 +287,7 @@ uint32_t netGetRand(void);
 int32_t netGetRandRange(int32_t min, int32_t max);
 
 error_t netAttachLinkChangeCallback(NetInterface *interface,
-   LinkChangeCallback callback, void *params, uint_t *cookie);
+   LinkChangeCallback callback, void *param, uint_t *cookie);
 
 error_t netDetachLinkChangeCallback(uint_t cookie);
 

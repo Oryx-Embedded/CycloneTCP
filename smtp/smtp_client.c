@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -93,7 +93,7 @@ error_t smtpSendMail(const SmtpAuthInfo *authInfo, const SmtpMail *mail)
    //Open a TCP socket
    context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
-   if(!context->socket)
+   if(context->socket == NULL)
    {
       //Free previously allocated resources
       osFreeMem(context);

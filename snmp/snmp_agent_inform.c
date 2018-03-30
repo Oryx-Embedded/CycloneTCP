@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -90,7 +90,7 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context, SnmpVersion ve
 
       //Invalid user name?
       if(user == NULL || user->status != MIB_ROW_STATUS_ACTIVE)
-         return ERROR_UNKNOWN_USER_NAME;;
+         return ERROR_UNKNOWN_USER_NAME;
 
       //Save the security profile associated with the current user
       context->user = *user;

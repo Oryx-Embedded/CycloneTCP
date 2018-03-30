@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -111,11 +111,15 @@ TftpClientConnection *tftpServerOpenConnection(TftpServerContext *context,
 {
    error_t error;
    uint_t i;
+   systime_t time;
    TftpClientConnection *connection;
    TftpClientConnection *oldestConnection;
 
-   //Keep track of the oldest connection that is waiting to
-   //retransmit the final ACK
+   //Get current time
+   time = osGetSystemTime();
+
+   //Keep track of the oldest connection that is waiting to retransmit
+   //the final ACK
    oldestConnection = NULL;
 
    //Loop through the connection table
@@ -132,24 +136,21 @@ TftpClientConnection *tftpServerOpenConnection(TftpServerContext *context,
       }
       else if(connection->state == TFTP_STATE_WRITE_COMPLETE)
       {
-         //Keep track of the oldest connection that is waiting to
-         //retransmit the final ACK
+         //Keep track of the oldest connection that is waiting to retransmit
+         //the final ACK
          if(oldestConnection == NULL)
          {
-            //Save current connection
             oldestConnection = connection;
          }
-         else if(timeCompare(connection->timestamp,
-            oldestConnection->timestamp) < 0)
+         else if((time - connection->timestamp) > (time - oldestConnection->timestamp))
          {
-            //Save current connection
             oldestConnection = connection;
          }
       }
    }
 
-   //The oldest connection that is waiting to retransmit the final ACK
-   //can be reused when the connection table runs out of space
+   //The oldest connection that is waiting to retransmit the final ACK can be
+   //reused when the connection table runs out of space
    if(i >= TFTP_SERVER_MAX_CONNECTIONS)
    {
       //Close the oldest connection

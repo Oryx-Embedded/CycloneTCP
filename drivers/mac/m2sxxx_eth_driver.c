@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -168,7 +168,8 @@ error_t m2sxxxEthInit(NetInterface *interface)
    //Disable flow control
    MAC->CFG1 = 0;
 
-   //All short frames will be zero-padded to 60 bytes and a valid CRC is then appended
+   //All short frames will be zero-padded to 60 bytes and a valid CRC
+   //is then appended
    MAC->CFG2 = CFG2_PREAMBLE_7 | CFG2_INTERFACE_MODE_NIBBLE |
       CFG2_LENGTH_FIELD_CHECK | CFG2_PAD_CRC_EN | CFG2_CRC_EN;
 
@@ -189,8 +190,8 @@ error_t m2sxxxEthInit(NetInterface *interface)
       FIFO_CFG5_INVALID_CRC | FIFO_CFG5_RECEIVE_ERROR);
 
    //Configure frame filtering
-   MAC->FIFO_CFG4 = FIFO_CFG4_TRUNCATED |
-      FIFO_CFG4_INVALID_CRC | FIFO_CFG4_RECEIVE_ERROR;
+   MAC->FIFO_CFG4 = FIFO_CFG4_TRUNCATED | FIFO_CFG4_INVALID_CRC |
+      FIFO_CFG4_RECEIVE_ERROR;
 
    //Initialize DMA descriptor lists
    m2sxxxEthInitDmaDesc(interface);
@@ -530,7 +531,7 @@ error_t m2sxxxEthReceivePacket(NetInterface *interface)
 
 error_t m2sxxxEthSetMulticastFilter(NetInterface *interface)
 {
-   //SmartFusion2 Ethernet MAC does not implement any hash table
+   //Ethernet MAC does not implement multicast filtering
    return NO_ERROR;
 }
 

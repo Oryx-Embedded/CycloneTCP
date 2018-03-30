@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -351,11 +351,11 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming DNS message
  * @param[in] offset Offset to the first byte of the DNS message
- * @param[in] params Callback function parameter (not used)
+ * @param[in] param Callback function parameter (not used)
  **/
 
 void dnsProcessResponse(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *params)
+   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *param)
 {
    uint_t i;
    uint_t j;

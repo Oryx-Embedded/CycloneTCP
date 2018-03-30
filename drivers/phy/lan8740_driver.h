@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _LAN8740_DRIVER_H
@@ -49,8 +49,8 @@
 #define LAN8740_PHY_REG_ANER        0x06
 #define LAN8740_PHY_REG_ANNPTR      0x07
 #define LAN8740_PHY_REG_ANNPRR      0x08
-#define LAN8740_PHY_REG_MDDACR      0x0D
-#define LAN8740_PHY_REG_MDDAADR     0x0E
+#define LAN8740_PHY_REG_MMDACR      0x0D
+#define LAN8740_PHY_REG_MMDAADR     0x0E
 #define LAN8740_PHY_REG_ENCTECR     0x10
 #define LAN8740_PHY_REG_MCSR        0x11
 #define LAN8740_PHY_REG_SMR         0x12
@@ -166,14 +166,14 @@
 #define ANNPRR_MESSAGE1             (1 << 1)
 #define ANNPRR_MESSAGE0             (1 << 0)
 
-//MDDACR register
-#define MDDACR_MMD_FUNCTION1        (1 << 15)
-#define MDDACR_MMD_FUNCTION0        (1 << 14)
-#define MDDACR_MMD_DEVAD4           (1 << 4)
-#define MDDACR_MMD_DEVAD3           (1 << 3)
-#define MDDACR_MMD_DEVAD2           (1 << 2)
-#define MDDACR_MMD_DEVAD1           (1 << 1)
-#define MDDACR_MMD_DEVAD0           (1 << 0)
+//MMDACR register
+#define MMDACR_FUNCTION1            (1 << 15)
+#define MMDACR_FUNCTION0            (1 << 14)
+#define MMDACR_DEVAD4               (1 << 4)
+#define MMDACR_DEVAD3               (1 << 3)
+#define MMDACR_DEVAD2               (1 << 2)
+#define MMDACR_DEVAD1               (1 << 1)
+#define MMDACR_DEVAD0               (1 << 0)
 
 //ENCTECR register
 #define ENCTECR_EDPD_TX_NLP_EN      (1 << 15)

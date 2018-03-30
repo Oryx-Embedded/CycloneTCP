@@ -1,10 +1,10 @@
 /**
  * @file nbns_common.h
- * @brief Functions common to NBNS client and NBNS responder
+ * @brief Definitions common to NBNS client and NBNS responder
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 #ifndef _NBNS_COMMON_H
@@ -130,7 +130,7 @@ typedef __start_packed struct
 error_t nbnsInit(NetInterface *interface);
 
 void nbnsProcessMessage(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *params);
+   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *param);
 
 size_t nbnsEncodeName(const char_t *src, uint8_t *dest);
 

@@ -1,10 +1,10 @@
 /**
  * @file dhcp_common.c
- * @brief Functions common to DHCP client, server and BOOTP relay agent
+ * @brief Definitions common to DHCP client and server
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -22,16 +22,8 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
- * @section Description
- *
- * The Dynamic Host Configuration Protocol is used to provide configuration
- * parameters to hosts. Refer to the following RFCs for complete details:
- * - RFC 2131: Dynamic Host Configuration Protocol
- * - RFC 2132: DHCP Options and BOOTP Vendor Extensions
- * - RFC 4039: Rapid Commit Option for the DHCP version 4
- *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level

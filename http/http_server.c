@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -155,7 +155,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
    //Open a TCP socket
    context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
-   if(!context->socket)
+   if(context->socket == NULL)
       return ERROR_OPEN_FAILED;
 
    //Set timeout for blocking functions
@@ -714,7 +714,7 @@ error_t httpReadStream(HttpConnection *connection,
 
       //Read data
       error = httpReceive(connection, data, n, received, flags);
-      //Any error to report
+      //Any error to report?
       if(error)
          return error;
 

@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -22,8 +22,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
+ * @section Description
+ *
+ * The Dynamic Host Configuration Protocol is used to provide configuration
+ * parameters to hosts. Refer to the following RFCs for complete details:
+ * - RFC 2131: Dynamic Host Configuration Protocol
+ * - RFC 2132: DHCP Options and BOOTP Vendor Extensions
+ * - RFC 4039: Rapid Commit Option for the DHCP version 4
+ *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -249,12 +257,12 @@ void dhcpServerTick(DhcpServerContext *context)
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming DHCP message
  * @param[in] offset Offset to the first byte of the DHCP message
- * @param[in] params Pointer to the DHCP server context
+ * @param[in] param Pointer to the DHCP server context
  **/
 
 void dhcpServerProcessMessage(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, void *params)
+   const NetBuffer *buffer, size_t offset, void *param)
 {
    size_t length;
    DhcpServerContext *context;
@@ -262,7 +270,7 @@ void dhcpServerProcessMessage(NetInterface *interface,
    DhcpOption *option;
 
    //Point to the DHCP server context
-   context = (DhcpServerContext *) params;
+   context = (DhcpServerContext *) param;
 
    //Retrieve the length of the DHCP message
    length = netBufferGetLength(buffer) - offset;
@@ -864,8 +872,12 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
 DhcpServerBinding *dhcpServerCreateBinding(DhcpServerContext *context)
 {
    uint_t i;
+   systime_t time;
    DhcpServerBinding *binding;
    DhcpServerBinding *oldestBinding;
+
+   //Get current time
+   time = osGetSystemTime();
 
    //Keep track of the oldest binding
    oldestBinding = NULL;
@@ -890,12 +902,11 @@ DhcpServerBinding *dhcpServerCreateBinding(DhcpServerContext *context)
          if(!binding->validLease)
          {
             //Keep track of the oldest binding in the list
-            if(oldestBinding != NULL)
+            if(oldestBinding == NULL)
             {
-               if(timeCompare(binding->timestamp, oldestBinding->timestamp) < 0)
-                  oldestBinding = binding;
+               oldestBinding = binding;
             }
-            else
+            else if((time - binding->timestamp) > (time - oldestBinding->timestamp))
             {
                oldestBinding = binding;
             }

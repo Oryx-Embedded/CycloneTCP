@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -566,7 +566,8 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface)
    if(!(rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_OWN))
    {
       //FD and LD flags should be set
-      if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_FD) && (rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_LD))
+      if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_FD) &&
+         (rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_LD))
       {
          //Make sure no error occurred
          if(!(rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_ES))

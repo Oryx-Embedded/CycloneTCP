@@ -4,7 +4,7 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2017 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.0
+ * @version 1.8.2
  **/
 
 //Switch to the appropriate trace level
@@ -352,6 +352,7 @@ void mkv5xEthEnableIrq(NetInterface *interface)
    NVIC_EnableIRQ(ENET_Transmit_IRQn);
    NVIC_EnableIRQ(ENET_Receive_IRQn);
    NVIC_EnableIRQ(ENET_Error_IRQn);
+
    //Enable Ethernet PHY interrupts
    interface->phyDriver->enableIrq(interface);
 }
@@ -368,6 +369,7 @@ void mkv5xEthDisableIrq(NetInterface *interface)
    NVIC_DisableIRQ(ENET_Transmit_IRQn);
    NVIC_DisableIRQ(ENET_Receive_IRQn);
    NVIC_DisableIRQ(ENET_Error_IRQn);
+
    //Disable Ethernet PHY interrupts
    interface->phyDriver->disableIrq(interface);
 }
