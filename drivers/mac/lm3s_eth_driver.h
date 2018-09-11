@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _LM3S_ETH_DRIVER_H
@@ -69,7 +69,7 @@ error_t lm3sEthSendPacket(NetInterface *interface,
 
 error_t lm3sEthReceivePacket(NetInterface *interface);
 
-error_t lm3sEthSetMulticastFilter(NetInterface *interface);
+error_t lm3sEthUpdateMacAddrFilter(NetInterface *interface);
 
 void lm3sEthWritePhyReg(uint8_t address, uint16_t data);
 uint16_t lm3sEthReadPhyReg(uint8_t address);

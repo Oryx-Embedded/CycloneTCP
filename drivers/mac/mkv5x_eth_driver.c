@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -96,7 +96,7 @@ const NicDriver mkv5xEthDriver =
    mkv5xEthDisableIrq,
    mkv5xEthEventHandler,
    mkv5xEthSendPacket,
-   mkv5xEthSetMulticastFilter,
+   mkv5xEthUpdateMacAddrFilter,
    mkv5xEthUpdateMacConfig,
    mkv5xEthWritePhyReg,
    mkv5xEthReadPhyReg,
@@ -680,32 +680,37 @@ error_t mkv5xEthReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t mkv5xEthSetMulticastFilter(NetInterface *interface)
+error_t mkv5xEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t k;
    uint32_t crc;
-   uint32_t hashTable[2];
+   uint32_t unicastHashTable[2];
+   uint32_t multicastHashTable[2];
    MacFilterEntry *entry;
 
    //Debug message
    TRACE_DEBUG("Updating Kinetis KV5x hash table...\r\n");
 
-   //Clear hash table
-   hashTable[0] = 0;
-   hashTable[1] = 0;
+   //Clear hash table (unicast address filtering)
+   unicastHashTable[0] = 0;
+   unicastHashTable[1] = 0;
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //Clear hash table (multicast address filtering)
+   multicastHashTable[0] = 0;
+   multicastHashTable[1] = 0;
+
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Valid entry?
       if(entry->refCount > 0)
@@ -717,16 +722,31 @@ error_t mkv5xEthSetMulticastFilter(NetInterface *interface)
          //contents of the hash table
          k = (crc >> 26) & 0x3F;
 
-         //Update hash table contents
-         hashTable[k / 32] |= (1 << (k % 32));
+         //Multicast address?
+         if(macIsMulticastAddr(&entry->addr))
+         {
+            //Update the multicast hash table
+            multicastHashTable[k / 32] |= (1 << (k % 32));
+         }
+         else
+         {
+            //Update the unicast hash table
+            unicastHashTable[k / 32] |= (1 << (k % 32));
+         }
       }
    }
 
-   //Write the hash table
-   ENET->GALR = hashTable[0];
-   ENET->GAUR = hashTable[1];
+   //Write the hash table (unicast address filtering)
+   ENET->IALR = unicastHashTable[0];
+   ENET->IAUR = unicastHashTable[1];
+
+   //Write the hash table (multicast address filtering)
+   ENET->GALR = multicastHashTable[0];
+   ENET->GAUR = multicastHashTable[1];
 
    //Debug message
+   TRACE_DEBUG("  IALR = %08" PRIX32 "\r\n", ENET->IALR);
+   TRACE_DEBUG("  IAUR = %08" PRIX32 "\r\n", ENET->IAUR);
    TRACE_DEBUG("  GALR = %08" PRIX32 "\r\n", ENET->GALR);
    TRACE_DEBUG("  GAUR = %08" PRIX32 "\r\n", ENET->GAUR);
 

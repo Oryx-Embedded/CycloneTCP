@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _MKV5X_ETH_DRIVER_H
@@ -158,7 +158,7 @@ error_t mkv5xEthSendPacket(NetInterface *interface,
 
 error_t mkv5xEthReceivePacket(NetInterface *interface);
 
-error_t mkv5xEthSetMulticastFilter(NetInterface *interface);
+error_t mkv5xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t mkv5xEthUpdateMacConfig(NetInterface *interface);
 
 void mkv5xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

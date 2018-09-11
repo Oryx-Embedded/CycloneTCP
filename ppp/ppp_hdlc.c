@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -54,7 +54,7 @@ const NicDriver pppHdlcDriver =
    pppHdlcDriverDisableIrq,
    pppHdlcDriverEventHandler,
    pppHdlcDriverSendPacket,
-   pppHdlcDriverSetMulticastFilter,
+   pppHdlcDriverUpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -364,12 +364,12 @@ error_t pppHdlcDriverReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t pppHdlcDriverSetMulticastFilter(NetInterface *interface)
+error_t pppHdlcDriverUpdateMacAddrFilter(NetInterface *interface)
 {
    //Not implemented
    return NO_ERROR;

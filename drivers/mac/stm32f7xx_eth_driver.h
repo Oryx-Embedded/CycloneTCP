@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _STM32F7XX_ETH_DRIVER_H
@@ -219,7 +219,7 @@ error_t stm32f7xxEthSendPacket(NetInterface *interface,
 
 error_t stm32f7xxEthReceivePacket(NetInterface *interface);
 
-error_t stm32f7xxEthSetMulticastFilter(NetInterface *interface);
+error_t stm32f7xxEthUpdateMacAddrFilter(NetInterface *interface);
 error_t stm32f7xxEthUpdateMacConfig(NetInterface *interface);
 
 void stm32f7xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

@@ -29,7 +29,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -69,6 +69,10 @@
 error_t ipv4Init(NetInterface *interface)
 {
    Ipv4Context *context;
+   NetInterface *physicalInterface;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Point to the IPv4 context
    context = &interface->ipv4Context;
@@ -77,7 +81,7 @@ error_t ipv4Init(NetInterface *interface)
    memset(context, 0, sizeof(Ipv4Context));
 
    //Initialize interface specific variables
-   context->linkMtu = interface->nicDriver->mtu;
+   context->linkMtu = physicalInterface->nicDriver->mtu;
    context->isRouter = FALSE;
 
    //Identification field is primarily used to identify
@@ -388,12 +392,16 @@ error_t ipv4GetBroadcastAddr(NetInterface *interface, Ipv4Addr *addr)
 void ipv4LinkChangeEvent(NetInterface *interface)
 {
    Ipv4Context *context;
+   NetInterface *physicalInterface;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Point to the IPv4 context
    context = &interface->ipv4Context;
 
    //Restore default MTU
-   context->linkMtu = interface->nicDriver->mtu;
+   context->linkMtu = physicalInterface->nicDriver->mtu;
 
 #if (ETH_SUPPORT == ENABLED)
    //Flush ARP cache contents
@@ -837,6 +845,9 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    error_t error;
    size_t length;
    Ipv4Header *packet;
+#if (ETH_SUPPORT == ENABLED)
+   NetInterface *physicalInterface;
+#endif
 
    //Is there enough space for the IPv4 header?
    if(offset < sizeof(Ipv4Header))
@@ -890,8 +901,12 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    }
 
 #if (ETH_SUPPORT == ENABLED)
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+
    //Ethernet interface?
-   if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
+   if(physicalInterface->nicDriver != NULL &&
+      physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
    {
       Ipv4Addr destIpAddr;
       MacAddr destMacAddr;
@@ -986,7 +1001,8 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
 #endif
 #if (PPP_SUPPORT == ENABLED)
    //PPP interface?
-   if(interface->nicDriver->type == NIC_TYPE_PPP)
+   if(interface->nicDriver != NULL &&
+      interface->nicDriver->type == NIC_TYPE_PPP)
    {
       //Update IP statistics
       ipv4UpdateOutStats(interface, pseudoHeader->destAddr, length);
@@ -1383,12 +1399,16 @@ error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
    Ipv4FilterEntry *entry;
    Ipv4FilterEntry *firstFreeEntry;
 #if (ETH_SUPPORT == ENABLED)
+   NetInterface *physicalInterface;
    MacAddr macAddr;
 #endif
 
    //The IPv4 address must be a valid multicast address
    if(!ipv4IsMulticastAddr(groupAddr))
       return ERROR_INVALID_ADDRESS;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Initialize error code
    error = NO_ERROR;
@@ -1432,7 +1452,25 @@ error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
    //Map the IPv4 multicast address to a MAC-layer address
    ipv4MapMulticastAddrToMac(groupAddr, &macAddr);
    //Add the corresponding address to the MAC filter table
-   error = ethAcceptMulticastAddr(interface, &macAddr);
+   error = ethAcceptMacAddr(interface, &macAddr);
+
+   //Check status code
+   if(!error)
+   {
+      //Virtual interface?
+      if(interface != physicalInterface)
+      {
+         //Configure the physical interface to accept the MAC address
+         error = ethAcceptMacAddr(physicalInterface, &macAddr);
+
+         //Any error to report?
+         if(error)
+         {
+            //Clean up side effects
+            ethDropMacAddr(interface, &macAddr);
+         }
+      }
+   }
 #endif
 
    //MAC filter table successfully updated?
@@ -1466,12 +1504,16 @@ error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
    uint_t i;
    Ipv4FilterEntry *entry;
 #if (ETH_SUPPORT == ENABLED)
+   NetInterface *physicalInterface;
    MacAddr macAddr;
 #endif
 
    //The IPv4 address must be a valid multicast address
    if(!ipv4IsMulticastAddr(groupAddr))
       return ERROR_INVALID_ADDRESS;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Go through the multicast filter table
    for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
@@ -1499,7 +1541,15 @@ error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
                //Map the IPv4 multicast address to a MAC-layer address
                ipv4MapMulticastAddrToMac(groupAddr, &macAddr);
                //Drop the corresponding address from the MAC filter table
-               ethDropMulticastAddr(interface, &macAddr);
+               ethDropMacAddr(interface, &macAddr);
+
+               //Virtual interface?
+               if(interface != physicalInterface)
+               {
+                  //Drop the corresponding address from the MAC filter table of
+                  //the physical interface
+                  ethDropMacAddr(physicalInterface, &macAddr);
+               }
 #endif
                //Remove the multicast address from the list
                entry->addr = IPV4_UNSPECIFIED_ADDR;

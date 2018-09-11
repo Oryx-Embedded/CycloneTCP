@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _COAP_CLIENT_H
@@ -155,9 +155,9 @@ struct _CoapClientRequest;
 
 typedef enum
 {
-   COAP_CLIENT_STATE_DISCONNECTED  = 0,
-   COAP_CLIENT_STATE_CONNECTING    = 1,
-   COAP_CLIENT_STATE_CONNECTED     = 2
+   COAP_CLIENT_STATE_DISCONNECTED = 0,
+   COAP_CLIENT_STATE_CONNECTING   = 1,
+   COAP_CLIENT_STATE_CONNECTED    = 2
 } CoapClientState;
 
 

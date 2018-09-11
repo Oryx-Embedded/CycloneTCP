@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _BCM43362_DRIVER_H
@@ -55,7 +55,7 @@ void bcm43362EventHandler(NetInterface *interface);
 error_t bcm43362SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t bcm43362SetMulticastFilter(NetInterface *interface);
+error_t bcm43362UpdateMacAddrFilter(NetInterface *interface);
 
 void bcm43362AppWifiEvent(uint8_t msgType, void *msg);
 void bcm43362AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf);

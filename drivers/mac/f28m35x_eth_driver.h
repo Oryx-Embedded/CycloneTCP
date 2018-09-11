@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _F28M35X_ETH_DRIVER_H
@@ -89,7 +89,7 @@ error_t f28m35xEthSendPacket(NetInterface *interface,
 
 error_t f28m35xEthReceivePacket(NetInterface *interface);
 
-error_t f28m35xEthSetMulticastFilter(NetInterface *interface);
+error_t f28m35xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t f28m35xEthUpdateMacConfig(NetInterface *interface);
 
 void f28m35xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

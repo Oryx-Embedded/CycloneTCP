@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -61,7 +61,7 @@ const NicDriver mrf24wgDriver =
    mrf24wgDisableIrq,
    mrf24wgEventHandler,
    mrf24wgSendPacket,
-   mrf24wgSetMulticastFilter,
+   mrf24wgUpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -213,12 +213,12 @@ error_t mrf24wgSendPacket(NetInterface *interface,
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t mrf24wgSetMulticastFilter(NetInterface *interface)
+error_t mrf24wgUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    MacFilterEntry *entry;
@@ -226,12 +226,12 @@ error_t mrf24wgSetMulticastFilter(NetInterface *interface)
    //Debug message
    TRACE_INFO("Updating MRF24WG multicast filter...\r\n");
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Check whether the MAC filter table should be updated for the
       //current multicast address

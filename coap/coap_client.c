@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -43,18 +43,18 @@
 
 
 /**
- * @brief Initialize COAP client context
- * @param[in] context Pointer to the COAP client context
+ * @brief Initialize CoAP client context
+ * @param[in] context Pointer to the CoAP client context
  * @return Error code
  **/
 
 error_t coapClientInit(CoapClientContext *context)
 {
-   //Make sure the COAP client context is valid
+   //Make sure the CoAP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Clear COAP client context
+   //Clear CoAP client context
    memset(context, 0, sizeof(CoapClientContext));
 
    //Create a mutex to prevent simultaneous access to the context
@@ -94,7 +94,7 @@ error_t coapClientInit(CoapClientContext *context)
 
 /**
  * @brief Set the transport protocol to be used
- * @param[in] context Pointer to the COAP client context
+ * @param[in] context Pointer to the CoAP client context
  * @param[in] transportProtocol Transport protocol to be used (UDP or DTLS)
  * @return Error code
  **/
@@ -102,7 +102,7 @@ error_t coapClientInit(CoapClientContext *context)
 error_t coapClientSetTransportProtocol(CoapClientContext *context,
    CoapTransportProtocol transportProtocol)
 {
-   //Make sure the COAP client context is valid
+   //Make sure the CoAP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -122,7 +122,7 @@ error_t coapClientSetTransportProtocol(CoapClientContext *context,
 
 /**
  * @brief Register DTLS initialization callback function
- * @param[in] context Pointer to the COAP client context
+ * @param[in] context Pointer to the CoAP client context
  * @param[in] callback DTLS initialization callback function
  * @return Error code
  **/
@@ -150,14 +150,14 @@ error_t coapClientRegisterDtlsInitCallback(CoapClientContext *context,
 
 /**
  * @brief Set default request timeout
- * @param[in] context Pointer to the COAP client context
+ * @param[in] context Pointer to the CoAP client context
  * @param[in] timeout Timeout value, in milliseconds
  * @return Error code
  **/
 
 error_t coapClientSetTimeout(CoapClientContext *context, systime_t timeout)
 {
-   //Make sure the COAP client context is valid
+   //Make sure the CoAP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -175,14 +175,14 @@ error_t coapClientSetTimeout(CoapClientContext *context, systime_t timeout)
 
 /**
  * @brief Set the length of the token
- * @param[in] context Pointer to the COAP client context
+ * @param[in] context Pointer to the CoAP client context
  * @param[in] length Token length
  * @return Error code
  **/
 
 error_t coapClientSetTokenLength(CoapClientContext *context, size_t length)
 {
-   //Make sure the COAP client context is valid
+   //Make sure the CoAP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -232,7 +232,7 @@ error_t coapClientBindToInterface(CoapClientContext *context,
  * @brief Establish connection with the CoAP server
  * @param[in] context Pointer to the CoAP client context
  * @param[in] serverIpAddr IP address of the CoAP server to connect to
- * @param[in] serverPort TCP port number that will be used
+ * @param[in] serverPort UDP port number that will be used
  * @return Error code
  **/
 
@@ -275,7 +275,7 @@ error_t coapClientConnect(CoapClientContext *context,
       }
       else if(context->state == COAP_CLIENT_STATE_CONNECTING)
       {
-         //Establish network connection
+         //Establish DTLS connection
          error = coapClientEstablishConnection(context, serverIpAddr,
             serverPort);
 
@@ -346,6 +346,10 @@ error_t coapClientTask(CoapClientContext *context, systime_t timeout)
 {
    error_t error;
 
+   //Make sure the CoAP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&context->mutex);
    //Process CoAP client events
@@ -381,7 +385,7 @@ error_t coapClientDisconnect(CoapClientContext *context)
    //Check current state
    if(context->state == COAP_CLIENT_STATE_CONNECTED)
    {
-      //Properly dispose the network connection
+      //Terminate DTLS connection
       error = coapClientShutdownConnection(context);
    }
 
@@ -399,8 +403,8 @@ error_t coapClientDisconnect(CoapClientContext *context)
 
 
 /**
- * @brief Release COAP client context
- * @param[in] context Pointer to the COAP client context
+ * @brief Release CoAP client context
+ * @param[in] context Pointer to the CoAP client context
  **/
 
 void coapClientDeinit(CoapClientContext *context)
@@ -415,7 +419,7 @@ void coapClientDeinit(CoapClientContext *context)
       osDeleteMutex(&context->mutex);
       osDeleteEvent(&context->event);
 
-      //Clear COAP client context
+      //Clear CoAP client context
       memset(context, 0, sizeof(CoapClientContext));
    }
 }

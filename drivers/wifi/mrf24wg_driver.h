@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _MRF24WG_DRIVER_H
@@ -79,7 +79,7 @@ void mrf24wgEventHandler(NetInterface *interface);
 error_t mrf24wgSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t mrf24wgSetMulticastFilter(NetInterface *interface);
+error_t mrf24wgUpdateMacAddrFilter(NetInterface *interface);
 
 void mrf24wgAppWifiEvent(uint8_t msgType, void *msg);
 void mrf24wgAppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf);

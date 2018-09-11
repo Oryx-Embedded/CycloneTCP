@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _PIC32MZ_ETH_DRIVER_H
@@ -198,7 +198,7 @@ error_t pic32mzEthSendPacket(NetInterface *interface,
 
 error_t pic32mzEthReceivePacket(NetInterface *interface);
 
-error_t pic32mzEthSetMulticastFilter(NetInterface *interface);
+error_t pic32mzEthUpdateMacAddrFilter(NetInterface *interface);
 error_t pic32mzEthUpdateMacConfig(NetInterface *interface);
 
 void pic32mzEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

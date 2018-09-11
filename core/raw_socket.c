@@ -28,7 +28,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -505,7 +505,8 @@ error_t rawSocketSendEthPacket(Socket *socket,
       interface = socket->interface;
 
    //Ethernet interface?
-   if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
+   if(interface->nicDriver != NULL &&
+      interface->nicDriver->type == NIC_TYPE_ETHERNET)
    {
       //Allocate a buffer memory to hold the raw Ethernet packet
       buffer = netBufferAlloc(0);

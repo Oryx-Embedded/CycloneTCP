@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,7 @@ const NicDriver wilc1000StaDriver =
    wilc1000DisableIrq,
    wilc1000EventHandler,
    wilc1000SendPacket,
-   wilc1000SetMulticastFilter,
+   wilc1000UpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -85,7 +85,7 @@ const NicDriver wilc1000ApDriver =
    wilc1000DisableIrq,
    wilc1000EventHandler,
    wilc1000SendPacket,
-   wilc1000SetMulticastFilter,
+   wilc1000UpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -409,12 +409,12 @@ error_t wilc1000SendPacket(NetInterface *interface,
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t wilc1000SetMulticastFilter(NetInterface *interface)
+error_t wilc1000UpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t refCount;
@@ -423,12 +423,12 @@ error_t wilc1000SetMulticastFilter(NetInterface *interface)
    //Debug message
    TRACE_INFO("Updating WILC1000 multicast filter...\r\n");
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Valid entry?
       if(!macCompAddr(&entry->addr, &MAC_UNSPECIFIED_ADDR))
@@ -483,10 +483,10 @@ bool_t wilc1000GetAddrRefCount(NetInterface *interface, const MacAddr *macAddr)
    if(interface != NULL)
    {
       //Go through the multicast filter table
-      for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+      for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
       {
          //Point to the current entry
-         entry = &interface->macMulticastFilter[i];
+         entry = &interface->macAddrFilter[i];
 
          //Valid entry?
          if(entry->refCount > 0)

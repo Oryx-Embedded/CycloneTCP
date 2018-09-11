@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -155,36 +155,9 @@ void snmpUsmMibUnlock(void)
 error_t snmpUsmMibSetUserSpinLock(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
-   error_t error;
-
-   //The new value supplied via the management protocol must precisely match
-   //the value presently held by the instance
-   if(value->integer == snmpUsmMibBase.usmUserSpinLock)
-   {
-      //Check whether the changes shall be committed to the MIB base
-      if(commit)
-      {
-         //The value held by the instance is incremented by one
-         snmpUsmMibBase.usmUserSpinLock++;
-
-         //if the current value is the maximum value of 2^31-1, then the value
-         //held by the instance is wrapped to zero
-         if(snmpUsmMibBase.usmUserSpinLock < 0)
-            snmpUsmMibBase.usmUserSpinLock = 0;
-      }
-
-      //Successful operation
-      error = NO_ERROR;
-   }
-   else
-   {
-      //The management protocol set operation fails with an error of
-      //inconsistentValue
-      error = ERROR_INCONSISTENT_VALUE;
-   }
-
-   //Return status code
-   return error;
+   //Test and increment spin lock
+   return mibTestAndIncSpinLock(&snmpUsmMibBase.usmUserSpinLock,
+      value->integer, commit);
 }
 
 
@@ -341,7 +314,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       //Check whether the user name exists
       if(user != NULL)
       {
-         //If a set operation tries to change the value of an existin instance
+         //If a set operation tries to change the value of an existing instance
          //of this object to any value other than usmNoAuthProtocol, then an
          //inconsistentValue error must be returned
          if(oidComp(value->oid, valueLen, usmNoAuthProtocolOid,
@@ -431,7 +404,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       if(!strcmp(object->name, "usmUserOwnAuthKeyChange"))
       {
          //When the user name of the requester is not the same as the umsUserName
-         //that indexes the rown, then a noAccess error must be returned
+         //that indexes the row, then a noAccess error must be returned
          if(strcmp(user->name, context->user.name))
             return ERROR_ACCESS_DENIED;
 
@@ -535,7 +508,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       if(!strcmp(object->name, "usmUserOwnPrivKeyChange"))
       {
          //When the user name of the requester is not the same as the umsUserName
-         //that indexes the rown, then a noAccess error must be returned
+         //that indexes the row, then a noAccess error must be returned
          if(strcmp(user->name, context->user.name))
             return ERROR_ACCESS_DENIED;
 
@@ -750,7 +723,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
             }
             else
             {
-               //Initialize colums with default values
+               //Initialize columns with default values
                user->authProtocol = SNMP_AUTH_PROTOCOL_NONE;
                user->privProtocol = SNMP_PRIV_PROTOCOL_NONE;
 

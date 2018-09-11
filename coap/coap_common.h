@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _COAP_COMMON_H
@@ -79,7 +79,7 @@ typedef enum {
 
 typedef enum {
    COAP_TRANSPORT_PROTOCOL_UDP  = 1, ///<UDP protocol
-   COAP_TRANSPORT_PROTOCOL_DTLS = 2, ///<DTLS protocol
+   COAP_TRANSPORT_PROTOCOL_DTLS = 2  ///<DTLS protocol
 } CoapTransportProtocol;
 
 
@@ -146,7 +146,12 @@ typedef enum
    COAP_CODE_BAD_GATEWAY                  = COAP_CODE(5, 2),
    COAP_CODE_SERVICE_UNAVAILABLE          = COAP_CODE(5, 3),
    COAP_CODE_GATEWAY_TIMEOUT              = COAP_CODE(5, 4),
-   COAP_CODE_PROXYING_NOT_SUPPORTED       = COAP_CODE(5, 5)
+   COAP_CODE_PROXYING_NOT_SUPPORTED       = COAP_CODE(5, 5),
+   COAP_CODE_CSM                          = COAP_CODE(7, 1),
+   COAP_CODE_PING                         = COAP_CODE(7, 2),
+   COAP_CODE_PONG                         = COAP_CODE(7, 3),
+   COAP_CODE_RELEASE                      = COAP_CODE(7, 4),
+   COAP_CODE_ABORT                        = COAP_CODE(7, 5)
 } CoapCode;
 
 

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -127,7 +127,7 @@ const NicDriver same70EthDriver =
    same70EthDisableIrq,
    same70EthEventHandler,
    same70EthSendPacket,
-   same70EthSetMulticastFilter,
+   same70EthUpdateMacAddrFilter,
    same70EthUpdateMacConfig,
    same70EthWritePhyReg,
    same70EthReadPhyReg,
@@ -185,6 +185,9 @@ error_t same70EthInit(NetInterface *interface)
 
    GMAC->GMAC_RBSRPQ[0] = GMAC_RBSRPQ_RBS(SAME70_ETH_DUMMY_BUFFER_SIZE / 64);
    GMAC->GMAC_RBSRPQ[1] = GMAC_RBSRPQ_RBS(SAME70_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC->GMAC_RBSRPQ[2] = GMAC_RBSRPQ_RBS(SAME70_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC->GMAC_RBSRPQ[3] = GMAC_RBSRPQ_RBS(SAME70_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC->GMAC_RBSRPQ[4] = GMAC_RBSRPQ_RBS(SAME70_ETH_DUMMY_BUFFER_SIZE / 64);
 
    //Initialize hash table
    GMAC->GMAC_HRB = 0;
@@ -203,6 +206,9 @@ error_t same70EthInit(NetInterface *interface)
    GMAC->GMAC_IDR = 0xFFFFFFFF;
    GMAC->GMAC_IDRPQ[0] = 0xFFFFFFFF;
    GMAC->GMAC_IDRPQ[1] = 0xFFFFFFFF;
+   GMAC->GMAC_IDRPQ[2] = 0xFFFFFFFF;
+   GMAC->GMAC_IDRPQ[3] = 0xFFFFFFFF;
+   GMAC->GMAC_IDRPQ[4] = 0xFFFFFFFF;
 
    //Only the desired ones are enabled
    GMAC->GMAC_IER = GMAC_IER_HRESP | GMAC_IER_ROVR | GMAC_IER_TCOMP | GMAC_IER_TFC |
@@ -345,11 +351,17 @@ void same70EthInitBufferDesc(NetInterface *interface)
    GMAC->GMAC_TBQB = (uint32_t) txBufferDesc;
    GMAC->GMAC_TBQBAPQ[0] = (uint32_t) dummyTxBufferDesc;
    GMAC->GMAC_TBQBAPQ[1] = (uint32_t) dummyTxBufferDesc;
+   GMAC->GMAC_TBQBAPQ[2] = (uint32_t) dummyTxBufferDesc;
+   GMAC->GMAC_TBQBAPQ[3] = (uint32_t) dummyTxBufferDesc;
+   GMAC->GMAC_TBQBAPQ[4] = (uint32_t) dummyTxBufferDesc;
 
    //Start location of the RX descriptor list
    GMAC->GMAC_RBQB = (uint32_t) rxBufferDesc;
    GMAC->GMAC_RBQBAPQ[0] = (uint32_t) dummyRxBufferDesc;
    GMAC->GMAC_RBQBAPQ[1] = (uint32_t) dummyRxBufferDesc;
+   GMAC->GMAC_RBQBAPQ[2] = (uint32_t) dummyRxBufferDesc;
+   GMAC->GMAC_RBQBAPQ[3] = (uint32_t) dummyRxBufferDesc;
+   GMAC->GMAC_RBQBAPQ[4] = (uint32_t) dummyRxBufferDesc;
 }
 
 
@@ -418,6 +430,9 @@ void GMAC_Handler(void)
    //contents of GMAC_TSR, GMAC_RSR and GMAC_NSR
    isr = GMAC->GMAC_ISRPQ[0];
    isr = GMAC->GMAC_ISRPQ[1];
+   isr = GMAC->GMAC_ISRPQ[2];
+   isr = GMAC->GMAC_ISRPQ[3];
+   isr = GMAC->GMAC_ISRPQ[4];
    isr = GMAC->GMAC_ISR;
    tsr = GMAC->GMAC_TSR;
    rsr = GMAC->GMAC_RSR;
@@ -669,12 +684,12 @@ error_t same70EthReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t same70EthSetMulticastFilter(NetInterface *interface)
+error_t same70EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t k;
@@ -689,12 +704,12 @@ error_t same70EthSetMulticastFilter(NetInterface *interface)
    hashTable[0] = 0;
    hashTable[1] = 0;
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Valid entry?
       if(entry->refCount > 0)

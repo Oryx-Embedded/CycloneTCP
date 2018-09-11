@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _KSZ8895_DRIVER_H
@@ -129,12 +129,12 @@
 #define PHYSCS_REMOTE_LOOPBACK      (1 << 1)
 
 //Operation mode indication
-#define PHYCON1_OP_MODE_MASK        (7 << 8)
-#define PHYCON1_OP_MODE_AN          (0 << 8)
-#define PHYCON1_OP_MODE_10BT        (1 << 8)
-#define PHYCON1_OP_MODE_100BTX      (2 << 8)
-#define PHYCON1_OP_MODE_10BT_FD     (5 << 8)
-#define PHYCON1_OP_MODE_100BTX_FD   (6 << 8)
+#define PHYSCS_OP_MODE_MASK         (7 << 8)
+#define PHYSCS_OP_MODE_AN           (0 << 8)
+#define PHYSCS_OP_MODE_10BT         (1 << 8)
+#define PHYSCS_OP_MODE_100BTX       (2 << 8)
+#define PHYSCS_OP_MODE_10BT_FD      (5 << 8)
+#define PHYSCS_OP_MODE_100BTX_FD    (6 << 8)
 
 //C++ guard
 #ifdef __cplusplus

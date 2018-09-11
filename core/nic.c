@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -52,6 +52,65 @@ systime_t nicTickCounter;
 
 
 /**
+ * @brief Retrieve logical interface
+ * @param[in] interface Pointer to the network interface
+ * @return Pointer to the physical interface
+ **/
+
+NetInterface *nicGetLogicalInterface(NetInterface *interface)
+{
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Virtual interface?
+   if(interface->vlanId != 0 && interface->parent != NULL)
+   {
+      if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+      {
+         //Point to the interface on top of which the virtual interface runs
+         interface = interface->parent;
+      }
+   }
+#endif
+
+   //Return a pointer to the logical interface
+   return interface;
+}
+
+
+/**
+ * @brief Retrieve physical interface
+ * @param[in] interface Pointer to the network interface
+ * @return Pointer to the physical interface
+ **/
+
+NetInterface *nicGetPhysicalInterface(NetInterface *interface)
+{
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Virtual interface?
+   if(interface->vlanId != 0 && interface->parent != NULL)
+   {
+      if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+      {
+         //Point to the interface on top of which the virtual interface runs
+         interface = interface->parent;
+      }
+   }
+#endif
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Ethernet port multiplication using VLAN or tail tagging?
+   if(interface->port != 0 && interface->parent != NULL)
+   {
+      //Point to the physical interface
+      interface = interface->parent;
+   }
+#endif
+
+   //Return a pointer to the physical interface
+   return interface;
+}
+
+
+/**
  * @brief Network controller timer handler
  *
  * This routine is periodically called by the TCP/IP stack to
@@ -62,15 +121,19 @@ systime_t nicTickCounter;
 
 void nicTick(NetInterface *interface)
 {
-   //Disable interrupts
-   interface->nicDriver->disableIrq(interface);
+   //Valid NIC driver?
+   if(interface->nicDriver != NULL)
+   {
+      //Disable interrupts
+      interface->nicDriver->disableIrq(interface);
 
-   //Handle periodic operations
-   interface->nicDriver->tick(interface);
+      //Handle periodic operations
+      interface->nicDriver->tick(interface);
 
-   //Re-enable interrupts if necessary
-   if(interface->configured)
-      interface->nicDriver->enableIrq(interface);
+      //Re-enable interrupts if necessary
+      if(interface->configured)
+         interface->nicDriver->enableIrq(interface);
+   }
 }
 
 
@@ -96,26 +159,35 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer, size_t o
    TRACE_DEBUG_NET_BUFFER("  ", buffer, offset, length);
 #endif
 
-   //Wait for the transmitter to be ready to send
-   status = osWaitForEvent(&interface->nicTxEvent, NIC_MAX_BLOCKING_TIME);
-
-   //Check whether the specified event is in signaled state
-   if(status)
+   //Valid NIC driver?
+   if(interface->nicDriver != NULL)
    {
-      //Disable interrupts
-      interface->nicDriver->disableIrq(interface);
+      //Wait for the transmitter to be ready to send
+      status = osWaitForEvent(&interface->nicTxEvent, NIC_MAX_BLOCKING_TIME);
 
-      //Send Ethernet frame
-      error = interface->nicDriver->sendPacket(interface, buffer, offset);
+      //Check whether the specified event is in signaled state
+      if(status)
+      {
+         //Disable interrupts
+         interface->nicDriver->disableIrq(interface);
 
-      //Re-enable interrupts if necessary
-      if(interface->configured)
-         interface->nicDriver->enableIrq(interface);
+         //Send Ethernet frame
+         error = interface->nicDriver->sendPacket(interface, buffer, offset);
+
+         //Re-enable interrupts if necessary
+         if(interface->configured)
+            interface->nicDriver->enableIrq(interface);
+      }
+      else
+      {
+         //The transmitter is busy...
+         error = ERROR_TRANSMITTER_BUSY;
+      }
    }
    else
    {
-      //The transmitter is busy...
-      return ERROR_TRANSMITTER_BUSY;
+      //Report an error
+      error = ERROR_INVALID_INTERFACE;
    }
 
    //Return status code
@@ -124,24 +196,33 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer, size_t o
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t nicSetMulticastFilter(NetInterface *interface)
+error_t nicUpdateMacAddrFilter(NetInterface *interface)
 {
    error_t error;
 
-   //Disable interrupts
-   interface->nicDriver->disableIrq(interface);
+   //Valid NIC driver?
+   if(interface->nicDriver != NULL)
+   {
+      //Disable interrupts
+      interface->nicDriver->disableIrq(interface);
 
-   //Update MAC filter table
-   error = interface->nicDriver->setMulticastFilter(interface);
+      //Update MAC filter table
+      error = interface->nicDriver->updateMacAddrFilter(interface);
 
-   //Re-enable interrupts if necessary
-   if(interface->configured)
-      interface->nicDriver->enableIrq(interface);
+      //Re-enable interrupts if necessary
+      if(interface->configured)
+         interface->nicDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_INTERFACE;
+   }
 
    //Return status code
    return error;
@@ -218,89 +299,118 @@ void nicNotifyLinkChange(NetInterface *interface)
 {
    uint_t i;
    Socket *socket;
+   NetInterface *curInterface;
+   NetInterface *logicalInterface;
+   NetInterface *physicalInterface;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Re-enable interrupts if necessary
-   if(interface->configured)
-      interface->nicDriver->enableIrq(interface);
+   if(physicalInterface->configured)
+      physicalInterface->nicDriver->enableIrq(physicalInterface);
 
-   //Check link state
-   if(interface->linkState)
+   //Loop through network interfaces
+   for(i = 0; i < NET_INTERFACE_COUNT; i++)
    {
-      //Display link state
-      TRACE_INFO("Link is up (%s)...\r\n", interface->name);
+      //Point to the current interface
+      curInterface = &netInterface[i];
+      //Point to the parent interface
+      logicalInterface = nicGetLogicalInterface(curInterface);
 
-      //Display link speed
-      if(interface->linkSpeed == NIC_LINK_SPEED_1GBPS)
+      //802.1q allows a single network interface to be bound to multiple
+      //virtual interfaces
+      if(logicalInterface == interface)
       {
-         //1000BASE-T
-         TRACE_INFO("  Link speed = 1000 Mbps\r\n");
-      }
-      else if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
-      {
-         //100BASE-TX
-         TRACE_INFO("  Link speed = 100 Mbps\r\n");
-      }
-      else if(interface->linkSpeed == NIC_LINK_SPEED_10MBPS)
-      {
-         //10BASE-T
-         TRACE_INFO("  Link speed = 10 Mbps\r\n");
-      }
-      else if(interface->linkSpeed != NIC_LINK_SPEED_UNKNOWN)
-      {
-         //10BASE-T
-         TRACE_INFO("  Link speed = %" PRIu32 " bps\r\n", interface->linkSpeed);
-      }
+         //Set operation mode
+         curInterface->linkSpeed = logicalInterface->linkSpeed;
+         curInterface->duplexMode = logicalInterface->duplexMode;
 
-      //Display duplex mode
-      if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
-      {
-         //1000BASE-T
-         TRACE_INFO("  Duplex mode = Full-Duplex\r\n");
-      }
-      else if(interface->duplexMode == NIC_HALF_DUPLEX_MODE)
-      {
-         //100BASE-TX
-         TRACE_INFO("  Duplex mode = Half-Duplex\r\n");
-      }
-   }
-   else
-   {
-      //Display link state
-      TRACE_INFO("Link is down (%s)...\r\n", interface->name);
-   }
+         //Update link state
+         curInterface->linkState = logicalInterface->linkState;
 
-   //The time at which the interface entered its current operational state
-   MIB2_SET_TIME_TICKS(ifGroup.ifTable[interface->index].ifLastChange, osGetSystemTime() / 10);
-   IF_MIB_SET_TIME_TICKS(ifTable[interface->index].ifLastChange, osGetSystemTime() / 10);
+         //Check link state
+         if(curInterface->linkState)
+         {
+            //Display link state
+            TRACE_INFO("Link is up (%s)...\r\n", curInterface->name);
+
+            //Display link speed
+            if(curInterface->linkSpeed == NIC_LINK_SPEED_1GBPS)
+            {
+               //1000BASE-T
+               TRACE_INFO("  Link speed = 1000 Mbps\r\n");
+            }
+            else if(curInterface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+            {
+               //100BASE-TX
+               TRACE_INFO("  Link speed = 100 Mbps\r\n");
+            }
+            else if(curInterface->linkSpeed == NIC_LINK_SPEED_10MBPS)
+            {
+               //10BASE-T
+               TRACE_INFO("  Link speed = 10 Mbps\r\n");
+            }
+            else if(curInterface->linkSpeed != NIC_LINK_SPEED_UNKNOWN)
+            {
+               //10BASE-T
+               TRACE_INFO("  Link speed = %" PRIu32 " bps\r\n", curInterface->linkSpeed);
+            }
+
+            //Display duplex mode
+            if(curInterface->duplexMode == NIC_FULL_DUPLEX_MODE)
+            {
+               //1000BASE-T
+               TRACE_INFO("  Duplex mode = Full-Duplex\r\n");
+            }
+            else if(curInterface->duplexMode == NIC_HALF_DUPLEX_MODE)
+            {
+               //100BASE-TX
+               TRACE_INFO("  Duplex mode = Half-Duplex\r\n");
+            }
+         }
+         else
+         {
+            //Display link state
+            TRACE_INFO("Link is down (%s)...\r\n", curInterface->name);
+         }
+
+         //The time at which the interface entered its current operational state
+         MIB2_SET_TIME_TICKS(ifGroup.ifTable[curInterface->index].ifLastChange,
+            osGetSystemTime() / 10);
+         IF_MIB_SET_TIME_TICKS(ifTable[curInterface->index].ifLastChange,
+            osGetSystemTime() / 10);
 
 #if (IPV4_SUPPORT == ENABLED)
-   //Notify IPv4 of link state changes
-   ipv4LinkChangeEvent(interface);
+         //Notify IPv4 of link state changes
+         ipv4LinkChangeEvent(curInterface);
 #endif
 
 #if (IPV6_SUPPORT == ENABLED)
-   //Notify IPv6 of link state changes
-   ipv6LinkChangeEvent(interface);
+         //Notify IPv6 of link state changes
+         ipv6LinkChangeEvent(curInterface);
 #endif
 
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
-   NBNS_CLIENT_SUPPORT == ENABLED)
-   //Flush DNS cache
-   dnsFlushCache(interface);
+         NBNS_CLIENT_SUPPORT == ENABLED)
+         //Flush DNS cache
+         dnsFlushCache(curInterface);
 #endif
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
-   //Perform probing and announcing
-   mdnsResponderLinkChangeEvent(interface->mdnsResponderContext);
+         //Perform probing and announcing
+         mdnsResponderLinkChangeEvent(curInterface->mdnsResponderContext);
 #endif
 
 #if (DNS_SD_SUPPORT == ENABLED)
-   //Perform probing and announcing
-   dnsSdLinkChangeEvent(interface->dnsSdContext);
+         //Perform probing and announcing
+         dnsSdLinkChangeEvent(curInterface->dnsSdContext);
 #endif
 
-   //Notify registered users of link state changes
-   netInvokeLinkChangeCallback(interface, interface->linkState);
+         //Notify registered users of link state changes
+         netInvokeLinkChangeCallback(curInterface, curInterface->linkState);
+      }
+   }
 
    //Loop through opened sockets
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
@@ -333,5 +443,5 @@ void nicNotifyLinkChange(NetInterface *interface)
    }
 
    //Disable interrupts
-   interface->nicDriver->disableIrq(interface);
+   physicalInterface->nicDriver->disableIrq(physicalInterface);
 }

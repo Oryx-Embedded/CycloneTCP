@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _PCAP_DRIVER_H
@@ -74,7 +74,7 @@ void pcapDriverEventHandler(NetInterface *interface);
 error_t pcapDriverSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t pcapDriverSetMulticastFilter(NetInterface *interface);
+error_t pcapDriverUpdateMacAddrFilter(NetInterface *interface);
 
 void pcapDriverTask(NetInterface *interface);
 

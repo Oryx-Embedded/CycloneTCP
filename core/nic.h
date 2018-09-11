@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _NIC_H
@@ -65,9 +65,10 @@
 
 typedef enum
 {
-   NIC_TYPE_ETHERNET = 0, ///<Ethernet interface
-   NIC_TYPE_PPP      = 1, ///<PPP interface
-   NIC_TYPE_6LOWPAN  = 2  ///<6LoWPAN interface
+   NIC_TYPE_UNKNOWN  = 0, ///<Unknown interface type
+   NIC_TYPE_ETHERNET = 1, ///<Ethernet interface
+   NIC_TYPE_PPP      = 2, ///<PPP interface
+   NIC_TYPE_6LOWPAN  = 3  ///<6LoWPAN interface
 } NicType;
 
 
@@ -115,7 +116,7 @@ typedef void (*NicEnableIrq)(NetInterface *interface);
 typedef void (*NicDisableIrq)(NetInterface *interface);
 typedef void (*NicEventHandler)(NetInterface *interface);
 typedef error_t (*NicSendPacket)(NetInterface *interface, const NetBuffer *buffer, size_t offset);
-typedef error_t (*NicSetMulticastFilter)(NetInterface *interface);
+typedef error_t (*NicUpdateMacAddrFilter)(NetInterface *interface);
 typedef error_t (*NicUpdateMacConfig)(NetInterface *interface);
 typedef void (*NicWritePhyReg)(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
 typedef uint16_t (*NicReadPhyReg)(uint8_t phyAddr, uint8_t regAddr);
@@ -126,6 +127,12 @@ typedef void (*PhyTick)(NetInterface *interface);
 typedef void (*PhyEnableIrq)(NetInterface *interface);
 typedef void (*PhyDisableIrq)(NetInterface *interface);
 typedef void (*PhyEventHandler)(NetInterface *interface);
+
+typedef error_t (*PhyTagFrame)(NetInterface **interface, NetBuffer *buffer,
+   size_t *offset, uint16_t *type);
+
+typedef error_t (*PhyUntagFrame)(NetInterface **interface, uint8_t **frame,
+   size_t *length);
 
 //SPI abstraction layer
 typedef error_t (*SpiInit)(void);
@@ -161,7 +168,7 @@ typedef struct
    NicDisableIrq disableIrq;
    NicEventHandler eventHandler;
    NicSendPacket sendPacket;
-   NicSetMulticastFilter setMulticastFilter;
+   NicUpdateMacAddrFilter updateMacAddrFilter;
    NicUpdateMacConfig updateMacConfig;
    NicWritePhyReg writePhyReg;
    NicReadPhyReg readPhyReg;
@@ -193,6 +200,8 @@ typedef struct
    PhyEnableIrq enableIrq;
    PhyDisableIrq disableIrq;
    PhyEventHandler eventHandler;
+   PhyTagFrame tagFrame;
+   PhyUntagFrame untagFrame;
 } PhyDriver;
 
 
@@ -240,10 +249,13 @@ typedef struct
 extern systime_t nicTickCounter;
 
 //NIC abstraction layer
+NetInterface *nicGetLogicalInterface(NetInterface *interface);
+NetInterface *nicGetPhysicalInterface(NetInterface *interface);
+
 void nicTick(NetInterface *interface);
 
 error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer, size_t offset);
-error_t nicSetMulticastFilter(NetInterface *interface);
+error_t nicUpdateMacAddrFilter(NetInterface *interface);
 
 void nicProcessPacket(NetInterface *interface, void *packet, size_t length);
 void nicNotifyLinkChange(NetInterface *interface);

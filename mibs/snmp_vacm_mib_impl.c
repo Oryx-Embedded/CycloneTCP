@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -472,7 +472,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
             }
             else
             {
-               //Initialize colums with default values
+               //Initialize columns with default values
                entry->groupName[0] = '\0';
 
                //Until instances of all corresponding columns are appropriately
@@ -1010,7 +1010,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
             //Save security level
             entry->securityLevel = (SnmpSecurityLevel) securityLevel;
 
-            //Initialize colums with default values
+            //Initialize columns with default values
             entry->contextMatch = SNMP_CONTEXT_MATCH_EXACT;
             entry->readViewName[0] = '\0';
             entry->writeViewName[0] = '\0';
@@ -1401,36 +1401,9 @@ error_t snmpVacmMibGetNextAccessEntry(const MibObject *object,
 error_t snmpVacmMibSetViewSpinLock(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
-   error_t error;
-
-   //The new value supplied via the management protocol must precisely match
-   //the value presently held by the instance
-   if(value->integer == snmpVacmMibBase.vacmViewSpinLock)
-   {
-      //Check whether the changes shall be committed to the MIB base
-      if(commit)
-      {
-         //The value held by the instance is incremented by one
-         snmpVacmMibBase.vacmViewSpinLock++;
-
-         //if the current value is the maximum value of 2^31-1, then the value
-         //held by the instance is wrapped to zero
-         if(snmpVacmMibBase.vacmViewSpinLock < 0)
-            snmpVacmMibBase.vacmViewSpinLock = 0;
-      }
-
-      //Successful operation
-      error = NO_ERROR;
-   }
-   else
-   {
-      //The management protocol set operation fails with an error of
-      //inconsistentValue
-      error = ERROR_INCONSISTENT_VALUE;
-   }
-
-   //Return status code
-   return error;
+   //Test and increment spin lock
+   return mibTestAndIncSpinLock(&snmpVacmMibBase.vacmViewSpinLock,
+      value->integer, commit);
 }
 
 
@@ -1633,7 +1606,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
             //Save the length of the subtree
             entry->subtreeLen = subtreeLen;
 
-            //Initialize colums with default values
+            //Initialize columns with default values
             entry->maskLen = 0;
             entry->type = SNMP_VIEW_TYPE_INCLUDED;
 

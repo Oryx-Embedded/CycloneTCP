@@ -28,7 +28,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -574,9 +574,14 @@ void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket, size_t leng
       //address assigned to the interface
       if(arpPacket->spa == interface->ipv4Context.addr)
       {
+         NetInterface *logicalInterface;
+
+         //Point to the logical interface
+         logicalInterface = nicGetLogicalInterface(interface);
+
          //If the sender hardware address does not match the hardware
          //address of that interface, then this is a conflicting ARP packet
-         if(!macCompAddr(&arpPacket->sha, &interface->macAddr))
+         if(!macCompAddr(&arpPacket->sha, &logicalInterface->macAddr))
          {
             //An address conflict has been detected...
             interface->ipv4Context.addrConflict = TRUE;
@@ -637,9 +642,14 @@ void arpProcessRequest(NetInterface *interface, ArpPacket *arpRequest)
       //ARP probe received?
       if(arpRequest->spa == IPV4_UNSPECIFIED_ADDR)
       {
+         NetInterface *logicalInterface;
+
+         //Point to the logical interface
+         logicalInterface = nicGetLogicalInterface(interface);
+
          //If the sender hardware address does not match the hardware
          //address of that interface, then this is a conflicting ARP packet
-         if(!macCompAddr(&arpRequest->sha, &interface->macAddr))
+         if(!macCompAddr(&arpRequest->sha, &logicalInterface->macAddr))
          {
             //An address conflict has been detected...
             interface->ipv4Context.addrConflict = TRUE;
@@ -750,6 +760,10 @@ error_t arpSendProbe(NetInterface *interface, Ipv4Addr targetIpAddr)
    size_t offset;
    NetBuffer *buffer;
    ArpPacket *arpRequest;
+   NetInterface *logicalInterface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Allocate a memory buffer to hold an ARP packet
    buffer = ethAllocBuffer(sizeof(ArpPacket), &offset);
@@ -766,7 +780,7 @@ error_t arpSendProbe(NetInterface *interface, Ipv4Addr targetIpAddr)
    arpRequest->hln = sizeof(MacAddr);
    arpRequest->pln = sizeof(Ipv4Addr);
    arpRequest->op = htons(ARP_OPCODE_ARP_REQUEST);
-   arpRequest->sha = interface->macAddr;
+   arpRequest->sha = logicalInterface->macAddr;
    arpRequest->spa = IPV4_UNSPECIFIED_ADDR;
    arpRequest->tha = MAC_UNSPECIFIED_ADDR;
    arpRequest->tpa = targetIpAddr;
@@ -803,6 +817,10 @@ error_t arpSendRequest(NetInterface *interface,
    NetBuffer *buffer;
    ArpPacket *arpRequest;
    Ipv4Addr senderIpAddr;
+   NetInterface *logicalInterface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Select the most appropriate sender IP address to be used
    error = ipv4SelectSourceAddr(&interface, targetIpAddr, &senderIpAddr);
@@ -825,7 +843,7 @@ error_t arpSendRequest(NetInterface *interface,
    arpRequest->hln = sizeof(MacAddr);
    arpRequest->pln = sizeof(Ipv4Addr);
    arpRequest->op = htons(ARP_OPCODE_ARP_REQUEST);
-   arpRequest->sha = interface->macAddr;
+   arpRequest->sha = logicalInterface->macAddr;
    arpRequest->spa = senderIpAddr;
    arpRequest->tha = MAC_UNSPECIFIED_ADDR;
    arpRequest->tpa = targetIpAddr;
@@ -861,6 +879,10 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr targetIpAddr,
    size_t offset;
    NetBuffer *buffer;
    ArpPacket *arpReply;
+   NetInterface *logicalInterface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Allocate a memory buffer to hold an ARP packet
    buffer = ethAllocBuffer(sizeof(ArpPacket), &offset);
@@ -877,7 +899,7 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr targetIpAddr,
    arpReply->hln = sizeof(MacAddr);
    arpReply->pln = sizeof(Ipv4Addr);
    arpReply->op = htons(ARP_OPCODE_ARP_REPLY);
-   arpReply->sha = interface->macAddr;
+   arpReply->sha = logicalInterface->macAddr;
    arpReply->spa = interface->ipv4Context.addr;
    arpReply->tha = *targetMacAddr;
    arpReply->tpa = targetIpAddr;

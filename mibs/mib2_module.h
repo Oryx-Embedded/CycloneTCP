@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _MIB2_MODULE_H
@@ -191,6 +191,7 @@ typedef enum
    MIB2_IF_TYPE_SLIP            = 28,
    MIB2_IF_TYPE_RS232           = 33,
    MIB2_IF_TYPE_PARA            = 34,
+   MIB2_IF_TYPE_L2_VLAN         = 135,
    MIB2_IF_TYPE_USB             = 160,
    MIB2_IF_TYPE_IEEE_802_15_4   = 259
 } Mib2IfType;

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _KSZ8851_DRIVER_H
@@ -490,7 +490,7 @@ error_t ksz8851SendPacket(NetInterface *interface,
 
 error_t ksz8851ReceivePacket(NetInterface *interface);
 
-error_t ksz8851SetMulticastFilter(NetInterface *interface);
+error_t ksz8851UpdateMacAddrFilter(NetInterface *interface);
 
 void ksz8851WriteReg(NetInterface *interface, uint8_t address, uint16_t data);
 uint16_t ksz8851ReadReg(NetInterface *interface, uint8_t address);

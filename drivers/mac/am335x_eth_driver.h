@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _AM335X_ETH_DRIVER_H
@@ -445,7 +445,7 @@ error_t am335xEthSendPacketPort1(NetInterface *interface,
 error_t am335xEthSendPacketPort2(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t am335xEthSetMulticastFilter(NetInterface *interface);
+error_t am335xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t am335xEthUpdateMacConfig(NetInterface *interface);
 
 void am335xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _WILC1000_DRIVER_H
@@ -69,7 +69,7 @@ void wilc1000EventHandler(NetInterface *interface);
 error_t wilc1000SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t wilc1000SetMulticastFilter(NetInterface *interface);
+error_t wilc1000UpdateMacAddrFilter(NetInterface *interface);
 bool_t wilc1000GetAddrRefCount(NetInterface *interface, const MacAddr *macAddr);
 
 void wilc1000AppWifiEvent(uint8_t msgType, void *msg);

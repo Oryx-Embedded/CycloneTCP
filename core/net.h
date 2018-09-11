@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _NET_H
@@ -59,14 +59,42 @@ struct _NetInterface;
 #include "cpu_endian.h"
 #include "error.h"
 
+
+/*
+ * CycloneTCP Open is licensed under GPL version 2. In particular:
+ *
+ * - If you link your program to CycloneTCP Open, the result is a derivative
+ *   work that can only be distributed under the same GPL license terms.
+ *
+ * - If additions or changes to CycloneTCP Open are made, the result is a
+ *   derivative work that can only be distributed under the same license terms.
+ *
+ * - The GPL license requires that you make the source code available to
+ *   whoever you make the binary available to.
+ *
+ * - If you sell or distribute a hardware product that runs CycloneTCP Open,
+ *   the GPL license requires you to provide public and full access to all
+ *   source code on a nondiscriminatory basis.
+ *
+ * If you fully understand and accept the terms of the GPL license, then edit
+ * the os_port_config.h header and add the following directive:
+ *
+ * #define GPL_LICENSE_TERMS_ACCEPTED
+ */
+
+#ifndef GPL_LICENSE_TERMS_ACCEPTED
+   #error Before compiling CycloneTCP Open, you must accept the terms of the GPL license
+#endif
+
+
 //Version string
-#define NET_VERSION_STRING "1.8.2"
+#define NET_VERSION_STRING "1.8.6"
 //Major version
 #define NET_MAJOR_VERSION 1
 //Minor version
 #define NET_MINOR_VERSION 8
 //Revision number
-#define NET_REV_NUMBER 2
+#define NET_REV_NUMBER 6
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -173,7 +201,19 @@ struct _NetInterface
 
 #if (ETH_SUPPORT == ENABLED)
    MacAddr macAddr;                               ///<Link-layer address
-   MacFilterEntry macMulticastFilter[MAC_MULTICAST_FILTER_SIZE]; ///<Multicast MAC filter
+   MacFilterEntry macAddrFilter[MAC_ADDR_FILTER_SIZE]; ///<MAC filter table
+#endif
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   uint16_t vlanId;                               ///<VLAN identifier (802.1q)
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   uint16_t vmanId;                               ///<VMAN identifier (802.1ad)
+#endif
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   uint8_t port;                                  ///<Switch port identifier
+#endif
+#if (ETH_VLAN_SUPPORT == ENABLED || ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   NetInterface *parent;                          ///<Interface on top of which the virtual interface runs
 #endif
 
 #if (IPV4_SUPPORT == ENABLED)
@@ -262,6 +302,13 @@ error_t netSetInterfaceId(NetInterface *interface, uint32_t id);
 error_t netSetInterfaceName(NetInterface *interface, const char_t *name);
 error_t netSetHostname(NetInterface *interface, const char_t *name);
 error_t netSetProxy(NetInterface *interface, const char_t *name, uint16_t port);
+
+error_t netSetVlanId(NetInterface *interface, uint16_t vlanId);
+error_t netSetVmanId(NetInterface *interface, uint16_t vmanId);
+error_t netSetSwitchPort(NetInterface *interface, uint8_t port);
+
+error_t netSetParentInterface(NetInterface *interface,
+   NetInterface *physicalInterface);
 
 error_t netSetDriver(NetInterface *interface, const NicDriver *driver);
 

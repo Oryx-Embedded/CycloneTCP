@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Dependencies
@@ -895,7 +895,7 @@ error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
  * @brief Compare IP addresses
  * @param[in] ipAddr1 First IP address
  * @param[in] ipAddr2 Second IP address
- * @return Comparaison result
+ * @return Comparison result
  **/
 
 int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
@@ -924,4 +924,48 @@ int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
 
    //Return comparison result
    return res;
+}
+
+
+/**
+ * @brief Test and increment spin lock
+ * @param[in,out] spinLock Pointer to the spin lock
+ * @param[in] value New value supplied via the management protocol
+ * @param[in] commit This flag indicates the current phase (validation phase
+ *   or write phase if the validation was successful)
+ * @return Comparison result
+ **/
+
+error_t mibTestAndIncSpinLock(int32_t *spinLock, int32_t value, bool_t commit)
+{
+   error_t error;
+
+   //The new value supplied via the management protocol must precisely match
+   //the value presently held by the instance
+   if(value == *spinLock)
+   {
+      //Write phase?
+      if(commit)
+      {
+         //The value held by the instance is incremented by one
+         (*spinLock)++;
+
+         //if the current value is the maximum value of 2^31-1, then the value
+         //held by the instance is wrapped to zero
+         if(*spinLock < 0)
+            *spinLock = 0;
+      }
+
+      //Successful operation
+      error = NO_ERROR;
+   }
+   else
+   {
+      //The management protocol set operation fails with an error of
+      //inconsistentValue
+      error = ERROR_INCONSISTENT_VALUE;
+   }
+
+   //Return status code
+   return error;
 }

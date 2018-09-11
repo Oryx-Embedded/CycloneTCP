@@ -32,7 +32,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -392,7 +392,7 @@ void ftpServerTask(FtpServerContext *context)
             //Make sure the data connection is still active
             if(connection != NULL && connection->dataSocket != NULL)
             {
-               //Check whether the data socket to is ready to perform I/O
+               //Check whether the data socket is ready to perform I/O
                if(context->eventDesc[2 * i + 1].eventFlags)
                {
                   //Update time stamp

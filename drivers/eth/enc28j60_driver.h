@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _ENC28J60_DRIVER_H
@@ -411,7 +411,7 @@ error_t enc28j60SendPacket(NetInterface *interface,
 
 error_t enc28j60ReceivePacket(NetInterface *interface);
 
-error_t enc28j60SetMulticastFilter(NetInterface *interface);
+error_t enc28j60UpdateMacAddrFilter(NetInterface *interface);
 
 void enc28j60SoftReset(NetInterface *interface);
 void enc28j60SelectBank(NetInterface *interface, uint16_t address);

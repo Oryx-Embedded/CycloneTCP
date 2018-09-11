@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -70,7 +70,7 @@ const NicDriver esp32WifiStaDriver =
    esp32WifiDisableIrq,
    esp32WifiEventHandler,
    esp32WifiSendPacket,
-   esp32WifiSetMulticastFilter,
+   esp32WifiUpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -95,7 +95,7 @@ const NicDriver esp32WifiApDriver =
    esp32WifiDisableIrq,
    esp32WifiEventHandler,
    esp32WifiSendPacket,
-   esp32WifiSetMulticastFilter,
+   esp32WifiUpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -312,12 +312,12 @@ error_t esp32WifiSendPacket(NetInterface *interface,
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t esp32WifiSetMulticastFilter(NetInterface *interface)
+error_t esp32WifiUpdateMacAddrFilter(NetInterface *interface)
 {
    //Not implemented
    return NO_ERROR;

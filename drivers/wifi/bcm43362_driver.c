@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -85,7 +85,7 @@ const NicDriver bcm43362StaDriver =
    bcm43362DisableIrq,
    bcm43362EventHandler,
    bcm43362SendPacket,
-   bcm43362SetMulticastFilter,
+   bcm43362UpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -110,7 +110,7 @@ const NicDriver bcm43362ApDriver =
    bcm43362DisableIrq,
    bcm43362EventHandler,
    bcm43362SendPacket,
-   bcm43362SetMulticastFilter,
+   bcm43362UpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -352,12 +352,12 @@ error_t bcm43362SendPacket(NetInterface *interface,
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t bcm43362SetMulticastFilter(NetInterface *interface)
+error_t bcm43362UpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    wwd_result_t ret;
@@ -369,12 +369,12 @@ error_t bcm43362SetMulticastFilter(NetInterface *interface)
    //STA interface?
    if(interface == bcm43362StaInterface)
    {
-      //The MAC filter table contains the multicast MAC addresses
-      //to accept when receiving an Ethernet frame
-      for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+      //The MAC address filter contains the list of MAC addresses to accept
+      //when receiving an Ethernet frame
+      for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
       {
          //Point to the current entry
-         entry = &interface->macMulticastFilter[i];
+         entry = &interface->macAddrFilter[i];
 
          //Check whether the MAC filter table should be updated for the
          //current multicast address

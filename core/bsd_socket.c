@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -1247,6 +1247,10 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
                *val = sock->errnoCode;
                //Return the actual length of the option
                *optlen = sizeof(int_t);
+
+               //Clear error status
+               sock->errnoCode = 0;
+
                //Successful processing
                ret = SOCKET_SUCCESS;
             }

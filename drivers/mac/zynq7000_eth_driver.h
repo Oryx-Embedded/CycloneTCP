@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _ZYNQ7000_ETH_DRIVER_H
@@ -274,7 +274,7 @@ error_t zynq7000EthSendPacket(NetInterface *interface,
 
 error_t zynq7000EthReceivePacket(NetInterface *interface);
 
-error_t zynq7000EthSetMulticastFilter(NetInterface *interface);
+error_t zynq7000EthUpdateMacAddrFilter(NetInterface *interface);
 error_t zynq7000EthUpdateMacConfig(NetInterface *interface);
 
 void zynq7000EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

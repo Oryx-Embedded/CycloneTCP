@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -84,7 +84,7 @@
 
 //Maximum length of the client identifier
 #ifndef MQTT_CLIENT_MAX_ID_LEN
-   #define MQTT_CLIENT_MAX_ID_LEN 16
+   #define MQTT_CLIENT_MAX_ID_LEN 23
 #elif (MQTT_CLIENT_MAX_ID_LEN < 0)
    #error MQTT_CLIENT_MAX_ID_LEN parameter is not valid
 #endif
@@ -349,8 +349,8 @@ error_t mqttClientSetProtocolLevel(MqttClientContext *context,
 error_t mqttClientSetTransportProtocol(MqttClientContext *context,
    MqttTransportProtocol transportProtocol);
 
-error_t mqttClientSetKeepAlive(MqttClientContext *context, uint16_t keepAlive);
 error_t mqttClientSetTimeout(MqttClientContext *context, uint16_t timeout);
+error_t mqttClientSetKeepAlive(MqttClientContext *context, uint16_t keepAlive);
 
 error_t mqttClientSetHost(MqttClientContext *context, const char_t *host);
 error_t mqttClientSetUri(MqttClientContext *context, const char_t *uri);

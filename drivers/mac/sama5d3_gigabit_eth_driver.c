@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -97,7 +97,7 @@ const NicDriver sama5d3GigabitEthDriver =
    sama5d3GigabitEthDisableIrq,
    sama5d3GigabitEthEventHandler,
    sama5d3GigabitEthSendPacket,
-   sama5d3GigabitEthSetMulticastFilter,
+   sama5d3GigabitEthUpdateMacAddrFilter,
    sama5d3GigabitEthUpdateMacConfig,
    sama5d3GigabitEthWritePhyReg,
    sama5d3GigabitEthReadPhyReg,
@@ -585,12 +585,12 @@ error_t sama5d3GigabitEthReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t sama5d3GigabitEthSetMulticastFilter(NetInterface *interface)
+error_t sama5d3GigabitEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t k;
@@ -605,12 +605,12 @@ error_t sama5d3GigabitEthSetMulticastFilter(NetInterface *interface)
    hashTable[0] = 0;
    hashTable[1] = 0;
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Valid entry?
       if(entry->refCount > 0)

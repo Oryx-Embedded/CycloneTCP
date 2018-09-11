@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -92,7 +92,7 @@ const NicDriver m2sxxxEthDriver =
    m2sxxxEthDisableIrq,
    m2sxxxEthEventHandler,
    m2sxxxEthSendPacket,
-   m2sxxxEthSetMulticastFilter,
+   m2sxxxEthUpdateMacAddrFilter,
    m2sxxxEthUpdateMacConfig,
    m2sxxxEthWritePhyReg,
    m2sxxxEthReadPhyReg,
@@ -524,12 +524,12 @@ error_t m2sxxxEthReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t m2sxxxEthSetMulticastFilter(NetInterface *interface)
+error_t m2sxxxEthUpdateMacAddrFilter(NetInterface *interface)
 {
    //Ethernet MAC does not implement multicast filtering
    return NO_ERROR;

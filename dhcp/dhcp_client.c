@@ -31,7 +31,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -968,6 +968,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
+   NetInterface *logicalInterface;
    DhcpMessage *message;
    IpAddr destIpAddr;
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
@@ -979,6 +980,9 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Allocate a memory buffer to hold the DHCP message
    buffer = udpAllocBuffer(DHCP_MIN_MSG_SIZE, &offset);
@@ -999,7 +1003,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    message->secs = dhcpClientComputeElapsedTime(context);
    message->flags = HTONS(DHCP_FLAG_BROADCAST);
    message->ciaddr = IPV4_UNSPECIFIED_ADDR;
-   message->chaddr = interface->macAddr;
+   message->chaddr = logicalInterface->macAddr;
 
    //Write magic cookie before setting any option
    message->magicCookie = HTONL(DHCP_MAGIC_COOKIE);
@@ -1075,6 +1079,7 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
+   NetInterface *logicalInterface;
    DhcpMessage *message;
    IpAddr destIpAddr;
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
@@ -1086,6 +1091,9 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Allocate a memory buffer to hold the DHCP message
    buffer = udpAllocBuffer(DHCP_MIN_MSG_SIZE, &offset);
@@ -1120,7 +1128,7 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    }
 
    //Client hardware address
-   message->chaddr = interface->macAddr;
+   message->chaddr = logicalInterface->macAddr;
    //Write magic cookie before setting any option
    message->magicCookie = HTONL(DHCP_MAGIC_COOKIE);
    //Properly terminate options field
@@ -1217,6 +1225,7 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
+   NetInterface *logicalInterface;
    DhcpMessage *message;
    IpAddr destIpAddr;
 
@@ -1225,6 +1234,9 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Allocate a memory buffer to hold the DHCP message
    buffer = udpAllocBuffer(DHCP_MIN_MSG_SIZE, &offset);
@@ -1245,7 +1257,7 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    message->secs = 0;
    message->flags = 0;
    message->ciaddr = IPV4_UNSPECIFIED_ADDR;
-   message->chaddr = interface->macAddr;
+   message->chaddr = logicalInterface->macAddr;
 
    //Write magic cookie before setting any option
    message->magicCookie = HTONL(DHCP_MAGIC_COOKIE);
@@ -1382,9 +1394,13 @@ void dhcpClientParseOffer(DhcpClientContext *context,
 {
    DhcpOption *serverIdOption;
    NetInterface *interface;
+   NetInterface *logicalInterface;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
@@ -1393,7 +1409,7 @@ void dhcpClientParseOffer(DhcpClientContext *context,
    if(message->yiaddr == IPV4_UNSPECIFIED_ADDR)
       return;
    //Check MAC address
-   if(!macCompAddr(&message->chaddr, &interface->macAddr))
+   if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
       return;
 
    //Make sure that the DHCPOFFER message is received in response to
@@ -1434,9 +1450,16 @@ void dhcpClientParseAck(DhcpClientContext *context,
    DhcpOption *option;
    DhcpOption *serverIdOption;
    NetInterface *interface;
+   NetInterface *logicalInterface;
+   NetInterface *physicalInterface;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
@@ -1445,7 +1468,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
    if(message->yiaddr == IPV4_UNSPECIFIED_ADDR)
       return;
    //Check MAC address
-   if(!macCompAddr(&message->chaddr, &interface->macAddr))
+   if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
       return;
 
    //A DHCP server always returns its own address in the Server Identifier option
@@ -1594,7 +1617,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
       n = LOAD16BE(option->value);
 
       //Make sure that the option's value is acceptable
-      if(n >= IPV4_MINIMUM_MTU && n <= interface->nicDriver->mtu)
+      if(n >= IPV4_MINIMUM_MTU && n <= physicalInterface->nicDriver->mtu)
       {
          //Set the MTU to be used on the interface
          interface->ipv4Context.linkMtu = n;
@@ -1652,15 +1675,19 @@ void dhcpClientParseNak(DhcpClientContext *context,
 {
    DhcpOption *serverIdOption;
    NetInterface *interface;
+   NetInterface *logicalInterface;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
       return;
    //Check MAC address
-   if(!macCompAddr(&message->chaddr, &interface->macAddr))
+   if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
       return;
 
    //A DHCP server always returns its own address in the Server Identifier option

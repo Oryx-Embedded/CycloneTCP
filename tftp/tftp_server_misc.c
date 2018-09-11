@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -216,33 +216,37 @@ TftpClientConnection *tftpServerOpenConnection(TftpServerContext *context,
 
 void tftpServerCloseConnection(TftpClientConnection *connection)
 {
-   //Debug message
-   TRACE_INFO("TFTP Server: Closing connection...\r\n");
-
-   //Any active connection?
-   if(connection->socket != NULL)
+   //Valid connection?
+   if(connection != NULL)
    {
-      //Close UDP socket
-      socketClose(connection->socket);
-      connection->socket = NULL;
-   }
+      //Debug message
+      TRACE_INFO("TFTP Server: Closing connection...\r\n");
 
-   //Check whether a read or write operation is in progress...
-   if(connection->file != NULL)
-   {
-      //Properly close the file before closing the connection
-      if(connection->settings->closeFileCallback != NULL)
+      //Any active connection?
+      if(connection->socket != NULL)
       {
-         //Invoke user callback function
-         connection->settings->closeFileCallback(connection->file);
+         //Close UDP socket
+         socketClose(connection->socket);
+         connection->socket = NULL;
       }
 
-      //Mark the file as closed
-      connection->file = NULL;
-   }
+      //Check whether a read or write operation is in progress...
+      if(connection->file != NULL)
+      {
+         //Properly close the file before closing the connection
+         if(connection->settings->closeFileCallback != NULL)
+         {
+            //Invoke user callback function
+            connection->settings->closeFileCallback(connection->file);
+         }
 
-   //Mark the connection as closed
-   connection->state = TFTP_STATE_CLOSED;
+         //Mark the file as closed
+         connection->file = NULL;
+      }
+
+      //Mark the connection as closed
+      connection->state = TFTP_STATE_CLOSED;
+   }
 }
 
 
@@ -753,7 +757,7 @@ error_t tftpServerSendDataPacket(TftpClientConnection *connection)
    size_t offset;
    TftpDataPacket *dataPacket;
 
-   //Point the buffer where to format the packet
+   //Point to the buffer where to format the packet
    dataPacket = (TftpDataPacket *) connection->packet;
 
    //Format DATA packet
@@ -849,7 +853,7 @@ error_t tftpServerSendAckPacket(TftpClientConnection *connection)
    error_t error;
    TftpAckPacket *ackPacket;
 
-   //Point the buffer where to format the packet
+   //Point to the buffer where to format the packet
    ackPacket = (TftpAckPacket *) connection->packet;
 
    //Format ACK packet
@@ -896,7 +900,7 @@ error_t tftpServerSendErrorPacket(TftpClientConnection *connection,
    if(strlen(errorMsg) >= TFTP_SERVER_BLOCK_SIZE)
       return ERROR_INVALID_PARAMETER;
 
-   //Point the buffer where to format the packet
+   //Point to the buffer where to format the packet
    errorPacket = (TftpErrorPacket *) connection->packet;
 
    //Format ERROR packet

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -414,36 +414,9 @@ error_t snmpv2MibGetSnmpTrapEnterprise(const MibObject *object, const uint8_t *o
 error_t snmpMibSetSnmpSetSerialNo(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
-   error_t error;
-
-   //The new value supplied via the management protocol must precisely match
-   //the value presently held by the instance
-   if(value->integer == snmpMibBase.setGroup.snmpSetSerialNo)
-   {
-      //Check whether the changes shall be committed to the MIB base
-      if(commit)
-      {
-         //The value held by the instance is incremented by one
-         snmpMibBase.setGroup.snmpSetSerialNo++;
-
-         //if the current value is the maximum value of 2^31-1, then the value
-         //held by the instance is wrapped to zero
-         if(snmpMibBase.setGroup.snmpSetSerialNo < 0)
-            snmpMibBase.setGroup.snmpSetSerialNo = 0;
-      }
-
-      //Successful operation
-      error = NO_ERROR;
-   }
-   else
-   {
-      //The management protocol set operation fails with an error of
-      //inconsistentValue
-      error = ERROR_INCONSISTENT_VALUE;
-   }
-
-   //Return status code
-   return error;
+   //Test and increment spin lock
+   return mibTestAndIncSpinLock(&snmpMibBase.setGroup.snmpSetSerialNo,
+      value->integer, commit);
 }
 
 

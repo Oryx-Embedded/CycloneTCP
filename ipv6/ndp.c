@@ -30,7 +30,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -478,7 +478,8 @@ void ndpProcessRouterAdv(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    }
 
    //6LoWPAN interface?
-   if(interface->nicDriver->type == NIC_TYPE_6LOWPAN)
+   if(interface->nicDriver != NULL &&
+      interface->nicDriver->type == NIC_TYPE_6LOWPAN)
    {
       //In all cases, the Router Solicitation retransmissions are terminated
       //when a Router Advertisement is received (refer to RFC 6675 5.3)
@@ -615,13 +616,18 @@ void ndpProcessRouterAdv(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    //MTU option found?
    if(mtuOption != NULL && mtuOption->length == 1)
    {
+      NetInterface *physicalInterface;
+
+      //Point to the physical interface
+      physicalInterface = nicGetPhysicalInterface(interface);
+
       //This option specifies the recommended MTU for the link
       n = ntohl(mtuOption->mtu);
 
       //The host should copy the option's value so long as the value is greater
       //than or equal to the minimum IPv6 MTU and does not exceed the maximum
       //MTU of the interface
-      if(n >= IPV6_DEFAULT_MTU && n <= interface->nicDriver->mtu)
+      if(n >= IPV6_DEFAULT_MTU && n <= physicalInterface->nicDriver->mtu)
       {
          //Save the MTU value
          interface->ipv6Context.linkMtu = n;
@@ -1407,12 +1413,17 @@ error_t ndpSendRouterSol(NetInterface *interface)
    if(!ipv6CompAddr(&pseudoHeader.srcAddr, &IPV6_UNSPECIFIED_ADDR))
    {
 #if (ETH_SUPPORT == ENABLED)
+      NetInterface *logicalInterface;
+
+      //Point to the logical interface
+      logicalInterface = nicGetLogicalInterface(interface);
+
       //Check whether a MAC address has been assigned to the interface
-      if(!macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+      if(!macCompAddr(&logicalInterface->macAddr, &MAC_UNSPECIFIED_ADDR))
       {
          //Add Source Link-Layer Address option
          ndpAddOption(message, &length, NDP_OPT_SOURCE_LINK_LAYER_ADDR,
-            &interface->macAddr, sizeof(MacAddr));
+            &logicalInterface->macAddr, sizeof(MacAddr));
       }
 #endif
    }
@@ -1526,9 +1537,14 @@ error_t ndpSendNeighborSol(NetInterface *interface,
    if(!ipv6CompAddr(&pseudoHeader.srcAddr, &IPV6_UNSPECIFIED_ADDR))
    {
 #if (ETH_SUPPORT == ENABLED)
+      NetInterface *logicalInterface;
+
+      //Point to the logical interface
+      logicalInterface = nicGetLogicalInterface(interface);
+
       //Add Source Link-Layer Address option
       ndpAddOption(message, &length, NDP_OPT_SOURCE_LINK_LAYER_ADDR,
-         &interface->macAddr, sizeof(MacAddr));
+         &logicalInterface->macAddr, sizeof(MacAddr));
 #endif
    }
 
@@ -1581,6 +1597,9 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    NetBuffer *buffer;
    NdpNeighborAdvMessage *message;
    Ipv6PseudoHeader pseudoHeader;
+#if (ETH_SUPPORT == ENABLED)
+   NetInterface *logicalInterface;
+#endif
 
    //Destination IP address is the unspecified address?
    if(ipv6CompAddr(destIpAddr, &IPV6_UNSPECIFIED_ADDR))
@@ -1660,9 +1679,12 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    length = sizeof(NdpNeighborAdvMessage);
 
 #if (ETH_SUPPORT == ENABLED)
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+
    //Add Target Link-Layer Address option
    ndpAddOption(message, &length, NDP_OPT_TARGET_LINK_LAYER_ADDR,
-      &interface->macAddr, sizeof(MacAddr));
+      &logicalInterface->macAddr, sizeof(MacAddr));
 #endif
 
    //Adjust the length of the multi-part buffer

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -192,7 +192,7 @@ error_t coapGetType(const CoapMessage *message, CoapMessageType *type)
 /**
  * @brief Set method or response code
  * @param[in] message Pointer to the CoAP message
- * @param[in] code Methode or response code
+ * @param[in] code Method or response code
  * @return Error code
  **/
 
@@ -217,7 +217,7 @@ error_t coapSetCode(CoapMessage *message, CoapCode code)
 /**
  * @brief Get method or response code
  * @param[in] message Pointer to the CoAP message
- * @param[out] code Methode or response code
+ * @param[out] code Method or response code
  * @return Error code
  **/
 

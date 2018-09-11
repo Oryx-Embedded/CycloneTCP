@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -94,7 +94,7 @@ const NicDriver rza1EthDriver =
    rza1EthDisableIrq,
    rza1EthEventHandler,
    rza1EthSendPacket,
-   rza1EthSetMulticastFilter,
+   rza1EthUpdateMacAddrFilter,
    rza1EthUpdateMacConfig,
    rza1EthWritePhyReg,
    rza1EthReadPhyReg,
@@ -965,12 +965,12 @@ error_t rza1EthReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t rza1EthSetMulticastFilter(NetInterface *interface)
+error_t rza1EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    volatile uint32_t *addrHigh;
@@ -980,12 +980,12 @@ error_t rza1EthSetMulticastFilter(NetInterface *interface)
    //Debug message
    TRACE_DEBUG("Updating RZ/A1 multicast filter...\r\n");
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE && i < 32; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE && i < 32; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Valid entry?
       if(entry->refCount > 0)

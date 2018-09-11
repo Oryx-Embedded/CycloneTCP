@@ -28,7 +28,7 @@
  * Network Management Protocol (SNMP). Refer to RFC 3415 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -263,7 +263,7 @@ SnmpGroupEntry *snmpCreateGroupEntry(SnmpAgentContext *context)
  * @param[in] securityModel Security model
  * @param[in] securityName Pointer to the security name
  * @param[in] securityNameLen Length of the security name
- * @return Pointer to the maching entry
+ * @return Pointer to the matching entry
  **/
 
 SnmpGroupEntry *snmpFindGroupEntry(SnmpAgentContext *context,
@@ -362,7 +362,7 @@ SnmpAccessEntry *snmpCreateAccessEntry(SnmpAgentContext *context)
  * @param[in] contextPrefix Context name prefix
  * @param[in] securityModel Security model
  * @param[in] securityLevel Security level
- * @return Pointer to the maching entry
+ * @return Pointer to the matching entry
  **/
 
 SnmpAccessEntry *snmpFindAccessEntry(SnmpAgentContext *context,
@@ -415,7 +415,7 @@ SnmpAccessEntry *snmpFindAccessEntry(SnmpAgentContext *context,
  * @param[in] contextNameLen Length of the context name
  * @param[in] securityModel Security model
  * @param[in] securityLevel Security level
- * @return Pointer to the maching entry
+ * @return Pointer to the matching entry
  **/
 
 SnmpAccessEntry *snmpSelectAccessEntry(SnmpAgentContext *context,
@@ -502,7 +502,7 @@ SnmpAccessEntry *snmpSelectAccessEntry(SnmpAgentContext *context,
          selectedEntry = entry;
    }
 
-   //Return a pointer to the maching entry
+   //Return a pointer to the matching entry
    return selectedEntry;
 }
 
@@ -562,7 +562,7 @@ SnmpViewEntry *snmpCreateViewEntry(SnmpAgentContext *context)
  * @param[in] viewName View name
  * @param[in] subtree Pointer to the MIB subtree
  * @param[in] subtreeLen Length of the MIB subtree
- * @return Pointer to the maching entry
+ * @return Pointer to the matching entry
  **/
 
 SnmpViewEntry *snmpFindViewEntry(SnmpAgentContext *context,
@@ -611,7 +611,7 @@ SnmpViewEntry *snmpFindViewEntry(SnmpAgentContext *context,
  * @param[in] viewName NULL-terminated string that contains the view name
  * @param[in] oid OID for the managed object
  * @param[in] oidLen Length of the OID, in bytes
- * @return Pointer to the maching entry
+ * @return Pointer to the matching entry
  **/
 
 SnmpViewEntry *snmpSelectViewEntry(SnmpAgentContext *context,
@@ -642,7 +642,7 @@ SnmpViewEntry *snmpSelectViewEntry(SnmpAgentContext *context,
          continue;
 
       //Check whether the OID matches the subtree (the mask allows for a
-      //simple form of wilcarding)
+      //simple form of wildcarding)
       if(!oidMatch(oid, oidLen, entry->subtree, entry->subtreeLen,
          entry->mask, entry->maskLen))
       {
@@ -703,7 +703,7 @@ SnmpViewEntry *snmpSelectViewEntry(SnmpAgentContext *context,
          selectedEntry = entry;
    }
 
-   //Return a pointer to the maching entry
+   //Return a pointer to the matching entry
    return selectedEntry;
 }
 

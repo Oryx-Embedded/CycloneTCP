@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -130,7 +130,7 @@ const NicDriver am335xEthPort1Driver =
    am335xEthDisableIrq,
    am335xEthEventHandler,
    am335xEthSendPacketPort1,
-   am335xEthSetMulticastFilter,
+   am335xEthUpdateMacAddrFilter,
    am335xEthUpdateMacConfig,
    am335xEthWritePhyReg,
    am335xEthReadPhyReg,
@@ -155,7 +155,7 @@ const NicDriver am335xEthPort2Driver =
    am335xEthDisableIrq,
    am335xEthEventHandler,
    am335xEthSendPacketPort2,
-   am335xEthSetMulticastFilter,
+   am335xEthUpdateMacAddrFilter,
    am335xEthUpdateMacConfig,
    am335xEthWritePhyReg,
    am335xEthReadPhyReg,
@@ -1304,12 +1304,12 @@ error_t am335xEthSendPacketPort2(NetInterface *interface,
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t am335xEthSetMulticastFilter(NetInterface *interface)
+error_t am335xEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t port;
@@ -1326,12 +1326,12 @@ error_t am335xEthSetMulticastFilter(NetInterface *interface)
    else
       port = CPSW_PORT0;
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Check whether the ALE table should be updated for the
       //current multicast address

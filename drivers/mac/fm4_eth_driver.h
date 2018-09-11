@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _FM4_ETH_DRIVER_H
@@ -213,7 +213,7 @@ error_t fm4EthSendPacket(NetInterface *interface,
 
 error_t fm4EthReceivePacket(NetInterface *interface);
 
-error_t fm4EthSetMulticastFilter(NetInterface *interface);
+error_t fm4EthUpdateMacAddrFilter(NetInterface *interface);
 error_t fm4EthUpdateMacConfig(NetInterface *interface);
 
 void fm4EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

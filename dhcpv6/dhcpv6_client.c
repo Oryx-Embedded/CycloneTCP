@@ -31,7 +31,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -2282,6 +2282,9 @@ error_t dhcpv6ClientGenerateDuid(Dhcpv6ClientContext *context)
 {
    NetInterface *interface;
    Dhcpv6DuidLl *duid;
+#if (ETH_SUPPORT == ENABLED)
+   NetInterface *logicalInterface;
+#endif
 
    //Point to the underlying network interface
    interface = context->settings.interface;
@@ -2290,10 +2293,13 @@ error_t dhcpv6ClientGenerateDuid(Dhcpv6ClientContext *context)
    duid = (Dhcpv6DuidLl *) context->clientId;
 
 #if (ETH_SUPPORT == ENABLED)
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+
    //Generate a DUID-LL from the MAC address
    duid->type = HTONS(DHCPV6_DUID_LL);
    duid->hardwareType = HTONS(DHCPV6_HARDWARE_TYPE_ETH);
-   duid->linkLayerAddr = interface->macAddr;
+   duid->linkLayerAddr = logicalInterface->macAddr;
 #else
    //Generate a DUID-LL from the EUI-64 identifier
    duid->type = HTONS(DHCPV6_DUID_LL);

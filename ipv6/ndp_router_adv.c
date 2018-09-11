@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -594,6 +594,9 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    NdpRouterAdvMessage *message;
    NdpRouterAdvSettings *settings;
    Ipv6PseudoHeader pseudoHeader;
+#if (ETH_SUPPORT == ENABLED)
+   NetInterface *logicalInterface;
+#endif
 
    //Point to the underlying network interface
    interface = context->settings.interface;
@@ -656,12 +659,15 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    length = sizeof(NdpRouterAdvMessage);
 
 #if (ETH_SUPPORT == ENABLED)
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+
    //Check whether a MAC address has been assigned to the interface
-   if(!macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+   if(!macCompAddr(&logicalInterface->macAddr, &MAC_UNSPECIFIED_ADDR))
    {
       //Add Source Link-Layer Address option
       ndpAddOption(message, &length, NDP_OPT_SOURCE_LINK_LAYER_ADDR,
-         &interface->macAddr, sizeof(MacAddr));
+         &logicalInterface->macAddr, sizeof(MacAddr));
    }
 #endif
 

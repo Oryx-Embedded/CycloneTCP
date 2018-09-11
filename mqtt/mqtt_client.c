@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -161,6 +161,27 @@ error_t mqttClientSetTransportProtocol(MqttClientContext *context,
 
 
 /**
+ * @brief Set communication timeout
+ * @param[in] context Pointer to the MQTT client context
+ * @param[in] timeout Timeout value, in seconds
+ * @return Error code
+ **/
+
+error_t mqttClientSetTimeout(MqttClientContext *context, uint16_t timeout)
+{
+   //Make sure the MQTT client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save timeout value
+   context->settings.timeout = timeout;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
  * @brief Set keep-alive value
  * @param[in] context Pointer to the MQTT client context
  * @param[in] keepAlive Maximum time interval that is permitted to elapse
@@ -177,27 +198,6 @@ error_t mqttClientSetKeepAlive(MqttClientContext *context, uint16_t keepAlive)
 
    //Save keep-alive value
    context->settings.keepAlive = keepAlive;
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief Set communication timeout
- * @param[in] context Pointer to the MQTT client context
- * @param[in] timeout Timeout value, in seconds
- * @return Error code
- **/
-
-error_t mqttClientSetTimeout(MqttClientContext *context, uint16_t timeout)
-{
-   //Make sure the MQTT client context is valid
-   if(context == NULL)
-      return ERROR_INVALID_PARAMETER;
-
-   //Save timeout value
-   context->settings.timeout = timeout;
 
    //Successful processing
    return NO_ERROR;
@@ -550,8 +550,10 @@ error_t mqttClientPublish(MqttClientContext *context,
 {
    error_t error;
 
-   //Make sure the MQTT client context is valid
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || topic == NULL)
+      return ERROR_INVALID_PARAMETER;
+   if(message == NULL && length != 0)
       return ERROR_INVALID_PARAMETER;
 
    //Initialize status code
@@ -652,7 +654,7 @@ error_t mqttClientPublish(MqttClientContext *context,
 
 
 /**
- * @brief Subscribe to topics
+ * @brief Subscribe to topic
  * @param[in] context Pointer to the MQTT client context
  * @param[in] topic Topic filter
  * @param[in] qos Maximum QoS level at which the server can send application
@@ -666,8 +668,8 @@ error_t mqttClientSubscribe(MqttClientContext *context,
 {
    error_t error;
 
-   //Make sure the MQTT client context is valid
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || topic == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Initialize status code
@@ -758,7 +760,7 @@ error_t mqttClientSubscribe(MqttClientContext *context,
 
 
 /**
- * @brief Unsubscribe from topics
+ * @brief Unsubscribe from topic
  * @param[in] context Pointer to the MQTT client context
  * @param[in] topic Topic filter
  * @param[out] packetId Packet identifier used to send the UNSUBSCRIBE packet
@@ -770,8 +772,8 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
 {
    error_t error;
 
-   //Make sure the MQTT client context is valid
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || topic == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Initialize status code

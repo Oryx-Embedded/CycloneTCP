@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -461,7 +461,7 @@ error_t snmpGetNextObject(SnmpAgentContext *context,
          //Get the total number of objects
          numObjects = context->mibTable[i]->numObjects;
 
-         //Point the last object of the MIB
+         //Point to the last object of the MIB
          object = &context->mibTable[i]->objects[numObjects - 1];
 
          //Discard instance sub-identifier
@@ -487,7 +487,7 @@ error_t snmpGetNextObject(SnmpAgentContext *context,
             //Loop through objects
             for(j = 0; j < numObjects; )
             {
-               //Point the current object
+               //Point to the current object
                object = &context->mibTable[i]->objects[j];
 
                //Buffer where to store the OID of the next object
@@ -689,7 +689,7 @@ error_t snmpFindMibObject(SnmpAgentContext *context,
    size_t n;
    const MibObject *objects;
 
-   //Initialize comparaison result
+   //Initialize comparison result
    res = -1;
 
    //Loop through MIBs

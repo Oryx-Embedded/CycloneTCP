@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _LPC23XX_ETH_DRIVER_H
@@ -364,7 +364,7 @@ error_t lpc23xxEthSendPacket(NetInterface *interface,
 
 error_t lpc23xxEthReceivePacket(NetInterface *interface);
 
-error_t lpc23xxEthSetMulticastFilter(NetInterface *interface);
+error_t lpc23xxEthUpdateMacAddrFilter(NetInterface *interface);
 error_t lpc23xxEthUpdateMacConfig(NetInterface *interface);
 
 void lpc23xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -277,6 +277,9 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
    Ipv6Header *ipHeader;
    Ipv6RoutingTableEntry *entry;
    Ipv6Addr destIpAddr;
+#if (ETH_SUPPORT == ENABLED)
+   NetInterface *physicalInterface;
+#endif
 
    //Silently drop any IP packets received on an interface that has
    //not been assigned a valid link-local address
@@ -532,8 +535,12 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
          ipHeader->hopLimit--;
 
 #if (ETH_SUPPORT == ENABLED)
+         //Point to the physical interface
+         physicalInterface = nicGetPhysicalInterface(destInterface);
+
          //Ethernet interface?
-         if(destInterface->nicDriver->type == NIC_TYPE_ETHERNET)
+         if(physicalInterface->nicDriver != NULL &&
+            physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
          {
             MacAddr destMacAddr;
 
@@ -589,7 +596,8 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
 #endif
 #if (PPP_SUPPORT == ENABLED)
          //PPP interface?
-         if(destInterface->nicDriver->type == NIC_TYPE_PPP)
+         if(destInterface->nicDriver != NULL &&
+            destInterface->nicDriver->type == NIC_TYPE_PPP)
          {
             //Debug message
             TRACE_INFO("Forwarding IPv6 packet to %s (%" PRIuSIZE " bytes)...\r\n",
@@ -603,7 +611,8 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
          else
 #endif
          //6LoWPAN interface?
-         if(destInterface->nicDriver->type == NIC_TYPE_6LOWPAN)
+         if(destInterface->nicDriver != NULL &&
+            destInterface->nicDriver->type == NIC_TYPE_6LOWPAN)
          {
             //Debug message
             TRACE_INFO("Forwarding IPv6 packet to %s (%" PRIuSIZE " bytes)...\r\n",

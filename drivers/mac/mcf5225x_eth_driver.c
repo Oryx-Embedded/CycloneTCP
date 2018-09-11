@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -67,7 +67,7 @@ const NicDriver mcf5225xEthDriver =
    mcf5225xEthDisableIrq,
    mcf5225xEthEventHandler,
    mcf5225xEthSendPacket,
-   mcf5225xEthSetMulticastFilter,
+   mcf5225xEthUpdateMacAddrFilter,
    mcf5225xEthUpdateMacConfig,
    mcf5225xEthWritePhyReg,
    mcf5225xEthReadPhyReg,
@@ -104,7 +104,7 @@ error_t mcf5225xEthInit(NetInterface *interface)
    //Wait for the reset to complete
    while(MCF_FEC_ECR & MCF_FEC_ECR_RESET);
 
-   //Reveive control register
+   //Receive control register
    MCF_FEC_RCR = MCF_FEC_RCR_MAX_FL(1518) | MCF_FEC_RCR_MII_MODE;
    //Transmit control register
    MCF_FEC_TCR = 0;
@@ -590,32 +590,37 @@ error_t mcf5225xEthReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t mcf5225xEthSetMulticastFilter(NetInterface *interface)
+error_t mcf5225xEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t k;
    uint32_t crc;
-   uint32_t hashTable[2];
+   uint32_t unicastHashTable[2];
+   uint32_t multicastHashTable[2];
    MacFilterEntry *entry;
 
    //Debug message
    TRACE_DEBUG("Updating MCF5225x hash table...\r\n");
 
-   //Clear hash table
-   hashTable[0] = 0;
-   hashTable[1] = 0;
+   //Clear hash table (unicast address filtering)
+   unicastHashTable[0] = 0;
+   unicastHashTable[1] = 0;
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //Clear hash table (multicast address filtering)
+   multicastHashTable[0] = 0;
+   multicastHashTable[1] = 0;
+
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Valid entry?
       if(entry->refCount > 0)
@@ -627,16 +632,31 @@ error_t mcf5225xEthSetMulticastFilter(NetInterface *interface)
          //contents of the hash table
          k = (crc >> 26) & 0x3F;
 
-         //Update hash table contents
-         hashTable[k / 32] |= (1 << (k % 32));
+         //Multicast address?
+         if(macIsMulticastAddr(&entry->addr))
+         {
+            //Update the multicast hash table
+            multicastHashTable[k / 32] |= (1 << (k % 32));
+         }
+         else
+         {
+            //Update the unicast hash table
+            unicastHashTable[k / 32] |= (1 << (k % 32));
+         }
       }
    }
 
-   //Write the hash table
-   MCF_FEC_GALR = hashTable[0];
-   MCF_FEC_GAUR = hashTable[1];
+   //Write the hash table (unicast address filtering)
+   MCF_FEC_IALR = unicastHashTable[0];
+   MCF_FEC_IAUR = unicastHashTable[1];
+
+   //Write the hash table (multicast address filtering)
+   MCF_FEC_GALR = multicastHashTable[0];
+   MCF_FEC_GAUR = multicastHashTable[1];
 
    //Debug message
+   TRACE_DEBUG("  IALR = %08" PRIX32 "\r\n", MCF_FEC_IALR);
+   TRACE_DEBUG("  IAUR = %08" PRIX32 "\r\n", MCF_FEC_IAUR);
    TRACE_DEBUG("  GALR = %08" PRIX32 "\r\n", MCF_FEC_GALR);
    TRACE_DEBUG("  GAUR = %08" PRIX32 "\r\n", MCF_FEC_GAUR);
 

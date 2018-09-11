@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -445,7 +445,7 @@ error_t tftpClientSendRrqPacket(TftpClientContext *context,
    if((m + n) > TFTP_CLIENT_BLOCK_SIZE)
       return ERROR_INVALID_PARAMETER;
 
-   //Point the buffer where to format the packet
+   //Point to the buffer where to format the packet
    rrqPacket = (TftpRrqPacket *) context->outPacket;
 
    //Format RRQ packet
@@ -501,7 +501,7 @@ error_t tftpClientSendWrqPacket(TftpClientContext *context,
    if((m + n) > TFTP_CLIENT_BLOCK_SIZE)
       return ERROR_INVALID_PARAMETER;
 
-   //Point the buffer where to format the packet
+   //Point to the buffer where to format the packet
    wrqPacket = (TftpWrqPacket *) context->outPacket;
 
    //Format WRQ packet
@@ -543,7 +543,7 @@ error_t tftpClientSendDataPacket(TftpClientContext *context)
    error_t error;
    TftpDataPacket *dataPacket;
 
-   //Point the buffer where to format the packet
+   //Point to the buffer where to format the packet
    dataPacket = (TftpDataPacket *) context->outPacket;
 
    //Format DATA packet
@@ -583,7 +583,7 @@ error_t tftpClientSendAckPacket(TftpClientContext *context)
    error_t error;
    TftpAckPacket *ackPacket;
 
-   //Point the buffer where to format the packet
+   //Point to the buffer where to format the packet
    ackPacket = (TftpAckPacket *) context->outPacket;
 
    //Format ACK packet
@@ -630,7 +630,7 @@ error_t tftpClientSendErrorPacket(TftpClientContext *context,
    if(strlen(errorMsg) >= TFTP_CLIENT_BLOCK_SIZE)
       return ERROR_INVALID_PARAMETER;
 
-   //Point the buffer where to format the packet
+   //Point to the buffer where to format the packet
    errorPacket = (TftpErrorPacket *) context->outPacket;
 
    //Format ERROR packet

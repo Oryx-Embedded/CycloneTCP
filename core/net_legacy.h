@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _NET_LEGACY_H
@@ -89,8 +89,8 @@
 #endif
 
 #ifdef MAC_FILTER_MAX_SIZE
-   //#warning MAC_FILTER_MAX_SIZE property is deprecated. MAC_MULTICAST_FILTER_SIZE should be used instead.
-   #define MAC_MULTICAST_FILTER_SIZE MAC_FILTER_MAX_SIZE
+   //#warning MAC_FILTER_MAX_SIZE property is deprecated. MAC_ADDR_FILTER_SIZE should be used instead.
+   #define MAC_ADDR_FILTER_SIZE MAC_FILTER_MAX_SIZE
 #endif
 
 #ifdef IPV4_FILTER_MAX_SIZE
@@ -203,6 +203,10 @@
 
 #ifdef SNMP_AGENT_MAX_USER_COUNT
    #define SNMP_AGENT_MAX_USERS SNMP_AGENT_MAX_USER_COUNT
+#endif
+
+#ifdef MAC_MULTICAST_FILTER_SIZE
+   #define MAC_ADDR_FILTER_SIZE MAC_MULTICAST_FILTER_SIZE
 #endif
 
 #endif

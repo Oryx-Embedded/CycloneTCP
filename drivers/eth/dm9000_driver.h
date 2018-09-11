@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _DM9000_DRIVER_H
@@ -388,7 +388,7 @@ error_t dm9000SendPacket(NetInterface *interface,
 
 error_t dm9000ReceivePacket(NetInterface *interface);
 
-error_t dm9000SetMulticastFilter(NetInterface *interface);
+error_t dm9000UpdateMacAddrFilter(NetInterface *interface);
 
 void dm9000WriteReg(uint8_t address, uint8_t data);
 uint8_t dm9000ReadReg(uint8_t address);

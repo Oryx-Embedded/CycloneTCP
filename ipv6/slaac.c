@@ -31,7 +31,7 @@
  * - RFC 6106: IPv6 Router Advertisement Options for DNS Configuration
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -350,6 +350,7 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
    systime_t preferredLifetime;
    systime_t remainingLifetime;
    NetInterface *interface;
+   NetInterface *logicalInterface;
    Ipv6AddrEntry *entry;
    Ipv6Addr addr;
 
@@ -387,16 +388,19 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
    //Point to the underlying network interface
    interface = context->settings.interface;
 
-   //Form an address by combining the advertised prefix
-   //with the interface identifier
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+
+   //Form an address by combining the advertised prefix with the interface
+   //identifier
    addr.w[0] = option->prefix.w[0];
    addr.w[1] = option->prefix.w[1];
    addr.w[2] = option->prefix.w[2];
    addr.w[3] = option->prefix.w[3];
-   addr.w[4] = interface->eui64.w[0];
-   addr.w[5] = interface->eui64.w[1];
-   addr.w[6] = interface->eui64.w[2];
-   addr.w[7] = interface->eui64.w[3];
+   addr.w[4] = logicalInterface->eui64.w[0];
+   addr.w[5] = logicalInterface->eui64.w[1];
+   addr.w[6] = logicalInterface->eui64.w[2];
+   addr.w[7] = logicalInterface->eui64.w[3];
 
    //Convert Valid Lifetime to host byte order
    validLifetime = ntohl(option->validLifetime);
@@ -404,8 +408,8 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
    //Check the valid lifetime
    if(validLifetime != NDP_INFINITE_LIFETIME)
    {
-      //The length of time in seconds that the prefix is valid
-      //for the purpose of on-link determination
+      //The length of time in seconds that the prefix is valid for the
+      //purpose of on-link determination
       if(validLifetime < (MAX_DELAY / 1000))
          validLifetime *= 1000;
       else
@@ -560,10 +564,14 @@ error_t slaacGenerateLinkLocalAddr(SlaacContext *context)
 {
    error_t error;
    NetInterface *interface;
+   NetInterface *logicalInterface;
    Ipv6Addr addr;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Check whether a link-local address has been manually assigned
    if(interface->ipv6Context.addrList[0].state != IPV6_ADDR_STATE_INVALID &&
@@ -576,7 +584,7 @@ error_t slaacGenerateLinkLocalAddr(SlaacContext *context)
    {
       //A link-local address is formed by combining the well-known
       //link-local prefix fe80::/10 with the interface identifier
-      ipv6GenerateLinkLocalAddr(&interface->eui64, &addr);
+      ipv6GenerateLinkLocalAddr(&logicalInterface->eui64, &addr);
 
       //Check whether Duplicate Address Detection should be performed
       if(interface->ndpContext.dupAddrDetectTransmits > 0)

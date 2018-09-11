@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -291,6 +291,12 @@ uint_t ndpSendQueuedPackets(NetInterface *interface, NdpNeighborCacheEntry *entr
 {
    uint_t i;
    NdpQueueItem *item;
+#if (ETH_SUPPORT == ENABLED)
+   NetInterface *physicalInterface;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+#endif
 
    //Reset packet counter
    i = 0;
@@ -306,7 +312,8 @@ uint_t ndpSendQueuedPackets(NetInterface *interface, NdpNeighborCacheEntry *entr
 
 #if (ETH_SUPPORT == ENABLED)
          //Ethernet interface?
-         if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
+         if(physicalInterface->nicDriver != NULL &&
+            physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
          {
             size_t length;
 

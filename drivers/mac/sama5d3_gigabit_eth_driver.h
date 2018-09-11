@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _SAMA5D3_GIGABIT_ETH_DRIVER_H
@@ -159,7 +159,7 @@ error_t sama5d3GigabitEthSendPacket(NetInterface *interface,
 
 error_t sama5d3GigabitEthReceivePacket(NetInterface *interface);
 
-error_t sama5d3GigabitEthSetMulticastFilter(NetInterface *interface);
+error_t sama5d3GigabitEthUpdateMacAddrFilter(NetInterface *interface);
 error_t sama5d3GigabitEthUpdateMacConfig(NetInterface *interface);
 
 void sama5d3GigabitEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

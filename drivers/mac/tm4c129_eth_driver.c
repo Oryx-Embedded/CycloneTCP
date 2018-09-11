@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -108,7 +108,7 @@ const NicDriver tm4c129EthDriver =
    tm4c129EthDisableIrq,
    tm4c129EthEventHandler,
    tm4c129EthSendPacket,
-   tm4c129EthSetMulticastFilter,
+   tm4c129EthUpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -670,12 +670,12 @@ error_t tm4c129EthReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t tm4c129EthSetMulticastFilter(NetInterface *interface)
+error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t k;
@@ -690,12 +690,12 @@ error_t tm4c129EthSetMulticastFilter(NetInterface *interface)
    hashTable[0] = 0;
    hashTable[1] = 0;
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Valid entry?
       if(entry->refCount > 0)

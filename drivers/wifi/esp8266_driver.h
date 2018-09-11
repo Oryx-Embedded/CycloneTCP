@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _ESP8266_WIFI_DRIVER_H
@@ -54,7 +54,7 @@ void esp8266WifiEventHandler(NetInterface *interface);
 error_t esp8266WifiSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t esp8266WifiSetMulticastFilter(NetInterface *interface);
+error_t esp8266WifiUpdateMacAddrFilter(NetInterface *interface);
 
 //C++ guard
 #ifdef __cplusplus

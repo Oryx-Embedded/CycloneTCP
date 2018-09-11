@@ -28,7 +28,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -95,6 +95,10 @@ const Ipv6Addr IPV6_SOLICITED_NODE_ADDR_PREFIX =
 error_t ipv6Init(NetInterface *interface)
 {
    Ipv6Context *context;
+   NetInterface *physicalInterface;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Point to the IPv6 context
    context = &interface->ipv6Context;
@@ -103,7 +107,7 @@ error_t ipv6Init(NetInterface *interface)
    memset(context, 0, sizeof(Ipv6Context));
 
    //Initialize interface specific variables
-   context->linkMtu = interface->nicDriver->mtu;
+   context->linkMtu = physicalInterface->nicDriver->mtu;
    context->isRouter = FALSE;
    context->curHopLimit = IPV6_DEFAULT_HOP_LIMIT;
 
@@ -143,6 +147,7 @@ error_t ipv6Init(NetInterface *interface)
 error_t ipv6SetMtu(NetInterface *interface, size_t mtu)
 {
    error_t error;
+   NetInterface *physicalInterface;
 
    //Check parameters
    if(interface == NULL)
@@ -151,9 +156,12 @@ error_t ipv6SetMtu(NetInterface *interface, size_t mtu)
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+
    //Make sure the specified MTU is greater than or equal to the minimum
    //IPv6 MTU and does not exceed the maximum MTU of the interface
-   if(mtu >= IPV6_DEFAULT_MTU && mtu <= interface->nicDriver->mtu)
+   if(mtu >= IPV6_DEFAULT_MTU && mtu <= physicalInterface->nicDriver->mtu)
    {
       //Set the MTU to be used
       interface->ipv6Context.linkMtu = mtu;
@@ -381,6 +389,7 @@ error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index, Ipv6Addr *addr)
 error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index, const Ipv6Addr *addr)
 {
    error_t error;
+   NetInterface *physicalInterface;
    Ipv6Addr *anycastAddrList;
    Ipv6Addr solicitedNodeAddr;
 
@@ -402,6 +411,9 @@ error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index, const Ipv6Addr
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+
    //Point to the list of anycast addresses assigned to the interface
    anycastAddrList = interface->ipv6Context.anycastAddrList;
 
@@ -409,7 +421,8 @@ error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index, const Ipv6Addr
    if(!ipv6CompAddr(&anycastAddrList[index], &IPV6_UNSPECIFIED_ADDR))
    {
       //Ethernet interface?
-      if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
+      if(physicalInterface->nicDriver != NULL &&
+         physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
       {
          //Form the Solicited-Node address
          ipv6ComputeSolicitedNodeAddr(&anycastAddrList[index], &solicitedNodeAddr);
@@ -425,7 +438,8 @@ error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index, const Ipv6Addr
    if(!ipv6CompAddr(addr, &IPV6_UNSPECIFIED_ADDR))
    {
       //Ethernet interface?
-      if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
+      if(physicalInterface->nicDriver != NULL &&
+         physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
       {
          //Form the Solicited-Node address for the link-local address
          ipv6ComputeSolicitedNodeAddr(addr, &solicitedNodeAddr);
@@ -783,12 +797,16 @@ void ipv6LinkChangeEvent(NetInterface *interface)
    uint_t i;
    Ipv6Context *context;
    Ipv6AddrEntry *entry;
+   NetInterface *physicalInterface;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Point to the IPv6 context
    context = &interface->ipv6Context;
 
    //Restore default parameters
-   context->linkMtu = interface->nicDriver->mtu;
+   context->linkMtu = physicalInterface->nicDriver->mtu;
    context->curHopLimit = IPV6_DEFAULT_HOP_LIMIT;
 
    //Clear the list of IPv6 addresses
@@ -1632,6 +1650,9 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    error_t error;
    size_t length;
    Ipv6Header *packet;
+#if (ETH_SUPPORT == ENABLED)
+   NetInterface *physicalInterface;
+#endif
 
    //Calculate the length of the payload
    length = netBufferGetLength(buffer) - offset;
@@ -1717,8 +1738,12 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    }
 
 #if (ETH_SUPPORT == ENABLED)
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+
    //Ethernet interface?
-   if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
+   if(physicalInterface->nicDriver != NULL &&
+      physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
    {
       Ipv6Addr destIpAddr;
       MacAddr destMacAddr;
@@ -1826,7 +1851,8 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
 #endif
 #if (PPP_SUPPORT == ENABLED)
    //PPP interface?
-   if(interface->nicDriver->type == NIC_TYPE_PPP)
+   if(interface->nicDriver != NULL &&
+      interface->nicDriver->type == NIC_TYPE_PPP)
    {
       //Update IP statistics
       ipv6UpdateOutStats(interface, &pseudoHeader->destAddr, length);
@@ -1842,7 +1868,8 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    else
 #endif
    //6LoWPAN interface?
-   if(interface->nicDriver->type == NIC_TYPE_6LOWPAN)
+   if(interface->nicDriver != NULL &&
+      interface->nicDriver->type == NIC_TYPE_6LOWPAN)
    {
       //Update IP statistics
       ipv6UpdateOutStats(interface, &pseudoHeader->destAddr, length);
@@ -1881,12 +1908,16 @@ error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAdd
    Ipv6FilterEntry *entry;
    Ipv6FilterEntry *firstFreeEntry;
 #if (ETH_SUPPORT == ENABLED)
+   NetInterface *physicalInterface;
    MacAddr macAddr;
 #endif
 
    //The IPv6 address must be a valid multicast address
    if(!ipv6IsMulticastAddr(groupAddr))
       return ERROR_INVALID_ADDRESS;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Initialize error code
    error = NO_ERROR;
@@ -1929,8 +1960,27 @@ error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAdd
 #if (ETH_SUPPORT == ENABLED)
    //Map the IPv6 multicast address to a MAC-layer address
    ipv6MapMulticastAddrToMac(groupAddr, &macAddr);
+
    //Add the corresponding address to the MAC filter table
-   error = ethAcceptMulticastAddr(interface, &macAddr);
+   error = ethAcceptMacAddr(interface, &macAddr);
+
+   //Check status code
+   if(!error)
+   {
+      //Virtual interface?
+      if(interface != physicalInterface)
+      {
+         //Configure the physical interface to accept the MAC address
+         error = ethAcceptMacAddr(physicalInterface, &macAddr);
+
+         //Any error to report?
+         if(error)
+         {
+            //Clean up side effects
+            ethDropMacAddr(interface, &macAddr);
+         }
+      }
+   }
 #endif
 
    //MAC filter table successfully updated?
@@ -1964,12 +2014,16 @@ error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAd
    uint_t i;
    Ipv6FilterEntry *entry;
 #if (ETH_SUPPORT == ENABLED)
+   NetInterface *physicalInterface;
    MacAddr macAddr;
 #endif
 
    //The IPv6 address must be a valid multicast address
    if(!ipv6IsMulticastAddr(groupAddr))
       return ERROR_INVALID_ADDRESS;
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Go through the multicast filter table
    for(i = 0; i < IPV6_MULTICAST_FILTER_SIZE; i++)
@@ -1997,7 +2051,15 @@ error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAd
                //Map the IPv6 multicast address to a MAC-layer address
                ipv6MapMulticastAddrToMac(groupAddr, &macAddr);
                //Drop the corresponding address from the MAC filter table
-               ethDropMulticastAddr(interface, &macAddr);
+               ethDropMacAddr(interface, &macAddr);
+
+               //Virtual interface?
+               if(interface != physicalInterface)
+               {
+                  //Drop the corresponding address from the MAC filter table of
+                  //the physical interface
+                  ethDropMacAddr(physicalInterface, &macAddr);
+               }
 #endif
                //Remove the multicast address from the list
                entry->addr = IPV6_UNSPECIFIED_ADDR;

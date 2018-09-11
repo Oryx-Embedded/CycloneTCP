@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -115,6 +115,8 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    uint_t index;
    IfMibIfEntry *entry;
    NetInterface *interface;
+   NetInterface *logicalInterface;
+   NetInterface *physicalInterface;
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -137,6 +139,11 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    interface = &netInterface[index - 1];
    //Point to the interface table entry
    entry = &ifMibBase.ifTable[index - 1];
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //ifIndex object?
    if(!strcmp(object->name, "ifIndex"))
@@ -167,42 +174,53 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    //ifType object?
    else if(!strcmp(object->name, "ifType"))
    {
-      //Sanity check
-      if(interface->nicDriver != NULL)
+#if (ETH_VLAN_SUPPORT == ENABLED)
+      //VLAN interface?
+      if(interface->vlanId != 0)
       {
-         //Get interface type
-         switch(interface->nicDriver->type)
-         {
-         //Ethernet interface
-         case NIC_TYPE_ETHERNET:
-            value->integer = IF_MIB_IF_TYPE_ETHERNET_CSMACD;
-            break;
-         //PPP interface
-         case NIC_TYPE_PPP:
-            value->integer = IF_MIB_IF_TYPE_PPP;
-            break;
-         //IEEE 802.15.4 WPAN interface
-         case NIC_TYPE_6LOWPAN:
-            value->integer = IF_MIB_IF_TYPE_IEEE_802_15_4;
-            break;
-         //Unknown interface type
-         default:
-            value->integer = IF_MIB_IF_TYPE_OTHER;
-            break;
-         }
+         //Layer 2 virtual LAN using 802.1Q
+         value->integer = IF_MIB_IF_TYPE_L2_VLAN;
       }
       else
+#endif
       {
-         //Unknown interface type
-         value->integer = IF_MIB_IF_TYPE_OTHER;
+         //Sanity check
+         if(physicalInterface->nicDriver != NULL)
+         {
+            //Get interface type
+            switch(physicalInterface->nicDriver->type)
+            {
+            //Ethernet interface
+            case NIC_TYPE_ETHERNET:
+               value->integer = IF_MIB_IF_TYPE_ETHERNET_CSMACD;
+               break;
+            //PPP interface
+            case NIC_TYPE_PPP:
+               value->integer = IF_MIB_IF_TYPE_PPP;
+               break;
+            //IEEE 802.15.4 WPAN interface
+            case NIC_TYPE_6LOWPAN:
+               value->integer = IF_MIB_IF_TYPE_IEEE_802_15_4;
+               break;
+            //Unknown interface type
+            default:
+               value->integer = IF_MIB_IF_TYPE_OTHER;
+               break;
+            }
+         }
+         else
+         {
+            //Unknown interface type
+            value->integer = IF_MIB_IF_TYPE_OTHER;
+         }
       }
    }
    //ifMtu object?
    else if(!strcmp(object->name, "ifMtu"))
    {
       //Get interface MTU
-      if(interface->nicDriver != NULL)
-         value->integer = interface->nicDriver->mtu;
+      if(physicalInterface->nicDriver != NULL)
+         value->integer = physicalInterface->nicDriver->mtu;
       else
          value->integer = 0;
    }
@@ -219,7 +237,7 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       if(*valueLen >= sizeof(MacAddr))
       {
          //Copy object value
-         macCopyAddr(value->octetString, &interface->macAddr);
+         macCopyAddr(value->octetString, &logicalInterface->macAddr);
          //Return object length
          *valueLen = sizeof(MacAddr);
       }
@@ -233,7 +251,7 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    else if(!strcmp(object->name, "ifAdminStatus"))
    {
       //Check whether the interface is enabled for operation
-      if(interface->nicDriver != NULL)
+      if(physicalInterface->nicDriver != NULL)
          value->integer = IF_MIB_IF_ADMIN_STATUS_UP;
       else
          value->integer = IF_MIB_IF_ADMIN_STATUS_DOWN;
@@ -835,6 +853,7 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
    uint_t index;
    MacAddr macAddr;
    NetInterface *interface;
+   NetInterface *logicalInterface;
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -861,12 +880,14 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
 
    //Point to the underlying interface
    interface = &netInterface[index - 1];
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
 
    //Initialize status code
    error = ERROR_INSTANCE_NOT_FOUND;
 
    //Interface MAC address?
-   if(macCompAddr(&macAddr, &interface->macAddr))
+   if(macCompAddr(&macAddr, &logicalInterface->macAddr))
    {
       //The MAC address is acceptable
       error = NO_ERROR;
@@ -880,14 +901,14 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
    //Multicast address?
    else if(macIsMulticastAddr(&macAddr))
    {
-      //Go through the multicast filter table
-      for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+      //Go through the MAC filter table
+      for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
       {
          //Valid entry?
-         if(interface->macMulticastFilter[i].refCount > 0)
+         if(interface->macAddrFilter[i].refCount > 0)
          {
             //Check whether the MAC address matches a relevant multicast address
-            if(macCompAddr(&macAddr, &interface->macMulticastFilter[i].addr))
+            if(macCompAddr(&macAddr, &interface->macAddrFilter[i].addr))
             {
                //The MAC address is acceptable
                error = NO_ERROR;
@@ -909,7 +930,7 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
       else if(!strcmp(object->name, "ifRcvAddressType"))
       {
          //Get object value
-         if(macCompAddr(&macAddr, &interface->macAddr) ||
+         if(macCompAddr(&macAddr, &logicalInterface->macAddr) ||
             macCompAddr(&macAddr, &MAC_BROADCAST_ADDR))
          {
             //The entry is not volatile
@@ -956,6 +977,7 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
    MacAddr macAddr;
    MacAddr curMacAddr;
    NetInterface *interface;
+   NetInterface *logicalInterface;
 
    //Initialize variables
    index = 0;
@@ -973,14 +995,16 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
    {
       //Point to the underlying interface
       interface = &netInterface[curIndex - 1];
+      //Point to the logical interface
+      logicalInterface = nicGetLogicalInterface(interface);
 
-      //Go through the multicast filter table
-      for(i = -2; i < MAC_MULTICAST_FILTER_SIZE; i++)
+      //Go through the MAC filter table
+      for(i = -2; i < MAC_ADDR_FILTER_SIZE; i++)
       {
          if(i == -2)
          {
             //Get interface MAC address
-            curMacAddr = interface->macAddr;
+            curMacAddr = logicalInterface->macAddr;
          }
          else if(i == -1)
          {
@@ -990,8 +1014,8 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
          else
          {
             //Get multicast address
-            if(interface->macMulticastFilter[i].refCount > 0)
-               curMacAddr = interface->macMulticastFilter[i].addr;
+            if(interface->macAddrFilter[i].refCount > 0)
+               curMacAddr = interface->macAddrFilter[i].addr;
             else
                curMacAddr = MAC_UNSPECIFIED_ADDR;
          }

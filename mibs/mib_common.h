@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _MIB_COMMON_H
@@ -359,6 +359,8 @@ error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
    IpAddr *ipAddr);
 
 int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
+
+error_t mibTestAndIncSpinLock(int32_t *spinLock, int32_t value, bool_t commit);
 
 //C++ guard
 #ifdef __cplusplus

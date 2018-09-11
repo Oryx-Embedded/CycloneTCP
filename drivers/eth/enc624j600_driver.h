@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _ENC624J600_DRIVER_H
@@ -474,7 +474,7 @@ error_t enc624j600SendPacket(NetInterface *interface,
 
 error_t enc624j600ReceivePacket(NetInterface *interface);
 
-error_t enc624j600SetMulticastFilter(NetInterface *interface);
+error_t enc624j600UpdateMacAddrFilter(NetInterface *interface);
 void enc624j600UpdateMacConfig(NetInterface *interface);
 
 error_t enc624j600SoftReset(NetInterface *interface);

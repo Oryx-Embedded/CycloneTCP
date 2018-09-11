@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -94,6 +94,7 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
    systime_t preferredLifetime, bool_t permanent)
 {
    error_t error;
+   NetInterface *physicalInterface;
    Ipv6AddrEntry *entry;
    Ipv6Addr solicitedNodeAddr;
 
@@ -112,6 +113,9 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
    //Initialize status code
    error = NO_ERROR;
 
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+
    //Point to the corresponding entry
    entry = &interface->ipv6Context.addrList[index];
 
@@ -122,7 +126,8 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
       if(entry->state != IPV6_ADDR_STATE_INVALID)
       {
          //Ethernet interface?
-         if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
+         if(physicalInterface->nicDriver != NULL &&
+            physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
          {
             //Form the Solicited-Node address
             ipv6ComputeSolicitedNodeAddr(&entry->addr, &solicitedNodeAddr);
@@ -148,7 +153,8 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
       if(state != IPV6_ADDR_STATE_INVALID)
       {
          //Ethernet interface?
-         if(interface->nicDriver->type == NIC_TYPE_ETHERNET)
+         if(physicalInterface->nicDriver != NULL &&
+            physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
          {
             //Form the Solicited-Node address for the link-local address
             ipv6ComputeSolicitedNodeAddr(addr, &solicitedNodeAddr);
@@ -156,7 +162,8 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
             error = ipv6JoinMulticastGroup(interface, &solicitedNodeAddr);
          }
          //6LoWPAN interface?
-         else if(interface->nicDriver->type == NIC_TYPE_6LOWPAN)
+         else if(interface->nicDriver != NULL &&
+            interface->nicDriver->type == NIC_TYPE_6LOWPAN)
          {
             //There is no need to join the solicited-node multicast address,
             //since nobody multicasts Neighbor Solicitations in this type of

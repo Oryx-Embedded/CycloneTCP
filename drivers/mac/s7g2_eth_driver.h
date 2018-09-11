@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _S7G2_ETH_DRIVER_H
@@ -198,7 +198,7 @@ error_t s7g2EthSendPacket(NetInterface *interface,
 
 error_t s7g2EthReceivePacket(NetInterface *interface);
 
-error_t s7g2EthSetMulticastFilter(NetInterface *interface);
+error_t s7g2EthUpdateMacAddrFilter(NetInterface *interface);
 error_t s7g2EthUpdateMacConfig(NetInterface *interface);
 
 void s7g2EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

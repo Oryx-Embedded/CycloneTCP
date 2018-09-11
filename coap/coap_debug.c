@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -85,6 +85,11 @@ const CoapParamDesc coapCodeList[] =
    {COAP_CODE_SERVICE_UNAVAILABLE,        "Service Unavailable"},
    {COAP_CODE_GATEWAY_TIMEOUT,            "Gateway Timeout"},
    {COAP_CODE_PROXYING_NOT_SUPPORTED,     "Proxying Not Supported"},
+   {COAP_CODE_CSM,                        "CSM"},
+   {COAP_CODE_PING,                       "Ping"},
+   {COAP_CODE_PONG,                       "Pong"},
+   {COAP_CODE_RELEASE,                    "Release"},
+   {COAP_CODE_ABORT,                      "Abort"}
 };
 
 //Observe option values

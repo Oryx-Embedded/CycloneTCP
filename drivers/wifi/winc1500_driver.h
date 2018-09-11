@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _WINC1500_DRIVER_H
@@ -67,7 +67,7 @@ void winc1500EventHandler(NetInterface *interface);
 error_t winc1500SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t winc1500SetMulticastFilter(NetInterface *interface);
+error_t winc1500UpdateMacAddrFilter(NetInterface *interface);
 
 void winc1500AppWifiEvent(uint8_t msgType, void *msg);
 void winc1500AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf);

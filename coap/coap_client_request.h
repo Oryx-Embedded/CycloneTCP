@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _COAP_CLIENT_REQUEST_H
@@ -91,14 +91,16 @@ struct _CoapClientRequest
    CoapClientContext *context;    ///<CoAP client context
    systime_t startTime;           ///<Request start time
    systime_t timeout;             ///<Request timeout
+   systime_t retransmitStartTime; ///<Time at which the last message was sent
+   systime_t retransmitTimeout;   ///<Retransmission timeout
+   uint_t retransmitCount;        ///<Retransmission counter
+#if (COAP_CLIENT_OBSERVE_SUPPORT == ENABLED)
+   uint32_t observeSeqNum;        ///<Sequence number for reordering detection
+#endif
 #if (COAP_CLIENT_BLOCK_SUPPORT == ENABLED)
    CoapBlockSize txBlockSzx;       ///<TX block size
    CoapBlockSize rxBlockSzx;       ///<RX block size
 #endif
-   systime_t retransmitStartTime; ///<Time at which the last message was sent
-   systime_t retransmitTimeout;   ///<Retransmission timeout
-   uint8_t retransmitCount;       ///<Retransmission counter
-   uint32_t observeSeqNum;        ///<Sequence number for reordering detection
    CoapMessage message;           ///<CoAP request message
    CoapRequestCallback callback;  ///<Callback function to invoke when the request completes
    void *param;                   ///<Callback function parameter

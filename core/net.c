@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -299,11 +299,11 @@ error_t netInit(void)
 
 error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr)
 {
+#if (ETH_SUPPORT == ENABLED)
    //Check parameters
    if(interface == NULL || macAddr == NULL)
       return ERROR_INVALID_PARAMETER;
 
-#if (ETH_SUPPORT == ENABLED)
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
@@ -315,10 +315,13 @@ error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr)
 
    //Release exclusive access
    osReleaseMutex(&netMutex);
-#endif
 
    //Successful processing
    return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -331,21 +334,31 @@ error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr)
 
 error_t netGetMacAddr(NetInterface *interface, MacAddr *macAddr)
 {
+#if (ETH_SUPPORT == ENABLED)
+   NetInterface *logicalInterface;
+
    //Check parameters
    if(interface == NULL || macAddr == NULL)
       return ERROR_INVALID_PARAMETER;
 
-#if (ETH_SUPPORT == ENABLED)
    //Get exclusive access
    osAcquireMutex(&netMutex);
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+
    //Get MAC address
-   *macAddr = interface->macAddr;
+   *macAddr = logicalInterface->macAddr;
+
    //Release exclusive access
    osReleaseMutex(&netMutex);
-#endif
 
    //Successful processing
    return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -383,14 +396,21 @@ error_t netSetEui64(NetInterface *interface, const Eui64 *eui64)
 
 error_t netGetEui64(NetInterface *interface, Eui64 *eui64)
 {
+   NetInterface *logicalInterface;
+
    //Check parameters
    if(interface == NULL || eui64 == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+
    //Get interface identifier
-   *eui64 = interface->eui64;
+   *eui64 = logicalInterface->eui64;
+
    //Release exclusive access
    osReleaseMutex(&netMutex);
 
@@ -505,6 +525,136 @@ error_t netSetProxy(NetInterface *interface, const char_t *name, uint16_t port)
 
    //Successful processing
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Specify VLAN identifier (802.1q)
+ * @param[in] interface Pointer to the desired network interface
+ * @param[in] vlanId VLAN identifier
+ * @return Error code
+ **/
+
+error_t netSetVlanId(NetInterface *interface, uint16_t vlanId)
+{
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Make sure the network interface is valid
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //The VLAN identifier is encoded in a 12-bit field
+   if(vlanId > VLAN_VID_MASK)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Set VLAN identifier
+   interface->vlanId = vlanId;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Specify VMAN identifier (802.1ad)
+ * @param[in] interface Pointer to the desired network interface
+ * @param[in] vmanId VMAN identifier
+ * @return Error code
+ **/
+
+error_t netSetVmanId(NetInterface *interface, uint16_t vmanId)
+{
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Make sure the network interface is valid
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //The VMAN identifier is encoded in a 12-bit field
+   if(vmanId > VLAN_VID_MASK)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Set VMAN identifier
+   interface->vmanId = vmanId;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Specify switch port
+ * @param[in] interface Pointer to the desired network interface
+ * @param[in] port Switch port identifier
+ * @return Error code
+ **/
+
+error_t netSetSwitchPort(NetInterface *interface, uint8_t port)
+{
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Make sure the network interface is valid
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Set switch port identifier
+   interface->port = port;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Attach a virtual interface to a given physical interface
+ * @param[in] interface Pointer to the virtual interface
+ * @param[in] physicalInterface physical interface on top of which the virtual
+ *   interface will run
+ * @return Error code
+ **/
+
+error_t netSetParentInterface(NetInterface *interface,
+   NetInterface *physicalInterface)
+{
+#if (ETH_VLAN_SUPPORT == ENABLED || ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Make sure the network interface is valid
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Bind the virtual interface to the physical interface
+   interface->parent = physicalInterface;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -739,7 +889,8 @@ error_t netConfigInterface(NetInterface *interface)
    osAcquireMutex(&netMutex);
 
    //Disable hardware interrupts
-   interface->nicDriver->disableIrq(interface);
+   if(interface->nicDriver != NULL)
+      interface->nicDriver->disableIrq(interface);
 
    //Start of exception handling block
    do
@@ -753,11 +904,35 @@ error_t netConfigInterface(NetInterface *interface)
          break;
       }
 
-      //Network controller initialization
-      error = interface->nicDriver->init(interface);
-      //Any error to report?
-      if(error)
-         break;
+      //Valid NIC driver?
+      if(interface->nicDriver != NULL)
+      {
+         //Network controller initialization
+         error = interface->nicDriver->init(interface);
+         //Any error to report?
+         if(error)
+            break;
+      }
+      else
+      {
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+         //Check whether the network interface is a virtual interface
+         if(interface->parent != NULL)
+         {
+            //Valid MAC address assigned to the virtual interface?
+            if(!macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+            {
+               //Configure the physical interface to accept the MAC address
+               //of the virtual interface
+               error = ethAcceptMacAddr(interface->parent,
+                  &interface->macAddr);
+               //Any error to report?
+               if(error)
+                  break;
+            }
+         }
+#endif
+      }
 
 #if (ETH_SUPPORT == ENABLED)
       //Ethernet related initialization
@@ -856,7 +1031,8 @@ error_t netConfigInterface(NetInterface *interface)
       if(netTaskRunning)
       {
          //Interrupts can be safely enabled
-         interface->nicDriver->enableIrq(interface);
+         if(interface->nicDriver != NULL)
+            interface->nicDriver->enableIrq(interface);
       }
    }
    else
@@ -902,7 +1078,8 @@ void netTask(void)
       if(interface->configured)
       {
          //Interrupts can be safely enabled
-         interface->nicDriver->enableIrq(interface);
+         if(interface->nicDriver != NULL)
+            interface->nicDriver->enableIrq(interface);
       }
    }
 
@@ -944,12 +1121,16 @@ void netTask(void)
                //Acknowledge the event by clearing the flag
                interface->nicEvent = FALSE;
 
-               //Disable hardware interrupts
-               interface->nicDriver->disableIrq(interface);
-               //Handle NIC events
-               interface->nicDriver->eventHandler(interface);
-               //Re-enable hardware interrupts
-               interface->nicDriver->enableIrq(interface);
+               //Valid NIC driver?
+               if(interface->nicDriver != NULL)
+               {
+                  //Disable hardware interrupts
+                  interface->nicDriver->disableIrq(interface);
+                  //Handle NIC events
+                  interface->nicDriver->eventHandler(interface);
+                  //Re-enable hardware interrupts
+                  interface->nicDriver->enableIrq(interface);
+               }
             }
 
             //Check whether a PHY event is pending
@@ -958,12 +1139,16 @@ void netTask(void)
                //Acknowledge the event by clearing the flag
                interface->phyEvent = FALSE;
 
-               //Disable hardware interrupts
-               interface->nicDriver->disableIrq(interface);
-               //Handle PHY events
-               interface->phyDriver->eventHandler(interface);
-               //Re-enable hardware interrupts
-               interface->nicDriver->enableIrq(interface);
+               //Valid NIC driver?
+               if(interface->nicDriver != NULL)
+               {
+                  //Disable hardware interrupts
+                  interface->nicDriver->disableIrq(interface);
+                  //Handle PHY events
+                  interface->phyDriver->eventHandler(interface);
+                  //Re-enable hardware interrupts
+                  interface->nicDriver->enableIrq(interface);
+               }
             }
          }
 

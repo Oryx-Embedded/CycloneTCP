@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _MCF5225X_ETH_DRIVER_H
@@ -147,7 +147,7 @@ error_t mcf5225xEthSendPacket(NetInterface *interface,
 
 error_t mcf5225xEthReceivePacket(NetInterface *interface);
 
-error_t mcf5225xEthSetMulticastFilter(NetInterface *interface);
+error_t mcf5225xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t mcf5225xEthUpdateMacConfig(NetInterface *interface);
 
 void mcf5225xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

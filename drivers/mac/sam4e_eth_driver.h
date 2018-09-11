@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _SAM4E_ETH_DRIVER_H
@@ -172,7 +172,7 @@ error_t sam4eEthSendPacket(NetInterface *interface,
 
 error_t sam4eEthReceivePacket(NetInterface *interface);
 
-error_t sam4eEthSetMulticastFilter(NetInterface *interface);
+error_t sam4eEthUpdateMacAddrFilter(NetInterface *interface);
 error_t sam4eEthUpdateMacConfig(NetInterface *interface);
 
 void sam4eEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);

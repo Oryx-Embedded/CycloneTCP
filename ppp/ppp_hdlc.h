@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _PPP_HDLC_H
@@ -54,7 +54,7 @@ error_t pppHdlcDriverSendPacket(NetInterface *interface,
 
 error_t pppHdlcDriverReceivePacket(NetInterface *interface);
 
-error_t pppHdlcDriverSetMulticastFilter(NetInterface *interface);
+error_t pppHdlcDriverUpdateMacAddrFilter(NetInterface *interface);
 
 error_t pppHdlcDriverSendAtCommand(NetInterface *interface, const char_t *data);
 error_t pppHdlcDriverReceiveAtCommand(NetInterface *interface, char_t *data, size_t size);

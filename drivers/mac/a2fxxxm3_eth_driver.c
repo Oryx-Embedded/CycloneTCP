@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -94,7 +94,7 @@ const NicDriver a2fxxxm3EthDriver =
    a2fxxxm3EthDisableIrq,
    a2fxxxm3EthEventHandler,
    a2fxxxm3EthSendPacket,
-   a2fxxxm3EthSetMulticastFilter,
+   a2fxxxm3EthUpdateMacAddrFilter,
    a2fxxxm3EthUpdateMacConfig,
    a2fxxxm3EthWritePhyReg,
    a2fxxxm3EthReadPhyReg,
@@ -506,12 +506,12 @@ error_t a2fxxxm3EthReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t a2fxxxm3EthSetMulticastFilter(NetInterface *interface)
+error_t a2fxxxm3EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    bool_t acceptMulticast;
@@ -519,12 +519,12 @@ error_t a2fxxxm3EthSetMulticastFilter(NetInterface *interface)
    //This flag will be set if multicast addresses should be accepted
    acceptMulticast = FALSE;
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Valid entry?
-      if(interface->macMulticastFilter[i].refCount > 0)
+      if(interface->macAddrFilter[i].refCount > 0)
       {
          //Accept multicast addresses
          acceptMulticast = TRUE;

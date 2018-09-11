@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -49,7 +49,7 @@ const NicDriver ksz8851Driver =
    ksz8851DisableIrq,
    ksz8851EventHandler,
    ksz8851SendPacket,
-   ksz8851SetMulticastFilter,
+   ksz8851UpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -475,12 +475,12 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
 
 
 /**
- * @brief Configure multicast MAC address filtering
+ * @brief Configure MAC address filtering
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t ksz8851SetMulticastFilter(NetInterface *interface)
+error_t ksz8851UpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t k;
@@ -494,12 +494,12 @@ error_t ksz8851SetMulticastFilter(NetInterface *interface)
    //Clear hash table
    memset(hashTable, 0, sizeof(hashTable));
 
-   //The MAC filter table contains the multicast MAC addresses
-   //to accept when receiving an Ethernet frame
-   for(i = 0; i < MAC_MULTICAST_FILTER_SIZE; i++)
+   //The MAC address filter contains the list of MAC addresses to accept
+   //when receiving an Ethernet frame
+   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
-      entry = &interface->macMulticastFilter[i];
+      entry = &interface->macAddrFilter[i];
 
       //Valid entry?
       if(entry->refCount > 0)

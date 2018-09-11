@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Dependencies
@@ -207,6 +207,8 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    uint_t index;
    Mib2IfEntry *entry;
    NetInterface *interface;
+   NetInterface *logicalInterface;
+   NetInterface *physicalInterface;
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -229,6 +231,11 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    interface = &netInterface[index - 1];
    //Point to the interface table entry
    entry = &mib2Base.ifGroup.ifTable[index - 1];
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //ifIndex object?
    if(!strcmp(object->name, "ifIndex"))
@@ -259,42 +266,53 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    //ifType object?
    else if(!strcmp(object->name, "ifType"))
    {
-      //Sanity check
-      if(interface->nicDriver != NULL)
+#if (ETH_VLAN_SUPPORT == ENABLED)
+      //VLAN interface?
+      if(interface->vlanId != 0)
       {
-         //Get interface type
-         switch(interface->nicDriver->type)
-         {
-         //Ethernet interface
-         case NIC_TYPE_ETHERNET:
-            value->integer = MIB2_IF_TYPE_ETHERNET_CSMACD;
-            break;
-         //PPP interface
-         case NIC_TYPE_PPP:
-            value->integer = MIB2_IF_TYPE_PPP;
-            break;
-         //IEEE 802.15.4 WPAN interface
-         case NIC_TYPE_6LOWPAN:
-            value->integer = MIB2_IF_TYPE_IEEE_802_15_4;
-            break;
-         //Unknown interface type
-         default:
-            value->integer = MIB2_IF_TYPE_OTHER;
-            break;
-         }
+         //Layer 2 virtual LAN using 802.1Q
+         value->integer = MIB2_IF_TYPE_L2_VLAN;
       }
       else
+#endif
       {
-         //Unknown interface type
-         value->integer = MIB2_IF_TYPE_OTHER;
+         //Sanity check
+         if(physicalInterface->nicDriver != NULL)
+         {
+            //Get interface type
+            switch(physicalInterface->nicDriver->type)
+            {
+            //Ethernet interface
+            case NIC_TYPE_ETHERNET:
+               value->integer = MIB2_IF_TYPE_ETHERNET_CSMACD;
+               break;
+            //PPP interface
+            case NIC_TYPE_PPP:
+               value->integer = MIB2_IF_TYPE_PPP;
+               break;
+            //IEEE 802.15.4 WPAN interface
+            case NIC_TYPE_6LOWPAN:
+               value->integer = MIB2_IF_TYPE_IEEE_802_15_4;
+               break;
+            //Unknown interface type
+            default:
+               value->integer = MIB2_IF_TYPE_OTHER;
+               break;
+            }
+         }
+         else
+         {
+            //Unknown interface type
+            value->integer = MIB2_IF_TYPE_OTHER;
+         }
       }
    }
    //ifMtu object?
    else if(!strcmp(object->name, "ifMtu"))
    {
       //Get interface MTU
-      if(interface->nicDriver != NULL)
-         value->integer = interface->nicDriver->mtu;
+      if(physicalInterface->nicDriver != NULL)
+         value->integer = physicalInterface->nicDriver->mtu;
       else
          value->integer = 0;
    }
@@ -311,7 +329,7 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
       if(*valueLen >= MIB2_PHYS_ADDRESS_SIZE)
       {
          //Copy object value
-         macCopyAddr(value->octetString, &interface->macAddr);
+         macCopyAddr(value->octetString, &logicalInterface->macAddr);
          //Return object length
          *valueLen = MIB2_PHYS_ADDRESS_SIZE;
       }
@@ -325,7 +343,7 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    else if(!strcmp(object->name, "ifAdminStatus"))
    {
       //Check whether the interface is enabled for operation
-      if(interface->nicDriver != NULL)
+      if(physicalInterface->nicDriver != NULL)
          value->integer = MIB2_IF_ADMIN_STATUS_UP;
       else
          value->integer = MIB2_IF_ADMIN_STATUS_DOWN;

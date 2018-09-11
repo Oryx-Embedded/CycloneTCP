@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 #ifndef _TM4C129_ETH_DRIVER_H
@@ -229,7 +229,7 @@ error_t tm4c129EthSendPacket(NetInterface *interface,
 
 error_t tm4c129EthReceivePacket(NetInterface *interface);
 
-error_t tm4c129EthSetMulticastFilter(NetInterface *interface);
+error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface);
 
 void tm4c129EthWritePhyReg(uint8_t regAddr, uint16_t data);
 uint16_t tm4c129EthReadPhyReg(uint8_t regAddr);

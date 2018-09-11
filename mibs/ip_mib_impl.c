@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.2
+ * @version 1.8.6
  **/
 
 //Switch to the appropriate trace level
@@ -299,8 +299,13 @@ error_t ipMibGetIpv6InterfaceEntry(const MibObject *object, const uint8_t *oid,
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= sizeof(Eui64))
       {
+         NetInterface *logicalInterface;
+
+         //Point to the logical interface
+         logicalInterface = nicGetLogicalInterface(interface);
+
          //Copy object value
-         eui64CopyAddr(value->octetString, &interface->eui64);
+         eui64CopyAddr(value->octetString, &logicalInterface->eui64);
          //Return object length
          *valueLen = sizeof(Eui64);
       }
@@ -1432,36 +1437,9 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
 error_t ipMibSetIpAddressSpinLock(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
-   error_t error;
-
-   //The new value supplied via the management protocol must precisely match
-   //the value presently held by the instance
-   if(value->integer == ipMibBase.ipAddressSpinLock)
-   {
-      //Check whether the changes shall be committed to the MIB base
-      if(commit)
-      {
-         //The value held by the instance is incremented by one
-         ipMibBase.ipAddressSpinLock++;
-
-         //if the current value is the maximum value of 2^31-1, then the value
-         //held by the instance is wrapped to zero
-         if(ipMibBase.ipAddressSpinLock < 0)
-            ipMibBase.ipAddressSpinLock = 0;
-      }
-
-      //Successful operation
-      error = NO_ERROR;
-   }
-   else
-   {
-      //The management protocol set operation fails with an error of
-      //inconsistentValue
-      error = ERROR_INCONSISTENT_VALUE;
-   }
-
-   //Return status code
-   return error;
+   //Test and increment spin lock
+   return mibTestAndIncSpinLock(&ipMibBase.ipAddressSpinLock,
+      value->integer, commit);
 }
 
 
@@ -2903,41 +2881,14 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
 error_t ipMibSetIpv6RouterAdvertSpinLock(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
-   error_t error;
-
 #if (IPV6_SUPPORT == ENABLED)
-   //The new value supplied via the management protocol must precisely match
-   //the value presently held by the instance
-   if(value->integer == ipMibBase.ipv6RouterAdvertSpinLock)
-   {
-      //Check whether the changes shall be committed to the MIB base
-      if(commit)
-      {
-         //The value held by the instance is incremented by one
-         ipMibBase.ipv6RouterAdvertSpinLock++;
-
-         //if the current value is the maximum value of 2^31-1, then the value
-         //held by the instance is wrapped to zero
-         if(ipMibBase.ipv6RouterAdvertSpinLock < 0)
-            ipMibBase.ipv6RouterAdvertSpinLock = 0;
-      }
-
-      //Successful operation
-      error = NO_ERROR;
-   }
-   else
-   {
-      //The management protocol set operation fails with an error of
-      //inconsistentValue
-      error = ERROR_INCONSISTENT_VALUE;
-   }
+   //Test and increment spin lock
+   return mibTestAndIncSpinLock(&ipMibBase.ipv6RouterAdvertSpinLock,
+      value->integer, commit);
 #else
    //Not implemented
-   error = ERROR_WRITE_FAILED;
+   return ERROR_WRITE_FAILED;
 #endif
-
-   //Return status code
-   return error;
 }
 
 
