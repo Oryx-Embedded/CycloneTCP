@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _FTP_CLIENT_H
@@ -31,7 +31,7 @@
 
 //Dependencies
 #include "core/net.h"
-#include "core/socket.h"
+#include "date_time.h"
 
 //FTP client support
 #ifndef FTP_CLIENT_SUPPORT
@@ -40,7 +40,7 @@
    #error FTP_CLIENT_SUPPORT parameter is not valid
 #endif
 
-//FTP over SSL/TLS
+//FTP over TLS
 #ifndef FTP_CLIENT_TLS_SUPPORT
    #define FTP_CLIENT_TLS_SUPPORT DISABLED
 #elif (FTP_CLIENT_TLS_SUPPORT != ENABLED && FTP_CLIENT_TLS_SUPPORT != DISABLED)
@@ -61,35 +61,49 @@
    #error FTP_CLIENT_BUFFER_SIZE parameter is not valid
 #endif
 
-//Minimum TX buffer size for FTP sockets
-#ifndef FTP_CLIENT_SOCKET_MIN_TX_BUFFER_SIZE
-   #define FTP_CLIENT_SOCKET_MIN_TX_BUFFER_SIZE 1430
-#elif (FTP_CLIENT_SOCKET_MIN_TX_BUFFER_SIZE < 1)
-   #error FTP_CLIENT_SOCKET_MIN_TX_BUFFER_SIZE parameter is not valid
+//Minimum buffer size for TCP sockets
+#ifndef FTP_CLIENT_MIN_TCP_BUFFER_SIZE
+   #define FTP_CLIENT_MIN_TCP_BUFFER_SIZE 1430
+#elif (FTP_CLIENT_MIN_TCP_BUFFER_SIZE < 512)
+   #error FTP_CLIENT_MIN_TCP_BUFFER_SIZE parameter is not valid
 #endif
 
-//Minimum RX buffer size for FTP sockets
-#ifndef FTP_CLIENT_SOCKET_MIN_RX_BUFFER_SIZE
-   #define FTP_CLIENT_SOCKET_MIN_RX_BUFFER_SIZE 1430
-#elif (FTP_CLIENT_SOCKET_MIN_RX_BUFFER_SIZE < 1)
-   #error FTP_CLIENT_SOCKET_MIN_RX_BUFFER_SIZE parameter is not valid
+//Maximum buffer size for TCP sockets
+#ifndef FTP_CLIENT_MAX_TCP_BUFFER_SIZE
+   #define FTP_CLIENT_MAX_TCP_BUFFER_SIZE 2860
+#elif (FTP_CLIENT_MAX_TCP_BUFFER_SIZE < 512)
+   #error FTP_CLIENT_MAX_TCP_BUFFER_SIZE parameter is not valid
 #endif
 
-//Maximum TX buffer size for FTP sockets
-#ifndef FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE
-   #define FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE 2860
-#elif (FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE < 1)
-   #error FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE parameter is not valid
+//TX buffer size for TLS connections
+#ifndef FTP_CLIENT_TLS_TX_BUFFER_SIZE
+   #define FTP_CLIENT_TLS_TX_BUFFER_SIZE 2048
+#elif (FTP_CLIENT_TLS_TX_BUFFER_SIZE < 512)
+   #error FTP_CLIENT_TLS_TX_BUFFER_SIZE parameter is not valid
 #endif
 
-//Maximum RX buffer size for FTP sockets
-#ifndef FTP_CLIENT_SOCKET_MAX_RX_BUFFER_SIZE
-   #define FTP_CLIENT_SOCKET_MAX_RX_BUFFER_SIZE 2860
-#elif (FTP_CLIENT_SOCKET_MAX_RX_BUFFER_SIZE < 1)
-   #error FTP_CLIENT_SOCKET_MAX_RX_BUFFER_SIZE parameter is not valid
+//Minimum RX buffer size for TLS connections
+#ifndef FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE
+   #define FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE 4096
+#elif (FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE < 512)
+   #error FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE parameter is not valid
 #endif
 
-//SSL/TLS supported?
+//Maximum RX buffer size for TLS connections
+#ifndef FTP_CLIENT_MAX_TLS_RX_BUFFER_SIZE
+   #define FTP_CLIENT_MAX_TLS_RX_BUFFER_SIZE 16384
+#elif (FTP_CLIENT_MAX_TLS_RX_BUFFER_SIZE < 512)
+   #error FTP_CLIENT_MAX_TLS_RX_BUFFER_SIZE parameter is not valid
+#endif
+
+//Maximum length of file names
+#ifndef FTP_CLIENT_MAX_FILENAME_LEN
+   #define FTP_CLIENT_MAX_FILENAME_LEN 64
+#elif (FTP_CLIENT_MAX_FILENAME_LEN < 16)
+   #error FTP_CLIENT_MAX_FILENAME_LEN parameter is not valid
+#endif
+
+//TLS supported?
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
    #include "tls.h"
@@ -113,31 +127,31 @@ struct _FtpClientContext;
 
 
 /**
- * @brief Connection options
+ * @brief FTP connection modes
  **/
 
 typedef enum
 {
-   FTP_NO_SECURITY       = 0,
-   FTP_IMPLICIT_SECURITY = 1,
-   FTP_EXPLICIT_SECURITY = 2,
-   FTP_ACTIVE_MODE       = 0,
-   FTP_PASSIVE_MODE      = 4
-} FtpConnectionFlags;
+   FTP_MODE_PLAINTEXT    = 0,
+   FTP_MODE_IMPLICIT_TLS = 1,
+   FTP_MODE_EXPLICIT_TLS = 2,
+   FTP_MODE_ACTIVE       = 0,
+   FTP_MODE_PASSIVE      = 4
+} FtpConnectionModes;
 
 
 /**
- * @brief File opening options
+ * @brief File access modes
  **/
 
 typedef enum
 {
-   FTP_FOR_READING   = 0,
-   FTP_FOR_WRITING   = 1,
-   FTP_FOR_APPENDING = 2,
-   FTP_BINARY_TYPE   = 0,
-   FTP_TEXT_TYPE     = 4
-} FtpFileOpeningFlags;
+   FTP_FILE_MODE_READ   = 0,
+   FTP_FILE_MODE_WRITE  = 1,
+   FTP_FILE_MODE_APPEND = 2,
+   FTP_FILE_MODE_BINARY = 0,
+   FTP_FILE_MODE_TEXT   = 4
+} FtpFileModes;
 
 
 /**
@@ -151,14 +165,52 @@ typedef enum
    FTP_FLAG_BREAK_CHAR = 0x1000,
    FTP_FLAG_BREAK_CRLF = 0x100A,
    FTP_FLAG_WAIT_ACK   = 0x2000
-} FtpFlags;
+} FtpFileFlags;
 
 
-//SSL/TLS supported?
+/**
+ * @brief File attributes
+ **/
+
+typedef enum
+{
+   FTP_FILE_ATTR_DIRECTORY = 1,
+   FTP_FILE_ATTR_READ_ONLY = 2
+} FtpFileAttributes;
+
+
+/**
+ * @brief FTP client states
+ */
+
+typedef enum
+{
+   FTP_CLIENT_STATE_DISCONNECTED    = 0,
+   FTP_CLIENT_STATE_ACCEPTING_TCP   = 1,
+   FTP_CLIENT_STATE_CONNECTING_TCP  = 2,
+   FTP_CLIENT_STATE_CONNECTING_TLS  = 3,
+   FTP_CLIENT_STATE_CONNECTED       = 4,
+   FTP_CLIENT_STATE_SUB_COMMAND_1   = 5,
+   FTP_CLIENT_STATE_SUB_COMMAND_2   = 6,
+   FTP_CLIENT_STATE_SUB_COMMAND_3   = 7,
+   FTP_CLIENT_STATE_SUB_COMMAND_4   = 8,
+   FTP_CLIENT_STATE_SUB_COMMAND_5   = 9,
+   FTP_CLIENT_STATE_SUB_COMMAND_6   = 10,
+   FTP_CLIENT_STATE_SUB_COMMAND_7   = 11,
+   FTP_CLIENT_STATE_SUB_COMMAND_8   = 12,
+   FTP_CLIENT_STATE_SUB_COMMAND_9   = 13,
+   FTP_CLIENT_STATE_WRITING_DATA    = 14,
+   FTP_CLIENT_STATE_READING_DATA    = 15,
+   FTP_CLIENT_STATE_DISCONNECTING_1 = 16,
+   FTP_CLIENT_STATE_DISCONNECTING_2 = 17
+} FtpClientState;
+
+
+//TLS supported?
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
 
 /**
- * @brief SSL initialization callback function
+ * @brief TLS initialization callback function
  **/
 
 typedef error_t (*FtpClientTlsInitCallback)(FtpClientContext *context,
@@ -168,71 +220,123 @@ typedef error_t (*FtpClientTlsInitCallback)(FtpClientContext *context,
 
 
 /**
+ * @brief Control or data connection
+ **/
+
+typedef struct
+{
+   Socket *socket;         ///<Underlying TCP socket
+#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
+   TlsContext *tlsContext; ///<TLS context
+#endif
+} FtpClientSocket;
+
+
+/**
  * @brief FTP client context
  **/
 
 struct _FtpClientContext
 {
+   FtpClientState state;                     ///<FTP client state
    NetInterface *interface;                  ///<Underlying network interface
+   systime_t timeout;                        ///<Timeout value
+   systime_t timestamp;                      ///<Timestamp to manage timeout
    IpAddr serverIpAddr;                      ///<IP address of the FTP server
+   uint16_t serverPort;                      ///<TCP port number
    bool_t passiveMode;                       ///<Passive mode
-   Socket *controlSocket;                    ///<Control connection socket
-   Socket *dataSocket;                       ///<Data connection socket
-   char_t buffer[FTP_CLIENT_BUFFER_SIZE];    ///<Memory buffer for input/output operations
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   TlsContext *controlTlsContext;            ///<SSL context (control connection)
-   TlsContext *dataTlsContext;               ///<SSL context (data connection)
-   TlsSession tlsSession;                    ///<SSL session
-   FtpClientTlsInitCallback tlsInitCallback; ///<SSL initialization callback function
+   TlsSessionState tlsSession;               ///<TLS session state
+   FtpClientTlsInitCallback tlsInitCallback; ///<TLS initialization callback function
 #endif
+   FtpClientSocket controlConnection;        ///<Control connection
+   FtpClientSocket dataConnection;           ///<Data connection
+   char_t buffer[FTP_CLIENT_BUFFER_SIZE];    ///<Memory buffer for input/output operations
+   size_t bufferPos;                         ///<Current position in the buffer
+   size_t commandLen;                        ///<Length of the FTP command, in bytes
+   size_t replyLen;                          ///<Length of the FTP reply, in bytes
+   uint_t replyCode;                         ///<FTP reply code
 };
 
 
+/**
+ * @brief Directory entry
+ **/
+
+typedef struct
+{
+   char_t name[FTP_CLIENT_MAX_FILENAME_LEN + 1];
+   uint32_t attributes;
+   uint32_t size;
+   DateTime modified;
+} FtpDirEntry;
+
+
 //FTP client related functions
-error_t ftpConnect(FtpClientContext *context, NetInterface *interface,
-   const IpAddr *serverIpAddr, uint16_t serverPort, uint_t flags);
-
-error_t ftpAuth(FtpClientContext *context);
-
-error_t ftpLogin(FtpClientContext *context, const char_t *username,
-   const char_t *password, const char_t *account);
-
-error_t ftpGetWorkingDir(FtpClientContext *context, char_t *path, size_t size);
-error_t ftpChangeWorkingDir(FtpClientContext *context, const char_t *path);
-error_t ftpChangeToParentDir(FtpClientContext *context);
-
-error_t ftpMakeDir(FtpClientContext *context, const char_t *path);
-error_t ftpRemoveDir(FtpClientContext *context, const char_t *path);
-
-error_t ftpOpenFile(FtpClientContext *context, const char_t *path, uint_t flags);
-
-error_t ftpWriteFile(FtpClientContext *context,
-   const void *data, size_t length, uint_t flags);
-
-error_t ftpReadFile(FtpClientContext *context,
-   void *data, size_t size, size_t *length, uint_t flags);
-
-error_t ftpCloseFile(FtpClientContext *context);
-
-error_t ftpRenameFile(FtpClientContext *context,
-   const char_t *oldName, const char_t *newName);
-
-error_t ftpDeleteFile(FtpClientContext *context, const char_t *path);
-
-error_t ftpClose(FtpClientContext *context);
-
-error_t ftpSendCommand(FtpClientContext *context,
-   const char_t *command, uint_t *replyCode);
+error_t ftpClientInit(FtpClientContext *context);
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
 
-error_t ftpRegisterTlsInitCallback(FtpClientContext *context,
+error_t ftpClientRegisterTlsInitCallback(FtpClientContext *context,
    FtpClientTlsInitCallback callback);
 
-error_t ftpInitControlTlsContext(FtpClientContext *context);
-error_t ftpInitDataTlsContext(FtpClientContext *context);
-
 #endif
+
+error_t ftpClientSetTimeout(FtpClientContext *context, systime_t timeout);
+
+error_t ftpClientBindToInterface(FtpClientContext *context,
+   NetInterface *interface);
+
+error_t ftpClientConnect(FtpClientContext *context, 
+   const IpAddr *serverIpAddr, uint16_t serverPort, uint_t mode);
+
+error_t ftpClientLogin(FtpClientContext *context, const char_t *username,
+   const char_t *password);
+
+error_t ftpClientLoginEx(FtpClientContext *context, const char_t *username,
+   const char_t *password, const char_t *account);
+
+error_t ftpClientGetWorkingDir(FtpClientContext *context, char_t *path,
+   size_t maxLen);
+
+error_t ftpClientChangeWorkingDir(FtpClientContext *context,
+   const char_t *path);
+
+error_t ftpClientChangeToParentDir(FtpClientContext *context);
+
+error_t ftpClientOpenDir(FtpClientContext *context, const char_t *path);
+error_t ftpClientReadDir(FtpClientContext *context, FtpDirEntry *dirEntry);
+error_t ftpClientCloseDir(FtpClientContext *context);
+
+error_t ftpClientMakeDir(FtpClientContext *context, const char_t *path);
+error_t ftpClientRemoveDir(FtpClientContext *context, const char_t *path);
+
+error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
+   uint_t mode);
+
+error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
+   size_t length, size_t *written, uint_t flags);
+
+error_t ftpClientReadFile(FtpClientContext *context, void *data, size_t size,
+   size_t *length, uint_t flags);
+
+error_t ftpClientCloseFile(FtpClientContext *context);
+
+error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldName,
+   const char_t *newName);
+
+error_t ftpClientDeleteFile(FtpClientContext *context, const char_t *path);
+
+uint_t ftpClientGetReplyCode(FtpClientContext *context);
+
+error_t ftpClientDisconnect(FtpClientContext *context);
+error_t ftpClientClose(FtpClientContext *context);
+
+void ftpClientDeinit(FtpClientContext *context);
+
+//Deprecated function
+error_t ftpConnect(FtpClientContext *context, NetInterface *interface,
+   const IpAddr *serverIpAddr, uint16_t serverPort, uint_t flags);
 
 //C++ guard
 #ifdef __cplusplus

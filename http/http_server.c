@@ -33,7 +33,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -76,7 +76,7 @@ void httpServerGetDefaultSettings(HttpServerSettings *settings)
    strcpy(settings->defaultDocument, "index.htm");
 
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-   //SSL/TLS initialization callback function
+   //TLS initialization callback function
    settings->tlsInitCallback = NULL;
 #endif
 
@@ -145,6 +145,14 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
       if(!osCreateEvent(&connection->startEvent))
          return ERROR_OUT_OF_RESOURCES;
    }
+
+ #if (HTTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+   //Initialize ticket encryption context
+   error = tlsInitTicketContext(&context->tlsTicketContext);
+   //Any errior to report?
+   if(error)
+      return error;
+#endif
 
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    //Create a mutex to prevent simultaneous access to the nonce cache
@@ -324,16 +332,16 @@ void httpConnectionTask(void *param)
       error = NO_ERROR;
 
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-      //Use SSL/TLS to secure the connection?
+      //Use TLS to secure the connection?
       if(connection->settings->useTls)
       {
          //Debug message
-         TRACE_INFO("Initializing SSL/TLS session...\r\n");
+         TRACE_INFO("Initializing TLS session...\r\n");
 
          //Start of exception handling block
          do
          {
-            //Allocate SSL/TLS context
+            //Allocate TLS context
             connection->tlsContext = tlsInit();
             //Initialization failed?
             if(connection->tlsContext == NULL)
@@ -345,7 +353,8 @@ void httpConnectionTask(void *param)
             }
 
             //Select server operation mode
-            error = tlsSetConnectionEnd(connection->tlsContext, TLS_CONNECTION_END_SERVER);
+            error = tlsSetConnectionEnd(connection->tlsContext,
+               TLS_CONNECTION_END_SERVER);
             //Any error to report?
             if(error)
                break;
@@ -356,11 +365,20 @@ void httpConnectionTask(void *param)
             if(error)
                break;
 
+#if (TLS_TICKET_SUPPORT == ENABLED)
+            //Enable session ticket mechanism
+            error = tlsSetTicketCallbacks(connection->tlsContext, tlsEncryptTicket,
+               tlsDecryptTicket, &connection->serverContext->tlsTicketContext);
+            //Any error to report?
+            if(error)
+               break;
+#endif
             //Invoke user-defined callback, if any
             if(connection->settings->tlsInitCallback != NULL)
             {
-               //Perform SSL/TLS related initialization
-               error = connection->settings->tlsInitCallback(connection, connection->tlsContext);
+               //Perform TLS related initialization
+               error = connection->settings->tlsInitCallback(connection,
+                  connection->tlsContext);
                //Any error to report?
                if(error)
                   break;
@@ -377,7 +395,7 @@ void httpConnectionTask(void *param)
       }
       else
       {
-         //Do not use SSL/TLS
+         //Do not use TLS
          connection->tlsContext = NULL;
       }
 #endif
@@ -555,13 +573,13 @@ void httpConnectionTask(void *param)
       }
 
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-      //Valid SSL/TLS context?
+      //Valid TLS context?
       if(connection->tlsContext != NULL)
       {
          //Debug message
-         TRACE_INFO("Closing SSL/TLS session...\r\n");
+         TRACE_INFO("Closing TLS session...\r\n");
 
-         //Gracefully close SSL/TLS session
+         //Gracefully close TLS session
          tlsShutdown(connection->tlsContext);
          //Release context
          tlsFree(connection->tlsContext);
@@ -832,19 +850,62 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
 {
 #if (HTTP_SERVER_FS_SUPPORT == ENABLED)
    error_t error;
-   uint32_t length;
    size_t n;
+   uint32_t length;
    FsFile *file;
 
    //Retrieve the full pathname
-   httpGetAbsolutePath(connection, uri,
-      connection->buffer, HTTP_SERVER_BUFFER_SIZE);
+   httpGetAbsolutePath(connection, uri, connection->buffer,
+      HTTP_SERVER_BUFFER_SIZE);
 
-   //Retrieve the size of the specified file
-   error = fsGetFileSize(connection->buffer, &length);
-   //The specified URI cannot be found?
-   if(error)
-      return ERROR_NOT_FOUND;
+#if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
+   //Check whether gzip compression is supported by the client
+   if(connection->request.acceptGzipEncoding)
+   {
+      //Calculate the length of the pathname
+      n = strlen(connection->buffer);
+
+      //Sanity check
+      if(n < (HTTP_SERVER_BUFFER_SIZE - 4))
+      {
+         //Append gzip extension
+         strcpy(connection->buffer + n, ".gz");
+         //Retrieve the size of the compressed resource, if any
+         error = fsGetFileSize(connection->buffer, &length);
+      }
+      else
+      {
+         //Report an error
+         error = ERROR_NOT_FOUND;
+      }
+
+      //Check whether the gzip-compressed file exists
+      if(!error)
+      {
+         //Use gzip format
+         connection->response.gzipEncoding = TRUE;
+      }
+      else
+      {
+         //Strip the gzip extension
+         connection->buffer[n] = '\0';
+
+         //Retrieve the size of the non-compressed resource
+         error = fsGetFileSize(connection->buffer, &length);
+         //The specified URI cannot be found?
+         if(error)
+            return ERROR_NOT_FOUND;
+      }
+   }
+   else
+#endif
+   {
+      //Retrieve the size of the specified file
+      error = fsGetFileSize(connection->buffer, &length);
+      //The specified URI cannot be found?
+      if(error)
+         return ERROR_NOT_FOUND;
+   }
 
    //Open the file for reading
    file = fsOpenFile(connection->buffer, FS_FILE_MODE_READ);
@@ -857,14 +918,59 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
    uint8_t *data;
 
    //Retrieve the full pathname
-   httpGetAbsolutePath(connection, uri,
-      connection->buffer, HTTP_SERVER_BUFFER_SIZE);
+   httpGetAbsolutePath(connection, uri, connection->buffer,
+      HTTP_SERVER_BUFFER_SIZE);
 
-   //Get the resource data associated with the URI
-   error = resGetData(connection->buffer, &data, &length);
-   //The specified URI cannot be found?
-   if(error)
-      return error;
+#if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
+   //Check whether gzip compression is supported by the client
+   if(connection->request.acceptGzipEncoding)
+   {
+      size_t n;
+
+      //Calculate the length of the pathname
+      n = strlen(connection->buffer);
+
+      //Sanity check
+      if(n < (HTTP_SERVER_BUFFER_SIZE - 4))
+      {
+         //Append gzip extension
+         strcpy(connection->buffer + n, ".gz");
+         //Get the compressed resource data associated with the URI, if any
+         error = resGetData(connection->buffer, &data, &length);
+      }
+      else
+      {
+         //Report an error
+         error = ERROR_NOT_FOUND;
+      }
+
+      //Check whether the gzip-compressed resource exists
+      if(!error)
+      {
+         //Use gzip format
+         connection->response.gzipEncoding = TRUE;
+      }
+      else
+      {
+         //Strip the gzip extension
+         connection->buffer[n] = '\0';
+
+         //Get the non-compressed resource data associated with the URI
+         error = resGetData(connection->buffer, &data, &length);
+         //The specified URI cannot be found?
+         if(error)
+            return error;
+      }
+   }
+   else
+#endif
+   {
+      //Get the resource data associated with the URI
+      error = resGetData(connection->buffer, &data, &length);
+      //The specified URI cannot be found?
+      if(error)
+         return error;
+   }
 #endif
 
    //Format HTTP response header
@@ -1137,7 +1243,7 @@ WebSocket *httpUpgradeToWebSocket(HttpConnection *connection)
       if(!error)
       {
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-         //Detach the SSL/TLS context from the HTTP connection
+         //Detach the TLS context from the HTTP connection
          connection->tlsContext = NULL;
 #endif
          //Detach the socket from the HTTP connection

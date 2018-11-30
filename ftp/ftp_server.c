@@ -32,7 +32,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -69,6 +69,8 @@ void ftpServerGetDefaultSettings(FtpServerSettings *settings)
    //Passive port range
    settings->passivePortMin = FTP_SERVER_PASSIVE_PORT_MIN;
    settings->passivePortMax = FTP_SERVER_PASSIVE_PORT_MAX;
+   //Public IPv4 address to be used in PASV replies
+   settings->publicIpv4Addr = IPV4_UNSPECIFIED_ADDR;
    //Set root directory
    strcpy(settings->rootDir, "/");
    //User verification callback function
@@ -141,14 +143,14 @@ error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settin
       if(error)
          break;
 
-      //Change the size of the TX buffer
+      //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(context->socket,
          FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
-      //Change the size of the RX buffer
+      //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(context->socket,
          FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE);
       //Any error to report?

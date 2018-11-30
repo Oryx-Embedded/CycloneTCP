@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -128,7 +128,7 @@
 #define F_GETFL          3
 #define F_SETFL          4
 
-//FCNTL  flags
+//FCNTL flags
 #define O_NONBLOCK       0x0004
 
 //Status codes

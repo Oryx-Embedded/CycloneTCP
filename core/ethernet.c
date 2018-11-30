@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -53,8 +53,6 @@
 const MacAddr MAC_UNSPECIFIED_ADDR = {{{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}};
 //Broadcast MAC address
 const MacAddr MAC_BROADCAST_ADDR = {{{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}}};
-//Unspecified EUI-64 address
-const Eui64 EUI64_UNSPECIFIED_ADDR = {{{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}};
 
 //Padding bytes
 const uint8_t ethPadding[64] =
@@ -1260,6 +1258,54 @@ char_t *macAddrToString(const MacAddr *macAddr, char_t *str)
 
 
 /**
+ * @brief Map a MAC address to the IPv6 modified EUI-64 identifier
+ * @param[in] macAddr Host MAC address
+ * @param[out] interfaceId IPv6 modified EUI-64 identifier
+ **/
+
+void macAddrToEui64(const MacAddr *macAddr, Eui64 *interfaceId)
+{
+   //Copy the Organization Unique Identifier (OUI)
+   interfaceId->b[0] = macAddr->b[0];
+   interfaceId->b[1] = macAddr->b[1];
+   interfaceId->b[2] = macAddr->b[2];
+
+   //The middle 16 bits are given the value 0xFFFE
+   interfaceId->b[3] = 0xFF;
+   interfaceId->b[4] = 0xFE;
+
+   //Copy the right-most 24 bits of the MAC address
+   interfaceId->b[5] = macAddr->b[3];
+   interfaceId->b[6] = macAddr->b[4];
+   interfaceId->b[7] = macAddr->b[5];
+
+   //Modified EUI-64 format interface identifiers are
+   //formed by inverting the Universal/Local bit
+   interfaceId->b[0] ^= MAC_ADDR_FLAG_LOCAL;
+}
+
+
+/**
+ * @brief Dump Ethernet header for debugging purpose
+ * @param[in] ethHeader Pointer to the Ethernet header
+ **/
+
+void ethDumpHeader(const EthHeader *ethHeader)
+{
+   //Dump Ethernet header contents
+   TRACE_DEBUG("  Dest Addr = %s\r\n", macAddrToString(&ethHeader->destAddr, NULL));
+   TRACE_DEBUG("  Src Addr = %s\r\n", macAddrToString(&ethHeader->srcAddr, NULL));
+   TRACE_DEBUG("  Type = 0x%04" PRIX16 "\r\n", ntohs(ethHeader->type));
+}
+
+#endif
+#if (ETH_SUPPORT == ENABLED || IPV6_SUPPORT == ENABLED)
+
+//Unspecified EUI-64 address
+const Eui64 EUI64_UNSPECIFIED_ADDR = {{{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}};
+
+
+/**
  * @brief Convert a string representation of an EUI-64 address to a binary EUI-64 address
  * @param[in] str NULL-terminated string representing the EUI-64 address
  * @param[out] eui64 Binary representation of the EUI-64 address
@@ -1374,48 +1420,6 @@ char_t *eui64AddrToString(const Eui64 *eui64, char_t *str)
 
    //Return a pointer to the formatted string
    return str;
-}
-
-
-/**
- * @brief Map a MAC address to the IPv6 modified EUI-64 identifier
- * @param[in] macAddr Host MAC address
- * @param[out] interfaceId IPv6 modified EUI-64 identifier
- **/
-
-void macAddrToEui64(const MacAddr *macAddr, Eui64 *interfaceId)
-{
-   //Copy the Organization Unique Identifier (OUI)
-   interfaceId->b[0] = macAddr->b[0];
-   interfaceId->b[1] = macAddr->b[1];
-   interfaceId->b[2] = macAddr->b[2];
-
-   //The middle 16 bits are given the value 0xFFFE
-   interfaceId->b[3] = 0xFF;
-   interfaceId->b[4] = 0xFE;
-
-   //Copy the right-most 24 bits of the MAC address
-   interfaceId->b[5] = macAddr->b[3];
-   interfaceId->b[6] = macAddr->b[4];
-   interfaceId->b[7] = macAddr->b[5];
-
-   //Modified EUI-64 format interface identifiers are
-   //formed by inverting the Universal/Local bit
-   interfaceId->b[0] ^= MAC_ADDR_FLAG_LOCAL;
-}
-
-
-/**
- * @brief Dump Ethernet header for debugging purpose
- * @param[in] ethHeader Pointer to the Ethernet header
- **/
-
-void ethDumpHeader(const EthHeader *ethHeader)
-{
-   //Dump Ethernet header contents
-   TRACE_DEBUG("  Dest Addr = %s\r\n", macAddrToString(&ethHeader->destAddr, NULL));
-   TRACE_DEBUG("  Src Addr = %s\r\n", macAddrToString(&ethHeader->srcAddr, NULL));
-   TRACE_DEBUG("  Type = 0x%04" PRIX16 "\r\n", ntohs(ethHeader->type));
 }
 
 #endif

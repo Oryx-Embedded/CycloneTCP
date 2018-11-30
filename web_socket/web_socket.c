@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -92,6 +92,7 @@ error_t webSocketRegisterRandCallback(WebSocketRandCallback callback)
 
 WebSocket *webSocketOpen(void)
 {
+   error_t error;
    uint_t i;
    WebSocket *webSocket;
 
@@ -112,13 +113,26 @@ WebSocket *webSocketOpen(void)
 
          //Clear associated structure
          memset(webSocket, 0, sizeof(WebSocket));
-         //Set the default timeout to be used
-         webSocket->timeout = INFINITE_DELAY;
-         //Enter the CLOSED state
-         webSocket->state = WS_STATE_CLOSED;
 
-         //We are done
-         break;
+#if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
+         //Initialize TLS session state
+         error = tlsInitSessionState(&webSocket->tlsSession);
+#else
+         //TLS is not implemented
+         error = NO_ERROR;
+#endif
+
+         //Check status code
+         if(!error)
+         {
+            //Set the default timeout to be used
+            webSocket->timeout = INFINITE_DELAY;
+            //Enter the CLOSED state
+            webSocket->state = WS_STATE_CLOSED;
+
+            //We are done
+            break;
+         }
       }
    }
 
@@ -171,7 +185,7 @@ WebSocket *webSocketUpgradeSocket(Socket *socket)
 /**
  * @brief Upgrade a secure socket to a secure WebSocket
  * @param[in] socket Handle referencing the socket
- * @param[in] tlsContext Pointer to the SSL/TLS context
+ * @param[in] tlsContext Pointer to the TLS context
  * @return Handle referencing the new WebSocket
  **/
 
@@ -179,7 +193,7 @@ WebSocket *webSocketUpgradeSecureSocket(Socket *socket, TlsContext *tlsContext)
 {
    WebSocket *webSocket;
 
-   //Valid SSL/TLS context?
+   //Valid TLS context?
    if(tlsContext != NULL)
    {
       //Create a new WebSocket
@@ -190,7 +204,7 @@ WebSocket *webSocketUpgradeSecureSocket(Socket *socket, TlsContext *tlsContext)
       {
          //Attach the socket handle
          webSocket->socket = socket;
-         //Attach the SSL/TLS context
+         //Attach the TLS context
          webSocket->tlsContext = tlsContext;
          //Initialize state
          webSocket->state = WS_STATE_INIT;
@@ -739,10 +753,10 @@ error_t webSocketParseClientHandshake(WebSocket *webSocket)
       else if(webSocket->state == WS_STATE_CONNECTING)
       {
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
-         //Use SSL/TLS to secure the connection?
+         //Use TLS to secure the connection?
          if(webSocket->tlsInitCallback != NULL)
          {
-            //Establish a SSL/TLS connection
+            //Establish a TLS connection
             error = tlsConnect(webSocket->tlsContext);
          }
 #endif
@@ -1543,6 +1557,12 @@ void webSocketClose(WebSocket *webSocket)
    {
       //Close connection
       webSocketCloseConnection(webSocket);
+
+#if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
+      //Release TLS session state
+      tlsFreeSessionState(&webSocket->tlsSession);
+#endif
+
       //Release the WebSocket
       webSocketChangeState(webSocket, WS_STATE_UNUSED);
    }

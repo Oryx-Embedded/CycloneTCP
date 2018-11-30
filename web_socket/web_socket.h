@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _WEB_SOCKET_H
@@ -47,7 +47,7 @@
    #error WEB_SOCKET_MAX_COUNT parameter is not valid
 #endif
 
-//Support for WebSocket connections over SSL/TLS
+//Support for WebSocket connections over TLS
 #ifndef WEB_SOCKET_TLS_SUPPORT
    #define WEB_SOCKET_TLS_SUPPORT DISABLED
 #elif (WEB_SOCKET_TLS_SUPPORT != ENABLED && WEB_SOCKET_TLS_SUPPORT != DISABLED)
@@ -331,11 +331,11 @@ typedef __start_packed struct
 typedef error_t (*WebSocketRandCallback)(uint8_t *data, size_t length);
 
 
-//WebSocket connections over SSL/TLS supported?
+//WebSocket connections over TLS supported?
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
 
 /**
- * @brief SSL/TLS initialization callback function
+ * @brief TLS initialization callback function
  **/
 
 typedef error_t (*WebSocketTlsInitCallback)(WebSocket *webSocket,
@@ -437,9 +437,9 @@ struct _WebSocket
    NetInterface *interface;                  ///<Underlying network interface
    Socket *socket;                           ///<Underlying TCP socket
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
-   TlsContext *tlsContext;                   ///<SSL/TLS context
-   TlsSession tlsSession;                    ///<SSL/TLS session
-   WebSocketTlsInitCallback tlsInitCallback; ///<SSL/TLS initialization callback function
+   TlsContext *tlsContext;                   ///<TLS context
+   TlsSessionState tlsSession;               ///<TLS session state
+   WebSocketTlsInitCallback tlsInitCallback; ///<TLS initialization callback function
 #endif
 #if (WEB_SOCKET_BASIC_AUTH_SUPPORT == ENABLED || WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
    WebSocketAuthContext authContext;

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _ETHERNET_H
@@ -245,13 +245,12 @@ NetBuffer *ethAllocBuffer(size_t length, size_t *offset);
 
 error_t macStringToAddr(const char_t *str, MacAddr *macAddr);
 char_t *macAddrToString(const MacAddr *macAddr, char_t *str);
-
-error_t eui64StringToAddr(const char_t *str, Eui64 *eui64);
-char_t *eui64AddrToString(const Eui64 *eui64, char_t *str);
-
 void macAddrToEui64(const MacAddr *macAddr, Eui64 *interfaceId);
 
 void ethDumpHeader(const EthHeader *ethHeader);
+
+error_t eui64StringToAddr(const char_t *str, Eui64 *eui64);
+char_t *eui64AddrToString(const Eui64 *eui64, char_t *str);
 
 //C++ guard
 #ifdef __cplusplus

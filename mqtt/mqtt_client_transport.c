@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -86,10 +86,10 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
          //Check status code
          if(!error)
          {
-            //Allocate SSL/TLS context
+            //Allocate TLS context
             context->tlsContext = tlsInit();
 
-            //Valid SSL/TLS handle?
+            //Valid TLS handle?
             if(context->tlsContext != NULL)
             {
                //Select client operation mode
@@ -106,13 +106,9 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
                //Check status code
                if(!error)
                {
-                  //Restore SSL/TLS session, if any
-                  if(context->tlsSession.idLength > 0)
-                  {
-                     //Restore SSL/TLS session
-                     error = tlsRestoreSession(context->tlsContext,
-                        &context->tlsSession);
-                  }
+                  //Restore TLS session, if any
+                  error = tlsRestoreSessionState(context->tlsContext,
+                     &context->tlsSession);
                }
 
                //Check status code
@@ -121,7 +117,7 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
                   //Invoke user-defined callback, if any
                   if(context->callbacks.tlsInitCallback != NULL)
                   {
-                     //Perform SSL/TLS related initialization
+                     //Perform TLS related initialization
                      error = context->callbacks.tlsInitCallback(context,
                         context->tlsContext);
                   }
@@ -177,7 +173,7 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
          //Check status code
          if(!error)
          {
-            //Register SSL/TLS initialization callback
+            //Register TLS initialization callback
             error = webSocketRegisterTlsInitCallback(context->webSocket,
                (WebSocketTlsInitCallback) context->callbacks.tlsInitCallback);
          }
@@ -245,19 +241,15 @@ error_t mqttClientEstablishConnection(MqttClientContext *context,
       //Check status code
       if(!error)
       {
-         //Perform SSL/TLS handshake
+         //Perform TLS handshake
          error = tlsConnect(context->tlsContext);
       }
 
       //Successful connection?
       if(!error)
       {
-         //Ensure the session ID is valid
-         if(context->tlsContext->sessionIdLen > 0)
-         {
-            //Save SSL/TLS session
-            error = tlsSaveSession(context->tlsContext, &context->tlsSession);
-         }
+         //Save TLS session
+         error = tlsSaveSessionState(context->tlsContext, &context->tlsSession);
       }
    }
 #endif
@@ -338,7 +330,7 @@ error_t mqttClientShutdownConnection(MqttClientContext *context)
       //Check status code
       if(!error)
       {
-         //Shutdown SSL/TLS session
+         //Shutdown TLS session
          error = tlsShutdown(context->tlsContext);
       }
 
@@ -399,7 +391,7 @@ void mqttClientCloseConnection(MqttClientContext *context)
    //TLS transport protocol?
    else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
    {
-      //Release SSL context
+      //Release TLS context
       if(context->tlsContext != NULL)
       {
          tlsFree(context->tlsContext);

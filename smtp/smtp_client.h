@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _SMTP_CLIENT_H
@@ -53,7 +53,7 @@
    #error SMTP_CLIENT_MAX_LINE_LENGTH parameter is not valid
 #endif
 
-//SMTP over SSL/TLS
+//SMTP over TLS
 #ifndef SMTP_CLIENT_TLS_SUPPORT
    #define SMTP_CLIENT_TLS_SUPPORT DISABLED
 #elif (SMTP_CLIENT_TLS_SUPPORT != ENABLED && SMTP_CLIENT_TLS_SUPPORT != DISABLED)
@@ -81,7 +81,7 @@
    #error SMTP_CLIENT_CRAM_MD5_AUTH_SUPPORT parameter is not valid
 #endif
 
-//SMTP over SSL/TLS supported?
+//SMTP over TLS supported?
 #if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
    #include "tls.h"
@@ -103,7 +103,7 @@
 
 //SMTP port number
 #define SMTP_PORT 25
-//SMTPS port number (SMTP over SSL/TLS)
+//SMTPS port number (SMTP over TLS)
 #define SMTPS_PORT 465
 //SMTP message submission port number
 #define SMTP_SUBMISSION_PORT 587

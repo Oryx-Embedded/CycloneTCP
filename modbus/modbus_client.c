@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -229,7 +229,7 @@ error_t modbusClientConnect(ModbusClientContext *context,
          }
          else
          {
-            //Just for sanity
+            //A communication error has occured
          }
       }
       else if(context->state == MODBUS_CLIENT_STATE_CONNECTED)

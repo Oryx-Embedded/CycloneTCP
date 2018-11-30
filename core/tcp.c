@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -730,7 +730,7 @@ error_t tcpShutdown(Socket *socket, uint_t how)
       //CLOSED or LISTEN state?
       case TCP_STATE_CLOSED:
       case TCP_STATE_LISTEN:
-         //Connection does not exist
+         //The connection does not exist
          return ERROR_NOT_CONNECTED;
 
       //SYN-RECEIVED or ESTABLISHED state?
@@ -766,7 +766,7 @@ error_t tcpShutdown(Socket *socket, uint_t how)
          if(event != SOCKET_EVENT_TX_SHUTDOWN)
             return ERROR_TIMEOUT;
 
-         //Continue processing...
+         //Continue processing
          break;
 
       //CLOSE-WAIT state?
@@ -801,7 +801,7 @@ error_t tcpShutdown(Socket *socket, uint_t how)
          if(event != SOCKET_EVENT_TX_SHUTDOWN)
             return ERROR_TIMEOUT;
 
-         //Continue processing...
+         //Continue processing
          break;
 
       //FIN-WAIT-1, CLOSING or LAST-ACK state?
@@ -814,12 +814,12 @@ error_t tcpShutdown(Socket *socket, uint_t how)
          if(event != SOCKET_EVENT_TX_SHUTDOWN)
             return ERROR_TIMEOUT;
 
-         //Continue processing...
+         //Continue processing
          break;
 
       //SYN-SENT, FIN-WAIT-2 or TIME-WAIT state?
       default:
-         //Continue processing...
+         //Continue processing
          break;
       }
    }
@@ -830,10 +830,9 @@ error_t tcpShutdown(Socket *socket, uint_t how)
       //Check current state
       switch(socket->state)
       {
-      //CLOSED or LISTEN state?
-      case TCP_STATE_CLOSED:
+      //LISTEN state?
       case TCP_STATE_LISTEN:
-         //Connection does not exist
+         //The connection does not exist
          return ERROR_NOT_CONNECTED;
 
       //SYN-SENT, SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1 or FIN-WAIT-2 state?
@@ -850,7 +849,7 @@ error_t tcpShutdown(Socket *socket, uint_t how)
          //A FIN segment has been received
          break;
 
-      //CLOSING, TIME-WAIT, CLOSE-WAIT or LAST-ACK state?
+      //CLOSING, TIME-WAIT, CLOSE-WAIT, LAST-ACK or CLOSED state?
       default:
          //A FIN segment has already been received
          break;

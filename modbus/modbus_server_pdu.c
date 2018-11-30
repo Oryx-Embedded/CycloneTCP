@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -49,84 +49,141 @@
 error_t modbusServerProcessRequest(ModbusClientConnection *connection)
 {
    error_t error;
-   size_t n;
-   void *pdu;
+   size_t requestLen;
+   size_t responseLen;
+   void *request;
+   void *response;
    ModbusFunctionCode functionCode;
    ModbusExceptionCode exceptionCode;
+   ModbusServerContext *context;
 
+   //Point to the Modbus server context
+   context = connection->context;
    //Point to the Modbus request PDU
-   pdu = modbusServerGetRequestPdu(connection, &n);
+   request = modbusServerGetRequestPdu(connection, &requestLen);
 
    //Malformed request?
-   if(n == 0)
+   if(requestLen == 0)
       return ERROR_INVALID_LENGTH;
 
    //Debug message
-   TRACE_INFO("Modbus Server: Request PDU received (%" PRIuSIZE " bytes)...\r\n", n);
+   TRACE_INFO("Modbus Server: Request PDU received (%" PRIuSIZE " bytes)...\r\n",
+      requestLen);
+
    //Dump the contents of the PDU for debugging purpose
-   modbusDumpRequestPdu(pdu, n);
+   modbusDumpRequestPdu(request, requestLen);
 
-   //Retrieve function code
-   functionCode = (ModbusFunctionCode) *((uint8_t *) pdu);
-
-   //Check function code
-   switch(functionCode)
+   //Any registered callback?
+   if(context->settings.processPduCallback != NULL)
    {
-   //Read Coils request?
-   case MODBUS_FUNCTION_READ_COILS:
-      //Process Modbus PDU
-      error = modbusServerProcessReadCoilsReq(connection, pdu, n);
-      break;
-   //Format Read Discrete Inputs request?
-   case MODBUS_FUNCTION_READ_DISCRETE_INPUTS:
-      //Process Modbus PDU
-      error = modbusServerProcessReadDiscreteInputsReq(connection, pdu, n);
-      break;
-   //Read Holding Registers request?
-   case MODBUS_FUNCTION_READ_HOLDING_REGS:
-      //Process Modbus PDU
-      error = modbusServerProcessReadHoldingRegsReq(connection, pdu, n);
-      break;
-   //Read Input Registers request?
-   case MODBUS_FUNCTION_READ_INPUT_REGS:
-      //Process Modbus PDU
-      error = modbusServerProcessReadInputRegsReq(connection, pdu, n);
-      break;
-   //Write Single Coil request?
-   case MODBUS_FUNCTION_WRITE_SINGLE_COIL:
-      //Process Modbus PDU
-      error = modbusServerProcessWriteSingleCoilReq(connection, pdu, n);
-      break;
-   //Write Single Register request?
-   case MODBUS_FUNCTION_WRITE_SINGLE_REG:
-      //Process Modbus PDU
-      error = modbusServerProcessWriteSingleRegReq(connection, pdu, n);
-      break;
-   //Write Multiple Coils request?
-   case MODBUS_FUNCTION_WRITE_MULTIPLE_COILS:
-      //Process Modbus PDU
-      error = modbusServerProcessWriteMultipleCoilsReq(connection, pdu, n);
-      break;
-   //Write Multiple Registers request?
-   case MODBUS_FUNCTION_WRITE_MULTIPLE_REGS:
-      //Process Modbus PDU
-      error = modbusServerProcessWriteMultipleRegsReq(connection, pdu, n);
-      break;
-   //Mask Write Register request?
-   case MODBUS_FUNCTION_MASK_WRITE_REG:
-      //Process Modbus PDU
-      error = modbusServerProcessMaskWriteRegReq(connection, pdu, n);
-      break;
-   //Read/Write Multiple Registers request?
-   case MODBUS_FUNCTION_READ_WRITE_MULTIPLE_REGS:
-      //Process Modbus PDU
-      error = modbusServerProcessReadWriteMultipleRegsReq(connection, pdu, n);
-      break;
-   //Illegal function code?
-   default:
-      //Report an error
+      //Point to the Modbus response PDU
+      response = modbusServerGetResponsePdu(connection);
+      //Initialize response length
+      responseLen = 0;
+
+      //Process request PDU
+      error = context->settings.processPduCallback(request, requestLen,
+         response, &responseLen);
+
+      //Check status code
+      if(!error)
+      {
+         //Valid response PDU?
+         if(responseLen > 0)
+         {
+            //Debug message
+            TRACE_INFO("Modbus Server: Sending Response PDU (%" PRIuSIZE " bytes)...\r\n",
+               responseLen);
+
+            //Dump the contents of the PDU for debugging purpose
+            modbusDumpResponsePdu(response, responseLen);
+
+            //Format MBAP header
+            error = modbusServerFormatMbapHeader(connection, responseLen);
+         }
+      }
+   }
+   else
+   {
+      //Keep processing
       error = ERROR_INVALID_FUNCTION_CODE;
-      break;
+   }
+
+   //Unknown function code?
+   if(error == ERROR_INVALID_FUNCTION_CODE)
+   {
+      //Retrieve function code
+      functionCode = (ModbusFunctionCode) *((uint8_t *) request);
+
+      //Check function code
+      switch(functionCode)
+      {
+      //Read Coils request?
+      case MODBUS_FUNCTION_READ_COILS:
+         //Process Modbus PDU
+         error = modbusServerProcessReadCoilsReq(connection,
+            request, requestLen);
+         break;
+      //Format Read Discrete Inputs request?
+      case MODBUS_FUNCTION_READ_DISCRETE_INPUTS:
+         //Process Modbus PDU
+         error = modbusServerProcessReadDiscreteInputsReq(connection,
+            request, requestLen);
+         break;
+      //Read Holding Registers request?
+      case MODBUS_FUNCTION_READ_HOLDING_REGS:
+         //Process Modbus PDU
+         error = modbusServerProcessReadHoldingRegsReq(connection,
+            request, requestLen);
+         break;
+      //Read Input Registers request?
+      case MODBUS_FUNCTION_READ_INPUT_REGS:
+         //Process Modbus PDU
+         error = modbusServerProcessReadInputRegsReq(connection,
+            request, requestLen);
+         break;
+      //Write Single Coil request?
+      case MODBUS_FUNCTION_WRITE_SINGLE_COIL:
+         //Process Modbus PDU
+         error = modbusServerProcessWriteSingleCoilReq(connection,
+            request, requestLen);
+         break;
+      //Write Single Register request?
+      case MODBUS_FUNCTION_WRITE_SINGLE_REG:
+         //Process Modbus PDU
+         error = modbusServerProcessWriteSingleRegReq(connection,
+            request, requestLen);
+         break;
+      //Write Multiple Coils request?
+      case MODBUS_FUNCTION_WRITE_MULTIPLE_COILS:
+         //Process Modbus PDU
+         error = modbusServerProcessWriteMultipleCoilsReq(connection,
+            request, requestLen);
+         break;
+      //Write Multiple Registers request?
+      case MODBUS_FUNCTION_WRITE_MULTIPLE_REGS:
+         //Process Modbus PDU
+         error = modbusServerProcessWriteMultipleRegsReq(connection,
+            request, requestLen);
+         break;
+      //Mask Write Register request?
+      case MODBUS_FUNCTION_MASK_WRITE_REG:
+         //Process Modbus PDU
+         error = modbusServerProcessMaskWriteRegReq(connection,
+            request, requestLen);
+         break;
+      //Read/Write Multiple Registers request?
+      case MODBUS_FUNCTION_READ_WRITE_MULTIPLE_REGS:
+         //Process Modbus PDU
+         error = modbusServerProcessReadWriteMultipleRegsReq(connection,
+            request, requestLen);
+         break;
+      //Illegal function code?
+      default:
+         //Report an error
+         error = ERROR_INVALID_FUNCTION_CODE;
+         break;
+      }
    }
 
    //Any exception?

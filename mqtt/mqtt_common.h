@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _MQTT_COMMON_H
@@ -34,7 +34,7 @@
 
 //MQTT port number
 #define MQTT_PORT 1883
-//MQTT over SSL/TLS port number
+//MQTT over TLS port number
 #define MQTT_TLS_PORT 8883
 
 //MQTT 3.1 protocol name
@@ -71,7 +71,7 @@ typedef enum
 typedef enum
 {
    MQTT_TRANSPORT_PROTOCOL_TCP = 1, ///TCP protocol
-   MQTT_TRANSPORT_PROTOCOL_TLS = 2, ///SSL protocol
+   MQTT_TRANSPORT_PROTOCOL_TLS = 2, ///TLS protocol
    MQTT_TRANSPORT_PROTOCOL_WS  = 3, ///WebSocket protocol
    MQTT_TRANSPORT_PROTOCOL_WSS = 4, ///Secure WebSocket protocol
 } MqttTransportProtocol;

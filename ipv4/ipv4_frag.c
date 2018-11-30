@@ -32,7 +32,7 @@
  * - RFC 815: IP datagram reassembly algorithms
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level

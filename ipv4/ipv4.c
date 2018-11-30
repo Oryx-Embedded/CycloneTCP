@@ -29,7 +29,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -1407,8 +1407,10 @@ error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
    if(!ipv4IsMulticastAddr(groupAddr))
       return ERROR_INVALID_ADDRESS;
 
+#if (ETH_SUPPORT == ENABLED)
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
+#endif
 
    //Initialize error code
    error = NO_ERROR;
@@ -1512,8 +1514,10 @@ error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
    if(!ipv4IsMulticastAddr(groupAddr))
       return ERROR_INVALID_ADDRESS;
 
+#if (ETH_SUPPORT == ENABLED)
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
+#endif
 
    //Go through the multicast filter table
    for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)

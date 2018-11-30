@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -573,6 +573,7 @@ void ftpServerProcessRein(FtpServerContext *context,
       fsCloseFile(connection->file);
       connection->file = NULL;
    }
+
    if(connection->dir != NULL)
    {
       fsCloseDir(connection->dir);
@@ -630,6 +631,7 @@ void ftpServerProcessQuit(FtpServerContext *context,
       fsCloseFile(connection->file);
       connection->file = NULL;
    }
+
    if(connection->dir != NULL)
    {
       fsCloseDir(connection->dir);
@@ -928,7 +930,7 @@ void ftpServerProcessPasv(FtpServerContext *context,
    FtpClientConnection *connection, char_t *param)
 {
    error_t error;
-   size_t n;
+   uint8_t *p;
    IpAddr ipAddr;
    uint16_t port;
 
@@ -951,13 +953,13 @@ void ftpServerProcessPasv(FtpServerContext *context,
    do
    {
       //Open data socket
-      connection->dataSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+      connection->dataSocket = socketOpen(SOCKET_TYPE_STREAM,
+         SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
       if(!connection->dataSocket)
       {
          //Report an error
          error = ERROR_OPEN_FAILED;
-         //Exit immediately
          break;
       }
 
@@ -967,14 +969,14 @@ void ftpServerProcessPasv(FtpServerContext *context,
       if(error)
          break;
 
-      //Change the size of the TX buffer
+      //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(connection->dataSocket,
          FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
-      //Change the size of the RX buffer
+      //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(connection->dataSocket,
          FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
       //Any error to report?
@@ -982,7 +984,8 @@ void ftpServerProcessPasv(FtpServerContext *context,
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(connection->dataSocket, connection->interface);
+      error = socketBindToInterface(connection->dataSocket,
+         connection->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
          break;
@@ -999,59 +1002,72 @@ void ftpServerProcessPasv(FtpServerContext *context,
       if(error)
          break;
 
-      //Retrieve local IP address
-      error = socketGetLocalAddr(connection->controlSocket, &ipAddr, NULL);
+      //Retrieve the IP address of the client
+      error = socketGetRemoteAddr(connection->controlSocket, &ipAddr, NULL);
       //Any error to report?
       if(error)
          break;
 
-      //The local IP address must be a valid IPv4 address
+      //PASV command is limited to IPv4
       if(ipAddr.length != sizeof(Ipv4Addr))
       {
-         //PASV command cannot be used on IPv6 connections
+         //Report an error
          error = ERROR_INVALID_ADDRESS;
-         //Exit immediately
          break;
+      }
+
+      //If the server is behind a NAT router, make sure the server knows its
+      //external IP address
+      if(!ipv4IsInLocalSubnet(connection->interface, ipAddr.ipv4Addr) &&
+         context->settings.publicIpv4Addr != IPV4_UNSPECIFIED_ADDR)
+      {
+         //The server must return the public IP address in the PASV reply
+         ipAddr.ipv4Addr = context->settings.publicIpv4Addr;
+      }
+      else
+      {
+         //The server must return its own IP address in the PASV reply
+         error = socketGetLocalAddr(connection->controlSocket, &ipAddr, NULL);
+         //Any error to report?
+         if(error)
+            break;
+
+         //PASV command is limited to IPv4
+         if(ipAddr.length != sizeof(Ipv4Addr))
+         {
+            //Report an error
+            error = ERROR_INVALID_ADDRESS;
+            break;
+         }
       }
 
       //End of exception handling block
    } while(0);
 
-   //Any error to report?
-   if(error)
+   //Check status code
+   if(!error)
+   {
+      //Use passive data transfer
+      connection->passiveMode = TRUE;
+      //Update data connection state
+      connection->dataState = FTP_DATA_STATE_LISTEN;
+
+      //Cast the IPv4 address to byte array
+      p = (uint8_t *) &ipAddr;
+
+      //Format response message
+      sprintf(connection->response, "227 Entering passive mode (%" PRIu8
+         ",%" PRIu8 ",%" PRIu8 ",%" PRIu8 ",%" PRIu8 ",%" PRIu8 ")\r\n",
+         p[0], p[1], p[2], p[3], MSB(port), LSB(port));
+   }
+   else
    {
       //Clean up side effects
       ftpServerCloseDataConnection(connection);
+
       //Format response message
       strcpy(connection->response, "425 Can't enter passive mode\r\n");
-      //Exit immediately
-      return;
    }
-
-   //Use passive data transfer
-   connection->passiveMode = TRUE;
-   //Update data connection state
-   connection->dataState = FTP_DATA_STATE_LISTEN;
-
-#if defined(FTP_SERVER_PASV_HOOK)
-   FTP_SERVER_PASV_HOOK(connection, ipAddr);
-#endif
-
-   //Format response message
-   n = sprintf(connection->response, "227 Entering passive mode (");
-   //Append host address
-   ipAddrToString(&ipAddr, connection->response + n);
-
-   //Parse the resulting string
-   for(n = 0; connection->response[n] != '\0'; n++)
-   {
-      //Change dots to commas
-      if(connection->response[n] == '.')
-         connection->response[n] = ',';
-   }
-
-   //Append port number
-   sprintf(connection->response + n, ",%" PRIu8 ",%" PRIu8 ")\r\n", MSB(port), LSB(port));
 }
 
 
@@ -1107,14 +1123,14 @@ void ftpServerProcessEpsv(FtpServerContext *context,
       if(error)
          break;
 
-      //Change the size of the TX buffer
+      //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(connection->dataSocket,
          FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
-      //Change the size of the RX buffer
+      //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(connection->dataSocket,
          FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
       //Any error to report?
@@ -1142,25 +1158,27 @@ void ftpServerProcessEpsv(FtpServerContext *context,
       //End of exception handling block
    } while(0);
 
-   //Any error to report?
-   if(error)
+   //Check status code
+   if(!error)
+   {
+      //Use passive data transfer
+      connection->passiveMode = TRUE;
+      //Update data connection state
+      connection->dataState = FTP_DATA_STATE_LISTEN;
+
+      //The response code for entering passive mode using an extended address
+      //must be 229
+      sprintf(connection->response, "229 Entering extended passive mode (|||"
+         "%" PRIu16 "|)\r\n", port);
+   }
+   else
    {
       //Clean up side effects
       ftpServerCloseDataConnection(connection);
+
       //Format response message
       strcpy(connection->response, "425 Can't enter passive mode\r\n");
-      //Exit immediately
-      return;
    }
-
-   //Use passive data transfer
-   connection->passiveMode = TRUE;
-   //Update data connection state
-   connection->dataState = FTP_DATA_STATE_LISTEN;
-
-   //The response code for entering passive mode using an extended address must be 229
-   sprintf(connection->response, "229 Entering extended passive mode (|||%" PRIu16 "|)\r\n",
-      port);
 }
 
 
@@ -1210,6 +1228,7 @@ void ftpServerProcessAbor(FtpServerContext *context,
       fsCloseFile(connection->file);
       connection->file = NULL;
    }
+
    if(connection->dir != NULL)
    {
       fsCloseDir(connection->dir);

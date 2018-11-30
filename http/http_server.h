@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -62,7 +62,7 @@
    #error HTTP_SERVER_SSI_SUPPORT parameter is not valid
 #endif
 
-//HTTP over SSL/TLS
+//HTTP over TLS
 #ifndef HTTP_SERVER_TLS_SUPPORT
    #define HTTP_SERVER_TLS_SUPPORT DISABLED
 #elif (HTTP_SERVER_TLS_SUPPORT != ENABLED && HTTP_SERVER_TLS_SUPPORT != DISABLED)
@@ -88,6 +88,13 @@
    #define HTTP_SERVER_WEB_SOCKET_SUPPORT DISABLED
 #elif (HTTP_SERVER_WEB_SOCKET_SUPPORT != ENABLED && HTTP_SERVER_WEB_SOCKET_SUPPORT != DISABLED)
    #error HTTP_SERVER_WEB_SOCKET_SUPPORT parameter is not valid
+#endif
+
+//Gzip content type support
+#ifndef HTTP_SERVER_GZIP_TYPE_SUPPORT
+   #define HTTP_SERVER_GZIP_TYPE_SUPPORT DISABLED
+#elif (HTTP_SERVER_GZIP_TYPE_SUPPORT != ENABLED && HTTP_SERVER_GZIP_TYPE_SUPPORT != DISABLED)
+   #error HTTP_SERVER_GZIP_TYPE_SUPPORT parameter is not valid
 #endif
 
 //Multipart content type support
@@ -250,10 +257,11 @@
    #include "resource_manager.h"
 #endif
 
-//HTTP over SSL/TLS supported?
+//HTTP over TLS supported?
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
    #include "tls.h"
+   #include "tls_ticket.h"
 #endif
 
 //Basic authentication supported?
@@ -276,7 +284,7 @@
 
 //HTTP port number
 #define HTTP_PORT 80
-//HTTPS port number (HTTP over SSL/TLS)
+//HTTPS port number (HTTP over TLS)
 #define HTTPS_PORT 443
 
 //Forward declaration of HttpServerContext structure
@@ -367,11 +375,11 @@ typedef enum
 #define HTTP_FLAG_BREAK(c) (HTTP_FLAG_BREAK_CHAR | LSB(c))
 
 
-//HTTP over SSL/TLS supported?
+//HTTP over TLS supported?
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
 
 /**
- * @brief SSL/TLS initialization callback function
+ * @brief TLS initialization callback function
  **/
 
 typedef error_t (*TlsInitCallback)(HttpConnection *connection,
@@ -493,6 +501,9 @@ typedef struct
    bool_t connectionUpgrade;
    char_t clientKey[WEB_SOCKET_CLIENT_KEY_SIZE + 1];
 #endif
+#if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
+   bool_t acceptGzipEncoding;
+#endif
 #if (HTTP_SERVER_MULTIPART_TYPE_SUPPORT == ENABLED)
    char_t boundary[HTTP_SERVER_BOUNDARY_MAX_LEN + 1];        ///<Boundary string
    size_t boundaryLength;                                    ///<Boundary string length
@@ -519,6 +530,9 @@ typedef struct
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    HttpAuthenticateHeader auth; ///<Authenticate header
 #endif
+#if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
+   bool_t gzipEncoding;
+#endif
 } HttpResponse;
 
 
@@ -536,8 +550,8 @@ typedef struct
    char_t rootDirectory[HTTP_SERVER_ROOT_DIR_MAX_LEN + 1];      ///<Web root directory
    char_t defaultDocument[HTTP_SERVER_DEFAULT_DOC_MAX_LEN + 1]; ///<Default home page
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-   bool_t useTls;                                               ///<HTTP over SSL/TLS
-   TlsInitCallback tlsInitCallback;                             ///<SSL/TLS initialization callback function
+   bool_t useTls;                                               ///<HTTP over TLS
+   TlsInitCallback tlsInitCallback;                             ///<TLS initialization callback function
 #endif
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    HttpRandCallback randCallback;                               ///<Random data generation callback function
@@ -572,6 +586,9 @@ struct _HttpServerContext
    OsSemaphore semaphore;                                        ///<Semaphore limiting the number of connections
    Socket *socket;                                               ///<Listening socket
    HttpConnection *connections;                                  ///<HTTP client connections
+#if (HTTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+   TlsTicketContext tlsTicketContext;                            ///<TLS ticket encryption context
+#endif
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    OsMutex nonceCacheMutex;                                      ///<Mutex preventing simultaneous access to the nonce cache
    HttpNonceCacheEntry nonceCache[HTTP_SERVER_NONCE_CACHE_SIZE]; ///<Nonce cache
@@ -596,7 +613,7 @@ struct _HttpConnection
    bool_t running;
    Socket *socket;                                     ///<Socket
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-   TlsContext *tlsContext;                             ///<SSL/TLS context
+   TlsContext *tlsContext;                             ///<TLS context
 #endif
    HttpRequest request;                                ///<Incoming HTTP request header
    HttpResponse response;                              ///<HTTP response header

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -130,7 +130,8 @@ void ndpRouterAdvGetDefaultSettings(NdpRouterAdvSettings *settings)
  * @return Error code
  **/
 
-error_t ndpRouterAdvInit(NdpRouterAdvContext *context, const NdpRouterAdvSettings *settings)
+error_t ndpRouterAdvInit(NdpRouterAdvContext *context,
+   const NdpRouterAdvSettings *settings)
 {
    NetInterface *interface;
 
@@ -322,7 +323,8 @@ void ndpRouterAdvTick(NdpRouterAdvContext *context)
    //Make sure that the link is up and the service is running
    if(interface->linkState && context->running)
    {
-      //Make sure that a valid link-local address has been assigned to the interface
+      //Make sure that a valid link-local address has been assigned to the
+      //interface
       if(ipv6GetLinkLocalAddrState(interface) == IPV6_ADDR_STATE_PREFERRED)
       {
          //Check current time
@@ -438,12 +440,14 @@ void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
       return;
 
    //Debug message
-   TRACE_INFO("Router Solicitation message received (%" PRIuSIZE " bytes)...\r\n", length);
+   TRACE_INFO("Router Solicitation message received (%" PRIuSIZE " bytes)...\r\n",
+      length);
+
    //Dump message contents for debugging purpose
    ndpDumpRouterSolMessage(message);
 
-   //The IPv6 Hop Limit field must have a value of 255 to ensure
-   //that the packet has not been forwarded by a router
+   //The IPv6 Hop Limit field must have a value of 255 to ensure that the
+   //packet has not been forwarded by a router
    if(hopLimit != NDP_HOP_LIMIT)
       return;
 
@@ -501,8 +505,8 @@ void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
       }
       else
       {
-         //If a Neighbor Cache entry for the solicitation's sender exists
-         //the entry's IsRouter flag must be set to FALSE
+         //If a Neighbor Cache entry for the solicitation's sender exists the
+         //entry's IsRouter flag must be set to FALSE
          entry->isRouter = FALSE;
 
          //INCOMPLETE state?
@@ -568,8 +572,8 @@ void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    }
    else
    {
-      //Schedule the sending of a Router Advertisement at the time given
-      //by the random value
+      //Schedule the sending of a Router Advertisement at the time given by the
+      //random value
       context->timeout = time + delay - context->timestamp;
    }
 }
@@ -650,8 +654,8 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    message->reachableTime = htonl(settings->reachableTime);
    message->retransTimer = htonl(settings->retransTimer);
 
-   //If the Router Lifetime is zero, the preference value must be
-   //set to zero by the sender
+   //If the Router Lifetime is zero, the preference value must be set to zero
+   //by the sender
    if(routerLifetime == 0)
       message->prf = NDP_ROUTER_SEL_PREFERENCE_MEDIUM;
 
@@ -691,11 +695,12 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    {
       NdpPrefixInfoOption prefixInfoOption;
 
-      //The Prefix Information option provide hosts with on-link
-      //prefixes and prefixes for Address Autoconfiguration
+      //The Prefix Information option provide hosts with on-link prefixes and
+      //prefixes for Address Autoconfiguration
       prefixInfoOption.prefixLength = settings->prefixList[i].length;
       prefixInfoOption.l = settings->prefixList[i].onLinkFlag;
       prefixInfoOption.a = settings->prefixList[i].autonomousFlag;
+      prefixInfoOption.r = 0;
       prefixInfoOption.reserved1 = 0;
       prefixInfoOption.validLifetime = htonl(settings->prefixList[i].validLifetime);
       prefixInfoOption.preferredLifetime = htonl(settings->prefixList[i].preferredLifetime);
@@ -713,8 +718,8 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    {
       NdpRouteInfoOption routeInfoOption;
 
-      //The Route Information option specifies prefixes that are
-      //reachable via the router
+      //The Route Information option specifies prefixes that are reachable via
+      //the router
       routeInfoOption.prefixLength = settings->routeList[i].length;
       routeInfoOption.reserved1 = 0;
       routeInfoOption.prf = settings->routeList[i].preference;
@@ -733,8 +738,8 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    {
       NdpContextOption contextOption;
 
-      //The 6LoWPAN Context option (6CO) carries prefix information for
-      //LoWPAN header compression
+      //The 6LoWPAN Context option (6CO) carries prefix information for LoWPAN
+      //header compression
       contextOption.contextLength = settings->contextList[i].length;
       contextOption.reserved1 = 0;
       contextOption.c = settings->contextList[i].compression;
@@ -769,7 +774,9 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_ROUTER_ADV], 1);
 
    //Debug message
-   TRACE_INFO("Sending Router Advertisement message (%" PRIuSIZE " bytes)...\r\n", length);
+   TRACE_INFO("Sending Router Advertisement message (%" PRIuSIZE " bytes)...\r\n",
+      length);
+
    //Dump message contents for debugging purpose
    ndpDumpRouterAdvMessage(message);
 

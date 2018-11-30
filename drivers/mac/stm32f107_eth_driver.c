@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -379,6 +379,81 @@ void stm32f107EthInitGpio(NetInterface *interface)
 
    //Remap Ethernet pins
    GPIO_PinRemapConfig(GPIO_Remap_ETH, ENABLE);
+
+//STM32-P107 evaluation board?
+#elif defined(USE_STM32_P107) && defined(USE_HAL_DRIVER)
+   uint32_t temp;
+   //RCC_PeriphCLKInitTypeDef RCC_PeriphClkInitStruct;
+
+   //Enable AFIO clock
+   __HAL_RCC_AFIO_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOB_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOD_CLK_ENABLE();
+
+   //Configure MCO (PA8) as an output
+   GPIO_InitStructure.Pin = GPIO_PIN_8;
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure PLL3 to output a 50MHz clock
+   temp = RCC->CFGR2 & ~RCC_CFGR2_PLL3MUL;
+   RCC->CFGR2 = temp | RCC_CFGR2_PLL3MUL10;
+
+   //Enable PLL3
+   RCC->CR |= RCC_CR_PLL3ON;
+
+   //Wait for the PLL3 to lock
+   while(!(RCC->CR & RCC_CR_PLL3RDY));
+
+   //Configure MCO pin to output the PLL3 clock
+   HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLL3CLK, 1);
+
+   //Select RMII interface mode
+   __HAL_AFIO_ETH_RMII();
+
+   //Configure MII_MDIO (PA2)
+   GPIO_InitStructure.Pin = GPIO_PIN_2;
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_TX_EN (PB11), ETH_RMII_TXD0 (PB12) and ETH_RMII_TXD1 (PB13)
+   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+   //Configure ETH_MDC (PC1)
+   GPIO_InitStructure.Pin = GPIO_PIN_1;
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_REF_CLK (PA1) and ETH_RMII_CRS_DV (PA7)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_7;
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_INPUT;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_4 | GPIO_PIN_5;
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_INPUT;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Do not remap Ethernet pins
+   __HAL_AFIO_REMAP_ETH_DISABLE();
 
 //STM32-P107 evaluation board?
 #elif defined(USE_STM32_P107) && defined(USE_STDPERIPH_DRIVER)

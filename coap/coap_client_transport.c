@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -104,14 +104,10 @@ error_t coapClientOpenConnection(CoapClientContext *context)
          return error;
 
       //Restore DTLS session, if any
-      if(context->dtlsSession.idLength > 0)
-      {
-         //Restore DTLS session
-         error = tlsRestoreSession(context->dtlsContext, &context->dtlsSession);
-         //Any error to report?
-         if(error)
-            return error;
-      }
+      error = tlsRestoreSessionState(context->dtlsContext, &context->dtlsSession);
+      //Any error to report?
+      if(error)
+         return error;
 
       //Invoke user-defined callback, if any
       if(context->dtlsInitCallback != NULL)
@@ -159,15 +155,11 @@ error_t coapClientEstablishConnection(CoapClientContext *context,
       if(error)
          return error;
 
-      //Ensure the session ID is valid
-      if(context->dtlsContext->sessionIdLen > 0)
-      {
-         //Save DTLS session
-         error = tlsSaveSession(context->dtlsContext, &context->dtlsSession);
-         //Any error to report?
-         if(error)
-            return error;
-      }
+      //Save DTLS session
+      error = tlsSaveSessionState(context->dtlsContext, &context->dtlsSession);
+      //Any error to report?
+      if(error)
+         return error;
    }
 #endif
 

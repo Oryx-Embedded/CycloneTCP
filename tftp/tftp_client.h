@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _TFTP_CLIENT_H
@@ -94,7 +94,7 @@ typedef enum
    TFTP_FILE_MODE_WRITE    = 1,
    TFTP_FILE_MODE_OCTET    = 0,
    TFTP_FILE_MODE_NETASCII = 2
-} TftpClientFileMode;
+} TftpFileMode;
 
 
 /**

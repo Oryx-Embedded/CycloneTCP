@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _NDP_H
@@ -399,9 +399,11 @@ typedef __start_packed struct
 #ifdef _CPU_BIG_ENDIAN
    uint8_t l : 1;              //3
    uint8_t a : 1;
-   uint8_t reserved1 : 6;
+   uint8_t r : 1;
+   uint8_t reserved1 : 5;
 #else
-   uint8_t reserved1 : 6;      //3
+   uint8_t reserved1 : 5;      //3
+   uint8_t r : 1;
    uint8_t a : 1;
    uint8_t l : 1;
 #endif

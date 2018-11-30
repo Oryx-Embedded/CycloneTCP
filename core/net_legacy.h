@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _NET_LEGACY_H
@@ -207,6 +207,44 @@
 
 #ifdef MAC_MULTICAST_FILTER_SIZE
    #define MAC_ADDR_FILTER_SIZE MAC_MULTICAST_FILTER_SIZE
+#endif
+
+#define ftpRegisterTlsInitCallback ftpClientRegisterTlsInitCallback
+#define ftpLogin ftpClientLoginEx
+#define ftpGetWorkingDir ftpClientGetWorkingDir
+#define ftpChangeWorkingDir ftpClientChangeWorkingDir
+#define ftpChangeToParentDir ftpClientChangeToParentDir
+#define ftpOpenDir ftpClientOpenDir
+#define ftpReadDir ftpClientReadDir
+#define ftpCloseDir ftpClientCloseDir
+#define ftpMakeDir ftpClientMakeDir
+#define ftpRemoveDir ftpClientRemoveDir
+#define ftpOpenFile ftpClientOpenFile
+#define ftpWriteFile(context, data, length, flags) ftpClientWriteFile(context, data, length, NULL, flags)
+#define ftpReadFile ftpClientReadFile
+#define ftpCloseFile ftpClientCloseFile
+#define ftpRenameFile ftpClientRenameFile
+#define ftpDeleteFile ftpClientDeleteFile
+#define ftpClose ftpClientDeinit
+
+#define FTP_NO_SECURITY       FTP_MODE_PLAINTEXT
+#define FTP_IMPLICIT_SECURITY FTP_MODE_IMPLICIT_TLS
+#define FTP_EXPLICIT_SECURITY FTP_MODE_EXPLICIT_TLS
+#define FTP_ACTIVE_MODE       FTP_MODE_ACTIVE
+#define FTP_PASSIVE_MODE      FTP_MODE_PASSIVE
+
+#define FTP_FOR_READING   FTP_FILE_MODE_READ
+#define FTP_FOR_WRITING   FTP_FILE_MODE_WRITE
+#define FTP_FOR_APPENDING FTP_FILE_MODE_APPEND
+#define FTP_BINARY_TYPE   FTP_FILE_MODE_BINARY
+#define FTP_TEXT_TYPE     FTP_FILE_MODE_TEXT
+
+#ifdef FTP_CLIENT_SOCKET_MIN_TX_BUFFER_SIZE
+   #define FTP_CLIENT_MIN_TCP_BUFFER_SIZE FTP_CLIENT_SOCKET_MIN_TX_BUFFER_SIZE
+#endif
+
+#ifdef FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE
+   #define FTP_CLIENT_MAX_TCP_BUFFER_SIZE FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE
 #endif
 
 #endif

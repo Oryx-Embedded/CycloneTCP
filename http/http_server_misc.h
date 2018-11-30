@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _HTTP_SERVER_MISC_H
@@ -51,6 +51,9 @@ void httpParseConnectionField(HttpConnection *connection,
    char_t *value);
 
 void httpParseContentTypeField(HttpConnection *connection,
+   char_t *value);
+
+void httpParseAcceptEncodingField(HttpConnection *connection,
    char_t *value);
 
 error_t httpReadChunkSize(HttpConnection *connection);

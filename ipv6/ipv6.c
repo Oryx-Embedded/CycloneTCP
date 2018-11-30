@@ -28,7 +28,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -1916,8 +1916,10 @@ error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAdd
    if(!ipv6IsMulticastAddr(groupAddr))
       return ERROR_INVALID_ADDRESS;
 
+#if (ETH_SUPPORT == ENABLED)
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
+#endif
 
    //Initialize error code
    error = NO_ERROR;
@@ -2022,8 +2024,10 @@ error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAd
    if(!ipv6IsMulticastAddr(groupAddr))
       return ERROR_INVALID_ADDRESS;
 
+#if (ETH_SUPPORT == ENABLED)
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
+#endif
 
    //Go through the multicast filter table
    for(i = 0; i < IPV6_MULTICAST_FILTER_SIZE; i++)

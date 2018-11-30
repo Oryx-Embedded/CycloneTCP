@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -40,7 +40,7 @@
    #error MQTT_CLIENT_SUPPORT parameter is not valid
 #endif
 
-//MQTT over SSL/TLS
+//MQTT over TLS
 #ifndef MQTT_CLIENT_TLS_SUPPORT
    #define MQTT_CLIENT_TLS_SUPPORT DISABLED
 #elif (MQTT_CLIENT_TLS_SUPPORT != ENABLED && MQTT_CLIENT_TLS_SUPPORT != DISABLED)
@@ -124,7 +124,7 @@
    #error MQTT_CLIENT_BUFFER_SIZE parameter is not valid
 #endif
 
-//SSL/TLS supported?
+//TLS supported?
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
    #include "tls.h"
@@ -237,11 +237,11 @@ typedef void (*MqttClientUnsubAckCallback)(MqttClientContext *context,
 typedef void (*MqttClientPingRespCallback)(MqttClientContext *context);
 
 
-//SSL/TLS supported?
+//TLS supported?
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
 
 /**
- * @brief SSL initialization callback
+ * @brief TLS initialization callback
  **/
 
 typedef error_t (*MqttClientTlsInitCallback)(MqttClientContext *context,
@@ -280,7 +280,7 @@ typedef struct
    MqttClientPubAckCallback unsubAckCallback;   ///<UNSUBACK message received callback
    MqttClientPingRespCallback pingRespCallback; ///<PINGRESP message received callback
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   MqttClientTlsInitCallback tlsInitCallback;   ///<SSL initialization callback
+   MqttClientTlsInitCallback tlsInitCallback;   ///<TLS initialization callback
 #endif
 } MqttClientCallbacks;
 
@@ -320,8 +320,8 @@ struct _MqttClientContext
    NetInterface *interface;                 ///<Underlying network interface
    Socket *socket;                          ///<Underlying TCP socket
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   TlsContext *tlsContext;                  ///<SSL context
-   TlsSession tlsSession;                   ///<SSL session
+   TlsContext *tlsContext;                  ///<TLS context
+   TlsSessionState tlsSession;              ///<TLS session state
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
    WebSocket *webSocket;                    ///<Underlying WebSocket

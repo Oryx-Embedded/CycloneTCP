@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -244,6 +244,7 @@ void ftpServerSendData(FtpServerContext *context, FtpClientConnection *connectio
             fsCloseFile(connection->file);
             connection->file = NULL;
          }
+
          if(connection->dir != NULL)
          {
             fsCloseDir(connection->dir);

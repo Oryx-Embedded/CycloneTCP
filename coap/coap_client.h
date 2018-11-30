@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _COAP_CLIENT_H
@@ -188,7 +188,7 @@ struct _CoapClientContext
    Socket *socket;                                ///<Underlying UDP socket
 #if (COAP_CLIENT_DTLS_SUPPORT == ENABLED)
    TlsContext *dtlsContext;                       ///<DTLS context
-   TlsSession dtlsSession;                        ///<DTLS session
+   TlsSessionState dtlsSession;                   ///<DTLS session state
    CoapClientDtlsInitCallback dtlsInitCallback;   ///<DTLS initialization callback
 #endif
    systime_t startTime;                           ///<Start time

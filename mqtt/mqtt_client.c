@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -49,12 +49,24 @@
 
 error_t mqttClientInit(MqttClientContext *context)
 {
+#if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
+   error_t error;
+#endif
+
    //Make sure the MQTT client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Clear MQTT client context
    memset(context, 0, sizeof(MqttClientContext));
+
+#if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
+   //Initialize TLS session state
+   error = tlsInitSessionState(&context->tlsSession);
+   //Any error to report?
+   if(error)
+      return error;
+#endif
 
    //Default protocol version
    context->settings.protocolLevel = MQTT_PROTOCOL_LEVEL_3_1_1;
@@ -1070,6 +1082,12 @@ error_t mqttClientClose(MqttClientContext *context)
 
    //Close connection
    mqttClientCloseConnection(context);
+
+#if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
+   //Release TLS session state
+   tlsFreeSessionState(&context->tlsSession);
+#endif
+
    //The connection is closed
    mqttClientChangeState(context, MQTT_CLIENT_STATE_CLOSED);
 

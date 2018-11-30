@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _MODBUS_CLIENT_H
@@ -79,8 +79,8 @@ typedef struct
    uint8_t unitId;                           ///<Identifier of the remote slave
    uint16_t transactionId;                   ///<Modbus transaction identifier
    Socket *socket;                           ///<Underlying TCP socket
-   systime_t timestamp;                      ///<Start time
    systime_t timeout;                        ///<Timeout value
+   systime_t timestamp;                      ///<Timestamp to manage timeout
    uint8_t requestAdu[MODBUS_MAX_ADU_SIZE];  ///<Request ADU
    size_t requestAduLen;                     ///<Length of the request ADU, in bytes
    size_t requestAduPos;                     ///<Current position in the request ADU

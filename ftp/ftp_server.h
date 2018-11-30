@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _FTP_SERVER_H
@@ -305,6 +305,7 @@ typedef struct
    uint16_t dataPort;                                ///<FTP data port number
    uint16_t passivePortMin;                          ///<Passive port range (lower value)
    uint16_t passivePortMax;                          ///<Passive port range (upper value)
+   Ipv4Addr publicIpv4Addr;                          ///<Public IPv4 address to be used in PASV replies
    char_t rootDir[FTP_SERVER_MAX_ROOT_DIR_LEN + 1];  ///<Root directory
    FtpCheckUserCallback checkUserCallback;           ///<User verification callback function
    FtpCheckPasswordCallback checkPasswordCallback;   ///<Password verification callback function

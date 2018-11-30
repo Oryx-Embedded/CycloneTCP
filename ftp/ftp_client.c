@@ -31,7 +31,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -41,6 +41,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include "ftp/ftp_client.h"
+#include "ftp/ftp_client_transport.h"
+#include "ftp/ftp_client_misc.h"
 #include "str.h"
 #include "error.h"
 #include "debug.h"
@@ -50,78 +52,84 @@
 
 
 /**
- * @brief Set the port to be used in data connection
+ * @brief Initialize FTP client context
  * @param[in] context Pointer to the FTP client context
- * @param[in] ipAddr Host address
- * @param[in] port Port number
  * @return Error code
  **/
 
-error_t ftpSetPort(FtpClientContext *context, const IpAddr *ipAddr, uint16_t port)
+error_t ftpClientInit(FtpClientContext *context)
 {
+#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    error_t error;
-   uint_t replyCode;
-   char_t *p;
+#endif
 
-   //Invalid context?
+   //Make sure the FTP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-#if (IPV4_SUPPORT == ENABLED)
-   //IPv4 FTP client?
-   if(ipAddr->length == sizeof(Ipv4Addr))
-   {
-      //Format the PORT command
-      strcpy(context->buffer, "PORT ");
+   //Clear FTP client context
+   memset(context, 0, sizeof(FtpClientContext));
 
-      //Append host address
-      ipv4AddrToString(ipAddr->ipv4Addr, context->buffer + 5);
-
-      //Parse the resulting string
-      for(p = context->buffer; *p != '\0'; p++)
-      {
-         //Change dots to commas
-         if(*p == '.')
-            *p = ',';
-      }
-
-      //Append port number
-      sprintf(p, ",%" PRIu8 ",%" PRIu8 "\r\n", MSB(port), LSB(port));
-   }
-   else
-#endif
-#if (IPV6_SUPPORT == ENABLED)
-   //IPv6 FTP client?
-   if(ipAddr->length == sizeof(Ipv6Addr))
-   {
-      //Format the EPRT command
-      strcpy(context->buffer, "EPRT |2|");
-
-      //Append host address
-      ipv6AddrToString(&ipAddr->ipv6Addr, context->buffer + 8);
-
-      //Point to the end of the resulting string
-      p = context->buffer + strlen(context->buffer);
-      //Append port number
-      sprintf(p, "|%" PRIu16 "|\r\n", port);
-   }
-   else
-#endif
-   //Invalid IP address?
-   {
-      //Report an error
-      return ERROR_INVALID_ADDRESS;
-   }
-
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
+#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
+    //Initialize TLS session state
+   error = tlsInitSessionState(&context->tlsSession);
    //Any error to report?
    if(error)
       return error;
+#endif
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+   //Initialize FTP client state
+   context->state = FTP_CLIENT_STATE_DISCONNECTED;
+
+   //Default timeout
+   context->timeout = FTP_CLIENT_DEFAULT_TIMEOUT;
+
+   //Successful initialization
+   return NO_ERROR;
+}
+
+
+#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
+
+/**
+ * @brief Register TLS initialization callback function
+ * @param[in] context Pointer to the FTP client context
+ * @param[in] callback TLS initialization callback function
+ * @return Error code
+ **/
+
+error_t ftpClientRegisterTlsInitCallback(FtpClientContext *context,
+   FtpClientTlsInitCallback callback)
+{
+   //Check parameters
+   if(context == NULL || callback == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save callback function
+   context->tlsInitCallback = callback;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+#endif
+
+
+/**
+ * @brief Set communication timeout
+ * @param[in] context Pointer to the FTP client context
+ * @param[in] timeout Timeout value, in milliseconds
+ * @return Error code
+ **/
+
+error_t ftpClientSetTimeout(FtpClientContext *context, systime_t timeout)
+{
+   //Make sure the FTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save timeout value
+   context->timeout = timeout;
 
    //Successful processing
    return NO_ERROR;
@@ -129,212 +137,21 @@ error_t ftpSetPort(FtpClientContext *context, const IpAddr *ipAddr, uint16_t por
 
 
 /**
- * @brief Enter passive mode
+ * @brief Bind the FTP client to a particular network interface
  * @param[in] context Pointer to the FTP client context
- * @param[out] port The port number the server is listening on
+ * @param[in] interface Network interface to be used
  * @return Error code
  **/
 
-error_t ftpSetPassiveMode(FtpClientContext *context, uint16_t *port)
+error_t ftpClientBindToInterface(FtpClientContext *context,
+   NetInterface *interface)
 {
-   error_t error;
-   uint_t replyCode;
-   char_t delimiter;
-   char_t *p;
-
-   //Invalid context?
+   //Make sure the FTP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-#if (IPV4_SUPPORT == ENABLED)
-   //IPv4 FTP server?
-   if(context->serverIpAddr.length == sizeof(Ipv4Addr))
-   {
-      //Send the command to the server
-      error = ftpSendCommand(context, "PASV\r\n", &replyCode);
-      //Any error to report?
-      if(error)
-         return error;
-
-      //Check FTP response code
-      if(!FTP_REPLY_CODE_2YZ(replyCode))
-         return ERROR_UNEXPECTED_RESPONSE;
-
-      //Delimiter character
-      delimiter = ',';
-
-      //Retrieve the low byte of the port number
-      p = strrchr(context->buffer, delimiter);
-      //Failed to parse the response?
-      if(!p)
-         return ERROR_INVALID_SYNTAX;
-
-      //Convert the resulting string
-      *port = atoi(p + 1);
-      //Split the string
-      *p = '\0';
-
-      //Retrieve the high byte of the port number
-      p = strrchr(context->buffer, delimiter);
-      //Failed to parse the response?
-      if(!p)
-         return ERROR_INVALID_SYNTAX;
-
-      //Convert the resulting string
-      *port |= atoi(p + 1) << 8;
-   }
-   else
-#endif
-#if (IPV6_SUPPORT == ENABLED)
-   //IPv6 FTP server?
-   if(context->serverIpAddr.length == sizeof(Ipv6Addr))
-   {
-      //Send the command to the server
-      error = ftpSendCommand(context, "EPSV\r\n", &replyCode);
-      //Any error to report?
-      if(error)
-         return error;
-
-      //Check FTP response code
-      if(!FTP_REPLY_CODE_2YZ(replyCode))
-         return ERROR_UNEXPECTED_RESPONSE;
-
-      //Search for the opening parenthesis
-      p = strrchr(context->buffer, '(');
-      //Failed to parse the response?
-      if(!p || p[1] == '\0')
-         return ERROR_INVALID_SYNTAX;
-
-      //Retrieve the delimiter character
-      delimiter = p[1];
-
-      //Search for the last delimiter character
-      p = strrchr(context->buffer, delimiter);
-      //Failed to parse the response?
-      if(!p)
-         return ERROR_INVALID_SYNTAX;
-
-      //Split the string
-      *p = '\0';
-
-      //Search for the last but one delimiter character
-      p = strrchr(context->buffer, delimiter);
-      //Failed to parse the response?
-      if(!p)
-         return ERROR_INVALID_SYNTAX;
-
-      //Convert the resulting string
-      *port = atoi(p + 1);
-   }
-   else
-#endif
-   //Invalid IP address?
-   {
-      //Report an error
-      return ERROR_INVALID_ADDRESS;
-   }
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief Set representation type
- * @param[in] context Pointer to the FTP client context
- * @param[in] type Single character identifying the desired type
- * @return Error code
- **/
-
-error_t ftpSetType(FtpClientContext *context, char_t type)
-{
-   error_t error;
-   uint_t replyCode;
-
-   //Invalid context?
-   if(context == NULL)
-      return ERROR_INVALID_PARAMETER;
-
-   //Format the TYPE command
-   sprintf(context->buffer, "TYPE %c\r\n", type);
-
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
-
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief Set protection buffer size
- * @param[in] context Pointer to the FTP client context
- * @param[in] size Protection buffer size
- * @return Error code
- **/
-
-error_t ftpSetProtectionBufferSize(FtpClientContext *context, uint32_t size)
-{
-   error_t error;
-   uint_t replyCode;
-
-   //Invalid context?
-   if(context == NULL)
-      return ERROR_INVALID_PARAMETER;
-
-   //Format the PBSZ command
-   sprintf(context->buffer, "PBSZ %" PRIu32 "\r\n", size);
-
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
-
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief Set data channel protection level
- * @param[in] context Pointer to the FTP client context
- * @param[in] level Character specifying the data channel protection level
- * @return Error code
- **/
-
-error_t ftpSetDataChannelProtectionLevel(FtpClientContext *context, char_t level)
-{
-   error_t error;
-   uint_t replyCode;
-
-   //Invalid context?
-   if(context == NULL)
-      return ERROR_INVALID_PARAMETER;
-
-   //Format the PROT command
-   sprintf(context->buffer, "PROT %c\r\n", level);
-
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
-
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+   //Explicitly associate the FTP client with the specified interface
+   context->interface = interface;
 
    //Successful processing
    return NO_ERROR;
@@ -344,149 +161,202 @@ error_t ftpSetDataChannelProtectionLevel(FtpClientContext *context, char_t level
 /**
  * @brief Establish a connection with the specified FTP server
  * @param[in] context Pointer to the FTP client context
- * @param[in] interface Underlying network interface (optional parameter)
  * @param[in] serverIpAddr IP address of the FTP server
  * @param[in] serverPort Port number
- * @param[in] flags Connection options
+ * @param[in] mode FTP connection mode
  * @return Error code
  **/
 
-error_t ftpConnect(FtpClientContext *context, NetInterface *interface,
-   const IpAddr *serverIpAddr, uint16_t serverPort, uint_t flags)
+error_t ftpClientConnect(FtpClientContext *context, 
+   const IpAddr *serverIpAddr, uint16_t serverPort, uint_t mode)
 {
    error_t error;
-   uint_t replyCode;
 
-   //Invalid context?
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || serverIpAddr == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Initialize context
-   context->passiveMode = FALSE;
-   context->controlSocket = NULL;
-   context->dataSocket = NULL;
+   //Initialize status code
+   error = NO_ERROR;
 
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   context->controlTlsContext = NULL;
-   context->dataTlsContext = NULL;
-#endif
-
-   //Underlying network interface
-   context->interface = interface;
-   //Save the IP address of the FTP server
-   context->serverIpAddr = *serverIpAddr;
-
-   //Use passive mode?
-   if(flags & FTP_PASSIVE_MODE)
-      context->passiveMode = TRUE;
-
-   //Open control socket
-   context->controlSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
-   //Failed to open socket?
-   if(!context->controlSocket)
-      return ERROR_OPEN_FAILED;
-
-   //Start of exception handling block
-   do
+   //Establish connection with the FTP server
+   while(!error)
    {
-      //Bind the socket to a particular network interface?
-      if(context->interface != NULL)
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_DISCONNECTED)
       {
-         //Associate the socket with the relevant interface
-         error = socketBindToInterface(context->controlSocket, context->interface);
-         //Any error to report?
-         if(error)
-            break;
+         //Save the IP address of the FTP server
+         context->serverIpAddr = *serverIpAddr;
+
+         //Use passive mode?
+         context->passiveMode = (mode & FTP_MODE_PASSIVE) ? TRUE : FALSE;
+
+         //Open control socket
+         error = ftpClientOpenConnection(context, &context->controlConnection,
+            FTP_CLIENT_MIN_TCP_BUFFER_SIZE, FTP_CLIENT_MIN_TCP_BUFFER_SIZE);
+
+         //Check status code
+         if(!error)
+         {
+            //Establish TCP connection
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTING_TCP);
+         }
       }
+      else if(context->state == FTP_CLIENT_STATE_CONNECTING_TCP)
+      {
+         //Establish TCP connection
+         error = socketConnect(context->controlConnection.socket, serverIpAddr,
+            serverPort);
 
-      //Set timeout for blocking operations
-      error = socketSetTimeout(context->controlSocket, FTP_CLIENT_DEFAULT_TIMEOUT);
-      //Any error to report?
-      if(error)
-         break;
+         //Check status code
+         if(!error)
+         {
+            //Implicit FTPS?
+            if(mode & FTP_MODE_IMPLICIT_TLS)
+            {
+               //TLS initialization
+               error = ftpClientOpenSecureConnection(context,
+                  &context->controlConnection, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
+                  FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE);
 
-      //Specify the size of the send buffer
-      error = socketSetTxBufferSize(context->controlSocket,
-         FTP_CLIENT_SOCKET_MIN_TX_BUFFER_SIZE);
-      //Any error to report?
-      if(error)
-         break;
+               //Check status code
+               if(!error)
+               {
+                  //Perform TLS handshake
+                  ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTING_TLS);
+               }
+            }
+            else
+            {
+               //Flush buffer
+               context->bufferPos = 0;
+               context->commandLen = 0;
+               context->replyLen = 0;
 
-      //Specify the size of the receive buffer
-      error = socketSetRxBufferSize(context->controlSocket,
-         FTP_CLIENT_SOCKET_MIN_RX_BUFFER_SIZE);
-      //Any error to report?
-      if(error)
-         break;
+               //Wait for the connection greeting reply
+               ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+            }
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_CONNECTING_TLS)
+      {
+         //Perform TLS handshake
+         error = ftpClientEstablishSecureConnection(&context->controlConnection);
 
-      //Connect to the FTP server
-      error = socketConnect(context->controlSocket, serverIpAddr, serverPort);
-      //Connection to server failed?
-      if(error)
-         break;
+         //Check status code
+         if(!error)
+         {
+            //Implicit FTPS?
+            if(mode & FTP_MODE_IMPLICIT_TLS)
+            {
+               //Flush buffer
+               context->bufferPos = 0;
+               context->commandLen = 0;
+               context->replyLen = 0;
 
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   //Use implicit FTPS?
-   if(flags & FTP_IMPLICIT_SECURITY)
-   {
-      //SSL initialization
-      error = ftpInitControlTlsContext(context);
-      //Any error to report?
-      if(error)
+               //Wait for the connection greeting reply
+               ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+            }
+            else
+            {
+               //The FTP client is connected
+               ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            }
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Wait for the connection greeting reply
+         error = ftpClientSendCommand(context);
+
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Explicit FTPS?
+               if(mode & FTP_MODE_EXPLICIT_TLS)
+               {
+                  //Format AUTH TLS command
+                  error = ftpClientFormatCommand(context, "AUTH TLS", NULL);
+
+                  //Check status code
+                  if(!error)
+                  {
+                     //Send AUTH TLS command and wait for the server's response
+                     ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_2);
+                  }
+               }
+               else
+               {
+                  //The FTP client is connected
+                  ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+               }
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_2)
+      {
+         //Send AUTH TLS command and wait for the server's response
+         error = ftpClientSendCommand(context);
+
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //TLS initialization
+               error = ftpClientOpenSecureConnection(context,
+                  &context->controlConnection, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
+                  FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE);
+
+               //Check status code
+               if(!error)
+               {
+                  //Perform TLS handshake
+                  ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTING_TLS);
+               }
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //The FTP client is connected
          break;
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
    }
-#endif
 
-   //Wait for the connection greeting reply
-   error = ftpSendCommand(context, NULL, &replyCode);
-   //Any communication error to report?
-   if(error)
-      break;
-
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      error = ERROR_UNEXPECTED_RESPONSE;
-
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   //Use explicit FTPS?
-   if(flags & FTP_EXPLICIT_SECURITY)
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
    {
-      //Sanity check
-      if(context->controlTlsContext == NULL)
-      {
-         //The client issues an AUTH TLS command
-         error = ftpAuth(context);
-         //Any error to report?
-         if(error)
-            break;
-
-         //SSL initialization
-         error = ftpInitControlTlsContext(context);
-         //Any error to report?
-         if(error)
-            break;
-      }
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
    }
-#endif
 
-      //End of exception handling block
-   } while(0);
-
-   //Any error to report?
-   if(error)
+   //Failed to establish connection with the FTP server?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-      if(context->controlTlsContext != NULL)
-      {
-         //Release SSL context
-         tlsFree(context->controlTlsContext);
-         context->controlTlsContext = NULL;
-      }
-#endif
-
-      //Close socket
-      socketClose(context->controlSocket);
-      context->controlSocket = NULL;
+      //Clean up side effects
+      ftpClientCloseConnection(&context->controlConnection);
+      //Update FTP client state
+      ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTED);
    }
 
    //Return status code
@@ -495,225 +365,637 @@ error_t ftpConnect(FtpClientContext *context, NetInterface *interface,
 
 
 /**
- * @brief Request authentication
+ * @brief Login to the FTP server using the provided user name and password
  * @param[in] context Pointer to the FTP client context
+ * @param[in] username NULL-terminated string containing the user name
+ * @param[in] password NULL-terminated string containing the user's password
  * @return Error code
  **/
 
-error_t ftpAuth(FtpClientContext *context)
+error_t ftpClientLogin(FtpClientContext *context, const char_t *username,
+   const char_t *password)
 {
-   error_t error;
-   uint_t replyCode;
-
-   //Invalid context?
-   if(context == NULL)
-      return ERROR_INVALID_PARAMETER;
-
-   //Issue the AUTH command
-   error = ftpSendCommand(context, "AUTH TLS\r\n", &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
-
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
-
-   //Successful processing
-   return NO_ERROR;
+   //The USER, PASS and ACCT commands specify access control identifiers
+   return ftpClientLoginEx(context, username, password, "");
 }
 
 
 /**
- * @brief Login to the FTP server using the provided username and password
+ * @brief Login to the FTP server using user name, password and account
  * @param[in] context Pointer to the FTP client context
- * @param[in] username The username to login under
- * @param[in] password The password to use
- * @param[in] account Account name
+ * @param[in] username NULL-terminated string containing the user name
+ * @param[in] password NULL-terminated string containing the user's password
+ * @param[in] account NULL-terminated string containing the user's account
  * @return Error code
  **/
 
-error_t ftpLogin(FtpClientContext *context, const char_t *username,
+error_t ftpClientLoginEx(FtpClientContext *context, const char_t *username,
    const char_t *password, const char_t *account)
 {
    error_t error;
-   uint_t replyCode;
 
-   //Invalid context?
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || username == NULL || password == NULL || account == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Format the USER command
-   sprintf(context->buffer, "USER %s\r\n", username);
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+   //Execute FTP command sequence
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format USER command
+         error = ftpClientFormatCommand(context, "USER", username);
 
-   //Check FTP response code
-   if(FTP_REPLY_CODE_2YZ(replyCode))
-      return NO_ERROR;
-   else if(!FTP_REPLY_CODE_3YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+         //Check status code
+         if(!error)
+         {
+            //Send USER command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send USER command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Format the PASS command
-   sprintf(context->buffer, "PASS %s\r\n", password);
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Update FTP client state
+               ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+               //Successful user identification
+               break;
+            }
+            else if(FTP_REPLY_CODE_3YZ(context->replyCode))
+            {
+               //Format PASS command
+               error = ftpClientFormatCommand(context, "PASS", password);
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+               //Check status code
+               if(!error)
+               {
+                  //Send PASS command and wait for the server's response
+                  ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_2);
+               }
+            }
+            else
+            {
+               //Update FTP client state
+               ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_2)
+      {
+         //Send PASS command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Check FTP response code
-   if(FTP_REPLY_CODE_2YZ(replyCode))
-      return NO_ERROR;
-   else if(!FTP_REPLY_CODE_3YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Update FTP client state
+               ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+               //Successful user identification
+               break;
+            }
+            else if(FTP_REPLY_CODE_3YZ(context->replyCode))
+            {
+               //Format ACCT command
+               error = ftpClientFormatCommand(context, "ACCT", account);
 
-   //Format the ACCT command
-   sprintf(context->buffer, "ACCT %s\r\n", account);
+               //Check status code
+               if(!error)
+               {
+                  //Send ACCT command and wait for the server's response
+                  ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_3);
+               }
+            }
+            else
+            {
+               //Update FTP client state
+               ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_3)
+      {
+         //Send ACCT command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(!FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            //We are done
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
 
-   //Successful processing
-   return NO_ERROR;
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
 }
 
 
 /**
- * @brief Get the working directory from the FTP server
+ * @brief Get current working directory
  * @param[in] context Pointer to the FTP client context
  * @param[out] path Output buffer where to store the current directory
- * @param[in] size Size of the output buffer
+ * @param[in] maxLen Maximum number of characters the buffer can hold
  * @return Error code
  **/
 
-error_t ftpGetWorkingDir(FtpClientContext *context, char_t *path, size_t size)
+error_t ftpClientGetWorkingDir(FtpClientContext *context, char_t *path,
+   size_t maxLen)
 {
    error_t error;
-   size_t length;
-   uint_t replyCode;
-   char_t *p;
 
-   //Invalid context?
-   if(context == NULL)
-      return ERROR_INVALID_PARAMETER;
    //Check parameters
-   if(path == NULL || size == 0)
+   if(context == NULL || path == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Send the command to the server
-   error = ftpSendCommand(context, "PWD\r\n", &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+   //Execute FTP command
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format PWD command
+         error = ftpClientFormatCommand(context, "PWD", NULL);
 
-   //Search for the last double quote
-   p = strrchr(context->buffer, '\"');
-   //Failed to parse the response?
-   if(!p)
-      return ERROR_INVALID_SYNTAX;
+         //Check status code
+         if(!error)
+         {
+            //Send PWD command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send PWD command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Split the string
-   *p = '\0';
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Parse server's response
+               error = ftpClientParsePwdReply(context, path, maxLen);
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
 
-   //Search for the first double quote
-   p = strchr(context->buffer, '\"');
-   //Failed to parse the response?
-   if(!p)
-      return ERROR_INVALID_SYNTAX;
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            //We are done
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
 
-   //Retrieve the length of the working directory
-   length = strlen(p + 1);
-   //Limit the number of characters to copy
-   length = MIN(length, size - 1);
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
 
-   //Copy the string
-   strncpy(path, p + 1, length);
-   //Properly terminate the string with a NULL character
-   path[length] = '\0';
-
-   //Successful processing
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
 /**
- * @brief Change the current working directory of the FTP session
+ * @brief Change working directory
  * @param[in] context Pointer to the FTP client context
  * @param[in] path The new current working directory
  * @return Error code
  **/
 
-error_t ftpChangeWorkingDir(FtpClientContext *context, const char_t *path)
+error_t ftpClientChangeWorkingDir(FtpClientContext *context,
+   const char_t *path)
 {
    error_t error;
-   uint_t replyCode;
 
-   //Invalid context?
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || path == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Format the CWD command
-   sprintf(context->buffer, "CWD %s\r\n", path);
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+   //Execute FTP command
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format CWD command
+         error = ftpClientFormatCommand(context, "CWD", path);
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+         //Check status code
+         if(!error)
+         {
+            //Send CWD command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send CWD command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Successful processing
-   return NO_ERROR;
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(!FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            //We are done
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
 }
 
 
 /**
- * @brief Change the current working directory to the parent directory
+ * @brief Change to parent directory
  * @param[in] context Pointer to the FTP client context
  * @return Error code
  **/
 
-error_t ftpChangeToParentDir(FtpClientContext *context)
+error_t ftpClientChangeToParentDir(FtpClientContext *context)
 {
    error_t error;
-   uint_t replyCode;
 
-   //Invalid context?
+   //Make sure the FTP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Send the command to the server
-   error = ftpSendCommand(context, "CDUP\r\n", &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+   //Execute FTP command
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format CDUP command
+         error = ftpClientFormatCommand(context, "CDUP", NULL);
 
-   //Successful processing
-   return NO_ERROR;
+         //Check status code
+         if(!error)
+         {
+            //Send CDUP command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send CDUP command and wait for the server's response
+         error = ftpClientSendCommand(context);
+
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(!FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            //We are done
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Open a directory
+ * @param[in] context Pointer to the FTP client context
+ * @param[in] path Path to the directory to be be opened
+ * @return Directory handle
+ **/
+
+error_t ftpClientOpenDir(FtpClientContext *context, const char_t *path)
+{
+   error_t error;
+
+   //Check parameters
+   if(context == NULL || path == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Execute FTP command sequence
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //The data transfer is over the data connection in type ASCII or
+         //type EBCDIC (refer to RFC 959, section 4.1.3)
+         error = ftpClientFormatCommand(context, "TYPE", "A");
+
+         //Check status code
+         if(!error)
+         {
+            //Send TYPE command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send TYPE command and wait for the server's response
+         error = ftpClientSendCommand(context);
+
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Update FTP client state
+               ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_2);
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_2 ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_3 ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_4 ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_5 ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_6 ||
+         context->state == FTP_CLIENT_STATE_CONNECTING_TCP ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_8 ||
+         context->state == FTP_CLIENT_STATE_ACCEPTING_TCP ||
+         context->state == FTP_CLIENT_STATE_CONNECTING_TLS)
+      {
+         //Initiate data transfer
+         error = ftpClientInitDataTransfer(context, FALSE);
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_7)
+      {
+         //Format LIST command
+         if(!strcmp(path, "."))
+            ftpClientFormatCommand(context, "LIST", NULL);
+         else
+            ftpClientFormatCommand(context, "LIST", path);
+
+         //Check status code
+         if(!error)
+         {
+            //Send LIST command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_8);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_9)
+      {
+         //Flush buffer
+         context->bufferPos = 0;
+         context->commandLen = 0;
+         context->replyLen = 0;
+
+         //The content of the directory can be transferred via the data 
+         //connection
+         ftpClientChangeState(context, FTP_CLIENT_STATE_READING_DATA);
+
+         //We are done
+         break;
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Failed to open directory?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
+   {
+      //Close data connection
+      ftpClientCloseConnection(&context->dataConnection);
+      //Update FTP client state
+      ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Read an entry from the directory
+ * @param[in] context Pointer to the FTP client context
+ * @param[out] dirEntry Pointer to a directory entry
+ * @return Error code
+ **/
+
+error_t ftpClientReadDir(FtpClientContext *context, FtpDirEntry *dirEntry)
+{
+   error_t error;
+   size_t n;
+
+   //Check parameters
+   if(context == NULL || dirEntry == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Erase the contents of the entry
+   memset(dirEntry, 0, sizeof(FtpDirEntry));
+
+   //Check current state
+   if(context->state == FTP_CLIENT_STATE_READING_DATA)
+   {
+      //Loop through directory entries
+      while(!error)
+      {
+         //Determine whether more data should be collected
+         if(context->replyLen < (FTP_CLIENT_BUFFER_SIZE - 1))
+         {
+            //Receive data from the FTP server
+            error = ftpClientReceiveData(&context->dataConnection,
+               context->buffer + context->replyLen,
+               FTP_CLIENT_BUFFER_SIZE - 1 - context->replyLen,
+               &n, SOCKET_FLAG_BREAK_CRLF);
+
+            //Check status code
+            if(error == NO_ERROR)
+            {
+               //Advance data pointer
+               context->replyLen += n;
+
+               //Check whether the string is terminated by a CRLF sequence
+               if(context->replyLen != 0 &&
+                  context->buffer[context->replyLen - 1] == '\n')
+               {
+                  //Save current time
+                  context->timestamp = osGetSystemTime();
+
+                  //Properly terminate the string with a NULL character
+                  context->buffer[context->replyLen] = '\0';
+                  //Flush buffer
+                  context->replyLen = 0;
+
+                  //Remove trailing whitespace characters
+                  strRemoveTrailingSpace(context->buffer);
+
+                  //Discard empty lines
+                  if(context->buffer[0] != '\0')
+                  {
+                     //Parse current directory entry
+                     error = ftpClientParseDirEntry(context->buffer, dirEntry);
+                     //We are done
+                     break;
+                  }
+               }
+            }
+            else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+            {
+               //Check whether the timeout has elapsed
+               error = ftpClientCheckTimeout(context);
+            }
+            else
+            {
+               //Communication error
+            }
+         }
+         else
+         {
+            //Flush buffer
+            context->replyLen = 0;
+         }
+      }
+   }
+   else
+   {
+      //Invalid state
+      error = ERROR_WRONG_STATE;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Close directory
+ * @param[in] context Pointer to the FTP client context
+ * @return Error code
+ **/
+
+error_t ftpClientCloseDir(FtpClientContext *context)
+{
+   //Make sure the FTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Close data connection and get transfer status
+   return ftpClientTerminateDataTransfer(context);
 }
 
 
@@ -724,30 +1006,70 @@ error_t ftpChangeToParentDir(FtpClientContext *context)
  * @return Error code
  **/
 
-error_t ftpMakeDir(FtpClientContext *context, const char_t *path)
+error_t ftpClientMakeDir(FtpClientContext *context, const char_t *path)
 {
    error_t error;
-   uint_t replyCode;
 
-   //Invalid context?
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || path == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Format the MKD command
-   sprintf(context->buffer, "MKD %s\r\n", path);
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+   //Execute FTP command
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format MKD command
+         error = ftpClientFormatCommand(context, "MKD", path);
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+         //Check status code
+         if(!error)
+         {
+            //Send MKD command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send MKD command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Successful processing
-   return NO_ERROR;
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(!FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            //We are done
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -758,30 +1080,70 @@ error_t ftpMakeDir(FtpClientContext *context, const char_t *path)
  * @return Error code
  **/
 
-error_t ftpRemoveDir(FtpClientContext *context, const char_t *path)
+error_t ftpClientRemoveDir(FtpClientContext *context, const char_t *path)
 {
    error_t error;
-   uint_t replyCode;
 
-   //Invalid context?
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || path == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Format the RMD command
-   sprintf(context->buffer, "RMD %s\r\n", path);
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+   //Execute FTP command
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format RMD command
+         error = ftpClientFormatCommand(context, "RMD", path);
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+         //Check status code
+         if(!error)
+         {
+            //Send RMD command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send RMD command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Successful processing
-   return NO_ERROR;
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(!FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            //We are done
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -789,239 +1151,139 @@ error_t ftpRemoveDir(FtpClientContext *context, const char_t *path)
  * @brief Open a file for reading, writing, or appending
  * @param[in] context Pointer to the FTP client context
  * @param[in] path Path to the file to be be opened
- * @param[in] flags Access mode
+ * @param[in] mode File access mode
  * @return Error code
  **/
 
-error_t ftpOpenFile(FtpClientContext *context, const char_t *path, uint_t flags)
+error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
+   uint_t mode)
 {
    error_t error;
-   uint_t replyCode;
-   IpAddr ipAddr;
-   uint16_t port;
 
-   //Invalid context?
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || path == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Open data socket
-   context->dataSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
-   //Failed to open socket?
-   if(!context->dataSocket)
-      return ERROR_OPEN_FAILED;
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Start of exception handling block
-   do
+   //Execute FTP command sequence
+   while(!error)
    {
-      //Bind the socket to a particular network interface?
-      if(context->interface != NULL)
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
       {
-         //Associate the socket with the relevant interface
-         error = socketBindToInterface(context->dataSocket, context->interface);
-         //Any error to report?
-         if(error)
-            break;
-      }
-
-      //Set timeout for blocking operations
-      error = socketSetTimeout(context->dataSocket, FTP_CLIENT_DEFAULT_TIMEOUT);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Check data transfer direction
-      if(flags & (FTP_FOR_WRITING | FTP_FOR_APPENDING))
-      {
-         //Maximize transmission throughput by using a large buffer
-         error = socketSetTxBufferSize(context->dataSocket,
-            FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Use a small buffer for the reception path
-         error = socketSetRxBufferSize(context->dataSocket,
-            FTP_CLIENT_SOCKET_MIN_RX_BUFFER_SIZE);
-         //Any error to report?
-         if(error)
-            break;
-      }
-      else
-      {
-         //Use a small buffer for the transmission path
-         error = socketSetTxBufferSize(context->dataSocket,
-            FTP_CLIENT_SOCKET_MIN_TX_BUFFER_SIZE);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Maximize reception throughput by using a large buffer
-         error = socketSetRxBufferSize(context->dataSocket,
-            FTP_CLIENT_SOCKET_MAX_RX_BUFFER_SIZE);
-         //Any error to report?
-         if(error)
-            break;
-      }
-
-      //Set representation type
-      if(flags & FTP_TEXT_TYPE)
-      {
-         //Use ASCII type
-         error = ftpSetType(context, 'A');
-         //Any error to report?
-         if(error)
-            break;
-      }
-      else
-      {
-         //Use image type
-         error = ftpSetType(context, 'I');
-         //Any error to report?
-         if(error)
-            break;
-      }
-
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-      //Use SSL?
-      if(context->controlTlsContext != NULL)
-      {
-         //A PBSZ command must be issued, but must have a parameter of '0' to
-         //indicate that no buffering is taking place and the data connection
-         //should not be encapsulated
-         error = ftpSetProtectionBufferSize(context, 0);
-         //Any communication error to report?
-         if(error)
-            break;
-
-         //If the data connection security level is 'Private', then an SSL
-         //negotiation must take place on the data connection
-         error = ftpSetDataChannelProtectionLevel(context, 'P');
-         //Any communication error to report?
-         if(error)
-            break;
-      }
-#endif
-
-      //Check transfer mode
-      if(!context->passiveMode)
-      {
-         //Place the data socket in the listening state
-         error = socketListen(context->dataSocket, 1);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Retrieve local IP address
-         error = socketGetLocalAddr(context->controlSocket, &ipAddr, NULL);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Retrieve local port number
-         error = socketGetLocalAddr(context->dataSocket, NULL, &port);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Set the port to be used in data connection
-         error = ftpSetPort(context, &ipAddr, port);
-         //Any error to report?
-         if(error)
-            break;
-      }
-      else
-      {
-         //Enter passive mode
-         error = ftpSetPassiveMode(context, &port);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Establish data connection
-         error = socketConnect(context->dataSocket, &context->serverIpAddr, port);
-         //Connection to server failed?
-         if(error)
-            break;
-      }
-
-      //Format the command
-      if(flags & FTP_FOR_WRITING)
-         sprintf(context->buffer, "STOR %s\r\n", path);
-      else if(flags & FTP_FOR_APPENDING)
-         sprintf(context->buffer, "APPE %s\r\n", path);
-      else
-         sprintf(context->buffer, "RETR %s\r\n", path);
-
-      //Send the command to the server
-      error = ftpSendCommand(context, context->buffer, &replyCode);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Check FTP response code
-      if(!FTP_REPLY_CODE_1YZ(replyCode))
-      {
-         //Report an error
-         error = ERROR_UNEXPECTED_RESPONSE;
-         break;
-      }
-
-      //Check transfer mode
-      if(!context->passiveMode)
-      {
-         //Wait for the server to connect back to the client's data port
-         Socket *socket = socketAccept(context->dataSocket, NULL, NULL);
-
-         //No connection request?
-         if(socket == NULL)
+         //Set representation type
+         if(mode & FTP_FILE_MODE_TEXT)
          {
-            //Report an error
-            error = ERROR_FAILURE;
-            break;
+            //Use ASCII type
+            error = ftpClientFormatCommand(context, "TYPE", "A");
+         }
+         else
+         {
+            //Use image type
+            error = ftpClientFormatCommand(context, "TYPE", "I");
          }
 
-         //Close the listening socket
-         socketClose(context->dataSocket);
-         //Save socket handle
-         context->dataSocket = socket;
-
-         //Set timeout for blocking operations
-         error = socketSetTimeout(context->dataSocket, FTP_CLIENT_DEFAULT_TIMEOUT);
-         //Any error to report?
-         if(error)
-            break;
+         //Check status code
+         if(!error)
+         {
+            //Send TYPE command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
       }
-
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-      //Use SSL?
-      if(context->controlTlsContext != NULL)
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
       {
-         //SSL initialization
-         error = ftpInitDataTlsContext(context);
-         //Any error to report?
-         if(error)
-            break;
+         //Send TYPE command and wait for the server's response
+         error = ftpClientSendCommand(context);
+
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Update FTP client state
+               ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_2);
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
       }
-#endif
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_2 ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_3 ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_4 ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_5 ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_6 ||
+         context->state == FTP_CLIENT_STATE_CONNECTING_TCP ||
+         context->state == FTP_CLIENT_STATE_SUB_COMMAND_8 ||
+         context->state == FTP_CLIENT_STATE_ACCEPTING_TCP ||
+         context->state == FTP_CLIENT_STATE_CONNECTING_TLS)
+      {
+         //Initiate data transfer
+         if(mode & (FTP_FILE_MODE_WRITE | FTP_FILE_MODE_APPEND))
+            error = ftpClientInitDataTransfer(context, TRUE);
+         else
+            error = ftpClientInitDataTransfer(context, FALSE);
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_7)
+      {
+         //Format STOR/APPE/RETR command
+         if(mode & FTP_FILE_MODE_WRITE)
+            ftpClientFormatCommand(context, "STOR", path);
+         else if(mode & FTP_FILE_MODE_APPEND)
+            ftpClientFormatCommand(context, "APPE", path);
+         else
+            ftpClientFormatCommand(context, "RETR", path);
 
-      //End of exception handling block
-   } while(0);
+         //Check status code
+         if(!error)
+         {
+            //Send STOR/APPE/RETR command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_8);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_9)
+      {
+         //Check data transfer direction
+         if(mode & (FTP_FILE_MODE_WRITE | FTP_FILE_MODE_APPEND))
+         {
+            //The content of the file can be written via the data connection
+            ftpClientChangeState(context, FTP_CLIENT_STATE_WRITING_DATA);
+         }
+         else
+         {
+            //The content of the file can be read via the data connection
+            ftpClientChangeState(context, FTP_CLIENT_STATE_READING_DATA);
+         }
 
-   //Any error to report?
-   if(error)
+         //We are done
+         break;
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
    {
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-      if(context->dataTlsContext != NULL)
-      {
-         //Release SSL context
-         tlsFree(context->dataTlsContext);
-         context->dataTlsContext = NULL;
-      }
-#endif
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
 
-      //Close socket
-      socketClose(context->dataSocket);
-      context->dataSocket = NULL;
+   //Failed to open file?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
+   {
+      //Close data connection
+      ftpClientCloseConnection(&context->dataConnection);
+      //Update FTP client state
+      ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
    }
 
    //Return status code
@@ -1034,30 +1296,47 @@ error_t ftpOpenFile(FtpClientContext *context, const char_t *path, uint_t flags)
  * @param[in] context Pointer to the FTP client context
  * @param[in] data Pointer to a buffer containing the data to be written
  * @param[in] length Number of data bytes to write
+ * @param[in] written Number of bytes that have been written
  * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
-error_t ftpWriteFile(FtpClientContext *context,
-   const void *data, size_t length, uint_t flags)
+error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
+   size_t length, size_t *written, uint_t flags)
 {
    error_t error;
 
-   //Invalid context?
+   //Make sure the FTP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   if(context->dataTlsContext != NULL)
+   //Check current state
+   if(context->state == FTP_CLIENT_STATE_WRITING_DATA)
    {
       //Transmit data to the FTP server
-      error = tlsWrite(context->dataTlsContext, data, length, NULL, flags);
+      error = ftpClientSendData(&context->dataConnection, data, length,
+         NULL, flags);
+
+      //Check status code
+      if(error == NO_ERROR)
+      {
+         //Save current time
+         context->timestamp = osGetSystemTime();
+      }
+      else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+      {
+         //Check whether the timeout has elapsed
+         error = ftpClientCheckTimeout(context);
+      }
+      else
+      {
+         //Communication error
+      }
    }
    else
-#endif
    {
-      //Transmit data to the FTP server
-      error = socketSend(context->dataSocket, data, length, NULL, flags);
+      //Invalid state
+      error = ERROR_WRONG_STATE;
    }
 
    //Return status code
@@ -1075,26 +1354,42 @@ error_t ftpWriteFile(FtpClientContext *context,
  * @return Error code
  **/
 
-error_t ftpReadFile(FtpClientContext *context,
-   void *data, size_t size, size_t *length, uint_t flags)
+error_t ftpClientReadFile(FtpClientContext *context, void *data, size_t size,
+   size_t *length, uint_t flags)
 {
    error_t error;
 
-   //Invalid context?
+   //Make sure the FTP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   if(context->dataTlsContext != NULL)
+   //Check current state
+   if(context->state == FTP_CLIENT_STATE_READING_DATA)
    {
       //Receive data from the FTP server
-      error = tlsRead(context->dataTlsContext, data, size, length, flags);
+      error = ftpClientReceiveData(&context->dataConnection, data, size,
+         length, flags);
+
+      //Check status code
+      if(error == NO_ERROR)
+      {
+         //Save current time
+         context->timestamp = osGetSystemTime();
+      }
+      else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+      {
+         //Check whether the timeout has elapsed
+         error = ftpClientCheckTimeout(context);
+      }
+      else
+      {
+         //Communication error
+      }
    }
    else
-#endif
    {
-      //Receive data from the FTP server
-      error = socketReceive(context->dataSocket, data, size, length, flags);
+      //Invalid state
+      error = ERROR_WRONG_STATE;
    }
 
    //Return status code
@@ -1108,46 +1403,14 @@ error_t ftpReadFile(FtpClientContext *context,
  * @return Error code
  **/
 
-error_t ftpCloseFile(FtpClientContext *context)
+error_t ftpClientCloseFile(FtpClientContext *context)
 {
-   error_t error;
-   uint_t replyCode;
-
-   //Invalid context?
+   //Make sure the FTP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   if(context->dataTlsContext != NULL)
-   {
-      //Gracefully close the data connection
-      tlsShutdown(context->dataTlsContext);
-
-      //Release SSL context (data connection)
-      tlsFree(context->dataTlsContext);
-      context->dataTlsContext = NULL;
-   }
-#endif
-
-   //Graceful shutdown
-   socketShutdown(context->dataSocket, SOCKET_SD_BOTH);
-
-   //Close the data socket
-   socketClose(context->dataSocket);
-   context->dataSocket = NULL;
-
-   //Check the transfer status
-   error = ftpSendCommand(context, NULL, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
-
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
-
-   //Successful processing
-   return NO_ERROR;
+   //Close data connection and get transfer status
+   return ftpClientTerminateDataTransfer(context);
 }
 
 
@@ -1159,44 +1422,101 @@ error_t ftpCloseFile(FtpClientContext *context)
  * @return Error code
  **/
 
-error_t ftpRenameFile(FtpClientContext *context,
-   const char_t *oldName, const char_t *newName)
+error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldName,
+   const char_t *newName)
 {
    error_t error;
-   uint_t replyCode;
 
-   //Invalid context?
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || oldName == NULL || newName == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Format the RNFR command
-   sprintf(context->buffer, "RNFR %s\r\n", oldName);
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+   //Execute FTP command sequence
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format RNFR command
+         error = ftpClientFormatCommand(context, "RNFR", oldName);
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_3YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+         //Check status code
+         if(!error)
+         {
+            //Send USER command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send RNFR command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Format the RNTO command
-   sprintf(context->buffer, "RNTO %s\r\n", newName);
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(FTP_REPLY_CODE_3YZ(context->replyCode))
+            {
+               //Format RNTO command
+               error = ftpClientFormatCommand(context, "RNTO", newName);
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+               //Check status code
+               if(!error)
+               {
+                  //Send RNTO command and wait for the server's response
+                  ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_2);
+               }
+            }
+            else
+            {
+               //Update FTP client state
+               ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_2)
+      {
+         //Send RNTO command and wait for the server's response
+         error = ftpClientSendCommand(context);
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(!FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
 
-   //Successful processing
-   return NO_ERROR;
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            //We are done
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -1207,30 +1527,186 @@ error_t ftpRenameFile(FtpClientContext *context,
  * @return Error code
  **/
 
-error_t ftpDeleteFile(FtpClientContext *context, const char_t *path)
+error_t ftpClientDeleteFile(FtpClientContext *context, const char_t *path)
 {
    error_t error;
+
+   //Check parameters
+   if(context == NULL || path == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Execute FTP command
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format DELE command
+         error = ftpClientFormatCommand(context, "DELE", path);
+
+         //Check status code
+         if(!error)
+         {
+            //Send DELE command and wait for the server's response
+            ftpClientChangeState(context, FTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send DELE command and wait for the server's response
+         error = ftpClientSendCommand(context);
+
+         //Check status code
+         if(!error)
+         {
+            //Check FTP response code
+            if(!FTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
+            //We are done
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Retrieve server's reply code
+ * @param[in] context Pointer to the FTP client context
+ * @return FTP reply code
+ **/
+
+uint_t ftpClientGetReplyCode(FtpClientContext *context)
+{
    uint_t replyCode;
 
-   //Invalid context?
+   //Make sure the FTP client context is valid
+   if(context != NULL)
+   {
+      //Get server's reply code
+      replyCode = context->replyCode;
+   }
+   else
+   {
+      //The FTP client context is not valid
+      replyCode = 0;
+   }
+
+   //Return FTP reply code
+   return replyCode;
+}
+
+
+/**
+ * @brief Gracefully disconnect from the FTP server
+ * @param[in] context Pointer to the FTP client context
+ * @return Error code
+ **/
+
+error_t ftpClientDisconnect(FtpClientContext *context)
+{
+   error_t error;
+
+   //Make sure the FTP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Format the DELE command
-   sprintf(context->buffer, "DELE %s\r\n", path);
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Send the command to the server
-   error = ftpSendCommand(context, context->buffer, &replyCode);
-   //Any error to report?
-   if(error)
-      return error;
+   //Execute FTP command sequence
+   while(!error)
+   {
+      //Check current state
+      if(context->state == FTP_CLIENT_STATE_CONNECTED)
+      {
+         //Update FTP client state
+         ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTING_1);
+      }
+      else if(context->state == FTP_CLIENT_STATE_DISCONNECTING_1)
+      {
+         //Shutdown data connection
+         error = ftpClientShutdownConnection(&context->dataConnection);
 
-   //Check FTP response code
-   if(!FTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+         //Check status code
+         if(!error)
+         {
+            //Close data connection
+            ftpClientCloseConnection(&context->dataConnection);
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTING_2);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_DISCONNECTING_2)
+      {
+         //Shutdown control connection
+         error = ftpClientShutdownConnection(&context->controlConnection);
 
-   //Successful processing
-   return NO_ERROR;
+         //Check status code
+         if(!error)
+         {
+            //Close control connection
+            ftpClientCloseConnection(&context->controlConnection);
+            //Update FTP client state
+            ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTED);
+         }
+      }
+      else if(context->state == FTP_CLIENT_STATE_DISCONNECTED)
+      {
+         //We are done
+         break;
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Failed to gracefully disconnect from the FTP server?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
+   {
+      //Close data and control connections
+      ftpClientCloseConnection(&context->dataConnection);
+      ftpClientCloseConnection(&context->controlConnection);
+
+      //Update FTP client state
+      ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTED);
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -1240,49 +1716,18 @@ error_t ftpDeleteFile(FtpClientContext *context, const char_t *path)
  * @return Error code
  **/
 
-error_t ftpClose(FtpClientContext *context)
+error_t ftpClientClose(FtpClientContext *context)
 {
-   //Invalid context?
+   //Make sure the FTP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   if(context->dataTlsContext != NULL)
-   {
-      //Gracefully close the data connection
-      tlsShutdown(context->dataTlsContext);
+   //Close data and control connections
+   ftpClientCloseConnection(&context->dataConnection);
+   ftpClientCloseConnection(&context->controlConnection);
 
-      //Release SSL context (data connection)
-      tlsFree(context->dataTlsContext);
-      context->dataTlsContext = NULL;
-   }
-#endif
-
-   //Close data socket
-   if(context->dataSocket)
-   {
-      socketClose(context->dataSocket);
-      context->dataSocket = NULL;
-   }
-
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   if(context->controlTlsContext != NULL)
-   {
-      //Gracefully close the control connection
-      tlsShutdown(context->controlTlsContext);
-
-      //Release SSL context (control connection)
-      tlsFree(context->controlTlsContext);
-      context->controlTlsContext = NULL;
-   }
-#endif
-
-   //Close control socket
-   if(context->controlSocket)
-   {
-      socketClose(context->controlSocket);
-      context->controlSocket = NULL;
-   }
+   //Update FTP client state
+   ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTED);
 
    //Successful processing
    return NO_ERROR;
@@ -1290,289 +1735,67 @@ error_t ftpClose(FtpClientContext *context)
 
 
 /**
- * @brief Send FTP command and wait for a reply
+ * @brief Release FTP client context
  * @param[in] context Pointer to the FTP client context
- * @param[in] command Command line
- * @param[out] replyCode Response code from the FTP server
- * @return Error code
  **/
 
-error_t ftpSendCommand(FtpClientContext *context,
-   const char_t *command, uint_t *replyCode)
+void ftpClientDeinit(FtpClientContext *context)
 {
-   error_t error;
-   size_t length;
-   char_t *p;
-
-   //Any command line to send?
-   if(command)
+   //Make sure the FTP client context is valid
+   if(context != NULL)
    {
-      //Debug message
-      TRACE_DEBUG("FTP client: %s", command);
+      //Close data and control connections
+      ftpClientCloseConnection(&context->dataConnection);
+      ftpClientCloseConnection(&context->controlConnection);
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-      if(context->controlTlsContext != NULL)
-      {
-         //Send the command to the FTP server
-         error = tlsWrite(context->controlTlsContext, command,
-            strlen(command), NULL, SOCKET_FLAG_WAIT_ACK);
-      }
-      else
+      //Release TLS session state
+      tlsFreeSessionState(&context->tlsSession);
 #endif
-      {
-         //Send the command to the FTP server
-         error = socketSend(context->controlSocket, command,
-            strlen(command), NULL, SOCKET_FLAG_WAIT_ACK);
-      }
 
-      //Failed to send command?
-      if(error)
-         return error;
+      //Clear FTP client context
+      memset(context, 0, sizeof(FtpClientContext));
    }
-
-   //Multiline replies are allowed for any command
-   while(1)
-   {
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-      if(context->controlTlsContext != NULL)
-      {
-         //Wait for a response from the server
-         error = tlsRead(context->controlTlsContext, context->buffer,
-            FTP_CLIENT_BUFFER_SIZE - 1, &length, SOCKET_FLAG_BREAK_CRLF);
-      }
-      else
-#endif
-      {
-         //Wait for a response from the server
-         error = socketReceive(context->controlSocket, context->buffer,
-            FTP_CLIENT_BUFFER_SIZE - 1, &length, SOCKET_FLAG_BREAK_CRLF);
-      }
-
-      //The remote server did not respond as expected?
-      if(error)
-         return error;
-
-      //Point to the beginning of the buffer
-      p = context->buffer;
-      //Properly terminate the string with a NULL character
-      p[length] = '\0';
-
-      //Remove trailing whitespace from the response
-      strRemoveTrailingSpace(p);
-
-      //Debug message
-      TRACE_DEBUG("FTP server: %s\r\n", p);
-
-      //Check the length of the response
-      if(strlen(p) >= 3)
-      {
-         //All replies begin with a three digit numeric code
-         if(isdigit((uint8_t) p[0]) && isdigit((uint8_t) p[1]) && isdigit((uint8_t) p[2]))
-         {
-            //A space character follows the response code for the last line
-            if(p[3] == ' ' || p[3] == '\0')
-            {
-               //Get the server response code
-               *replyCode = strtoul(p, NULL, 10);
-               //Exit immediately
-               break;
-            }
-         }
-      }
-   }
-
-   //Successful processing
-   return NO_ERROR;
 }
 
 
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-
-/**
- * @brief Register SSL initialization callback function
- * @param[in] context Pointer to the FTP client context
- * @param[in] callback SSL initialization callback function
- * @return Error code
- **/
-
-error_t ftpRegisterTlsInitCallback(FtpClientContext *context,
-   FtpClientTlsInitCallback callback)
-{
-   //Check parameters
-   if(context == NULL || callback == NULL)
-      return ERROR_INVALID_PARAMETER;
-
-   //Save callback function
-   context->tlsInitCallback = callback;
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief SSL initialization (control connection)
- * @param[in] context Pointer to the FTP client context
- * @return Error code
- **/
-
-error_t ftpInitControlTlsContext(FtpClientContext *context)
+//Deprecated function
+error_t ftpConnect(FtpClientContext *context, NetInterface *interface,
+   const IpAddr *serverIpAddr, uint16_t serverPort, uint_t flags)
 {
    error_t error;
 
-   //Debug message
-   TRACE_DEBUG("FTP Client: Initializing SSL session (control)...\r\n");
+#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
+   FtpClientTlsInitCallback tlsInitCallback;
 
-   //Allocate SSL context
-   context->controlTlsContext = tlsInit();
+   //Initialize FTP client context
+   tlsInitCallback = context->tlsInitCallback;
+   error = ftpClientInit(context);
+   context->tlsInitCallback = tlsInitCallback;
+#else
+   //Initialize FTP client context
+   error = ftpClientInit(context);
+#endif
 
-   //Initialization failed?
-   if(context->controlTlsContext == NULL)
-      return ERROR_OUT_OF_MEMORY;
-
-   //Start of exception handling block
-   do
+   //Check status code
+   if(!error)
    {
-      //Select the relevant operation mode
-      error = tlsSetConnectionEnd(context->controlTlsContext, TLS_CONNECTION_END_CLIENT);
-      //Any error to report?
+      //Bind the FTP client to a particular network interface
+      ftpClientBindToInterface(context, interface);
+
+      //Establish a connection with the specified FTP server
+      error = ftpClientConnect(context, serverIpAddr, serverPort, flags);
+
+      //Failed to establish connection?
       if(error)
-         break;
-
-      //Bind SSL to the relevant socket
-      error = tlsSetSocket(context->controlTlsContext, context->controlSocket);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Check whether the SSL initialization callback has been
-      //properly registered?
-      if(context->tlsInitCallback != NULL)
       {
-         //Perform SSL related initialization
-         error = context->tlsInitCallback(context, context->controlTlsContext);
-         //Any error to report?
-         if(error)
-            break;
+         //Clean up side effects
+         ftpClientDeinit(context);
       }
-      else
-      {
-         //No callback function registered
-         error = ERROR_NOT_CONFIGURED;
-         break;
-      }
-
-      //Establish a secure session
-      error = tlsConnect(context->controlTlsContext);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Ensure the session ID is valid
-      if(context->controlTlsContext->sessionIdLen > 0)
-      {
-         //Save SSL/TLS session
-         error = tlsSaveSession(context->controlTlsContext, &context->tlsSession);
-         //Any error to report?
-         if(error)
-            break;
-      }
-
-      //End of exception handling block
-   } while(0);
-
-   //Any error to report?
-   if(error)
-   {
-      //Clean up side effects
-      tlsFree(context->controlTlsContext);
-      context->controlTlsContext = NULL;
    }
 
    //Return status code
    return error;
 }
-
-
-/**
- * @brief SSL initialization (data connection)
- * @param[in] context Pointer to the FTP client context
- * @return Error code
- **/
-
-error_t ftpInitDataTlsContext(FtpClientContext *context)
-{
-   error_t error;
-
-   //Debug message
-   TRACE_DEBUG("FTP Client: Initializing SSL session (data)...\r\n");
-
-   //Allocate SSL context
-   context->dataTlsContext = tlsInit();
-
-   //Initialization failed?
-   if(context->dataTlsContext == NULL)
-      return ERROR_OUT_OF_MEMORY;
-
-   //Start of exception handling block
-   do
-   {
-      //Select the relevant operation mode
-      error = tlsSetConnectionEnd(context->dataTlsContext, TLS_CONNECTION_END_CLIENT);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Bind SSL to the relevant socket
-      error = tlsSetSocket(context->dataTlsContext, context->dataSocket);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Check whether the SSL initialization callback has been
-      //properly registered?
-      if(context->tlsInitCallback != NULL)
-      {
-         //Perform SSL related initialization
-         error = context->tlsInitCallback(context, context->dataTlsContext);
-         //Any error to report?
-         if(error)
-            break;
-      }
-      else
-      {
-         //No callback function registered
-         error = ERROR_NOT_CONFIGURED;
-         break;
-      }
-
-      //Restore SSL session
-      error = tlsRestoreSession(context->dataTlsContext, &context->tlsSession);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Establish a secure session
-      error = tlsConnect(context->dataTlsContext);
-      //Any error to report?
-      if(error)
-         break;
-
-      //End of exception handling block
-   } while(0);
-
-   //Any error to report?
-   if(error)
-   {
-      //Clean up side effects
-      tlsFree(context->dataTlsContext);
-      context->dataTlsContext = NULL;
-   }
-
-   //Return status code
-   return error;
-}
-
-#endif
 
 #endif

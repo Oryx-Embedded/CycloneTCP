@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -50,6 +50,8 @@
 
 error_t coapClientInit(CoapClientContext *context)
 {
+   error_t error;
+
    //Make sure the CoAP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -57,38 +59,62 @@ error_t coapClientInit(CoapClientContext *context)
    //Clear CoAP client context
    memset(context, 0, sizeof(CoapClientContext));
 
-   //Create a mutex to prevent simultaneous access to the context
-   if(!osCreateMutex(&context->mutex))
-   {
-      //Report an error
-      return ERROR_OUT_OF_RESOURCES;
-   }
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Create a event object to receive notifications
-   if(!osCreateEvent(&context->event))
+   //Start of exception handling block
+   do
+   {
+      //Create a mutex to prevent simultaneous access to the context
+      if(!osCreateMutex(&context->mutex))
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+         break;
+      }
+
+      //Create a event object to receive notifications
+      if(!osCreateEvent(&context->event))
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+         break;
+      }
+
+#if (COAP_CLIENT_DTLS_SUPPORT == ENABLED)
+      //Initialize DTLS session state
+      error = tlsInitSessionState(&context->dtlsSession);
+      //Any error to report?
+      if(error)
+         break;
+#endif
+
+      //Initialize CoAP client state
+      context->state = COAP_CLIENT_STATE_DISCONNECTED;
+
+      //Default transport protocol
+      context->transportProtocol = COAP_TRANSPORT_PROTOCOL_UDP;
+      //Default timeout
+      context->timeout = COAP_CLIENT_DEFAULT_TIMEOUT;
+      //Default token length
+      context->tokenLen = COAP_CLIENT_DEFAULT_TOKEN_LEN;
+
+      //It is strongly recommended that the initial value of the message ID
+      //be randomized (refer to RFC 7252, section 4.4)
+      context->mid = (uint16_t) netGetRand();
+
+      //End of exception handling block
+   } while(0);
+
+   //Check status code
+   if(error)
    {
       //Clean up side effects
       coapClientDeinit(context);
-      //Report an error
-      return ERROR_OUT_OF_RESOURCES;
    }
 
-   //Initialize CoAP client state
-   context->state = COAP_CLIENT_STATE_DISCONNECTED;
-
-   //Default transport protocol
-   context->transportProtocol = COAP_TRANSPORT_PROTOCOL_UDP;
-   //Default timeout
-   context->timeout = COAP_CLIENT_DEFAULT_TIMEOUT;
-   //Default token length
-   context->tokenLen = COAP_CLIENT_DEFAULT_TOKEN_LEN;
-
-   //It is strongly recommended that the initial value of the message ID
-   //be randomized (refer to RFC 7252, section 4.4)
-   context->mid = (uint16_t) netGetRand();
-
-   //Successful initialization
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
@@ -414,6 +440,11 @@ void coapClientDeinit(CoapClientContext *context)
    {
       //Close connection
       coapClientCloseConnection(context);
+
+#if (COAP_CLIENT_DTLS_SUPPORT == ENABLED)
+      //Release DTLS session state
+      tlsFreeSessionState(&context->dtlsSession);
+#endif
 
       //Release previously allocated resources
       osDeleteMutex(&context->mutex);

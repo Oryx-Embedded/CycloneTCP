@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _MQTT_SN_CLIENT_H
@@ -242,7 +242,7 @@ struct _MqttSnClientContext
    Socket *socket;                                    ///<Underlying TCP socket
 #if (MQTT_SN_CLIENT_DTLS_SUPPORT == ENABLED)
    TlsContext *dtlsContext;                           ///<DTLS context
-   TlsSession dtlsSession;                            ///<DTLS session
+   TlsSessionState dtlsSession;                       ///<DTLS session state
    MqttSnClientDtlsInitCallback dtlsInitCallback;     ///<DTLS initialization callback
 #endif
    MqttSnClientPublishCallback publishCallback;

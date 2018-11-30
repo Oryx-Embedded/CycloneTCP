@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -451,6 +451,12 @@ void httpParseHeaderField(HttpConnection *connection,
       //Get the length of the body data
       connection->request.contentLength = atoi(value);
    }
+   //Accept-Encoding field header?
+   else if(!strcasecmp(name, "Accept-Encoding"))
+   {
+      //Parse Content-Type header field
+      httpParseAcceptEncodingField(connection, value);
+   }
    //Authorization header field?
    else if(!strcasecmp(name, "Authorization"))
    {
@@ -592,6 +598,42 @@ void httpParseContentTypeField(HttpConnection *connection,
 
 
 /**
+ * @brief Parse Accept-Encoding header field
+ * @param[in] connection Structure representing an HTTP connection
+ * @param[in] value Accept-Encoding field value
+ **/
+
+void httpParseAcceptEncodingField(HttpConnection *connection,
+   char_t *value)
+{
+#if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
+   char_t *p;
+   char_t *token;
+
+   //Get the first value of the list
+   token = strtok_r(value, ",", &p);
+
+   //Parse the comma-separated list
+   while(token != NULL)
+   {
+      //Trim whitespace characters
+      value = strTrimWhitespace(token);
+
+      //Check current value
+      if(!strcasecmp(value, "gzip"))
+      {
+         //gzip compression is supported
+         connection->request.acceptGzipEncoding = TRUE;
+      }
+
+      //Get next value
+      token = strtok_r(NULL, ",", &p);
+   }
+#endif
+}
+
+
+/**
  * @brief Read chunk-size field from the input stream
  * @param[in] connection Structure representing an HTTP connection
  **/
@@ -687,6 +729,11 @@ void httpInitResponseHeader(HttpConnection *connection)
    connection->response.location = NULL;
    connection->response.contentType = mimeGetType(connection->request.uri);
    connection->response.chunkedEncoding = TRUE;
+
+#if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
+   //Do not use gzip encoding
+   connection->response.gzipEncoding = FALSE;
+#endif
 
 #if (HTTP_SERVER_PERSISTENT_CONN_SUPPORT == ENABLED)
    //Persistent connections are accepted
@@ -818,6 +865,15 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       p += sprintf(p, "Content-Type: %s\r\n", connection->response.contentType);
    }
 
+#if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
+   //Use gzip encoding?
+   if(connection->response.gzipEncoding)
+   {
+      //Set Transfer-Encoding field
+      p += sprintf(p, "Content-Encoding: gzip\r\n");
+   }
+#endif
+
    //Use chunked encoding transfer?
    if(connection->response.chunkedEncoding)
    {
@@ -857,7 +913,7 @@ error_t httpSend(HttpConnection *connection,
    //Check whether a secure connection is being used
    if(connection->tlsContext != NULL)
    {
-      //Use SSL/TLS to transmit data to the client
+      //Use TLS to transmit data to the client
       error = tlsWrite(connection->tlsContext, data, length, NULL, flags);
    }
    else
@@ -905,7 +961,7 @@ error_t httpReceive(HttpConnection *connection,
    //Check whether a secure connection is being used
    if(connection->tlsContext != NULL)
    {
-      //Use SSL/TLS to receive data from the client
+      //Use TLS to receive data from the client
       error = tlsRead(connection->tlsContext, data, size, received, flags);
    }
    else

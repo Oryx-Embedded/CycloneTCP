@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -65,6 +65,8 @@ void modbusServerGetDefaultSettings(ModbusServerSettings *settings)
    settings->readRegCallback = NULL;
    //Set register value callback function
    settings->writeRegValueCallback = NULL;
+   //PDU processing callback
+   settings->processPduCallback = NULL;
 }
 
 

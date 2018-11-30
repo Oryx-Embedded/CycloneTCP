@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _NDP_ROUTER_ADV_H
@@ -142,7 +142,10 @@ extern systime_t ndpRouterAdvTickCounter;
 
 //RA service related functions
 void ndpRouterAdvGetDefaultSettings(NdpRouterAdvSettings *settings);
-error_t ndpRouterAdvInit(NdpRouterAdvContext *context, const NdpRouterAdvSettings *settings);
+
+error_t ndpRouterAdvInit(NdpRouterAdvContext *context,
+   const NdpRouterAdvSettings *settings);
+
 error_t ndpRouterAdvStart(NdpRouterAdvContext *context);
 error_t ndpRouterAdvStop(NdpRouterAdvContext *context);
 

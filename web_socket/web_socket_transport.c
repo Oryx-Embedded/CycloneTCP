@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -72,14 +72,14 @@ error_t webSocketOpenConnection(WebSocket *webSocket)
       return error;
 
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
-      //Use SSL/TLS to secure the connection?
+      //Use TLS to secure the connection?
       if(webSocket->tlsInitCallback != NULL)
       {
          TlsConnectionEnd connectionEnd;
 
-         //Allocate SSL/TLS context
+         //Allocate TLS context
          webSocket->tlsContext = tlsInit();
-         //Failed to allocate SSL/TLS context?
+         //Failed to allocate TLS context?
          if(webSocket->tlsContext == NULL)
             return ERROR_OUT_OF_MEMORY;
 
@@ -101,20 +101,16 @@ error_t webSocketOpenConnection(WebSocket *webSocket)
          if(error)
             return error;
 
-         //Restore SSL/TLS session, if any
-         if(webSocket->tlsSession.idLength > 0)
-         {
-            //Restore SSL/TLS session
-            error = tlsRestoreSession(webSocket->tlsContext, &webSocket->tlsSession);
-            //Any error to report?
-            if(error)
-               return error;
-         }
+         //Restore TLS session, if any
+         error = tlsRestoreSessionState(webSocket->tlsContext, &webSocket->tlsSession);
+         //Any error to report?
+         if(error)
+            return error;
 
          //Invoke user-defined callback, if any
          if(webSocket->tlsInitCallback != NULL)
          {
-            //Perform SSL/TLS related initialization
+            //Perform TLS related initialization
             error = webSocket->tlsInitCallback(webSocket, webSocket->tlsContext);
             //Any error to report?
             if(error)
@@ -146,13 +142,13 @@ error_t webSocketEstablishConnection(WebSocket *webSocket,
    error = socketConnect(webSocket->socket, serverIpAddr, serverPort);
 
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
-   //Use SSL/TLS to secure the connection?
+   //Use TLS to secure the connection?
    if(webSocket->tlsInitCallback != NULL)
    {
       //Check status code
       if(!error)
       {
-         //Establish a SSL/TLS connection
+         //Establish a TLS connection
          error = tlsConnect(webSocket->tlsContext);
       }
    }
@@ -181,7 +177,7 @@ error_t webSocketShutdownConnection(WebSocket *webSocket)
    //Check whether a secure connection is being used
    if(webSocket->tlsContext != NULL)
    {
-      //Shutdown SSL/TLS connection
+      //Shutdown TLS connection
       error = tlsShutdown(webSocket->tlsContext);
    }
 #endif
@@ -221,10 +217,10 @@ void webSocketCloseConnection(WebSocket *webSocket)
    //Check whether a secure connection is being used
    if(webSocket->tlsContext != NULL)
    {
-      //Save SSL/TLS session
-      tlsSaveSession(webSocket->tlsContext, &webSocket->tlsSession);
+      //Save TLS session
+      tlsSaveSessionState(webSocket->tlsContext, &webSocket->tlsSession);
 
-      //Release SSL/TLS context
+      //Release TLS context
       tlsFree(webSocket->tlsContext);
       webSocket->tlsContext = NULL;
    }
@@ -258,7 +254,7 @@ error_t webSocketSendData(WebSocket *webSocket, const void *data,
    //Check whether a secure connection is being used
    if(webSocket->tlsContext != NULL)
    {
-      //Use SSL/TLS to transmit data to the client
+      //Use TLS to transmit data
       error = tlsWrite(webSocket->tlsContext, data, length, written, flags);
    }
    else
@@ -292,7 +288,7 @@ error_t webSocketReceiveData(WebSocket *webSocket, void *data,
    //Check whether a secure connection is being used
    if(webSocket->tlsContext != NULL)
    {
-      //Use SSL/TLS to receive data from the client
+      //Use TLS to receive data
       error = tlsRead(webSocket->tlsContext, data, size, received, flags);
    }
    else

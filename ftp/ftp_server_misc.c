@@ -1,6 +1,6 @@
 /**
  * @file ftp_server_misc.c
- * @brief FTP server (miscellaneous functions)
+ * @brief Helper functions for FTP server
  *
  * @section License
  *
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -110,6 +110,7 @@ void ftpServerCloseConnection(FtpServerContext *context,
             //Release previously allocated resources
             if(connection->file != NULL)
                fsCloseFile(connection->file);
+
             if(connection->dir != NULL)
                fsCloseDir(connection->dir);
 
@@ -300,14 +301,14 @@ error_t ftpServerOpenDataConnection(FtpServerContext *context,
       if(error)
          break;
 
-      //Change the size of the TX buffer
+      //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(connection->dataSocket,
          FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
-      //Change the size of the RX buffer
+      //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(connection->dataSocket,
          FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
       //Any error to report?

@@ -31,7 +31,7 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -102,7 +102,7 @@ error_t smtpSendMail(const SmtpAuthInfo *authInfo, const SmtpMail *mail)
    }
 
 #if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-   //Do not use SSL/TLS for the moment
+   //Do not use TLS for the moment
    context->tlsContext = NULL;
 #endif
 
@@ -132,7 +132,7 @@ error_t smtpSendMail(const SmtpAuthInfo *authInfo, const SmtpMail *mail)
          break;
 
 #if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-      //Open a secure SSL/TLS session?
+      //Open a secure TLS session?
       if(authInfo->useTls)
       {
          //Initialize TLS context
@@ -402,9 +402,9 @@ error_t smtpSendMail(const SmtpAuthInfo *authInfo, const SmtpMail *mail)
 #if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
    if(context->tlsContext != NULL)
    {
-      //Gracefully close SSL/TLS session
+      //Gracefully close TLS session
       tlsShutdown(context->tlsContext);
-      //Release SSL/TLS context
+      //Release TLS context
       tlsFree(context->tlsContext);
    }
 #endif
@@ -918,7 +918,7 @@ error_t smtpWrite(SmtpClientContext *context, const void *data, size_t length, u
    //Check whether a secure connection is being used
    if(context->tlsContext != NULL)
    {
-      //Use SSL/TLS to transmit data to the SMTP server
+      //Use TLS to transmit data to the SMTP server
       return tlsWrite(context->tlsContext, data, length, NULL, flags);
    }
    else
@@ -946,7 +946,7 @@ error_t smtpRead(SmtpClientContext *context, void *data, size_t size, size_t *re
    //Check whether a secure connection is being used
    if(context->tlsContext != NULL)
    {
-      //Use SSL/TLS to receive data from the SMTP server
+      //Use TLS to receive data from the SMTP server
       return tlsRead(context->tlsContext, data, size, received, flags);
    }
    else

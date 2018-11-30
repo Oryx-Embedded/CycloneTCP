@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -142,6 +142,14 @@ typedef error_t (*ModbusServerWriteRegCallback)(uint16_t address,
 
 
 /**
+ * @brief PDU processing callback function
+ **/
+
+typedef error_t (*ModbusServerProcessPduCallback)(const uint8_t *request,
+   size_t requestLen, uint8_t *response, size_t *responseLen);
+
+
+/**
  * @brief Modbus/TCP server settings
  **/
 
@@ -156,6 +164,7 @@ typedef struct
    ModbusServerWriteCoilCallback writeCoilCallback;    ///<Set coil state callback function
    ModbusServerReadRegCallback readRegCallback;        ///<Get register value callback function
    ModbusServerWriteRegCallback writeRegValueCallback; ///<Set register value callback function
+   ModbusServerProcessPduCallback processPduCallback;  ///<PDU processing callback
 } ModbusServerSettings;
 
 

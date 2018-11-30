@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -2066,7 +2066,7 @@ void tcpDumpHeader(const TcpHeader *segment, size_t length, uint32_t iss,
    uint32_t irs)
 {
    //Dump TCP header contents
-   TRACE_DEBUG("%" PRIu16 " > %" PRIu16 ": %c%c%c%c%c%c seq=%" PRIu32 "(%" PRIu32 ")"
+   TRACE_DEBUG("%" PRIu16 " > %" PRIu16 ": %c%c%c%c%c%c seq=%" PRIu32 "(%" PRIu32 ") "
       "ack=%" PRIu32 "(%" PRIu32 ") win=%" PRIu16 " len=%" PRIuSIZE "\r\n",
       ntohs(segment->srcPort), ntohs(segment->destPort),
       (segment->flags & TCP_FLAG_FIN) ? 'F' : '-',

@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.8.6
+ * @version 1.9.0
  **/
 
 //Switch to the appropriate trace level
@@ -49,12 +49,27 @@
 
 error_t mqttSnClientInit(MqttSnClientContext *context)
 {
+#if (MQTT_SN_CLIENT_DTLS_SUPPORT == ENABLED)
+   error_t error;
+#endif
+
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Clear MQTT-SN client context
    memset(context, 0, sizeof(MqttSnClientContext));
+
+#if (MQTT_SN_CLIENT_DTLS_SUPPORT == ENABLED)
+   //Initialize DTLS session state
+   error = tlsInitSessionState(&context->dtlsSession);
+   //Any error to report?
+   if(error)
+      return error;
+#endif
+
+   //Initialize MQTT-SN client state
+   context->state = MQTT_SN_CLIENT_STATE_DISCONNECTED;
 
    //Default transport protocol
    context->transportProtocol = MQTT_SN_TRANSPORT_PROTOCOL_UDP;
@@ -63,8 +78,6 @@ error_t mqttSnClientInit(MqttSnClientContext *context)
    //Default keep-alive time interval
    context->keepAlive = MQTT_SN_CLIENT_DEFAULT_KEEP_ALIVE;
 
-   //Initialize MQTT-SN client state
-   context->state = MQTT_SN_CLIENT_STATE_DISCONNECTED;
    //Initialize message identifier
    context->msgId = 0;
 
@@ -1451,6 +1464,11 @@ void mqttSnClientDeinit(MqttSnClientContext *context)
    {
       //Close connection
       mqttSnClientCloseConnection(context);
+
+#if (MQTT_SN_CLIENT_DTLS_SUPPORT == ENABLED)
+      //Release DTLS session state
+      tlsFreeSessionState(&context->dtlsSession);
+#endif
 
       //Clear MQTT-SN client context
       memset(context, 0, sizeof(MqttSnClientContext));
