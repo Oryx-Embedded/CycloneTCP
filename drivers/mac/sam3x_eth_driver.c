@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -138,16 +140,21 @@ error_t sam3xEthInit(NetInterface *interface)
    if(error)
       return error;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    EMAC->EMAC_SA[0].EMAC_SAxB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    EMAC->EMAC_SA[0].EMAC_SAxT = interface->macAddr.w[2];
 
-   //Configure the receive filter
-   EMAC->EMAC_NCFGR |= EMAC_NCFGR_UNI | EMAC_NCFGR_MTI;
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   EMAC->EMAC_SA[1].EMAC_SAxB = 0;
+   EMAC->EMAC_SA[2].EMAC_SAxB = 0;
+   EMAC->EMAC_SA[3].EMAC_SAxB = 0;
 
    //Initialize hash table
    EMAC->EMAC_HRB = 0;
    EMAC->EMAC_HRT = 0;
+
+   //Configure the receive filter
+   EMAC->EMAC_NCFGR |= EMAC_NCFGR_BIG | EMAC_NCFGR_MTI;
 
    //Initialize buffer descriptors
    sam3xEthInitBufferDesc(interface);
@@ -580,21 +587,28 @@ error_t sam3xEthReceivePacket(NetInterface *interface)
 error_t sam3xEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
+   uint_t j;
    uint_t k;
    uint8_t *p;
    uint32_t hashTable[2];
+   MacAddr unicastMacAddr[3];
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating SAM3X hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Clear hash table
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
+   //The hash table is used for multicast address filtering
    hashTable[0] = 0;
    hashTable[1] = 0;
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
       entry = &interface->macAddrFilter[i];
@@ -602,26 +616,78 @@ error_t sam3xEthUpdateMacAddrFilter(NetInterface *interface)
       //Valid entry?
       if(entry->refCount > 0)
       {
-         //Point to the MAC address
-         p = entry->addr.b;
+         //Multicast address?
+         if(macIsMulticastAddr(&entry->addr))
+         {
+            //Point to the MAC address
+            p = entry->addr.b;
 
-         //Apply the hash function
-         k = (p[0] >> 6) ^ p[0];
-         k ^= (p[1] >> 4) ^ (p[1] << 2);
-         k ^= (p[2] >> 2) ^ (p[2] << 4);
-         k ^= (p[3] >> 6) ^ p[3];
-         k ^= (p[4] >> 4) ^ (p[4] << 2);
-         k ^= (p[5] >> 2) ^ (p[5] << 4);
+            //Apply the hash function
+            k = (p[0] >> 6) ^ p[0];
+            k ^= (p[1] >> 4) ^ (p[1] << 2);
+            k ^= (p[2] >> 2) ^ (p[2] << 4);
+            k ^= (p[3] >> 6) ^ p[3];
+            k ^= (p[4] >> 4) ^ (p[4] << 2);
+            k ^= (p[5] >> 2) ^ (p[5] << 4);
 
-         //The hash value is reduced to a 6-bit index
-         k &= 0x3F;
+            //The hash value is reduced to a 6-bit index
+            k &= 0x3F;
 
-         //Update hash table contents
-         hashTable[k / 32] |= (1 << (k % 32));
+            //Update hash table contents
+            hashTable[k / 32] |= (1 << (k % 32));
+         }
+         else
+         {
+            //Up to 3 additional MAC addresses can be specified
+            if(j < 3)
+            {
+               //Save the unicast address
+               unicastMacAddr[j++] = entry->addr;
+            }
+         }
       }
    }
 
-   //Write the hash table
+   //Configure the first unicast address filter
+   if(j >= 1)
+   {
+      //The addresse is activated when SAT register is written
+      EMAC->EMAC_SA[1].EMAC_SAxB = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+      EMAC->EMAC_SA[1].EMAC_SAxT = unicastMacAddr[0].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      EMAC->EMAC_SA[1].EMAC_SAxB = 0;
+   }
+
+   //Configure the second unicast address filter
+   if(j >= 2)
+   {
+      //The addresse is activated when SAT register is written
+      EMAC->EMAC_SA[2].EMAC_SAxB = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+      EMAC->EMAC_SA[2].EMAC_SAxT = unicastMacAddr[1].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      EMAC->EMAC_SA[2].EMAC_SAxB = 0;
+   }
+
+   //Configure the third unicast address filter
+   if(j >= 3)
+   {
+      //The addresse is activated when SAT register is written
+      EMAC->EMAC_SA[3].EMAC_SAxB = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+      EMAC->EMAC_SA[3].EMAC_SAxT = unicastMacAddr[2].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      EMAC->EMAC_SA[3].EMAC_SAxB = 0;
+   }
+
+   //Configure the multicast address filter
    EMAC->EMAC_HRB = hashTable[0];
    EMAC->EMAC_HRT = hashTable[1];
 

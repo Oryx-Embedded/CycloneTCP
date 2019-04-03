@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -163,7 +165,7 @@ error_t lpc23xxEthInit(NetInterface *interface)
    //Initialize TX and RX descriptor arrays
    lpc23xxEthInitDesc(interface);
 
-   //Set the MAC address
+   //Set the MAC address of the station
    MAC_SA0 = interface->macAddr.w[2];
    MAC_SA1 = interface->macAddr.w[1];
    MAC_SA2 = interface->macAddr.w[0];
@@ -177,7 +179,7 @@ error_t lpc23xxEthInit(NetInterface *interface)
       RFC_ACCEPT_MULTICAST_HASH_EN | RFC_ACCEPT_BROADCAST_EN;
 
    //Program the MAXF register with the maximum frame length to be accepted
-   MAC_MAXF = 1518;
+   MAC_MAXF = LPC23XX_ETH_RX_BUFFER_SIZE;
 
    //Reset EMAC interrupt flags
    MAC_INTCLEAR  = 0xFFFF;
@@ -552,7 +554,7 @@ error_t lpc23xxEthUpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating LPC23xx hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
    hashTable[0] = 0;

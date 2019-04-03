@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -105,7 +107,9 @@ error_t mcf5225xEthInit(NetInterface *interface)
    while(MCF_FEC_ECR & MCF_FEC_ECR_RESET);
 
    //Receive control register
-   MCF_FEC_RCR = MCF_FEC_RCR_MAX_FL(1518) | MCF_FEC_RCR_MII_MODE;
+   MCF_FEC_RCR = MCF_FEC_RCR_MAX_FL(MCF5225X_ETH_RX_BUFFER_SIZE) |
+      MCF_FEC_RCR_MII_MODE;
+
    //Transmit control register
    MCF_FEC_TCR = 0;
    //Configure MDC clock frequency
@@ -117,12 +121,12 @@ error_t mcf5225xEthInit(NetInterface *interface)
    if(error)
       return error;
 
-   //Set the MAC address (upper 16 bits)
+   //Set the MAC address of the station (upper 16 bits)
    value = interface->macAddr.b[5];
    value |= (interface->macAddr.b[4] << 8);
    MCF_FEC_PAUR = MCF_FEC_PAUR_PADDR2(value) | MCF_FEC_PAUR_TYPE(0x8808);
 
-   //Set the MAC address (lower 32 bits)
+   //Set the MAC address of the station (lower 32 bits)
    value = interface->macAddr.b[3];
    value |= (interface->macAddr.b[2] << 8);
    value |= (interface->macAddr.b[1] << 16);
@@ -605,7 +609,7 @@ error_t mcf5225xEthUpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating MCF5225x hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table (unicast address filtering)
    unicastHashTable[0] = 0;

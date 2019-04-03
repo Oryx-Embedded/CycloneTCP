@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -163,7 +165,7 @@ error_t lpc178xEthInit(NetInterface *interface)
    //Initialize TX and RX descriptor arrays
    lpc178xEthInitDesc(interface);
 
-   //Set the MAC address
+   //Set the MAC address of the station
    LPC_EMAC->SA0 = interface->macAddr.w[2];
    LPC_EMAC->SA1 = interface->macAddr.w[1];
    LPC_EMAC->SA2 = interface->macAddr.w[0];
@@ -177,7 +179,7 @@ error_t lpc178xEthInit(NetInterface *interface)
       RFC_ACCEPT_MULTICAST_HASH_EN | RFC_ACCEPT_BROADCAST_EN;
 
    //Program the MAXF register with the maximum frame length to be accepted
-   LPC_EMAC->MAXF = 1518;
+   LPC_EMAC->MAXF = LPC178X_ETH_RX_BUFFER_SIZE;
 
    //Reset EMAC interrupt flags
    LPC_EMAC->IntClear  = 0xFFFF;
@@ -562,7 +564,7 @@ error_t lpc178xEthUpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating LPC178x hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
    hashTable[0] = 0;

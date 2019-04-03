@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Dependencies
@@ -533,9 +535,11 @@ error_t mib2GetIpAddrEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
    error_t error;
-   uint_t i;
    size_t n;
+   uint_t i;
+   uint_t index;
    Ipv4Addr ipAddr;
+   Ipv4AddrEntry *entry;
    NetInterface *interface;
 
    //Point to the instance identifier
@@ -552,42 +556,52 @@ error_t mib2GetIpAddrEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Loop through network interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
    {
       //Point to the current interface
-      interface = &netInterface[i];
+      interface = &netInterface[index - 1];
 
-      //Check address state
-      if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_VALID)
+      //Loop through the list of IPv4 addresses assigned to the interface
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
       {
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
+
          //Compare the current address against the IP address used as
          //instance identifier
-         if(interface->ipv4Context.addr == ipAddr)
+         if(entry->state == IPV4_ADDR_STATE_VALID &&
+            entry->addr == ipAddr)
+         {
             break;
+         }
       }
+
+      //IPv4 address found?
+      if(i < IPV4_ADDR_LIST_SIZE)
+         break;
    }
 
    //IP address not assigned to any interface?
-   if(i >= NET_INTERFACE_COUNT)
+   if(index > NET_INTERFACE_COUNT)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ipAdEntAddr object?
    if(!strcmp(object->name, "ipAdEntAddr"))
    {
       //Get object value
-      ipv4CopyAddr(value->ipAddr, &interface->ipv4Context.addr);
+      ipv4CopyAddr(value->ipAddr, &entry->addr);
    }
    //ipAdEntIfIndex object?
    else if(!strcmp(object->name, "ipAdEntIfIndex"))
    {
       //Get object value
-      value->integer = interface->id + 1;
+      value->integer = index;
    }
    //ipAdEntNetMask object?
    else if(!strcmp(object->name, "ipAdEntNetMask"))
    {
       //Get object value
-      ipv4CopyAddr(value->ipAddr, &interface->ipv4Context.subnetMask);
+      ipv4CopyAddr(value->ipAddr, &entry->subnetMask);
    }
    //ipAdEntBcastAddr object?
    else if(!strcmp(object->name, "ipAdEntBcastAddr"))
@@ -629,7 +643,10 @@ error_t mib2GetNextIpAddrEntry(const MibObject *object, const uint8_t *oid,
    error_t error;
    uint_t i;
    size_t n;
+   uint_t index;
+   bool_t acceptable;
    Ipv4Addr ipAddr;
+   Ipv4AddrEntry *entry;
    NetInterface *interface;
 
    //Initialize IP address
@@ -643,36 +660,45 @@ error_t mib2GetNextIpAddrEntry(const MibObject *object, const uint8_t *oid,
    memcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
    {
       //Point to the current interface
-      interface = &netInterface[i];
+      interface = &netInterface[index - 1];
 
-      //Check address state
-      if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_VALID)
+      //Loop through the list of IPv4 addresses assigned to the interface
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
       {
-         //Append the instance identifier to the OID prefix
-         n = object->oidLen;
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
 
-         //ipAdEntAddr is used as instance identifier
-         error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, interface->ipv4Context.addr);
-         //Any error to report?
-         if(error)
-            return error;
-
-         //Check whether the resulting object identifier lexicographically
-         //follows the specified OID
-         if(oidComp(nextOid, n, oid, oidLen) > 0)
+         //Valid IPv4 address?
+         if(entry->state == IPV4_ADDR_STATE_VALID)
          {
-            //Save the closest object identifier that follows the specified
-            //OID in lexicographic order
-            if(ipAddr == IPV4_UNSPECIFIED_ADDR)
+            //Append the instance identifier to the OID prefix
+            n = object->oidLen;
+
+            //ipAdEntAddr is used as instance identifier
+            error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, entry->addr);
+            //Any error to report?
+            if(error)
+               return error;
+
+            //Check whether the resulting object identifier lexicographically
+            //follows the specified OID
+            if(oidComp(nextOid, n, oid, oidLen) > 0)
             {
-               ipAddr = interface->ipv4Context.addr;
-            }
-            else if(ntohl(interface->ipv4Context.addr) < ntohl(ipAddr))
-            {
-               ipAddr = interface->ipv4Context.addr;
+               //Perform lexicographic comparison
+               if(ipAddr == IPV4_UNSPECIFIED_ADDR)
+                  acceptable = TRUE;
+               else if(ntohl(entry->addr) < ntohl(ipAddr))
+                  acceptable = TRUE;
+               else
+                  acceptable = FALSE;
+
+               //Save the closest object identifier that follows the specified
+               //OID in lexicographic order
+               if(acceptable)
+                  ipAddr = entry->addr;
             }
          }
       }
@@ -836,7 +862,7 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
    uint_t i;
    uint_t j;
    size_t n;
-   uint32_t index;
+   uint_t index;
    bool_t acceptable;
    Ipv4Addr ipAddr;
    NetInterface *interface;

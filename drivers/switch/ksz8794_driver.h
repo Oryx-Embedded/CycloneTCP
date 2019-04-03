@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _KSZ8794_DRIVER_H
@@ -37,10 +39,10 @@
 #define KSZ8794_PORT2                       2
 #define KSZ8794_PORT3                       3
 
-//SPI commands
+//SPI command byte
 #define KSZ8794_SPI_CMD_WRITE               0x4000
 #define KSZ8794_SPI_CMD_READ                0x6000
-#define KSZ8794_SPI_ADDR_MASK               0x1FFE
+#define KSZ8794_SPI_CMD_ADDR                0x1FFE
 
 //KSZ8794 PHY registers
 #define KSZ8794_PHY_REG_BMCR                0x00
@@ -142,8 +144,6 @@
 
 //KSZ8794 switch registers
 #define KSZ8794_SW_REG_GLOBAL_CTRL10        12
-#define KSZ8794_SW_REG_PORT_CTRL0(n)        (16 + (((n) - 1) * 16))
-#define KSZ8794_SW_REG_PORT_CTRL1(n)        (17 + (((n) - 1) * 16))
 #define KSZ8794_SW_REG_PORT_CTRL2(n)        (18 + (((n) - 1) * 16))
 #define KSZ8794_SW_REG_PORT_STAT2(n)        (30 + (((n) - 1) * 16))
 #define KSZ8794_SW_REG_PORT_STAT3(n)        (31 + (((n) - 1) * 16))
@@ -155,7 +155,7 @@
 //Port control 2 register
 #define PORT_CTRL2_USER_PRIO_CEILING        (1 << 7)
 #define PORT_CTRL2_INGRESS_VLAN_FILT        (1 << 6)
-#define PORT_CTRL2_DISCARD_NON_PVID_PACKET  (1 << 5)
+#define PORT_CTRL2_DISCARD_NON_PVID_PACKETS (1 << 5)
 #define PORT_CTRL2_FORCE_FLOW_CTRL          (1 << 4)
 #define PORT_CTRL2_BACK_PRESSURE_EN         (1 << 3)
 #define PORT_CTRL2_TRANSMIT_EN              (1 << 2)
@@ -163,26 +163,26 @@
 #define PORT_CTRL2_LEARNING_DIS             (1 << 0)
 
 //Port status 2 register
-#define PORT_STAT2_LINK_MDIX_STATUS         (1 << 7)
-#define PORT_STAT2_AUTO_NEGOTIATION_DONE    (1 << 6)
+#define PORT_STAT2_MDIX_STATUS              (1 << 7)
+#define PORT_STAT2_AN_DONE                  (1 << 6)
 #define PORT_STAT2_LINK_GOOD                (1 << 5)
 
 //Port status 3 register
 #define PORT_STAT3_PHY_LOOPBACK             (1 << 7)
 #define PORT_STAT3_PHY_PHY_ISOLATE          (1 << 5)
-#define PORT_STAT3_PHY_SOFT_RESET           (1 << 4)
-#define PORT_STAT3_PHY_FORCE_LINK           (1 << 3)
-#define PORT_STAT3_PHY_OP_MODE2             (1 << 2)
-#define PORT_STAT3_PHY_OP_MODE1             (1 << 1)
-#define PORT_STAT3_PHY_OP_MODE0             (1 << 0)
+#define PORT_STAT3_SOFT_RESET               (1 << 4)
+#define PORT_STAT3_FORCE_LINK               (1 << 3)
+#define PORT_STAT3_OP_MODE2                 (1 << 2)
+#define PORT_STAT3_OP_MODE1                 (1 << 1)
+#define PORT_STAT3_OP_MODE0                 (1 << 0)
 
 //Operation mode indication
-#define PORT_STAT3_PHY_OP_MODE_MASK         (7 << 0)
-#define PORT_STAT3_PHY_OP_MODE_AN           (1 << 0)
-#define PORT_STAT3_PHY_OP_MODE_10BT         (2 << 0)
-#define PORT_STAT3_PHY_OP_MODE_100BTX       (3 << 0)
-#define PORT_STAT3_PHY_OP_MODE_10BT_FD      (5 << 0)
-#define PORT_STAT3_PHY_OP_MODE_100BTX_FD    (6 << 0)
+#define PORT_STAT3_OP_MODE_MASK             (7 << 0)
+#define PORT_STAT3_OP_MODE_AN               (1 << 0)
+#define PORT_STAT3_OP_MODE_10BT             (2 << 0)
+#define PORT_STAT3_OP_MODE_100BTX           (3 << 0)
+#define PORT_STAT3_OP_MODE_10BT_FD          (5 << 0)
+#define PORT_STAT3_OP_MODE_100BTX_FD        (6 << 0)
 
 //Tail tag encoding
 #define KSZ8794_TAIL_TAG_ENCODE(port) (0x40 | (1 << (((port) - 1) & 0x03)))
@@ -209,25 +209,24 @@ void ksz8794DisableIrq(NetInterface *interface);
 
 void ksz8794EventHandler(NetInterface *interface);
 
-error_t ksz8794TagFrame(NetInterface **interface, NetBuffer *buffer,
-   size_t *offset, uint16_t *type);
+error_t ksz8794TagFrame(NetInterface *interface, NetBuffer *buffer,
+   size_t *offset, uint8_t port, uint16_t *type);
 
-error_t ksz8794UntagFrame(NetInterface **interface, uint8_t **frame,
-   size_t *length);
+error_t ksz8794UntagFrame(NetInterface *interface, uint8_t **frame,
+   size_t *length, uint8_t *port);
 
-void ksz8794WritePhyReg(NetInterface *interface,
-   uint8_t port, uint8_t address, uint16_t data);
+void ksz8794WritePhyReg(NetInterface *interface, uint8_t port,
+   uint8_t address, uint16_t data);
 
-uint16_t ksz8794ReadPhyReg(NetInterface *interface,
-   uint8_t port, uint8_t address);
+uint16_t ksz8794ReadPhyReg(NetInterface *interface, uint8_t port,
+   uint8_t address);
 
 void ksz8794DumpPhyReg(NetInterface *interface, uint8_t port);
 
-void ksz8794WriteSwitchReg(NetInterface *interface,
-   uint16_t address, uint8_t data);
+void ksz8794WriteSwitchReg(NetInterface *interface, uint16_t address,
+   uint8_t data);
 
-uint8_t ksz8794ReadSwitchReg(NetInterface *interface,
-   uint16_t address);
+uint8_t ksz8794ReadSwitchReg(NetInterface *interface, uint16_t address);
 
 void ksz8794DumpSwitchReg(NetInterface *interface);
 

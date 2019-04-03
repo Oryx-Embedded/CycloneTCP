@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -31,6 +33,7 @@
 
 //Dependencies
 #include <stdlib.h>
+#include "ipv4/ipv4_misc.h"
 #include "ftp/ftp_server.h"
 #include "ftp/ftp_server_events.h"
 #include "ftp/ftp_server_commands.h"
@@ -930,7 +933,8 @@ void ftpServerProcessPasv(FtpServerContext *context,
    FtpClientConnection *connection, char_t *param)
 {
    error_t error;
-   uint8_t *p;
+   size_t n;
+   char_t *p;
    IpAddr ipAddr;
    uint16_t port;
 
@@ -1018,7 +1022,7 @@ void ftpServerProcessPasv(FtpServerContext *context,
 
       //If the server is behind a NAT router, make sure the server knows its
       //external IP address
-      if(!ipv4IsInLocalSubnet(connection->interface, ipAddr.ipv4Addr) &&
+      if(!ipv4IsOnLink(connection->interface, ipAddr.ipv4Addr) &&
          context->settings.publicIpv4Addr != IPV4_UNSPECIFIED_ADDR)
       {
          //The server must return the public IP address in the PASV reply
@@ -1052,13 +1056,18 @@ void ftpServerProcessPasv(FtpServerContext *context,
       //Update data connection state
       connection->dataState = FTP_DATA_STATE_LISTEN;
 
-      //Cast the IPv4 address to byte array
-      p = (uint8_t *) &ipAddr;
-
       //Format response message
-      sprintf(connection->response, "227 Entering passive mode (%" PRIu8
-         ",%" PRIu8 ",%" PRIu8 ",%" PRIu8 ",%" PRIu8 ",%" PRIu8 ")\r\n",
-         p[0], p[1], p[2], p[3], MSB(port), LSB(port));
+      n = sprintf(connection->response, "227 Entering passive mode (");
+
+      //Append host address
+      ipv4AddrToString(ipAddr.ipv4Addr, connection->response + n);
+      //Change dots to commas
+      strReplaceChar(connection->response, '.', ',');
+
+      //Point to the end of the resulting string
+      p = connection->response + strlen(connection->response);
+      //Append port number
+      sprintf(p, ",%" PRIu8 ",%" PRIu8 ")\r\n", MSB(port), LSB(port));
    }
    else
    {

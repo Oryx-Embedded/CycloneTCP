@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -67,9 +69,11 @@ error_t coapClientProcessEvents(CoapClientContext *context, systime_t timeout)
    currentTime = osGetSystemTime();
    startTime = currentTime;
 
+#if (NET_RTOS_SUPPORT == ENABLED)
    //Process events
    do
    {
+#endif
       //Maximum time to wait for an incoming datagram
       if(timeCompare(startTime + timeout, currentTime) > 0)
          d = startTime + timeout - currentTime;
@@ -172,8 +176,10 @@ error_t coapClientProcessEvents(CoapClientContext *context, systime_t timeout)
          }
       }
 
+#if (NET_RTOS_SUPPORT == ENABLED)
       //Check whether the timeout has elapsed
    } while(error == NO_ERROR && context->response.length == 0 && d > 0);
+#endif
 
    //Return status code
    return error;

@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _IPV6_MISC_H
@@ -54,7 +56,8 @@ void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
    uint_t length, bool_t onLinkFlag, bool_t autonomousFlag,
    uint32_t validLifetime, uint32_t preferredLifetime);
 
-void ipv6RemovePrefix(NetInterface *interface, const Ipv6Addr *prefix, uint_t length);
+void ipv6RemovePrefix(NetInterface *interface, const Ipv6Addr *prefix,
+   uint_t length);
 
 void ipv6AddDefaultRouter(NetInterface *interface, const Ipv6Addr *addr,
    uint16_t lifetime, uint8_t preference);
@@ -73,14 +76,18 @@ error_t ipv6SelectSourceAddr(NetInterface **interface,
    const Ipv6Addr *destAddr, Ipv6Addr *srcAddr);
 
 bool_t ipv6IsOnLink(NetInterface *interface, const Ipv6Addr *ipAddr);
-bool_t ipv6IsTentativeAddr(NetInterface *interface, const Ipv6Addr *ipAddr);
 bool_t ipv6IsAnycastAddr(NetInterface *interface, const Ipv6Addr *ipAddr);
+bool_t ipv6IsTentativeAddr(NetInterface *interface, const Ipv6Addr *ipAddr);
+bool_t ipv6IsLocalHostAddr(const Ipv6Addr *ipAddr);
 
-bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2, size_t length);
+bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2,
+   size_t length);
 
 uint_t ipv6GetAddrScope(const Ipv6Addr *ipAddr);
 uint_t ipv6GetMulticastAddrScope(const Ipv6Addr *ipAddr);
-uint_t ipv6GetCommonPrefixLength(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2);
+
+uint_t ipv6GetCommonPrefixLength(const Ipv6Addr *ipAddr1,
+   const Ipv6Addr *ipAddr2);
 
 error_t ipv6ComputeSolicitedNodeAddr(const Ipv6Addr *ipAddr,
    Ipv6Addr *solicitedNodeAddr);
@@ -88,6 +95,12 @@ error_t ipv6ComputeSolicitedNodeAddr(const Ipv6Addr *ipAddr,
 error_t ipv6MapMulticastAddrToMac(const Ipv6Addr *ipAddr, MacAddr *macAddr);
 
 void ipv6GenerateLinkLocalAddr(const Eui64 *interfaceId, Ipv6Addr *ipAddr);
+
+void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr,
+   size_t length);
+
+void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr,
+   size_t length);
 
 //C++ guard
 #ifdef __cplusplus

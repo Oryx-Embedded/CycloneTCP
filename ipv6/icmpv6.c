@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -364,8 +366,8 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
    //Dump message contents for debugging purpose
    icmpv6DumpEchoMessage(requestHeader);
 
-   //Check whether the destination address of the Echo Request
-   //message is a multicast address
+   //Check whether the destination address of the Echo Request message is
+   //a multicast address
    if(ipv6IsMulticastAddr(&requestPseudoHeader->destAddr))
    {
       //If support for multicast Echo Request messages has been explicitly
@@ -375,9 +377,8 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
 
       //The source address of the reply must be a unicast address belonging to
       //the interface on which the multicast Echo Request message was received
-      error = ipv6SelectSourceAddr(&interface,
-         &requestPseudoHeader->srcAddr, &replyPseudoHeader.srcAddr);
-
+      error = ipv6SelectSourceAddr(&interface, &requestPseudoHeader->srcAddr,
+         &replyPseudoHeader.srcAddr);
       //Any error to report?
       if(error)
          return;
@@ -390,7 +391,6 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
 
    //Allocate memory to hold the Echo Reply message
    reply = ipAllocBuffer(sizeof(Icmpv6EchoMessage), &replyOffset);
-
    //Failed to allocate memory?
    if(reply == NULL)
       return;

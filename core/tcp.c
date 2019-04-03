@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -525,7 +527,8 @@ error_t tcpSend(Socket *socket, const uint8_t *data,
 
          //To avoid a deadlock, it is necessary to have a timeout to force
          //transmission of data, overriding the SWS avoidance algorithm. In
-         //practice, this timeout should seldom occur (see RFC 1122 4.2.3.4)
+         //practice, this timeout should seldom occur (refer to RFC 1122,
+         //section 4.2.3.4)
          if(socket->sndUser == n)
             tcpTimerStart(&socket->overrideTimer, TCP_OVERRIDE_TIMEOUT);
       }

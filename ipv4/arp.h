@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _ARP_H
@@ -211,17 +213,19 @@ error_t arpEnqueuePacket(NetInterface *interface,
 
 void arpTick(NetInterface *interface);
 
-void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket, size_t length);
+void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket,
+   size_t length);
+
 void arpProcessRequest(NetInterface *interface, ArpPacket *arpRequest);
 void arpProcessReply(NetInterface *interface, ArpPacket *arpResponse);
 
 error_t arpSendProbe(NetInterface *interface, Ipv4Addr targetIpAddr);
 
-error_t arpSendRequest(NetInterface *interface,
-   Ipv4Addr targetIpAddr, const MacAddr *destMacAddr);
+error_t arpSendRequest(NetInterface *interface, Ipv4Addr targetIpAddr,
+   const MacAddr *destMacAddr);
 
-error_t arpSendReply(NetInterface *interface, Ipv4Addr targetIpAddr,
-   const MacAddr *targetMacAddr, const MacAddr *destMacAddr);
+error_t arpSendReply(NetInterface *interface, Ipv4Addr senderIpAddr,
+   Ipv4Addr targetIpAddr, const MacAddr *targetMacAddr);
 
 void arpDumpPacket(const ArpPacket *arpPacket);
 

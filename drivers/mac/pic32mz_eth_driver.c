@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -175,7 +177,7 @@ error_t pic32mzEthInit(NetInterface *interface)
    //Automatic padding and CRC generation
    EMAC1CFG2 = _EMAC1CFG2_PADENABLE_MASK | _EMAC1CFG2_CRCENABLE_MASK;
    //Set the maximum frame length
-   EMAC1MAXF = 1518;
+   EMAC1MAXF = PIC32MZ_ETH_RX_BUFFER_SIZE;
 
    //Initialize DMA descriptor lists
    pic32mzEthInitBufferDesc(interface);
@@ -581,7 +583,7 @@ error_t pic32mzEthUpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating PIC32MZ hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
    hashTable[0] = 0;
@@ -678,7 +680,9 @@ void pic32mzEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
 
    //Wait for busy bit to be set
    for(i = 0; i < 16; i++)
+   {
       __asm__ __volatile__ ("nop;");
+   }
 
    //Wait for the write to complete
    while(EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK);
@@ -703,7 +707,9 @@ uint16_t pic32mzEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
 
    //Wait for busy bit to be set
    for(i = 0; i < 16; i++)
+   {
       __asm__ __volatile__ ("nop;");
+   }
 
    //Wait for the read to complete
    while(EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK);

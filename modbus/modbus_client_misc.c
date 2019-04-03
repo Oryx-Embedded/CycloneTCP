@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -183,25 +185,8 @@ error_t modbusClientTransaction(ModbusClientContext *context)
    //Check status code
    if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
    {
-#if (NET_RTOS_SUPPORT == DISABLED)
-      //Get current time
-      time = osGetSystemTime();
-
       //Check whether the timeout has elapsed
-      if(timeCompare(time, context->timestamp + context->timeout) >= 0)
-      {
-         //Report a timeout error
-         error = ERROR_TIMEOUT;
-      }
-      else
-      {
-         //The operation would block
-         error = ERROR_WOULD_BLOCK;
-      }
-#else
-      //Report a timeout error
-      error = ERROR_TIMEOUT;
-#endif
+      error = modbusClientCheckTimeout(context);
    }
 
    //Modbus transaction failed?
@@ -415,6 +400,42 @@ void *modbusClientGetResponsePdu(ModbusClientContext *context, size_t *length)
 
    //Return a pointer to the response PDU
    return responsePdu;
+}
+
+
+/**
+ * @brief Determine whether a timeout error has occurred
+ * @param[in] context Pointer to the Modbus/TCP client context
+ * @return Error code
+ **/
+
+error_t modbusClientCheckTimeout(ModbusClientContext *context)
+{
+#if (NET_RTOS_SUPPORT == DISABLED)
+   error_t error;
+   systime_t time;
+
+   //Get current time
+   time = osGetSystemTime();
+
+   //Check whether the timeout has elapsed
+   if(timeCompare(time, context->timestamp + context->timeout) >= 0)
+   {
+      //Report a timeout error
+      error = ERROR_TIMEOUT;
+   }
+   else
+   {
+      //The operation would block
+      error = ERROR_WOULD_BLOCK;
+   }
+
+   //Return status code
+   return error;
+#else
+   //Report a timeout error
+   return ERROR_TIMEOUT;
+#endif
 }
 
 #endif

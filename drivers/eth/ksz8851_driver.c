@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -489,7 +491,7 @@ error_t ksz8851UpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating KSZ8851 hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
    memset(hashTable, 0, sizeof(hashTable));
@@ -630,7 +632,8 @@ uint16_t ksz8851ReadReg(NetInterface *interface, uint8_t address)
  * @param[in] length Number of data to write
  **/
 
-void ksz8851WriteFifo(NetInterface *interface, const uint8_t *data, size_t length)
+void ksz8851WriteFifo(NetInterface *interface, const uint8_t *data,
+   size_t length)
 {
 #if (KSZ8851_SPI_SUPPORT == ENABLED)
    uint_t i;

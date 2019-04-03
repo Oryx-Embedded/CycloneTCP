@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -31,7 +33,7 @@
 
 //Dependencies
 #include "core/net.h"
-#include "core/ethernet.h"
+#include "core/ethernet_misc.h"
 #include "drivers/switch/ksz8794_driver.h"
 #include "debug.h"
 
@@ -348,7 +350,8 @@ void ksz8794EventHandler(NetInterface *interface)
 
             //Check whether the current virtual interface is attached to the
             //physical interface
-            if(virtualInterface == interface || virtualInterface->parent == interface)
+            if(virtualInterface == interface ||
+               virtualInterface->parent == interface)
             {
                //The tail tag is used to indicate the source/destination port
                port = virtualInterface->port;
@@ -376,25 +379,25 @@ void ksz8794EventHandler(NetInterface *interface)
                         KSZ8794_SW_REG_PORT_STAT3(port));
 
                      //Check current operation mode
-                     switch(status & PORT_STAT3_PHY_OP_MODE_MASK)
+                     switch(status & PORT_STAT3_OP_MODE_MASK)
                      {
                      //10BASE-T
-                     case PORT_STAT3_PHY_OP_MODE_10BT:
+                     case PORT_STAT3_OP_MODE_10BT:
                         virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
                         virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
                         break;
                      //10BASE-T full-duplex
-                     case PORT_STAT3_PHY_OP_MODE_10BT_FD:
+                     case PORT_STAT3_OP_MODE_10BT_FD:
                         virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
                         virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
                         break;
                      //100BASE-TX
-                     case PORT_STAT3_PHY_OP_MODE_100BTX:
+                     case PORT_STAT3_OP_MODE_100BTX:
                         virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
                         virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
                         break;
                      //100BASE-TX full-duplex
-                     case PORT_STAT3_PHY_OP_MODE_100BTX_FD:
+                     case PORT_STAT3_OP_MODE_100BTX_FD:
                         virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
                         virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
                         break;
@@ -481,24 +484,21 @@ void ksz8794EventHandler(NetInterface *interface)
 
 /**
  * @brief Add tail tag to Ethernet frame
- * @param[in,out] interface Underlying network interface
- * @param[in,out] buffer Multi-part buffer containing the payload
+ * @param[in] interface Underlying network interface
+ * @param[in] buffer Multi-part buffer containing the payload
  * @param[in,out] offset Offset to the first payload byte
+ * @param[in] port Switch port identifier
  * @param[in,out] type Ethernet type
  * @return Error code
  **/
 
-error_t ksz8794TagFrame(NetInterface **interface, NetBuffer *buffer,
-   size_t *offset, uint16_t *type)
+error_t ksz8794TagFrame(NetInterface *interface, NetBuffer *buffer,
+   size_t *offset, uint8_t port, uint16_t *type)
 {
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    error_t error;
-   uint8_t port;
    size_t length;
    const uint8_t *tailTag;
-
-   //Retrieve port identifier
-   port = (*interface)->port;
 
    //Valid port?
    if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
@@ -518,13 +518,6 @@ error_t ksz8794TagFrame(NetInterface **interface, NetBuffer *buffer,
       {
          //The tail tag is inserted at the end of the packet, just before the CRC
          error = netBufferAppend(buffer, tailTag, sizeof(uint8_t));
-
-         //Check status code
-         if(!error)
-         {
-            //Forward the frame to the physical network interface
-            *interface = nicGetPhysicalInterface(*interface);
-         }
       }
    }
    else
@@ -544,58 +537,34 @@ error_t ksz8794TagFrame(NetInterface **interface, NetBuffer *buffer,
 
 /**
  * @brief Decode tail tag from incoming Ethernet frame
- * @param[in,out] interface Underlying network interface
- * @param[in,out] frame Incoming Ethernet frame to process
- * @param[in,out] length Total frame length
+ * @param[in] interface Underlying network interface
+ * @param[in,out] frame Pointer to the received Ethernet frame
+ * @param[in,out] length Length of the frame, in bytes
+ * @param[out] port Switch port identifier
  * @return Error code
  **/
 
-error_t ksz8794UntagFrame(NetInterface **interface, uint8_t **frame,
-   size_t *length)
+error_t ksz8794UntagFrame(NetInterface *interface, uint8_t **frame,
+   size_t *length, uint8_t *port)
 {
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    error_t error;
-   uint_t i;
-   uint8_t port;
-   uint8_t *p;
+   uint8_t *tailTag;
 
    //Valid Ethernet frame received?
    if(*length >= (sizeof(EthHeader) + sizeof(uint8_t)))
    {
       //The tail tag is inserted at the end of the packet, just before the CRC
-      p = *frame + *length - 1;
+      tailTag = *frame + *length - sizeof(uint8_t);
+
       //The one byte tail tagging is used to indicate the source port
-      port = KSZ8794_TAIL_TAG_DECODE(*p);
+      *port = KSZ8794_TAIL_TAG_DECODE(*tailTag);
 
-      //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
-      {
-         //Check whether the current virtual interface is attached to the
-         //physical interface where the packet was received
-         if(netInterface[i].parent == *interface || &netInterface[i] == *interface)
-         {
-            //Check port identifier
-            if(netInterface[i].port != 0 && netInterface[i].port == port)
-               break;
-         }
-      }
+      //Strip tail tag from Ethernet frame
+      *length -= sizeof(uint8_t);
 
-      //Matching interface found?
-      if(i < NET_INTERFACE_COUNT)
-      {
-         //Forward the packet to the relevant virtual interface
-         *interface = &netInterface[i];
-         //Strip tail tag from Ethernet frame
-         *length -= sizeof(uint8_t);
-
-         //Successful processing
-         error = NO_ERROR;
-      }
-      else
-      {
-         //Drop incoming frames with invalid tail tag
-         error = ERROR_WRONG_IDENTIFIER;
-      }
+      //Successful processing
+      error = NO_ERROR;
    }
    else
    {
@@ -620,8 +589,8 @@ error_t ksz8794UntagFrame(NetInterface **interface, uint8_t **frame,
  * @param[in] data Register value
  **/
 
-void ksz8794WritePhyReg(NetInterface *interface,
-   uint8_t port, uint8_t address, uint16_t data)
+void ksz8794WritePhyReg(NetInterface *interface, uint8_t port,
+   uint8_t address, uint16_t data)
 {
    //Write the specified PHY register
    interface->nicDriver->writePhyReg(port, address, data);
@@ -636,8 +605,8 @@ void ksz8794WritePhyReg(NetInterface *interface,
  * @return Register value
  **/
 
-uint16_t ksz8794ReadPhyReg(NetInterface *interface,
-   uint8_t port, uint8_t address)
+uint16_t ksz8794ReadPhyReg(NetInterface *interface, uint8_t port,
+   uint8_t address)
 {
    //Read the specified PHY register
    return interface->nicDriver->readPhyReg(port, address);
@@ -674,8 +643,8 @@ void ksz8794DumpPhyReg(NetInterface *interface, uint8_t port)
  * @param[in] data Register value
  **/
 
-void ksz8794WriteSwitchReg(NetInterface *interface,
-   uint16_t address, uint8_t data)
+void ksz8794WriteSwitchReg(NetInterface *interface, uint16_t address,
+   uint8_t data)
 {
    uint16_t command;
 
@@ -684,8 +653,8 @@ void ksz8794WriteSwitchReg(NetInterface *interface,
    {
       //Set up a write operation
       command = KSZ8794_SPI_CMD_WRITE;
-      //Register address
-      command |= (address << 1) & KSZ8794_SPI_ADDR_MASK;
+      //Set register address
+      command |= (address << 1) & KSZ8794_SPI_CMD_ADDR;
 
       //Pull the CS pin low
       interface->spiDriver->assertCs();
@@ -715,8 +684,7 @@ void ksz8794WriteSwitchReg(NetInterface *interface,
  * @return Register value
  **/
 
-uint8_t ksz8794ReadSwitchReg(NetInterface *interface,
-   uint16_t address)
+uint8_t ksz8794ReadSwitchReg(NetInterface *interface, uint16_t address)
 {
    uint8_t data;
    uint16_t command;
@@ -726,8 +694,8 @@ uint8_t ksz8794ReadSwitchReg(NetInterface *interface,
    {
       //Set up a read operation
       command = KSZ8794_SPI_CMD_READ;
-      //Register address
-      command |= (address << 1) & KSZ8794_SPI_ADDR_MASK;
+      //Set register address
+      command |= (address << 1) & KSZ8794_SPI_CMD_ADDR;
 
       //Pull the CS pin low
       interface->spiDriver->assertCs();

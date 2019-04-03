@@ -1,10 +1,12 @@
 /**
- * @file mimxrt1052_eth_driver.h
- * @brief i.MX RT1050 Ethernet MAC controller
+ * @file mimxrt1060_eth_driver.h
+ * @brief i.MX RT1060 Ethernet MAC controller
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,59 +25,59 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
-#ifndef _MIMXRT1052_ETH_DRIVER_H
-#define _MIMXRT1052_ETH_DRIVER_H
+#ifndef _MIMXRT1060_ETH_DRIVER_H
+#define _MIMXRT1060_ETH_DRIVER_H
 
 //Number of TX buffers
-#ifndef MIMXRT1052_ETH_TX_BUFFER_COUNT
-   #define MIMXRT1052_ETH_TX_BUFFER_COUNT 8
-#elif (MIMXRT1052_ETH_TX_BUFFER_COUNT < 1)
-   #error MIMXRT1052_ETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef MIMXRT1060_ETH_TX_BUFFER_COUNT
+   #define MIMXRT1060_ETH_TX_BUFFER_COUNT 8
+#elif (MIMXRT1060_ETH_TX_BUFFER_COUNT < 1)
+   #error MIMXRT1060_ETH_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef MIMXRT1052_ETH_TX_BUFFER_SIZE
-   #define MIMXRT1052_ETH_TX_BUFFER_SIZE 1536
-#elif (MIMXRT1052_ETH_TX_BUFFER_SIZE != 1536)
-   #error MIMXRT1052_ETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef MIMXRT1060_ETH_TX_BUFFER_SIZE
+   #define MIMXRT1060_ETH_TX_BUFFER_SIZE 1536
+#elif (MIMXRT1060_ETH_TX_BUFFER_SIZE != 1536)
+   #error MIMXRT1060_ETH_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef MIMXRT1052_ETH_RX_BUFFER_COUNT
-   #define MIMXRT1052_ETH_RX_BUFFER_COUNT 8
-#elif (MIMXRT1052_ETH_RX_BUFFER_COUNT < 1)
-   #error MIMXRT1052_ETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef MIMXRT1060_ETH_RX_BUFFER_COUNT
+   #define MIMXRT1060_ETH_RX_BUFFER_COUNT 8
+#elif (MIMXRT1060_ETH_RX_BUFFER_COUNT < 1)
+   #error MIMXRT1060_ETH_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef MIMXRT1052_ETH_RX_BUFFER_SIZE
-   #define MIMXRT1052_ETH_RX_BUFFER_SIZE 1536
-#elif (MIMXRT1052_ETH_RX_BUFFER_SIZE != 1536)
-   #error MIMXRT1052_ETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef MIMXRT1060_ETH_RX_BUFFER_SIZE
+   #define MIMXRT1060_ETH_RX_BUFFER_SIZE 1536
+#elif (MIMXRT1060_ETH_RX_BUFFER_SIZE != 1536)
+   #error MIMXRT1060_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Interrupt priority grouping
-#ifndef MIMXRT1052_ETH_IRQ_PRIORITY_GROUPING
-   #define MIMXRT1052_ETH_IRQ_PRIORITY_GROUPING 3
-#elif (MIMXRT1052_ETH_IRQ_PRIORITY_GROUPING < 0)
-   #error MIMXRT1052_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
+#ifndef MIMXRT1060_ETH_IRQ_PRIORITY_GROUPING
+   #define MIMXRT1060_ETH_IRQ_PRIORITY_GROUPING 3
+#elif (MIMXRT1060_ETH_IRQ_PRIORITY_GROUPING < 0)
+   #error MIMXRT1060_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
 #endif
 
 //Ethernet interrupt group priority
-#ifndef MIMXRT1052_ETH_IRQ_GROUP_PRIORITY
-   #define MIMXRT1052_ETH_IRQ_GROUP_PRIORITY 12
-#elif (MIMXRT1052_ETH_IRQ_GROUP_PRIORITY < 0)
-   #error MIMXRT1052_ETH_IRQ_GROUP_PRIORITY parameter is not valid
+#ifndef MIMXRT1060_ETH_IRQ_GROUP_PRIORITY
+   #define MIMXRT1060_ETH_IRQ_GROUP_PRIORITY 12
+#elif (MIMXRT1060_ETH_IRQ_GROUP_PRIORITY < 0)
+   #error MIMXRT1060_ETH_IRQ_GROUP_PRIORITY parameter is not valid
 #endif
 
 //Ethernet interrupt subpriority
-#ifndef MIMXRT1052_ETH_IRQ_SUB_PRIORITY
-   #define MIMXRT1052_ETH_IRQ_SUB_PRIORITY 0
-#elif (MIMXRT1052_ETH_IRQ_SUB_PRIORITY < 0)
-   #error MIMXRT1052_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#ifndef MIMXRT1060_ETH_IRQ_SUB_PRIORITY
+   #define MIMXRT1060_ETH_IRQ_SUB_PRIORITY 0
+#elif (MIMXRT1060_ETH_IRQ_SUB_PRIORITY < 0)
+   #error MIMXRT1060_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
 //Enhanced transmit buffer descriptor
@@ -139,32 +141,32 @@
    extern "C" {
 #endif
 
-//i.MX RT1052 Ethernet MAC driver
-extern const NicDriver mimxrt1052EthDriver;
+//i.MX RT1060 Ethernet MAC driver
+extern const NicDriver mimxrt1060EthDriver;
 
-//i.MX RT1052 Ethernet MAC related functions
-error_t mimxrt1052EthInit(NetInterface *interface);
-void mimxrt1052EthInitGpio(NetInterface *interface);
-void mimxrt1052EthInitBufferDesc(NetInterface *interface);
+//i.MX RT1060 Ethernet MAC related functions
+error_t mimxrt1060EthInit(NetInterface *interface);
+void mimxrt1060EthInitGpio(NetInterface *interface);
+void mimxrt1060EthInitBufferDesc(NetInterface *interface);
 
-void mimxrt1052EthTick(NetInterface *interface);
+void mimxrt1060EthTick(NetInterface *interface);
 
-void mimxrt1052EthEnableIrq(NetInterface *interface);
-void mimxrt1052EthDisableIrq(NetInterface *interface);
-void mimxrt1052EthEventHandler(NetInterface *interface);
+void mimxrt1060EthEnableIrq(NetInterface *interface);
+void mimxrt1060EthDisableIrq(NetInterface *interface);
+void mimxrt1060EthEventHandler(NetInterface *interface);
 
-error_t mimxrt1052EthSendPacket(NetInterface *interface,
+error_t mimxrt1060EthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t mimxrt1052EthReceivePacket(NetInterface *interface);
+error_t mimxrt1060EthReceivePacket(NetInterface *interface);
 
-error_t mimxrt1052EthUpdateMacAddrFilter(NetInterface *interface);
-error_t mimxrt1052EthUpdateMacConfig(NetInterface *interface);
+error_t mimxrt1060EthUpdateMacAddrFilter(NetInterface *interface);
+error_t mimxrt1060EthUpdateMacConfig(NetInterface *interface);
 
-void mimxrt1052EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t mimxrt1052EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void mimxrt1060EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
+uint16_t mimxrt1060EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
 
-uint32_t mimxrt1052EthCalcCrc(const void *data, size_t length);
+uint32_t mimxrt1060EthCalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus

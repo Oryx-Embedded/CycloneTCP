@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -137,7 +139,7 @@ error_t avr32EthInit(NetInterface *interface)
    if(error)
       return error;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    AVR32_MACB.sa1b = interface->macAddr.b[0] |
       (interface->macAddr.b[1] << 8) |
       (interface->macAddr.b[2] << 16) |
@@ -146,12 +148,13 @@ error_t avr32EthInit(NetInterface *interface)
    AVR32_MACB.sa1t = interface->macAddr.b[4] |
       (interface->macAddr.b[5] << 8);
 
-   //Configure the receive filter
-   AVR32_MACB.ncfgr |= AVR32_MACB_NCFGR_UNI_MASK | AVR32_MACB_NCFGR_MTI_MASK;
-
    //Initialize hash table
    AVR32_MACB.hrb = 0;
    AVR32_MACB.hrt = 0;
+
+   //Configure the receive filter
+   AVR32_MACB.ncfgr |= AVR32_MACB_NCFGR_BIG_MASK | AVR32_MACB_NCFGR_UNI_MASK |
+      AVR32_MACB_NCFGR_MTI_MASK;
 
    //Initialize buffer descriptors
    avr32EthInitBufferDesc(interface);
@@ -596,7 +599,7 @@ error_t avr32EthUpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating AVR32 hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
    hashTable[0] = 0;

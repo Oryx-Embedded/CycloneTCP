@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -154,6 +156,7 @@ error_t nbnsSendResponse(NetInterface *interface,
 
    //Point to the corresponding resource record
    record = DNS_GET_RESOURCE_RECORD(message, length);
+
    //Fill in resource record
    record->rtype = HTONS(DNS_RR_TYPE_NB);
    record->rclass = HTONS(DNS_RR_CLASS_IN);
@@ -162,9 +165,10 @@ error_t nbnsSendResponse(NetInterface *interface,
 
    //Point to the address entry array
    addrEntry = (NbnsAddrEntry *) record->rdata;
+
    //Fill in address entry
    addrEntry->flags = HTONS(NBNS_G_UNIQUE | NBNS_ONT_BNODE);
-   addrEntry->addr = interface->ipv4Context.addr;
+   addrEntry->addr = interface->ipv4Context.addrList[0].addr;
 
    //Update the length of the NBNS response message
    length += sizeof(DnsResourceRecord) + sizeof(NbnsAddrEntry);
@@ -177,13 +181,14 @@ error_t nbnsSendResponse(NetInterface *interface,
    //Dump message
    dnsDumpMessage((DnsHeader *) message, length);
 
-   //A response packet is always sent to the source UDP port and
-   //source IP address of the request packet
-   error = udpSendDatagramEx(interface, NBNS_PORT, destIpAddr,
+   //A response packet is always sent to the source UDP port and source IP
+   //address of the request packet
+   error = udpSendDatagramEx(interface, NULL, NBNS_PORT, destIpAddr,
       destPort, buffer, offset, IPV4_DEFAULT_TTL);
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }

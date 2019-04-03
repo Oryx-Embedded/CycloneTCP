@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -51,11 +53,11 @@
 
 void ftpClientChangeState(FtpClientContext *context, FtpClientState newState)
 {
-   //Save current time
-   context->timestamp = osGetSystemTime();
-
    //Switch to the new state
    context->state = newState;
+
+   //Save current time
+   context->timestamp = osGetSystemTime();
 }
 
 
@@ -218,6 +220,7 @@ error_t ftpClientFormatPortCommand(FtpClientContext *context,
    const IpAddr *ipAddr, uint16_t port)
 {
    error_t error;
+   size_t n;
    char_t *p;
 
    //Initialize status code
@@ -228,10 +231,10 @@ error_t ftpClientFormatPortCommand(FtpClientContext *context,
    if(ipAddr->length == sizeof(Ipv4Addr))
    {
       //Format the PORT command
-      strcpy(context->buffer, "PORT ");
+      n = sprintf(context->buffer, "PORT ");
 
       //Append host address
-      ipv4AddrToString(ipAddr->ipv4Addr, context->buffer + 5);
+      ipv4AddrToString(ipAddr->ipv4Addr, context->buffer + n);
       //Change dots to commas
       strReplaceChar(context->buffer, '.', ',');
 
@@ -247,10 +250,10 @@ error_t ftpClientFormatPortCommand(FtpClientContext *context,
    if(ipAddr->length == sizeof(Ipv6Addr))
    {
       //Format the EPRT command
-      strcpy(context->buffer, "EPRT |2|");
+      n = sprintf(context->buffer, "EPRT |2|");
 
       //Append host address
-      ipv6AddrToString(&ipAddr->ipv6Addr, context->buffer + 8);
+      ipv6AddrToString(&ipAddr->ipv6Addr, context->buffer + n);
 
       //Point to the end of the resulting string
       p = context->buffer + strlen(context->buffer);
@@ -996,7 +999,7 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
             //Check status code
             if(!error)
             {
-                //Check data transfer direction
+               //Check data transfer direction
                if(direction)
                {
                   //TLS initialization

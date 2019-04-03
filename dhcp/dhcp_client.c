@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -74,6 +76,8 @@ void dhcpClientGetDefaultSettings(DhcpClientSettings *settings)
 {
    //Use default interface
    settings->interface = netGetDefaultInterface();
+   //Index of the IP address to be configured
+   settings->ipAddrIndex = 0;
 
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    //Use default host name
@@ -176,6 +180,7 @@ error_t dhcpClientInit(DhcpClientContext *context, const DhcpClientSettings *set
 
 error_t dhcpClientStart(DhcpClientContext *context)
 {
+   uint_t i;
    NetInterface *interface;
 
    //Check parameter
@@ -190,13 +195,15 @@ error_t dhcpClientStart(DhcpClientContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //The host address is not longer valid
-   interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
-   interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+   interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
+   interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_INVALID;
 
    //Clear subnet mask
-   interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
+   interface->ipv4Context.addrList[i].subnetMask = IPV4_UNSPECIFIED_ADDR;
 
    //Start DHCP client
    context->running = TRUE;
@@ -353,6 +360,7 @@ void dhcpClientTick(DhcpClientContext *context)
 
 void dhcpClientLinkChangeEvent(DhcpClientContext *context)
 {
+   uint_t i;
    NetInterface *interface;
 
    //Make sure the DHCP client has been properly instantiated
@@ -361,16 +369,18 @@ void dhcpClientLinkChangeEvent(DhcpClientContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //Check whether the DHCP client is running
    if(context->running)
    {
       //The host address is no longer valid
-      interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
-      interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+      interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
+      interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_INVALID;
 
       //Clear subnet mask
-      interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
+      interface->ipv4Context.addrList[i].subnetMask = IPV4_UNSPECIFIED_ADDR;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
       //Restart mDNS probing process
@@ -714,11 +724,15 @@ void dhcpClientStateRebooting(DhcpClientContext *context)
 
 void dhcpClientStateProbing(DhcpClientContext *context)
 {
+   uint_t i;
    systime_t time;
    NetInterface *interface;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
+
    //Get current time
    time = osGetSystemTime();
 
@@ -726,7 +740,7 @@ void dhcpClientStateProbing(DhcpClientContext *context)
    if(timeCompare(time, context->timestamp + context->timeout) >= 0)
    {
       //The address is already in use?
-      if(interface->ipv4Context.addrConflict)
+      if(interface->ipv4Context.addrList[i].conflict)
       {
          //If the client detects that the address is already in use, the
          //client must send a DHCPDECLINE message to the server and
@@ -742,7 +756,7 @@ void dhcpClientStateProbing(DhcpClientContext *context)
       else if(context->retransmitCount < DHCP_CLIENT_PROBE_NUM)
       {
          //Conflict detection is done using ARP probes
-         arpSendProbe(interface, interface->ipv4Context.addr);
+         arpSendProbe(interface, interface->ipv4Context.addrList[i].addr);
 
          //Save the time at which the packet was sent
          context->timestamp = time;
@@ -755,7 +769,7 @@ void dhcpClientStateProbing(DhcpClientContext *context)
       else
       {
          //The use of the IPv4 address is now unrestricted
-         interface->ipv4Context.addrState = IPV4_ADDR_STATE_VALID;
+         interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_VALID;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
          //Restart mDNS probing process
@@ -887,12 +901,15 @@ void dhcpClientStateRenewing(DhcpClientContext *context)
 
 void dhcpClientStateRebinding(DhcpClientContext *context)
 {
+   uint_t i;
    systime_t time;
    systime_t leaseTime;
    NetInterface *interface;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //Get current time
    time = osGetSystemTime();
@@ -937,11 +954,11 @@ void dhcpClientStateRebinding(DhcpClientContext *context)
       else
       {
          //The host address is no longer valid...
-         interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
-         interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+         interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
+         interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_INVALID;
 
          //Clear subnet mask
-         interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
+         interface->ipv4Context.addrList[i].subnetMask = IPV4_UNSPECIFIED_ADDR;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
          //Restart mDNS probing process
@@ -970,6 +987,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    NetInterface *interface;
    NetInterface *logicalInterface;
    DhcpMessage *message;
+   IpAddr srcIpAddr;
    IpAddr destIpAddr;
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    size_t length;
@@ -980,7 +998,6 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
-
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
@@ -1045,6 +1062,12 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
       dhcpAddOption(message, DHCP_OPT_RAPID_COMMIT, NULL, 0);
    }
 
+   //DHCP messages broadcast by a client prior to that client obtaining its
+   //IP address must have the source address field in the IP header set to 0
+   //(refer to RFC 2131, section 4.1)
+   srcIpAddr.length = sizeof(Ipv4Addr);
+   srcIpAddr.ipv4Addr = IPV4_UNSPECIFIED_ADDR;
+
    //Set destination IP address
    destIpAddr.length = sizeof(Ipv4Addr);
    destIpAddr.ipv4Addr = IPV4_BROADCAST_ADDR;
@@ -1057,8 +1080,8 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    dhcpDumpMessage(message, DHCP_MIN_MSG_SIZE);
 
    //Broadcast DHCPDISCOVER message
-   error = udpSendDatagramEx(interface, DHCP_CLIENT_PORT, &destIpAddr,
-      DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
+   error = udpSendDatagramEx(interface, &srcIpAddr, DHCP_CLIENT_PORT,
+      &destIpAddr, DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1075,12 +1098,14 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
 
 error_t dhcpClientSendRequest(DhcpClientContext *context)
 {
+   uint_t i;
    error_t error;
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
    NetInterface *logicalInterface;
    DhcpMessage *message;
+   IpAddr srcIpAddr;
    IpAddr destIpAddr;
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    size_t length;
@@ -1091,9 +1116,11 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
-
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
+
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //Allocate a memory buffer to hold the DHCP message
    buffer = udpAllocBuffer(DHCP_MIN_MSG_SIZE, &offset);
@@ -1113,13 +1140,13 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    message->xid = htonl(context->transactionId);
    message->secs = dhcpClientComputeElapsedTime(context);
 
-   //The client IP address must be included if the client
-   //is fully configured and can respond to ARP requests
+   //The client IP address must be included if the client is fully configured
+   //and can respond to ARP requests
    if(context->state == DHCP_STATE_RENEWING ||
       context->state == DHCP_STATE_REBINDING)
    {
       message->flags = 0;
-      message->ciaddr = interface->ipv4Context.addr;
+      message->ciaddr = interface->ipv4Context.addrList[i].addr;
    }
    else
    {
@@ -1183,13 +1210,23 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    //IP address is being renewed?
    if(context->state == DHCP_STATE_RENEWING)
    {
-      //The client transmits the message directly to the
-      //server that initially granted the lease
+      //Set source IP address
+      srcIpAddr.length = sizeof(Ipv4Addr);
+      srcIpAddr.ipv4Addr = interface->ipv4Context.addrList[i].addr;
+
+      //The client transmits the message directly to the server that initially
+      //granted the lease
       destIpAddr.length = sizeof(Ipv4Addr);
       destIpAddr.ipv4Addr = context->serverIpAddr;
    }
    else
    {
+      //DHCP messages broadcast by a client prior to that client obtaining its
+      //IP address must have the source address field in the IP header set to 0
+      //(refer to RFC 2131, section 4.1)
+      srcIpAddr.length = sizeof(Ipv4Addr);
+      srcIpAddr.ipv4Addr = IPV4_UNSPECIFIED_ADDR;
+
       //Broadcast the message
       destIpAddr.length = sizeof(Ipv4Addr);
       destIpAddr.ipv4Addr = IPV4_BROADCAST_ADDR;
@@ -1203,8 +1240,8 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    dhcpDumpMessage(message, DHCP_MIN_MSG_SIZE);
 
    //Send DHCPREQUEST message
-   error = udpSendDatagramEx(interface, DHCP_CLIENT_PORT, &destIpAddr,
-      DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
+   error = udpSendDatagramEx(interface, &srcIpAddr, DHCP_CLIENT_PORT,
+      &destIpAddr, DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1227,6 +1264,7 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    NetInterface *interface;
    NetInterface *logicalInterface;
    DhcpMessage *message;
+   IpAddr srcIpAddr;
    IpAddr destIpAddr;
 
    //DHCP message type
@@ -1234,7 +1272,6 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
-
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
@@ -1274,6 +1311,10 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    dhcpAddOption(message, DHCP_OPT_REQUESTED_IP_ADDRESS,
       &context->requestedIpAddr, sizeof(Ipv4Addr));
 
+   //Use the unspecified address as source address
+   srcIpAddr.length = sizeof(Ipv4Addr);
+   srcIpAddr.ipv4Addr = IPV4_UNSPECIFIED_ADDR;
+
    //Set destination IP address
    destIpAddr.length = sizeof(Ipv4Addr);
    destIpAddr.ipv4Addr = IPV4_BROADCAST_ADDR;
@@ -1286,8 +1327,8 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    dhcpDumpMessage(message, DHCP_MIN_MSG_SIZE);
 
    //Broadcast DHCPDECLINE message
-   error = udpSendDatagramEx(interface, DHCP_CLIENT_PORT, &destIpAddr,
-      DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
+   error = udpSendDatagramEx(interface, &srcIpAddr, DHCP_CLIENT_PORT,
+      &destIpAddr, DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1398,7 +1439,6 @@ void dhcpClientParseOffer(DhcpClientContext *context,
 
    //Point to the underlying network interface
    interface = context->settings.interface;
-
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
@@ -1446,6 +1486,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
    const DhcpMessage *message, size_t length)
 {
    uint_t i;
+   uint_t j;
    uint_t n;
    DhcpOption *option;
    DhcpOption *serverIdOption;
@@ -1455,11 +1496,13 @@ void dhcpClientParseAck(DhcpClientContext *context,
 
    //Point to the underlying network interface
    interface = context->settings.interface;
-
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
+
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
@@ -1570,8 +1613,9 @@ void dhcpClientParseAck(DhcpClientContext *context,
    //The specified option has been found?
    if(option != NULL && option->length == sizeof(Ipv4Addr))
    {
-      //Record subnet mask
-      ipv4CopyAddr(&interface->ipv4Context.subnetMask, option->value);
+      //Save subnet mask
+      ipv4CopyAddr(&interface->ipv4Context.addrList[i].subnetMask,
+         option->value);
    }
 
    //Retrieve Router option
@@ -1582,7 +1626,10 @@ void dhcpClientParseAck(DhcpClientContext *context,
    {
       //Save default gateway
       if(option->length >= sizeof(Ipv4Addr))
-         ipv4CopyAddr(&interface->ipv4Context.defaultGateway, option->value);
+      {
+         ipv4CopyAddr(&interface->ipv4Context.addrList[i].defaultGateway,
+            option->value);
+      }
    }
 
    //Use the DNS servers provided by the DHCP server?
@@ -1598,11 +1645,11 @@ void dhcpClientParseAck(DhcpClientContext *context,
          n = option->length / sizeof(Ipv4Addr);
 
          //Loop through the list of addresses
-         for(i = 0; i < n && i < IPV4_DNS_SERVER_LIST_SIZE; i++)
+         for(j = 0; j < n && j < IPV4_DNS_SERVER_LIST_SIZE; j++)
          {
-            //Record DNS server address
-            ipv4CopyAddr(&interface->ipv4Context.dnsServerList[i],
-               option->value + i * sizeof(Ipv4Addr));
+            //Save DNS server address
+            ipv4CopyAddr(&interface->ipv4Context.dnsServerList[j],
+               option->value + j * sizeof(Ipv4Addr));
          }
       }
    }
@@ -1637,11 +1684,11 @@ void dhcpClientParseAck(DhcpClientContext *context,
       context->state == DHCP_STATE_REBOOTING)
    {
       //Use the IP address as a tentative address
-      interface->ipv4Context.addr = message->yiaddr;
-      interface->ipv4Context.addrState = IPV4_ADDR_STATE_TENTATIVE;
+      interface->ipv4Context.addrList[i].addr = message->yiaddr;
+      interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_TENTATIVE;
 
       //Clear conflict flag
-      interface->ipv4Context.addrConflict = FALSE;
+      interface->ipv4Context.addrList[i].conflict = FALSE;
 
       //The client should probe the newly received address
       dhcpClientChangeState(context, DHCP_STATE_PROBING, 0);
@@ -1649,8 +1696,8 @@ void dhcpClientParseAck(DhcpClientContext *context,
    else
    {
       //Assign the IP address to the client
-      interface->ipv4Context.addr = message->yiaddr;
-      interface->ipv4Context.addrState = IPV4_ADDR_STATE_VALID;
+      interface->ipv4Context.addrList[i].addr = message->yiaddr;
+      interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_VALID;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
       //Restart mDNS probing process
@@ -1673,15 +1720,18 @@ void dhcpClientParseAck(DhcpClientContext *context,
 void dhcpClientParseNak(DhcpClientContext *context,
    const DhcpMessage *message, size_t length)
 {
+   uint_t i;
    DhcpOption *serverIdOption;
    NetInterface *interface;
    NetInterface *logicalInterface;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
-
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
+
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
@@ -1717,11 +1767,11 @@ void dhcpClientParseNak(DhcpClientContext *context,
    }
 
    //The host address is no longer appropriate for the link
-   interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
-   interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+   interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
+   interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_INVALID;
 
    //Clear subnet mask
-   interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
+   interface->ipv4Context.addrList[i].subnetMask = IPV4_UNSPECIFIED_ADDR;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
    //Restart mDNS probing process
@@ -1874,6 +1924,7 @@ void dhcpClientDumpConfig(DhcpClientContext *context)
 {
 #if (DHCP_TRACE_LEVEL >= TRACE_LEVEL_INFO)
    uint_t i;
+   uint_t j;
    NetInterface *interface;
    Ipv4Context *ipv4Context;
 
@@ -1881,6 +1932,9 @@ void dhcpClientDumpConfig(DhcpClientContext *context)
    interface = context->settings.interface;
    //Point to the IPv4 context
    ipv4Context = &interface->ipv4Context;
+
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //Debug message
    TRACE_INFO("\r\n");
@@ -1899,21 +1953,21 @@ void dhcpClientDumpConfig(DhcpClientContext *context)
 
    //Host address
    TRACE_INFO("  IPv4 Address = %s\r\n",
-      ipv4AddrToString(ipv4Context->addr, NULL));
+      ipv4AddrToString(ipv4Context->addrList[i].addr, NULL));
 
    //Subnet mask
    TRACE_INFO("  Subnet Mask = %s\r\n",
-      ipv4AddrToString(ipv4Context->subnetMask, NULL));
+      ipv4AddrToString(ipv4Context->addrList[i].subnetMask, NULL));
 
    //Default gateway
    TRACE_INFO("  Default Gateway = %s\r\n",
-      ipv4AddrToString(ipv4Context->defaultGateway, NULL));
+      ipv4AddrToString(ipv4Context->addrList[i].defaultGateway, NULL));
 
    //DNS servers
-   for(i = 0; i < IPV4_DNS_SERVER_LIST_SIZE; i++)
+   for(j = 0; j < IPV4_DNS_SERVER_LIST_SIZE; j++)
    {
-      TRACE_INFO("  DNS Server %u = %s\r\n", i + 1,
-         ipv4AddrToString(ipv4Context->dnsServerList[i], NULL));
+      TRACE_INFO("  DNS Server %u = %s\r\n", j + 1,
+         ipv4AddrToString(ipv4Context->dnsServerList[j], NULL));
    }
 
    //Maximum transmit unit

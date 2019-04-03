@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -1416,7 +1418,7 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
    dhcpv6DumpMessage(message, length);
 
    //Send DHCPv6 message
-   error = udpSendDatagramEx(interface, DHCPV6_CLIENT_PORT,
+   error = udpSendDatagramEx(interface, NULL, DHCPV6_CLIENT_PORT,
       &destIpAddr, DHCPV6_SERVER_PORT, buffer, offset, 0);
 
    //Free previously allocated memory

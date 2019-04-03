@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -36,6 +38,7 @@
 #include "core/udp.h"
 #include "core/socket.h"
 #include "ipv4/ipv4.h"
+#include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
 #include "mibs/mib2_module.h"
@@ -414,7 +417,7 @@ error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
    if(!error)
    {
       //Send UDP datagram
-      error = udpSendDatagramEx(socket->interface, socket->localPort,
+      error = udpSendDatagramEx(socket->interface, NULL, socket->localPort,
          destIpAddr, destPort, buffer, offset, socket->ttl);
    }
 
@@ -436,6 +439,7 @@ error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
 /**
  * @brief Send a UDP datagram (raw interface)
  * @param[in] interface Underlying network interface
+ * @param[in] srcIpAddr Source IP address (optional parameter)
  * @param[in] srcPort Source port
  * @param[in] destIpAddr IP address of the target host
  * @param[in] destPort Target port number
@@ -445,8 +449,9 @@ error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
  * @return Error code
  **/
 
-error_t udpSendDatagramEx(NetInterface *interface, uint16_t srcPort, const IpAddr *destIpAddr,
-   uint16_t destPort, NetBuffer *buffer, size_t offset, uint8_t ttl)
+error_t udpSendDatagramEx(NetInterface *interface, const IpAddr *srcIpAddr,
+   uint16_t srcPort, const IpAddr *destIpAddr, uint16_t destPort,
+   NetBuffer *buffer, size_t offset, uint8_t ttl)
 {
    error_t error;
    size_t length;
@@ -474,32 +479,46 @@ error_t udpSendDatagramEx(NetInterface *interface, uint16_t srcPort, const IpAdd
    //Destination address is an IPv4 address?
    if(destIpAddr->length == sizeof(Ipv4Addr))
    {
-      Ipv4Addr srcIpAddr;
-
-      //Select the source IPv4 address and the relevant network interface
-      //to use when sending data to the specified destination host
-      error = ipv4SelectSourceAddr(&interface, destIpAddr->ipv4Addr, &srcIpAddr);
-
-      //Check status code
-      if(error)
+      //Valid source IP address?
+      if(srcIpAddr != NULL && srcIpAddr->length == sizeof(Ipv4Addr))
       {
-         //Handle the special case where the destination address is the
-         //broadcast address
-         if(destIpAddr->ipv4Addr == IPV4_BROADCAST_ADDR)
+         //Copy the source IP address
+         pseudoHeader.ipv4Data.srcAddr = srcIpAddr->ipv4Addr;
+      }
+      else
+      {
+         Ipv4Addr ipAddr;
+
+         //Select the source IPv4 address and the relevant network interface
+         //to use when sending data to the specified destination host
+         error = ipv4SelectSourceAddr(&interface, destIpAddr->ipv4Addr,
+            &ipAddr);
+
+         //Check status code
+         if(!error)
          {
-            //Use the unspecified address as source address
-            srcIpAddr = IPV4_UNSPECIFIED_ADDR;
+            //Copy the resulting source IP address
+            pseudoHeader.ipv4Data.srcAddr = ipAddr;
          }
          else
          {
-            //Source address selection failed
-            return error;
+            //Handle the special case where the destination address is the
+            //broadcast address
+            if(destIpAddr->ipv4Addr == IPV4_BROADCAST_ADDR)
+            {
+               //Use the unspecified address as source address
+               pseudoHeader.ipv4Data.srcAddr = IPV4_UNSPECIFIED_ADDR;
+            }
+            else
+            {
+               //Source address selection failed
+               return error;
+            }
          }
       }
 
       //Format IPv4 pseudo header
       pseudoHeader.length = sizeof(Ipv4PseudoHeader);
-      pseudoHeader.ipv4Data.srcAddr = srcIpAddr;
       pseudoHeader.ipv4Data.destAddr = destIpAddr->ipv4Addr;
       pseudoHeader.ipv4Data.reserved = 0;
       pseudoHeader.ipv4Data.protocol = IPV4_PROTOCOL_UDP;
@@ -515,13 +534,22 @@ error_t udpSendDatagramEx(NetInterface *interface, uint16_t srcPort, const IpAdd
    //Destination address is an IPv6 address?
    if(destIpAddr->length == sizeof(Ipv6Addr))
    {
-      //Select the source IPv6 address and the relevant network interface
-      //to use when sending data to the specified destination host
-      error = ipv6SelectSourceAddr(&interface,
-         &destIpAddr->ipv6Addr, &pseudoHeader.ipv6Data.srcAddr);
-      //Any error to report?
-      if(error)
-         return error;
+      //Valid source IP address?
+      if(srcIpAddr != NULL && srcIpAddr->length == sizeof(Ipv6Addr))
+      {
+         //Copy the source IP address
+         pseudoHeader.ipv6Data.srcAddr = srcIpAddr->ipv6Addr;
+      }
+      else
+      {
+         //Select the source IPv6 address and the relevant network interface
+         //to use when sending data to the specified destination host
+         error = ipv6SelectSourceAddr(&interface,
+            &destIpAddr->ipv6Addr, &pseudoHeader.ipv6Data.srcAddr);
+         //Any error to report?
+         if(error)
+            return error;
+      }
 
       //Format IPv6 pseudo header
       pseudoHeader.length = sizeof(Ipv6PseudoHeader);

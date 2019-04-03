@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -109,7 +111,7 @@ error_t aps3EthInit(NetInterface *interface)
    //Reset Ethernet MAC peripheral
    eth_mac->sw_reset = 1;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    eth_mac->addr_low = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    eth_mac->addr_high = interface->macAddr.w[2];
 
@@ -132,7 +134,7 @@ error_t aps3EthInit(NetInterface *interface)
    eth_mac->crc_disable = 0;
 
    //Set the maximum frame length
-   eth_mac->max_frame_size = 1518;
+   eth_mac->max_frame_size = APS3_ETH_RX_BUFFER_SIZE;
 
    //Set transmit and receive thresholds
    eth_tx->tx_threshold = 0;
@@ -488,7 +490,7 @@ error_t aps3EthUpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating Cortus APS3 hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
    hashTable[0] = 0;

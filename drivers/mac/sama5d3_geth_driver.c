@@ -1,10 +1,12 @@
 /**
- * @file sama5d3_gigabit_eth_driver.c
+ * @file sama5d3_geth_driver.c
  * @brief SAMA5D3 Gigabit Ethernet MAC controller
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -33,7 +35,7 @@
 #include <limits.h>
 #include "sama5d3x.h"
 #include "core/net.h"
-#include "drivers/mac/sama5d3_gigabit_eth_driver.h"
+#include "drivers/mac/sama5d3_geth_driver.h"
 #include "debug.h"
 
 //Underlying network interface
@@ -53,11 +55,11 @@ static uint8_t rxBuffer[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT][SAMA5D3_GIGABIT_ETH
 //TX buffer descriptors
 #pragma data_alignment = 8
 #pragma location = ".ram_no_cache"
-static Sama5d3TxBufferDesc txBufferDesc[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT];
+static Sama5d3GethTxBufferDesc txBufferDesc[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT];
 //RX buffer descriptors
 #pragma data_alignment = 8
 #pragma location = ".ram_no_cache"
-static Sama5d3RxBufferDesc rxBufferDesc[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT];
+static Sama5d3GethRxBufferDesc rxBufferDesc[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT];
 
 //GCC compiler?
 #else
@@ -69,10 +71,10 @@ static uint8_t txBuffer[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT][SAMA5D3_GIGABIT_ETH
 static uint8_t rxBuffer[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT][SAMA5D3_GIGABIT_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(8), __section__(".ram_no_cache")));
 //TX buffer descriptors
-static Sama5d3TxBufferDesc txBufferDesc[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT]
+static Sama5d3GethTxBufferDesc txBufferDesc[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT]
    __attribute__((aligned(8), __section__(".ram_no_cache")));
 //RX buffer descriptors
-static Sama5d3RxBufferDesc rxBufferDesc[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT]
+static Sama5d3GethRxBufferDesc rxBufferDesc[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT]
    __attribute__((aligned(8), __section__(".ram_no_cache")));
 
 #endif
@@ -144,16 +146,21 @@ error_t sama5d3GigabitEthInit(NetInterface *interface)
    if(error)
       return error;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    GMAC->GMAC_SA[0].GMAC_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    GMAC->GMAC_SA[0].GMAC_SAT = interface->macAddr.w[2];
 
-   //Configure the receive filter
-   GMAC->GMAC_NCFGR |= GMAC_NCFGR_UNIHEN | GMAC_NCFGR_MTIHEN;
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   GMAC->GMAC_SA[1].GMAC_SAB = 0;
+   GMAC->GMAC_SA[2].GMAC_SAB = 0;
+   GMAC->GMAC_SA[3].GMAC_SAB = 0;
 
    //Initialize hash table
    GMAC->GMAC_HRB = 0;
    GMAC->GMAC_HRT = 0;
+
+   //Configure the receive filter
+   GMAC->GMAC_NCFGR |= GMAC_NCFGR_MAXFS | GMAC_NCFGR_MTIHEN;
 
    //Initialize buffer descriptors
    sama5d3GigabitEthInitBufferDesc(interface);
@@ -189,8 +196,8 @@ error_t sama5d3GigabitEthInit(NetInterface *interface)
 }
 
 
-//SAMA5D3-Xplained evaluation board?
-#if defined(USE_SAMA5D3_XPLAINED)
+//SAMA5D3-Xplained or SAMA5D3-EDS evaluation board?
+#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS)
 
 /**
  * @brief GPIO configuration
@@ -593,21 +600,28 @@ error_t sama5d3GigabitEthReceivePacket(NetInterface *interface)
 error_t sama5d3GigabitEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
+   uint_t j;
    uint_t k;
    uint8_t *p;
    uint32_t hashTable[2];
+   MacAddr unicastMacAddr[3];
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating SAMA5D3 Gigabit hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Clear hash table
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
+   //The hash table is used for multicast address filtering
    hashTable[0] = 0;
    hashTable[1] = 0;
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
       entry = &interface->macAddrFilter[i];
@@ -615,26 +629,78 @@ error_t sama5d3GigabitEthUpdateMacAddrFilter(NetInterface *interface)
       //Valid entry?
       if(entry->refCount > 0)
       {
-         //Point to the MAC address
-         p = entry->addr.b;
+         //Multicast address?
+         if(macIsMulticastAddr(&entry->addr))
+         {
+            //Point to the MAC address
+            p = entry->addr.b;
 
-         //Apply the hash function
-         k = (p[0] >> 6) ^ p[0];
-         k ^= (p[1] >> 4) ^ (p[1] << 2);
-         k ^= (p[2] >> 2) ^ (p[2] << 4);
-         k ^= (p[3] >> 6) ^ p[3];
-         k ^= (p[4] >> 4) ^ (p[4] << 2);
-         k ^= (p[5] >> 2) ^ (p[5] << 4);
+            //Apply the hash function
+            k = (p[0] >> 6) ^ p[0];
+            k ^= (p[1] >> 4) ^ (p[1] << 2);
+            k ^= (p[2] >> 2) ^ (p[2] << 4);
+            k ^= (p[3] >> 6) ^ p[3];
+            k ^= (p[4] >> 4) ^ (p[4] << 2);
+            k ^= (p[5] >> 2) ^ (p[5] << 4);
 
-         //The hash value is reduced to a 6-bit index
-         k &= 0x3F;
+            //The hash value is reduced to a 6-bit index
+            k &= 0x3F;
 
-         //Update hash table contents
-         hashTable[k / 32] |= (1 << (k % 32));
+            //Update hash table contents
+            hashTable[k / 32] |= (1 << (k % 32));
+         }
+         else
+         {
+            //Up to 3 additional MAC addresses can be specified
+            if(j < 3)
+            {
+               //Save the unicast address
+               unicastMacAddr[j++] = entry->addr;
+            }
+         }
       }
    }
 
-   //Write the hash table
+   //Configure the first unicast address filter
+   if(j >= 1)
+   {
+      //The addresse is activated when SAT register is written
+      GMAC->GMAC_SA[1].GMAC_SAB = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+      GMAC->GMAC_SA[1].GMAC_SAT = unicastMacAddr[0].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      GMAC->GMAC_SA[1].GMAC_SAB = 0;
+   }
+
+   //Configure the second unicast address filter
+   if(j >= 2)
+   {
+      //The addresse is activated when SAT register is written
+      GMAC->GMAC_SA[2].GMAC_SAB = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+      GMAC->GMAC_SA[2].GMAC_SAT = unicastMacAddr[1].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      GMAC->GMAC_SA[2].GMAC_SAB = 0;
+   }
+
+   //Configure the third unicast address filter
+   if(j >= 3)
+   {
+      //The addresse is activated when SAT register is written
+      GMAC->GMAC_SA[3].GMAC_SAB = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+      GMAC->GMAC_SA[3].GMAC_SAT = unicastMacAddr[2].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      GMAC->GMAC_SA[3].GMAC_SAB = 0;
+   }
+
+   //Configure the multicast address filter
    GMAC->GMAC_HRB = hashTable[0];
    GMAC->GMAC_HRT = hashTable[1];
 

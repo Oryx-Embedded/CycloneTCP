@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _DHCP_CLIENT_H
@@ -206,6 +208,7 @@ typedef void (*DhcpStateChangeCallback)(DhcpClientContext *context,
 typedef struct
 {
    NetInterface *interface;                           ///<Network interface to configure
+   uint_t ipAddrIndex;                                ///<Index of the IP address to be configured
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    char_t hostname[DHCP_CLIENT_MAX_HOSTNAME_LEN + 1]; ///<Host name
 #endif

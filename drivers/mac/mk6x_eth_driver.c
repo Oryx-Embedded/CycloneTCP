@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -156,8 +158,8 @@ error_t mk6xEthInit(NetInterface *interface)
    while(ENET->ECR & ENET_ECR_RESET_MASK);
 
    //Receive control register
-   ENET->RCR = ENET_RCR_MAX_FL(1518) | ENET_RCR_RMII_MODE_MASK |
-      ENET_RCR_MII_MODE_MASK;
+   ENET->RCR = ENET_RCR_MAX_FL(MK6X_ETH_RX_BUFFER_SIZE) |
+      ENET_RCR_RMII_MODE_MASK | ENET_RCR_MII_MODE_MASK;
 
    //Transmit control register
    ENET->TCR = 0;
@@ -170,12 +172,12 @@ error_t mk6xEthInit(NetInterface *interface)
    if(error)
       return error;
 
-   //Set the MAC address (upper 16 bits)
+   //Set the MAC address of the station (upper 16 bits)
    value = interface->macAddr.b[5];
    value |= (interface->macAddr.b[4] << 8);
    ENET->PAUR = ENET_PAUR_PADDR2(value) | ENET_PAUR_TYPE(0x8808);
 
-   //Set the MAC address (lower 32 bits)
+   //Set the MAC address of the station (lower 32 bits)
    value = interface->macAddr.b[3];
    value |= (interface->macAddr.b[2] << 8);
    value |= (interface->macAddr.b[1] << 16);
@@ -815,7 +817,7 @@ error_t mk6xEthUpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating Kinetis K6x hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table (unicast address filtering)
    unicastHashTable[0] = 0;

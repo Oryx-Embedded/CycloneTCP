@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _TFTP_CLIENT_H
@@ -140,7 +142,7 @@ typedef struct
 
 
 //TFTP client related functions
-void tftpClientInit(TftpClientContext *context);
+error_t tftpClientInit(TftpClientContext *context);
 
 error_t tftpClientBindToInterface(TftpClientContext *context,
    NetInterface *interface);
@@ -154,11 +156,14 @@ error_t tftpClientOpenFile(TftpClientContext *context,
 error_t tftpClientWriteFile(TftpClientContext *context,
    const void *data, size_t length, size_t *written, uint_t flags);
 
+error_t tftpClientFlushFile(TftpClientContext *context);
+
 error_t tftpClientReadFile(TftpClientContext *context,
    void *data, size_t size, size_t *received, uint_t flags);
 
-error_t tftpClientFlushFile(TftpClientContext *context);
 void tftpClientCloseFile(TftpClientContext *context);
+
+void tftpClientDeinit(TftpClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus

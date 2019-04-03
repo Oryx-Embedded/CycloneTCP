@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _NET_LEGACY_H
@@ -168,8 +170,6 @@
 #define chunkedBufferGetLength netBufferGetLength
 #define chunkedBufferRead netBufferRead
 
-#define ipv4IsInLocalSubnet ipv4IsOnLocalSubnet
-
 #ifdef SMTP_DEFAULT_TIMEOUT
    #define SMTP_CLIENT_DEFAULT_TIMEOUT SMTP_DEFAULT_TIMEOUT
 #endif
@@ -217,8 +217,8 @@
 #define ftpOpenDir ftpClientOpenDir
 #define ftpReadDir ftpClientReadDir
 #define ftpCloseDir ftpClientCloseDir
-#define ftpMakeDir ftpClientMakeDir
-#define ftpRemoveDir ftpClientRemoveDir
+#define ftpMakeDir ftpClientCreateDir
+#define ftpRemoveDir ftpClientDeleteDir
 #define ftpOpenFile ftpClientOpenFile
 #define ftpWriteFile(context, data, length, flags) ftpClientWriteFile(context, data, length, NULL, flags)
 #define ftpReadFile ftpClientReadFile
@@ -246,5 +246,25 @@
 #ifdef FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE
    #define FTP_CLIENT_MAX_TCP_BUFFER_SIZE FTP_CLIENT_SOCKET_MAX_TX_BUFFER_SIZE
 #endif
+
+#ifdef FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE
+   #define FTP_SERVER_MIN_TCP_BUFFER_SIZE FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE
+#endif
+
+#ifdef FTP_SERVER_DATA_SOCKET_BUFFER_SIZE
+   #define FTP_SERVER_MAX_TCP_BUFFER_SIZE FTP_SERVER_DATA_SOCKET_BUFFER_SIZE
+#endif
+
+#define NET_VERSION_STRING CYCLONE_TCP_VERSION_STRING
+#define NET_MAJOR_VERSION CYCLONE_TCP_MAJOR_VERSION
+#define NET_MINOR_VERSION CYCLONE_TCP_MINOR_VERSION
+#define NET_REV_NUMBER CYCLONE_TCP_REV_NUMBER
+
+#define ftpClientMakeDir ftpClientCreateDir
+#define ftpClientRemoveDir ftpClientDeleteDir
+
+#define MQTT_PROTOCOL_LEVEL_3_1 MQTT_VERSION_3_1
+#define MQTT_PROTOCOL_LEVEL_3_1_1 MQTT_VERSION_3_1_1
+#define mqttClientSetProtocolLevel mqttClientSetVersion
 
 #endif

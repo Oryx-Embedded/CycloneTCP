@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _DHCP_SERVER_H
@@ -97,6 +99,7 @@ typedef struct
 typedef struct
 {
    NetInterface *interface;                         ///<Underlying network interface
+   uint_t ipAddrIndex;                              ///<Index of the IP address assigned to the DHCP server
    bool_t rapidCommit;                              ///<Quick configuration using rapid commit
    uint32_t leaseTime;                              ///<Lease time, in seconds, assigned to the DHCP clients
    Ipv4Addr ipAddrRangeMin;                         ///<Lowest IP address in the pool that is available for dynamic address assignment

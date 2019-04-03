@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -63,6 +65,8 @@ void dhcpServerGetDefaultSettings(DhcpServerSettings *settings)
 
    //Use default interface
    settings->interface = netGetDefaultInterface();
+   //Index of the IP address assigned to the DHCP server
+   settings->ipAddrIndex = 0;
 
    //Support for quick configuration using rapid commit
    settings->rapidCommit = FALSE;
@@ -355,6 +359,7 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
    const DhcpMessage *message, size_t length)
 {
    error_t error;
+   uint_t i;
    NetInterface *interface;
    Ipv4Addr requestedIpAddr;
    DhcpOption *option;
@@ -362,6 +367,8 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address assigned to the DHCP server
+   i = context->settings.ipAddrIndex;
 
    //Retrieve Server Identifier option
    option = dhcpGetOption(message, length, DHCP_OPT_SERVER_IDENTIFIER);
@@ -370,7 +377,7 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
    if(option != NULL && option->length == 4)
    {
       //Unexpected server identifier?
-      if(!ipv4CompAddr(option->value, &interface->ipv4Context.addr))
+      if(!ipv4CompAddr(option->value, &interface->ipv4Context.addrList[i].addr))
          return;
    }
 
@@ -481,6 +488,7 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
 void dhcpServerParseRequest(DhcpServerContext *context,
    const DhcpMessage *message, size_t length)
 {
+   uint_t i;
    NetInterface *interface;
    Ipv4Addr clientIpAddr;
    DhcpOption *option;
@@ -488,6 +496,8 @@ void dhcpServerParseRequest(DhcpServerContext *context,
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address assigned to the DHCP server
+   i = context->settings.ipAddrIndex;
 
    //Retrieve Server Identifier option
    option = dhcpGetOption(message, length, DHCP_OPT_SERVER_IDENTIFIER);
@@ -496,7 +506,7 @@ void dhcpServerParseRequest(DhcpServerContext *context,
    if(option != NULL && option->length == 4)
    {
       //Unexpected server identifier?
-      if(!ipv4CompAddr(option->value, &interface->ipv4Context.addr))
+      if(!ipv4CompAddr(option->value, &interface->ipv4Context.addrList[i].addr))
          return;
    }
 
@@ -691,17 +701,21 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    Ipv4Addr yourIpAddr, const DhcpMessage *request, size_t length)
 {
    error_t error;
+   uint_t i;
    uint_t n;
    uint32_t value;
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
    DhcpMessage *reply;
+   IpAddr srcIpAddr;
    IpAddr destIpAddr;
    uint16_t destPort;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address assigned to the DHCP server
+   i = context->settings.ipAddrIndex;
 
    //Allocate a memory buffer to hold the DHCP message
    buffer = udpAllocBuffer(DHCP_MIN_MSG_SIZE, &offset);
@@ -738,7 +752,7 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
 
    //Add Server Identifier option
    dhcpAddOption(reply, DHCP_OPT_SERVER_IDENTIFIER,
-      &interface->ipv4Context.addr, sizeof(Ipv4Addr));
+      &interface->ipv4Context.addrList[i].addr, sizeof(Ipv4Addr));
 
    //DHCPOFFER or DHCPACK message?
    if(type == DHCP_MESSAGE_TYPE_OFFER || type == DHCP_MESSAGE_TYPE_ACK)
@@ -784,6 +798,12 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
             context->settings.dnsServer, n * sizeof(Ipv4Addr));
       }
    }
+
+   //A server with multiple network address (e.g. a multi-homed host) may
+   //use any of its network addresses in outgoing DHCP messages (refer to
+   //RFC 2131, section 4.1)
+   srcIpAddr.length = sizeof(Ipv4Addr);
+   srcIpAddr.ipv4Addr = interface->ipv4Context.addrList[i].addr;
 
    //Check whether the 'giaddr' field is non-zero
    if(request->giaddr != IPV4_UNSPECIFIED_ADDR)
@@ -852,9 +872,9 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    //Dump the contents of the message for debugging purpose
    dhcpDumpMessage(reply, DHCP_MIN_MSG_SIZE);
 
-   //Broadcast DHCPDECLINE message
-   error = udpSendDatagramEx(interface, DHCP_SERVER_PORT, &destIpAddr,
-      destPort, buffer, offset, IPV4_DEFAULT_TTL);
+   //Send DHCP reply
+   error = udpSendDatagramEx(interface, &srcIpAddr, DHCP_SERVER_PORT,
+      &destIpAddr, destPort, buffer, offset, IPV4_DEFAULT_TTL);
 
    //Free previously allocated memory
    netBufferFree(buffer);

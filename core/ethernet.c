@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -36,6 +38,7 @@
 #include "core/net.h"
 #include "core/nic.h"
 #include "core/ethernet.h"
+#include "core/ethernet_misc.h"
 #include "core/socket.h"
 #include "core/raw_socket.h"
 #include "core/tcp_timer.h"
@@ -53,92 +56,6 @@
 const MacAddr MAC_UNSPECIFIED_ADDR = {{{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}};
 //Broadcast MAC address
 const MacAddr MAC_BROADCAST_ADDR = {{{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}}};
-
-//Padding bytes
-const uint8_t ethPadding[64] =
-{
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
-//A lookup table can be used to speed up CRC calculation
-#if (ETH_FAST_CRC_SUPPORT == ENABLED)
-
-static const uint32_t crc32Table[256] =
-{
-   0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
-   0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
-   0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988,
-   0x09B64C2B, 0x7EB17CBD, 0xE7B82D07, 0x90BF1D91,
-   0x1DB71064, 0x6AB020F2, 0xF3B97148, 0x84BE41DE,
-   0x1ADAD47D, 0x6DDDE4EB, 0xF4D4B551, 0x83D385C7,
-   0x136C9856, 0x646BA8C0, 0xFD62F97A, 0x8A65C9EC,
-   0x14015C4F, 0x63066CD9, 0xFA0F3D63, 0x8D080DF5,
-   0x3B6E20C8, 0x4C69105E, 0xD56041E4, 0xA2677172,
-   0x3C03E4D1, 0x4B04D447, 0xD20D85FD, 0xA50AB56B,
-   0x35B5A8FA, 0x42B2986C, 0xDBBBC9D6, 0xACBCF940,
-   0x32D86CE3, 0x45DF5C75, 0xDCD60DCF, 0xABD13D59,
-   0x26D930AC, 0x51DE003A, 0xC8D75180, 0xBFD06116,
-   0x21B4F4B5, 0x56B3C423, 0xCFBA9599, 0xB8BDA50F,
-   0x2802B89E, 0x5F058808, 0xC60CD9B2, 0xB10BE924,
-   0x2F6F7C87, 0x58684C11, 0xC1611DAB, 0xB6662D3D,
-   0x76DC4190, 0x01DB7106, 0x98D220BC, 0xEFD5102A,
-   0x71B18589, 0x06B6B51F, 0x9FBFE4A5, 0xE8B8D433,
-   0x7807C9A2, 0x0F00F934, 0x9609A88E, 0xE10E9818,
-   0x7F6A0DBB, 0x086D3D2D, 0x91646C97, 0xE6635C01,
-   0x6B6B51F4, 0x1C6C6162, 0x856530D8, 0xF262004E,
-   0x6C0695ED, 0x1B01A57B, 0x8208F4C1, 0xF50FC457,
-   0x65B0D9C6, 0x12B7E950, 0x8BBEB8EA, 0xFCB9887C,
-   0x62DD1DDF, 0x15DA2D49, 0x8CD37CF3, 0xFBD44C65,
-   0x4DB26158, 0x3AB551CE, 0xA3BC0074, 0xD4BB30E2,
-   0x4ADFA541, 0x3DD895D7, 0xA4D1C46D, 0xD3D6F4FB,
-   0x4369E96A, 0x346ED9FC, 0xAD678846, 0xDA60B8D0,
-   0x44042D73, 0x33031DE5, 0xAA0A4C5F, 0xDD0D7CC9,
-   0x5005713C, 0x270241AA, 0xBE0B1010, 0xC90C2086,
-   0x5768B525, 0x206F85B3, 0xB966D409, 0xCE61E49F,
-   0x5EDEF90E, 0x29D9C998, 0xB0D09822, 0xC7D7A8B4,
-   0x59B33D17, 0x2EB40D81, 0xB7BD5C3B, 0xC0BA6CAD,
-   0xEDB88320, 0x9ABFB3B6, 0x03B6E20C, 0x74B1D29A,
-   0xEAD54739, 0x9DD277AF, 0x04DB2615, 0x73DC1683,
-   0xE3630B12, 0x94643B84, 0x0D6D6A3E, 0x7A6A5AA8,
-   0xE40ECF0B, 0x9309FF9D, 0x0A00AE27, 0x7D079EB1,
-   0xF00F9344, 0x8708A3D2, 0x1E01F268, 0x6906C2FE,
-   0xF762575D, 0x806567CB, 0x196C3671, 0x6E6B06E7,
-   0xFED41B76, 0x89D32BE0, 0x10DA7A5A, 0x67DD4ACC,
-   0xF9B9DF6F, 0x8EBEEFF9, 0x17B7BE43, 0x60B08ED5,
-   0xD6D6A3E8, 0xA1D1937E, 0x38D8C2C4, 0x4FDFF252,
-   0xD1BB67F1, 0xA6BC5767, 0x3FB506DD, 0x48B2364B,
-   0xD80D2BDA, 0xAF0A1B4C, 0x36034AF6, 0x41047A60,
-   0xDF60EFC3, 0xA867DF55, 0x316E8EEF, 0x4669BE79,
-   0xCB61B38C, 0xBC66831A, 0x256FD2A0, 0x5268E236,
-   0xCC0C7795, 0xBB0B4703, 0x220216B9, 0x5505262F,
-   0xC5BA3BBE, 0xB2BD0B28, 0x2BB45A92, 0x5CB36A04,
-   0xC2D7FFA7, 0xB5D0CF31, 0x2CD99E8B, 0x5BDEAE1D,
-   0x9B64C2B0, 0xEC63F226, 0x756AA39C, 0x026D930A,
-   0x9C0906A9, 0xEB0E363F, 0x72076785, 0x05005713,
-   0x95BF4A82, 0xE2B87A14, 0x7BB12BAE, 0x0CB61B38,
-   0x92D28E9B, 0xE5D5BE0D, 0x7CDCEFB7, 0x0BDBDF21,
-   0x86D3D2D4, 0xF1D4E242, 0x68DDB3F8, 0x1FDA836E,
-   0x81BE16CD, 0xF6B9265B, 0x6FB077E1, 0x18B74777,
-   0x88085AE6, 0xFF0F6A70, 0x66063BCA, 0x11010B5C,
-   0x8F659EFF, 0xF862AE69, 0x616BFFD3, 0x166CCF45,
-   0xA00AE278, 0xD70DD2EE, 0x4E048354, 0x3903B3C2,
-   0xA7672661, 0xD06016F7, 0x4969474D, 0x3E6E77DB,
-   0xAED16A4A, 0xD9D65ADC, 0x40DF0B66, 0x37D83BF0,
-   0xA9BCAE53, 0xDEBB9EC5, 0x47B2CF7F, 0x30B5FFE9,
-   0xBDBDF21C, 0xCABAC28A, 0x53B39330, 0x24B4A3A6,
-   0xBAD03605, 0xCDD70693, 0x54DE5729, 0x23D967BF,
-   0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94,
-   0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
-};
-
-#endif
 
 
 /**
@@ -168,16 +85,23 @@ error_t ethInit(NetInterface *interface)
 void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
 {
    error_t error;
-   uint32_t crc;
+   uint_t i;
    uint16_t type;
    uint8_t *data;
    EthHeader *header;
-#if (ETH_VMAN_SUPPORT == ENABLED)
-   uint16_t vmanId = 0;
-   VlanTag *vmanTag = NULL;
-#endif
+   NetInterface *virtualInterface;
+
 #if (IPV6_SUPPORT == ENABLED)
    NetBuffer1 buffer;
+#endif
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   uint8_t port = 0;
+#endif
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   uint16_t vlanId = 0;
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   uint16_t vmanId = 0;
 #endif
 
    //Initialize status code
@@ -189,30 +113,11 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       //Check whether the CRC is included in the received frame
       if(!interface->nicDriver->autoCrcStrip)
       {
-         //Malformed Ethernet frame?
-         if(length < (sizeof(EthHeader) + ETH_CRC_SIZE))
-         {
-            //Drop the received frame
-            error = ERROR_INVALID_LENGTH;
+         //Perform CRC verification
+         error = ethCheckCrc(interface, frame, length);
+         //CRC error?
+         if(error)
             break;
-         }
-
-         //CRC verification not supported by hardware?
-         if(!interface->nicDriver->autoCrcVerif)
-         {
-            //The value of the residue is 0x2144DF1C when no CRC errors are detected
-            if(ethCalcCrc(frame, length) != 0x2144DF1C)
-            {
-               //Drop the received frame
-               error = ERROR_WRONG_CHECKSUM;
-               break;
-            }
-         }
-
-         //Retrieve CRC value
-         crc = LOAD32BE(frame + length - ETH_CRC_SIZE);
-         //Reseed the pseudo-random number generator
-         netInitRand(crc);
 
          //Strip CRC field from Ethernet frame
          length -= ETH_CRC_SIZE;
@@ -220,23 +125,20 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
       //Ethernet port multiplication using VLAN or tail tagging?
-      if(interface->port != 0)
+      if(interface->port != 0 &&
+         interface->phyDriver != NULL &&
+         interface->phyDriver->untagFrame != NULL)
       {
-         //Sanity check
-         if(interface->phyDriver != NULL &&
-            interface->phyDriver->tagFrame != NULL)
-         {
-            //Decode VLAN or tail tag
-            error = interface->phyDriver->untagFrame(&interface, &frame,
-               &length);
-            //Any error to report?
-            if(error)
-               break;
-         }
+         //Decode VLAN tag (SMSC switches) or tail tag (Micrel switches)
+         error = interface->phyDriver->untagFrame(interface, &frame,
+            &length, &port);
+         //Any error to report?
+         if(error)
+            break;
       }
 #endif
 
-      //Position to the beginning of the frame
+      //Point to the beginning of the frame
       header = (EthHeader *) frame;
 
       //Total number of octets received on the interface
@@ -257,19 +159,6 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       //Dump Ethernet header contents for debugging purpose
       ethDumpHeader(header);
 
-#if defined(ETH_FRAME_FORWARD_HOOK)
-      ETH_FRAME_FORWARD_HOOK(interface, header, length);
-#endif
-
-#if (RAW_SOCKET_SUPPORT == ENABLED)
-      //Frame filtering based on destination MAC address
-      if(!ethCheckDestAddr(interface, &header->destAddr))
-      {
-         //Allow raw sockets to process Ethernet packets
-         rawSocketProcessEthPacket(interface, header, length);
-      }
-#endif
-
       //Retrieve the value of the EtherType field
       type = ntohs(header->type);
 
@@ -278,178 +167,37 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       //Calculate the length of the data payload
       length -= sizeof(EthHeader);
 
-#if (ETH_VLAN_SUPPORT == ENABLED)
 #if (ETH_VMAN_SUPPORT == ENABLED)
       //VMAN tag found?
       if(type == ETH_TYPE_VMAN)
       {
-         //Malformed Ethernet frame?
-         if(length < sizeof(VlanTag))
-         {
-            //Drop the received frame
-            error = ERROR_INVALID_LENGTH;
+         //Decode VMAN tag
+         error = ethDecodeVlanTag(data, length, &vmanId, &type);
+         //Any error to report?
+         if(error)
             break;
-         }
 
-         //Point to the VMAN tag
-         vmanTag = (VlanTag *) data;
-
-         //The VMAN identifier is encoded in a 12-bit field
-         vmanId = ntohs(vmanTag->tci) & VLAN_VID_MASK;
-         //The EtherType field indicates which protocol is encapsulated in the payload
-         type = ntohs(vmanTag->type);
-
-         //Advance over the VMAN tag
+         //Advance data pointer over the VMAN tag
          data += sizeof(VlanTag);
          length -= sizeof(VlanTag);
       }
 #endif
 
+#if (ETH_VLAN_SUPPORT == ENABLED)
       //VLAN tag found?
       if(type == ETH_TYPE_VLAN)
       {
-         uint_t i;
-         uint16_t vlanId;
-         VlanTag *vlanTag;
-
-         //Malformed Ethernet frame?
-         if(length < sizeof(VlanTag))
-         {
-            //Drop the received frame
-            error = ERROR_INVALID_LENGTH;
+         //Decode VLAN tag
+         error = ethDecodeVlanTag(data, length, &vlanId, &type);
+         //Any error to report?
+         if(error)
             break;
-         }
 
-         //Point to the VLAN tag
-         vlanTag = (VlanTag *) data;
-
-         //The VLAN identifier is encoded in a 12-bit field
-         vlanId = ntohs(vlanTag->tci) & VLAN_VID_MASK;
-         //The EtherType field indicates which protocol is encapsulated in the payload
-         type = ntohs(vlanTag->type);
-
-         //Advance over the VLAN tag
+         //Advance data pointer over the VLAN tag
          data += sizeof(VlanTag);
          length -= sizeof(VlanTag);
-
-         //802.1q allows a single physical interface to be bound to multiple
-         //virtual interfaces
-         for(i = 0; i < NET_INTERFACE_COUNT; i++)
-         {
-            //Check whether the current virtual interface is attached to the
-            //physical interface where the packet was received
-            if(netInterface[i].parent == interface || &netInterface[i] == interface)
-            {
-               //Check VLAN identifier
-               if(netInterface[i].vlanId != 0 && netInterface[i].vlanId == vlanId)
-               {
-#if (ETH_VMAN_SUPPORT == ENABLED)
-                  //Check VMAN identifier
-                  if(vmanTag != NULL)
-                  {
-                     if(netInterface[i].vmanId != 0 && netInterface[i].vmanId == vmanId)
-                     {
-                        //Forward the packet to the relevant virtual interface
-                        interface = &netInterface[i];
-                        break;
-                     }
-                  }
-                  else
-                  {
-                     if(netInterface[i].vmanId == 0)
-                     {
-                        //Forward the packet to the relevant virtual interface
-                        interface = &netInterface[i];
-                        break;
-                     }
-                  }
-#else
-                  //Forward the packet to the relevant virtual interface
-                  interface = &netInterface[i];
-                  break;
-#endif
-               }
-            }
-         }
-
-         //Drop incoming VLAN-tagged frames with unknown VLAN identifier
-         if(i >= NET_INTERFACE_COUNT)
-         {
-            //Drop the received frame
-            error = ERROR_WRONG_IDENTIFIER;
-            break;
-         }
-      }
-      else
-      {
-#if (ETH_VMAN_SUPPORT == ENABLED)
-         //Sanity check
-         if(vmanTag != NULL)
-         {
-            //Drop the received frame
-            error = ERROR_WRONG_IDENTIFIER;
-            break;
-         }
-#endif
-         //If the interface is configured to accept VLAN-tagged frames, then
-         //drop the incoming Ethernet frame
-         if(interface->vlanId != 0)
-         {
-            //Drop the received frame
-            error = ERROR_WRONG_IDENTIFIER;
-            break;
-         }
       }
 #endif
-
-      //Frame filtering based on destination MAC address
-      if(ethCheckDestAddr(interface, &header->destAddr))
-      {
-         //Drop the received frame
-         error = ERROR_INVALID_ADDRESS;
-         break;
-      }
-
-      //Update Ethernet statistics
-      ethUpdateInStats(interface, &header->destAddr);
-
-      //Check Ethernet type field
-      switch(type)
-      {
-#if (IPV4_SUPPORT == ENABLED)
-      //ARP packet received?
-      case ETH_TYPE_ARP:
-         //Process incoming ARP packet
-         arpProcessPacket(interface, (ArpPacket *) data, length);
-         break;
-      //IPv4 packet received?
-      case ETH_TYPE_IPV4:
-         //Process incoming IPv4 packet
-         ipv4ProcessPacket(interface, (Ipv4Header *) data, length);
-         break;
-#endif
-
-#if (IPV6_SUPPORT == ENABLED)
-      //IPv6 packet received?
-      case ETH_TYPE_IPV6:
-         //The incoming Ethernet frame fits in a single chunk
-         buffer.chunkCount = 1;
-         buffer.maxChunkCount = 1;
-         buffer.chunk[0].address = data;
-         buffer.chunk[0].length = (uint16_t) length;
-         buffer.chunk[0].size = 0;
-
-         //Process incoming IPv6 packet
-         ipv6ProcessPacket(interface, (NetBuffer *) &buffer, 0);
-         break;
-#endif
-
-      //Unknown packet received?
-      default:
-         //Drop the received frame
-         error = ERROR_INVALID_PROTOCOL;
-         break;
-      }
 
       //End of exception handling block
    } while(0);
@@ -459,6 +207,118 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
    {
       //Update Ethernet statistics
       ethUpdateErrorStats(interface, error);
+      //Drop the received frame
+      return;
+   }
+
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Dump VLAN identifier
+   if(vlanId != 0)
+   {
+      TRACE_DEBUG("  VLAN Id = %" PRIu16 "\r\n", vlanId);
+   }
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Dump VMAN identifier
+   if(vmanId != 0)
+   {
+      TRACE_DEBUG("  VMAN Id = %" PRIu16 "\r\n", vmanId);
+   }
+#endif
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Dump switch port identifier
+   if(port != 0)
+   {
+      TRACE_DEBUG("  Switch Port = %" PRIu8 "\r\n", port);
+   }
+#endif
+
+   //802.1q allows a single physical interface to be bound to multiple
+   //virtual interfaces
+   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   {
+      //Point to the current interface
+      virtualInterface = &netInterface[i];
+
+      //Check whether the current virtual interface is attached to the
+      //physical interface where the packet was received
+      if(nicGetPhysicalInterface(virtualInterface) != interface)
+         continue;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+      //Check switch port identifier
+      if(nicGetSwitchPort(virtualInterface) != port)
+         continue;
+#endif
+#if (ETH_VLAN_SUPPORT == ENABLED)
+      //Check VLAN identifier
+      if(nicGetVlanId(virtualInterface) != vlanId)
+         continue;
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+      //Check VMAN identifier
+      if(nicGetVmanId(virtualInterface) != vmanId)
+         continue;
+#endif
+
+      //The host must silently discards an incoming frame whose destination
+      //address does not correspond to the physical interface through which
+      //it was received
+      error = ethCheckDestAddr(virtualInterface, &header->destAddr);
+
+      //Valid destination address?
+      if(!error)
+      {
+         //Update Ethernet statistics
+         ethUpdateInStats(virtualInterface, &header->destAddr);
+
+#if (RAW_SOCKET_SUPPORT == ENABLED)
+         //Allow raw sockets to process Ethernet packets
+         rawSocketProcessEthPacket(virtualInterface, header, data, length);
+#endif
+         //Check Ethernet type field
+         switch(type)
+         {
+#if (IPV4_SUPPORT == ENABLED)
+         //ARP packet received?
+         case ETH_TYPE_ARP:
+            //Process incoming ARP packet
+            arpProcessPacket(virtualInterface, (ArpPacket *) data, length);
+            break;
+         //IPv4 packet received?
+         case ETH_TYPE_IPV4:
+            //Process incoming IPv4 packet
+            ipv4ProcessPacket(virtualInterface, (Ipv4Header *) data, length);
+            break;
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+         //IPv6 packet received?
+         case ETH_TYPE_IPV6:
+            //The incoming Ethernet frame fits in a single chunk
+            buffer.chunkCount = 1;
+            buffer.maxChunkCount = 1;
+            buffer.chunk[0].address = data;
+            buffer.chunk[0].length = (uint16_t) length;
+            buffer.chunk[0].size = 0;
+
+            //Process incoming IPv6 packet
+            ipv6ProcessPacket(virtualInterface, (NetBuffer *) &buffer, 0);
+            break;
+#endif
+         //Unknown packet received?
+         default:
+            //Drop the received frame
+            error = ERROR_INVALID_PROTOCOL;
+            break;
+         }
+      }
+
+      //Invalid frame received?
+      if(error)
+      {
+         //Update Ethernet statistics
+         ethUpdateErrorStats(virtualInterface, error);
+      }
    }
 }
 
@@ -481,85 +341,76 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
    size_t length;
    MacAddr *srcAddr;
    EthHeader *header;
+   NetInterface *logicalInterface;
+   NetInterface *physicalInterface;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Get the switch port identifier assigned to the interface
+   uint8_t port = nicGetSwitchPort(interface);
+#endif
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Get the VLAN identifier assigned to the interface
+   uint16_t vlanId = nicGetVlanId(interface);
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Get the VMAN identifier assigned to the interface
+   uint16_t vmanId = nicGetVmanId(interface);
+#endif
 
 #if (ETH_VLAN_SUPPORT == ENABLED)
-   //Valid VLAN identifier assigned to the interface?
-   if(interface->vlanId != 0)
+   //Valid VLAN identifier?
+   if(vlanId != 0)
    {
-      VlanTag *vlanTag;
-
-      //Is there enough space for the VLAN tag?
-      if(offset < sizeof(VlanTag))
-         return ERROR_INVALID_PARAMETER;
-
-      //Make room for the VLAN tag
-      offset -= sizeof(VlanTag);
-      //Point to the VLAN tag
-      vlanTag = netBufferAt(buffer, offset);
-
-      //The VLAN identifier is encoded in a 12-bit field
-      vlanTag->tci = htons(interface->vlanId & VLAN_VID_MASK);
-      //The EtherType field indicates which protocol is encapsulated in the payload
-      vlanTag->type = htons(type);
+      //The VLAN tag is inserted in the Ethernet frame
+      error = ethEncodeVlanTag(buffer, &offset, vlanId, type);
+      //Any error to report?
+      if(error)
+         return error;
 
       //A distinct EtherType has been allocated for use in the TPID field
       type = ETH_TYPE_VLAN;
-
-#if (ETH_VMAN_SUPPORT == ENABLED)
-      //Valid VMAN identifier assigned to the interface?
-      if(interface->vmanId != 0)
-      {
-         //Is there enough space for the VMAN tag?
-         if(offset < sizeof(VlanTag))
-            return ERROR_INVALID_PARAMETER;
-
-         //Make room for the VMAN tag
-         offset -= sizeof(VlanTag);
-         //Point to the VMAN tag
-         vlanTag = netBufferAt(buffer, offset);
-
-         //The VMAN identifier is encoded in a 12-bit field
-         vlanTag->tci = htons(interface->vmanId & VLAN_VID_MASK);
-         //The EtherType field indicates which protocol is encapsulated in the payload
-         vlanTag->type = htons(type);
-
-         //A distinct EtherType has been allocated for use in the TPID field
-         type = ETH_TYPE_VMAN;
-      }
-#endif
-
-      //Forward the frame to the network interface on top of which VLAN runs
-      interface = nicGetLogicalInterface(interface);
    }
 #endif
 
-   //Get source MAC address
-   srcAddr = &interface->macAddr;
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Valid VMAN identifier?
+   if(vmanId != 0)
+   {
+      //The VMAN tag is inserted in the Ethernet frame
+      error = ethEncodeVlanTag(buffer, &offset, vmanId, type);
+      //Any error to report?
+      if(error)
+         return error;
+
+      //A distinct EtherType has been allocated for use in the TPID field
+      type = ETH_TYPE_VMAN;
+   }
+#endif
+
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+   //Get the appropriate MAC address to be used as source address
+   srcAddr = &logicalInterface->macAddr;
+
+   //Forward the frame to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    //Ethernet port multiplication using VLAN or tail tagging?
-   if(interface->port != 0)
+   if(physicalInterface->port != 0 &&
+      physicalInterface->phyDriver != NULL &&
+      physicalInterface->phyDriver->tagFrame != NULL)
    {
-      NetInterface *physicalInterface;
-
-      //Point to the physical interface
-      physicalInterface = nicGetPhysicalInterface(interface);
-
-      //Sanity check
-      if(physicalInterface->phyDriver != NULL &&
-         physicalInterface->phyDriver->tagFrame != NULL)
-      {
-         //Add VLAN or tail tag
-         error = physicalInterface->phyDriver->tagFrame(&interface,
-            buffer, &offset, &type);
-         //Any error to report?
-         if(error)
-            return error;
-      }
+      //Add VLAN tag (SMSC switches) or tail tag (Micrel switches)
+      error = physicalInterface->phyDriver->tagFrame(physicalInterface,
+         buffer, &offset, port, &type);
+      //Any error to report?
+      if(error)
+         return error;
    }
 #endif
 
-   //Is there enough space for the Ethernet header?
+   //Sanity check
    if(offset < sizeof(EthHeader))
       return ERROR_INVALID_PARAMETER;
 
@@ -577,10 +428,10 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
    header->type = htons(type);
 
    //Valid NIC driver?
-   if(interface->nicDriver != NULL)
+   if(physicalInterface->nicDriver != NULL)
    {
       //Automatic padding not supported by hardware?
-      if(!interface->nicDriver->autoPadding)
+      if(!physicalInterface->nicDriver->autoPadding)
       {
          //The host controller should manually add padding to the packet before
          //transmitting it
@@ -591,7 +442,7 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
       }
 
       //CRC calculation not supported by hardware?
-      if(!interface->nicDriver->autoCrcCalc)
+      if(!physicalInterface->nicDriver->autoCrcCalc)
       {
          //Compute CRC over the header and payload
          crc = ethCalcCrcEx(buffer, offset, length);
@@ -617,107 +468,30 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
    //Dump Ethernet header contents for debugging purpose
    ethDumpHeader(header);
 
-   //Send the resulting packet over the specified link
-   error = nicSendPacket(interface, buffer, offset);
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Ethernet frame padding
- * @param[in] buffer Multi-part buffer containing the Ethernet frame
- * @param[in,out] length Length of the Ethernet frame, in bytes
- * @return Error code
- **/
-
-error_t ethPadFrame(NetBuffer *buffer, size_t *length)
-{
-   error_t error;
-   size_t n;
-
-   //Ethernet frames have a minimum length of 64 byte
-   if(*length < (ETH_MIN_FRAME_SIZE - ETH_CRC_SIZE))
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Dump VLAN identifier
+   if(vlanId != 0)
    {
-      //Add padding as necessary
-      n = (ETH_MIN_FRAME_SIZE - ETH_CRC_SIZE) - *length;
-
-      //Append padding bytes
-      error = netBufferAppend(buffer, ethPadding, n);
-
-      //Check status code
-      if(!error)
-      {
-         //Adjust frame length
-         *length += n;
-      }
+      TRACE_DEBUG("  VLAN Id = %" PRIu16 "\r\n", vlanId);
    }
-   else
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Dump VMAN identifier
+   if(vmanId != 0)
    {
-      //No padding needed
-      error = NO_ERROR;
+      TRACE_DEBUG("  VMAN Id = %" PRIu16 "\r\n", vmanId);
    }
-
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Destination MAC address filtering
- * @param[in] interface Underlying network interface
- * @param[in] macAddr Destination MAC address to be checked
- * @return Error code
- **/
-
-error_t ethCheckDestAddr(NetInterface *interface, const MacAddr *macAddr)
-{
-   error_t error;
-   uint_t i;
-   MacFilterEntry *entry;
-   NetInterface *logicalInterface;
-
-   //Filter out any invalid addresses
-   error = ERROR_INVALID_ADDRESS;
-
-   //Point to the logical interface
-   logicalInterface = nicGetLogicalInterface(interface);
-
-   //Interface MAC address?
-   if(macCompAddr(macAddr, &logicalInterface->macAddr))
+#endif
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Dump switch port identifier
+   if(port != 0)
    {
-      error = NO_ERROR;
+      TRACE_DEBUG("  Switch Port = %" PRIu8 "\r\n", port);
    }
-   //Broadcast address?
-   else if(macCompAddr(macAddr, &MAC_BROADCAST_ADDR))
-   {
-      error = NO_ERROR;
-   }
-   //Multicast address?
-   else if(macIsMulticastAddr(macAddr))
-   {
-      //Go through the MAC filter table
-      for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
-      {
-         //Point to the current entry
-         entry = &interface->macAddrFilter[i];
+#endif
 
-         //Valid entry?
-         if(entry->refCount > 0)
-         {
-            //Check whether the destination MAC address matches
-            //a relevant multicast address
-            if(macCompAddr(&entry->addr, macAddr))
-            {
-               //The MAC address is acceptable
-               error = NO_ERROR;
-               //Stop immediately
-               break;
-            }
-         }
-      }
-   }
-
+   //Forward the frame to the physical interface
+   error = nicSendPacket(physicalInterface, buffer, offset);
    //Return status code
    return error;
 }
@@ -844,255 +618,6 @@ error_t ethDropMacAddr(NetInterface *interface, const MacAddr *macAddr)
 
    //The specified MAC address does not exist
    return ERROR_ADDRESS_NOT_FOUND;
-}
-
-
-/**
- * @brief Update Ethernet input statistics
- * @param[in] interface Underlying network interface
- * @param[in] destMacAddr Destination MAC address
- **/
-
-void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr)
-{
-   //Check whether the destination address is a unicast, broadcast or multicast address
-   if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
-   {
-      //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
-
-      //Number of broadcast packets delivered to a higher-layer protocol
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInBroadcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInBroadcastPkts, 1);
-   }
-   else if(macIsMulticastAddr(destMacAddr))
-   {
-      //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
-
-      //Number of multicast packets delivered to a higher-layer protocol
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInMulticastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInMulticastPkts, 1);
-   }
-   else
-   {
-      //Number of unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInUcastPkts, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInUcastPkts, 1);
-   }
-}
-
-
-/**
- * @brief Update Ethernet output statistics
- * @param[in] interface Underlying network interface
- * @param[in] destMacAddr Destination MAC address
- * @param[in] length Length of the outgoing Ethernet frame
- **/
-
-void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr, size_t length)
-{
-   //Total number of octets transmitted out of the interface
-   MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutOctets, length);
-   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
-   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutOctets, length);
-
-   //Check whether the destination address is a unicast, broadcast or multicast address
-   if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
-   {
-      //Number of non-unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
-
-      //Number of broadcast packets that higher-level protocols requested be transmitted
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutBroadcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutBroadcastPkts, 1);
-   }
-   else if(macIsMulticastAddr(destMacAddr))
-   {
-      //Number of non-unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
-
-      //Number of multicast packets that higher-level protocols requested be transmitted
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutMulticastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutMulticastPkts, 1);
-   }
-   else
-   {
-      //Number of unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutUcastPkts, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutUcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutUcastPkts, 1);
-   }
-}
-
-
-/**
- * @brief Update Ethernet error statistics
- * @param[in] interface Underlying network interface
- * @param[in] error Status code describing the error
- **/
-
-void ethUpdateErrorStats(NetInterface *interface, error_t error)
-{
-   //Check error code
-   switch(error)
-   {
-   case ERROR_INVALID_ADDRESS:
-   case ERROR_WRONG_IDENTIFIER:
-      //Number of inbound packets which were chosen to be discarded even
-      //though no errors had been detected
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-      break;
-   case ERROR_INVALID_LENGTH:
-   case ERROR_WRONG_CHECKSUM:
-      //Number of inbound packets that contained errors
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInErrors, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInErrors, 1);
-      break;
-   case ERROR_INVALID_PROTOCOL:
-      //Number of packets received via the interface which were discarded
-      //because of an unknown or unsupported protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInUnknownProtos, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUnknownProtos, 1);
-      break;
-   default:
-      //Just for sanity
-      break;
-   }
-}
-
-
-/**
- * @brief Ethernet CRC calculation
- * @param[in] data Pointer to the data over which to calculate the CRC
- * @param[in] length Number of bytes to process
- * @return Resulting CRC value
- **/
-
-uint32_t ethCalcCrc(const void *data, size_t length)
-{
-//A lookup table can be used to speed up CRC calculation
-#if (ETH_FAST_CRC_SUPPORT == ENABLED)
-   uint_t i;
-
-   //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
-   //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
-
-   //Loop through data
-   for(i = 0; i < length; i++)
-   {
-      //The message is processed byte by byte
-      crc = (crc >> 8) ^ crc32Table[(crc & 0xFF) ^ p[i]];
-   }
-
-   //Return 1's complement value
-   return ~crc;
-
-//Bit by bit CRC calculation
-#else
-   uint_t i;
-   uint_t j;
-
-   //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
-   //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
-
-   //Loop through data
-   for(i = 0; i < length; i++)
-   {
-      //Update CRC value
-      crc ^= p[i];
-      //The message is processed bit by bit
-      for(j = 0; j < 8; j++)
-      {
-         if(crc & 0x00000001)
-            crc = (crc >> 1) ^ 0xEDB88320;
-         else
-            crc = crc >> 1;
-      }
-   }
-
-   //Return 1's complement value
-   return ~crc;
-#endif
-}
-
-
-/**
- * @brief Calculate CRC over a multi-part buffer
- * @param[in] buffer Pointer to the multi-part buffer
- * @param[in] offset Offset from the beginning of the buffer
- * @param[in] length Number of bytes to process
- * @return Resulting CRC value
- **/
-
-uint32_t ethCalcCrcEx(const NetBuffer *buffer, size_t offset, size_t length)
-{
-   uint_t i;
-   uint_t n;
-   uint32_t crc;
-   uint8_t *p;
-#if (ETH_FAST_CRC_SUPPORT == DISABLED)
-   uint_t k;
-#endif
-
-   //CRC preset value
-   crc = 0xFFFFFFFF;
-
-   //Loop through data chunks
-   for(i = 0; i < buffer->chunkCount && length > 0; i++)
-   {
-      //Is there any data to process in the current chunk?
-      if(offset < buffer->chunk[i].length)
-      {
-         //Point to the first data byte
-         p = (uint8_t *) buffer->chunk[i].address + offset;
-         //Compute the number of bytes to process
-         n = MIN(buffer->chunk[i].length - offset, length);
-         //Adjust byte counter
-         length -= n;
-
-         //Process current chunk
-         while(n > 0)
-         {
-#if (ETH_FAST_CRC_SUPPORT == ENABLED)
-            //The message is processed byte by byte
-            crc = (crc >> 8) ^ crc32Table[(crc & 0xFF) ^ *p];
-#else
-            //Update CRC value
-            crc ^= *p;
-
-            //The message is processed bit by bit
-            for(k = 0; k < 8; k++)
-            {
-               if(crc & 0x00000001)
-                  crc = (crc >> 1) ^ 0xEDB88320;
-               else
-                  crc = crc >> 1;
-            }
-#endif
-            //Next byte
-            p++;
-            n--;
-         }
-
-         //Process the next block from the start
-         offset = 0;
-      }
-      else
-      {
-         //Skip the current chunk
-         offset -= buffer->chunk[i].length;
-      }
-   }
-
-   //Return 1's complement value
-   return ~crc;
 }
 
 

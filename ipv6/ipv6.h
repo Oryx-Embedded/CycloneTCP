@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _IPV6_H
@@ -542,9 +544,6 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
 
 error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
 error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
-
-void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length);
-void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length);
 
 error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr);
 char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str);

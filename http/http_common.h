@@ -1,10 +1,12 @@
 /**
- * @file daytime.h
- * @brief Daytime protocol
+ * @file http_common.h
+ * @brief Definitions common to HTTP client and server
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,23 +25,66 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
-#ifndef _DAYTIME_H
-#define _DAYTIME_H
+#ifndef _HTTP_COMMON_H
+#define _HTTP_COMMON_H
 
 //Dependencies
 #include "core/net.h"
-#include "core/socket.h"
 
-//Daytime service port
-#define DAYTIME_PORT 13
+//HTTP port number
+#define HTTP_PORT 80
+//HTTPS port number (HTTP over TLS)
+#define HTTPS_PORT 443
 
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
 #endif
+
+
+/**
+ * @brief HTTP version numbers
+ **/
+
+typedef enum
+{
+   HTTP_VERSION_0_9 = 0x0009,
+   HTTP_VERSION_1_0 = 0x0100,
+   HTTP_VERSION_1_1 = 0x0101
+} HttpVersion;
+
+
+/**
+ * @brief HTTP methods
+ **/
+
+typedef enum
+{
+   HTTP_METHOD_GET     = 0,
+   HTTP_METHOD_HEAD    = 1,
+   HTTP_METHOD_POST    = 2,
+   HTTP_METHOD_PUT     = 3,
+   HTTP_METHOD_DELETE  = 4,
+   HTTP_METHOD_TRACE   = 5,
+   HTTP_METHOD_CONNECT = 6,
+   HTTP_METHOD_PATCH   = 7
+} HttpMethod;
+
+
+/**
+ * @brief HTTP authentication schemes
+ **/
+
+typedef enum
+{
+   HTTP_AUTH_MODE_NONE   = 0,
+   HTTP_AUTH_MODE_BASIC  = 1,
+   HTTP_AUTH_MODE_DIGEST = 2
+} HttpAuthMode;
+
 
 //C++ guard
 #ifdef __cplusplus

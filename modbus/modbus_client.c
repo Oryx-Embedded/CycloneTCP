@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -205,27 +207,8 @@ error_t modbusClientConnect(ModbusClientContext *context,
          }
          else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
          {
-#if (NET_RTOS_SUPPORT == DISABLED)
-            systime_t time;
-
-            //Get current time
-            time = osGetSystemTime();
-
             //Check whether the timeout has elapsed
-            if(timeCompare(time, context->timestamp + context->timeout) >= 0)
-            {
-               //Report a timeout error
-               error = ERROR_TIMEOUT;
-            }
-            else
-            {
-               //The operation would block
-               error = ERROR_WOULD_BLOCK;
-            }
-#else
-            //Report a timeout error
-            error = ERROR_TIMEOUT;
-#endif
+            error = modbusClientCheckTimeout(context);
          }
          else
          {
@@ -957,12 +940,96 @@ error_t modbusClientGetExceptionCode(ModbusClientContext *context,
 
 
 /**
- * @brief Disconnect from the Modbus/TCP server
+ * @brief Gracefully disconnect from the Modbus/TCP server
  * @param[in] context Pointer to the Modbus/TCP client context
  * @return Error code
  **/
 
 error_t modbusClientDisconnect(ModbusClientContext *context)
+{
+   error_t error;
+
+   //Make sure the Modbus/TCP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Gracefully disconnect from the Modbus/TCP server
+   while(!error)
+   {
+      //Check current state
+      if(context->state == MODBUS_CLIENT_STATE_CONNECTED)
+      {
+         //Save current time
+         context->timestamp = osGetSystemTime();
+         //Update Modbus/TCP client state
+         context->state = MODBUS_CLIENT_STATE_DISCONNECTING;
+      }
+      else if(context->state == MODBUS_CLIENT_STATE_DISCONNECTING)
+      {
+         //Shutdown TCP connection
+         error = socketShutdown(context->socket, SOCKET_SD_BOTH);
+
+         //Check status code
+         if(error == NO_ERROR)
+         {
+            //Close TCP socket
+            socketClose(context->socket);
+            context->socket = NULL;
+
+            //Update Modbus/TCP client state
+            context->state = MODBUS_CLIENT_STATE_DISCONNECTED;
+         }
+         else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+         {
+            //Check whether the timeout has elapsed
+            error = modbusClientCheckTimeout(context);
+         }
+         else
+         {
+            //A communication error has occured
+         }
+      }
+      else if(context->state == MODBUS_CLIENT_STATE_DISCONNECTED)
+      {
+         //The Modbus/TCP client is disconnected
+         break;
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Failed to gracefully disconnect from the Modbus/TCP server?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
+   {
+      //Close TCP socket
+      if(context->socket != NULL)
+      {
+         socketClose(context->socket);
+         context->socket = NULL;
+      }
+
+      //Update Modbus/TCP client state
+      context->state = MODBUS_CLIENT_STATE_DISCONNECTED;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Close the connection with the Modbus/TCP server
+ * @param[in] context Pointer to the Modbus/TCP client context
+ * @return Error code
+ **/
+
+error_t modbusClientClose(ModbusClientContext *context)
 {
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)

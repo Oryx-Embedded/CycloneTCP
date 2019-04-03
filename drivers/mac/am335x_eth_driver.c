@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -211,7 +213,7 @@ error_t am335xEthInitPort1(NetInterface *interface)
    temp = CPSW_ALE_PORTCTL_R(1) & ~CPSW_ALE_PORTCTL1_PORT_STATE;
    CPSW_ALE_PORTCTL_R(1) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    CPSW_PORT1_SA_HI_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    CPSW_PORT1_SA_LO_R = interface->macAddr.w[2];
 
@@ -284,7 +286,7 @@ error_t am335xEthInitPort2(NetInterface *interface)
    temp = CPSW_ALE_PORTCTL_R(2) & ~CPSW_ALE_PORTCTL2_PORT_STATE;
    CPSW_ALE_PORTCTL_R(2) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    CPSW_PORT2_SA_HI_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    CPSW_PORT2_SA_LO_R = interface->macAddr.w[2];
 

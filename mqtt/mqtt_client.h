@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -291,12 +293,12 @@ typedef struct
 
 typedef struct
 {
-   MqttProtocolLevel protocolLevel;                   ///<MQTT protocol version
+   MqttVersion version;                               ///<MQTT protocol version
    MqttTransportProtocol transportProtocol;           ///<Transport protocol
    uint16_t keepAlive;                                ///<Keep-alive time interval
    systime_t timeout;                                 ///<Communication timeout
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-   char_t host[MQTT_CLIENT_MAX_HOST_LEN + 1];         ///<Hostname of the resource being requested
+   char_t host[MQTT_CLIENT_MAX_HOST_LEN + 1];         ///<Domain name of the server (for virtual hosting)
    char_t uri[MQTT_CLIENT_MAX_URI_LEN + 1];           ///<Resource name
 #endif
    char_t clientId[MQTT_CLIENT_MAX_ID_LEN + 1];       ///<Client identifier
@@ -343,13 +345,12 @@ void mqttClientInitCallbacks(MqttClientCallbacks *callbacks);
 error_t mqttClientRegisterCallbacks(MqttClientContext *context,
    const MqttClientCallbacks *callbacks);
 
-error_t mqttClientSetProtocolLevel(MqttClientContext *context,
-   MqttProtocolLevel protocolLevel);
+error_t mqttClientSetVersion(MqttClientContext *context, MqttVersion version);
 
 error_t mqttClientSetTransportProtocol(MqttClientContext *context,
    MqttTransportProtocol transportProtocol);
 
-error_t mqttClientSetTimeout(MqttClientContext *context, uint16_t timeout);
+error_t mqttClientSetTimeout(MqttClientContext *context, systime_t timeout);
 error_t mqttClientSetKeepAlive(MqttClientContext *context, uint16_t keepAlive);
 
 error_t mqttClientSetHost(MqttClientContext *context, const char_t *host);
@@ -382,9 +383,14 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
 
 error_t mqttClientPing(MqttClientContext *context, systime_t *rtt);
 
+error_t mqttClientTask(MqttClientContext *context, systime_t timeout);
+
 error_t mqttClientDisconnect(MqttClientContext *context);
 error_t mqttClientClose(MqttClientContext *context);
 
+void mqttClientDeinit(MqttClientContext *context);
+
+//Deprecated functions
 error_t mqttClientProcessEvents(MqttClientContext *context, systime_t timeout);
 
 //C++ guard

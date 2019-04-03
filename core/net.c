@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -55,7 +57,6 @@
 #include "netbios/nbns_client.h"
 #include "netbios/nbns_responder.h"
 #include "netbios/nbns_common.h"
-#include "dns_sd/dns_sd.h"
 #include "mibs/mib2_module.h"
 #include "str.h"
 #include "debug.h"
@@ -637,7 +638,8 @@ error_t netSetSwitchPort(NetInterface *interface, uint8_t port)
 error_t netSetParentInterface(NetInterface *interface,
    NetInterface *physicalInterface)
 {
-#if (ETH_VLAN_SUPPORT == ENABLED || ETH_PORT_TAGGING_SUPPORT == ENABLED)
+#if (ETH_VIRTUAL_IF_SUPPORT == ENABLED || ETH_VLAN_SUPPORT == ENABLED || \
+   ETH_PORT_TAGGING_SUPPORT == ENABLED)
    //Make sure the network interface is valid
    if(interface == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -915,17 +917,21 @@ error_t netConfigInterface(NetInterface *interface)
       }
       else
       {
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+#if (ETH_VIRTUAL_IF_SUPPORT == ENABLED || ETH_PORT_TAGGING_SUPPORT == ENABLED)
+         NetInterface *physicalInterface;
+
+         //Point to the physical interface
+         physicalInterface = nicGetPhysicalInterface(interface);
+
          //Check whether the network interface is a virtual interface
-         if(interface->parent != NULL)
+         if(physicalInterface != interface)
          {
             //Valid MAC address assigned to the virtual interface?
             if(!macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
             {
-               //Configure the physical interface to accept the MAC address
-               //of the virtual interface
-               error = ethAcceptMacAddr(interface->parent,
-                  &interface->macAddr);
+               //Configure the physical interface to accept the MAC address of
+               //the virtual interface
+               error = ethAcceptMacAddr(physicalInterface, &interface->macAddr);
                //Any error to report?
                if(error)
                   break;
@@ -1018,6 +1024,14 @@ error_t netConfigInterface(NetInterface *interface)
          break;
 #endif
 
+#if (LLMNR_CLIENT_SUPPORT == ENABLED || LLMNR_RESPONDER_SUPPORT == ENABLED)
+      //LLMNR related initialization
+      error = llmnrInit(interface);
+      //Any error to report?
+      if(error)
+         break;
+#endif
+
       //End of exception handling block
    } while(0);
 
@@ -1079,7 +1093,9 @@ void netTask(void)
       {
          //Interrupts can be safely enabled
          if(interface->nicDriver != NULL)
+         {
             interface->nicDriver->enableIrq(interface);
+         }
       }
    }
 

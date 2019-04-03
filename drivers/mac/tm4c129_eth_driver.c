@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -178,9 +180,17 @@ error_t tm4c129EthInit(NetInterface *interface)
    //Use default MAC configuration
    EMAC0_CFG_R = EMAC_CFG_DRO;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    EMAC0_ADDR0L_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    EMAC0_ADDR0H_R = interface->macAddr.w[2];
+
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   EMAC0_ADDR1L_R = 0;
+   EMAC0_ADDR1H_R = 0;
+   EMAC0_ADDR2L_R = 0;
+   EMAC0_ADDR2H_R = 0;
+   EMAC0_ADDR3L_R = 0;
+   EMAC0_ADDR3H_R = 0;
 
    //Initialize hash table
    EMAC0_HASHTBLL_R = 0;
@@ -540,9 +550,9 @@ void tm4c129EthEventHandler(NetInterface *interface)
    }
 
    //Re-enable DMA interrupts
-   EMAC0_DMAIM_R |= EMAC_DMAIM_NIE | EMAC_DMAIM_RIE | EMAC_DMAIM_TIE;
+   EMAC0_DMAIM_R = EMAC_DMAIM_NIE | EMAC_DMAIM_RIE | EMAC_DMAIM_TIE;
    //Re-enable PHY interrupts
-   EMAC0_EPHYIM_R |= EMAC_EPHYIM_INT;
+   EMAC0_EPHYIM_R = EMAC_EPHYIM_INT;
 }
 
 
@@ -678,21 +688,28 @@ error_t tm4c129EthReceivePacket(NetInterface *interface)
 error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
+   uint_t j;
    uint_t k;
    uint32_t crc;
    uint32_t hashTable[2];
+   MacAddr unicastMacAddr[3];
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating Tiva TM4C129 hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Clear hash table
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
+   //The hash table is used for multicast address filtering
    hashTable[0] = 0;
    hashTable[1] = 0;
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
       entry = &interface->macAddrFilter[i];
@@ -700,19 +717,68 @@ error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
       //Valid entry?
       if(entry->refCount > 0)
       {
-         //Compute CRC over the current MAC address
-         crc = tm4c129EthCalcCrc(&entry->addr, sizeof(MacAddr));
+         //Multicast address?
+         if(macIsMulticastAddr(&entry->addr))
+         {
+            //Compute CRC over the current MAC address
+            crc = tm4c129EthCalcCrc(&entry->addr, sizeof(MacAddr));
 
-         //The upper 6 bits in the CRC register are used to index the
-         //contents of the hash table
-         k = (crc >> 26) & 0x3F;
+            //The upper 6 bits in the CRC register are used to index the
+            //contents of the hash table
+            k = (crc >> 26) & 0x3F;
 
-         //Update hash table contents
-         hashTable[k / 32] |= (1 << (k % 32));
+            //Update hash table contents
+            hashTable[k / 32] |= (1 << (k % 32));
+         }
+         else
+         {
+            //Up to 3 additional MAC addresses can be specified
+            if(j < 3)
+            {
+               //Save the unicast address
+               unicastMacAddr[j++] = entry->addr;
+            }
+         }
       }
    }
 
-   //Write the hash table
+   //Configure the first unicast address filter
+   if(j >= 1)
+   {
+      EMAC0_ADDR1L_R = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+      EMAC0_ADDR1H_R = unicastMacAddr[0].w[2] | EMAC_ADDR1H_AE;
+   }
+   else
+   {
+      EMAC0_ADDR1L_R = 0;
+      EMAC0_ADDR1H_R = 0;
+   }
+
+   //Configure the second unicast address filter
+   if(j >= 2)
+   {
+      EMAC0_ADDR2L_R = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+      EMAC0_ADDR2H_R = unicastMacAddr[1].w[2] | EMAC_ADDR2H_AE;
+   }
+   else
+   {
+      EMAC0_ADDR2L_R = 0;
+      EMAC0_ADDR2H_R = 0;
+   }
+
+   //Configure the third unicast address filter
+   if(j >= 3)
+   {
+      EMAC0_ADDR3L_R = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+      EMAC0_ADDR3H_R = unicastMacAddr[2].w[2] | EMAC_ADDR3H_AE;
+   }
+   else
+   {
+      EMAC0_ADDR3L_R = 0;
+      EMAC0_ADDR3H_R = 0;
+   }
+
+   //Configure the multicast address filter
    EMAC0_HASHTBLL_R = hashTable[0];
    EMAC0_HASHTBLH_R = hashTable[1];
 

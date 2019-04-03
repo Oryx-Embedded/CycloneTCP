@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -69,7 +71,7 @@ error_t mqttClientInit(MqttClientContext *context)
 #endif
 
    //Default protocol version
-   context->settings.protocolLevel = MQTT_PROTOCOL_LEVEL_3_1_1;
+   context->settings.version = MQTT_VERSION_3_1_1;
    //Default transport protocol
    context->settings.transportProtocol = MQTT_TRANSPORT_PROTOCOL_TCP;
    //Default keep-alive time interval
@@ -130,19 +132,18 @@ error_t mqttClientRegisterCallbacks(MqttClientContext *context,
 /**
  * @brief Set the MQTT protocol version to be used
  * @param[in] context Pointer to the MQTT client context
- * @param[in] protocolLevel MQTT protocol level (3.1 or 3.1.1)
+ * @param[in] version MQTT protocol version (3.1 or 3.1.1)
  * @return Error code
  **/
 
-error_t mqttClientSetProtocolLevel(MqttClientContext *context,
-   MqttProtocolLevel protocolLevel)
+error_t mqttClientSetVersion(MqttClientContext *context, MqttVersion version)
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Save the MQTT protocol version to be used
-   context->settings.protocolLevel = protocolLevel;
+   context->settings.version = version;
 
    //Successful processing
    return NO_ERROR;
@@ -179,7 +180,7 @@ error_t mqttClientSetTransportProtocol(MqttClientContext *context,
  * @return Error code
  **/
 
-error_t mqttClientSetTimeout(MqttClientContext *context, uint16_t timeout)
+error_t mqttClientSetTimeout(MqttClientContext *context, systime_t timeout)
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
@@ -217,7 +218,7 @@ error_t mqttClientSetKeepAlive(MqttClientContext *context, uint16_t keepAlive)
 
 
 /**
- * @brief Set the hostname of the resource being requested
+ * @brief Set the domain name of the server (for virtual hosting)
  * @param[in] context Pointer to the MQTT client context
  * @param[in] host NULL-terminated string containing the hostname
  * @return Error code
@@ -246,7 +247,7 @@ error_t mqttClientSetHost(MqttClientContext *context, const char_t *host)
 /**
  * @brief Set the name of the resource being requested
  * @param[in] context Pointer to the MQTT client context
- * @param[in] uri NULL-terminated string containing the URI
+ * @param[in] uri NULL-terminated string that contains the resource name
  * @return Error code
  **/
 
@@ -985,6 +986,36 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
 
 
 /**
+ * @brief Process MQTT client events
+ * @param[in] context Pointer to the MQTT client context
+ * @param[in] timeout Maximum time to wait before returning
+ * @return Error code
+ **/
+
+error_t mqttClientTask(MqttClientContext *context, systime_t timeout)
+{
+   error_t error;
+
+   //Make sure the MQTT client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Process MQTT client events
+   error = mqttClientProcessEvents(context, timeout);
+
+   //Check status code
+   if(error == ERROR_TIMEOUT)
+   {
+      //Catch exception
+      error = NO_ERROR;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
  * @brief Gracefully disconnect from the MQTT server
  * @param[in] context Pointer to the MQTT client context
  * @return Error code
@@ -1083,11 +1114,6 @@ error_t mqttClientClose(MqttClientContext *context)
    //Close connection
    mqttClientCloseConnection(context);
 
-#if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   //Release TLS session state
-   tlsFreeSessionState(&context->tlsSession);
-#endif
-
    //The connection is closed
    mqttClientChangeState(context, MQTT_CLIENT_STATE_CLOSED);
 
@@ -1097,93 +1123,26 @@ error_t mqttClientClose(MqttClientContext *context)
 
 
 /**
- * @brief Process MQTT client events
+ * @brief Release MQTT client context
  * @param[in] context Pointer to the MQTT client context
- * @param[in] timeout Maximum time to wait before returning
- * @return Error code
  **/
 
-error_t mqttClientProcessEvents(MqttClientContext *context, systime_t timeout)
+void mqttClientDeinit(MqttClientContext *context)
 {
-   error_t error;
-   size_t n;
-
-   //It is the responsibility of the client to ensure that the interval
-   //between control packets being sent does not exceed the keep-alive value
-   error = mqttClientCheckKeepAlive(context);
-
-   //Check status code
-   if(!error)
+   //Make sure the MQTT client context is valid
+   if(context != NULL)
    {
-      //Check current state
-      if(context->state == MQTT_CLIENT_STATE_IDLE ||
-         context->state == MQTT_CLIENT_STATE_PACKET_SENT)
-      {
-         //Wait for incoming data
-         error = mqttClientWaitForData(context, timeout);
+      //Close connection
+      mqttClientCloseConnection(context);
 
-         //Check status code
-         if(!error)
-         {
-            //Initialize context
-            context->packet = context->buffer;
-            context->packetPos = 0;
-            context->packetLen = 0;
-            context->remainingLen = 0;
+#if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
+      //Release TLS session state
+      tlsFreeSessionState(&context->tlsSession);
+#endif
 
-            //Start receiving the packet
-            mqttClientChangeState(context, MQTT_CLIENT_STATE_RECEIVING_PACKET);
-         }
-      }
-      else if(context->state == MQTT_CLIENT_STATE_RECEIVING_PACKET)
-      {
-         //Receive the incoming packet
-         error = mqttClientReceivePacket(context);
-
-         //Check status code
-         if(!error)
-         {
-            //Process MQTT control packet
-            error = mqttClientProcessPacket(context);
-
-            //Update MQTT client state
-            if(context->state == MQTT_CLIENT_STATE_RECEIVING_PACKET)
-            {
-               if(context->packetType == MQTT_PACKET_TYPE_INVALID)
-                  mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
-               else
-                  mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_SENT);
-            }
-         }
-      }
-      else if(context->state == MQTT_CLIENT_STATE_SENDING_PACKET)
-      {
-         //Any remaining data to be sent?
-         if(context->packetPos < context->packetLen)
-         {
-            //Send more data
-            error = mqttClientSendData(context, context->packet + context->packetPos,
-               context->packetLen - context->packetPos, &n, 0);
-
-            //Advance data pointer
-            context->packetPos += n;
-         }
-         else
-         {
-            //Save the time at which the message was sent
-            context->keepAliveTimestamp = osGetSystemTime();
-
-            //Update MQTT client state
-            if(context->packetType == MQTT_PACKET_TYPE_INVALID)
-               mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
-            else
-               mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_SENT);
-         }
-      }
+      //Clear MQTT client context
+      memset(context, 0, sizeof(MqttClientContext));
    }
-
-   //Return status code
-   return error;
 }
 
 #endif

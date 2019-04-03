@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -33,6 +35,7 @@
 #include "os_port.h"
 #include "core/socket.h"
 #include "web_socket/web_socket.h"
+#include "http/http_common.h"
 
 //HTTP server support
 #ifndef HTTP_SERVER_SUPPORT
@@ -257,7 +260,7 @@
    #include "resource_manager.h"
 #endif
 
-//HTTP over TLS supported?
+//TLS supported?
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
    #include "tls.h"
@@ -299,30 +302,6 @@ struct _HttpConnection;
 #ifdef __cplusplus
    extern "C" {
 #endif
-
-
-/**
- * @brief HTTP version numbers
- **/
-
-typedef enum
-{
-   HTTP_VERSION_0_9 = 0x0009,
-   HTTP_VERSION_1_0 = 0x0100,
-   HTTP_VERSION_1_1 = 0x0101
-} HttpVersion;
-
-
-/**
- * @brief HTTP authentication schemes
- **/
-
-typedef enum
-{
-   HTTP_AUTH_MODE_NONE   = 0,
-   HTTP_AUTH_MODE_BASIC  = 1,
-   HTTP_AUTH_MODE_DIGEST = 2
-} HttpAuthMode;
 
 
 /**
@@ -375,7 +354,7 @@ typedef enum
 #define HTTP_FLAG_BREAK(c) (HTTP_FLAG_BREAK_CHAR | LSB(c))
 
 
-//HTTP over TLS supported?
+//TLS supported?
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
 
 /**

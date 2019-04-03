@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -49,6 +51,7 @@
 #include "core/tcp_misc.h"
 #include "core/tcp_timer.h"
 #include "ipv4/ipv4.h"
+#include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
 #include "mibs/mib2_module.h"
 #include "mibs/tcp_mib_module.h"
@@ -81,9 +84,9 @@ void tcpProcessSegment(NetInterface *interface,
    TCP_MIB_INC_COUNTER32(tcpInSegs, 1);
    TCP_MIB_INC_COUNTER64(tcpHCInSegs, 1);
 
-   //A TCP implementation must silently discard an incoming
-   //segment that is addressed to a broadcast or multicast
-   //address (see RFC 1122 4.2.3.10)
+   //A TCP implementation must silently discard an incoming segment that
+   //is addressed to a broadcast or multicast address (refer to RFC 1122,
+   //section 4.2.3.10)
 #if (IPV4_SUPPORT == ENABLED)
    if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
    {
@@ -646,7 +649,8 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
       //Check whether our SYN has been acknowledged (SND.UNA > ISS)
       if(TCP_CMP_SEQ(socket->sndUna, socket->iss) > 0)
       {
-         //Update the send window before entering ESTABLISHED state (see RFC 1122 4.2.2.20)
+         //Update the send window before entering ESTABLISHED state (refer to
+         //RFC 1122, section 4.2.2.20)
          socket->sndWnd = segment->window;
          socket->sndWl1 = segment->seqNum;
          socket->sndWl2 = segment->ackNum;
@@ -727,7 +731,8 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
       return;
    }
 
-   //Update the send window before entering ESTABLISHED state (see RFC 1122 4.2.2.20)
+   //Update the send window before entering ESTABLISHED state (refer to
+   //RFC 1122, section 4.2.2.20)
    socket->sndWnd = segment->window;
    socket->sndWl1 = segment->seqNum;
    socket->sndWl2 = segment->ackNum;

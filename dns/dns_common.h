@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _DNS_COMMON_H
@@ -96,7 +98,7 @@ typedef enum
    DNS_RCODE_NAME_ERROR      = 3,
    DNS_RCODE_NOT_IMPLEMENTED = 4,
    DNS_RCODE_QUERY_REFUSED   = 5
-}DnsReturnCode;
+} DnsReturnCode;
 
 
 /**
@@ -155,23 +157,23 @@ typedef __start_packed struct
 {
    uint16_t id;         //0-1
 #ifdef _CPU_BIG_ENDIAN
-   uint16_t qr : 1;     //2
-   uint16_t opcode : 4;
-   uint16_t aa : 1;
-   uint16_t tc : 1;
-   uint16_t rd : 1;
-   uint16_t ra : 1;     //3
-   uint16_t z : 3;
-   uint16_t rcode : 4;
+   uint8_t qr : 1;      //2
+   uint8_t opcode : 4;
+   uint8_t aa : 1;
+   uint8_t tc : 1;
+   uint8_t rd : 1;
+   uint8_t ra : 1;      //3
+   uint8_t z : 3;
+   uint8_t rcode : 4;
 #else
-   uint16_t rd : 1;     //2
-   uint16_t tc : 1;
-   uint16_t aa : 1;
-   uint16_t opcode : 4;
-   uint16_t qr : 1;
-   uint16_t rcode : 4;  //3
-   uint16_t z : 3;
-   uint16_t ra : 1;
+   uint8_t rd : 1;      //2
+   uint8_t tc : 1;
+   uint8_t aa : 1;
+   uint8_t opcode : 4;
+   uint8_t qr : 1;
+   uint8_t rcode : 4;   //3
+   uint8_t z : 3;
+   uint8_t ra : 1;
 #endif
    uint16_t qdcount;    //4-5
    uint16_t ancount;    //6-7

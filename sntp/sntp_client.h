@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _SNTP_CLIENT_H
@@ -31,7 +33,7 @@
 
 //Dependencies
 #include "core/net.h"
-#include "core/socket.h"
+#include "sntp/ntp_common.h"
 
 //SNTP client support
 #ifndef SNTP_CLIENT_SUPPORT
@@ -40,138 +42,39 @@
    #error SNTP_CLIENT_SUPPORT parameter is not valid
 #endif
 
-//Maximum number of retransmissions of SNTP requests
-#ifndef SNTP_CLIENT_MAX_RETRIES
-   #define SNTP_CLIENT_MAX_RETRIES 3
-#elif (SNTP_CLIENT_MAX_RETRIES < 1)
-   #error SNTP_CLIENT_MAX_RETRIES parameter is not valid
+//Default timeout
+#ifndef SNTP_CLIENT_DEFAULT_TIMEOUT
+   #define SNTP_CLIENT_DEFAULT_TIMEOUT 30000
+#elif (SNTP_CLIENT_DEFAULT_TIMEOUT < 1000)
+   #error SNTP_CLIENT_DEFAULT_TIMEOUT parameter is not valid
 #endif
 
 //Initial retransmission timeout
-#ifndef SNTP_CLIENT_INIT_TIMEOUT
-   #define SNTP_CLIENT_INIT_TIMEOUT 1000
-#elif (SNTP_CLIENT_INIT_TIMEOUT < 1000)
-   #error SNTP_CLIENT_INIT_TIMEOUT parameter is not valid
+#ifndef SNTP_CLIENT_INIT_RETRANSMIT_TIMEOUT
+   #define SNTP_CLIENT_INIT_RETRANSMIT_TIMEOUT 2000
+#elif (SNTP_CLIENT_INIT_RETRANSMIT_TIMEOUT < 1000)
+   #error SNTP_CLIENT_INIT_RETRANSMIT_TIMEOUT parameter is not valid
 #endif
 
 //Maximum retransmission timeout
-#ifndef SNTP_CLIENT_MAX_TIMEOUT
-   #define SNTP_CLIENT_MAX_TIMEOUT 5000
-#elif (SNTP_CLIENT_MAX_TIMEOUT < 1000)
-   #error SNTP_CLIENT_MAX_TIMEOUT parameter is not valid
-#endif
-
-//NTP port number
-#define NTP_PORT 123
-//Maximum size of NTP packets
-#define NTP_MESSAGE_MAX_SIZE 68
-
-//C++ guard
-#ifdef __cplusplus
-   extern "C" {
+#ifndef SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT
+   #define SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT 15000
+#elif (SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT < 1000)
+   #error SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT parameter is not valid
 #endif
 
 
 /**
- * @brief Leap indicator
+ * @brief SNTP client states
  **/
 
 typedef enum
 {
-   NTP_LI_NO_WARNING           = 0,
-   NTP_LI_LAST_MIN_HAS_61_SECS = 1,
-   NTP_LI_LAST_MIN_HAS_59_SECS = 2,
-   NTP_LI_ALARM_CONDITION      = 3
-} NtpLeapIndicator;
-
-
-/**
- * @brief NTP version number
- **/
-
-typedef enum
-{
-   NTP_VERSION_1 = 1,
-   NTP_VERSION_2 = 2,
-   NTP_VERSION_3 = 3,
-   NTP_VERSION_4 = 4
-} NtpVersion;
-
-
-/**
- * @brief Protocol mode
- **/
-
-typedef enum
-{
-   NTP_MODE_SYMMETRIC_ACTIVE  = 1,
-   NTP_MODE_SYMMETRIC_PASSIVE = 2,
-   NTP_MODE_CLIENT            = 3,
-   NTP_MODE_SERVER            = 4,
-   NTP_MODE_BROADCAST         = 5
-} NtpMode;
-
-
-//CodeWarrior or Win32 compiler?
-#if defined(__CWCC__) || defined(_WIN32)
-   #pragma pack(push, 1)
-#endif
-
-
-/**
- * @brief Time representation
- **/
-
-typedef __start_packed struct
-{
-   uint32_t seconds;
-   uint32_t fraction;
-} __end_packed NtpTimestamp;
-
-
-/**
- * @brief NTP packet header
- **/
-
-typedef __start_packed struct
-{
-#ifdef _CPU_BIG_ENDIAN
-   uint8_t li : 2;                  //0
-   uint8_t vn : 3;
-   uint8_t mode : 3;
-#else
-   uint8_t mode : 3;                //0
-   uint8_t vn : 3;
-   uint8_t li : 2;
-#endif
-   uint8_t stratum;                 //1
-   uint8_t poll;                    //2
-   int8_t precision;                //3
-   uint32_t rootDelay;              //4-7
-   uint32_t rootDispersion;         //8-11
-   uint32_t referenceIdentifier;    //12-15
-   NtpTimestamp referenceTimestamp; //16-23
-   NtpTimestamp originateTimestamp; //24-31
-   NtpTimestamp receiveTimestamp;   //32-39
-   NtpTimestamp transmitTimestamp;  //40-47
-} __end_packed NtpHeader;
-
-
-/**
- * @brief Authentication data
- **/
-
-typedef __start_packed struct
-{
-   uint32_t keyIdentifier;
-   uint8_t messageDigest[16];
-} __end_packed NtpAuthData;
-
-
-//CodeWarrior or Win32 compiler?
-#if defined(__CWCC__) || defined(_WIN32)
-   #pragma pack(pop)
-#endif
+   SNTP_CLIENT_STATE_INIT      = 0,
+   SNTP_CLIENT_STATE_SENDING   = 2,
+   SNTP_CLIENT_STATE_RECEIVING = 3,
+   SNTP_CLIENT_STATE_COMPLETE  = 4
+} SntpClientState;
 
 
 /**
@@ -180,25 +83,38 @@ typedef __start_packed struct
 
 typedef struct
 {
-   Socket *socket;    ///<Underlying socket
-   NtpHeader message; ///<Buffer where to format NTP messages
-   systime_t t1;      ///<Time at which the NTP request was sent by the client
-   systime_t t4;      ///<Time at which the NTP reply was received by the client
+   SntpClientState state;             ///<SNTP client state
+   NetInterface *interface;           ///<Underlying network interface
+   IpAddr serverIpAddr;               ///<NTP server address
+   uint16_t serverPort;               ///<NTP server port
+   systime_t timeout;                 ///<Timeout value
+   Socket *socket;                    ///<Underlying socket
+   systime_t startTime;               ///<Request start time
+   systime_t retransmitStartTime;     ///<Time at which the last request was sent
+   systime_t retransmitTimeout;       ///<Retransmission timeout
+   uint8_t message[NTP_MAX_MSG_SIZE]; ///<Buffer that holds the NTP request/response
+   size_t messageLen;                 ///<Length of the NTP message, in bytes
+   uint32_t kissCode;                 ///<Kiss code
 } SntpClientContext;
 
 
 //SNTP client related functions
-error_t sntpClientGetTimestamp(NetInterface *interface,
-   const IpAddr *serverIpAddr, NtpTimestamp *timestamp);
+error_t sntpClientInit(SntpClientContext *context);
 
-error_t sntpSendRequest(SntpClientContext *context);
-error_t sntpWaitForResponse(SntpClientContext *context, systime_t timeout);
+error_t sntpClientSetTimeout(SntpClientContext *context, systime_t timeout);
 
-error_t sntpParseResponse(SntpClientContext *context,
-   const NtpHeader *message, size_t length);
+error_t sntpClientBindToInterface(SntpClientContext *context,
+   NetInterface *interface);
 
-void sntpDumpMessage(const NtpHeader *message, size_t length);
-void sntpDumpTimestamp(const NtpTimestamp *timestamp);
+error_t sntpClientSetServerAddr(SntpClientContext *context,
+   const IpAddr *serverIpAddr, uint16_t serverPort);
+
+error_t sntpClientGetTimestamp(SntpClientContext *context,
+   NtpTimestamp *timestamp);
+
+uint32_t sntpClientGetKissCode(SntpClientContext *context);
+
+void sntpClientDeinit(SntpClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus

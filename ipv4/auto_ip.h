@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _AUTO_IP_H
@@ -179,6 +181,7 @@ typedef void (*AutoIpStateChangeCallback)(AutoIpContext *context,
 typedef struct
 {
    NetInterface *interface;                    ///<Network interface to configure
+   uint_t ipAddrIndex;                         ///<Index of the IP address to be configured
    Ipv4Addr linkLocalAddr;                     ///<Initial link-local address to be used
    AutoIpLinkChangeCallback linkChangeEvent;   ///<Link state change event
    AutoIpStateChangeCallback stateChangeEvent; ///<FSM state change event

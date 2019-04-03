@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -109,7 +111,7 @@ error_t enc28j60Init(NetInterface *interface)
    //Disable CLKOUT output
    enc28j60WriteReg(interface, ENC28J60_REG_ECOCON, 0x00);
 
-   //Set the MAC address
+   //Set the MAC address of the station
    enc28j60WriteReg(interface, ENC28J60_REG_MAADR1, interface->macAddr.b[0]);
    enc28j60WriteReg(interface, ENC28J60_REG_MAADR2, interface->macAddr.b[1]);
    enc28j60WriteReg(interface, ENC28J60_REG_MAADR3, interface->macAddr.b[2]);
@@ -163,9 +165,9 @@ error_t enc28j60Init(NetInterface *interface)
    //become free when attempting to transmit
    enc28j60WriteReg(interface, ENC28J60_REG_MACON4, MACON4_DEFER);
 
-   //Maximum frame length that can be received or transmitted (1518 bytes)
-   enc28j60WriteReg(interface, ENC28J60_REG_MAMXFLL, LSB(1518));
-   enc28j60WriteReg(interface, ENC28J60_REG_MAMXFLH, MSB(1518));
+   //Maximum frame length that can be received or transmitted
+   enc28j60WriteReg(interface, ENC28J60_REG_MAMXFLL, LSB(ETH_MAX_FRAME_SIZE));
+   enc28j60WriteReg(interface, ENC28J60_REG_MAMXFLH, MSB(ETH_MAX_FRAME_SIZE));
 
    //Configure the back-to-back inter-packet gap register
 #if (ENC28J60_FULL_DUPLEX_SUPPORT == ENABLED)
@@ -554,7 +556,7 @@ error_t enc28j60UpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating ENC28J60 hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
    memset(hashTable, 0, sizeof(hashTable));
@@ -740,7 +742,8 @@ uint8_t enc28j60ReadReg(NetInterface *interface, uint16_t address)
  * @param[in] data Register value
  **/
 
-void enc28j60WritePhyReg(NetInterface *interface, uint16_t address, uint16_t data)
+void enc28j60WritePhyReg(NetInterface *interface, uint16_t address,
+   uint16_t data)
 {
    //Write register address
    enc28j60WriteReg(interface, ENC28J60_REG_MIREGADR, address & REG_ADDR_MASK);

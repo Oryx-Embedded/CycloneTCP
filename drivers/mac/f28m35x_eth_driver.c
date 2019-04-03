@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -129,7 +131,7 @@ error_t f28m35xEthInit(NetInterface *interface)
    if(error)
       return error;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    MAC_IA0_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    MAC_IA1_R = interface->macAddr.w[2];
 

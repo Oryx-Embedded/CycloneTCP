@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -31,6 +33,7 @@
 
 //Dependencies
 #include "core/net.h"
+#include "ipv4/ipv4_misc.h"
 #include "netbios/nbns_client.h"
 #include "netbios/nbns_common.h"
 #include "dns/dns_debug.h"
@@ -252,7 +255,7 @@ error_t nbnsSendQuery(DnsCacheEntry *entry)
    ipv4GetBroadcastAddr(entry->interface, &destIpAddr.ipv4Addr);
 
    //A request packet is always sent to the well known port 137
-   error = udpSendDatagramEx(entry->interface, NBNS_PORT,
+   error = udpSendDatagramEx(entry->interface, NULL, NBNS_PORT,
       &destIpAddr, NBNS_PORT, buffer, offset, IPV4_DEFAULT_TTL);
 
    //Free previously allocated memory

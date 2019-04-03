@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +33,7 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -42,6 +44,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "core/net.h"
+#include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6_misc.h"
 #include "mdns/mdns_client.h"
 #include "mdns/mdns_responder.h"
@@ -52,13 +55,9 @@
 //Check TCP/IP stack configuration
 #if (MDNS_CLIENT_SUPPORT == ENABLED || MDNS_RESPONDER_SUPPORT == ENABLED)
 
-#if (IPV6_SUPPORT == ENABLED)
-
 //mDNS IPv6 multicast group (ff02::fb)
 const Ipv6Addr MDNS_IPV6_MULTICAST_ADDR =
    IPV6_ADDR(0xFF02, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x00FB);
-
-#endif
 
 
 /**
@@ -135,10 +134,13 @@ void mdnsProcessMessage(NetInterface *interface, const IpPseudoHeader *pseudoHea
    //Dump message
    dnsDumpMessage(dnsHeader, length);
 
-   //mDNS messages received with an opcode other than zero must be silently ignored
+   //mDNS messages received with an opcode other than zero must be silently
+   //ignored
    if(dnsHeader->opcode != DNS_OPCODE_QUERY)
       return;
-   //mDNS messages received with non-zero response codes must be silently ignored
+
+   //mDNS messages received with non-zero response codes must be silently
+   //ignored
    if(dnsHeader->rcode != DNS_RCODE_NO_ERROR)
       return;
 
@@ -291,9 +293,9 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
          //originate from the local link
          valid = TRUE;
       }
-      else if(ipv4IsOnLocalSubnet(interface, pseudoHeader->ipv4Data.srcAddr))
+      else if(ipv4IsOnLink(interface, pseudoHeader->ipv4Data.srcAddr))
       {
-         //The source IP address is on the local subnet
+         //The source IP address is on the local link
          valid = TRUE;
       }
       else
@@ -483,7 +485,7 @@ error_t mdnsSendMessage(NetInterface *interface, const MdnsMessage *message,
       if(destIpAddr != NULL)
       {
          //All multicast DNS responses should be sent with an IP TTL set to 255
-         error = udpSendDatagramEx(interface, MDNS_PORT, destIpAddr,
+         error = udpSendDatagramEx(interface, NULL, MDNS_PORT, destIpAddr,
             destPort, message->buffer, message->offset, MDNS_DEFAULT_IP_TTL);
          //Any error to report?
          if(error)
@@ -497,7 +499,7 @@ error_t mdnsSendMessage(NetInterface *interface, const MdnsMessage *message,
          ipAddr.ipv4Addr = MDNS_IPV4_MULTICAST_ADDR;
 
          //All multicast DNS queries should be sent with an IP TTL set to 255
-         error = udpSendDatagramEx(interface, MDNS_PORT, &ipAddr,
+         error = udpSendDatagramEx(interface, NULL, MDNS_PORT, &ipAddr,
             MDNS_PORT, message->buffer, message->offset, MDNS_DEFAULT_IP_TTL);
          //Any error to report?
          if(error)
@@ -510,7 +512,7 @@ error_t mdnsSendMessage(NetInterface *interface, const MdnsMessage *message,
          ipAddr.ipv6Addr = MDNS_IPV6_MULTICAST_ADDR;
 
          //All multicast DNS queries should be sent with an IP TTL set to 255
-         error = udpSendDatagramEx(interface, MDNS_PORT, &ipAddr,
+         error = udpSendDatagramEx(interface, NULL, MDNS_PORT, &ipAddr,
             MDNS_PORT, message->buffer, message->offset, MDNS_DEFAULT_IP_TTL);
          //Any error to report?
          if(error)

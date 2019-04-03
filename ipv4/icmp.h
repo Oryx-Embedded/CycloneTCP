@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _ICMP_H
@@ -190,10 +192,12 @@ typedef __start_packed struct
 
 //ICMP related functions
 void icmpProcessMessage(NetInterface *interface,
-   Ipv4Addr srcIpAddr, const NetBuffer *buffer, size_t offset);
+   Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *buffer,
+   size_t offset);
 
 void icmpProcessEchoRequest(NetInterface *interface,
-   Ipv4Addr srcIpAddr, const NetBuffer *request, size_t requestOffset);
+   Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *request,
+   size_t requestOffset);
 
 error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code,
    uint8_t parameter, const NetBuffer *ipPacket, size_t ipPacketOffset);

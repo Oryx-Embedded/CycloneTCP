@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _SAME54_ETH_DRIVER_H
@@ -31,7 +33,7 @@
 
 //Number of TX buffers
 #ifndef SAME54_ETH_TX_BUFFER_COUNT
-   #define SAME54_ETH_TX_BUFFER_COUNT 2
+   #define SAME54_ETH_TX_BUFFER_COUNT 3
 #elif (SAME54_ETH_TX_BUFFER_COUNT < 1)
    #error SAME54_ETH_TX_BUFFER_COUNT parameter is not valid
 #endif
@@ -45,7 +47,7 @@
 
 //Number of RX buffers
 #ifndef SAME54_ETH_RX_BUFFER_COUNT
-   #define SAME54_ETH_RX_BUFFER_COUNT 48
+   #define SAME54_ETH_RX_BUFFER_COUNT 72
 #elif (SAME54_ETH_RX_BUFFER_COUNT < 12)
    #error SAME54_ETH_RX_BUFFER_COUNT parameter is not valid
 #endif
@@ -127,7 +129,7 @@ typedef struct
 {
    uint32_t address;
    uint32_t status;
-} Sam4eTxBufferDesc;
+} Same54TxBufferDesc;
 
 
 /**
@@ -138,7 +140,7 @@ typedef struct
 {
    uint32_t address;
    uint32_t status;
-} Sam4eRxBufferDesc;
+} Same54RxBufferDesc;
 
 
 //SAME54 Ethernet MAC driver

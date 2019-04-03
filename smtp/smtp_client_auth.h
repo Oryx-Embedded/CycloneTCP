@@ -1,10 +1,12 @@
 /**
- * @file daytime.c
- * @brief Daytime protocol
+ * @file smtp_client_auth.h
+ * @brief SMTP authentication mechanism
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -22,21 +24,35 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
- * @section Description
- *
- * The daytime service is a useful debugging and measurement tool. The service
- * simply sends the current date and time as a character string without regard
- * to the input. Refer to RFC 867 for complete details
- *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
-//Switch to the appropriate trace level
-#define TRACE_LEVEL STD_SERVICES_TRACE_LEVEL
+#ifndef _SMTP_CLIENT_AUTH_H
+#define _SMTP_CLIENT_AUTH_H
 
 //Dependencies
-#include <stdlib.h>
 #include "core/net.h"
-#include "std_services/daytime.h"
-#include "debug.h"
+#include "smtp/smtp_client.h"
+
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
+
+//SMTP client related functions
+error_t smtpClientLoginAuth(SmtpClientContext *context,
+   const char_t *username, const char_t *password);
+
+error_t smtpClientPlainAuth(SmtpClientContext *context,
+   const char_t *username, const char_t *password);
+
+error_t smtpClientCramMd5Auth(SmtpClientContext *context,
+   const char_t *username, const char_t *password);
+
+//C++ guard
+#ifdef __cplusplus
+   }
+#endif
+
+#endif

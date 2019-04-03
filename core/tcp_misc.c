@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -1337,13 +1339,13 @@ void tcpUpdateSendWindow(Socket *socket, TcpHeader *segment)
    //Case where neither the sequence nor the acknowledgment number is increased
    if(segment->seqNum == socket->sndWl1 && segment->ackNum == socket->sndWl2)
    {
-      //TCP may ignore a window update with a smaller window than
-      //previously offered if neither the sequence number nor the
-      //acknowledgment number is increased (see RFC 1122 4.2.2.16)
+      //TCP may ignore a window update with a smaller window than previously
+      //offered if neither the sequence number nor the acknowledgment number
+      //is increased (refer to RFC 1122, section 4.2.2.16)
       if(segment->window > socket->sndWnd)
       {
-         //Update the send window and record the sequence number and
-         //the acknowledgment number used to update SND.WND
+         //Update the send window and record the sequence number and the
+         //acknowledgment number used to update SND.WND
          socket->sndWnd = segment->window;
          socket->sndWl1 = segment->seqNum;
          socket->sndWl2 = segment->ackNum;
@@ -1365,8 +1367,8 @@ void tcpUpdateSendWindow(Socket *socket, TcpHeader *segment)
          tcpTimerStart(&socket->persistTimer, socket->wndProbeInterval);
       }
 
-      //Update the send window and record the sequence number and
-      //the acknowledgment number used to update SND.WND
+      //Update the send window and record the sequence number and the
+      //acknowledgment number used to update SND.WND
       socket->sndWnd = segment->window;
       socket->sndWl1 = segment->seqNum;
       socket->sndWl2 = segment->ackNum;

@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _NET_H
@@ -86,15 +88,14 @@ struct _NetInterface;
    #error Before compiling CycloneTCP Open, you must accept the terms of the GPL license
 #endif
 
-
 //Version string
-#define NET_VERSION_STRING "1.9.0"
+#define CYCLONE_TCP_VERSION_STRING "1.9.2"
 //Major version
-#define NET_MAJOR_VERSION 1
+#define CYCLONE_TCP_MAJOR_VERSION 1
 //Minor version
-#define NET_MINOR_VERSION 9
+#define CYCLONE_TCP_MINOR_VERSION 9
 //Revision number
-#define NET_REV_NUMBER 0
+#define CYCLONE_TCP_REV_NUMBER 2
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -108,6 +109,13 @@ struct _NetInterface;
    #define NET_INTERFACE_COUNT 1
 #elif (NET_INTERFACE_COUNT < 1)
    #error NET_INTERFACE_COUNT parameter is not valid
+#endif
+
+//Loopback interface support
+#ifndef NET_LOOPBACK_IF_SUPPORT
+   #define NET_LOOPBACK_IF_SUPPORT DISABLED
+#elif (NET_LOOPBACK_IF_SUPPORT != ENABLED && NET_LOOPBACK_IF_SUPPORT != DISABLED)
+   #error NET_LOOPBACK_IF_SUPPORT parameter is not valid
 #endif
 
 //Maximum number of callback functions that can be registered
@@ -212,7 +220,8 @@ struct _NetInterface
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    uint8_t port;                                  ///<Switch port identifier
 #endif
-#if (ETH_VLAN_SUPPORT == ENABLED || ETH_PORT_TAGGING_SUPPORT == ENABLED)
+#if (ETH_VIRTUAL_IF_SUPPORT == ENABLED || ETH_VLAN_SUPPORT == ENABLED || \
+   ETH_PORT_TAGGING_SUPPORT == ENABLED)
    NetInterface *parent;                          ///<Interface on top of which the virtual interface runs
 #endif
 

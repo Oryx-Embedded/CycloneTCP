@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -28,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -263,7 +265,7 @@ error_t ipv6GetLinkLocalAddr(NetInterface *interface, Ipv6Addr *addr)
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
-   //Point to the corresponding address entry
+   //Point to the corresponding entry
    entry = &interface->ipv6Context.addrList[0];
 
    //Check whether the IPv6 address is valid
@@ -354,7 +356,7 @@ error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index, Ipv6Addr *addr)
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
-   //Point to the corresponding address entry
+   //Point to the corresponding entry
    entry = &interface->ipv6Context.addrList[index + 1];
 
    //Check whether the IPv6 address is valid
@@ -481,7 +483,7 @@ error_t ipv6GetAnycastAddr(NetInterface *interface, uint_t index, Ipv6Addr *addr
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
-   //Return the corresponding address entry
+   //Return the corresponding entry
    *addr = interface->ipv6Context.anycastAddrList[index];
    //Release exclusive access
    osReleaseMutex(&netMutex);
@@ -1720,173 +1722,194 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    if(error)
       return error;
 
-   //Destination IPv6 address is the unspecified address?
+   //Check destination address
    if(ipv6CompAddr(&pseudoHeader->destAddr, &IPV6_UNSPECIFIED_ADDR))
    {
-      //Destination address is not acceptable
-      return ERROR_INVALID_ADDRESS;
+      //The unspecified address must not appear on the public Internet
+      error = ERROR_INVALID_ADDRESS;
    }
-   //Destination address is the loopback address?
-   else if(ipv6CompAddr(&pseudoHeader->destAddr, &IPV6_LOOPBACK_ADDR))
+   else if(ipv6IsLocalHostAddr(&pseudoHeader->destAddr))
    {
-      //Check source address
-      if(!ipv6CompAddr(&pseudoHeader->srcAddr, &IPV6_LOOPBACK_ADDR))
+#if (NET_LOOPBACK_IF_SUPPORT == ENABLED)
+      uint_t i;
+
+      //Initialize status code
+      error = ERROR_NO_ROUTE;
+
+      //Loop through network interfaces
+      for(i = 0; i < NET_INTERFACE_COUNT; i++)
       {
-         //Destination address is not acceptable
-         return ERROR_INVALID_ADDRESS;
-      }
-   }
+         //Point to the current interface
+         interface = &netInterface[i];
 
-#if (ETH_SUPPORT == ENABLED)
-   //Point to the physical interface
-   physicalInterface = nicGetPhysicalInterface(interface);
-
-   //Ethernet interface?
-   if(physicalInterface->nicDriver != NULL &&
-      physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
-   {
-      Ipv6Addr destIpAddr;
-      MacAddr destMacAddr;
-      NdpDestCacheEntry *entry;
-
-      //When the sending node has a packet to send, it first examines
-      //the Destination Cache
-      entry = ndpFindDestCacheEntry(interface, &pseudoHeader->destAddr);
-
-      //Check whether a matching entry exists
-      if(entry != NULL)
-      {
-         //Retrieve the address of the next-hop
-         destIpAddr = entry->nextHop;
-         //Update timestamp
-         entry->timestamp = osGetSystemTime();
-         //No error to report
-         error = NO_ERROR;
-      }
-      else
-      {
-         //Perform next-hop determination
-         error = ndpSelectNextHop(interface,
-            &pseudoHeader->destAddr, NULL, &destIpAddr);
-
-         //Check status code
-         if(error == NO_ERROR)
+         //Loopback interface?
+         if(interface->nicDriver != NULL &&
+            interface->nicDriver->type == NIC_TYPE_LOOPBACK)
          {
-            //Create a new Destination Cache entry
-            entry = ndpCreateDestCacheEntry(interface);
+            //Forward the packet to the loopback interface
+            error = nicSendPacket(interface, buffer, offset);
+            break;
+         }
+      }
+#else
+      //The loopback address must not appear on the public Internet
+      error = ERROR_NO_ROUTE;
+#endif
+   }
+   else
+   {
+#if (ETH_SUPPORT == ENABLED)
+      //Point to the physical interface
+      physicalInterface = nicGetPhysicalInterface(interface);
 
-            //Destination cache entry successfully created?
-            if(entry != NULL)
+      //Ethernet interface?
+      if(physicalInterface->nicDriver != NULL &&
+         physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
+      {
+         Ipv6Addr destIpAddr;
+         MacAddr destMacAddr;
+         NdpDestCacheEntry *entry;
+
+         //When the sending node has a packet to send, it first examines
+         //the Destination Cache
+         entry = ndpFindDestCacheEntry(interface, &pseudoHeader->destAddr);
+
+         //Check whether a matching entry exists
+         if(entry != NULL)
+         {
+            //Retrieve the address of the next-hop
+            destIpAddr = entry->nextHop;
+            //Update timestamp
+            entry->timestamp = osGetSystemTime();
+            //No error to report
+            error = NO_ERROR;
+         }
+         else
+         {
+            //Perform next-hop determination
+            error = ndpSelectNextHop(interface, &pseudoHeader->destAddr, NULL,
+               &destIpAddr);
+
+            //Check status code
+            if(error == NO_ERROR)
             {
-               //Destination address
-               entry->destAddr = pseudoHeader->destAddr;
-               //Address of the next hop
-               entry->nextHop = destIpAddr;
+               //Create a new Destination Cache entry
+               entry = ndpCreateDestCacheEntry(interface);
 
-               //Initially, the PMTU value for a path is assumed to be
-               //the MTU of the first-hop link
-               entry->pathMtu = interface->ipv6Context.linkMtu;
+               //Destination cache entry successfully created?
+               if(entry != NULL)
+               {
+                  //Destination address
+                  entry->destAddr = pseudoHeader->destAddr;
+                  //Address of the next hop
+                  entry->nextHop = destIpAddr;
 
-               //Set timestamp
-               entry->timestamp = osGetSystemTime();
+                  //Initially, the PMTU value for a path is assumed to be the
+                  //MTU of the first-hop link
+                  entry->pathMtu = interface->ipv6Context.linkMtu;
+
+                  //Set timestamp
+                  entry->timestamp = osGetSystemTime();
+               }
+            }
+            else if(error == ERROR_NO_ROUTE)
+            {
+               //Number of IP datagrams discarded because no route could be found
+               //to transmit them to their destination
+               IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutNoRoutes, 1);
             }
          }
-         else if(error == ERROR_NO_ROUTE)
-         {
-            //Number of IP datagrams discarded because no route could be found
-            //to transmit them to their destination
-            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutNoRoutes, 1);
-         }
-      }
 
-      //Successful next-hop determination?
-      if(error == NO_ERROR)
-      {
-         //Destination IPv6 address is a multicast address?
-         if(ipv6IsMulticastAddr(&destIpAddr))
-         {
-            //Map IPv6 multicast address to MAC-layer multicast address
-            error = ipv6MapMulticastAddrToMac(&destIpAddr, &destMacAddr);
-         }
-         else
-         {
-            //Resolve host address using Neighbor Discovery protocol
-            error = ndpResolve(interface, &destIpAddr, &destMacAddr);
-         }
-
-         //Successful address resolution?
+         //Successful next-hop determination?
          if(error == NO_ERROR)
          {
-            //Update IP statistics
-            ipv6UpdateOutStats(interface, &destIpAddr, length);
+            //Destination IPv6 address is a multicast address?
+            if(ipv6IsMulticastAddr(&destIpAddr))
+            {
+               //Map IPv6 multicast address to MAC-layer multicast address
+               error = ipv6MapMulticastAddrToMac(&destIpAddr, &destMacAddr);
+            }
+            else
+            {
+               //Resolve host address using Neighbor Discovery protocol
+               error = ndpResolve(interface, &destIpAddr, &destMacAddr);
+            }
 
-            //Debug message
-            TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
-            //Dump IP header contents for debugging purpose
-            ipv6DumpHeader(packet);
+            //Successful address resolution?
+            if(error == NO_ERROR)
+            {
+               //Update IP statistics
+               ipv6UpdateOutStats(interface, &destIpAddr, length);
 
-            //Send Ethernet frame
-            error = ethSendFrame(interface, &destMacAddr, buffer, offset, ETH_TYPE_IPV6);
-         }
-         //Address resolution is in progress?
-         else if(error == ERROR_IN_PROGRESS)
-         {
-            //Debug message
-            TRACE_INFO("Enqueuing IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
-            //Dump IP header contents for debugging purpose
-            ipv6DumpHeader(packet);
+               //Debug message
+               TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
+               //Dump IP header contents for debugging purpose
+               ipv6DumpHeader(packet);
 
-            //Enqueue packets waiting for address resolution
-            error = ndpEnqueuePacket(NULL, interface, &destIpAddr, buffer, offset);
-         }
-         //Address resolution failed?
-         else
-         {
-            //Debug message
-            TRACE_WARNING("Cannot map IPv6 address to Ethernet address!\r\n");
+               //Send Ethernet frame
+               error = ethSendFrame(interface, &destMacAddr, buffer, offset,
+                  ETH_TYPE_IPV6);
+            }
+            //Address resolution is in progress?
+            else if(error == ERROR_IN_PROGRESS)
+            {
+               //Debug message
+               TRACE_INFO("Enqueuing IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
+               //Dump IP header contents for debugging purpose
+               ipv6DumpHeader(packet);
+
+               //Enqueue packets waiting for address resolution
+               error = ndpEnqueuePacket(NULL, interface, &destIpAddr, buffer, offset);
+            }
+            //Address resolution failed?
+            else
+            {
+               //Debug message
+               TRACE_WARNING("Cannot map IPv6 address to Ethernet address!\r\n");
+            }
          }
       }
-   }
-   else
+      else
 #endif
 #if (PPP_SUPPORT == ENABLED)
-   //PPP interface?
-   if(interface->nicDriver != NULL &&
-      interface->nicDriver->type == NIC_TYPE_PPP)
-   {
-      //Update IP statistics
-      ipv6UpdateOutStats(interface, &pseudoHeader->destAddr, length);
+      //PPP interface?
+      if(interface->nicDriver != NULL &&
+         interface->nicDriver->type == NIC_TYPE_PPP)
+      {
+         //Update IP statistics
+         ipv6UpdateOutStats(interface, &pseudoHeader->destAddr, length);
 
-      //Debug message
-      TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
-      //Dump IP header contents for debugging purpose
-      ipv6DumpHeader(packet);
+         //Debug message
+         TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
+         //Dump IP header contents for debugging purpose
+         ipv6DumpHeader(packet);
 
-      //Send PPP frame
-      error = pppSendFrame(interface, buffer, offset, PPP_PROTOCOL_IPV6);
-   }
-   else
+         //Send PPP frame
+         error = pppSendFrame(interface, buffer, offset, PPP_PROTOCOL_IPV6);
+      }
+      else
 #endif
-   //6LoWPAN interface?
-   if(interface->nicDriver != NULL &&
-      interface->nicDriver->type == NIC_TYPE_6LOWPAN)
-   {
-      //Update IP statistics
-      ipv6UpdateOutStats(interface, &pseudoHeader->destAddr, length);
+      //6LoWPAN interface?
+      if(interface->nicDriver != NULL &&
+         interface->nicDriver->type == NIC_TYPE_6LOWPAN)
+      {
+         //Update IP statistics
+         ipv6UpdateOutStats(interface, &pseudoHeader->destAddr, length);
 
-      //Debug message
-      TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
-      //Dump IP header contents for debugging purpose
-      ipv6DumpHeader(packet);
+         //Debug message
+         TRACE_INFO("Sending IPv6 packet (%" PRIuSIZE " bytes)...\r\n", length);
+         //Dump IP header contents for debugging purpose
+         ipv6DumpHeader(packet);
 
-      //Send the packet over the specified link
-      error = nicSendPacket(interface, buffer, offset);
-   }
-   else
-   //Unknown interface type?
-   {
-      //Report an error
-      error = ERROR_INVALID_INTERFACE;
+         //Send the packet over the specified link
+         error = nicSendPacket(interface, buffer, offset);
+      }
+      else
+      //Unknown interface type?
+      {
+         //Report an error
+         error = ERROR_INVALID_INTERFACE;
+      }
    }
 
    //Return status code
@@ -2077,74 +2100,6 @@ error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAd
 
    //The specified IPv6 address does not exist
    return ERROR_ADDRESS_NOT_FOUND;
-}
-
-
-/**
- * @brief Update IPv6 input statistics
- * @param[in] interface Underlying network interface
- * @param[in] destIpAddr Destination IP address
- * @param[in] length Length of the incoming IP packet
- **/
-
-void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length)
-{
-   //Check whether the destination address is a unicast or multicast address
-   if(ipv6IsMulticastAddr(destIpAddr))
-   {
-      //Number of IP multicast datagrams transmitted
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInMcastPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInMcastPkts, 1);
-
-      //Total number of octets transmitted in IP multicast datagrams
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInMcastOctets, length);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInMcastOctets, length);
-   }
-}
-
-
-/**
- * @brief Update IPv6 output statistics
- * @param[in] interface Underlying network interface
- * @param[in] destIpAddr Destination IP address
- * @param[in] length Length of the outgoing IP packet
- **/
-
-void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length)
-{
-   //Check whether the destination address is a unicast or multicast address
-   if(ipv6IsMulticastAddr(destIpAddr))
-   {
-      //Number of IP multicast datagrams transmitted
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutMcastPkts, 1);
-
-      //Total number of octets transmitted in IP multicast datagrams
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutMcastOctets, length);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutMcastOctets, length);
-   }
-
-   //Total number of IP datagrams that this entity supplied to the lower
-   //layers for transmission
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutTransmits, 1);
-   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutTransmits, 1);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutTransmits, 1);
-   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutTransmits, 1);
-
-   //Total number of octets in IP datagrams delivered to the lower layers
-   //for transmission
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutOctets, length);
-   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutOctets, length);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutOctets, length);
-   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutOctets, length);
 }
 
 

@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -135,7 +137,7 @@ error_t enc624j600Init(NetInterface *interface)
       MACON2_DEFER | MACON2_PADCFG0 | MACON2_TXCRCEN | MACON2_R1);
 
    //Program the MAMXFL register with the maximum frame length to be accepted
-   enc624j600WriteReg(interface, ENC624J600_REG_MAMXFL, 1518);
+   enc624j600WriteReg(interface, ENC624J600_REG_MAMXFL, ETH_MAX_FRAME_SIZE);
 
    //PHY initialization
    enc624j600WritePhyReg(interface, ENC624J600_PHY_REG_PHANA, PHANA_ADPAUS0 |
@@ -494,7 +496,7 @@ error_t enc624j600UpdateMacAddrFilter(NetInterface *interface)
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating ENC624J600 hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
    memset(hashTable, 0, sizeof(hashTable));
@@ -613,7 +615,8 @@ error_t enc624j600SoftReset(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void enc624j600WriteReg(NetInterface *interface, uint8_t address, uint16_t data)
+void enc624j600WriteReg(NetInterface *interface, uint8_t address,
+   uint16_t data)
 {
    //Pull the CS pin low
    interface->spiDriver->assertCs();
@@ -669,7 +672,8 @@ uint16_t enc624j600ReadReg(NetInterface *interface, uint8_t address)
  * @param[in] data Register value
  **/
 
-void enc624j600WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data)
+void enc624j600WritePhyReg(NetInterface *interface, uint8_t address,
+   uint16_t data)
 {
    //Write the address of the PHY register to write to
    enc624j600WriteReg(interface, ENC624J600_REG_MIREGADR, MIREGADR_R8 | address);
@@ -795,7 +799,8 @@ void enc624j600ReadBuffer(NetInterface *interface,
  * @param[in] mask Bits to set in the target register
  **/
 
-void enc624j600SetBit(NetInterface *interface, uint8_t address, uint16_t mask)
+void enc624j600SetBit(NetInterface *interface, uint8_t address,
+   uint16_t mask)
 {
    //Pull the CS pin low
    interface->spiDriver->assertCs();
@@ -820,7 +825,8 @@ void enc624j600SetBit(NetInterface *interface, uint8_t address, uint16_t mask)
  * @param[in] mask Bits to clear in the target register
  **/
 
-void enc624j600ClearBit(NetInterface *interface, uint8_t address, uint16_t mask)
+void enc624j600ClearBit(NetInterface *interface, uint8_t address,
+   uint16_t mask)
 {
    //Pull the CS pin low
    interface->spiDriver->assertCs();

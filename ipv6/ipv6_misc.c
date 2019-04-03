@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -36,6 +38,7 @@
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_cache.h"
 #include "mdns/mdns_responder.h"
+#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -474,7 +477,8 @@ void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
  * @param[in] length The number of leading bits in the prefix that are valid
  **/
 
-void ipv6RemovePrefix(NetInterface *interface, const Ipv6Addr *prefix, uint_t length)
+void ipv6RemovePrefix(NetInterface *interface, const Ipv6Addr *prefix,
+   uint_t length)
 {
    uint_t i;
    Ipv6PrefixEntry *entry;
@@ -774,6 +778,7 @@ error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
 {
    error_t error;
    uint_t i;
+   Ipv6AddrEntry *entry;
 
    //Filter out any invalid addresses
    error = ERROR_INVALID_ADDRESS;
@@ -810,8 +815,6 @@ error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
       //Loop through the list of IPv6 unicast addresses
       for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
       {
-         Ipv6AddrEntry *entry;
-
          //Point to the current entry
          entry = &interface->ipv6Context.addrList[i];
 
@@ -879,6 +882,7 @@ error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
 error_t ipv6SelectSourceAddr(NetInterface **interface,
    const Ipv6Addr *destAddr, Ipv6Addr *srcAddr)
 {
+   error_t error;
    uint_t i;
    uint_t j;
    NetInterface *currentInterface;
@@ -896,7 +900,7 @@ error_t ipv6SelectSourceAddr(NetInterface **interface,
       //Point to the current interface
       currentInterface = &netInterface[i];
 
-      //A network interface may be provided as a hint...
+      //A network interface may be provided as a hint
       if(*interface != currentInterface && *interface != NULL)
       {
          //Select the next interface in the list
@@ -997,19 +1001,24 @@ error_t ipv6SelectSourceAddr(NetInterface **interface,
       }
    }
 
-   //Source address selection failed?
-   if(bestAddr == NULL)
+   //Valid source address?
+   if(bestAddr != NULL)
+   {
+      //Return the out-going interface and the source address to be used
+      *interface = bestInterface;
+      *srcAddr = bestAddr->addr;
+
+      //Successful source address selection
+      error = NO_ERROR;
+   }
+   else
    {
       //Report an error
-      return ERROR_NO_ADDRESS;
+      error = ERROR_NO_ADDRESS;
    }
 
-   //Return the out-going interface and the source address to be used
-   *interface = bestInterface;
-   *srcAddr = bestAddr->addr;
-
-   //Successful source address selection
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
@@ -1028,9 +1037,9 @@ bool_t ipv6IsOnLink(NetInterface *interface, const Ipv6Addr *ipAddr)
    //Link-local prefix?
    if(ipv6IsLinkLocalUnicastAddr(ipAddr))
    {
-      //The link-local prefix is considered to be on the prefix
-      //list with an infinite invalidation timer regardless of
-      //whether routers are advertising a prefix for it
+      //The link-local prefix is considered to be on the prefix list with
+      //an infinite invalidation timer regardless of whether routers are
+      //advertising a prefix for it
       return TRUE;
    }
 
@@ -1053,42 +1062,6 @@ bool_t ipv6IsOnLink(NetInterface *interface, const Ipv6Addr *ipAddr)
    }
 
    //The specified IPv6 address is off-link
-   return FALSE;
-}
-
-
-/**
- * @brief Check whether an IPv6 address is a tentative address
- * @param[in] interface Underlying network interface
- * @param[in] ipAddr IPv6 address to be checked
- * @return TRUE if the IPv6 address is a tentative address, else FALSE
- **/
-
-bool_t ipv6IsTentativeAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
-{
-   uint_t i;
-   Ipv6AddrEntry *entry;
-
-   //Loop through the list of IPv6 unicast addresses
-   for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
-   {
-      //Point to the current entry
-      entry = &interface->ipv6Context.addrList[i];
-
-      //Tentative address?
-      if(entry->state == IPV6_ADDR_STATE_TENTATIVE)
-      {
-         //Check whether the specified address matches a valid unicast
-         //address assigned to the interface
-         if(ipv6CompAddr(&entry->addr, ipAddr))
-         {
-            //The specified IPv6 address is a tentative address
-            return TRUE;
-         }
-      }
-   }
-
-   //The specified IPv6 address is not a tentative address
    return FALSE;
 }
 
@@ -1130,6 +1103,101 @@ bool_t ipv6IsAnycastAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
 
 
 /**
+ * @brief Check whether an IPv6 address is a tentative address
+ * @param[in] interface Underlying network interface
+ * @param[in] ipAddr IPv6 address to be checked
+ * @return TRUE if the IPv6 address is a tentative address, else FALSE
+ **/
+
+bool_t ipv6IsTentativeAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
+{
+   uint_t i;
+   Ipv6AddrEntry *entry;
+
+   //Loop through the list of IPv6 unicast addresses
+   for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
+   {
+      //Point to the current entry
+      entry = &interface->ipv6Context.addrList[i];
+
+      //Tentative address?
+      if(entry->state == IPV6_ADDR_STATE_TENTATIVE)
+      {
+         //Check whether the specified address matches a valid unicast
+         //address assigned to the interface
+         if(ipv6CompAddr(&entry->addr, ipAddr))
+         {
+            //The specified IPv6 address is a tentative address
+            return TRUE;
+         }
+      }
+   }
+
+   //The specified IPv6 address is not a tentative address
+   return FALSE;
+}
+
+
+/**
+ * @brief Check whether the specified IPv6 is assigned to the host
+ * @param[in] ipAddr IPv6 address to be checked
+ * @return TRUE if the IPv6 address matches any address assigned to the host,
+ *   else FALSE
+ **/
+
+bool_t ipv6IsLocalHostAddr(const Ipv6Addr *ipAddr)
+{
+   uint_t i;
+   uint_t j;
+   bool_t flag;
+   NetInterface *interface;
+   Ipv6AddrEntry *entry;
+
+   //Initialize flag
+   flag = FALSE;
+
+   //Loopback address?
+   if(ipv6CompAddr(ipAddr, &IPV6_LOOPBACK_ADDR))
+   {
+      //If an application in a host sends packets to this address, the IPv6
+      //stack will loop these packets back on the same virtual interface
+      flag = TRUE;
+   }
+   else
+   {
+      //Loop through network interfaces
+      for(i = 0; i < NET_INTERFACE_COUNT && !flag; i++)
+      {
+         //Point to the current interface
+         interface = &netInterface[i];
+
+         //Iterate through the list of addresses assigned to the interface
+         for(j = 0; j < IPV6_ADDR_LIST_SIZE && !flag; j++)
+         {
+            //Point to the current entry
+            entry = &interface->ipv6Context.addrList[j];
+
+            //Valid entry?
+            if(entry->state == IPV6_ADDR_STATE_PREFERRED ||
+               entry->state == IPV6_ADDR_STATE_DEPRECATED)
+            {
+               //Check whether the specified IPv6 address matches any address
+               //assigned to the host
+               if(ipv6CompAddr(&entry->addr, ipAddr))
+               {
+                  flag = TRUE;
+               }
+            }
+         }
+      }
+   }
+
+   //Return TRUE if the specified address matches any address assigned to the host
+   return flag;
+}
+
+
+/**
  * @brief Compare IPv6 address prefixes
  * @param[in] ipAddr1 Pointer to the first IPv6 address
  * @param[in] ipAddr2 Pointer to the second IPv6 address
@@ -1137,7 +1205,8 @@ bool_t ipv6IsAnycastAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
  * @return TRUE if the prefixes match each other, else FALSE
  **/
 
-bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2, size_t length)
+bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2,
+   size_t length)
 {
    size_t n;
    size_t m;
@@ -1194,7 +1263,8 @@ uint_t ipv6GetAddrScope(const Ipv6Addr *ipAddr)
    //Loopback address?
    else if(ipv6CompAddr(ipAddr, &IPV6_LOOPBACK_ADDR))
    {
-      //The loopback address may be used by a node to send an IPv6 packet to itself
+      //The loopback address may be used by a node to send an IPv6 packet
+      //to itself
       scope = IPV6_ADDR_SCOPE_INTERFACE_LOCAL;
    }
    //Link-local unicast address?
@@ -1252,7 +1322,8 @@ uint_t ipv6GetMulticastAddrScope(const Ipv6Addr *ipAddr)
  * @return The length of the longest common prefix, in bits
  **/
 
-uint_t ipv6GetCommonPrefixLength(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2)
+uint_t ipv6GetCommonPrefixLength(const Ipv6Addr *ipAddr1,
+   const Ipv6Addr *ipAddr2)
 {
    uint_t i;
    uint_t j;
@@ -1365,6 +1436,74 @@ void ipv6GenerateLinkLocalAddr(const Eui64 *interfaceId, Ipv6Addr *ipAddr)
    ipAddr->w[5] = interfaceId->w[1];
    ipAddr->w[6] = interfaceId->w[2];
    ipAddr->w[7] = interfaceId->w[3];
+}
+
+
+/**
+ * @brief Update IPv6 input statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destIpAddr Destination IP address
+ * @param[in] length Length of the incoming IP packet
+ **/
+
+void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length)
+{
+   //Check whether the destination address is a unicast or multicast address
+   if(ipv6IsMulticastAddr(destIpAddr))
+   {
+      //Number of IP multicast datagrams transmitted
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInMcastPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInMcastPkts, 1);
+
+      //Total number of octets transmitted in IP multicast datagrams
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInMcastOctets, length);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInMcastOctets, length);
+   }
+}
+
+
+/**
+ * @brief Update IPv6 output statistics
+ * @param[in] interface Underlying network interface
+ * @param[in] destIpAddr Destination IP address
+ * @param[in] length Length of the outgoing IP packet
+ **/
+
+void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length)
+{
+   //Check whether the destination address is a unicast or multicast address
+   if(ipv6IsMulticastAddr(destIpAddr))
+   {
+      //Number of IP multicast datagrams transmitted
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutMcastPkts, 1);
+      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutMcastPkts, 1);
+
+      //Total number of octets transmitted in IP multicast datagrams
+      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutMcastOctets, length);
+      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutMcastOctets, length);
+      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutMcastOctets, length);
+   }
+
+   //Total number of IP datagrams that this entity supplied to the lower
+   //layers for transmission
+   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutTransmits, 1);
+   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutTransmits, 1);
+   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutTransmits, 1);
+   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutTransmits, 1);
+
+   //Total number of octets in IP datagrams delivered to the lower layers
+   //for transmission
+   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutOctets, length);
+   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutOctets, length);
+   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutOctets, length);
+   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutOctets, length);
 }
 
 #endif

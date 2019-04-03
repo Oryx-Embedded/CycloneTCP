@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,18 +33,18 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL SMTP_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
-#include <ctype.h>
-#include <stdlib.h>
 #include "core/net.h"
 #include "smtp/smtp_client.h"
+#include "smtp/smtp_client_auth.h"
+#include "smtp/smtp_client_transport.h"
+#include "smtp/smtp_client_misc.h"
 #include "core/socket.h"
 #include "str.h"
 #include "debug.h"
@@ -52,367 +54,356 @@
 
 
 /**
- * @brief Send a mail to the specified recipients
- * @param[in] authInfo Authentication information
- * @param[in] mail Mail contents
+ * @brief Initialize SMTP client context
+ * @param[in] context Pointer to the SMTP client context
  * @return Error code
  **/
 
-error_t smtpSendMail(const SmtpAuthInfo *authInfo, const SmtpMail *mail)
+error_t smtpClientInit(SmtpClientContext *context)
+{
+#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
+   error_t error;
+#endif
+
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Clear SMTP client context
+   memset(context, 0, sizeof(SmtpClientContext));
+
+#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
+   //Initialize TLS session state
+   error = tlsInitSessionState(&context->tlsSession);
+   //Any error to report?
+   if(error)
+      return error;
+#endif
+
+   //Initialize SMTP client state
+   context->state = SMTP_CLIENT_STATE_DISCONNECTED;
+
+   //Default timeout
+   context->timeout = SMTP_CLIENT_DEFAULT_TIMEOUT;
+
+   //Successful initialization
+   return NO_ERROR;
+}
+
+
+#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
+
+/**
+ * @brief Register TLS initialization callback function
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] callback TLS initialization callback function
+ * @return Error code
+ **/
+
+error_t smtpClientRegisterTlsInitCallback(SmtpClientContext *context,
+   SmtpClientTlsInitCallback callback)
+{
+   //Check parameters
+   if(context == NULL || callback == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save callback function
+   context->tlsInitCallback = callback;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+#endif
+
+
+/**
+ * @brief Set communication timeout
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] timeout Timeout value, in milliseconds
+ * @return Error code
+ **/
+
+error_t smtpClientSetTimeout(SmtpClientContext *context, systime_t timeout)
+{
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save timeout value
+   context->timeout = timeout;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Bind the SMTP client to a particular network interface
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] interface Network interface to be used
+ * @return Error code
+ **/
+
+error_t smtpClientBindToInterface(SmtpClientContext *context,
+   NetInterface *interface)
+{
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Explicitly associate the SMTP client with the specified interface
+   context->interface = interface;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Establish a connection with the specified SMTP server
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] serverIpAddr IP address of the SMTP server
+ * @param[in] serverPort Port number
+ * @param[in] mode SMTP connection mode
+ * @return Error code
+ **/
+
+error_t smtpClientConnect(SmtpClientContext *context,
+   const IpAddr *serverIpAddr, uint16_t serverPort, SmtpConnectionMode mode)
 {
    error_t error;
-   uint_t i;
-   uint_t replyCode;
-   IpAddr serverIpAddr;
-   SmtpClientContext *context;
 
    //Check parameters
-   if(authInfo == NULL || mail == NULL)
-      return ERROR_INVALID_PARAMETER;
-   //Make sure the server name is valid
-   if(authInfo->serverName == NULL)
+   if(context == NULL || serverIpAddr == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Debug message
-   TRACE_INFO("Sending a mail to %s port %" PRIu16 "...\r\n",
-      authInfo->serverName, authInfo->serverPort);
-
-   //The specified SMTP server can be either an IP or a host name
-   error = getHostByName(authInfo->interface,
-      authInfo->serverName, &serverIpAddr, 0);
-   //Unable to resolve server name?
-   if(error)
-      return ERROR_NAME_RESOLUTION_FAILED;
-
-   //Allocate a memory buffer to hold the SMTP client context
-   context = osAllocMem(sizeof(SmtpClientContext));
-   //Failed to allocate memory?
-   if(context == NULL)
-      return ERROR_OUT_OF_MEMORY;
-
-   //Open a TCP socket
-   context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
-   //Failed to open socket?
-   if(context->socket == NULL)
+   //Check connection modes
+   if(mode != SMTP_MODE_PLAINTEXT &&
+      mode != SMTP_MODE_IMPLICIT_TLS &&
+      mode != SMTP_MODE_EXPLICIT_TLS)
    {
-      //Free previously allocated resources
-      osFreeMem(context);
-      //Report an error
-      return ERROR_OPEN_FAILED;
+      //The connection mode is not valid
+      return ERROR_INVALID_PARAMETER;
    }
 
-#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-   //Do not use TLS for the moment
-   context->tlsContext = NULL;
-#endif
+   //Initialize status code
+   error = NO_ERROR;
 
-   //Start of exception handling block
-   do
+   //Establish connection with the SMTP server
+   while(!error)
    {
-      //Bind the socket to a particular network interface?
-      if(authInfo->interface)
+      //Check current state
+      if(context->state == SMTP_CLIENT_STATE_DISCONNECTED)
       {
-         //Associate the socket with the relevant interface
-         error = socketBindToInterface(context->socket, authInfo->interface);
-         //Any error to report?
-         if(error)
-            break;
-      }
-
-      //Set timeout for blocking operations
-      error = socketSetTimeout(context->socket, SMTP_CLIENT_DEFAULT_TIMEOUT);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Connect to the SMTP server
-      error = socketConnect(context->socket, &serverIpAddr, authInfo->serverPort);
-      //Connection to server failed?
-      if(error)
-         break;
-
-#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-      //Open a secure TLS session?
-      if(authInfo->useTls)
-      {
-         //Initialize TLS context
-         context->tlsContext = tlsInit();
-         //Initialization failed?
-         if(context->tlsContext == NULL)
-         {
-            //Unable to allocate memory
-            error = ERROR_OUT_OF_MEMORY;
-            //Stop immediately
-            break;
-         }
-
-         //Bind TLS to the relevant socket
-         error = tlsSetSocket(context->tlsContext, context->socket);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Select client operation mode
-         error = tlsSetConnectionEnd(context->tlsContext, TLS_CONNECTION_END_CLIENT);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Set the PRNG algorithm to be used
-         error = tlsSetPrng(context->tlsContext, authInfo->prngAlgo, authInfo->prngContext);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Perform TLS handshake
-         error = tlsConnect(context->tlsContext);
-         //Failed to established a TLS session?
-         if(error)
-            break;
-      }
-#endif
-
-      //Wait for the connection greeting reply
-      error = smtpSendCommand(context, NULL, &replyCode, NULL);
-      //Any communication error to report?
-      if(error)
-         break;
-
-      //Check whether the greeting message was properly received
-      if(!SMTP_REPLY_CODE_2YZ(replyCode))
-      {
-         //An unexpected response was received...
-         error = ERROR_UNEXPECTED_RESPONSE;
-         //Stop immediately
-         break;
-      }
-
-      //Clear security features
-      context->authLoginSupported = FALSE;
-      context->authPlainSupported = FALSE;
-      context->authCramMd5Supported = FALSE;
-      context->startTlsSupported = FALSE;
-
-      //Send EHLO command and parse server response
-      error = smtpSendCommand(context, "EHLO [127.0.0.1]\r\n",
-         &replyCode, smtpEhloReplyCallback);
-      //Any communication error to report?
-      if(error)
-         break;
-
-      //Check SMTP response code
-      if(!SMTP_REPLY_CODE_2YZ(replyCode))
-      {
-         //An unexpected response was received...
-         error = ERROR_UNEXPECTED_RESPONSE;
-         //Stop immediately
-         break;
-      }
-
-#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-      //Check whether the STARTTLS command is supported
-      if(context->startTlsSupported && !context->tlsContext)
-      {
-         //Send STARTTLS command
-         error = smtpSendCommand(context, "STARTTLS\r\n", &replyCode, NULL);
-         //Any communication error to report?
-         if(error)
-            break;
-
-         //Check SMTP response code
-         if(!SMTP_REPLY_CODE_2YZ(replyCode))
-         {
-            //An unexpected response was received...
-            error = ERROR_UNEXPECTED_RESPONSE;
-            //Stop immediately
-            break;
-         }
-
-         //Initialize TLS context
-         context->tlsContext = tlsInit();
-         //Initialization failed?
-         if(context->tlsContext == NULL)
-         {
-            //Unable to allocate memory
-            error = ERROR_OUT_OF_MEMORY;
-            //Stop immediately
-            break;
-         }
-
-         //Bind TLS to the relevant socket
-         error = tlsSetSocket(context->tlsContext, context->socket);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Select client operation mode
-         error = tlsSetConnectionEnd(context->tlsContext, TLS_CONNECTION_END_CLIENT);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Set the PRNG algorithm to be used
-         error = tlsSetPrng(context->tlsContext, authInfo->prngAlgo, authInfo->prngContext);
-         //Any error to report?
-         if(error)
-            break;
-
-         //Perform TLS handshake
-         error = tlsConnect(context->tlsContext);
-         //Failed to established a TLS session?
-         if(error)
-            break;
-
-         //Clear security features
+         //Reset parameters
+         context->startTlsSupported = FALSE;
          context->authLoginSupported = FALSE;
          context->authPlainSupported = FALSE;
          context->authCramMd5Supported = FALSE;
 
-         //Send EHLO command and parse server response
-         error = smtpSendCommand(context, "EHLO [127.0.0.1]\r\n",
-            &replyCode, smtpEhloReplyCallback);
-         //Any communication error to report?
-         if(error)
-            break;
+#if (SMTP_CLIENT_MIME_SUPPORT == ENABLED)
+         //Reset MIME-specific parameters
+         strcpy(context->contentType, "");
+         strcpy(context->boundary, "this-is-a-boundary");
+#endif
+         //Open TCP socket
+         error = smtpClientOpenConnection(context);
 
-         //Check SMTP response code
-         if(!SMTP_REPLY_CODE_2YZ(replyCode))
+         //Check status code
+         if(!error)
          {
-            //An unexpected response was received...
-            error = ERROR_UNEXPECTED_RESPONSE;
-            //Stop immediately
-            break;
+            //Establish TCP connection
+            smtpClientChangeState(context, SMTP_CLIENT_STATE_CONNECTING_TCP);
          }
       }
-#endif
-
-      //Authentication requires a valid user name and password
-      if(authInfo->userName && authInfo->password)
+      else if(context->state == SMTP_CLIENT_STATE_CONNECTING_TCP)
       {
-#if (SMTP_CLIENT_LOGIN_AUTH_SUPPORT == ENABLED)
-         //LOGIN authentication mechanism supported?
-         if(context->authLoginSupported)
+         //Establish TCP connection
+         error = smtpClientEstablishConnection(context, serverIpAddr,
+            serverPort);
+
+         //Check status code
+         if(!error)
          {
-            //Perform LOGIN authentication
-            error = smtpSendAuthLogin(context, authInfo);
-            //Authentication failed?
-            if(error)
-               break;
-         }
-         else
-#endif
-#if (SMTP_CLIENT_PLAIN_AUTH_SUPPORT == ENABLED)
-         //PLAIN authentication mechanism supported?
-         if(context->authPlainSupported)
-         {
-            //Perform PLAIN authentication
-            error = smtpSendAuthPlain(context, authInfo);
-            //Authentication failed?
-            if(error)
-               break;
-         }
-         else
-#endif
-#if (SMTP_CLIENT_CRAM_MD5_AUTH_SUPPORT == ENABLED)
-         //CRAM-MD5 authentication mechanism supported?
-         if(context->authCramMd5Supported)
-         {
-            //Perform CRAM-MD5 authentication
-            error = smtpSendAuthCramMd5(context, authInfo);
-            //Authentication failed?
-            if(error)
-               break;
-         }
-         else
-#endif
-         //No authentication mechanism supported?
-         {
-            //Skip authentication step
+            //Implicit TLS?
+            if(mode == SMTP_MODE_IMPLICIT_TLS)
+            {
+               //TLS initialization
+               error = smtpClientOpenSecureConnection(context);
+
+               //Check status code
+               if(!error)
+               {
+                  //Perform TLS handshake
+                  smtpClientChangeState(context, SMTP_CLIENT_STATE_CONNECTING_TLS);
+               }
+            }
+            else
+            {
+               //Flush buffer
+               context->bufferPos = 0;
+               context->commandLen = 0;
+               context->replyLen = 0;
+
+               //Wait for the connection greeting reply
+               smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_1);
+            }
          }
       }
+      else if(context->state == SMTP_CLIENT_STATE_CONNECTING_TLS)
+      {
+         //Perform TLS handshake
+         error = smtpClientEstablishSecureConnection(context);
 
-      //Format the MAIL FROM command (a null return path must be accepted)
-      if(mail->from.addr)
-         sprintf(context->buffer, "MAIL FROM:<%s>\r\n", mail->from.addr);
+         //Check status code
+         if(!error)
+         {
+            //Implicit TLS?
+            if(mode == SMTP_MODE_IMPLICIT_TLS)
+            {
+               //Flush buffer
+               context->bufferPos = 0;
+               context->commandLen = 0;
+               context->replyLen = 0;
+
+               //Wait for the connection greeting reply
+               smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_1);
+            }
+            else
+            {
+               //Format EHLO command
+               error = smtpClientFormatCommand(context, "EHLO [127.0.0.1]", NULL);
+
+               //Check status code
+               if(!error)
+               {
+                  //Send EHLO command and wait for the server's response
+                  smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_2);
+               }
+            }
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Wait for the connection greeting reply
+         error = smtpClientSendCommand(context, NULL);
+
+         //Check status code
+         if(!error)
+         {
+            //Check SMTP response code
+            if(SMTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Format EHLO command
+               error = smtpClientFormatCommand(context, "EHLO [127.0.0.1]", NULL);
+
+               //Check status code
+               if(!error)
+               {
+                  //Send EHLO command and wait for the server's response
+                  smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_2);
+               }
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_SUB_COMMAND_2)
+      {
+         //Send EHLO command and wait for the server's response
+         error = smtpClientSendCommand(context, smtpClientParseEhloReply);
+
+         //Check status code
+         if(!error)
+         {
+            //Check SMTP response code
+            if(SMTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Explicit TLS?
+               if(mode == SMTP_MODE_EXPLICIT_TLS && context->tlsContext == NULL)
+               {
+                  //Format STARTTLS command
+                  error = smtpClientFormatCommand(context, "STARTTLS", NULL);
+
+                  //Check status code
+                  if(!error)
+                  {
+                     //Send STARTTLS command and wait for the server's response
+                     smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_3);
+                  }
+               }
+               else
+               {
+                  //The SMTP client is connected
+                  smtpClientChangeState(context, SMTP_CLIENT_STATE_CONNECTED);
+               }
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_SUB_COMMAND_3)
+      {
+         //Send STARTTLS command and wait for the server's response
+         error = smtpClientSendCommand(context, NULL);
+
+         //Check status code
+         if(!error)
+         {
+            //Check SMTP response code
+            if(SMTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //TLS initialization
+               error = smtpClientOpenSecureConnection(context);
+
+               //Check status code
+               if(!error)
+               {
+                  //Perform TLS handshake
+                  smtpClientChangeState(context, SMTP_CLIENT_STATE_CONNECTING_TLS);
+               }
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_CONNECTED)
+      {
+         //The SMTP client is connected
+         break;
+      }
       else
-         strcpy(context->buffer, "MAIL FROM:<>\r\n");
-
-      //Send the command to the server
-      error = smtpSendCommand(context, context->buffer, &replyCode, NULL);
-      //Any communication error to report?
-      if(error)
-         break;
-
-      //Check SMTP response code
-      if(!SMTP_REPLY_CODE_2YZ(replyCode))
       {
-         //An unexpected response was received...
-         error = ERROR_UNEXPECTED_RESPONSE;
-         //Stop immediately
-         break;
+         //Invalid state
+         error = ERROR_WRONG_STATE;
       }
-
-      //Format the RCPT TO command
-      for(i = 0; i < mail->recipientCount; i++)
-      {
-         //Skip recipient addresses that are not valid
-         if(!mail->recipients[i].addr)
-            continue;
-
-         //Format the RCPT TO command
-         sprintf(context->buffer, "RCPT TO:<%s>\r\n", mail->recipients[i].addr);
-         //Send the command to the server
-         error = smtpSendCommand(context, context->buffer, &replyCode, NULL);
-         //Any communication error to report?
-         if(error)
-            break;
-
-         //Check SMTP response code
-         if(!SMTP_REPLY_CODE_2YZ(replyCode))
-         {
-            //An unexpected response was received...
-            error = ERROR_UNEXPECTED_RESPONSE;
-            //Stop immediately
-            break;
-         }
-      }
-
-      //Propagate exception if necessary
-      if(error)
-         break;
-
-      //Send message body
-      error = smtpSendData(context, mail);
-      //Any error to report?
-      if(error)
-         break;
-
-      //End of exception handling block
-   } while(0);
+   }
 
    //Check status code
-   if(error == NO_ERROR ||
-      error == ERROR_UNEXPECTED_RESPONSE ||
-      error == ERROR_AUTHENTICATION_FAILED)
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
    {
-      //Properly disconnect from the SMTP server
-      smtpSendCommand(context, "QUIT\r\n", &replyCode, NULL);
+      //Check whether the timeout has elapsed
+      error = smtpClientCheckTimeout(context);
    }
 
-#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-   if(context->tlsContext != NULL)
+   //Failed to establish connection with the SMTP server?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
-      //Gracefully close TLS session
-      tlsShutdown(context->tlsContext);
-      //Release TLS context
-      tlsFree(context->tlsContext);
+      //Clean up side effects
+      smtpClientCloseConnection(context);
+      //Update SMTP client state
+      smtpClientChangeState(context, SMTP_CLIENT_STATE_DISCONNECTED);
    }
-#endif
-
-   //Close socket
-   socketClose(context->socket);
-   //Clean up previously allocated resources
-   osFreeMem(context);
 
    //Return status code
    return error;
@@ -420,484 +411,863 @@ error_t smtpSendMail(const SmtpAuthInfo *authInfo, const SmtpMail *mail)
 
 
 /**
- * @brief Callback function to parse EHLO response
- * @param[in] context SMTP client context
- * @param[in] replyLine Response line
- * @param[in] replyCode Response code
+ * @brief Login to the SMTP server using the provided user name and password
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] username NULL-terminated string containing the user name
+ * @param[in] password NULL-terminated string containing the user's password
  * @return Error code
  **/
 
-error_t smtpEhloReplyCallback(SmtpClientContext *context,
-   char_t *replyLine, uint_t replyCode)
+error_t smtpClientLogin(SmtpClientContext *context, const char_t *username,
+   const char_t *password)
 {
-   char_t *p;
-   char_t *token;
-
-   //The line must be at least 4 characters long
-   if(strlen(replyLine) < 4)
-      return NO_ERROR;
-
-   //Skip the response code and the separator
-   replyLine += 4;
-
-   //Get the first keyword
-   token = strtok_r(replyLine, " ", &p);
-   //Check whether the response line is empty
-   if(token == NULL)
-      return ERROR_INVALID_SYNTAX;
-
-   //The AUTH keyword contains a space-separated list of
-   //names of available authentication mechanisms
-   if(!strcasecmp(token, "AUTH"))
-   {
-      //Process the rest of the line
-      while(1)
-      {
-         //Get the next keyword
-         token = strtok_r(NULL, " ", &p);
-         //Unable to find the next token?
-         if(token == NULL)
-            break;
-
-         //LOGIN authentication mechanism supported?
-         if(!strcasecmp(token, "LOGIN"))
-            context->authLoginSupported = TRUE;
-         //PLAIN authentication mechanism supported?
-         else if(!strcasecmp(token, "PLAIN"))
-            context->authPlainSupported = TRUE;
-         //CRAM-MD5 authentication mechanism supported?
-         else if(!strcasecmp(token, "CRAM-MD5"))
-            context->authCramMd5Supported = TRUE;
-      }
-   }
-   //The STARTTLS keyword is used to tell the SMTP client
-   //that the SMTP server allows use of TLS
-   else if(!strcasecmp(token, "STARTTLS"))
-   {
-      //STARTTLS use is allowed
-      context->startTlsSupported = TRUE;
-   }
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief Authentication using LOGIN mechanism
- * @param[in] context SMTP client context
- * @param[in] authInfo Authentication information
- * @return Error code
- **/
-
-error_t smtpSendAuthLogin(SmtpClientContext *context, const SmtpAuthInfo *authInfo)
-{
-#if (SMTP_CLIENT_LOGIN_AUTH_SUPPORT == ENABLED)
    error_t error;
-   uint_t replyCode;
 
-   //Send AUTH LOGIN command
-   error = smtpSendCommand(context, "AUTH LOGIN\r\n", &replyCode, NULL);
+   //Check parameters
+   if(context == NULL || username == NULL || password == NULL)
+      return ERROR_INVALID_PARAMETER;
 
-   //Any communication error to report?
-   if(error)
-      return error;
-   //Check SMTP reply code
-   if(!SMTP_REPLY_CODE_3YZ(replyCode))
-      return ERROR_AUTHENTICATION_FAILED;
-
-   //Encode the user name with Base64 algorithm
-   base64Encode(authInfo->userName, strlen(authInfo->userName), context->buffer, NULL);
-   //Add a line feed
-   strcat(context->buffer, "\r\n");
-
-   //Send the resulting string
-   error = smtpSendCommand(context, context->buffer, &replyCode, NULL);
-   //Any communication error to report?
-   if(error)
-      return error;
-
-   //Check SMTP reply code
-   if(!SMTP_REPLY_CODE_3YZ(replyCode))
-      return ERROR_AUTHENTICATION_FAILED;
-
-   //Encode the password with Base64 algorithm
-   base64Encode(authInfo->password, strlen(authInfo->password), context->buffer, NULL);
-   //Add a line feed
-   strcat(context->buffer, "\r\n");
-
-   //Send the resulting string
-   error = smtpSendCommand(context, context->buffer, &replyCode, NULL);
-   //Any communication error to report?
-   if(error)
-      return error;
-
-   //Check SMTP reply code
-   if(!SMTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_AUTHENTICATION_FAILED;
-
-   //Successful authentication
-   return NO_ERROR;
-#else
-   //LOGIN authentication is not supported
-   return ERROR_AUTHENTICATION_FAILED;
-#endif
-}
-
-
-/**
- * @brief Authentication using PLAIN mechanism
- * @param[in] context SMTP client context
- * @param[in] authInfo Authentication information
- * @return Error code
- **/
-
-error_t smtpSendAuthPlain(SmtpClientContext *context, const SmtpAuthInfo *authInfo)
-{
-#if (SMTP_CLIENT_PLAIN_AUTH_SUPPORT == ENABLED)
-   error_t error;
-   uint_t n;
-   uint_t replyCode;
-
-   //Authorization identity
-   strcpy(context->buffer, authInfo->userName);
-   n = strlen(authInfo->userName) + 1;
-   //Authentication identity
-   strcpy(context->buffer + n, authInfo->userName);
-   n += strlen(authInfo->userName) + 1;
-   //Password
-   strcpy(context->buffer + n, authInfo->password);
-   n += strlen(authInfo->password);
-
-   //Base64 encoding
-   base64Encode(context->buffer, n, context->buffer2, NULL);
-   //Format the AUTH PLAIN command
-   sprintf(context->buffer, "AUTH PLAIN %s\r\n", context->buffer2);
-
-   //Send the command to the server
-   error = smtpSendCommand(context, context->buffer, &replyCode, NULL);
-   //Any communication error to report?
-   if(error)
-      return error;
-
-   //Check SMTP reply code
-   if(!SMTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_AUTHENTICATION_FAILED;
-
-   //Successful authentication
-   return NO_ERROR;
-#else
-   //PLAIN authentication is not supported
-   return ERROR_AUTHENTICATION_FAILED;
-#endif
-}
-
-
-/**
- * @brief Authentication using CRAM-MD5 mechanism
- * @param[in] context SMTP client context
- * @param[in] authInfo Authentication information
- * @return Error code
- **/
-
-error_t smtpSendAuthCramMd5(SmtpClientContext *context, const SmtpAuthInfo *authInfo)
-{
 #if (SMTP_CLIENT_CRAM_MD5_AUTH_SUPPORT == ENABLED)
-   //Hex conversion table
-   static const char_t hexDigit[] =
+   //CRAM-MD5 authentication mechanism supported?
+   if(context->authCramMd5Supported)
    {
-      '0', '1', '2', '3', '4', '5', '6', '7',
-      '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-   };
-
-   //Local variables
-   error_t error;
-   uint_t n;
-   uint_t replyCode;
-
-   //Alias pointers
-   uint8_t *challenge = (uint8_t *) context->buffer2;
-   uint8_t *digest = (uint8_t *) context->buffer;
-   char_t *textDigest = (char_t *) context->buffer2;
-
-   //Send AUTH CRAM-MD5 command
-   error = smtpSendCommand(context, "AUTH CRAM-MD5\r\n", &replyCode, NULL);
-   //Any communication error to report?
-   if(error)
-      return error;
-
-   //Check SMTP reply code
-   if(!SMTP_REPLY_CODE_3YZ(replyCode))
-      return ERROR_AUTHENTICATION_FAILED;
-
-   //Compute the length of the response
-   n = strlen(context->buffer);
-   //Unexpected response from the SMTP server?
-   if(n <= 4)
-      return ERROR_INVALID_SYNTAX;
-
-   //Decrypt the Base64 encoded challenge
-   error = base64Decode(context->buffer + 4, n - 4, challenge, &n);
-   //Decoding failed?
-   if(error)
-      return error;
-
-   //Compute HMAC using MD5
-   error = hmacCompute(MD5_HASH_ALGO, authInfo->password,
-      strlen(authInfo->password), challenge, n, digest);
-   //HMAC computation failed?
-   if(error)
-      return error;
-
-   //Convert the digest to text
-   for(n = 0; n < MD5_DIGEST_SIZE; n++)
+      //Perform CRAM-MD5 authentication
+      error = smtpClientCramMd5Auth(context, username, password);
+   }
+   else
+#endif
+#if (SMTP_CLIENT_LOGIN_AUTH_SUPPORT == ENABLED)
+   //LOGIN authentication mechanism supported?
+   if(context->authLoginSupported)
    {
-      //Convert upper nibble
-      textDigest[n * 2] = hexDigit[(digest[n] >> 4) & 0x0F];
-      //Then convert lower nibble
-      textDigest[n * 2 + 1] = hexDigit[digest[n] & 0x0F];
+      //Perform LOGIN authentication
+      error = smtpClientLoginAuth(context, username, password);
+   }
+   else
+#endif
+#if (SMTP_CLIENT_PLAIN_AUTH_SUPPORT == ENABLED)
+   //PLAIN authentication mechanism supported?
+   if(context->authPlainSupported)
+   {
+      //Perform PLAIN authentication
+      error = smtpClientPlainAuth(context, username, password);
+   }
+   else
+#endif
+   {
+      //Report an error
+      error = ERROR_AUTHENTICATION_FAILED;
    }
 
-   //Properly terminate the string
-   textDigest[MD5_DIGEST_SIZE * 2] = '\0';
-   //Concatenate the user name and the text representation of the digest
-   sprintf(context->buffer, "%s %s", authInfo->userName, textDigest);
-   //Encode the resulting string with Base64 algorithm
-   base64Encode(context->buffer, strlen(context->buffer), context->buffer2, NULL);
-   //Add a line feed
-   strcat(context->buffer2, "\r\n");
+   //Return status code
+   return error;
+}
 
-   //Transmit the Base64 encoded string
-   error = smtpSendCommand(context, context->buffer2, &replyCode, NULL);
-   //Any communication error to report?
-   if(error)
-      return error;
 
-   //Check SMTP reply code
-   if(!SMTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_AUTHENTICATION_FAILED;
+/**
+ * @brief Set the content type to be used
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] contentType NULL-terminated string that holds the content type
+ * @return Error code
+ **/
 
-   //Successful authentication
+error_t smtpClientSetContentType(SmtpClientContext *context,
+   const char_t *contentType)
+{
+#if (SMTP_CLIENT_MIME_SUPPORT == ENABLED)
+   size_t n;
+
+   //Check parameters
+   if(context == NULL || contentType == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Retrieve the length of the boundary string
+   n = strlen(contentType);
+
+   //Check the length of the string
+   if(n < 1 || n > SMTP_CLIENT_CONTENT_TYPE_MAX_LEN)
+      return ERROR_INVALID_LENGTH;
+
+   //Save content type
+   strcpy(context->contentType, contentType);
+
+   //Successful processing
    return NO_ERROR;
 #else
-   //CRAM-MD5 authentication is not supported
-   return ERROR_AUTHENTICATION_FAILED;
+   //MIME extension is not implemented
+   return ERROR_NOT_IMPLEMENTED;
 #endif
 }
 
 
 /**
- * @brief Send message body
- * @param[in] context SMTP client context
- * @param[in] mail Mail contents
+ * @brief Define the boundary string to be used (multipart encoding)
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] boundary NULL-terminated string that holds the boundary string
  * @return Error code
  **/
 
-error_t smtpSendData(SmtpClientContext *context, const SmtpMail *mail)
+error_t smtpClientSetMultipartBoundary(SmtpClientContext *context,
+   const char_t *boundary)
 {
-   error_t error;
-   bool_t first;
-   uint_t i;
-   uint_t replyCode;
-   char_t *p;
+#if (SMTP_CLIENT_MIME_SUPPORT == ENABLED)
+   size_t n;
 
-   //Send DATA command
-   error = smtpSendCommand(context, "DATA\r\n", &replyCode, NULL);
-   //Any communication error to report?
-   if(error)
-      return error;
+   //Check parameters
+   if(context == NULL || boundary == NULL)
+      return ERROR_INVALID_PARAMETER;
 
-   //Check SMTP reply code
-   if(!SMTP_REPLY_CODE_3YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
+   //Retrieve the length of the boundary string
+   n = strlen(boundary);
 
-   //Point to the beginning of the buffer
-   p = context->buffer;
+   //The boundary parameter consists of 1 to 70 characters
+   if(n < 1 || n > SMTP_CLIENT_BOUNDARY_MAX_LEN)
+      return ERROR_INVALID_LENGTH;
 
-   //Current date and time
-   if(mail->dateTime && mail->dateTime[0] != '\0')
-      p += sprintf(p, "Date: %s\r\n", mail->dateTime);
+   //Save boundary string
+   strcpy(context->boundary, boundary);
 
-   //Sender address
-   if(mail->from.addr)
-   {
-      //A friendly name may be associated with the sender address
-      if(mail->from.name && mail->from.name[0] != '\0')
-         p += sprintf(p, "From: \"%s\" <%s>\r\n", mail->from.name, mail->from.addr);
-      else
-         p += sprintf(p, "From: %s\r\n", mail->from.addr);
-   }
-
-   //Recipients
-   for(i = 0, first = TRUE; i < mail->recipientCount; i++)
-   {
-      //Skip recipient addresses that are not valid
-      if(!mail->recipients[i].addr)
-         continue;
-
-      //Check recipient type
-      if(mail->recipients[i].type & SMTP_RCPT_TYPE_TO)
-      {
-         //The first item of the list requires special processing
-         p += sprintf(p, first ? "To: " : ", ");
-
-         //A friendly name may be associated with the address
-         if(mail->recipients[i].name && mail->recipients[i].name[0] != '\0')
-            p += sprintf(p, "\"%s\" <%s>", mail->recipients[i].name, mail->recipients[i].addr);
-         else
-            p += sprintf(p, "%s", mail->recipients[i].addr);
-
-         //Prepare to add a new item to the list
-         first = FALSE;
-      }
-   }
-
-   //Properly terminate the line with CRLF
-   if(!first)
-      p += sprintf(p, "\r\n");
-
-   //Carbon copy
-   for(i = 0, first = TRUE; i < mail->recipientCount; i++)
-   {
-      //Skip recipient addresses that are not valid
-      if(!mail->recipients[i].addr)
-         continue;
-
-      //Check recipient type
-      if(mail->recipients[i].type & SMTP_RCPT_TYPE_CC)
-      {
-         //The first item of the list requires special processing
-         p += sprintf(p, first ? "Cc: " : ", ");
-
-         //A friendly name may be associated with the address
-         if(mail->recipients[i].name && mail->recipients[i].name[0] != '\0')
-            p += sprintf(p, "\"%s\" <%s>", mail->recipients[i].name, mail->recipients[i].addr);
-         else
-            p += sprintf(p, "%s", mail->recipients[i].addr);
-
-         //Prepare to add a new item to the list
-         first = FALSE;
-      }
-   }
-
-   //Properly terminate the line with CRLF
-   if(!first)
-      p += sprintf(p, "\r\n");
-
-   //Subject
-   if(mail->subject)
-      p += sprintf(p, "Subject: %s\r\n", mail->subject);
-
-   //The header and the body are separated by an empty line
-   sprintf(p, "\r\n");
-
-   //Debug message
-   TRACE_DEBUG(context->buffer);
-   TRACE_DEBUG(mail->body);
-   TRACE_DEBUG("\r\n.\r\n");
-
-   //Send message header
-   error = smtpWrite(context, context->buffer, strlen(context->buffer), 0);
-   //Any communication error to report?
-   if(error)
-      return error;
-
-   //Send message body
-   error = smtpWrite(context, mail->body, strlen(mail->body), 0);
-   //Any communication error to report?
-   if(error)
-      return error;
-
-   //Indicate the end of the mail data by sending a line containing only a "."
-   error = smtpSendCommand(context, "\r\n.\r\n", &replyCode, NULL);
-   //Any communication error to report?
-   if(error)
-      return error;
-
-   //Check SMTP reply code
-   if(!SMTP_REPLY_CODE_2YZ(replyCode))
-      return ERROR_UNEXPECTED_RESPONSE;
-
-   //Successful operation
+   //Successful processing
    return NO_ERROR;
+#else
+   //MIME extension is not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
 /**
- * @brief Send SMTP command and wait for a reply
- * @param[in] context SMTP client context
- * @param[in] command Command line
- * @param[out] replyCode SMTP server reply code
- * @param[in] callback Optional callback to parse each line of the reply
+ * @brief Write email header
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] from Email address of the sender
+ * @param[in] recipients Email addresses of the recipients
+ * @param[in] numRecipients Number of email addresses in the list
+ * @param[in] subject NULL-terminsated string containing the email subject
  * @return Error code
  **/
 
-error_t smtpSendCommand(SmtpClientContext *context, const char_t *command,
-   uint_t *replyCode, SmtpReplyCallback callback)
+error_t smtpClientWriteMailHeader(SmtpClientContext *context,
+   const SmtpMailAddr *from, const SmtpMailAddr *recipients,
+   uint_t numRecipients, const char_t *subject)
 {
    error_t error;
-   size_t length;
-   char_t *line;
+   size_t n;
 
-   //Any command line to send?
-   if(command)
+   //Check parameters
+   if(context == NULL || from == NULL || recipients == NULL || subject == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Execute SMTP command sequence
+   while(!error)
    {
-      //Debug message
-      TRACE_DEBUG("SMTP client: %s", command);
-
-      //Send the command to the SMTP server
-      error = smtpWrite(context, command, strlen(command), SOCKET_FLAG_WAIT_ACK);
-      //Failed to send command?
-      if(error)
-         return error;
-   }
-
-   //Multiline replies are allowed for any command
-   while(1)
-   {
-      //Wait for a response from the server
-      error = smtpRead(context, context->buffer,
-         SMTP_CLIENT_MAX_LINE_LENGTH - 1, &length, SOCKET_FLAG_BREAK_CRLF);
-
-      //The remote server did not respond as expected?
-      if(error)
-         return error;
-
-      //Properly terminate the string with a NULL character
-      context->buffer[length] = '\0';
-      //Remove all leading and trailing whitespace from the response
-      line = strTrimWhitespace(context->buffer);
-
-      //Debug message
-      TRACE_DEBUG("SMTP server: %s\r\n", line);
-
-      //Check the length of the response
-      if(strlen(line) < 3)
-         return ERROR_INVALID_SYNTAX;
-      //All replies begin with a three digit numeric code
-      if(!isdigit((uint8_t) line[0]) || !isdigit((uint8_t) line[1]) || !isdigit((uint8_t) line[2]))
-         return ERROR_INVALID_SYNTAX;
-      //A hyphen or a space character must follow the response code
-      if(line[3] != '-' && line[3] != ' ' && line[3] != '\0')
-         return ERROR_INVALID_SYNTAX;
-
-      //Get the server response code
-      *replyCode = strtoul(line, NULL, 10);
-
-      //Any callback function to call?
-      if(callback)
+      //Check current state
+      if(context->state == SMTP_CLIENT_STATE_CONNECTED)
       {
-         //Invoke callback function to parse the response line
-         error = callback(context, line, *replyCode);
-         //Check status code
-         if(error)
-            return error;
-      }
+         //Format MAIL FROM command
+         error = smtpClientFormatCommand(context, "MAIL FROM", from->addr);
 
-      //A hyphen follows the response code for all but the last line
-      if(line[3] != '-')
-         break;
+         //Check status code
+         if(!error)
+         {
+            //Point to the first recipient of the list
+            context->recipientIndex = 0;
+            //Send MAIL FROM command and wait for the server's response
+            smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Wait for the server's response
+         error = smtpClientSendCommand(context, NULL);
+
+         //Check status code
+         if(!error)
+         {
+            //Check SMTP response code
+            if(SMTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Process each recipients of the list
+               if(context->recipientIndex < numRecipients)
+               {
+                  //Format RCPT TO command
+                  error = smtpClientFormatCommand(context, "RCPT TO",
+                     recipients[context->recipientIndex].addr);
+
+                  //Check status code
+                  if(!error)
+                  {
+                     //Point to the next recipient
+                     context->recipientIndex++;
+                     //Send RCPT TO command and wait for the server's response
+                     smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_1);
+                  }
+               }
+               else
+               {
+                  //Format DATA command
+                  error = smtpClientFormatCommand(context, "DATA", NULL);
+
+                  //Check status code
+                  if(!error)
+                  {
+                     //Send DATA command and wait for the server's response
+                     smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_2);
+                  }
+               }
+            }
+            else
+            {
+               //Update SMTP client state
+               smtpClientChangeState(context, SMTP_CLIENT_STATE_CONNECTED);
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_SUB_COMMAND_2)
+      {
+         //Send DATA command and wait for the server's response
+         error = smtpClientSendCommand(context, NULL);
+
+         //Check status code
+         if(!error)
+         {
+            //Check SMTP response code
+            if(SMTP_REPLY_CODE_3YZ(context->replyCode))
+            {
+               //Format email header
+               error = smtpClientFormatMailHeader(context, from, recipients,
+                  numRecipients, subject);
+
+               //Check status code
+               if(!error)
+               {
+                  //Send email header
+                  smtpClientChangeState(context, SMTP_CLIENT_STATE_MAIL_HEADER);
+               }
+            }
+            else
+            {
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_MAIL_HEADER)
+      {
+         //Send email header
+         if(context->bufferPos < context->bufferLen)
+         {
+            //Send more data
+            error = smtpClientSendData(context,
+               context->buffer + context->bufferPos,
+               context->bufferLen - context->bufferPos, &n, 0);
+
+            //Check status code
+            if(!error)
+            {
+               //Advance data pointer
+               context->bufferPos += n;
+            }
+         }
+         else
+         {
+            //Flush transmit buffer
+            context->bufferPos = 0;
+            context->bufferLen = 0;
+
+            //Update SMTP client state
+            smtpClientChangeState(context, SMTP_CLIENT_STATE_MAIL_BODY);
+            //The email header has been successfully written
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
    }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = smtpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Write email body
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] data Pointer to a buffer containing the data to be written
+ * @param[in] length Number of data bytes to write
+ * @param[in] written Number of bytes that have been written (optional parameter)
+ * @param[in] flags Set of flags that influences the behavior of this function
+ * @return Error code
+ **/
+
+error_t smtpClientWriteMailBody(SmtpClientContext *context,
+   const void *data, size_t length, size_t *written, uint_t flags)
+{
+   error_t error;
+
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Check parameters
+   if(data == NULL && length != 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Check current state
+   if(context->state == SMTP_CLIENT_STATE_MAIL_BODY)
+   {
+      //Transmit the contents of the body
+      error = smtpClientSendData(context, data, length, written, flags);
+
+      //Check status code
+      if(error == NO_ERROR)
+      {
+         //Save current time
+         context->timestamp = osGetSystemTime();
+      }
+      else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+      {
+         //Check whether the timeout has elapsed
+         error = smtpClientCheckTimeout(context);
+      }
+      else
+      {
+         //Communication error
+      }
+   }
+   else
+   {
+      //Invalid state
+      error = ERROR_WRONG_STATE;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Write multipart header
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] filename NULL-terminated string that holds the file name
+ *   (optional parameter)
+ * @param[in] contentType NULL-terminated string that holds the content type
+ *   (optional parameter)
+ * @param[in] contentTransferEncoding NULL-terminated string that holds the
+ *   content transfer encoding (optional parameter)
+ * @param[in] last This flag indicates whether the multipart header is the
+ *   final one
+ * @return Error code
+ **/
+
+error_t smtpClientWriteMultipartHeader(SmtpClientContext *context,
+   const char_t *filename, const char_t *contentType,
+   const char_t *contentTransferEncoding, bool_t last)
+{
+#if (SMTP_CLIENT_MIME_SUPPORT == ENABLED)
+   error_t error;
+   size_t n;
+
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Format and send multipart header
+   while(!error)
+   {
+      //Check current state
+      if(context->state == SMTP_CLIENT_STATE_MAIL_BODY ||
+         context->state == SMTP_CLIENT_STATE_MULTIPART_BODY)
+      {
+         //Any data residue?
+         if(context->bufferLen > 0 && context->bufferLen < 4)
+         {
+            //Encode the final quantum
+            base64Encode(context->buffer, context->bufferLen,
+               context->buffer, &n);
+
+            //Save the length of the Base64-encoded string
+            context->bufferLen = n;
+            context->bufferPos = 0;
+         }
+         else if(context->bufferPos < context->bufferLen)
+         {
+            //Send more data
+            error = smtpClientSendData(context,
+               context->buffer + context->bufferPos,
+               context->bufferLen - context->bufferPos, &n, 0);
+
+            //Check status code
+            if(!error)
+            {
+               //Advance data pointer
+               context->bufferPos += n;
+            }
+         }
+         else
+         {
+            //Rewind to the beginning of the buffer
+            context->bufferPos = 0;
+            context->bufferLen = 0;
+
+            //Format multipart header
+            error = smtpClientFormatMultipartHeader(context, filename,
+               contentType, contentTransferEncoding, last);
+
+            //Check status code
+            if(!error)
+            {
+               //Send multipart header
+               smtpClientChangeState(context, SMTP_CLIENT_STATE_MULTIPART_HEADER);
+            }
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_MULTIPART_HEADER)
+      {
+         //Send multipart header
+         if(context->bufferPos < context->bufferLen)
+         {
+            //Send more data
+            error = smtpClientSendData(context,
+               context->buffer + context->bufferPos,
+               context->bufferLen - context->bufferPos, &n, 0);
+
+            //Check status code
+            if(!error)
+            {
+               //Advance data pointer
+               context->bufferPos += n;
+            }
+         }
+         else
+         {
+            //Rewind to the beginning of the buffer
+            context->bufferPos = 0;
+            context->bufferLen = 0;
+
+            //Last multipart header?
+            if(last)
+            {
+               //The last multipart header has been successfully transmitted
+               smtpClientChangeState(context, SMTP_CLIENT_STATE_MAIL_BODY);
+            }
+            else
+            {
+               //Send multipart body
+               smtpClientChangeState(context, SMTP_CLIENT_STATE_MULTIPART_BODY);
+            }
+
+            //The email header has been successfully written
+            break;
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = smtpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
+#else
+   //MIME extension is not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Write data to the the multipart body
+ * @param[in] context Pointer to the SMTP client context
+ * @param[in] data Pointer to the buffer containing the data to be transmitted
+ * @param[in] length Number of data bytes to send
+ * @param[out] written Actual number of bytes written (optional parameter)
+ * @param[in] flags Set of flags that influences the behavior of this function
+ * @return Error code
+ **/
+
+error_t smtpClientWriteMultipartBody(SmtpClientContext *context,
+   const void *data, size_t length, size_t *written, uint_t flags)
+{
+#if (SMTP_CLIENT_MIME_SUPPORT == ENABLED)
+   error_t error;
+   size_t n;
+   size_t totalLength;
+
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Check parameters
+   if(data == NULL && length != 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Actual number of bytes written
+   totalLength = 0;
+
+   //Check current state
+   if(context->state == SMTP_CLIENT_STATE_MULTIPART_BODY)
+   {
+      //Base64 encoding?
+      if(context->base64Encoding)
+      {
+         //Send as much data as possible
+         while(totalLength < length)
+         {
+            //Any data pending in the transmit buffer?
+            if(context->bufferLen < 4)
+            {
+               //Base64 maps a 3-byte block to 4 printable characters
+               n = (SMTP_CLIENT_BUFFER_SIZE * 3) / 4;
+
+               //Calculate the number of bytes to copy at a time
+               n = MIN(n - context->bufferLen, length - totalLength);
+
+               //The raw data must be an integral multiple of 24 bits
+               if((context->bufferLen + n) > 3)
+               {
+                  n -= (context->bufferLen + n) % 3;
+               }
+
+               //Copy the raw data to the transmit buffer
+               memcpy(context->buffer + context->bufferLen, data, n);
+
+               //Advance data pointer
+               data = (uint8_t *) data + n;
+               //Update the length of the buffer
+               context->bufferLen += n;
+               //Actual number of bytes written
+               totalLength += n;
+
+               //The raw data is processed block by block
+               if(context->bufferLen >= 3)
+               {
+                  //Encode the data with Base64 algorithm
+                  base64Encode(context->buffer, context->bufferLen,
+                     context->buffer, &n);
+
+                  //Save the length of the Base64-encoded string
+                  context->bufferLen = n;
+                  context->bufferPos = 0;
+               }
+            }
+            else if(context->bufferPos < context->bufferLen)
+            {
+               //Send more data
+               error = smtpClientSendData(context,
+                  context->buffer + context->bufferPos,
+                  context->bufferLen - context->bufferPos, &n, 0);
+
+               //Check status code
+               if(error == NO_ERROR)
+               {
+                  //Advance data pointer
+                  context->bufferPos += n;
+                  //Save current time
+                  context->timestamp = osGetSystemTime();
+               }
+               else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+               {
+                  //Check whether the timeout has elapsed
+                  error = smtpClientCheckTimeout(context);
+               }
+               else
+               {
+                  //Communication error
+                  break;
+               }
+            }
+            else
+            {
+               //Rewind to the beginning of the buffer
+               context->bufferPos = 0;
+               context->bufferLen = 0;
+            }
+         }
+      }
+      else
+      {
+         //Send raw data
+         error = smtpClientSendData(context, data, length, &totalLength, flags);
+
+         //Check status code
+         if(error == NO_ERROR)
+         {
+            //Save current time
+            context->timestamp = osGetSystemTime();
+         }
+         else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+         {
+            //Check whether the timeout has elapsed
+            error = smtpClientCheckTimeout(context);
+         }
+         else
+         {
+            //Communication error
+         }
+      }
+   }
+   else
+   {
+      //Invalid state
+      error = ERROR_WRONG_STATE;
+   }
+
+   //Total number of data that have been written
+   if(written != NULL)
+      *written = totalLength;
+
+   //Return status code
+   return error;
+#else
+   //MIME extension is not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Complete email sending process and wait for server's status
+ * @param[in] context Pointer to the SMTP client context
+ * @return Error code
+ **/
+
+error_t smtpClientCloseMailBody(SmtpClientContext *context)
+{
+   error_t error;
+
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Execute SMTP command sequence
+   while(!error)
+   {
+      //Check current state
+      if(context->state == SMTP_CLIENT_STATE_MAIL_BODY)
+      {
+         //SMTP indicates the end of the mail data by sending a line containing
+         //only a "." (refer to RFC 5321, section 3.3)
+         error = smtpClientFormatCommand(context, ".", NULL);
+
+         //Check status code
+         if(!error)
+         {
+            //Wait for the server's response
+            smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Wait for the server's response
+         error = smtpClientSendCommand(context, NULL);
+
+         //Check status code
+         if(!error)
+         {
+            //Check SMTP response code
+            if(SMTP_REPLY_CODE_2YZ(context->replyCode))
+            {
+               //Update SMTP client state
+               smtpClientChangeState(context, SMTP_CLIENT_STATE_CONNECTED);
+               //The email has been accepted by the server
+               break;
+            }
+            else
+            {
+               //Update SMTP client state
+               smtpClientChangeState(context, SMTP_CLIENT_STATE_CONNECTED);
+               //Report an error
+               error = ERROR_UNEXPECTED_RESPONSE;
+            }
+         }
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = smtpClientCheckTimeout(context);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Retrieve server's reply code
+ * @param[in] context Pointer to the SMTP client context
+ * @return SMTP reply code
+ **/
+
+uint_t smtpClientGetReplyCode(SmtpClientContext *context)
+{
+   uint_t replyCode;
+
+   //Make sure the SMTP client context is valid
+   if(context != NULL)
+   {
+      //Get server's reply code
+      replyCode = context->replyCode;
+   }
+   else
+   {
+      //The SMTP client context is not valid
+      replyCode = 0;
+   }
+
+   //Return SMTP reply code
+   return replyCode;
+}
+
+
+/**
+ * @brief Gracefully disconnect from the SMTP server
+ * @param[in] context Pointer to the SMTP client context
+ * @return Error code
+ **/
+
+error_t smtpClientDisconnect(SmtpClientContext *context)
+{
+   error_t error;
+
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Execute SMTP command sequence
+   while(!error)
+   {
+      //Check current state
+      if(context->state == SMTP_CLIENT_STATE_CONNECTED)
+      {
+         //Format QUIT command
+         error = smtpClientFormatCommand(context, "QUIT", NULL);
+
+         //Check status code
+         if(!error)
+         {
+            //Send QUIT command and wait for the server's response
+            smtpClientChangeState(context, SMTP_CLIENT_STATE_SUB_COMMAND_1);
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_SUB_COMMAND_1)
+      {
+         //Send QUIT command and wait for the server's response
+         error = smtpClientSendCommand(context, NULL);
+
+         //Check status code
+         if(!error)
+         {
+            //Update SMTP client state
+            smtpClientChangeState(context, SMTP_CLIENT_STATE_DISCONNECTING);
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_DISCONNECTING)
+      {
+         //Shutdown connection
+         error = smtpClientShutdownConnection(context);
+
+         //Check status code
+         if(!error)
+         {
+            //Close connection
+            smtpClientCloseConnection(context);
+            //Update SMTP client state
+            smtpClientChangeState(context, SMTP_CLIENT_STATE_DISCONNECTED);
+         }
+      }
+      else if(context->state == SMTP_CLIENT_STATE_DISCONNECTED)
+      {
+         //We are done
+         break;
+      }
+      else
+      {
+         //Invalid state
+         error = ERROR_WRONG_STATE;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = smtpClientCheckTimeout(context);
+   }
+
+   //Failed to gracefully disconnect from the SMTP server?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
+   {
+      //Close connection
+      smtpClientCloseConnection(context);
+      //Update SMTP client state
+      smtpClientChangeState(context, SMTP_CLIENT_STATE_DISCONNECTED);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Close the connection with the SMTP server
+ * @param[in] context Pointer to the SMTP client context
+ * @return Error code
+ **/
+
+error_t smtpClientClose(SmtpClientContext *context)
+{
+   //Make sure the SMTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Close connection
+   smtpClientCloseConnection(context);
+
+   //Update SMTP client state
+   smtpClientChangeState(context, SMTP_CLIENT_STATE_DISCONNECTED);
 
    //Successful processing
    return NO_ERROR;
@@ -905,55 +1275,25 @@ error_t smtpSendCommand(SmtpClientContext *context, const char_t *command,
 
 
 /**
- * @brief Send data to the SMTP server
- * @param[in] context SMTP client context
- * @param[in] data Pointer to a buffer containing the data to be transmitted
- * @param[in] length Number of bytes to be transmitted
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @brief Release SMTP client context
+ * @param[in] context Pointer to the SMTP client context
  **/
 
-error_t smtpWrite(SmtpClientContext *context, const void *data, size_t length, uint_t flags)
+void smtpClientDeinit(SmtpClientContext *context)
 {
+   //Make sure the SMTP client context is valid
+   if(context != NULL)
+   {
+      //Close connection
+      smtpClientCloseConnection(context);
+
 #if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-   //Check whether a secure connection is being used
-   if(context->tlsContext != NULL)
-   {
-      //Use TLS to transmit data to the SMTP server
-      return tlsWrite(context->tlsContext, data, length, NULL, flags);
-   }
-   else
+      //Release TLS session state
+      tlsFreeSessionState(&context->tlsSession);
 #endif
-   {
-      //Transmit data to the SMTP server
-      return socketSend(context->socket, data, length, NULL, flags);
-   }
-}
 
-
-/**
- * @brief Receive data from the SMTP server
- * @param[in] context SMTP client context
- * @param[out] data Buffer into which received data will be placed
- * @param[in] size Maximum number of bytes that can be received
- * @param[out] received Actual number of bytes that have been received
- * @param[in] flags Set of flags that influences the behavior of this function
- * @return Error code
- **/
-
-error_t smtpRead(SmtpClientContext *context, void *data, size_t size, size_t *received, uint_t flags)
-{
-#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
-   //Check whether a secure connection is being used
-   if(context->tlsContext != NULL)
-   {
-      //Use TLS to receive data from the SMTP server
-      return tlsRead(context->tlsContext, data, size, received, flags);
-   }
-   else
-#endif
-   {
-      //Receive data from the SMTP server
-      return socketReceive(context->socket, data, size, received, flags);
+      //Clear SMTP client context
+      memset(context, 0, sizeof(SmtpClientContext));
    }
 }
 

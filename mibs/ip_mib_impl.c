@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -997,10 +999,12 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
    error_t error;
+   uint_t i;
    size_t n;
    uint_t index;
-   uint32_t length;
    IpAddr prefix;
+   uint32_t prefixLen;
+   NetInterface *interface;
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -1019,7 +1023,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
       return error;
 
    //ipAddressPrefixLength is used as 4th instance identifier
-   error = mibDecodeUnsigned32(oid, oidLen, &n, &length);
+   error = mibDecodeUnsigned32(oid, oidLen, &n, &prefixLen);
    //Invalid instance identifier?
    if(error)
       return error;
@@ -1032,92 +1036,111 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
    if(index < 1 || index > NET_INTERFACE_COUNT)
       return ERROR_INSTANCE_NOT_FOUND;
 
+   //Point to the underlying interface
+   interface = &netInterface[index - 1];
+
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 prefix?
    if(prefix.length == sizeof(Ipv4Addr))
    {
-      Ipv4Context *ipv4Context;
+      Ipv4AddrEntry *entry;
 
-      //Point to the IPv4 context
-      ipv4Context = &netInterface[index - 1].ipv4Context;
+      //Loop through the list of IPv4 addresses assigned to the interface
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
+      {
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
 
-      //Valid IPv4 address?
-      if(ipv4Context->addrState != IPV4_ADDR_STATE_VALID)
-         return ERROR_INSTANCE_NOT_FOUND;
+         //Valid IPv4 address?
+         if(entry->state == IPV4_ADDR_STATE_VALID)
+         {
+            //Compare prefix length against the specified value
+            if(ipv4GetPrefixLength(entry->subnetMask) == prefixLen)
+            {
+               //Check subnet mask
+               if((entry->addr & entry->subnetMask) == prefix.ipv4Addr)
+               {
+                  break;
+               }
+            }
+         }
+      }
 
-      //Check prefix length
-      if(length != ipv4GetPrefixLength(ipv4Context->subnetMask))
-         return ERROR_INSTANCE_NOT_FOUND;
-
-      //Check subnet mask
-      if(prefix.ipv4Addr != (ipv4Context->addr & ipv4Context->subnetMask))
-         return ERROR_INSTANCE_NOT_FOUND;
-
-      //ipAddressPrefixOrigin object?
-      if(!strcmp(object->name, "ipAddressPrefixOrigin"))
+      //Any matching entry found?
+      if(i < IPV4_ADDR_LIST_SIZE)
       {
-         //The origin of this prefix
-         value->integer = IP_MIB_PREFIX_ORIGIN_MANUAL;
+         //ipAddressPrefixOrigin object?
+         if(!strcmp(object->name, "ipAddressPrefixOrigin"))
+         {
+            //The origin of this prefix
+            value->integer = IP_MIB_PREFIX_ORIGIN_MANUAL;
+         }
+         //ipAddressPrefixOnLinkFlag object?
+         else if(!strcmp(object->name, "ipAddressPrefixOnLinkFlag"))
+         {
+            //This flag indicates whether this prefix can be used for on-link
+            //determination
+            value->integer = MIB_TRUTH_VALUE_TRUE;
+         }
+         //ipAddressPrefixAutonomousFlag object?
+         else if(!strcmp(object->name, "ipAddressPrefixAutonomousFlag"))
+         {
+            //This flag indicates whether this prefix can be used for autonomous
+            //address configuration
+            value->integer = MIB_TRUTH_VALUE_FALSE;
+         }
+         //ipAddressPrefixAdvPreferredLifetime object?
+         else if(!strcmp(object->name, "ipAddressPrefixAdvPreferredLifetime"))
+         {
+            //Remaining length of time, in seconds, that this prefix will
+            //continue to be preferred
+            value->unsigned32 = UINT32_MAX;
+         }
+         //ipAddressPrefixAdvValidLifetime object?
+         else if(!strcmp(object->name, "ipAddressPrefixAdvValidLifetime"))
+         {
+            //Remaining length of time, in seconds, that this prefix will
+            //continue to be valid
+            value->unsigned32 = UINT32_MAX;
+         }
+         //Unknown object?
+         else
+         {
+            //The specified object does not exist
+            error = ERROR_OBJECT_NOT_FOUND;
+         }
       }
-      //ipAddressPrefixOnLinkFlag object?
-      else if(!strcmp(object->name, "ipAddressPrefixOnLinkFlag"))
-      {
-         //This flag indicates whether this prefix can be used for on-link
-         //determination
-         value->integer = MIB_TRUTH_VALUE_TRUE;
-      }
-      //ipAddressPrefixAutonomousFlag object?
-      else if(!strcmp(object->name, "ipAddressPrefixAutonomousFlag"))
-      {
-         //This flag indicates whether this prefix can be used for autonomous
-         //address configuration
-         value->integer = MIB_TRUTH_VALUE_FALSE;
-      }
-      //ipAddressPrefixAdvPreferredLifetime object?
-      else if(!strcmp(object->name, "ipAddressPrefixAdvPreferredLifetime"))
-      {
-         //Remaining length of time, in seconds, that this prefix will
-         //continue to be preferred
-         value->unsigned32 = UINT32_MAX;
-      }
-      //ipAddressPrefixAdvValidLifetime object?
-      else if(!strcmp(object->name, "ipAddressPrefixAdvValidLifetime"))
-      {
-         //Remaining length of time, in seconds, that this prefix will
-         //continue to be valid
-         value->unsigned32 = UINT32_MAX;
-      }
-      //Unknown object?
       else
       {
-         //The specified object does not exist
-         error = ERROR_OBJECT_NOT_FOUND;
+         //Report an error
+         error = ERROR_INSTANCE_NOT_FOUND;
       }
    }
    else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-   //IPv4 prefix?
+   //IPv6 prefix?
    if(prefix.length == sizeof(Ipv6Addr))
    {
-      uint_t i;
-      Ipv6PrefixEntry *prefixList;
+      Ipv6PrefixEntry *entry;
 
-      //Point to the prefix list
-      prefixList = netInterface[index - 1].ipv6Context.prefixList;
-
-      //Loop through the list
+      //Loop through the IPv6 prefix list
       for(i = 0; i < IPV6_PREFIX_LIST_SIZE; i++)
       {
+         //Point to the current entry
+         entry = &interface->ipv6Context.prefixList[i];
+
          //Check whether the prefix is valid
-         if(prefixList[i].validLifetime > 0)
+         if(entry->validLifetime > 0)
          {
             //Compare prefix length against the specified value
-            if(prefixList[i].prefixLen == length)
+            if(entry->prefixLen == prefixLen)
             {
                //Check whether the current entry matches the specified prefix
-               if(ipv6CompPrefix(&prefixList[i].prefix, &prefix.ipv6Addr, length))
+               if(ipv6CompPrefix(&entry->prefix, &prefix.ipv6Addr, prefixLen))
+               {
                   break;
+               }
             }
          }
       }
@@ -1129,7 +1152,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
          if(!strcmp(object->name, "ipAddressPrefixOrigin"))
          {
             //The origin of this prefix
-            if(prefixList[i].permanent)
+            if(entry->permanent)
                value->integer = IP_MIB_PREFIX_ORIGIN_MANUAL;
             else
                value->integer = IP_MIB_PREFIX_ORIGIN_ROUTER_ADV;
@@ -1139,7 +1162,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
          {
             //This flag indicates whether this prefix can be used for on-link
             //determination
-            if(prefixList[i].onLinkFlag)
+            if(entry->onLinkFlag)
                value->integer = MIB_TRUTH_VALUE_TRUE;
             else
                value->integer = MIB_TRUTH_VALUE_FALSE;
@@ -1149,7 +1172,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
          {
             //This flag indicates whether this prefix can be used for autonomous
             //address configuration
-            if(prefixList[i].autonomousFlag)
+            if(entry->autonomousFlag)
                value->integer = MIB_TRUTH_VALUE_TRUE;
             else
                value->integer = MIB_TRUTH_VALUE_FALSE;
@@ -1159,20 +1182,20 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
          {
             //Remaining length of time, in seconds, that this prefix will
             //continue to be preferred
-            if(prefixList[i].preferredLifetime == INFINITE_DELAY)
+            if(entry->preferredLifetime == INFINITE_DELAY)
                value->unsigned32 = UINT32_MAX;
             else
-               value->unsigned32 = prefixList[i].preferredLifetime / 1000;
+               value->unsigned32 = entry->preferredLifetime / 1000;
          }
          //ipAddressPrefixAdvValidLifetime object?
          else if(!strcmp(object->name, "ipAddressPrefixAdvValidLifetime"))
          {
             //Remaining length of time, in seconds, that this prefix will
             //continue to be valid
-            if(prefixList[i].validLifetime == INFINITE_DELAY)
+            if(entry->validLifetime == INFINITE_DELAY)
                value->unsigned32 = UINT32_MAX;
             else
-               value->unsigned32 = prefixList[i].validLifetime / 1000;
+               value->unsigned32 = entry->validLifetime / 1000;
          }
          //Unknown object?
          else
@@ -1214,14 +1237,16 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen)
 {
    error_t error;
+   uint_t i;
    size_t n;
-   bool_t acceptable;
    uint_t index;
    uint_t curIndex;
-   uint32_t length;
-   uint32_t curLength;
+   uint_t length;
+   uint_t curLength;
+   bool_t acceptable;
    IpAddr prefix;
    IpAddr curPrefix;
+   NetInterface *interface;
 
    //Initialize variables
    index = 0;
@@ -1239,21 +1264,25 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
    //Loop through network interfaces
    for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
    {
-      Ipv4Context *ipv4Context;
+      Ipv4AddrEntry *entry;
 
-      //Point to the IPv4 context
-      ipv4Context = &netInterface[curIndex - 1].ipv4Context;
+      //Point to the current interface
+      interface = &netInterface[curIndex - 1];
 
-      //Valid IPv4 address?
-      if(ipv4Context->addrState == IPV4_ADDR_STATE_VALID)
+      //Loop through the list of IPv4 addresses assigned to the interface
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
       {
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
+
          //Valid subnet mask?
-         if(ipv4Context->subnetMask != IPV4_UNSPECIFIED_ADDR)
+         if(entry->state == IPV4_ADDR_STATE_VALID &&
+            entry->subnetMask != IPV4_UNSPECIFIED_ADDR)
          {
             //Retrieve current prefix
             curPrefix.length = sizeof(Ipv4Addr);
-            curPrefix.ipv4Addr = ipv4Context->addr & ipv4Context->subnetMask;
-            curLength = ipv4GetPrefixLength(ipv4Context->subnetMask);
+            curPrefix.ipv4Addr = entry->addr & entry->subnetMask;
+            curLength = ipv4GetPrefixLength(entry->subnetMask);
 
             //Append the instance identifier to the OID prefix
             n = object->oidLen;
@@ -1315,22 +1344,24 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
    //Loop through network interfaces
    for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
    {
-      uint_t i;
-      Ipv6PrefixEntry *prefixList;
+      Ipv6PrefixEntry *entry;
 
-      //Point to the prefix list
-      prefixList = netInterface[curIndex - 1].ipv6Context.prefixList;
+      //Point to the current interface
+      interface = &netInterface[curIndex - 1];
 
-      //Loop through the list
+      //Loop through the IPv6 prefix list
       for(i = 0; i < IPV6_PREFIX_LIST_SIZE; i++)
       {
+         //Point to the current entry
+         entry = &interface->ipv6Context.prefixList[i];
+
          //Check whether the prefix is valid
-         if(prefixList[i].validLifetime > 0)
+         if(entry->validLifetime > 0)
          {
             //Retrieve current prefix
             curPrefix.length = sizeof(Ipv6Addr);
-            curPrefix.ipv6Addr = prefixList[i].prefix;
-            curLength = prefixList[i].prefixLen;
+            curPrefix.ipv6Addr = entry->prefix;
+            curLength = entry->prefixLen;
 
             //Append the instance identifier to the OID prefix
             n = object->oidLen;
@@ -1498,6 +1529,7 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
    error_t error;
+   uint_t i;
    size_t n;
    uint_t index;
    IpAddr ipAddr;
@@ -1520,23 +1552,32 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
    //IPv4 address?
    if(ipAddr.length == sizeof(Ipv4Addr))
    {
-      Ipv4Context *ipv4Context;
+      Ipv4AddrEntry *entry;
 
       //Loop through network interfaces
       for(index = 1; index <= NET_INTERFACE_COUNT; index++)
       {
          //Point to the current interface
          interface = &netInterface[index - 1];
-         //Point to the IPv4 context
-         ipv4Context = &interface->ipv4Context;
 
-         //Check IPv4 address
-         if(ipv4Context->addrState != IPV4_ADDR_STATE_INVALID &&
-            ipv4Context->addr == ipAddr.ipv4Addr)
+         //Loop through the list of IPv4 addresses assigned to the interface
+         for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
          {
-            //The specified IPv4 address has been found
-            break;
+            //Point to the current entry
+            entry = &interface->ipv4Context.addrList[i];
+
+            //Compare the current address against the IP address used as
+            //instance identifier
+            if(entry->state == IPV4_ADDR_STATE_VALID &&
+               entry->addr == ipAddr.ipv4Addr)
+            {
+               break;
+            }
          }
+
+         //IPv4 address found?
+         if(i < IPV4_ADDR_LIST_SIZE)
+            break;
       }
 
       //IPv4 address found?
@@ -1566,8 +1607,8 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
 
             //Retrieve current prefix
             prefix.length = sizeof(Ipv4Addr);
-            prefix.ipv4Addr = ipv4Context->addr & ipv4Context->subnetMask;
-            length = ipv4GetPrefixLength(ipv4Context->subnetMask);
+            prefix.ipv4Addr = entry->addr & entry->subnetMask;
+            length = ipv4GetPrefixLength(entry->subnetMask);
 
             //Build a pointer to the row in the prefix table to which this
             //address belongs
@@ -1635,9 +1676,9 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
          else if(!strcmp(object->name, "ipAddressStatus"))
          {
             //Status of the IP address
-            if(ipv4Context->addrState == IPV4_ADDR_STATE_VALID)
+            if(entry->state == IPV4_ADDR_STATE_VALID)
                value->integer = IP_MIB_ADDR_STATUS_PREFERRED;
-            else if(ipv4Context->addrState == IPV4_ADDR_STATE_TENTATIVE)
+            else if(entry->state == IPV4_ADDR_STATE_TENTATIVE)
                value->integer = IP_MIB_ADDR_STATUS_TENTATIVE;
             else
                value->integer = IP_MIB_ADDR_STATUS_UNKNOWN;
@@ -1685,7 +1726,6 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
    //IPv6 address?
    if(ipAddr.length == sizeof(Ipv6Addr))
    {
-      uint_t i;
       Ipv6AddrEntry *entry;
 
       //Loop through network interfaces
@@ -1700,11 +1740,11 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
             //Point to the current entry
             entry = &interface->ipv6Context.addrList[i];
 
-            //Check IPv6 address
+            //Compare the current address against the IP address used as
+            //instance identifier
             if(entry->state != IPV6_ADDR_STATE_INVALID &&
                ipv6CompAddr(&entry->addr, &ipAddr.ipv6Addr))
             {
-               //The specified IPv6 address has been found
                break;
             }
          }
@@ -1828,9 +1868,10 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen)
 {
    error_t error;
+   uint_t i;
    size_t n;
-   bool_t acceptable;
    uint_t index;
+   bool_t acceptable;
    IpAddr ipAddr;
    IpAddr curIpAddr;
    NetInterface *interface;
@@ -1849,45 +1890,50 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
    //Loop through network interfaces
    for(index = 1; index <= NET_INTERFACE_COUNT; index++)
    {
-      Ipv4Context *ipv4Context;
+      Ipv4AddrEntry *entry;
 
       //Point to the current interface
       interface = &netInterface[index - 1];
-      //Point to the IPv4 context
-      ipv4Context = &interface->ipv4Context;
 
-      //Valid IPv4 address?
-      if(ipv4Context->addrState != IPV4_ADDR_STATE_INVALID)
+      //Loop through the list of IPv4 addresses assigned to the interface
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
       {
-         //Get current address
-         curIpAddr.length = sizeof(Ipv4Addr);
-         curIpAddr.ipv4Addr = ipv4Context->addr;
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
 
-         //Append the instance identifier to the OID prefix
-         n = object->oidLen;
-
-         //ipAddressAddrType and ipAddressAddr are used as instance identifiers
-         error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
-         //Any error to report?
-         if(error)
-            return error;
-
-         //Check whether the resulting object identifier lexicographically
-         //follows the specified OID
-         if(oidComp(nextOid, n, oid, oidLen) > 0)
+         //Valid IPv4 address?
+         if(entry->state == IPV4_ADDR_STATE_VALID)
          {
-            //Perform lexicographic comparison
-            if(ipAddr.length == 0)
-               acceptable = TRUE;
-            else if(mibCompIpAddr(&curIpAddr, &ipAddr) < 0)
-               acceptable = TRUE;
-            else
-               acceptable = FALSE;
+            //Get current address
+            curIpAddr.length = sizeof(Ipv4Addr);
+            curIpAddr.ipv4Addr = entry->addr;
 
-            //Save the closest object identifier that follows the specified
-            //OID in lexicographic order
-            if(acceptable)
-               ipAddr = curIpAddr;
+            //Append the instance identifier to the OID prefix
+            n = object->oidLen;
+
+            //ipAddressAddrType and ipAddressAddr are used as instance identifiers
+            error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
+            //Any error to report?
+            if(error)
+               return error;
+
+            //Check whether the resulting object identifier lexicographically
+            //follows the specified OID
+            if(oidComp(nextOid, n, oid, oidLen) > 0)
+            {
+               //Perform lexicographic comparison
+               if(ipAddr.length == 0)
+                  acceptable = TRUE;
+               else if(mibCompIpAddr(&curIpAddr, &ipAddr) < 0)
+                  acceptable = TRUE;
+               else
+                  acceptable = FALSE;
+
+               //Save the closest object identifier that follows the specified
+               //OID in lexicographic order
+               if(acceptable)
+                  ipAddr = curIpAddr;
+            }
          }
       }
    }
@@ -1897,7 +1943,6 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
    //Loop through network interfaces
    for(index = 1; index <= NET_INTERFACE_COUNT; index++)
    {
-      uint_t i;
       Ipv6AddrEntry *entry;
 
       //Point to the current interface
@@ -2208,9 +2253,9 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
    error_t error;
    uint_t i;
    size_t n;
+   uint_t index;
+   uint_t curIndex;
    bool_t acceptable;
-   uint32_t index;
-   uint32_t curIndex;
    IpAddr ipAddr;
    IpAddr curIpAddr;
    NetInterface *interface;
@@ -2527,6 +2572,7 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
    error_t error;
+   uint_t i;
    size_t n;
    uint_t index;
    IpAddr ipAddr;
@@ -2535,8 +2581,8 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
    //Point to the instance identifier
    n = object->oidLen;
 
-   //ipDefaultRouterAddress and ipDefaultRouterAddressType are
-   //used as 1st and 2nd instance identifiers
+   //ipDefaultRouterAddress and ipDefaultRouterAddressType are used
+   //as 1st and 2nd instance identifiers
    error = mibDecodeIpAddr(oid, oidLen, &n, &ipAddr);
    //Invalid instance identifier?
    if(error)
@@ -2563,14 +2609,24 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
    //IPv4 address?
    if(ipAddr.length == sizeof(Ipv4Addr))
    {
-      Ipv4Context *ipv4Context;
+      Ipv4AddrEntry *entry;
 
-      //Point to the IPv4 context
-      ipv4Context = &interface->ipv4Context;
+      //Loop through the list of default gateways
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
+      {
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
 
-      //Check whether the specified IPv4 address matches the default gateway
-      if(ipAddr.ipv4Addr == ipv4Context->defaultGateway &&
-         ipAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR)
+         //Check whether the specified IPv4 address matches any default gateway
+         if(entry->state == IPV4_ADDR_STATE_VALID &&
+            entry->defaultGateway != ipAddr.ipv4Addr)
+         {
+            break;
+         }
+      }
+
+      //Valid gateway address?
+      if(i <= IPV4_ADDR_LIST_SIZE)
       {
          //ipDefaultRouterLifetime object?
          if(!strcmp(object->name, "ipDefaultRouterLifetime"))
@@ -2603,7 +2659,6 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
    //IPv6 address?
    if(ipAddr.length == sizeof(Ipv6Addr))
    {
-      uint_t i;
       Ipv6RouterEntry *entry;
 
       //Loop through the Default Router List
@@ -2618,13 +2673,12 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
             //Check whether the specified IPv6 address matches any default router
             if(ipv6CompAddr(&entry->addr, &ipAddr.ipv6Addr))
             {
-               //The specified IPv6 address has been found
                break;
             }
          }
       }
 
-      //IPv6 address found?
+      //Valid router address?
       if(i <= IPV6_ROUTER_LIST_SIZE)
       {
          //ipDefaultRouterLifetime object?
@@ -2689,10 +2743,11 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen)
 {
    error_t error;
+   uint_t i;
    size_t n;
+   uint_t index;
+   uint_t curIndex;
    bool_t acceptable;
-   uint32_t index;
-   uint32_t curIndex;
    IpAddr ipAddr;
    IpAddr curIpAddr;
    NetInterface *interface;
@@ -2712,58 +2767,64 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
    //Loop through network interfaces
    for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
    {
-      Ipv4Context *ipv4Context;
+      Ipv4AddrEntry *entry;
 
       //Point to the current interface
       interface = &netInterface[curIndex - 1];
-      //Point to the IPv4 context
-      ipv4Context = &interface->ipv4Context;
 
-      //Any valid gateway?
-      if(ipv4Context->defaultGateway != IPV4_UNSPECIFIED_ADDR)
+      //Loop through the list of default gateways
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
       {
-         //Get the IP address of the default gateway
-         curIpAddr.length = sizeof(Ipv4Addr);
-         curIpAddr.ipv4Addr = ipv4Context->defaultGateway;
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
 
-         //Append the instance identifier to the OID prefix
-         n = object->oidLen;
-
-         //ipDefaultRouterAddress and ipDefaultRouterAddressType are
-         //used as 1st and 2nd instance identifiers
-         error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
-         //Any error to report?
-         if(error)
-            return error;
-
-         //ipDefaultRouterIfIndex is used as 3rd instance identifier
-         error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
-         //Any error to report?
-         if(error)
-            return error;
-
-         //Check whether the resulting object identifier lexicographically
-         //follows the specified OID
-         if(oidComp(nextOid, n, oid, oidLen) > 0)
+         //Check whether the gateway address is valid
+         if(entry->state == IPV4_ADDR_STATE_VALID &&
+            entry->defaultGateway != IPV4_UNSPECIFIED_ADDR)
          {
-            //Perform lexicographic comparison
-            if(index == 0)
-               acceptable = TRUE;
-            else if(mibCompIpAddr(&curIpAddr, &ipAddr) < 0)
-               acceptable = TRUE;
-            else if(mibCompIpAddr(&curIpAddr, &ipAddr) > 0)
-               acceptable = FALSE;
-            else if(curIndex < index)
-               acceptable = TRUE;
-            else
-               acceptable = FALSE;
+            //Get the IP address of the default gateway
+            curIpAddr.length = sizeof(Ipv4Addr);
+            curIpAddr.ipv4Addr = entry->defaultGateway;
 
-            //Save the closest object identifier that follows the specified
-            //OID in lexicographic order
-            if(acceptable)
+            //Append the instance identifier to the OID prefix
+            n = object->oidLen;
+
+            //ipDefaultRouterAddress and ipDefaultRouterAddressType are
+            //used as 1st and 2nd instance identifiers
+            error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
+            //Any error to report?
+            if(error)
+               return error;
+
+            //ipDefaultRouterIfIndex is used as 3rd instance identifier
+            error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
+            //Any error to report?
+            if(error)
+               return error;
+
+            //Check whether the resulting object identifier lexicographically
+            //follows the specified OID
+            if(oidComp(nextOid, n, oid, oidLen) > 0)
             {
-               index = curIndex;
-               ipAddr = curIpAddr;
+               //Perform lexicographic comparison
+               if(index == 0)
+                  acceptable = TRUE;
+               else if(mibCompIpAddr(&curIpAddr, &ipAddr) < 0)
+                  acceptable = TRUE;
+               else if(mibCompIpAddr(&curIpAddr, &ipAddr) > 0)
+                  acceptable = FALSE;
+               else if(curIndex < index)
+                  acceptable = TRUE;
+               else
+                  acceptable = FALSE;
+
+               //Save the closest object identifier that follows the specified
+               //OID in lexicographic order
+               if(acceptable)
+               {
+                  index = curIndex;
+                  ipAddr = curIpAddr;
+               }
             }
          }
       }
@@ -2774,7 +2835,6 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
    //Loop through network interfaces
    for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
    {
-      uint_t i;
       Ipv6RouterEntry *entry;
 
       //Point to the current interface

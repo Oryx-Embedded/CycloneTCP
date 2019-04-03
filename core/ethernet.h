@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _ETHERNET_H
@@ -37,6 +39,13 @@
    #define ETH_SUPPORT ENABLED
 #elif (ETH_SUPPORT != ENABLED && ETH_SUPPORT != DISABLED)
    #error ETH_SUPPORT parameter is not valid
+#endif
+
+//Virtual interface support
+#ifndef ETH_VIRTUAL_IF_SUPPORT
+   #define ETH_VIRTUAL_IF_SUPPORT DISABLED
+#elif (ETH_VIRTUAL_IF_SUPPORT != ENABLED && ETH_VIRTUAL_IF_SUPPORT != DISABLED)
+   #error ETH_VIRTUAL_IF_SUPPORT parameter is not valid
 #endif
 
 //VLAN support (IEEE 802.1q)
@@ -218,7 +227,6 @@ typedef struct
 extern const MacAddr MAC_UNSPECIFIED_ADDR;
 extern const MacAddr MAC_BROADCAST_ADDR;
 extern const Eui64 EUI64_UNSPECIFIED_ADDR;
-extern const uint8_t ethPadding[64];
 
 //Ethernet related functions
 error_t ethInit(NetInterface *interface);
@@ -228,18 +236,8 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length);
 error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
    NetBuffer *buffer, size_t offset, uint16_t type);
 
-error_t ethPadFrame(NetBuffer *buffer, size_t *length);
-
-error_t ethCheckDestAddr(NetInterface *interface, const MacAddr *macAddr);
 error_t ethAcceptMacAddr(NetInterface *interface, const MacAddr *macAddr);
 error_t ethDropMacAddr(NetInterface *interface, const MacAddr *macAddr);
-
-void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr);
-void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr, size_t length);
-void ethUpdateErrorStats(NetInterface *interface, error_t error);
-
-uint32_t ethCalcCrc(const void *data, size_t length);
-uint32_t ethCalcCrcEx(const NetBuffer *buffer, size_t offset, size_t length);
 
 NetBuffer *ethAllocBuffer(size_t length, size_t *offset);
 

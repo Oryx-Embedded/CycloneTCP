@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -28,7 +30,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -38,6 +40,7 @@
 #include <string.h>
 #include "core/net.h"
 #include "core/ethernet.h"
+#include "ipv4/ipv4_misc.h"
 #include "ipv4/arp.h"
 #include "debug.h"
 
@@ -531,8 +534,14 @@ void arpTick(NetInterface *interface)
  * @param[in] length Packet length
  **/
 
-void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket, size_t length)
+void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket,
+   size_t length)
 {
+   uint_t i;
+   bool_t validTarget;
+   Ipv4AddrEntry *addrEntry;
+   NetInterface *logicalInterface;
+
    //Discard invalid ARP packets
    if(length < sizeof(ArpPacket))
       return;
@@ -555,66 +564,83 @@ void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket, size_t leng
    if(arpPacket->pln != sizeof(Ipv4Addr))
       return;
 
-   //Check the state of the host address
-   if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_TENTATIVE)
-   {
-      //If the host receives any ARP packet where the sender IP address is
-      //the address being probed for, then this is a conflicting ARP packet
-      if(arpPacket->spa == interface->ipv4Context.addr)
-      {
-         //An address conflict has been detected...
-         interface->ipv4Context.addrConflict = TRUE;
-         //Exit immediately
-         return;
-      }
-   }
-   else if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_VALID)
-   {
-      //Check whether the sender protocol address matches the IP
-      //address assigned to the interface
-      if(arpPacket->spa == interface->ipv4Context.addr)
-      {
-         NetInterface *logicalInterface;
+   //The target protocol address must a valid address assigned to the interface
+   //or a tentative address whose uniqueness on a link is being verified
+   validTarget = FALSE;
 
-         //Point to the logical interface
-         logicalInterface = nicGetLogicalInterface(interface);
+   //Loop through the list of IPv4 addresses assigned to the interface
+   for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
+   {
+      //Point to the current entry
+      addrEntry = &interface->ipv4Context.addrList[i];
 
-         //If the sender hardware address does not match the hardware
-         //address of that interface, then this is a conflicting ARP packet
-         if(!macCompAddr(&arpPacket->sha, &logicalInterface->macAddr))
+      //Valid entry?
+      if(addrEntry->state != IPV4_ADDR_STATE_INVALID)
+      {
+         //Check whether the sender protocol address matches the IP address
+         //assigned to the interface
+         if(addrEntry->addr == arpPacket->spa)
          {
-            //An address conflict has been detected...
-            interface->ipv4Context.addrConflict = TRUE;
-            //Exit immediately
-            return;
+            //Tentative address?
+            if(addrEntry->state == IPV4_ADDR_STATE_TENTATIVE)
+            {
+               //If the host receives any ARP packet where the sender IP
+               //address is the address being probed for, then this is a
+               //conflicting ARP packet
+               addrEntry->conflict = TRUE;
+               //Exit immediately
+               return;
+            }
+            else
+            {
+               //Point to the logical interface
+               logicalInterface = nicGetLogicalInterface(interface);
+
+               //If the sender hardware address does not match the hardware
+               //address of that interface, then this is a conflicting ARP
+               //packet
+               if(!macCompAddr(&arpPacket->sha, &logicalInterface->macAddr))
+               {
+                  //An address conflict has been detected...
+                  addrEntry->conflict = TRUE;
+                  //Exit immediately
+                  return;
+               }
+            }
+         }
+
+         //Check whether the target protocol address matches an IP address
+         //assigned to the interface
+         if(addrEntry->addr == arpPacket->tpa)
+         {
+            validTarget = TRUE;
          }
       }
    }
 
-   //Check whether the target protocol address matches the IP
-   //address assigned to the interface
-   if(arpPacket->tpa != interface->ipv4Context.addr)
-      return;
-
-   //Check operation code
-   switch(ntohs(arpPacket->op))
+   //Valid target protocol address?
+   if(validTarget)
    {
-   //ARP request?
-   case ARP_OPCODE_ARP_REQUEST:
-      //Process incoming ARP request
-      arpProcessRequest(interface, arpPacket);
-      break;
-   //ARP reply?
-   case ARP_OPCODE_ARP_REPLY:
-      //Process incoming ARP reply
-      arpProcessReply(interface, arpPacket);
-      break;
-   //Unknown operation code?
-   default:
-      //Debug message
-      TRACE_INFO("Unknown operation code!\r\n");
-      //Discard incoming packet
-      break;
+      //Check operation code
+      switch(ntohs(arpPacket->op))
+      {
+      //ARP request?
+      case ARP_OPCODE_ARP_REQUEST:
+         //Process incoming ARP request
+         arpProcessRequest(interface, arpPacket);
+         break;
+      //ARP reply?
+      case ARP_OPCODE_ARP_REPLY:
+         //Process incoming ARP reply
+         arpProcessReply(interface, arpPacket);
+         break;
+      //Unknown operation code?
+      default:
+         //Debug message
+         TRACE_INFO("Unknown operation code!\r\n");
+         //Discard incoming packet
+         break;
+      }
    }
 }
 
@@ -627,6 +653,11 @@ void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket, size_t leng
 
 void arpProcessRequest(NetInterface *interface, ArpPacket *arpRequest)
 {
+   uint_t i;
+   bool_t validTarget;
+   Ipv4AddrEntry *addrEntry;
+   NetInterface *logicalInterface;
+
    //Debug message
    TRACE_INFO("ARP Request received...\r\n");
 
@@ -636,33 +667,51 @@ void arpProcessRequest(NetInterface *interface, ArpPacket *arpRequest)
    if(ipv4IsMulticastAddr(arpRequest->spa))
       return;
 
-   //Check whether the target IP address is an address being probed for
-   if(ipv4IsTentativeAddr(interface, arpRequest->tpa))
+   //Initialize flag
+   validTarget = TRUE;
+
+   //Loop through the list of IPv4 addresses assigned to the interface
+   for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
    {
-      //ARP probe received?
-      if(arpRequest->spa == IPV4_UNSPECIFIED_ADDR)
+      //Point to the current entry
+      addrEntry = &interface->ipv4Context.addrList[i];
+
+      //Tentative address?
+      if(addrEntry->state == IPV4_ADDR_STATE_TENTATIVE)
       {
-         NetInterface *logicalInterface;
-
-         //Point to the logical interface
-         logicalInterface = nicGetLogicalInterface(interface);
-
-         //If the sender hardware address does not match the hardware
-         //address of that interface, then this is a conflicting ARP packet
-         if(!macCompAddr(&arpRequest->sha, &logicalInterface->macAddr))
+         //Check whether the target IP address is an address being probed for
+         if(addrEntry->addr == arpRequest->tpa)
          {
-            //An address conflict has been detected...
-            interface->ipv4Context.addrConflict = TRUE;
+            //The target protocol address is a tentative address
+            validTarget = FALSE;
+
+            //ARP probe received?
+            if(arpRequest->spa == IPV4_UNSPECIFIED_ADDR)
+            {
+               //Point to the logical interface
+               logicalInterface = nicGetLogicalInterface(interface);
+
+               //If the sender hardware address does not match the hardware
+               //address of that interface, then this is a conflicting ARP
+               //packet
+               if(!macCompAddr(&arpRequest->sha, &logicalInterface->macAddr))
+               {
+                  //An address conflict has been detected...
+                  addrEntry->conflict = TRUE;
+               }
+            }
          }
       }
-
-      //In all cases, the host must not respond to an ARP request for an
-      //address being probed for
-      return;
    }
 
-   //Send ARP reply
-   arpSendReply(interface, arpRequest->spa, &arpRequest->sha, &arpRequest->sha);
+   //In all cases, the host must not respond to an ARP request for an address
+   //being probed for
+   if(validTarget)
+   {
+      //Send ARP reply
+      arpSendReply(interface, arpRequest->tpa, arpRequest->spa,
+         &arpRequest->sha);
+   }
 }
 
 
@@ -809,8 +858,8 @@ error_t arpSendProbe(NetInterface *interface, Ipv4Addr targetIpAddr)
  * @return Error code
  **/
 
-error_t arpSendRequest(NetInterface *interface,
-   Ipv4Addr targetIpAddr, const MacAddr *destMacAddr)
+error_t arpSendRequest(NetInterface *interface, Ipv4Addr targetIpAddr,
+   const MacAddr *destMacAddr)
 {
    error_t error;
    size_t offset;
@@ -866,14 +915,14 @@ error_t arpSendRequest(NetInterface *interface,
 /**
  * @brief Send ARP reply
  * @param[in] interface Underlying network interface
+ * @param[in] senderIpAddr Sender Ipv4 address
  * @param[in] targetIpAddr Target IPv4 address
  * @param[in] targetMacAddr Target MAC address
- * @param[in] destMacAddr Destination MAC address
  * @return Error code
  **/
 
-error_t arpSendReply(NetInterface *interface, Ipv4Addr targetIpAddr,
-   const MacAddr *targetMacAddr, const MacAddr *destMacAddr)
+error_t arpSendReply(NetInterface *interface, Ipv4Addr senderIpAddr,
+   Ipv4Addr targetIpAddr, const MacAddr *targetMacAddr)
 {
    error_t error;
    size_t offset;
@@ -900,7 +949,7 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr targetIpAddr,
    arpReply->pln = sizeof(Ipv4Addr);
    arpReply->op = htons(ARP_OPCODE_ARP_REPLY);
    arpReply->sha = logicalInterface->macAddr;
-   arpReply->spa = interface->ipv4Context.addr;
+   arpReply->spa = senderIpAddr;
    arpReply->tha = *targetMacAddr;
    arpReply->tpa = targetIpAddr;
 
@@ -910,7 +959,7 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr targetIpAddr,
    arpDumpPacket(arpReply);
 
    //Send ARP reply
-   error = ethSendFrame(interface, destMacAddr, buffer, offset, ETH_TYPE_ARP);
+   error = ethSendFrame(interface, targetMacAddr, buffer, offset, ETH_TYPE_ARP);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -932,7 +981,7 @@ void arpDumpPacket(const ArpPacket *arpPacket)
    TRACE_DEBUG("  Hardware Address Length (hln) = %" PRIu8 "\r\n", arpPacket->hln);
    TRACE_DEBUG("  Protocol Address Length (pln) = %" PRIu8 "\r\n", arpPacket->pln);
    TRACE_DEBUG("  Opcode (op) = %" PRIu16 "\r\n", ntohs(arpPacket->op));
-   TRACE_DEBUG("  Sender Hardware Address (sha)= %s\r\n", macAddrToString(&arpPacket->sha, NULL));
+   TRACE_DEBUG("  Sender Hardware Address (sha) = %s\r\n", macAddrToString(&arpPacket->sha, NULL));
    TRACE_DEBUG("  Sender Protocol Address (spa) = %s\r\n", ipv4AddrToString(arpPacket->spa, NULL));
    TRACE_DEBUG("  Target Hardware Address (tha)= %s\r\n", macAddrToString(&arpPacket->tha, NULL));
    TRACE_DEBUG("  Target Protocol Address (tpa) = %s\r\n", ipv4AddrToString(arpPacket->tpa, NULL));

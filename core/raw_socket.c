@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -28,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -37,12 +39,13 @@
 //Dependencies
 #include <string.h>
 #include "core/net.h"
+#include "core/socket.h"
+#include "core/raw_socket.h"
+#include "core/ethernet_misc.h"
 #include "ipv4/ipv4.h"
+#include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
-#include "core/raw_socket.h"
-#include "core/socket.h"
-#include "core/ethernet.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -262,12 +265,13 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
 /**
  * @brief Process incoming Ethernet packet
  * @param[in] interface Underlying network interface
- * @param[in] ethFrame Incoming Ethernet frame to process
- * @param[in] length Total frame length
+ * @param[in] header Pointer to the Ethernet header
+ * @param[in] data Pointer to the payload data
+ * @param[in] length Length of the payload data, in bytes
  **/
 
-void rawSocketProcessEthPacket(NetInterface *interface,
-   EthHeader *ethFrame, size_t length)
+void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
+   const uint8_t *data, size_t length)
 {
    uint_t i;
    Socket *socket;
@@ -287,7 +291,7 @@ void rawSocketProcessEthPacket(NetInterface *interface,
       if(socket->interface && socket->interface != interface)
          continue;
       //Check protocol field
-      if(socket->protocol != SOCKET_ETH_PROTO_ALL && socket->protocol != ntohs(ethFrame->type))
+      if(socket->protocol != SOCKET_ETH_PROTO_ALL && socket->protocol != ntohs(header->type))
          continue;
 
       //The current socket meets all the criteria
@@ -302,7 +306,7 @@ void rawSocketProcessEthPacket(NetInterface *interface,
    if(!socket->receiveQueue)
    {
       //Allocate a memory buffer to hold the data and the associated descriptor
-      p = netBufferAlloc(sizeof(SocketQueueItem) + length);
+      p = netBufferAlloc(sizeof(SocketQueueItem) + sizeof(EthHeader) + length);
 
       //Successful memory allocation?
       if(p != NULL)
@@ -332,7 +336,7 @@ void rawSocketProcessEthPacket(NetInterface *interface,
          return;
 
       //Allocate a memory buffer to hold the data and the associated descriptor
-      p = netBufferAlloc(sizeof(SocketQueueItem) + length);
+      p = netBufferAlloc(sizeof(SocketQueueItem) + sizeof(EthHeader) + length);
 
       //Successful memory allocation?
       if(p != NULL)
@@ -363,8 +367,14 @@ void rawSocketProcessEthPacket(NetInterface *interface,
 
    //Offset to the raw datagram
    queueItem->offset = sizeof(SocketQueueItem);
-   //Copy the raw data
-   netBufferWrite(queueItem->buffer, queueItem->offset, ethFrame, length);
+
+   //Copy the Ethernet header
+   netBufferWrite(queueItem->buffer, queueItem->offset, header,
+      sizeof(EthHeader));
+
+   //Copy the payload
+   netBufferWrite(queueItem->buffer, queueItem->offset + sizeof(EthHeader),
+      data, length);
 
    //Notify user that data is available
    rawSocketUpdateEvents(socket);
@@ -416,7 +426,8 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
 
          //Select the source IPv4 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv4SelectSourceAddr(&interface, destIpAddr->ipv4Addr, &srcIpAddr);
+         error = ipv4SelectSourceAddr(&interface, destIpAddr->ipv4Addr,
+            &srcIpAddr);
          //Any error to report?
          if(error)
             break;
@@ -489,8 +500,8 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
  * @return Error code
  **/
 
-error_t rawSocketSendEthPacket(Socket *socket,
-   const void *data, size_t length, size_t *written)
+error_t rawSocketSendEthPacket(Socket *socket, const void *data,
+   size_t length, size_t *written)
 {
    error_t error;
 
@@ -680,8 +691,8 @@ error_t rawSocketReceiveIpPacket(Socket *socket, IpAddr *srcIpAddr,
  * @return Error code
  **/
 
-error_t rawSocketReceiveEthPacket(Socket *socket,
-   void *data, size_t size, size_t *received, uint_t flags)
+error_t rawSocketReceiveEthPacket(Socket *socket, void *data, size_t size,
+   size_t *received, uint_t flags)
 {
    SocketQueueItem *queueItem;
 

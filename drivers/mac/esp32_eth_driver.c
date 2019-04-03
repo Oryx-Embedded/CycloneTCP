@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -116,7 +118,7 @@ error_t esp32EthInit(NetInterface *interface)
    while(REG_GET_BIT(EMAC_DMABUSMODE_REG, EMAC_SW_RST));
 
    //Adjust MDC clock range
-   REG_SET_FIELD(EMAC_GMACGMIIDATA_REG, EMAC_GMIICSRCLK, 1);
+   REG_SET_FIELD(EMAC_GMIIADDR_REG, EMAC_MIICSRCLK, 1);
 
    //PHY transceiver initialization
    error = interface->phyDriver->init(interface);
@@ -126,22 +128,30 @@ error_t esp32EthInit(NetInterface *interface)
 
    //Use default MAC configuration
    REG_WRITE(EMAC_GMACCONFIG_REG, 0);
-   REG_SET_BIT(EMAC_GMACCONFIG_REG, EMAC_GMACMIIGMII);
-   REG_SET_BIT(EMAC_GMACCONFIG_REG, EMAC_GMACRXOWN);
+   REG_SET_BIT(EMAC_GMACCONFIG_REG, EMAC_EMACMII);
+   REG_SET_BIT(EMAC_GMACCONFIG_REG, EMAC_EMACRXOWN);
 
-   //Set the MAC address
-   REG_WRITE(EMAC_GMACADDR0HIGH_REG, interface->macAddr.w[2] | EMAC_ADDRESS_ENABLE0_M);
-   REG_WRITE(EMAC_GMACADDR0LOW_REG, interface->macAddr.w[0] | (interface->macAddr.w[1] << 16));
+   //Set the MAC address of the station
+   REG_WRITE(EMAC_ADDR0HIGH_REG, interface->macAddr.w[2]);
+   REG_WRITE(EMAC_ADDR0LOW_REG, interface->macAddr.w[0] | (interface->macAddr.w[1] << 16));
+
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   REG_WRITE(EMAC_ADDR1HIGH_REG, 0);
+   REG_WRITE(EMAC_ADDR1LOW_REG, 0);
+   REG_WRITE(EMAC_ADDR2HIGH_REG, 0);
+   REG_WRITE(EMAC_ADDR2LOW_REG, 0);
+   REG_WRITE(EMAC_ADDR3HIGH_REG, 0);
+   REG_WRITE(EMAC_ADDR3LOW_REG, 0);
 
    //Configure the receive filter
-   REG_WRITE(EMAC_GMACFRAMEFILTER_REG, 0);
+   REG_WRITE(EMAC_GMACFF_REG, 0);
    //Disable flow control
-   REG_WRITE(EMAC_GMACFLOWCONTROL_REG, 0);
+   REG_WRITE(EMAC_GMACFC_REG, 0);
 
    //Enable store and forward mode
    REG_WRITE(EMAC_DMAOPERATION_MODE_REG, 0);
-   REG_SET_BIT(EMAC_DMAOPERATION_MODE_REG, EMAC_RECV_STORE_FORWARD);
-   REG_SET_BIT(EMAC_DMAOPERATION_MODE_REG, EMAC_TRANSMIT_STORE_FORWARD);
+   REG_SET_BIT(EMAC_DMAOPERATION_MODE_REG, EMAC_RX_STORE_FORWARD);
+   REG_SET_BIT(EMAC_DMAOPERATION_MODE_REG, EMAC_TX_STR_FWD);
 
    //Configure DMA bus mode
    REG_SET_FIELD(EMAC_DMABUSMODE_REG, EMAC_RX_DMA_PBL, 1);
@@ -152,26 +162,23 @@ error_t esp32EthInit(NetInterface *interface)
    esp32EthInitDmaDesc(interface);
 
    //Disable MAC interrupts
-   REG_SET_BIT(EMAC_GMACINTERRUPTMASK_REG, EMAC_LPI_INTERRUPT_MASK);
-   REG_SET_BIT(EMAC_GMACINTERRUPTMASK_REG, EMAC_PMT_INTERRUPT_MASK);
-   REG_SET_BIT(EMAC_GMACINTERRUPTMASK_REG, EMAC_INTERRUPT_MASK);
+   REG_SET_BIT(EMAC_INTMASK_REG, EMAC_LPIINTMASK);
+   REG_SET_BIT(EMAC_INTMASK_REG, EMAC_PMTINTMASK);
 
    //Enable the desired DMA interrupts
-   REG_WRITE(EMAC_DMAINTERRUPT_EN_REG, 0);
-   REG_SET_BIT(EMAC_DMAINTERRUPT_EN_REG, EMAC_NORMAL_INTERRUPT_SUMMARY_ENABLE);
-   REG_SET_BIT(EMAC_DMAINTERRUPT_EN_REG, EMAC_RECEIVE_INTERRUPT_ENABLE);
-   REG_SET_BIT(EMAC_DMAINTERRUPT_EN_REG, EMAC_TRANSMIT_INTERRUPT_ENABLE);
+   REG_WRITE(EMAC_DMAIN_EN_REG, EMAC_DMAIN_NISE_M | EMAC_DMAIN_RIE_M |
+      EMAC_DMAIN_TIE_M);
 
    //Register interrupt handler
    esp_intr_alloc(ETS_ETH_MAC_INTR_SOURCE, 0, esp32EthIrqHandler, NULL, NULL);
 
    //Enable MAC transmission and reception
-   REG_SET_BIT(EMAC_GMACCONFIG_REG, EMAC_GMACTX);
-   REG_SET_BIT(EMAC_GMACCONFIG_REG, EMAC_GMACRX);
+   REG_SET_BIT(EMAC_GMACCONFIG_REG, EMAC_EMACTX);
+   REG_SET_BIT(EMAC_GMACCONFIG_REG, EMAC_EMACRX);
 
    //Enable DMA transmission and reception
    REG_SET_BIT(EMAC_DMAOPERATION_MODE_REG, EMAC_START_STOP_TRANSMISSION_COMMAND);
-   REG_SET_BIT(EMAC_DMAOPERATION_MODE_REG, EMAC_START_STOP_RECEIVE);
+   REG_SET_BIT(EMAC_DMAOPERATION_MODE_REG, EMAC_START_STOP_RX);
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -315,8 +322,6 @@ void esp32EthTick(NetInterface *interface)
 
 void esp32EthEnableIrq(NetInterface *interface)
 {
-   //Enable Ethernet MAC interrupts
-
    //Enable Ethernet PHY interrupts
    interface->phyDriver->enableIrq(interface);
 }
@@ -329,8 +334,6 @@ void esp32EthEnableIrq(NetInterface *interface)
 
 void esp32EthDisableIrq(NetInterface *interface)
 {
-   //Disable Ethernet MAC interrupts
-
    //Disable Ethernet PHY interrupts
    interface->phyDriver->disableIrq(interface);
 }
@@ -373,7 +376,7 @@ void IRAM_ATTR esp32EthIrqHandler(void *arg)
    if(status & EMAC_RECV_INT_M)
    {
       //Disable RIE interrupt
-      REG_CLR_BIT(EMAC_DMAINTERRUPT_EN_REG, EMAC_RECEIVE_INTERRUPT_ENABLE);
+      REG_CLR_BIT(EMAC_DMAIN_EN_REG, EMAC_DMAIN_RIE);
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -415,9 +418,8 @@ void esp32EthEventHandler(NetInterface *interface)
    }
 
    //Re-enable DMA interrupts
-   REG_SET_BIT(EMAC_DMAINTERRUPT_EN_REG, EMAC_NORMAL_INTERRUPT_SUMMARY_ENABLE);
-   REG_SET_BIT(EMAC_DMAINTERRUPT_EN_REG, EMAC_RECEIVE_INTERRUPT_ENABLE);
-   REG_SET_BIT(EMAC_DMAINTERRUPT_EN_REG, EMAC_TRANSMIT_INTERRUPT_ENABLE);
+   REG_WRITE(EMAC_DMAIN_EN_REG, EMAC_DMAIN_NISE_M | EMAC_DMAIN_RIE_M |
+      EMAC_DMAIN_TIE_M);
 }
 
 
@@ -553,30 +555,95 @@ error_t esp32EthReceivePacket(NetInterface *interface)
 error_t esp32EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
+   uint_t j;
    bool_t acceptMulticast;
+   MacAddr unicastMacAddr[3];
+   MacFilterEntry *entry;
+
+   //Debug message
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //This flag will be set if multicast addresses should be accepted
    acceptMulticast = FALSE;
 
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
+      //Point to the current entry
+      entry = &interface->macAddrFilter[i];
+
       //Valid entry?
-      if(interface->macAddrFilter[i].refCount > 0)
+      if(entry->refCount > 0)
       {
-         //Accept multicast addresses
-         acceptMulticast = TRUE;
-         //We are done
-         break;
+         //Multicast address?
+         if(macIsMulticastAddr(&entry->addr))
+         {
+            //Accept multicast addresses
+            acceptMulticast = TRUE;
+         }
+         else
+         {
+            //Up to 3 additional MAC addresses can be specified
+            if(j < 3)
+            {
+               //Save the unicast address
+               unicastMacAddr[j++] = entry->addr;
+            }
+         }
       }
+   }
+
+   //Configure the first unicast address filter
+   if(j >= 1)
+   {
+      REG_WRITE(EMAC_ADDR1HIGH_REG, unicastMacAddr[0].w[2] | EMAC_ADDRESS_ENABLE1_M);
+      REG_WRITE(EMAC_ADDR1LOW_REG, unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16));
+   }
+   else
+   {
+      REG_WRITE(EMAC_ADDR1HIGH_REG, 0);
+      REG_WRITE(EMAC_ADDR1LOW_REG, 0);
+   }
+
+   //Configure the second unicast address filter
+   if(j >= 2)
+   {
+      REG_WRITE(EMAC_ADDR2HIGH_REG, unicastMacAddr[1].w[2] | EMAC_ADDRESS_ENABLE2_M);
+      REG_WRITE(EMAC_ADDR2LOW_REG, unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16));
+   }
+   else
+   {
+      REG_WRITE(EMAC_ADDR2HIGH_REG, 0);
+      REG_WRITE(EMAC_ADDR2LOW_REG, 0);
+   }
+
+   //Configure the third unicast address filter
+   if(j >= 3)
+    {
+      REG_WRITE(EMAC_ADDR3HIGH_REG, unicastMacAddr[2].w[2] | EMAC_ADDRESS_ENABLE3_M);
+      REG_WRITE(EMAC_ADDR3LOW_REG, unicastMacAddr[2].w[0] | (unicastMacAddr[0].w[2] << 16));
+   }
+   else
+   {
+      REG_WRITE(EMAC_ADDR3HIGH_REG, 0);
+      REG_WRITE(EMAC_ADDR3LOW_REG, 0);
    }
 
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
-      REG_SET_BIT(EMAC_GMACFRAMEFILTER_REG, EMAC_PASS_ALL_MULTICAST);
+   {
+      REG_SET_BIT(EMAC_GMACFF_REG, EMAC_PAM);
+   }
    else
-      REG_CLR_BIT(EMAC_GMACFRAMEFILTER_REG, EMAC_PASS_ALL_MULTICAST);
+   {
+      REG_CLR_BIT(EMAC_GMACFF_REG, EMAC_PAM);
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -598,15 +665,15 @@ error_t esp32EthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
-      config |= EMAC_GMACFESPEED_M;
+      config |= EMAC_EMACFESPEED_M;
    else
-      config &= ~EMAC_GMACFESPEED_M;
+      config &= ~EMAC_EMACFESPEED_M;
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
-      config |= EMAC_GMACDUPLEX_M;
+      config |= EMAC_EMACDUPLEX_M;
    else
-      config &= ~EMAC_GMACDUPLEX_M;
+      config &= ~EMAC_EMACDUPLEX_M;
 
    //Update MAC configuration register
    REG_WRITE(EMAC_GMACCONFIG_REG, config);
@@ -628,21 +695,21 @@ void esp32EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
    uint32_t value;
 
    //Take care not to alter MDC clock configuration
-   value = REG_READ(EMAC_GMACGMIIADDR_REG) & EMAC_GMIICSRCLK_M;
+   value = REG_READ(EMAC_GMIIADDR_REG) & EMAC_MIICSRCLK_M;
    //Set up a write operation
-   value |= EMAC_GMIIWRITE_M | EMAC_GMIIBUSY_M;
+   value |= EMAC_MIIWRITE_M | EMAC_MIIBUSY_M;
    //PHY address
-   value |= (phyAddr << EMAC_GMIIDEV_S) & EMAC_GMIIDEV_M;
+   value |= (phyAddr << EMAC_MIIDEV_S) & EMAC_MIIDEV_M;
    //Register address
-   value |= (regAddr << EMAC_GMIIREG_S) & EMAC_GMIIREG_M;
+   value |= (regAddr << EMAC_MIIREG_S) & EMAC_MIIREG_M;
 
    //Data to be written in the PHY register
-   REG_WRITE(EMAC_GMACGMIIDATA_REG, data);
+   REG_WRITE(EMAC_MIIDATA_REG, data);
 
    //Start a write operation
-   REG_WRITE(EMAC_GMACGMIIADDR_REG, value);
+   REG_WRITE(EMAC_GMIIADDR_REG, value);
    //Wait for the write to complete
-   while(REG_GET_BIT(EMAC_GMACGMIIADDR_REG, EMAC_GMIIBUSY));
+   while(REG_GET_BIT(EMAC_GMIIADDR_REG, EMAC_MIIBUSY));
 }
 
 
@@ -658,19 +725,19 @@ uint16_t esp32EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
    uint32_t value;
 
    //Take care not to alter MDC clock configuration
-   value = REG_READ(EMAC_GMACGMIIADDR_REG) & EMAC_GMIICSRCLK_M;
+   value = REG_READ(EMAC_GMIIADDR_REG) & EMAC_MIICSRCLK_M;
    //Set up a read operation
-   value |= EMAC_GMIIBUSY_M;
+   value |= EMAC_MIIBUSY_M;
    //PHY address
-   value |= (phyAddr << EMAC_GMIIDEV_S) & EMAC_GMIIDEV_M;
+   value |= (phyAddr << EMAC_MIIDEV_S) & EMAC_MIIDEV_M;
    //Register address
-   value |= (regAddr << EMAC_GMIIREG_S) & EMAC_GMIIREG_M;
+   value |= (regAddr << EMAC_MIIREG_S) & EMAC_MIIREG_M;
 
    //Start a read operation
-   REG_WRITE(EMAC_GMACGMIIADDR_REG, value);
+   REG_WRITE(EMAC_GMIIADDR_REG, value);
    //Wait for the read to complete
-   while(REG_GET_BIT(EMAC_GMACGMIIADDR_REG, EMAC_GMIIBUSY));
+   while(REG_GET_BIT(EMAC_GMIIADDR_REG, EMAC_MIIBUSY));
 
    //Return PHY register contents
-   return REG_READ(EMAC_GMACGMIIDATA_REG);
+   return REG_READ(EMAC_MIIDATA_REG);
 }

@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _MQTT_COMMON_H
@@ -59,9 +61,9 @@
 
 typedef enum
 {
-   MQTT_PROTOCOL_LEVEL_3_1   = 3, ///<MQTT version 3.1
-   MQTT_PROTOCOL_LEVEL_3_1_1 = 4  ///<MQTT version 3.1.1
-} MqttProtocolLevel;
+   MQTT_VERSION_3_1   = 3, ///<MQTT version 3.1
+   MQTT_VERSION_3_1_1 = 4  ///<MQTT version 3.1.1
+} MqttVersion;
 
 
 /**

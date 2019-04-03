@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -86,12 +88,7 @@ void modbusServerAcceptConnection(ModbusServerContext *context)
    Socket *socket;
    IpAddr clientIpAddr;
    uint16_t clientPort;
-   systime_t time;
    ModbusClientConnection *connection;
-   ModbusClientConnection *oldestConnection;
-
-   //Get current time
-   time = osGetSystemTime();
 
    //Accept incoming connection
    socket = socketAccept(context->socket, &clientIpAddr, &clientPort);
@@ -99,64 +96,54 @@ void modbusServerAcceptConnection(ModbusServerContext *context)
    //Make sure the socket handle is valid
    if(socket != NULL)
    {
-      //Debug message
-      TRACE_INFO("Modbus Server: Connection established with client %s port %" PRIu16 "...\r\n",
-         ipAddrToString(&clientIpAddr, NULL), clientPort);
-
       //Force the socket to operate in non-blocking mode
       socketSetTimeout(socket, 0);
 
-      //Keep track of the oldest connection
-      oldestConnection = NULL;
+      //Initialize pointer
+      connection = NULL;
 
       //Loop through the connection table
       for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
       {
-         //Point to the current entry
-         connection = &context->connection[i];
-
          //Check the state of the current connection
-         if(connection->state == MODBUS_CONNECTION_STATE_CLOSED)
+         if(context->connection[i].state == MODBUS_CONNECTION_STATE_CLOSED)
          {
-            //The current entry is available
+            //The current entry is free
+            connection = &context->connection[i];
             break;
          }
-         else
-         {
-            //Keep track of the oldest unused connection
-            if(oldestConnection == NULL)
-            {
-               oldestConnection = connection;
-            }
-            else if((time - connection->timestamp) > (time - oldestConnection->timestamp))
-            {
-               oldestConnection = connection;
-            }
-         }
       }
 
-      //The oldest unused connection is reused whenever the connection table
-      //runs out of space
-      if(i >= MODBUS_SERVER_MAX_CONNECTIONS)
+      //If the connection table runs out of space, then the client's connection
+      //request is rejected
+      if(connection != NULL)
       {
-         //Close the oldest unused connection
-         modbusServerCloseConnection(oldestConnection);
-         //Reuse the connection
-         connection = oldestConnection;
+         //Debug message
+         TRACE_INFO("Modbus Server: Connection established with client %s port %"
+            PRIu16 "...\r\n", ipAddrToString(&clientIpAddr, NULL), clientPort);
+
+         //Clear the structure describing the connection
+         memset(connection, 0, sizeof(ModbusClientConnection));
+
+         //Attach Modbus/TCP server context
+         connection->context = context;
+         //Save socket handle
+         connection->socket = socket;
+         //Initialize time stamp
+         connection->timestamp = osGetSystemTime();
+
+         //Wait for incoming Modbus requests
+         connection->state = MODBUS_CONNECTION_STATE_RECEIVING;
       }
+      else
+      {
+         //Debug message
+         TRACE_INFO("Modbus Server: Connection refused with client %s port %"
+            PRIu16 "...\r\n", ipAddrToString(&clientIpAddr, NULL), clientPort);
 
-      //Clear the structure describing the connection
-      memset(connection, 0, sizeof(ModbusClientConnection));
-
-      //Attach Modbus/TCP server context
-      connection->context = context;
-      //Save socket handle
-      connection->socket = socket;
-      //Initialize time stamp
-      connection->timestamp = time;
-
-      //Wait for incoming Modbus requests
-      connection->state = MODBUS_CONNECTION_STATE_RECEIVING;
+         //The Modbus/TCP server cannot accept the incoming connection request
+         socketClose(socket);
+      }
    }
 }
 

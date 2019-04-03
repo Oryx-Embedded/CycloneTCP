@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -174,7 +176,7 @@ error_t ftpClientOpenSecureConnection(FtpClientContext *context,
 error_t ftpClientEstablishSecureConnection(FtpClientSocket *connection)
 {
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   //Establish a TLS connection
+   //Establish TLS connection
    return tlsConnect(connection->tlsContext);
 #else
    //Not implemented

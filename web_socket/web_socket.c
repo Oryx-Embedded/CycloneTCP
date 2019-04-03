@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -271,7 +273,7 @@ error_t webSocketSetTimeout(WebSocket *webSocket, systime_t timeout)
 
 
 /**
- * @brief Set the hostname of the resource being requested
+ * @brief Set the domain name of the server (for virtual hosting)
  * @param[in] webSocket Handle to a WebSocket
  * @param[in] host NULL-terminated string containing the hostname
  * @return Error code
@@ -756,7 +758,7 @@ error_t webSocketParseClientHandshake(WebSocket *webSocket)
          //Use TLS to secure the connection?
          if(webSocket->tlsInitCallback != NULL)
          {
-            //Establish a TLS connection
+            //Establish TLS connection
             error = tlsConnect(webSocket->tlsContext);
          }
 #endif

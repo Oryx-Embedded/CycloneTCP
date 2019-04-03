@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _UDP_H
@@ -122,8 +124,9 @@ error_t udpProcessDatagram(NetInterface *interface,
 error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
    uint16_t destPort, const void *data, size_t length, size_t *written);
 
-error_t udpSendDatagramEx(NetInterface *interface, uint16_t srcPort, const IpAddr *destIpAddr,
-   uint16_t destPort, NetBuffer *buffer, size_t offset, uint8_t ttl);
+error_t udpSendDatagramEx(NetInterface *interface, const IpAddr *srcIpAddr,
+   uint16_t srcPort, const IpAddr *destIpAddr, uint16_t destPort,
+   NetBuffer *buffer, size_t offset, uint8_t ttl);
 
 error_t udpReceiveDatagram(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
    IpAddr *destIpAddr, void *data, size_t size, size_t *received, uint_t flags);

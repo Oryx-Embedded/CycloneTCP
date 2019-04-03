@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _ENC624J600_DRIVER_H
@@ -479,10 +481,14 @@ void enc624j600UpdateMacConfig(NetInterface *interface);
 
 error_t enc624j600SoftReset(NetInterface *interface);
 
-void enc624j600WriteReg(NetInterface *interface, uint8_t address, uint16_t data);
+void enc624j600WriteReg(NetInterface *interface, uint8_t address,
+   uint16_t data);
+
 uint16_t enc624j600ReadReg(NetInterface *interface, uint8_t address);
 
-void enc624j600WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data);
+void enc624j600WritePhyReg(NetInterface *interface, uint8_t address,
+   uint16_t data);
+
 uint16_t enc624j600ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void enc624j600WriteBuffer(NetInterface *interface,
@@ -491,8 +497,11 @@ void enc624j600WriteBuffer(NetInterface *interface,
 void enc624j600ReadBuffer(NetInterface *interface,
    uint8_t opcode, uint8_t *data, size_t length);
 
-void enc624j600SetBit(NetInterface *interface, uint8_t address, uint16_t mask);
-void enc624j600ClearBit(NetInterface *interface, uint8_t address, uint16_t mask);
+void enc624j600SetBit(NetInterface *interface, uint8_t address,
+   uint16_t mask);
+
+void enc624j600ClearBit(NetInterface *interface, uint8_t address,
+   uint16_t mask);
 
 uint32_t enc624j600CalcCrc(const void *data, size_t length);
 

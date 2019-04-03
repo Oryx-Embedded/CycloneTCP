@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _AR8035_DRIVER_H
@@ -338,7 +340,9 @@ void ar8035DisableIrq(NetInterface *interface);
 
 void ar8035EventHandler(NetInterface *interface);
 
-void ar8035WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data);
+void ar8035WritePhyReg(NetInterface *interface, uint8_t address,
+   uint16_t data);
+
 uint16_t ar8035ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ar8035DumpPhyReg(NetInterface *interface);

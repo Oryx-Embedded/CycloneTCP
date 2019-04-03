@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -267,10 +269,10 @@ error_t mdnsResponderSetIpv4ReverseName(MdnsResponderContext *context)
    interface = context->settings.interface;
 
    //Check whether the host address is valid
-   if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_VALID)
+   if(interface->ipv4Context.addrList[0].state == IPV4_ADDR_STATE_VALID)
    {
       //Cast the IPv4 address as byte array
-      addr = (uint8_t *) &interface->ipv4Context.addr;
+      addr = (uint8_t *) &interface->ipv4Context.addrList[0].addr;
 
       //Generate the domain name for reverse DNS lookup
       sprintf(context->ipv4ReverseName, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
@@ -412,7 +414,7 @@ void mdnsResponderTick(MdnsResponderContext *context)
 
 #if (IPV4_SUPPORT == ENABLED)
             //Check whether the IPv4 host address is valid
-            if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_VALID)
+            if(interface->ipv4Context.addrList[0].state == IPV4_ADDR_STATE_VALID)
                valid = TRUE;
 #endif
 
@@ -440,7 +442,7 @@ void mdnsResponderTick(MdnsResponderContext *context)
       {
 #if (IPV4_SUPPORT == ENABLED)
          //Check whether the IPv4 host address is valid
-         if(interface->ipv4Context.addrState != IPV4_ADDR_STATE_VALID)
+         if(interface->ipv4Context.addrList[0].state != IPV4_ADDR_STATE_VALID)
             valid = FALSE;
 #endif
 
@@ -1544,11 +1546,11 @@ void mdnsResponderParseNsRecord(NetInterface *interface,
             if(ntohs(record->rdlength) == sizeof(Ipv4Addr))
             {
                //Valid host address?
-               if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_VALID)
+               if(interface->ipv4Context.addrList[0].state == IPV4_ADDR_STATE_VALID)
                {
                   //The two records are compared and the lexicographically
                   //later data wins
-                  if(memcmp(&interface->ipv4Context.addr, record->rdata,
+                  if(memcmp(&interface->ipv4Context.addrList[0].addr, record->rdata,
                      sizeof(Ipv4Addr)) >= 0)
                   {
                      tieBreakLost = FALSE;
@@ -1648,10 +1650,10 @@ void mdnsResponderParseAnRecord(NetInterface *interface,
             if(ntohs(record->rdlength) == sizeof(Ipv4Addr))
             {
                //Valid host address?
-               if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_VALID)
+               if(interface->ipv4Context.addrList[0].state == IPV4_ADDR_STATE_VALID)
                {
                   //Check whether the rdata field is consistent
-                  if(ipv4CompAddr(&interface->ipv4Context.addr, record->rdata))
+                  if(ipv4CompAddr(&interface->ipv4Context.addrList[0].addr, record->rdata))
                      context->conflict = FALSE;
                }
             }
@@ -1895,7 +1897,7 @@ error_t mdnsResponderAddIpv4AddrRecord(NetInterface *interface,
    context = interface->mdnsResponderContext;
 
    //Valid IPv4 host address?
-   if(interface->ipv4Context.addrState == IPV4_ADDR_STATE_VALID)
+   if(interface->ipv4Context.addrList[0].state == IPV4_ADDR_STATE_VALID)
    {
       //Check whether the resource record is already present in the Answer
       //Section of the message
@@ -1941,7 +1943,7 @@ error_t mdnsResponderAddIpv4AddrRecord(NetInterface *interface,
             record->rclass |= HTONS(MDNS_RCLASS_CACHE_FLUSH);
 
          //Copy IPv4 address
-         ipv4CopyAddr(record->rdata, &interface->ipv4Context.addr);
+         ipv4CopyAddr(record->rdata, &interface->ipv4Context.addrList[0].addr);
 
          //Number of resource records in the answer section
          message->dnsHeader->ancount++;

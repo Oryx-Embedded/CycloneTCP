@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _DP83822_DRIVER_H
@@ -424,7 +426,9 @@ void dp83822DisableIrq(NetInterface *interface);
 
 void dp83822EventHandler(NetInterface *interface);
 
-void dp83822WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data);
+void dp83822WritePhyReg(NetInterface *interface, uint8_t address,
+   uint16_t data);
+
 uint16_t dp83822ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void dp83822DumpPhyReg(NetInterface *interface);

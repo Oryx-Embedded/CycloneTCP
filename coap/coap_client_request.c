@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -215,6 +217,21 @@ error_t coapClientSendRequest(CoapClientRequest *request,
                //Wait for a response to be received
                error = coapClientProcessEvents(context,
                   COAP_CLIENT_TICK_INTERVAL);
+
+#if (NET_RTOS_SUPPORT == DISABLED)
+               //Check status code
+               if(error == NO_ERROR)
+               {
+                  //The CoAP client operates in non-blocking mode
+                  if(request->state == COAP_REQ_STATE_TRANSMIT ||
+                     request->state == COAP_REQ_STATE_RECEIVE ||
+                     request->state == COAP_REQ_STATE_SEPARATE)
+                  {
+                     //Exit immediately
+                     error = ERROR_WOULD_BLOCK;
+                  }
+              }
+#endif
             }
             else if(request->state == COAP_REQ_STATE_OBSERVE ||
                request->state == COAP_REQ_STATE_DONE)

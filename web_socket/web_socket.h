@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _WEB_SOCKET_H
@@ -331,7 +333,7 @@ typedef __start_packed struct
 typedef error_t (*WebSocketRandCallback)(uint8_t *data, size_t length);
 
 
-//WebSocket connections over TLS supported?
+//TLS supported?
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
 
 /**
@@ -428,7 +430,7 @@ struct _WebSocket
    uint16_t statusCode;
    systime_t timestamp;
    uint_t retryCount;
-   char_t host[WEB_SOCKET_HOST_MAX_LEN + 1];
+   char_t host[WEB_SOCKET_HOST_MAX_LEN + 1]; ///<Domain name of the server (for virtual hosting)
    char_t origin[WEB_SOCKET_ORIGIN_MAX_LEN + 1];
    char_t subProtocol[WEB_SOCKET_SUB_PROTOCOL_MAX_LEN + 1];
    char_t uri[WEB_SOCKET_URI_MAX_LEN + 1];

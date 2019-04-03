@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -34,6 +36,7 @@
 #include "core/net.h"
 #include "core/ip.h"
 #include "ipv4/ipv4.h"
+#include "ipv4/ipv4_misc.h"
 #include "ipv4/icmp.h"
 #include "mibs/mib2_module.h"
 #include "mibs/ip_mib_module.h"
@@ -46,13 +49,14 @@
 /**
  * @brief Incoming ICMP message processing
  * @param[in] interface Underlying network interface
- * @param[in] srcIpAddr Source IPv4 address
+ * @param[in] requestPseudoHeader IPv4 pseudo header
  * @param[in] buffer Multi-part buffer containing the incoming ICMP message
  * @param[in] offset Offset to the first byte of the ICMP message
  **/
 
 void icmpProcessMessage(NetInterface *interface,
-   Ipv4Addr srcIpAddr, const NetBuffer *buffer, size_t offset)
+   Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *buffer,
+   size_t offset)
 {
    size_t length;
    IcmpHeader *header;
@@ -111,7 +115,7 @@ void icmpProcessMessage(NetInterface *interface,
    //Echo Request?
    case ICMP_TYPE_ECHO_REQUEST:
       //Process Echo Request message
-      icmpProcessEchoRequest(interface, srcIpAddr, buffer, offset);
+      icmpProcessEchoRequest(interface, requestPseudoHeader, buffer, offset);
       break;
    //Unknown type?
    default:
@@ -126,13 +130,14 @@ void icmpProcessMessage(NetInterface *interface,
 /**
  * @brief Echo Request message processing
  * @param[in] interface Underlying network interface
- * @param[in] srcIpAddr Source IPv4 address
+ * @param[in] requestPseudoHeader IPv4 pseudo header
  * @param[in] request Multi-part buffer containing the incoming Echo Request message
  * @param[in] requestOffset Offset to the first byte of the Echo Request message
  **/
 
 void icmpProcessEchoRequest(NetInterface *interface,
-   Ipv4Addr srcIpAddr, const NetBuffer *request, size_t requestOffset)
+   Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *request,
+   size_t requestOffset)
 {
    error_t error;
    size_t requestLength;
@@ -141,7 +146,7 @@ void icmpProcessEchoRequest(NetInterface *interface,
    NetBuffer *reply;
    IcmpEchoMessage *requestHeader;
    IcmpEchoMessage *replyHeader;
-   Ipv4PseudoHeader pseudoHeader;
+   Ipv4PseudoHeader replyPseudoHeader;
 
    //Retrieve the length of the Echo Request message
    requestLength = netBufferGetLength(request) - requestOffset;
@@ -160,6 +165,35 @@ void icmpProcessEchoRequest(NetInterface *interface,
    TRACE_INFO("ICMP Echo Request message received (%" PRIuSIZE " bytes)...\r\n", requestLength);
    //Dump message contents for debugging purpose
    icmpDumpEchoMessage(requestHeader);
+
+   //Check whether the destination address of the Echo Request message is
+   //a broadcast or a multicast address
+   if(ipv4IsBroadcastAddr(interface, requestPseudoHeader->destAddr) ||
+      ipv4IsMulticastAddr(requestPseudoHeader->destAddr))
+   {
+      Ipv4Addr ipAddr;
+
+      //If support for broadcast Echo Request messages has been explicitly
+      //disabled, then the host shall not respond to the incoming request
+      if(!interface->ipv4Context.enableBroadcastEchoReq)
+         return;
+
+      //The source address of the reply must be a unicast address belonging to
+      //the interface on which the broadcast Echo Request message was received
+      error = ipv4SelectSourceAddr(&interface, requestPseudoHeader->srcAddr,
+         &ipAddr);
+      //Any error to report?
+      if(error)
+         return;
+
+      //Copy the resulting source IP address
+      replyPseudoHeader.srcAddr = ipAddr;
+   }
+   else
+   {
+      //The destination address of the Echo Request message is a unicast address
+      replyPseudoHeader.srcAddr = requestPseudoHeader->destAddr;
+   }
 
    //Allocate memory to hold the Echo Reply message
    reply = ipAllocBuffer(sizeof(IcmpEchoMessage), &replyOffset);
@@ -193,11 +227,10 @@ void icmpProcessEchoRequest(NetInterface *interface,
       replyHeader->checksum = ipCalcChecksumEx(reply, replyOffset, replyLength);
 
       //Format IPv4 pseudo header
-      pseudoHeader.srcAddr = interface->ipv4Context.addr;
-      pseudoHeader.destAddr = srcIpAddr;
-      pseudoHeader.reserved = 0;
-      pseudoHeader.protocol = IPV4_PROTOCOL_ICMP;
-      pseudoHeader.length = htons(replyLength);
+      replyPseudoHeader.destAddr = requestPseudoHeader->srcAddr;
+      replyPseudoHeader.reserved = 0;
+      replyPseudoHeader.protocol = IPV4_PROTOCOL_ICMP;
+      replyPseudoHeader.length = htons(replyLength);
 
       //Update ICMP statistics
       icmpUpdateOutStats(ICMP_TYPE_ECHO_REPLY);
@@ -208,7 +241,8 @@ void icmpProcessEchoRequest(NetInterface *interface,
       icmpDumpEchoMessage(replyHeader);
 
       //Send Echo Reply message
-      ipv4SendDatagram(interface, &pseudoHeader, reply, replyOffset, IPV4_DEFAULT_TTL);
+      ipv4SendDatagram(interface, &replyPseudoHeader, reply, replyOffset,
+         IPV4_DEFAULT_TTL);
    }
 
    //Free previously allocated memory block

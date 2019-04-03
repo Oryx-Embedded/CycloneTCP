@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -144,7 +146,7 @@ error_t s7g2EthInit(NetInterface *interface)
    s7g2EthInitDmaDesc(interface);
 
    //Maximum frame length that can be accepted
-   R_ETHERC1->RFLR = 1518;
+   R_ETHERC1->RFLR = S7G2_ETH_RX_BUFFER_SIZE;
    //Set default inter packet gap (96-bit time)
    R_ETHERC1->IPGR = 0x14;
 

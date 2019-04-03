@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _IPV4_H
@@ -54,6 +56,13 @@ struct _Ipv4PseudoHeader;
    #define IPV4_DEFAULT_TTL 64
 #elif (IPV4_DEFAULT_TTL < 1)
    #error IPV4_DEFAULT_TTL parameter is not valid
+#endif
+
+//Maximum number of IPv4 addresses
+#ifndef IPV4_ADDR_LIST_SIZE
+   #define IPV4_ADDR_LIST_SIZE 1
+#elif (IPV4_ADDR_LIST_SIZE < 1)
+   #error IPV4_ADDR_LIST_SIZE parameter is not valid
 #endif
 
 //Maximum number of DNS servers
@@ -137,10 +146,9 @@ struct _Ipv4PseudoHeader;
 #define ipv4CompAddr(ipAddr1, ipAddr2) \
    (!memcmp(ipAddr1, ipAddr2, sizeof(Ipv4Addr)))
 
-//Determine whether an IPv4 address belongs to the local network
-#define ipv4IsOnLocalSubnet(interface, ipAddr) \
-   ((ipAddr & interface->ipv4Context.subnetMask) == \
-   (interface->ipv4Context.addr & interface->ipv4Context.subnetMask))
+//Determine whether an IPv4 address belongs to the subnet
+#define ipv4IsOnSubnet(entry, ipAddr) \
+   ((ipAddr & entry->subnetMask) == (entry->addr & entry->subnetMask))
 
 //Determine whether an IPv4 address is a link-local address
 #define ipv4IsLinkLocalAddr(ipAddr) \
@@ -149,11 +157,6 @@ struct _Ipv4PseudoHeader;
 //Determine whether an IPv4 address is a multicast address
 #define ipv4IsMulticastAddr(ipAddr) \
    ((ipAddr & IPV4_MULTICAST_MASK) == IPV4_MULTICAST_PREFIX)
-
-//Check whether an IPv4 address is a tentative address
-#define ipv4IsTentativeAddr(interface, ipAddr) \
-   (interface->ipv4Context.addrState == IPV4_ADDR_STATE_TENTATIVE && \
-   interface->ipv4Context.addr == ipAddr)
 
 //C++ guard
 #ifdef __cplusplus
@@ -179,9 +182,9 @@ typedef enum
 
 typedef enum
 {
-   IPV4_ADDR_STATE_INVALID    = 0, ///<An address that is not assigned to any interface
-   IPV4_ADDR_STATE_TENTATIVE  = 1, ///<An address whose uniqueness on a link is being verified
-   IPV4_ADDR_STATE_VALID      = 2  ///<An address assigned to an interface whose use is unrestricted
+   IPV4_ADDR_STATE_INVALID   = 0, ///<An address that is not assigned to any interface
+   IPV4_ADDR_STATE_TENTATIVE = 1, ///<An address whose uniqueness on a link is being verified
+   IPV4_ADDR_STATE_VALID     = 2  ///<An address assigned to an interface whose use is unrestricted
 } Ipv4AddrState;
 
 
@@ -297,6 +300,20 @@ typedef __start_packed struct
 
 
 /**
+ * @brief IPv4 address entry
+ **/
+
+typedef struct
+{
+   Ipv4Addr addr;           ///<IPv4 address
+   Ipv4AddrState state;     ///<IPv4 address state
+   bool_t conflict;         ///<Address conflict detected
+   Ipv4Addr subnetMask;     ///<Subnet mask
+   Ipv4Addr defaultGateway; ///<Default gateway
+} Ipv4AddrEntry;
+
+
+/**
  * @brief IPv4 multicast filter entry
  **/
 
@@ -318,12 +335,9 @@ typedef struct
 {
    size_t linkMtu;                                              ///<Maximum transmission unit
    bool_t isRouter;                                             ///<A flag indicating whether routing is enabled on this interface
+   bool_t enableBroadcastEchoReq;                               ///<Support for broadcast ICMP Echo Request messages
    uint16_t identification;                                     ///<IPv4 fragment identification field
-   Ipv4Addr addr;                                               ///<Host address
-   Ipv4AddrState addrState;                                     ///<State of the host address
-   bool_t addrConflict;                                         ///<Address conflict detected
-   Ipv4Addr subnetMask;                                         ///<Subnet mask
-   Ipv4Addr defaultGateway;                                     ///<Default gateway
+   Ipv4AddrEntry addrList[IPV4_ADDR_LIST_SIZE];                 ///<IPv4 address list
    Ipv4Addr dnsServerList[IPV4_DNS_SERVER_LIST_SIZE];           ///<DNS servers
    Ipv4FilterEntry multicastFilter[IPV4_MULTICAST_FILTER_SIZE]; ///<Multicast filter table
 #if (IPV4_FRAG_SUPPORT == ENABLED)
@@ -336,18 +350,27 @@ typedef struct
 error_t ipv4Init(NetInterface *interface);
 
 error_t ipv4SetHostAddr(NetInterface *interface, Ipv4Addr addr);
+error_t ipv4SetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr addr);
 error_t ipv4GetHostAddr(NetInterface *interface, Ipv4Addr *addr);
+error_t ipv4GetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr *addr);
 
 error_t ipv4SetSubnetMask(NetInterface *interface, Ipv4Addr mask);
+error_t ipv4SetSubnetMaskEx(NetInterface *interface, uint_t index, Ipv4Addr mask);
 error_t ipv4GetSubnetMask(NetInterface *interface, Ipv4Addr *mask);
+error_t ipv4GetSubnetMaskEx(NetInterface *interface, uint_t index, Ipv4Addr *mask);
 
 error_t ipv4SetDefaultGateway(NetInterface *interface, Ipv4Addr addr);
+
+error_t ipv4SetDefaultGatewayEx(NetInterface *interface, uint_t index,
+   Ipv4Addr addr);
+
 error_t ipv4GetDefaultGateway(NetInterface *interface, Ipv4Addr *addr);
+
+error_t ipv4GetDefaultGatewayEx(NetInterface *interface, uint_t index,
+   Ipv4Addr *addr);
 
 error_t ipv4SetDnsServer(NetInterface *interface, uint_t index, Ipv4Addr addr);
 error_t ipv4GetDnsServer(NetInterface *interface, uint_t index, Ipv4Addr *addr);
-
-error_t ipv4GetBroadcastAddr(NetInterface *interface, Ipv4Addr *addr);
 
 void ipv4LinkChangeEvent(NetInterface *interface);
 
@@ -360,24 +383,8 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
 error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset, uint8_t ttl);
 
-error_t ipv4CheckSourceAddr(NetInterface *interface, Ipv4Addr ipAddr);
-error_t ipv4CheckDestAddr(NetInterface *interface, Ipv4Addr ipAddr);
-
-error_t ipv4SelectSourceAddr(NetInterface **interface,
-   Ipv4Addr destAddr, Ipv4Addr *srcAddr);
-
-bool_t ipv4IsBroadcastAddr(NetInterface *interface, Ipv4Addr ipAddr);
-
-uint_t ipv4GetAddrScope(Ipv4Addr ipAddr);
-uint_t ipv4GetPrefixLength(Ipv4Addr mask);
-
 error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
 error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
-
-error_t ipv4MapMulticastAddrToMac(Ipv4Addr ipAddr, MacAddr *macAddr);
-
-void ipv4UpdateInStats(NetInterface *interface, Ipv4Addr destIpAddr, size_t length);
-void ipv4UpdateOutStats(NetInterface *interface, Ipv4Addr destIpAddr, size_t length);
 
 error_t ipv4StringToAddr(const char_t *str, Ipv4Addr *ipAddr);
 char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);

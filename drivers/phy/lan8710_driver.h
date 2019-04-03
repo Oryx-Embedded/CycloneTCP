@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _LAN8710_DRIVER_H
@@ -207,7 +209,9 @@ void lan8710DisableIrq(NetInterface *interface);
 
 void lan8710EventHandler(NetInterface *interface);
 
-void lan8710WritePhyReg(NetInterface *interface, uint8_t address, uint16_t data);
+void lan8710WritePhyReg(NetInterface *interface, uint8_t address,
+   uint16_t data);
+
 uint16_t lan8710ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void lan8710DumpPhyReg(NetInterface *interface);

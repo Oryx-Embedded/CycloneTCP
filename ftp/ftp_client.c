@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +33,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -71,7 +73,7 @@ error_t ftpClientInit(FtpClientContext *context)
    memset(context, 0, sizeof(FtpClientContext));
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-    //Initialize TLS session state
+   //Initialize TLS session state
    error = tlsInitSessionState(&context->tlsSession);
    //Any error to report?
    if(error)
@@ -167,7 +169,7 @@ error_t ftpClientBindToInterface(FtpClientContext *context,
  * @return Error code
  **/
 
-error_t ftpClientConnect(FtpClientContext *context, 
+error_t ftpClientConnect(FtpClientContext *context,
    const IpAddr *serverIpAddr, uint16_t serverPort, uint_t mode)
 {
    error_t error;
@@ -851,7 +853,7 @@ error_t ftpClientOpenDir(FtpClientContext *context, const char_t *path)
          context->commandLen = 0;
          context->replyLen = 0;
 
-         //The content of the directory can be transferred via the data 
+         //The content of the directory can be transferred via the data
          //connection
          ftpClientChangeState(context, FTP_CLIENT_STATE_READING_DATA);
 
@@ -1006,7 +1008,7 @@ error_t ftpClientCloseDir(FtpClientContext *context)
  * @return Error code
  **/
 
-error_t ftpClientMakeDir(FtpClientContext *context, const char_t *path)
+error_t ftpClientCreateDir(FtpClientContext *context, const char_t *path)
 {
    error_t error;
 
@@ -1080,7 +1082,7 @@ error_t ftpClientMakeDir(FtpClientContext *context, const char_t *path)
  * @return Error code
  **/
 
-error_t ftpClientRemoveDir(FtpClientContext *context, const char_t *path)
+error_t ftpClientDeleteDir(FtpClientContext *context, const char_t *path)
 {
    error_t error;
 
@@ -1296,7 +1298,7 @@ error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
  * @param[in] context Pointer to the FTP client context
  * @param[in] data Pointer to a buffer containing the data to be written
  * @param[in] length Number of data bytes to write
- * @param[in] written Number of bytes that have been written
+ * @param[in] written Number of bytes that have been written (optional parameter)
  * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
@@ -1310,12 +1312,16 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Check parameters
+   if(data == NULL && length != 0)
+      return ERROR_INVALID_PARAMETER;
+
    //Check current state
    if(context->state == FTP_CLIENT_STATE_WRITING_DATA)
    {
       //Transmit data to the FTP server
       error = ftpClientSendData(&context->dataConnection, data, length,
-         NULL, flags);
+         written, flags);
 
       //Check status code
       if(error == NO_ERROR)
@@ -1349,18 +1355,18 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
  * @param[in] context Pointer to the FTP client context
  * @param[out] data Buffer where to store the incoming data
  * @param[in] size Maximum number of bytes that can be read
- * @param[out] length Actual number of bytes that have been read
+ * @param[out] received Actual number of bytes that have been read
  * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
 error_t ftpClientReadFile(FtpClientContext *context, void *data, size_t size,
-   size_t *length, uint_t flags)
+   size_t *received, uint_t flags)
 {
    error_t error;
 
-   //Make sure the FTP client context is valid
-   if(context == NULL)
+   //Check parameters
+   if(context == NULL || data == NULL || received == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Check current state
@@ -1368,7 +1374,7 @@ error_t ftpClientReadFile(FtpClientContext *context, void *data, size_t size,
    {
       //Receive data from the FTP server
       error = ftpClientReceiveData(&context->dataConnection, data, size,
-         length, flags);
+         received, flags);
 
       //Check status code
       if(error == NO_ERROR)
@@ -1756,46 +1762,6 @@ void ftpClientDeinit(FtpClientContext *context)
       //Clear FTP client context
       memset(context, 0, sizeof(FtpClientContext));
    }
-}
-
-
-//Deprecated function
-error_t ftpConnect(FtpClientContext *context, NetInterface *interface,
-   const IpAddr *serverIpAddr, uint16_t serverPort, uint_t flags)
-{
-   error_t error;
-
-#if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
-   FtpClientTlsInitCallback tlsInitCallback;
-
-   //Initialize FTP client context
-   tlsInitCallback = context->tlsInitCallback;
-   error = ftpClientInit(context);
-   context->tlsInitCallback = tlsInitCallback;
-#else
-   //Initialize FTP client context
-   error = ftpClientInit(context);
-#endif
-
-   //Check status code
-   if(!error)
-   {
-      //Bind the FTP client to a particular network interface
-      ftpClientBindToInterface(context, interface);
-
-      //Establish a connection with the specified FTP server
-      error = ftpClientConnect(context, serverIpAddr, serverPort, flags);
-
-      //Failed to establish connection?
-      if(error)
-      {
-         //Clean up side effects
-         ftpClientDeinit(context);
-      }
-   }
-
-   //Return status code
-   return error;
 }
 
 #endif

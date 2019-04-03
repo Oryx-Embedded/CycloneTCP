@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _SAMA5D3_ETH_DRIVER_H
@@ -101,13 +103,11 @@
 #define EMAC_RX_OFFSET         0x00003000
 #define EMAC_RX_LENGTH         0x00000FFF
 
-
-#if !defined(_SAMA5D3_GIGABIT_ETH_H)
-
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
 #endif
+
 
 /**
  * @brief Transmit buffer descriptor
@@ -117,7 +117,7 @@ typedef struct
 {
    uint32_t address;
    uint32_t status;
-} Sama5d3TxBufferDesc;
+} Sama5d3EthTxBufferDesc;
 
 
 /**
@@ -128,9 +128,7 @@ typedef struct
 {
    uint32_t address;
    uint32_t status;
-} Sama5d3RxBufferDesc;
-
-#endif
+} Sama5d3EthRxBufferDesc;
 
 
 //SAMA5D3 Ethernet MAC driver

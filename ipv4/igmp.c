@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +33,7 @@
  * - RFC 3376: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -512,7 +514,7 @@ error_t igmpSendReportMessage(NetInterface *interface, Ipv4Addr ipAddr)
    message->checksum = ipCalcChecksumEx(buffer, offset, sizeof(IgmpMessage));
 
    //Format IPv4 pseudo header
-   pseudoHeader.srcAddr = interface->ipv4Context.addr;
+   pseudoHeader.srcAddr = interface->ipv4Context.addrList[0].addr;
    pseudoHeader.destAddr = ipAddr;
    pseudoHeader.reserved = 0;
    pseudoHeader.protocol = IPV4_PROTOCOL_IGMP;
@@ -581,7 +583,7 @@ error_t igmpSendLeaveGroupMessage(NetInterface *interface, Ipv4Addr ipAddr)
    message->checksum = ipCalcChecksumEx(buffer, offset, sizeof(IgmpMessage));
 
    //Format IPv4 pseudo header
-   pseudoHeader.srcAddr = interface->ipv4Context.addr;
+   pseudoHeader.srcAddr = interface->ipv4Context.addrList[0].addr;
    pseudoHeader.destAddr = IGMP_ALL_ROUTERS_ADDR;
    pseudoHeader.reserved = 0;
    pseudoHeader.protocol = IPV4_PROTOCOL_IGMP;

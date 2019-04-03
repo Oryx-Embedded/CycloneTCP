@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -765,14 +767,14 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
    n = MQTT_MAX_HEADER_SIZE;
 
    //Check protocol version
-   if(context->settings.protocolLevel == MQTT_PROTOCOL_LEVEL_3_1)
+   if(context->settings.version == MQTT_VERSION_3_1)
    {
       //The Protocol Name is a UTF-8 encoded string that represents the
       //protocol name "MQIsdp"
       error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
          &n, MQTT_PROTOCOL_NAME_3_1, strlen(MQTT_PROTOCOL_NAME_3_1));
    }
-   else if(context->settings.protocolLevel == MQTT_PROTOCOL_LEVEL_3_1_1)
+   else if(context->settings.version == MQTT_VERSION_3_1_1)
    {
       //The Protocol Name is a UTF-8 encoded string that represents the
       //protocol name "MQTT"
@@ -792,7 +794,7 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
    //The Protocol Level represents the revision level of the protocol
    //used by the client
    error = mqttSerializeByte(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-      &n, context->settings.protocolLevel);
+      &n, context->settings.version);
 
    //Failed to serialize data?
    if(error)

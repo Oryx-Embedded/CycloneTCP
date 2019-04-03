@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _FTP_CLIENT_H
@@ -287,7 +289,7 @@ error_t ftpClientSetTimeout(FtpClientContext *context, systime_t timeout);
 error_t ftpClientBindToInterface(FtpClientContext *context,
    NetInterface *interface);
 
-error_t ftpClientConnect(FtpClientContext *context, 
+error_t ftpClientConnect(FtpClientContext *context,
    const IpAddr *serverIpAddr, uint16_t serverPort, uint_t mode);
 
 error_t ftpClientLogin(FtpClientContext *context, const char_t *username,
@@ -308,8 +310,8 @@ error_t ftpClientOpenDir(FtpClientContext *context, const char_t *path);
 error_t ftpClientReadDir(FtpClientContext *context, FtpDirEntry *dirEntry);
 error_t ftpClientCloseDir(FtpClientContext *context);
 
-error_t ftpClientMakeDir(FtpClientContext *context, const char_t *path);
-error_t ftpClientRemoveDir(FtpClientContext *context, const char_t *path);
+error_t ftpClientCreateDir(FtpClientContext *context, const char_t *path);
+error_t ftpClientDeleteDir(FtpClientContext *context, const char_t *path);
 
 error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
    uint_t mode);
@@ -318,7 +320,7 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
    size_t length, size_t *written, uint_t flags);
 
 error_t ftpClientReadFile(FtpClientContext *context, void *data, size_t size,
-   size_t *length, uint_t flags);
+   size_t *received, uint_t flags);
 
 error_t ftpClientCloseFile(FtpClientContext *context);
 
@@ -333,10 +335,6 @@ error_t ftpClientDisconnect(FtpClientContext *context);
 error_t ftpClientClose(FtpClientContext *context);
 
 void ftpClientDeinit(FtpClientContext *context);
-
-//Deprecated function
-error_t ftpConnect(FtpClientContext *context, NetInterface *interface,
-   const IpAddr *serverIpAddr, uint16_t serverPort, uint_t flags);
 
 //C++ guard
 #ifdef __cplusplus

@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 #ifndef _NIC_H
@@ -68,7 +70,8 @@ typedef enum
    NIC_TYPE_UNKNOWN  = 0, ///<Unknown interface type
    NIC_TYPE_ETHERNET = 1, ///<Ethernet interface
    NIC_TYPE_PPP      = 2, ///<PPP interface
-   NIC_TYPE_6LOWPAN  = 3  ///<6LoWPAN interface
+   NIC_TYPE_6LOWPAN  = 3, ///<6LoWPAN interface
+   NIC_TYPE_LOOPBACK = 4  ///<Loopback interface
 } NicType;
 
 
@@ -128,11 +131,11 @@ typedef void (*PhyEnableIrq)(NetInterface *interface);
 typedef void (*PhyDisableIrq)(NetInterface *interface);
 typedef void (*PhyEventHandler)(NetInterface *interface);
 
-typedef error_t (*PhyTagFrame)(NetInterface **interface, NetBuffer *buffer,
-   size_t *offset, uint16_t *type);
+typedef error_t (*PhyTagFrame)(NetInterface *interface, NetBuffer *buffer,
+   size_t *offset, uint8_t port, uint16_t *type);
 
-typedef error_t (*PhyUntagFrame)(NetInterface **interface, uint8_t **frame,
-   size_t *length);
+typedef error_t (*PhyUntagFrame)(NetInterface *interface, uint8_t **frame,
+   size_t *length, uint8_t *port);
 
 //SPI abstraction layer
 typedef error_t (*SpiInit)(void);
@@ -251,13 +254,19 @@ extern systime_t nicTickCounter;
 //NIC abstraction layer
 NetInterface *nicGetLogicalInterface(NetInterface *interface);
 NetInterface *nicGetPhysicalInterface(NetInterface *interface);
+uint8_t nicGetSwitchPort(NetInterface *interface);
+uint16_t nicGetVlanId(NetInterface *interface);
+uint16_t nicGetVmanId(NetInterface *interface);
+
+bool_t nicIsParentInterface(NetInterface *interface, NetInterface *parent);
 
 void nicTick(NetInterface *interface);
 
-error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer, size_t offset);
-error_t nicUpdateMacAddrFilter(NetInterface *interface);
+error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
+   size_t offset);
 
-void nicProcessPacket(NetInterface *interface, void *packet, size_t length);
+error_t nicUpdateMacAddrFilter(NetInterface *interface);
+void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length);
 void nicNotifyLinkChange(NetInterface *interface);
 
 //C++ guard

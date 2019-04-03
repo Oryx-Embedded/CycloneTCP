@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -50,10 +52,10 @@ static uint8_t txBuffer[SAME54_ETH_TX_BUFFER_COUNT][SAME54_ETH_TX_BUFFER_SIZE];
 static uint8_t rxBuffer[SAME54_ETH_RX_BUFFER_COUNT][SAME54_ETH_RX_BUFFER_SIZE];
 //TX buffer descriptors
 #pragma data_alignment = 4
-static Sam4eTxBufferDesc txBufferDesc[SAME54_ETH_TX_BUFFER_COUNT];
+static Same54TxBufferDesc txBufferDesc[SAME54_ETH_TX_BUFFER_COUNT];
 //RX buffer descriptors
 #pragma data_alignment = 4
-static Sam4eRxBufferDesc rxBufferDesc[SAME54_ETH_RX_BUFFER_COUNT];
+static Same54RxBufferDesc rxBufferDesc[SAME54_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
 #else
@@ -65,10 +67,10 @@ static uint8_t txBuffer[SAME54_ETH_TX_BUFFER_COUNT][SAME54_ETH_TX_BUFFER_SIZE]
 static uint8_t rxBuffer[SAME54_ETH_RX_BUFFER_COUNT][SAME54_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(8)));
 //TX buffer descriptors
-static Sam4eTxBufferDesc txBufferDesc[SAME54_ETH_TX_BUFFER_COUNT]
+static Same54TxBufferDesc txBufferDesc[SAME54_ETH_TX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 //RX buffer descriptors
-static Sam4eRxBufferDesc rxBufferDesc[SAME54_ETH_RX_BUFFER_COUNT]
+static Same54RxBufferDesc rxBufferDesc[SAME54_ETH_RX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 
 #endif
@@ -139,16 +141,21 @@ error_t same54EthInit(NetInterface *interface)
    if(error)
       return error;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    GMAC->Sa[0].SAB.reg = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    GMAC->Sa[0].SAT.reg = interface->macAddr.w[2];
 
-   //Configure the receive filter
-   GMAC->NCFGR.reg |= GMAC_NCFGR_UNIHEN | GMAC_NCFGR_MTIHEN;
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   GMAC->Sa[1].SAB.reg = 0;
+   GMAC->Sa[2].SAB.reg = 0;
+   GMAC->Sa[3].SAB.reg = 0;
 
    //Initialize hash table
    GMAC->HRB.reg = 0;
    GMAC->HRT.reg = 0;
+
+   //Configure the receive filter
+   GMAC->NCFGR.reg |= GMAC_NCFGR_MAXFS | GMAC_NCFGR_MTIHEN;
 
    //Initialize buffer descriptors
    same54EthInitBufferDesc(interface);
@@ -488,6 +495,9 @@ error_t same54EthSendPacket(NetInterface *interface,
       txBufferIndex = 0;
    }
 
+   //Data synchronization barrier
+   __DSB();
+
    //Set the TSTART bit to initiate transmission
    GMAC->NCR.reg |= GMAC_NCR_TSTART;
 
@@ -626,21 +636,28 @@ error_t same54EthReceivePacket(NetInterface *interface)
 error_t same54EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
+   uint_t j;
    uint_t k;
    uint8_t *p;
    uint32_t hashTable[2];
+   MacAddr unicastMacAddr[3];
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating SAME54 hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Clear hash table
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
+   //The hash table is used for multicast address filtering
    hashTable[0] = 0;
    hashTable[1] = 0;
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
       entry = &interface->macAddrFilter[i];
@@ -648,26 +665,78 @@ error_t same54EthUpdateMacAddrFilter(NetInterface *interface)
       //Valid entry?
       if(entry->refCount > 0)
       {
-         //Point to the MAC address
-         p = entry->addr.b;
+         //Multicast address?
+         if(macIsMulticastAddr(&entry->addr))
+         {
+            //Point to the MAC address
+            p = entry->addr.b;
 
-         //Apply the hash function
-         k = (p[0] >> 6) ^ p[0];
-         k ^= (p[1] >> 4) ^ (p[1] << 2);
-         k ^= (p[2] >> 2) ^ (p[2] << 4);
-         k ^= (p[3] >> 6) ^ p[3];
-         k ^= (p[4] >> 4) ^ (p[4] << 2);
-         k ^= (p[5] >> 2) ^ (p[5] << 4);
+            //Apply the hash function
+            k = (p[0] >> 6) ^ p[0];
+            k ^= (p[1] >> 4) ^ (p[1] << 2);
+            k ^= (p[2] >> 2) ^ (p[2] << 4);
+            k ^= (p[3] >> 6) ^ p[3];
+            k ^= (p[4] >> 4) ^ (p[4] << 2);
+            k ^= (p[5] >> 2) ^ (p[5] << 4);
 
-         //The hash value is reduced to a 6-bit index
-         k &= 0x3F;
+            //The hash value is reduced to a 6-bit index
+            k &= 0x3F;
 
-         //Update hash table contents
-         hashTable[k / 32] |= (1 << (k % 32));
+            //Update hash table contents
+            hashTable[k / 32] |= (1 << (k % 32));
+         }
+         else
+         {
+            //Up to 3 additional MAC addresses can be specified
+            if(j < 3)
+            {
+               //Save the unicast address
+               unicastMacAddr[j++] = entry->addr;
+            }
+         }
       }
    }
 
-   //Write the hash table
+   //Configure the first unicast address filter
+   if(j >= 1)
+   {
+      //The addresse is activated when SAT register is written
+      GMAC->Sa[1].SAB.reg = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+      GMAC->Sa[1].SAT.reg = unicastMacAddr[0].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      GMAC->Sa[1].SAB.reg = 0;
+   }
+
+   //Configure the second unicast address filter
+   if(j >= 2)
+   {
+      //The addresse is activated when SAT register is written
+      GMAC->Sa[2].SAB.reg = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+      GMAC->Sa[2].SAT.reg = unicastMacAddr[1].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      GMAC->Sa[2].SAB.reg = 0;
+   }
+
+   //Configure the third unicast address filter
+   if(j >= 3)
+   {
+      //The addresse is activated when SAT register is written
+      GMAC->Sa[3].SAB.reg = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+      GMAC->Sa[3].SAT.reg = unicastMacAddr[2].w[2];
+   }
+   else
+   {
+      //The addresse is activated when SAB register is written
+      GMAC->Sa[3].SAB.reg = 0;
+   }
+
+   //Configure the multicast address filter
    GMAC->HRB.reg = hashTable[0];
    GMAC->HRT.reg = hashTable[1];
 

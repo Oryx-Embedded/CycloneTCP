@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -628,9 +630,9 @@ void ipcpThisLayerUp(PppContext *context)
    interface = context->interface;
 
    //Update IPv4 configuration
-   interface->ipv4Context.addr = context->localConfig.ipAddr;
-   interface->ipv4Context.addrState = IPV4_ADDR_STATE_VALID;
-   interface->ipv4Context.defaultGateway = context->peerConfig.ipAddr;
+   interface->ipv4Context.addrList[0].addr = context->localConfig.ipAddr;
+   interface->ipv4Context.addrList[0].state = IPV4_ADDR_STATE_VALID;
+   interface->ipv4Context.addrList[0].defaultGateway = context->peerConfig.ipAddr;
 
    //Update the list of DNS servers
    interface->ipv4Context.dnsServerList[0] = context->localConfig.primaryDns;
@@ -639,7 +641,7 @@ void ipcpThisLayerUp(PppContext *context)
 #endif
 
    //All the outgoing traffic will be routed to the other end of the link
-   interface->ipv4Context.subnetMask = IPCP_DEFAULT_SUBNET_MASK;
+   interface->ipv4Context.addrList[0].subnetMask = IPCP_DEFAULT_SUBNET_MASK;
 
    //Link is up
    interface->linkState = TRUE;

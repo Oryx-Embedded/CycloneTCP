@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -156,9 +158,17 @@ error_t xmc4800EthInit(NetInterface *interface)
    ETH0->MAC_CONFIGURATION = ETH_MAC_CONFIGURATION_RESERVED15_Msk |
       ETH_MAC_CONFIGURATION_DO_Msk;
 
-   //Set the MAC address
+   //Set the MAC address of the station
    ETH0->MAC_ADDRESS0_LOW = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    ETH0->MAC_ADDRESS0_HIGH = interface->macAddr.w[2];
+
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   ETH0->MAC_ADDRESS1_LOW = 0;
+   ETH0->MAC_ADDRESS1_HIGH = 0;
+   ETH0->MAC_ADDRESS2_LOW = 0;
+   ETH0->MAC_ADDRESS2_HIGH = 0;
+   ETH0->MAC_ADDRESS3_LOW = 0;
+   ETH0->MAC_ADDRESS3_HIGH = 0;
 
    //Initialize hash table
    ETH0->HASH_TABLE_LOW = 0;
@@ -448,7 +458,7 @@ void xmc4800EthEventHandler(NetInterface *interface)
    }
 
    //Re-enable DMA interrupts
-   ETH0->INTERRUPT_ENABLE |= ETH_INTERRUPT_ENABLE_NIE_Msk |
+   ETH0->INTERRUPT_ENABLE = ETH_INTERRUPT_ENABLE_NIE_Msk |
       ETH_INTERRUPT_ENABLE_RIE_Msk | ETH_INTERRUPT_ENABLE_TIE_Msk;
 }
 
@@ -585,21 +595,28 @@ error_t xmc4800EthReceivePacket(NetInterface *interface)
 error_t xmc4800EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
+   uint_t j;
    uint_t k;
    uint32_t crc;
    uint32_t hashTable[2];
+   MacAddr unicastMacAddr[3];
    MacFilterEntry *entry;
 
    //Debug message
-   TRACE_DEBUG("Updating XMC4800 hash table...\r\n");
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Clear hash table
+   //The MAC supports 3 additional addresses for unicast perfect filtering
+   unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
+   unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
+   //The hash table is used for multicast address filtering
    hashTable[0] = 0;
    hashTable[1] = 0;
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
       entry = &interface->macAddrFilter[i];
@@ -607,25 +624,74 @@ error_t xmc4800EthUpdateMacAddrFilter(NetInterface *interface)
       //Valid entry?
       if(entry->refCount > 0)
       {
-         //Compute CRC over the current MAC address
-         crc = xmc4800EthCalcCrc(&entry->addr, sizeof(MacAddr));
+         //Multicast address?
+         if(macIsMulticastAddr(&entry->addr))
+         {
+            //Compute CRC over the current MAC address
+            crc = xmc4800EthCalcCrc(&entry->addr, sizeof(MacAddr));
 
-         //The upper 6 bits in the CRC register are used to index the
-         //contents of the hash table
-         k = (crc >> 26) & 0x3F;
+            //The upper 6 bits in the CRC register are used to index the
+            //contents of the hash table
+            k = (crc >> 26) & 0x3F;
 
-         //Update hash table contents
-         hashTable[k / 32] |= (1 << (k % 32));
+            //Update hash table contents
+            hashTable[k / 32] |= (1 << (k % 32));
+         }
+         else
+         {
+            //Up to 3 additional MAC addresses can be specified
+            if(j < 3)
+            {
+               //Save the unicast address
+               unicastMacAddr[j++] = entry->addr;
+            }
+         }
       }
    }
 
-   //Write the hash table
+   //Configure the first unicast address filter
+   if(j >= 1)
+   {
+      ETH0->MAC_ADDRESS1_LOW = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+      ETH0->MAC_ADDRESS1_HIGH = unicastMacAddr[0].w[2] | ETH_MAC_ADDRESS1_HIGH_AE_Msk;
+   }
+   else
+   {
+      ETH0->MAC_ADDRESS1_LOW = 0;
+      ETH0->MAC_ADDRESS1_HIGH = 0;
+   }
+
+   //Configure the second unicast address filter
+   if(j >= 2)
+   {
+      ETH0->MAC_ADDRESS2_LOW = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+      ETH0->MAC_ADDRESS2_HIGH = unicastMacAddr[1].w[2] | ETH_MAC_ADDRESS2_HIGH_AE_Msk;
+   }
+   else
+   {
+      ETH0->MAC_ADDRESS2_LOW = 0;
+      ETH0->MAC_ADDRESS2_HIGH = 0;
+   }
+
+   //Configure the third unicast address filter
+   if(j >= 3)
+   {
+      ETH0->MAC_ADDRESS3_LOW = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+      ETH0->MAC_ADDRESS3_HIGH = unicastMacAddr[2].w[2] | ETH_MAC_ADDRESS3_HIGH_AE_Msk;
+   }
+   else
+   {
+      ETH0->MAC_ADDRESS3_LOW = 0;
+      ETH0->MAC_ADDRESS3_HIGH = 0;
+   }
+
+   //Configure the multicast address filter
    ETH0->HASH_TABLE_LOW = hashTable[0];
    ETH0->HASH_TABLE_HIGH = hashTable[1];
 
    //Debug message
-   TRACE_DEBUG("  HTL = %08" PRIX32 "\r\n", ETH0->HASH_TABLE_LOW);
-   TRACE_DEBUG("  HTH = %08" PRIX32 "\r\n", ETH0->HASH_TABLE_HIGH);
+   TRACE_DEBUG("  HASH_TABLE_LOW = %08" PRIX32 "\r\n", ETH0->HASH_TABLE_LOW);
+   TRACE_DEBUG("  HASH_TABLE_HIGH = %08" PRIX32 "\r\n", ETH0->HASH_TABLE_HIGH);
 
    //Successful processing
    return NO_ERROR;

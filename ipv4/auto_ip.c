@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +35,7 @@
  * - RFC 5227: IPv4 Address Conflict Detection
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -63,6 +65,8 @@ void autoIpGetDefaultSettings(AutoIpSettings *settings)
 {
    //Use default interface
    settings->interface = netGetDefaultInterface();
+   //Index of the IP address to be configured
+   settings->ipAddrIndex = 0;
 
    //Initial link-local address to be used
    settings->linkLocalAddr = IPV4_UNSPECIFIED_ADDR;
@@ -129,6 +133,7 @@ error_t autoIpInit(AutoIpContext *context, const AutoIpSettings *settings)
 
 error_t autoIpStart(AutoIpContext *context)
 {
+   uint_t i;
    NetInterface *interface;
 
    //Check parameter
@@ -143,13 +148,15 @@ error_t autoIpStart(AutoIpContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //The host address is not longer valid
-   interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
-   interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+   interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
+   interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_INVALID;
 
    //Clear subnet mask
-   interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
+   interface->ipv4Context.addrList[i].subnetMask = IPV4_UNSPECIFIED_ADDR;
 
    //Start Auto-IP operation
    context->running = TRUE;
@@ -230,6 +237,7 @@ AutoIpState autoIpGetState(AutoIpContext *context)
 
 void autoIpTick(AutoIpContext *context)
 {
+   uint_t i;
    systime_t time;
    systime_t delay;
    NetInterface *interface;
@@ -240,6 +248,8 @@ void autoIpTick(AutoIpContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //Get current time
    time = osGetSystemTime();
@@ -251,7 +261,7 @@ void autoIpTick(AutoIpContext *context)
       if(context->running && interface->linkState)
       {
          //Configure subnet mask
-         interface->ipv4Context.subnetMask = AUTO_IP_MASK;
+         interface->ipv4Context.addrList[i].subnetMask = AUTO_IP_MASK;
 
          //The address must be in the range from 169.54.1.0 to 169.254.254.255
          if(ntohl(context->linkLocalAddr) < ntohl(AUTO_IP_ADDR_MIN) ||
@@ -262,11 +272,11 @@ void autoIpTick(AutoIpContext *context)
          }
 
          //Use the link-local address as a tentative address
-         interface->ipv4Context.addr = context->linkLocalAddr;
-         interface->ipv4Context.addrState = IPV4_ADDR_STATE_TENTATIVE;
+         interface->ipv4Context.addrList[i].addr = context->linkLocalAddr;
+         interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_TENTATIVE;
 
          //Clear conflict flag
-         interface->ipv4Context.addrConflict = FALSE;
+         interface->ipv4Context.addrList[i].conflict = FALSE;
 
          //Initial random delay
          delay = netGetRandRange(0, AUTO_IP_PROBE_WAIT);
@@ -285,12 +295,12 @@ void autoIpTick(AutoIpContext *context)
    else if(context->state == AUTO_IP_STATE_PROBING)
    {
       //Any conflict detected?
-      if(interface->ipv4Context.addrConflict)
+      if(interface->ipv4Context.addrList[i].conflict)
       {
          //The address is already in use by some other host and
          //must not be assigned to the interface
-         interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
-         interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+         interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
+         interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_INVALID;
 
          //The host should maintain a counter of the number of address
          //conflicts it has experienced
@@ -333,7 +343,7 @@ void autoIpTick(AutoIpContext *context)
             else
             {
                //The use of the IPv4 address is now unrestricted
-               interface->ipv4Context.addrState = IPV4_ADDR_STATE_VALID;
+               interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_VALID;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
                //Restart mDNS probing process
@@ -379,7 +389,7 @@ void autoIpTick(AutoIpContext *context)
    {
       //Address Conflict Detection is an on-going process that is in effect
       //for as long as a host is using an IPv4 link-local address
-      if(interface->ipv4Context.addrConflict)
+      if(interface->ipv4Context.addrList[i].conflict)
       {
          //The host may elect to attempt to defend its address by recording
          //the time that the conflicting ARP packet was received, and then
@@ -391,7 +401,7 @@ void autoIpTick(AutoIpContext *context)
          arpSendRequest(interface, context->linkLocalAddr, &MAC_BROADCAST_ADDR);
 #endif
          //Clear conflict flag
-         interface->ipv4Context.addrConflict = FALSE;
+         interface->ipv4Context.addrList[i].conflict = FALSE;
 
          //The host can then continue to use the address normally without
          //any further special action
@@ -404,11 +414,11 @@ void autoIpTick(AutoIpContext *context)
       //the time recorded for the previous conflicting ARP packet is recent,
       //within DEFEND_INTERVAL seconds, then the host must immediately cease
       //using this address
-      if(interface->ipv4Context.addrConflict)
+      if(interface->ipv4Context.addrList[i].conflict)
       {
          //The link-local address cannot be used anymore
-         interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
-         interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+         interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
+         interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_INVALID;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
          //Restart mDNS probing process
@@ -439,6 +449,7 @@ void autoIpTick(AutoIpContext *context)
 
 void autoIpLinkChangeEvent(AutoIpContext *context)
 {
+   uint_t i;
    NetInterface *interface;
 
    //Make sure Auto-IP has been properly instantiated
@@ -447,16 +458,18 @@ void autoIpLinkChangeEvent(AutoIpContext *context)
 
    //Point to the underlying network interface
    interface = context->settings.interface;
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
 
    //Check whether Auto-IP is enabled
    if(context->running)
    {
       //The host address is not longer valid
-      interface->ipv4Context.addr = IPV4_UNSPECIFIED_ADDR;
-      interface->ipv4Context.addrState = IPV4_ADDR_STATE_INVALID;
+      interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
+      interface->ipv4Context.addrList[i].state = IPV4_ADDR_STATE_INVALID;
 
       //Clear subnet mask
-      interface->ipv4Context.subnetMask = IPV4_UNSPECIFIED_ADDR;
+      interface->ipv4Context.addrList[i].subnetMask = IPV4_UNSPECIFIED_ADDR;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
       //Restart mDNS probing process
@@ -545,6 +558,7 @@ void autoIpGenerateAddr(Ipv4Addr *ipAddr)
 void autoIpDumpConfig(AutoIpContext *context)
 {
 #if (AUTO_IP_TRACE_LEVEL >= TRACE_LEVEL_INFO)
+   uint_t i;
    NetInterface *interface;
    Ipv4Context *ipv4Context;
 
@@ -553,17 +567,20 @@ void autoIpDumpConfig(AutoIpContext *context)
    //Point to the IPv4 context
    ipv4Context = &interface->ipv4Context;
 
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
+
    //Debug message
    TRACE_INFO("\r\n");
    TRACE_INFO("Auto-IP configuration:\r\n");
 
    //Link-local address
    TRACE_INFO("  Link-local Address = %s\r\n",
-      ipv4AddrToString(ipv4Context->addr, NULL));
+      ipv4AddrToString(ipv4Context->addrList[i].addr, NULL));
 
    //Subnet mask
    TRACE_INFO("  Subnet Mask = %s\r\n",
-      ipv4AddrToString(ipv4Context->subnetMask, NULL));
+      ipv4AddrToString(ipv4Context->addrList[i].subnetMask, NULL));
 
    //Debug message
    TRACE_INFO("\r\n");

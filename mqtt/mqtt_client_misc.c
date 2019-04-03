@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -23,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -51,6 +53,97 @@ void mqttClientChangeState(MqttClientContext *context, MqttClientState newState)
 {
    //Switch to the new state
    context->state = newState;
+}
+
+
+/**
+ * @brief Process MQTT client events
+ * @param[in] context Pointer to the MQTT client context
+ * @param[in] timeout Maximum time to wait before returning
+ * @return Error code
+ **/
+
+error_t mqttClientProcessEvents(MqttClientContext *context, systime_t timeout)
+{
+   error_t error;
+   size_t n;
+
+   //It is the responsibility of the client to ensure that the interval
+   //between control packets being sent does not exceed the keep-alive value
+   error = mqttClientCheckKeepAlive(context);
+
+   //Check status code
+   if(!error)
+   {
+      //Check current state
+      if(context->state == MQTT_CLIENT_STATE_IDLE ||
+         context->state == MQTT_CLIENT_STATE_PACKET_SENT)
+      {
+         //Wait for incoming data
+         error = mqttClientWaitForData(context, timeout);
+
+         //Check status code
+         if(!error)
+         {
+            //Initialize context
+            context->packet = context->buffer;
+            context->packetPos = 0;
+            context->packetLen = 0;
+            context->remainingLen = 0;
+
+            //Start receiving the packet
+            mqttClientChangeState(context, MQTT_CLIENT_STATE_RECEIVING_PACKET);
+         }
+      }
+      else if(context->state == MQTT_CLIENT_STATE_RECEIVING_PACKET)
+      {
+         //Receive the incoming packet
+         error = mqttClientReceivePacket(context);
+
+         //Check status code
+         if(!error)
+         {
+            //Process MQTT control packet
+            error = mqttClientProcessPacket(context);
+
+            //Update MQTT client state
+            if(context->state == MQTT_CLIENT_STATE_RECEIVING_PACKET)
+            {
+               if(context->packetType == MQTT_PACKET_TYPE_INVALID)
+                  mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
+               else
+                  mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_SENT);
+            }
+         }
+      }
+      else if(context->state == MQTT_CLIENT_STATE_SENDING_PACKET)
+      {
+         //Any remaining data to be sent?
+         if(context->packetPos < context->packetLen)
+         {
+            //Send more data
+            error = mqttClientSendData(context, context->packet + context->packetPos,
+               context->packetLen - context->packetPos, &n, 0);
+
+            //Advance data pointer
+            context->packetPos += n;
+         }
+         else
+         {
+            //Save the time at which the message was sent
+            context->keepAliveTimestamp = osGetSystemTime();
+
+            //Update MQTT client state
+            if(context->packetType == MQTT_PACKET_TYPE_INVALID)
+               mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
+            else
+               mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_SENT);
+         }
+      }
+   }
+
+   //Return status code
+   return error;
 }
 
 

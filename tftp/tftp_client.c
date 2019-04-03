@@ -4,7 +4,9 @@
  *
  * @section License
  *
- * Copyright (C) 2010-2018 Oryx Embedded SARL. All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.0
+ * @version 1.9.2
  **/
 
 //Switch to the appropriate trace level
@@ -51,19 +53,23 @@
 /**
  * @brief TFTP client initialization
  * @param[in] context Pointer to the TFTP client context
+ * @return Error code
  **/
 
-void tftpClientInit(TftpClientContext *context)
+error_t tftpClientInit(TftpClientContext *context)
 {
-   //Sanity check
-   if(context != NULL)
-   {
-      //Initialize context
-      memset(context, 0, sizeof(TftpClientContext));
+   //Make sure the TFTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
 
-      //Initialize state machine
-      context->state = TFTP_CLIENT_STATE_CLOSED;
-   }
+   //Initialize context
+   memset(context, 0, sizeof(TftpClientContext));
+
+   //Initialize TFTP client state
+   context->state = TFTP_CLIENT_STATE_CLOSED;
+
+   //Successful initialization
+   return NO_ERROR;
 }
 
 
@@ -331,6 +337,63 @@ error_t tftpClientWriteFile(TftpClientContext *context,
 
 
 /**
+ * @brief Flush pending write operations
+ * @param[in] context Pointer to the TFTP client context
+ * @return Error code
+ **/
+
+error_t tftpClientFlushFile(TftpClientContext *context)
+{
+   error_t error;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Wait for the last DATA packet to be acknowledged
+   while(!error)
+   {
+      //Check current state
+      if(context->state == TFTP_CLIENT_STATE_DATA)
+      {
+         //Handle retransmissions
+         error = tftpClientProcessEvents(context);
+      }
+      else if(context->state == TFTP_CLIENT_STATE_ACK)
+      {
+         //The block number increases by one for each new block of data
+         context->block++;
+
+         //Send DATA packet
+         tftpClientSendDataPacket(context);
+
+         //A data packet of less than 512 bytes signals termination
+         //of the transfer
+         context->state = TFTP_CLIENT_STATE_LAST_DATA;
+      }
+      else if(context->state == TFTP_CLIENT_STATE_LAST_DATA)
+      {
+         //Handle retransmissions
+         error = tftpClientProcessEvents(context);
+      }
+      else if(context->state == TFTP_CLIENT_STATE_COMPLETE)
+      {
+         //Normal termination of the transfer
+         error = NO_ERROR;
+         break;
+      }
+      else
+      {
+         //Report an error
+         error = ERROR_WRITE_FAILED;
+      }
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
  * @brief Read data from the file
  * @param[in] context Pointer to the TFTP client context
  * @param[in] data Pointer to the buffer where to copy the data
@@ -438,63 +501,6 @@ error_t tftpClientReadFile(TftpClientContext *context,
 
 
 /**
- * @brief Flush pending write operations
- * @param[in] context Pointer to the TFTP client context
- * @return Error code
- **/
-
-error_t tftpClientFlushFile(TftpClientContext *context)
-{
-   error_t error;
-
-   //Initialize status code
-   error = NO_ERROR;
-
-   //Wait for the last DATA packet to be acknowledged
-   while(!error)
-   {
-      //Check current state
-      if(context->state == TFTP_CLIENT_STATE_DATA)
-      {
-         //Handle retransmissions
-         error = tftpClientProcessEvents(context);
-      }
-      else if(context->state == TFTP_CLIENT_STATE_ACK)
-      {
-         //The block number increases by one for each new block of data
-         context->block++;
-
-         //Send DATA packet
-         tftpClientSendDataPacket(context);
-
-         //A data packet of less than 512 bytes signals termination
-         //of the transfer
-         context->state = TFTP_CLIENT_STATE_LAST_DATA;
-      }
-      else if(context->state == TFTP_CLIENT_STATE_LAST_DATA)
-      {
-         //Handle retransmissions
-         error = tftpClientProcessEvents(context);
-      }
-      else if(context->state == TFTP_CLIENT_STATE_COMPLETE)
-      {
-         //Normal termination of the transfer
-         error = NO_ERROR;
-         break;
-      }
-      else
-      {
-         //Report an error
-         error = ERROR_WRITE_FAILED;
-      }
-   }
-
-   //Return status code
-   return error;
-}
-
-
-/**
  * @brief Close the file
  * @param[in] context Pointer to the TFTP client context
  **/
@@ -506,6 +512,25 @@ void tftpClientCloseFile(TftpClientContext *context)
 
    //Back to default state
    context->state = TFTP_CLIENT_STATE_CLOSED;
+}
+
+
+/**
+ * @brief Release TFTP client context
+ * @param[in] context Pointer to the TFTP client context
+ **/
+
+void tftpClientDeinit(TftpClientContext *context)
+{
+   //Make sure the TFTP client context is valid
+   if(context != NULL)
+   {
+      //Close connection with the TFTP server
+      tftpClientCloseConnection(context);
+
+      //Clear TFTP client context
+      memset(context, 0, sizeof(TftpClientContext));
+   }
 }
 
 #endif
