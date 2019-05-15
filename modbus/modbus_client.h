@@ -42,12 +42,43 @@
    #error MODBUS_CLIENT_SUPPORT parameter is not valid
 #endif
 
+//Modbus/TCP security
+#ifndef MODBUS_CLIENT_TLS_SUPPORT
+   #define MODBUS_CLIENT_TLS_SUPPORT DISABLED
+#elif (MODBUS_CLIENT_TLS_SUPPORT != ENABLED && MODBUS_CLIENT_TLS_SUPPORT != DISABLED)
+   #error MODBUS_CLIENT_TLS_SUPPORT parameter is not valid
+#endif
+
 //Default timeout
 #ifndef MODBUS_CLIENT_DEFAULT_TIMEOUT
    #define MODBUS_CLIENT_DEFAULT_TIMEOUT 20000
 #elif (MODBUS_CLIENT_DEFAULT_TIMEOUT < 0)
    #error MODBUS_CLIENT_DEFAULT_TIMEOUT parameter is not valid
 #endif
+
+//TX buffer size for TLS connections
+#ifndef MODBUS_CLIENT_TLS_TX_BUFFER_SIZE
+   #define MODBUS_CLIENT_TLS_TX_BUFFER_SIZE 2048
+#elif (MODBUS_CLIENT_TLS_TX_BUFFER_SIZE < 512)
+   #error MODBUS_CLIENT_TLS_TX_BUFFER_SIZE parameter is not valid
+#endif
+
+//RX buffer size for TLS connections
+#ifndef MODBUS_CLIENT_TLS_RX_BUFFER_SIZE
+   #define MODBUS_CLIENT_TLS_RX_BUFFER_SIZE 2048
+#elif (MODBUS_CLIENT_TLS_RX_BUFFER_SIZE < 512)
+   #error MODBUS_CLIENT_TLS_RX_BUFFER_SIZE parameter is not valid
+#endif
+
+//TLS supported?
+#if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
+   #include "core/crypto.h"
+   #include "tls.h"
+#endif
+
+//Forward declaration of ModbusClientContext structure
+struct _ModbusClientContext;
+#define ModbusClientContext struct _ModbusClientContext
 
 //C++ guard
 #ifdef __cplusplus
@@ -71,31 +102,56 @@ typedef enum
 } ModbusClientState;
 
 
+//TLS supported?
+#if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
+
+/**
+ * @brief TLS initialization callback function
+ **/
+
+typedef error_t (*ModbusClientTlsInitCallback)(ModbusClientContext *context,
+   TlsContext *tlsContext);
+
+#endif
+
+
 /**
  * @brief Modbus/TCP client context
  **/
 
-typedef struct
+struct _ModbusClientContext
 {
-   ModbusClientState state;                  ///<Modbus/TCP client state
-   NetInterface *interface;                  ///<Underlying network interface
-   uint8_t unitId;                           ///<Identifier of the remote slave
-   uint16_t transactionId;                   ///<Modbus transaction identifier
-   Socket *socket;                           ///<Underlying TCP socket
-   systime_t timeout;                        ///<Timeout value
-   systime_t timestamp;                      ///<Timestamp to manage timeout
-   uint8_t requestAdu[MODBUS_MAX_ADU_SIZE];  ///<Request ADU
-   size_t requestAduLen;                     ///<Length of the request ADU, in bytes
-   size_t requestAduPos;                     ///<Current position in the request ADU
-   uint8_t responseAdu[MODBUS_MAX_ADU_SIZE]; ///<Response ADU
-   size_t responseAduLen;                    ///<Length of the response ADU, in bytes
-   size_t responseAduPos;                    ///<Current position in the response ADU
-   ModbusExceptionCode exceptionCode;        ///<Exception code
-} ModbusClientContext;
+   ModbusClientState state;                     ///<Modbus/TCP client state
+   NetInterface *interface;                     ///<Underlying network interface
+   uint8_t unitId;                              ///<Identifier of the remote slave
+   uint16_t transactionId;                      ///<Modbus transaction identifier
+   Socket *socket;                              ///<Underlying TCP socket
+#if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
+   TlsContext *tlsContext;                      ///<TLS context
+   TlsSessionState tlsSession;                  ///<TLS session state
+   ModbusClientTlsInitCallback tlsInitCallback; ///<TLS initialization callback function
+#endif
+   systime_t timeout;                           ///<Timeout value
+   systime_t timestamp;                         ///<Timestamp to manage timeout
+   uint8_t requestAdu[MODBUS_MAX_ADU_SIZE];     ///<Request ADU
+   size_t requestAduLen;                        ///<Length of the request ADU, in bytes
+   size_t requestAduPos;                        ///<Current position in the request ADU
+   uint8_t responseAdu[MODBUS_MAX_ADU_SIZE];    ///<Response ADU
+   size_t responseAduLen;                       ///<Length of the response ADU, in bytes
+   size_t responseAduPos;                       ///<Current position in the response ADU
+   ModbusExceptionCode exceptionCode;           ///<Exception code
+};
 
 
 //Modbus/TCP client related functions
 error_t modbusClientInit(ModbusClientContext *context);
+
+#if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
+
+error_t modbusClientRegisterTlsInitCallback(ModbusClientContext *context,
+   ModbusClientTlsInitCallback callback);
+
+#endif
 
 error_t modbusClientSetTimeout(ModbusClientContext *context, systime_t timeout);
 error_t modbusClientSetUnitId(ModbusClientContext *context, uint8_t unitId);

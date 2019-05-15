@@ -76,7 +76,7 @@ error_t modbusServerProcessRequest(ModbusClientConnection *connection)
    modbusDumpRequestPdu(request, requestLen);
 
    //Retrieve function code
-   functionCode = (ModbusFunctionCode) *((uint8_t *) request);
+   functionCode = (ModbusFunctionCode) ((uint8_t *) request)[0];
 
    //Any registered callback?
    if(context->settings.processPduCallback != NULL)
@@ -256,14 +256,13 @@ error_t modbusServerProcessReadCoilsReq(ModbusClientConnection *connection,
       response->coilStatus[response->byteCount - 1] = 0;
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
 
    //Read the specified number of coils
    for(i = 0; i < quantity && !error; i++)
    {
       //Retrieve the state of the current coil
-      error = modbusServerReadCoil(connection->context, address + i,
-         &state);
+      error = modbusServerReadCoil(connection, address + i, &state);
 
       //Successful read operation?
       if(!error)
@@ -278,7 +277,7 @@ error_t modbusServerProcessReadCoilsReq(ModbusClientConnection *connection,
    }
 
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the read operation has failed
    if(error)
@@ -344,14 +343,13 @@ error_t modbusServerProcessReadDiscreteInputsReq(ModbusClientConnection *connect
       response->inputStatus[response->byteCount - 1] = 0;
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
 
    //Read the specified number of coils
    for(i = 0; i < quantity && !error; i++)
    {
       //Retrieve the state of the current coil
-      error = modbusServerReadCoil(connection->context, address + i,
-         &state);
+      error = modbusServerReadCoil(connection, address + i, &state);
 
       //Successful read operation?
       if(!error)
@@ -366,7 +364,7 @@ error_t modbusServerProcessReadDiscreteInputsReq(ModbusClientConnection *connect
    }
 
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the read operation has failed
    if(error)
@@ -427,19 +425,19 @@ error_t modbusServerProcessReadHoldingRegsReq(ModbusClientConnection *connection
    response->byteCount = quantity * sizeof(uint16_t);
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
 
    //Read the specified number of registers
    for(i = 0; i < quantity && !error; i++)
    {
       //Retrieve the value of the current register
-      error = modbusServerReadReg(connection->context, address + i, &value);
+      error = modbusServerReadReg(connection, address + i, &value);
       //Convert the value to network byte order
       response->regValue[i] = htons(value);
    }
 
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the read operation has failed
    if(error)
@@ -500,19 +498,19 @@ error_t modbusServerProcessReadInputRegsReq(ModbusClientConnection *connection,
    response->byteCount = quantity * sizeof(uint16_t);
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
 
    //Read the specified number of registers
    for(i = 0; i < quantity && !error; i++)
    {
       //Retrieve the value of the current register
-      error = modbusServerReadReg(connection->context, address + i, &value);
+      error = modbusServerReadReg(connection, address + i, &value);
       //Convert the value to network byte order
       response->regValue[i] = htons(value);
    }
 
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the read operation has failed
    if(error)
@@ -572,11 +570,11 @@ error_t modbusServerProcessWriteSingleCoilReq(ModbusClientConnection *connection
    }
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
    //Force the coil to the desired ON/OFF state
-   error = modbusServerWriteCoil(connection->context, address, state, TRUE);
+   error = modbusServerWriteCoil(connection, address, state, TRUE);
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the write operation has failed
    if(error)
@@ -629,11 +627,11 @@ error_t modbusServerProcessWriteSingleRegReq(ModbusClientConnection *connection,
    value = ntohs(request->regValue);
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
    //Write register value
-   error = modbusServerWriteReg(connection->context, address, value, TRUE);
+   error = modbusServerWriteReg(connection, address, value, TRUE);
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the write operation has failed
    if(error)
@@ -705,13 +703,13 @@ error_t modbusServerProcessWriteMultipleCoilsReq(ModbusClientConnection *connect
       return ERROR_INVALID_VALUE;
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
 
    //Consistency check (first phase)
    for(i = 0; i < quantity && !error; i++)
    {
       //Validate coil address
-      error = modbusServerWriteCoil(connection->context, address + i,
+      error = modbusServerWriteCoil(connection, address + i,
          MODBUS_TEST_COIL(request->outputValue, i), FALSE);
    }
 
@@ -719,12 +717,12 @@ error_t modbusServerProcessWriteMultipleCoilsReq(ModbusClientConnection *connect
    for(i = 0; i < quantity && !error; i++)
    {
       //Force the current coil to the desired ON/OFF state
-      error = modbusServerWriteCoil(connection->context, address + i,
+      error = modbusServerWriteCoil(connection, address + i,
          MODBUS_TEST_COIL(request->outputValue, i), TRUE);
    }
 
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the write operation has failed
    if(error)
@@ -797,13 +795,13 @@ error_t modbusServerProcessWriteMultipleRegsReq(ModbusClientConnection *connecti
       return ERROR_INVALID_VALUE;
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
 
    //Consistency check (first phase)
    for(i = 0; i < quantity && !error; i++)
    {
       //Validate register address
-      error = modbusServerWriteReg(connection->context, address + i,
+      error = modbusServerWriteReg(connection, address + i,
          ntohs(request->regValue[i]), FALSE);
    }
 
@@ -811,12 +809,12 @@ error_t modbusServerProcessWriteMultipleRegsReq(ModbusClientConnection *connecti
    for(i = 0; i < quantity && !error; i++)
    {
       //Write the value of the current register
-      error = modbusServerWriteReg(connection->context, address + i,
+      error = modbusServerWriteReg(connection, address + i,
          ntohs(request->regValue[i]), TRUE);
    }
 
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the write operation has failed
    if(error)
@@ -874,10 +872,10 @@ error_t modbusServerProcessMaskWriteRegReq(ModbusClientConnection *connection,
    orMask = ntohs(request->orMask);
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
 
    //Retrieve the value of the register
-   error = modbusServerReadReg(connection->context, address, &value);
+   error = modbusServerReadReg(connection, address, &value);
 
    //Check status code
    if(!error)
@@ -885,11 +883,11 @@ error_t modbusServerProcessMaskWriteRegReq(ModbusClientConnection *connection,
       //Apply AND mask and OR mask
       value = (value & andMask) | (orMask & ~andMask);
       //Write register value
-      error = modbusServerWriteReg(connection->context, address, value, TRUE);
+      error = modbusServerWriteReg(connection, address, value, TRUE);
    }
 
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the write operation has failed
    if(error)
@@ -980,14 +978,13 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
    response->readByteCount = readQuantity * sizeof(uint16_t);
 
    //Lock access to Modbus table
-   modbusServerLock(connection->context);
+   modbusServerLock(connection);
 
    //Read the specified number of registers
    for(i = 0; i < readQuantity && !error; i++)
    {
       //Retrieve the value of the current register
-      error = modbusServerReadReg(connection->context, readAddress + i,
-         &value);
+      error = modbusServerReadReg(connection, readAddress + i, &value);
 
       //Convert the value to network byte order
       response->readRegValue[i] = htons(value);
@@ -997,7 +994,7 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
    for(i = 0; i < writeQuantity && !error; i++)
    {
       //Validate register address
-      error = modbusServerWriteReg(connection->context, writeAddress + i,
+      error = modbusServerWriteReg(connection, writeAddress + i,
          ntohs(request->writeRegValue[i]), FALSE);
    }
 
@@ -1005,12 +1002,12 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
    for(i = 0; i < writeQuantity && !error; i++)
    {
       //Write the value of the current register
-      error = modbusServerWriteReg(connection->context, writeAddress + i,
+      error = modbusServerWriteReg(connection, writeAddress + i,
          ntohs(request->writeRegValue[i]), TRUE);
    }
 
    //Unlock access to Modbus table
-   modbusServerUnlock(connection->context);
+   modbusServerUnlock(connection);
 
    //Check whether the write operation has failed
    if(error)

@@ -34,6 +34,7 @@
 //Dependencies
 #include "modbus/modbus_client.h"
 #include "modbus/modbus_client_pdu.h"
+#include "modbus/modbus_client_transport.h"
 #include "modbus/modbus_client_misc.h"
 #include "modbus/modbus_debug.h"
 #include "debug.h"
@@ -79,7 +80,7 @@ error_t modbusClientTransaction(ModbusClientContext *context)
       if(context->requestAduPos < context->requestAduLen)
       {
          //Send more data
-         error = socketSend(context->socket,
+         error = modbusClientSendData(context,
             context->requestAdu + context->requestAduPos,
             context->requestAduLen - context->requestAduPos,
             &n, SOCKET_FLAG_NO_DELAY);
@@ -107,7 +108,7 @@ error_t modbusClientTransaction(ModbusClientContext *context)
       if(context->responseAduPos < sizeof(ModbusHeader))
       {
          //Receive more data
-         error = socketReceive(context->socket,
+         error = modbusClientReceiveData(context,
             context->responseAdu + context->responseAduPos,
             sizeof(ModbusHeader) - context->responseAduPos, &n, 0);
 
@@ -128,7 +129,7 @@ error_t modbusClientTransaction(ModbusClientContext *context)
       else if(context->responseAduPos < context->responseAduLen)
       {
          //Receive more data
-         error = socketReceive(context->socket,
+         error = modbusClientReceiveData(context,
             context->responseAdu + context->responseAduPos,
             context->responseAduLen - context->responseAduPos, &n, 0);
 

@@ -42,6 +42,13 @@
    #error MODBUS_SERVER_SUPPORT parameter is not valid
 #endif
 
+//Modbus/TCP security
+#ifndef MODBUS_SERVER_TLS_SUPPORT
+   #define MODBUS_SERVER_TLS_SUPPORT DISABLED
+#elif (MODBUS_SERVER_TLS_SUPPORT != ENABLED && MODBUS_SERVER_TLS_SUPPORT != DISABLED)
+   #error MODBUS_SERVER_TLS_SUPPORT parameter is not valid
+#endif
+
 //Stack size required to run the Modbus/TCP server
 #ifndef MODBUS_SERVER_STACK_SIZE
    #define MODBUS_SERVER_STACK_SIZE 650
@@ -75,9 +82,41 @@
    #error MODBUS_SERVER_TICK_INTERVAL parameter is not valid
 #endif
 
+//TX buffer size for TLS connections
+#ifndef MODBUS_SERVER_TLS_TX_BUFFER_SIZE
+   #define MODBUS_SERVER_TLS_TX_BUFFER_SIZE 2048
+#elif (MODBUS_SERVER_TLS_TX_BUFFER_SIZE < 512)
+   #error MODBUS_SERVER_TLS_TX_BUFFER_SIZE parameter is not valid
+#endif
+
+//RX buffer size for TLS connections
+#ifndef MODBUS_SERVER_TLS_RX_BUFFER_SIZE
+   #define MODBUS_SERVER_TLS_RX_BUFFER_SIZE 2048
+#elif (MODBUS_SERVER_TLS_RX_BUFFER_SIZE < 512)
+   #error MODBUS_SERVER_TLS_RX_BUFFER_SIZE parameter is not valid
+#endif
+
+//Maximum length of the client role OID
+#ifndef MODBUS_SERVER_MAX_ROLE_LEN
+   #define MODBUS_SERVER_MAX_ROLE_LEN 32
+#elif (MODBUS_SERVER_MAX_ROLE_LEN < 0)
+   #error MODBUS_SERVER_MAX_ROLE_LEN parameter is not valid
+#endif
+
+//TLS supported?
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+   #include "core/crypto.h"
+   #include "tls.h"
+   #include "tls_ticket.h"
+#endif
+
 //Forward declaration of ModbusServerContext structure
 struct _ModbusServerContext;
 #define ModbusServerContext struct _ModbusServerContext
+
+//Forward declaration of ModbusClientConnection structure
+struct _ModbusClientConnection;
+#define ModbusClientConnection struct _ModbusClientConnection
 
 //C++ guard
 #ifdef __cplusplus
@@ -91,10 +130,27 @@ struct _ModbusServerContext;
 
 typedef enum
 {
-   MODBUS_CONNECTION_STATE_CLOSED    = 0,
-   MODBUS_CONNECTION_STATE_RECEIVING = 1,
-   MODBUS_CONNECTION_STATE_SENDING   = 2,
+   MODBUS_CONNECTION_STATE_CLOSED       = 0,
+   MODBUS_CONNECTION_STATE_CONNECT_TLS  = 1,
+   MODBUS_CONNECTION_STATE_RECEIVE      = 2,
+   MODBUS_CONNECTION_STATE_SEND         = 3,
+   MODBUS_CONNECTION_STATE_SHUTDOWN_TLS = 4,
+   MODBUS_CONNECTION_STATE_SHUTDOWN_TX  = 5,
+   MODBUS_CONNECTION_STATE_SHUTDOWN_RX  = 6
 } ModbusConnectionState;
+
+
+//TLS supported?
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+
+/**
+ * @brief TLS initialization callback function
+ **/
+
+typedef error_t (*ModbusServerTlsInitCallback)(ModbusClientConnection *connection,
+   TlsContext *tlsContext);
+
+#endif
 
 
 /**
@@ -115,32 +171,32 @@ typedef void (*ModbusServerUnlockCallback)(void);
  * @brief Get coil state callback function
  **/
 
-typedef error_t (*ModbusServerReadCoilCallback)(uint16_t address,
-   bool_t *state);
+typedef error_t (*ModbusServerReadCoilCallback)(const char_t *role,
+   uint16_t address, bool_t *state);
 
 
 /**
  * @brief Set coil state callback function
  **/
 
-typedef error_t (*ModbusServerWriteCoilCallback)(uint16_t address,
-   bool_t state, bool_t commit);
+typedef error_t (*ModbusServerWriteCoilCallback)(const char_t *role,
+   uint16_t address, bool_t state, bool_t commit);
 
 
 /**
  * @brief Get register value callback function
  **/
 
-typedef error_t (*ModbusServerReadRegCallback)(uint16_t address,
-   uint16_t *value);
+typedef error_t (*ModbusServerReadRegCallback)(const char_t *role,
+   uint16_t address, uint16_t *value);
 
 
 /**
  * @brief Set register value callback function
  **/
 
-typedef error_t (*ModbusServerWriteRegCallback)(uint16_t address,
-   uint16_t value, bool_t commit);
+typedef error_t (*ModbusServerWriteRegCallback)(const char_t *role,
+   uint16_t address, uint16_t value, bool_t commit);
 
 
 /**
@@ -160,12 +216,15 @@ typedef struct
    NetInterface *interface;                            ///<Underlying network interface
    uint16_t port;                                      ///<Modbus/TCP port number
    uint8_t unitId;                                     ///<Unit identifier
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+   ModbusServerTlsInitCallback tlsInitCallback;        ///<TLS initialization callback function
+#endif
    ModbusServerLockCallback lockCallback;              ///<Lock Modbus table callback function
    ModbusServerUnlockCallback unlockCallback;          ///<Unlock Modbus table callback function
    ModbusServerReadCoilCallback readCoilCallback;      ///<Get coil state callback function
    ModbusServerWriteCoilCallback writeCoilCallback;    ///<Set coil state callback function
    ModbusServerReadRegCallback readRegCallback;        ///<Get register value callback function
-   ModbusServerWriteRegCallback writeRegValueCallback; ///<Set register value callback function
+   ModbusServerWriteRegCallback writeRegCallback;      ///<Set register value callback function
    ModbusServerProcessPduCallback processPduCallback;  ///<PDU processing callback
 } ModbusServerSettings;
 
@@ -174,20 +233,24 @@ typedef struct
  * @brief Modbus/TCP client connection
  **/
 
-typedef struct
+struct _ModbusClientConnection
 {
-   ModbusConnectionState state;              ///<Connection state
-   ModbusServerContext *context;             ///<Modbus/TCP server context
-   Socket *socket;                           ///<Underlying socket
-   systime_t timestamp;                      ///<Time stamp
-   uint8_t requestAdu[MODBUS_MAX_ADU_SIZE];  ///<Request ADU
-   size_t requestAduLen;                     ///<Length of the request ADU, in bytes
-   size_t requestAduPos;                     ///<Current position in the request ADU
-   uint8_t requestUnitId;                    ///<Unit identifier
-   uint8_t responseAdu[MODBUS_MAX_ADU_SIZE]; ///<Response ADU
-   size_t responseAduLen;                    ///<Length of the response ADU, in bytes
-   size_t responseAduPos;                    ///<Current position in the response ADU
-} ModbusClientConnection;
+   ModbusConnectionState state;                 ///<Connection state
+   ModbusServerContext *context;                ///<Modbus/TCP server context
+   Socket *socket;                              ///<Underlying socket
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+   TlsContext *tlsContext;                      ///<TLS context
+#endif
+   char_t role[MODBUS_SERVER_MAX_ROLE_LEN + 1]; ///<Client role OID
+   systime_t timestamp;                         ///<Time stamp
+   uint8_t requestAdu[MODBUS_MAX_ADU_SIZE];     ///<Request ADU
+   size_t requestAduLen;                        ///<Length of the request ADU, in bytes
+   size_t requestAduPos;                        ///<Current position in the request ADU
+   uint8_t requestUnitId;                       ///<Unit identifier
+   uint8_t responseAdu[MODBUS_MAX_ADU_SIZE];    ///<Response ADU
+   size_t responseAduLen;                       ///<Length of the response ADU, in bytes
+   size_t responseAduPos;                       ///<Current position in the response ADU
+};
 
 
 /**
@@ -200,7 +263,9 @@ struct _ModbusServerContext
    OsEvent event;                                                    ///<Event object used to poll the sockets
    Socket *socket;                                                   ///<Listening socket
    ModbusClientConnection connection[MODBUS_SERVER_MAX_CONNECTIONS]; ///<Client connections
-   SocketEventDesc eventDesc[MODBUS_SERVER_MAX_CONNECTIONS + 1];     ///<The events the application is interested in
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+   TlsTicketContext tlsTicketContext;                                ///<TLS ticket encryption context
+#endif
 };
 
 
@@ -213,6 +278,8 @@ error_t modbusServerInit(ModbusServerContext *context,
 error_t modbusServerStart(ModbusServerContext *context);
 
 void modbusServerTask(ModbusServerContext *context);
+
+void modbusServerDeinit(ModbusServerContext *context);
 
 //C++ guard
 #ifdef __cplusplus

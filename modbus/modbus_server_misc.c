@@ -34,6 +34,8 @@
 //Dependencies
 #include "modbus/modbus_server.h"
 #include "modbus/modbus_server_pdu.h"
+#include "modbus/modbus_server_security.h"
+#include "modbus/modbus_server_transport.h"
 #include "modbus/modbus_server_misc.h"
 #include "debug.h"
 
@@ -78,104 +80,6 @@ void modbusServerTick(ModbusServerContext *context)
 
 
 /**
- * @brief Accept connection request
- * @param[in] context Pointer to the Modbus/TCP server context
- **/
-
-void modbusServerAcceptConnection(ModbusServerContext *context)
-{
-   uint_t i;
-   Socket *socket;
-   IpAddr clientIpAddr;
-   uint16_t clientPort;
-   ModbusClientConnection *connection;
-
-   //Accept incoming connection
-   socket = socketAccept(context->socket, &clientIpAddr, &clientPort);
-
-   //Make sure the socket handle is valid
-   if(socket != NULL)
-   {
-      //Force the socket to operate in non-blocking mode
-      socketSetTimeout(socket, 0);
-
-      //Initialize pointer
-      connection = NULL;
-
-      //Loop through the connection table
-      for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
-      {
-         //Check the state of the current connection
-         if(context->connection[i].state == MODBUS_CONNECTION_STATE_CLOSED)
-         {
-            //The current entry is free
-            connection = &context->connection[i];
-            break;
-         }
-      }
-
-      //If the connection table runs out of space, then the client's connection
-      //request is rejected
-      if(connection != NULL)
-      {
-         //Debug message
-         TRACE_INFO("Modbus Server: Connection established with client %s port %"
-            PRIu16 "...\r\n", ipAddrToString(&clientIpAddr, NULL), clientPort);
-
-         //Clear the structure describing the connection
-         memset(connection, 0, sizeof(ModbusClientConnection));
-
-         //Attach Modbus/TCP server context
-         connection->context = context;
-         //Save socket handle
-         connection->socket = socket;
-         //Initialize time stamp
-         connection->timestamp = osGetSystemTime();
-
-         //Wait for incoming Modbus requests
-         connection->state = MODBUS_CONNECTION_STATE_RECEIVING;
-      }
-      else
-      {
-         //Debug message
-         TRACE_INFO("Modbus Server: Connection refused with client %s port %"
-            PRIu16 "...\r\n", ipAddrToString(&clientIpAddr, NULL), clientPort);
-
-         //The Modbus/TCP server cannot accept the incoming connection request
-         socketClose(socket);
-      }
-   }
-}
-
-
-/**
- * @brief Connection event handler
- * @param[in] connection Pointer to the client connection
- **/
-
-void modbusServerCloseConnection(ModbusClientConnection *connection)
-{
-   //Valid connection?
-   if(connection != NULL)
-   {
-      //Debug message
-      TRACE_INFO("Modbus Server: Closing connection...\r\n");
-
-      //Valid socket handle?
-      if(connection->socket != NULL)
-      {
-         //Close TCP socket
-         socketClose(connection->socket);
-         connection->socket = NULL;
-      }
-
-      //Mark the connection as closed
-      connection->state = MODBUS_CONNECTION_STATE_CLOSED;
-   }
-}
-
-
-/**
  * @brief Connection event handler
  * @param[in] context Pointer to the Modbus/TCP server context
  * @param[in] connection Pointer to the client connection
@@ -194,18 +98,35 @@ void modbusServerProcessConnectionEvents(ModbusServerContext *context,
    connection->timestamp = osGetSystemTime();
 
    //Check the state of the connection
-   if(connection->state == MODBUS_CONNECTION_STATE_RECEIVING)
+   if(connection->state == MODBUS_CONNECTION_STATE_CONNECT_TLS)
+   {
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+      //Perform TLS handshake
+      error = modbusServerEstablishSecureConnection(connection);
+
+      //Check status code
+      if(!error)
+      {
+         //Wait for incoming Modbus requests
+         connection->state = MODBUS_CONNECTION_STATE_RECEIVE;
+      }
+#else
+      //Modbus/TCP security is not implemented
+      error = ERROR_WRONG_STATE;
+#endif
+   }
+   else if(connection->state == MODBUS_CONNECTION_STATE_RECEIVE)
    {
       //Receive Modbus request
       if(connection->requestAduPos < sizeof(ModbusHeader))
       {
          //Receive more data
-         error = socketReceive(connection->socket,
+         error = modbusServerReceiveData(connection,
             connection->requestAdu + connection->requestAduPos,
             sizeof(ModbusHeader) - connection->requestAduPos, &n, 0);
 
          //Check status code
-         if(!error)
+         if(error == NO_ERROR)
          {
             //Advance data pointer
             connection->requestAduPos += n;
@@ -217,11 +138,20 @@ void modbusServerProcessConnectionEvents(ModbusServerContext *context,
                error = modbusServerParseMbapHeader(connection);
             }
          }
+         else if(error == ERROR_END_OF_STREAM)
+         {
+            //Initiate a graceful connection shutdown
+            error = modbusServerShutdownConnection(connection);
+         }
+         else
+         {
+            //Just for sanity
+         }
       }
       else if(connection->requestAduPos < connection->requestAduLen)
       {
          //Receive more data
-         error = socketReceive(connection->socket,
+         error = modbusServerReceiveData(connection,
             connection->requestAdu + connection->requestAduPos,
             connection->requestAduLen - connection->requestAduPos, &n, 0);
 
@@ -251,13 +181,13 @@ void modbusServerProcessConnectionEvents(ModbusServerContext *context,
          error = ERROR_WRONG_STATE;
       }
    }
-   else if(connection->state == MODBUS_CONNECTION_STATE_SENDING)
+   else if(connection->state == MODBUS_CONNECTION_STATE_SEND)
    {
       //Send Modbus response
       if(connection->responseAduPos < connection->responseAduLen)
       {
          //Send more data
-         error = socketSend(connection->socket,
+         error = modbusServerSendData(connection,
             connection->responseAdu + connection->responseAduPos,
             connection->responseAduLen - connection->responseAduPos,
             &n, SOCKET_FLAG_NO_DELAY);
@@ -276,7 +206,7 @@ void modbusServerProcessConnectionEvents(ModbusServerContext *context,
                connection->requestAduPos = 0;
 
                //Wait for the next Modbus request
-               connection->state = MODBUS_CONNECTION_STATE_RECEIVING;
+               connection->state = MODBUS_CONNECTION_STATE_RECEIVE;
             }
          }
       }
@@ -285,6 +215,17 @@ void modbusServerProcessConnectionEvents(ModbusServerContext *context,
          //Just for sanity
          error = ERROR_WRONG_STATE;
       }
+   }
+   else if(connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_TLS ||
+      connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_TX)
+   {
+      //Graceful connection shutdown
+      error = modbusServerShutdownConnection(connection);
+   }
+   else if(connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_RX)
+   {
+      //Close the Modbus/TCP connection
+      modbusServerCloseConnection(connection);
    }
    else
    {
@@ -402,7 +343,7 @@ error_t modbusServerFormatMbapHeader(ModbusClientConnection *connection,
    //Rewind to the beginning of the transmit buffer
    connection->responseAduPos = 0;
    //Send the response ADU to the client
-   connection->state = MODBUS_CONNECTION_STATE_SENDING;
+   connection->state = MODBUS_CONNECTION_STATE_SEND;
 
    //Successful processing
    return NO_ERROR;
@@ -450,11 +391,16 @@ void *modbusServerGetResponsePdu(ModbusClientConnection *connection)
 
 /**
  * @brief Lock Modbus table
- * @param[in] context Pointer to the Modbus/TCP server context
+ * @param[in] connection Pointer to the client connection
  **/
 
-void modbusServerLock(ModbusServerContext *context)
+void modbusServerLock(ModbusClientConnection *connection)
 {
+   ModbusServerContext *context;
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
+
    //Any registered callback?
    if(context->settings.lockCallback != NULL)
    {
@@ -466,11 +412,16 @@ void modbusServerLock(ModbusServerContext *context)
 
 /**
  * @brief Unlock Modbus table
- * @param[in] context Pointer to the Modbus/TCP server context
+ * @param[in] connection Pointer to the client connection
  **/
 
-void modbusServerUnlock(ModbusServerContext *context)
+void modbusServerUnlock(ModbusClientConnection *connection)
 {
+   ModbusServerContext *context;
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
+
    //Any registered callback?
    if(context->settings.lockCallback != NULL)
    {
@@ -482,22 +433,27 @@ void modbusServerUnlock(ModbusServerContext *context)
 
 /**
  * @brief Get coil state
- * @param[in] context Pointer to the Modbus/TCP server context
+ * @param[in] connection Pointer to the client connection
  * @param[in] address Coil address
  * @param[out] state Current coil state
  * @return Error code
  **/
 
-error_t modbusServerReadCoil(ModbusServerContext *context, uint16_t address,
-   bool_t *state)
+error_t modbusServerReadCoil(ModbusClientConnection *connection,
+   uint16_t address, bool_t *state)
 {
    error_t error;
+   ModbusServerContext *context;
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
 
    //Any registered callback?
-   if(context->settings.readCoilCallback!= NULL)
+   if(context->settings.readCoilCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readCoilCallback(address, state);
+      error = context->settings.readCoilCallback(connection->role, address,
+         state);
    }
    else
    {
@@ -512,7 +468,7 @@ error_t modbusServerReadCoil(ModbusServerContext *context, uint16_t address,
 
 /**
  * @brief Set coil state
- * @param[in] context Pointer to the Modbus/TCP server context
+ * @param[in] connection Pointer to the client connection
  * @param[in] address Address of the coil
  * @param[in] state Desired coil state
  * @param[in] commit This flag indicates the current phase (validation phase
@@ -520,16 +476,21 @@ error_t modbusServerReadCoil(ModbusServerContext *context, uint16_t address,
  * @return Error code
  **/
 
-error_t modbusServerWriteCoil(ModbusServerContext *context, uint16_t address,
-   bool_t state, bool_t commit)
+error_t modbusServerWriteCoil(ModbusClientConnection *connection,
+   uint16_t address, bool_t state, bool_t commit)
 {
    error_t error;
+   ModbusServerContext *context;
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
 
    //Any registered callback?
-   if(context->settings.writeCoilCallback!= NULL)
+   if(context->settings.writeCoilCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.writeCoilCallback(address, state, commit);
+      error = context->settings.writeCoilCallback(connection->role, address,
+         state, commit);
    }
    else
    {
@@ -544,22 +505,27 @@ error_t modbusServerWriteCoil(ModbusServerContext *context, uint16_t address,
 
 /**
  * @brief Get register value
- * @param[in] context Pointer to the Modbus/TCP server context
+ * @param[in] connection Pointer to the client connection
  * @param[in] address Register address
  * @param[out] value Current register value
  * @return Error code
  **/
 
-error_t modbusServerReadReg(ModbusServerContext *context, uint16_t address,
-   uint16_t *value)
+error_t modbusServerReadReg(ModbusClientConnection *connection,
+   uint16_t address, uint16_t *value)
 {
    error_t error;
+   ModbusServerContext *context;
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
 
    //Any registered callback?
-   if(context->settings.readRegCallback!= NULL)
+   if(context->settings.readRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readRegCallback(address, value);
+      error = context->settings.readRegCallback(connection->role, address,
+         value);
    }
    else
    {
@@ -574,7 +540,7 @@ error_t modbusServerReadReg(ModbusServerContext *context, uint16_t address,
 
 /**
  * @brief Set register value
- * @param[in] context Pointer to the Modbus/TCP server context
+ * @param[in] connection Pointer to the client connection
  * @param[in] address Register address
  * @param[in] value Desired register value
  * @param[in] commit This flag indicates the current phase (validation phase
@@ -582,16 +548,21 @@ error_t modbusServerReadReg(ModbusServerContext *context, uint16_t address,
  * @return Error code
  **/
 
-error_t modbusServerWriteReg(ModbusServerContext *context, uint16_t address,
-   uint16_t value, bool_t commit)
+error_t modbusServerWriteReg(ModbusClientConnection *connection,
+   uint16_t address, uint16_t value, bool_t commit)
 {
    error_t error;
+   ModbusServerContext *context;
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
 
    //Any registered callback?
-   if(context->settings.writeRegValueCallback!= NULL)
+   if(context->settings.writeRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.writeRegValueCallback(address, value, commit);
+      error = context->settings.writeRegCallback(connection->role, address,
+         value, commit);
    }
    else
    {

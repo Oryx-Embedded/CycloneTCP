@@ -1,6 +1,6 @@
 /**
- * @file modbus_server_misc.h
- * @brief Helper functions for Modbus/TCP server
+ * @file modbus_server_security.h
+ * @brief Modbus/TCP security layer
  *
  * @section License
  *
@@ -28,12 +28,20 @@
  * @version 1.9.2
  **/
 
-#ifndef _MODBUS_SERVER_MISC_H
-#define _MODBUS_SERVER_MISC_H
+#ifndef _MODBUS_SERVER_SECURITY_H
+#define _MODBUS_SERVER_SECURITY_H
 
 //Dependencies
 #include "core/net.h"
 #include "modbus/modbus_server.h"
+
+//TLS supported?
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+   #include "core/crypto.h"
+   #include "encoding/asn1.h"
+   #include "encoding/oid.h"
+   #include "certificate/x509_cert_parse.h"
+#endif
 
 //C++ guard
 #ifdef __cplusplus
@@ -41,37 +49,13 @@
 #endif
 
 //Modbus/TCP server related functions
-void modbusServerTick(ModbusServerContext *context);
+error_t modbusServerParseRoleOid(ModbusClientConnection *connection,
+   const uint8_t *data, size_t length);
 
-void modbusServerProcessConnectionEvents(ModbusServerContext *context,
+error_t modbusServerOpenSecureConnection(ModbusServerContext *context,
    ModbusClientConnection *connection);
 
-error_t modbusServerParseMbapHeader(ModbusClientConnection *connection);
-
-error_t modbusServerFormatMbapHeader(ModbusClientConnection *connection,
-   size_t length);
-
-void *modbusServerGetRequestPdu(ModbusClientConnection *connection,
-   size_t *length);
-
-void *modbusServerGetResponsePdu(ModbusClientConnection *connection);
-
-void modbusServerLock(ModbusClientConnection *connection);
-void modbusServerUnlock(ModbusClientConnection *connection);
-
-error_t modbusServerReadCoil(ModbusClientConnection *connection,
-   uint16_t address, bool_t *state);
-
-error_t modbusServerWriteCoil(ModbusClientConnection *connection,
-   uint16_t address, bool_t state, bool_t commit);
-
-error_t modbusServerReadReg(ModbusClientConnection *connection,
-   uint16_t address, uint16_t *value);
-
-error_t modbusServerWriteReg(ModbusClientConnection *connection,
-   uint16_t address, uint16_t value, bool_t commit);
-
-ModbusExceptionCode modbusServerTranslateExceptionCode(error_t status);
+error_t modbusServerEstablishSecureConnection(ModbusClientConnection *connection);
 
 //C++ guard
 #ifdef __cplusplus

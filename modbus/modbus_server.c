@@ -33,6 +33,7 @@
 
 //Dependencies
 #include "modbus/modbus_server.h"
+#include "modbus/modbus_server_transport.h"
 #include "modbus/modbus_server_misc.h"
 #include "debug.h"
 
@@ -55,6 +56,11 @@ void modbusServerGetDefaultSettings(ModbusServerSettings *settings)
    //Default unit identifier
    settings->unitId = MODBUS_DEFAULT_UNIT_ID;
 
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+   //TLS initialization callback function
+   settings->tlsInitCallback = NULL;
+#endif
+
    //Lock Modbus table callback function
    settings->lockCallback = NULL;
    //Unlock Modbus table callback function
@@ -66,7 +72,7 @@ void modbusServerGetDefaultSettings(ModbusServerSettings *settings)
    //Get register value callback function
    settings->readRegCallback = NULL;
    //Set register value callback function
-   settings->writeRegValueCallback = NULL;
+   settings->writeRegCallback = NULL;
    //PDU processing callback
    settings->processPduCallback = NULL;
 }
@@ -119,6 +125,12 @@ error_t modbusServerInit(ModbusServerContext *context,
          break;
       }
 
+      //Force the socket to operate in non-blocking mode
+      error = socketSetTimeout(context->socket, 0);
+      //Any error to report?
+      if(error)
+         break;
+
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket, settings->interface);
       //Any error to report?
@@ -137,16 +149,22 @@ error_t modbusServerInit(ModbusServerContext *context,
       if(error)
          break;
 
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+      //Initialize ticket encryption context
+      error = tlsInitTicketContext(&context->tlsTicketContext);
+      //Any error to report?
+      if(error)
+         return error;
+#endif
+
       //End of exception handling block
    } while(0);
 
-   //Did we encounter an error?
+   //Check status code
    if(error)
    {
-      //Free previously allocated resources
-      osDeleteEvent(&context->event);
-      //Close socket
-      socketClose(context->socket);
+      //Clean up side effects
+      modbusServerDeinit(context);
    }
 
    //Return status code
@@ -192,15 +210,20 @@ void modbusServerTask(ModbusServerContext *context)
 {
    error_t error;
    uint_t i;
+   systime_t timeout;
    ModbusClientConnection *connection;
+   SocketEventDesc eventDesc[MODBUS_SERVER_MAX_CONNECTIONS + 1];
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Process events
    while(1)
    {
 #endif
+      //Set polling timeout
+      timeout = MODBUS_SERVER_TICK_INTERVAL;
+
       //Clear event descriptor set
-      memset(context->eventDesc, 0, sizeof(context->eventDesc));
+      memset(eventDesc, 0, sizeof(eventDesc));
 
       //Specify the events the application is interested in
       for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
@@ -209,30 +232,78 @@ void modbusServerTask(ModbusServerContext *context)
          connection = &context->connection[i];
 
          //Check the state of the connection
-         if(connection->state == MODBUS_CONNECTION_STATE_RECEIVING)
+         if(connection->state == MODBUS_CONNECTION_STATE_CONNECT_TLS)
          {
-            //Wait for data to be available for reading
-            context->eventDesc[i].socket = connection->socket;
-            context->eventDesc[i].eventMask = SOCKET_EVENT_RX_READY;
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+            //Any data pending in the send buffer?
+            if(tlsIsTxReady(connection->tlsContext))
+            {
+               //Wait until there is more room in the send buffer
+               eventDesc[i].socket = connection->socket;
+               eventDesc[i].eventMask = SOCKET_EVENT_TX_READY;
+            }
+            else
+            {
+               //Wait for data to be available for reading
+               eventDesc[i].socket = connection->socket;
+               eventDesc[i].eventMask = SOCKET_EVENT_RX_READY;
+            }
+#endif
          }
-         else if(connection->state == MODBUS_CONNECTION_STATE_SENDING)
+         else if(connection->state == MODBUS_CONNECTION_STATE_RECEIVE)
+         {
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+            //Any data available in the receive buffer?
+            if(connection->tlsContext != NULL &&
+               tlsIsRxReady(connection->tlsContext))
+            {
+               //No need to poll the underlying socket for incoming traffic
+               eventDesc[i].eventFlags |= SOCKET_EVENT_RX_READY;
+               timeout = 0;
+            }
+            else
+#endif
+            {
+               //Wait for data to be available for reading
+               eventDesc[i].socket = connection->socket;
+               eventDesc[i].eventMask = SOCKET_EVENT_RX_READY;
+            }
+         }
+         else if(connection->state == MODBUS_CONNECTION_STATE_SEND ||
+            connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_TLS)
          {
             //Wait until there is more room in the send buffer
-            context->eventDesc[i].socket = connection->socket;
-            context->eventDesc[i].eventMask = SOCKET_EVENT_TX_READY;
+            eventDesc[i].socket = connection->socket;
+            eventDesc[i].eventMask = SOCKET_EVENT_TX_READY;
+         }
+         else if(connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_TX)
+         {
+            //Wait for the FIN to be acknowledged
+            eventDesc[i].socket = connection->socket;
+            eventDesc[i].eventMask = SOCKET_EVENT_TX_SHUTDOWN;
+         }
+         else if(connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_RX)
+         {
+            //Wait for a FIN to be received
+            eventDesc[i].socket = connection->socket;
+            eventDesc[i].eventMask = SOCKET_EVENT_RX_SHUTDOWN;
+         }
+         else
+         {
+            //Just for sanity
          }
       }
 
       //The Modbus/TCP server listens for connection requests on port 502
-      context->eventDesc[i].socket = context->socket;
-      context->eventDesc[i].eventMask = SOCKET_EVENT_RX_READY;
+      eventDesc[i].socket = context->socket;
+      eventDesc[i].eventMask = SOCKET_EVENT_RX_READY;
 
       //Wait for one of the set of sockets to become ready to perform I/O
-      error = socketPoll(context->eventDesc, MODBUS_SERVER_MAX_CONNECTIONS + 1,
-         &context->event, MODBUS_SERVER_TICK_INTERVAL);
+      error = socketPoll(eventDesc, MODBUS_SERVER_MAX_CONNECTIONS + 1,
+         &context->event, timeout);
 
-      //Verify status code
-      if(!error)
+      //Check status code
+      if(error == NO_ERROR || error == ERROR_TIMEOUT)
       {
          //Event-driven processing
          for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
@@ -241,11 +312,10 @@ void modbusServerTask(ModbusServerContext *context)
             connection = &context->connection[i];
 
             //Loop through active connections only
-            if(connection->state == MODBUS_CONNECTION_STATE_RECEIVING ||
-               connection->state == MODBUS_CONNECTION_STATE_SENDING)
+            if(connection->state != MODBUS_CONNECTION_STATE_CLOSED)
             {
                //Check whether the socket is ready to perform I/O
-               if(context->eventDesc[i].eventFlags != 0)
+               if(eventDesc[i].eventFlags != 0)
                {
                   //Connection event handler
                   modbusServerProcessConnectionEvents(context, connection);
@@ -254,7 +324,7 @@ void modbusServerTask(ModbusServerContext *context)
          }
 
          //Any connection request received on port 502?
-         if(context->eventDesc[i].eventFlags != 0)
+         if(eventDesc[i].eventFlags != 0)
          {
             //Accept connection request
             modbusServerAcceptConnection(context);
@@ -267,6 +337,42 @@ void modbusServerTask(ModbusServerContext *context)
 #if (NET_RTOS_SUPPORT == ENABLED)
    }
 #endif
+}
+
+
+/**
+ * @brief Release Modbus/TCP server context
+ * @param[in] context Pointer to the Modbus/TCP server context
+ **/
+
+void modbusServerDeinit(ModbusServerContext *context)
+{
+   uint_t i;
+
+   //Make sure the Modbus/TCP server context is valid
+   if(context != NULL)
+   {
+      //Loop through client connection table
+      for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
+      {
+         //Close client connection
+         modbusServerCloseConnection(&context->connection[i]);
+      }
+
+      //Close listening socket
+      socketClose(context->socket);
+
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+      //Release ticket encryption context
+      tlsFreeTicketContext(&context->tlsTicketContext);
+#endif
+
+      //Free previously allocated resources
+      osDeleteEvent(&context->event);
+
+      //Clear Modbus/TCP server context
+      memset(context, 0, sizeof(ModbusServerContext));
+   }
 }
 
 #endif

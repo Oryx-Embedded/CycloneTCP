@@ -34,6 +34,7 @@
 //Dependencies
 #include "modbus/modbus_client.h"
 #include "modbus/modbus_client_pdu.h"
+#include "modbus/modbus_client_transport.h"
 #include "modbus/modbus_client_misc.h"
 #include "debug.h"
 
@@ -49,12 +50,24 @@
 
 error_t modbusClientInit(ModbusClientContext *context)
 {
+#if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
+   error_t error;
+#endif
+
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Clear Modbus/TCP client context
    memset(context, 0, sizeof(ModbusClientContext));
+
+#if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
+   //Initialize TLS session state
+   error = tlsInitSessionState(&context->tlsSession);
+   //Any error to report?
+   if(error)
+      return error;
+#endif
 
    //Initialize Modbus/TCP client state
    context->state = MODBUS_CLIENT_STATE_DISCONNECTED;
@@ -71,6 +84,32 @@ error_t modbusClientInit(ModbusClientContext *context)
    //Successful initialization
    return NO_ERROR;
 }
+
+
+#if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
+
+/**
+ * @brief Register TLS initialization callback function
+ * @param[in] context Pointer to the Modbus/TCP client context
+ * @param[in] callback TLS initialization callback function
+ * @return Error code
+ **/
+
+error_t modbusClientRegisterTlsInitCallback(ModbusClientContext *context,
+   ModbusClientTlsInitCallback callback)
+{
+   //Make sure the Modbus/TCP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save callback function
+   context->tlsInitCallback = callback;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+#endif
 
 
 /**
@@ -163,41 +202,23 @@ error_t modbusClientConnect(ModbusClientContext *context,
       //Check current state
       if(context->state == MODBUS_CLIENT_STATE_DISCONNECTED)
       {
-         //Open a TCP socket
-         context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+         //Open network connection
+         error = modbusClientOpenConnection(context);
 
-         //Valid socket?
-         if(context->socket != NULL)
+         //Check status code
+         if(!error)
          {
-            //Associate the socket with the relevant interface
-            error = socketBindToInterface(context->socket, context->interface);
-
-            //Check status code
-            if(!error)
-            {
-               //Set timeout
-               error = socketSetTimeout(context->socket, context->timeout);
-            }
-
-            //Check status code
-            if(!error)
-            {
-               //Save current time
-               context->timestamp = osGetSystemTime();
-               //Update Modbus/TCP client state
-               context->state = MODBUS_CLIENT_STATE_CONNECTING;
-            }
-         }
-         else
-         {
-            //Report an error
-            error = ERROR_OPEN_FAILED;
+            //Save current time
+            context->timestamp = osGetSystemTime();
+            //Update Modbus/TCP client state
+            context->state = MODBUS_CLIENT_STATE_CONNECTING;
          }
       }
       else if(context->state == MODBUS_CLIENT_STATE_CONNECTING)
       {
-         //Establish TCP connection
-         error = socketConnect(context->socket, serverIpAddr, serverPort);
+         //Establish network connection
+         error = modbusClientEstablishConnection(context, serverIpAddr,
+            serverPort);
 
          //Check status code
          if(error == NO_ERROR)
@@ -231,12 +252,7 @@ error_t modbusClientConnect(ModbusClientContext *context,
    if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
       //Clean up side effects
-      if(context->socket != NULL)
-      {
-         socketClose(context->socket);
-         context->socket = NULL;
-      }
-
+      modbusClientCloseConnection(context);
       //Update Modbus/TCP client state
       context->state = MODBUS_CLIENT_STATE_DISCONNECTED;
    }
@@ -969,16 +985,14 @@ error_t modbusClientDisconnect(ModbusClientContext *context)
       }
       else if(context->state == MODBUS_CLIENT_STATE_DISCONNECTING)
       {
-         //Shutdown TCP connection
-         error = socketShutdown(context->socket, SOCKET_SD_BOTH);
+         //Shutdown connection
+         error = modbusClientShutdownConnection(context);
 
          //Check status code
          if(error == NO_ERROR)
          {
-            //Close TCP socket
-            socketClose(context->socket);
-            context->socket = NULL;
-
+            //Close connection
+            modbusClientCloseConnection(context);
             //Update Modbus/TCP client state
             context->state = MODBUS_CLIENT_STATE_DISCONNECTED;
          }
@@ -1007,13 +1021,8 @@ error_t modbusClientDisconnect(ModbusClientContext *context)
    //Failed to gracefully disconnect from the Modbus/TCP server?
    if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
-      //Close TCP socket
-      if(context->socket != NULL)
-      {
-         socketClose(context->socket);
-         context->socket = NULL;
-      }
-
+      //Close connection
+      modbusClientCloseConnection(context);
       //Update Modbus/TCP client state
       context->state = MODBUS_CLIENT_STATE_DISCONNECTED;
    }
@@ -1035,15 +1044,9 @@ error_t modbusClientClose(ModbusClientContext *context)
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Valid socket handle?
-   if(context->socket != NULL)
-   {
-      //Close TCP socket
-      socketClose(context->socket);
-      context->socket = NULL;
-   }
-
-   //The Modbus/TCP client is disconnected
+   //Close connection
+   modbusClientCloseConnection(context);
+   //Update Modbus/TCP client state
    context->state = MODBUS_CLIENT_STATE_DISCONNECTED;
 
    //Successful processing
@@ -1061,12 +1064,13 @@ void modbusClientDeinit(ModbusClientContext *context)
    //Make sure the Modbus/TCP client context is valid
    if(context != NULL)
    {
-      //Valid socket handle?
-      if(context->socket != NULL)
-      {
-         //Close TCP socket
-         socketClose(context->socket);
-      }
+      //Close connection
+      modbusClientCloseConnection(context);
+
+#if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
+      //Release TLS session state
+      tlsFreeSessionState(&context->tlsSession);
+#endif
 
       //Clear Modbus/TCP client context
       memset(context, 0, sizeof(ModbusClientContext));
