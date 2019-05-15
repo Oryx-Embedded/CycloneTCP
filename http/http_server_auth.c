@@ -135,7 +135,7 @@ bool_t httpCheckPassword(HttpConnection *connection,
                //Debug message
                TRACE_DEBUG("  HA2: %s\r\n", ha2);
 
-               //Compute MD5(HA1 : nonce : nc : cnonce : qop : HA1)
+               //Compute MD5(HA1 : nonce : nc : cnonce : qop : HA2)
                md5Init(md5Context);
                md5Update(md5Context, ha1, strlen(ha1));
                md5Update(md5Context, ":", 1);
@@ -225,7 +225,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
       //Any parsing error?
       if(token != NULL)
       {
-         //Decrypt the Base64 encoded string
+         //Decrypt the Base64-encoded string
          error = base64Decode(token, strlen(token), token, &n);
 
          //Successful decoding?

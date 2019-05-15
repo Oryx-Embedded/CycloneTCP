@@ -151,7 +151,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
    //Initialize ticket encryption context
    error = tlsInitTicketContext(&context->tlsTicketContext);
-   //Any errior to report?
+   //Any error to report?
    if(error)
       return error;
 #endif

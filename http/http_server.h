@@ -318,21 +318,6 @@ typedef enum
 
 
 /**
- * @brief Flags used by I/O functions
- **/
-
-typedef enum
-{
-   HTTP_FLAG_WAIT_ALL   = 0x0800,
-   HTTP_FLAG_BREAK_CHAR = 0x1000,
-   HTTP_FLAG_BREAK_CRLF = 0x100A,
-   HTTP_FLAG_WAIT_ACK   = 0x2000,
-   HTTP_FLAG_NO_DELAY   = 0x4000,
-   HTTP_FLAG_DELAY      = 0x8000
-} HttpFlags;
-
-
-/**
  * @brief HTTP connection states
  **/
 

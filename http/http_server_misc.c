@@ -487,7 +487,7 @@ void httpParseHeaderField(HttpConnection *connection,
 /**
  * @brief Parse Connection header field
  * @param[in] connection Structure representing an HTTP connection
- * @param[in] value Content-Type field value
+ * @param[in] value Connection field value
  **/
 
 void httpParseConnectionField(HttpConnection *connection,
@@ -1152,7 +1152,7 @@ void httpConvertArrayToHexString(const uint8_t *input,
    size_t i;
 
    //Hex conversion table
-   static const char_t hexDigit[] =
+   static const char_t hexDigit[16] =
    {
       '0', '1', '2', '3', '4', '5', '6', '7',
       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
