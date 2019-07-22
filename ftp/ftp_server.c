@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -139,8 +139,8 @@ error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settin
          break;
       }
 
-      //Set timeout for blocking functions
-      error = socketSetTimeout(context->socket, INFINITE_DELAY);
+      //Force the socket to operate in non-blocking mode
+      error = socketSetTimeout(context->socket, 0);
       //Any error to report?
       if(error)
          break;
@@ -264,6 +264,9 @@ void ftpServerTask(FtpServerContext *context)
    FtpClientConnection *connection;
 
 #if (NET_RTOS_SUPPORT == ENABLED)
+   //Task prologue
+   osEnterTask();
+
    //Process events
    while(1)
    {

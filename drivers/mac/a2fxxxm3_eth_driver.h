@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _A2FXXXM3_ETH_DRIVER_H
@@ -87,13 +87,6 @@
 #ifndef CSR9_MDEN_MASK
    #define CSR9_MDEN_MASK CSR9_MII_MASK
 #endif
-
-//Serial Management Interface
-#define SMI_SYNC  0xFFFFFFFF
-#define SMI_START 0x00000001
-#define SMI_WRITE 0x00000001
-#define SMI_READ  0x00000002
-#define SMI_TA    0x00000002
 
 //C++ guard
 #ifdef __cplusplus
@@ -163,8 +156,11 @@ error_t a2fxxxm3EthReceivePacket(NetInterface *interface);
 error_t a2fxxxm3EthUpdateMacAddrFilter(NetInterface *interface);
 error_t a2fxxxm3EthUpdateMacConfig(NetInterface *interface);
 
-void a2fxxxm3EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t a2fxxxm3EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void a2fxxxm3EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t a2fxxxm3EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 void a2fxxxm3EthWriteSmi(uint32_t data, uint_t length);
 uint32_t a2fxxxm3EthReadSmi(uint_t length);

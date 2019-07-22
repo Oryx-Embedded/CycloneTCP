@@ -1,6 +1,6 @@
 /**
  * @file stm32f7xx_eth_driver.h
- * @brief STM32F746/756 Ethernet MAC controller
+ * @brief STM32F7 Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _STM32F7XX_ETH_DRIVER_H
@@ -155,13 +155,6 @@
 #define ETH_RDES6_RTSL   0xFFFFFFFF
 #define ETH_RDES7_RTSH   0xFFFFFFFF
 
-//Serial Management Interface
-#define SMI_SYNC         0xFFFFFFFF
-#define SMI_START        0x00000001
-#define SMI_WRITE        0x00000001
-#define SMI_READ         0x00000002
-#define SMI_TA           0x00000002
-
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
@@ -202,10 +195,10 @@ typedef struct
 } Stm32f7xxRxDmaDesc;
 
 
-//STM32F746/756 Ethernet MAC driver
+//STM32F7 Ethernet MAC driver
 extern const NicDriver stm32f7xxEthDriver;
 
-//STM32F746/756 Ethernet MAC related functions
+//STM32F7 Ethernet MAC related functions
 error_t stm32f7xxEthInit(NetInterface *interface);
 void stm32f7xxEthInitGpio(NetInterface *interface);
 void stm32f7xxEthInitDmaDesc(NetInterface *interface);
@@ -224,8 +217,11 @@ error_t stm32f7xxEthReceivePacket(NetInterface *interface);
 error_t stm32f7xxEthUpdateMacAddrFilter(NetInterface *interface);
 error_t stm32f7xxEthUpdateMacConfig(NetInterface *interface);
 
-void stm32f7xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t stm32f7xxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void stm32f7xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t stm32f7xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 void stm32f7xxEthWriteSmi(uint32_t data, uint_t length);
 uint32_t stm32f7xxEthReadSmi(uint_t length);

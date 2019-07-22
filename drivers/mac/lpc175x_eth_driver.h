@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _LPC175X_ETH_DRIVER_H
@@ -337,13 +337,6 @@
 #define RX_HASH_CRC_DA                 0x001FF000
 #define RX_HASH_CRC_SA                 0x000001FF
 
-//Serial Management Interface
-#define SMI_SYNC                       0xFFFFFFFF
-#define SMI_START                      0x00000001
-#define SMI_WRITE                      0x00000001
-#define SMI_READ                       0x00000002
-#define SMI_TA                         0x00000002
-
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
@@ -415,8 +408,11 @@ error_t lpc175xEthReceivePacket(NetInterface *interface);
 error_t lpc175xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t lpc175xEthUpdateMacConfig(NetInterface *interface);
 
-void lpc175xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t lpc175xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void lpc175xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t lpc175xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 void lpc175xEthWriteSmi(uint32_t data, uint_t length);
 uint32_t lpc175xEthReadSmi(uint_t length);

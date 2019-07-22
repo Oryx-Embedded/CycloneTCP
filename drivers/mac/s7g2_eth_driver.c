@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -33,7 +33,7 @@
 
 //Dependencies
 #include "bsp_irq_cfg.h"
-#include "r7fs7g2x.h"
+#include "s7g2.h"
 #include "core/net.h"
 #include "drivers/mac/s7g2_eth_driver.h"
 #include "debug.h"
@@ -216,7 +216,7 @@ void s7g2EthInitGpio(NetInterface *interface)
 {
    //Unlock PFS registers
    R_PMISC->PWPR_b.BOWI = 0;
-   R_PMISC->PWPR_b.PSFWE = 1;
+   R_PMISC->PWPR_b.PFSWE = 1;
 
    //Select RMII interface mode
    R_PMISC->PFENET_b.PHYMODE1 = 0;
@@ -262,7 +262,7 @@ void s7g2EthInitGpio(NetInterface *interface)
    R_PFS->P705PFS_b.PSEL = 23;
 
    //Lock PFS registers
-   R_PMISC->PWPR_b.PSFWE = 0;
+   R_PMISC->PWPR_b.PFSWE = 0;
    R_PMISC->PWPR_b.BOWI = 1;
 }
 
@@ -374,7 +374,7 @@ void ETHER_EINT1_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -412,7 +412,7 @@ void ETHER_EINT1_IRQHandler(void)
    //Clear IR flag
    R_ICU->IELSRn_b[ETHER_EINT1_IRQn].IR = 0;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -656,19 +656,21 @@ error_t s7g2EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void s7g2EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void s7g2EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
    //Synchronization pattern
    s7g2EthWriteSmi(SMI_SYNC, 32);
    //Start of frame
    s7g2EthWriteSmi(SMI_START, 2);
    //Set up a write operation
-   s7g2EthWriteSmi(SMI_WRITE, 2);
+   s7g2EthWriteSmi(opcode, 2);
    //Write PHY address
    s7g2EthWriteSmi(phyAddr, 5);
    //Write register address
@@ -684,12 +686,14 @@ void s7g2EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t s7g2EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t s7g2EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
    uint16_t data;
 
@@ -698,7 +702,7 @@ uint16_t s7g2EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
    //Start of frame
    s7g2EthWriteSmi(SMI_START, 2);
    //Set up a read operation
-   s7g2EthWriteSmi(SMI_READ, 2);
+   s7g2EthWriteSmi(opcode, 2);
    //Write PHY address
    s7g2EthWriteSmi(phyAddr, 5);
    //Write register address

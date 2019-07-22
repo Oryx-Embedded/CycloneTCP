@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _IP101_DRIVER_H
@@ -41,189 +41,159 @@
    #error IP101_PHY_ADDR parameter is not valid
 #endif
 
-//IP101 registers
-#define IP101_PHY_REG_BMCR        0x00
-#define IP101_PHY_REG_BMSR        0x01
-#define IP101_PHY_REG_PHYIDR1     0x02
-#define IP101_PHY_REG_PHYIDR2     0x03
-#define IP101_PHY_REG_ANAR        0x04
-#define IP101_PHY_REG_ANLPAR      0x05
-#define IP101_PHY_REG_ANER        0x06
-#define IP101_PHY_REG_ANNPTR      0x07
-#define IP101_PHY_REG_LPNPAR      0x08
-#define IP101_PHY_REG_MMDACR      0x0D
-#define IP101_PHY_REG_MMDAADR     0x0E
-#define IP101_PHY_REG_PHYSCR      0x10
-#define IP101_PHY_REG_ICSR        0x11
-#define IP101_PHY_REG_PHYSMR      0x12
-#define IP101_PHY_REG_IOSCR       0x1D
-#define IP101_PHY_REG_PHYMCSSR    0x1E
+//IP101 PHY registers
+#define IP101_BMCR                         0x00
+#define IP101_BMSR                         0x01
+#define IP101_PHYID1                       0x02
+#define IP101_PHYID2                       0x03
+#define IP101_ANAR                         0x04
+#define IP101_ANLPAR                       0x05
+#define IP101_ANER                         0x06
+#define IP101_ANNPR                        0x07
+#define IP101_ANLPNPR                      0x08
+#define IP101_MMDACR                       0x0D
+#define IP101_MMDAADR                      0x0E
+#define IP101_PHYSCR                       0x10
+#define IP101_ICSR                         0x11
+#define IP101_PHYSMR                       0x12
+#define IP101_IOSCR                        0x1D
+#define IP101_PHYMCSSR                     0x1E
 
-//BMCR register
-#define BMCR_RESET                (1 << 15)
-#define BMCR_LOOPBACK             (1 << 14)
-#define BMCR_SPEED_SEL            (1 << 13)
-#define BMCR_AN_EN                (1 << 12)
-#define BMCR_POWER_DOWN           (1 << 11)
-#define BMCR_ISOLATE              (1 << 10)
-#define BMCR_RESTART_AN           (1 << 9)
-#define BMCR_DUPLEX_MODE          (1 << 8)
-#define BMCR_COL_TEST             (1 << 7)
+//Control register
+#define IP101_BMCR_RESET                   0x8000
+#define IP101_BMCR_LOOPBACK                0x4000
+#define IP101_BMCR_SPEED_SEL               0x2000
+#define IP101_BMCR_AN_EN                   0x1000
+#define IP101_BMCR_POWER_DOWN              0x0800
+#define IP101_BMCR_ISOLATE                 0x0400
+#define IP101_BMCR_RESTART_AN              0x0200
+#define IP101_BMCR_DUPLEX_MODE             0x0100
+#define IP101_BMCR_COL_TEST                0x0080
 
-//BMSR register
-#define BMSR_100BT4               (1 << 15)
-#define BMSR_100BTX_FD            (1 << 14)
-#define BMSR_100BTX               (1 << 13)
-#define BMSR_10BT_FD              (1 << 12)
-#define BMSR_10BT                 (1 << 11)
-#define BMSR_NO_PREAMBLE          (1 << 6)
-#define BMSR_AN_COMPLETE          (1 << 5)
-#define BMSR_REMOTE_FAULT         (1 << 4)
-#define BMSR_AN_ABLE              (1 << 3)
-#define BMSR_LINK_STATUS          (1 << 2)
-#define BMSR_JABBER_DETECT        (1 << 1)
-#define BMSR_EXTENDED_CAP         (1 << 0)
+//Basic Status register
+#define IP101_BMSR_100BT4                  0x8000
+#define IP101_BMSR_100BTX_FD               0x4000
+#define IP101_BMSR_100BTX_HD               0x2000
+#define IP101_BMSR_10BT_FD                 0x1000
+#define IP101_BMSR_10BT_HD                 0x0800
+#define IP101_BMSR_MF_PREAMBLE_SUPPR       0x0040
+#define IP101_BMSR_AN_COMPLETE             0x0020
+#define IP101_BMSR_REMOTE_FAULT            0x0010
+#define IP101_BMSR_AN_CAPABLE              0x0008
+#define IP101_BMSR_LINK_STATUS             0x0004
+#define IP101_BMSR_JABBER_DETECT           0x0002
+#define IP101_BMSR_EXTENDED_CAPABLE        0x0001
 
-//ANAR register
-#define ANAR_NP                   (1 << 15)
-#define ANAR_RF                   (1 << 13)
-#define ANAR_ASYMMETRIC_PAUSE     (1 << 11)
-#define ANAR_PAUSE                (1 << 10)
-#define ANAR_100BT4               (1 << 9)
-#define ANAR_100BTX_FD            (1 << 8)
-#define ANAR_100BTX               (1 << 7)
-#define ANAR_10BT_FD              (1 << 6)
-#define ANAR_10BT                 (1 << 5)
-#define ANAR_SELECTOR4            (1 << 4)
-#define ANAR_SELECTOR3            (1 << 3)
-#define ANAR_SELECTOR2            (1 << 2)
-#define ANAR_SELECTOR1            (1 << 1)
-#define ANAR_SELECTOR0            (1 << 0)
+//PHY Identifier 1 register
+#define IP101_PHYID1_PHY_ID_MSB            0xFFFF
+#define IP101_PHYID1_PHY_ID_MSB_DEFAULT    0x0243
 
-//ANLPAR register
-#define ANLPAR_NP                 (1 << 15)
-#define ANLPAR_ACK                (1 << 14)
-#define ANLPAR_RF                 (1 << 13)
-#define ANLPAR_ASYMMETRIC_PAUSE   (1 << 11)
-#define ANLPAR_PAUSE              (1 << 10)
-#define ANLPAR_100BT4             (1 << 9)
-#define ANLPAR_100BTX_FD          (1 << 8)
-#define ANLPAR_100BTX             (1 << 7)
-#define ANLPAR_10BT_FD            (1 << 6)
-#define ANLPAR_10BT               (1 << 5)
-#define ANLPAR_SELECTOR4          (1 << 4)
-#define ANLPAR_SELECTOR3          (1 << 3)
-#define ANLPAR_SELECTOR2          (1 << 2)
-#define ANLPAR_SELECTOR1          (1 << 1)
-#define ANLPAR_SELECTOR0          (1 << 0)
+//PHY Identifier 2 register
+#define IP101_PHYID2__DEFAULT              0xC54
 
-//ANER register
-#define ANER_MLF                  (1 << 4)
-#define ANER_LP_NP_ABLE           (1 << 3)
-#define ANER_NP_ABLE              (1 << 2)
-#define ANER_PAGE_RX              (1 << 1)
-#define ANER_LP_AN_ABLE           (1 << 0)
+//Auto-Negotiation Advertisement register
+#define IP101_ANAR_NEXT_PAGE               0x8000
+#define IP101_ANAR_REMOTE_FAULT            0x2000
+#define IP101_ANAR_ASYM_PAUSE              0x0800
+#define IP101_ANAR_PAUSE                   0x0400
+#define IP101_ANAR_100BT4                  0x0200
+#define IP101_ANAR_100BTX_FD               0x0100
+#define IP101_ANAR_100BTX_HD               0x0080
+#define IP101_ANAR_10BT_FD                 0x0040
+#define IP101_ANAR_10BT_HD                 0x0020
+#define IP101_ANAR_SELECTOR                0x001F
+#define IP101_ANAR_SELECTOR_DEFAULT        0x0001
 
-//ANNPTR register
-#define ANNPTR_NP                 (1 << 15)
-#define ANNPTR_MP                 (1 << 13)
-#define ANNPTR_ACK2               (1 << 12)
-#define ANNPTR_TOGGLE             (1 << 11)
-#define ANNPTR_CODE10             (1 << 10)
-#define ANNPTR_CODE9              (1 << 9)
-#define ANNPTR_CODE8              (1 << 8)
-#define ANNPTR_CODE7              (1 << 7)
-#define ANNPTR_CODE6              (1 << 6)
-#define ANNPTR_CODE5              (1 << 5)
-#define ANNPTR_CODE4              (1 << 4)
-#define ANNPTR_CODE3              (1 << 3)
-#define ANNPTR_CODE2              (1 << 2)
-#define ANNPTR_CODE1              (1 << 1)
-#define ANNPTR_CODE0              (1 << 0)
+//Auto-Negotiation Link Partner Ability register
+#define IP101_ANLPAR_NEXT_PAGE             0x8000
+#define IP101_ANLPAR_ACK                   0x4000
+#define IP101_ANLPAR_REMOTE_FAULT          0x2000
+#define IP101_ANLPAR_ASYM_PAUSE            0x0800
+#define IP101_ANLPAR_PAUSE                 0x0400
+#define IP101_ANLPAR_100BT4                0x0200
+#define IP101_ANLPAR_100BTX_FD             0x0100
+#define IP101_ANLPAR_100BTX_HD             0x0080
+#define IP101_ANLPAR_10BT_FD               0x0040
+#define IP101_ANLPAR_10BT_HD               0x0020
+#define IP101_ANLPAR_SELECTOR              0x001F
+#define IP101_ANLPAR_SELECTOR_DEFAULT      0x0001
 
-//LPNPAR register
-#define LPNPAR_NEXT_PAGE          (1 << 15)
-#define LPNPAR_MSG_PAGE           (1 << 13)
-#define LPNPAR_ACK2               (1 << 12)
-#define LPNPAR_TOGGLE             (1 << 11)
-#define LPNPAR_MESSAGE10          (1 << 10)
-#define LPNPAR_MESSAGE9           (1 << 9)
-#define LPNPAR_MESSAGE8           (1 << 8)
-#define LPNPAR_MESSAGE7           (1 << 7)
-#define LPNPAR_MESSAGE6           (1 << 6)
-#define LPNPAR_MESSAGE5           (1 << 5)
-#define LPNPAR_MESSAGE4           (1 << 4)
-#define LPNPAR_MESSAGE3           (1 << 3)
-#define LPNPAR_MESSAGE2           (1 << 2)
-#define LPNPAR_MESSAGE1           (1 << 1)
-#define LPNPAR_MESSAGE0           (1 << 0)
+//Auto-Negotiation Expansion register
+#define IP101_ANER_MLF                     0x0010
+#define IP101_ANER_LP_NP_ABLE              0x0008
+#define IP101_ANER_NP_ABLE                 0x0004
+#define IP101_ANER_PAGE_RX                 0x0002
+#define IP101_ANER_LP_AN_ABLE              0x0001
 
-//MMDACR register
-#define MMDACR_FUNCTION1          (1 << 15)
-#define MMDACR_FUNCTION0          (1 << 14)
-#define MMDACR_DEVAD4             (1 << 4)
-#define MMDACR_DEVAD3             (1 << 3)
-#define MMDACR_DEVAD2             (1 << 2)
-#define MMDACR_DEVAD1             (1 << 1)
-#define MMDACR_DEVAD0             (1 << 0)
+//Auto-Negotiation Next Page Transmit register
+#define IP101_ANNPR_NEXT_PAGE              0x8000
+#define IP101_ANNPR_MSG_PAGE               0x2000
+#define IP101_ANNPR_ACK2                   0x1000
+#define IP101_ANNPR_TOGGLE                 0x0800
+#define IP101_ANNPR_MESSAGE                0x07FF
 
-//PHYSCR register
-#define PHYSCR_RMII_V10           (1 << 13)
-#define PHYSCR_RMII_V12           (1 << 12)
-#define PHYSCR_AUTO_MDIX_DIS      (1 << 11)
-#define PHYSCR_JABBER_ENABLE      (1 << 9)
-#define PHYSCR_FEF_DISABLE        (1 << 8)
-#define PHYSCR_NWAY_PSAVE_DIS     (1 << 7)
-#define PHYSCR_BYPASS_DSP_RESET   (1 << 5)
-#define PHYSCR_REPEATER_MODE      (1 << 2)
-#define PHYSCR_LDPS_ENABLE        (1 << 1)
-#define PHYSCR_ANALOG_OFF         (1 << 0)
+//Auto-Negotiation Link Partner Next Page register
+#define IP101_ANLPNPR_NEXT_PAGE            0x8000
+#define IP101_ANLPNPR_ACK                  0x4000
+#define IP101_ANLPNPR_MSG_PAGE             0x2000
+#define IP101_ANLPNPR_ACK2                 0x1000
+#define IP101_ANLPNPR_TOGGLE               0x0800
+#define IP101_ANLPNPR_MESSAGE              0x07FF
 
-//ICSR register
-#define ICSR_INTR_EN              (1 << 15)
-#define ICSR_RESERVED2            (1 << 14)
-#define ICSR_RESERVED1            (1 << 13)
-#define ICSR_RESERVED0            (1 << 12)
-#define ICSR_ALL_MASK             (1 << 11)
-#define ICSR_SPEED_MASK           (1 << 10)
-#define ICSR_DUPLEX_MASK          (1 << 9)
-#define ICSR_LINK_MASK            (1 << 8)
-#define ICSR_INTR_STATUS          (1 << 3)
-#define ICSR_SPEED_CHANGE         (1 << 2)
-#define ICSR_DUPLEX_CHANGE        (1 << 1)
-#define ICSR_LINK_CHANGE          (1 << 0)
+//MMD Access Control register
+#define IP101_MMDACR_FUNC                  0xC000
+#define IP101_MMDACR_FUNC_ADDR             0x0000
+#define IP101_MMDACR_FUNC_DATA_NO_POST_INC 0x4000
+#define IP101_MMDACR_FUNC_DATA_POST_INC_RW 0x8000
+#define IP101_MMDACR_FUNC_DATA_POST_INC_W  0xC000
+#define IP101_MMDACR_DEVAD                 0x001F
 
-//PHYSMR register
-#define PHYSMR_SPEED              (1 << 14)
-#define PHYSMR_DUPLEX             (1 << 13)
-#define PHYSMR_AN_COMPLETE        (1 << 11)
-#define PHYSMR_LINK_UP            (1 << 10)
-#define PHYSMR_MDIX               (1 << 9)
-#define PHYSMR_POLARITY           (1 << 8)
-#define PHYSMR_JABBER             (1 << 7)
-#define PHYSMR_AN_ARBIT_STATE3    (1 << 3)
-#define PHYSMR_AN_ARBIT_STATE2    (1 << 2)
-#define PHYSMR_AN_ARBIT_STATE1    (1 << 1)
-#define PHYSMR_AN_ARBIT_STATE0    (1 << 0)
+//PHY Specific Control register
+#define IP101_PHYSCR_RMII_V10              0x2000
+#define IP101_PHYSCR_RMII_V12              0x1000
+#define IP101_PHYSCR_AUTO_MDIX_DIS         0x0800
+#define IP101_PHYSCR_JABBER_EN             0x0200
+#define IP101_PHYSCR_FEF_DIS               0x0100
+#define IP101_PHYSCR_NWAY_PSAVE_DIS        0x0080
+#define IP101_PHYSCR_BYPASS_DSP_RESET      0x0020
+#define IP101_PHYSCR_REPEATER_MODE         0x0004
+#define IP101_PHYSCR_LDPS_EN               0x0002
+#define IP101_PHYSCR_ANALOG_OFF            0x0001
 
-//IOSCR register
-#define IOSCR_RMII_WITH_ER        (1 << 7)
-#define IOSCR_SEL_INTR32          (1 << 2)
+//Interrupt Control/Status register
+#define IP101_ICSR_INTR_EN                 0x8000
+#define IP101_ICSR_ALL_MASK                0x0800
+#define IP101_ICSR_SPEED_MASK              0x0400
+#define IP101_ICSR_DUPLEX_MASK             0x0200
+#define IP101_ICSR_LINK_MASK               0x0100
+#define IP101_ICSR_INTR_STATUS             0x0008
+#define IP101_ICSR_SPEED_CHANGE            0x0004
+#define IP101_ICSR_DUPLEX_CHANGE           0x0002
+#define IP101_ICSR_LINK_CHANGE             0x0001
 
-//PHYMCSSR register
-#define PHYMCSSR_LINK_UP          (1 << 8)
-#define PHYMCSSR_FORCE_MDIX       (1 << 3)
-#define PHYMCSSR_OP_MODE2         (1 << 2)
-#define PHYMCSSR_OP_MODE1         (1 << 1)
-#define PHYMCSSR_OP_MODE0         (1 << 0)
+//PHY Status Monitoring register
+#define IP101_PHYSMR_SPEED                 0x4000
+#define IP101_PHYSMR_DUPLEX                0x2000
+#define IP101_PHYSMR_AN_COMPLETE           0x0800
+#define IP101_PHYSMR_LINK_UP               0x0400
+#define IP101_PHYSMR_MDIX                  0x0200
+#define IP101_PHYSMR_POLARITY              0x0100
+#define IP101_PHYSMR_JABBER                0x0080
+#define IP101_PHYSMR_AN_ARBIT_STATE        0x000F
 
-//Operation mode indication
-#define PHYMCSSR_OP_MODE_MASK     (7 << 0)
-#define PHYMCSSR_OP_MODE_LINK_OFF (0 << 0)
-#define PHYMCSSR_OP_MODE_10M_HD   (1 << 0)
-#define PHYMCSSR_OP_MODE_100M_HD  (2 << 0)
-#define PHYMCSSR_OP_MODE_10M_FD   (5 << 0)
-#define PHYMCSSR_OP_MODE_100_FD   (6 << 0)
+//Digital I/O Specific Control register
+#define IP101_IOSCR_RMII_WITH_ER           0x0080
+#define IP101_IOSCR_SEL_INTR32             0x0004
+
+//PHY MDI/MDIX Control and Specific Status register
+#define IP101_PHYMCSSR_LINK_UP             0x0100
+#define IP101_PHYMCSSR_FORCE_MDIX          0x0008
+#define IP101_PHYMCSSR_OP_MODE             0x0007
+#define IP101_PHYMCSSR_OP_MODE_LINK_OFF    0x0000
+#define IP101_PHYMCSSR_OP_MODE_10M_HD      0x0001
+#define IP101_PHYMCSSR_OP_MODE_100M_HD     0x0002
+#define IP101_PHYMCSSR_OP_MODE_10M_FD      0x0005
+#define IP101_PHYMCSSR_OP_MODE_100M_FD     0x0006
 
 //C++ guard
 #ifdef __cplusplus

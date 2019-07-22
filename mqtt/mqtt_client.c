@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -1113,7 +1113,6 @@ error_t mqttClientClose(MqttClientContext *context)
 
    //Close connection
    mqttClientCloseConnection(context);
-
    //The connection is closed
    mqttClientChangeState(context, MQTT_CLIENT_STATE_CLOSED);
 

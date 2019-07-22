@@ -1,6 +1,6 @@
 /**
- * @file rtl8211_driver.c
- * @brief RTL8211 Ethernet PHY transceiver
+ * @file rtl8211e_driver.c
+ * @brief RTL8211E Gigabit Ethernet PHY transceiver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -33,51 +33,64 @@
 
 //Dependencies
 #include "core/net.h"
-#include "drivers/phy/rtl8211_driver.h"
+#include "drivers/phy/rtl8211e_driver.h"
 #include "debug.h"
 
 
 /**
- * @brief RTL8211 Ethernet PHY driver
+ * @brief RTL8211E Ethernet PHY driver
  **/
 
-const PhyDriver rtl8211PhyDriver =
+const PhyDriver rtl8211ePhyDriver =
 {
-   rtl8211Init,
-   rtl8211Tick,
-   rtl8211EnableIrq,
-   rtl8211DisableIrq,
-   rtl8211EventHandler,
+   rtl8211eInit,
+   rtl8211eTick,
+   rtl8211eEnableIrq,
+   rtl8211eDisableIrq,
+   rtl8211eEventHandler,
    NULL,
    NULL
 };
 
 
 /**
- * @brief RTL8211 PHY transceiver initialization
+ * @brief RTL8211E PHY transceiver initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t rtl8211Init(NetInterface *interface)
+error_t rtl8211eInit(NetInterface *interface)
 {
    //Debug message
-   TRACE_INFO("Initializing RTL8211...\r\n");
+   TRACE_INFO("Initializing RTL8211E...\r\n");
+
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = RTL8211E_PHY_ADDR;
+   }
 
    //Initialize external interrupt line driver
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->init();
+   }
 
    //Reset PHY transceiver
-   rtl8211WritePhyReg(interface, RTL8211_PHY_REG_BMCR, BMCR_RESET);
+   rtl8211eWritePhyReg(interface, RTL8211E_BMCR, RTL8211E_BMCR_RESET);
+
    //Wait for the reset to complete
-   while(rtl8211ReadPhyReg(interface, RTL8211_PHY_REG_BMCR) & BMCR_RESET);
+   while(rtl8211eReadPhyReg(interface, RTL8211E_BMCR) & RTL8211E_BMCR_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
-   rtl8211DumpPhyReg(interface);
+   rtl8211eDumpPhyReg(interface);
 
    //The PHY will generate interrupts when link status changes are detected
-   rtl8211WritePhyReg(interface, RTL8211_PHY_REG_INER, INER_AN_COMPLETE | INER_LINK_STATUS);
+   rtl8211eWritePhyReg(interface, RTL8211E_INER, RTL8211E_INER_AN_COMPLETE |
+      RTL8211E_INER_LINK_STATUS);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -90,11 +103,11 @@ error_t rtl8211Init(NetInterface *interface)
 
 
 /**
- * @brief RTL8211 timer handler
+ * @brief RTL8211E timer handler
  * @param[in] interface Underlying network interface
  **/
 
-void rtl8211Tick(NetInterface *interface)
+void rtl8211eTick(NetInterface *interface)
 {
    uint16_t value;
    bool_t linkState;
@@ -103,9 +116,9 @@ void rtl8211Tick(NetInterface *interface)
    if(interface->extIntDriver == NULL)
    {
       //Read basic status register
-      value = rtl8211ReadPhyReg(interface, RTL8211_PHY_REG_BMSR);
+      value = rtl8211eReadPhyReg(interface, RTL8211E_BMSR);
       //Retrieve current link state
-      linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
+      linkState = (value & RTL8211E_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
       //Link up event?
       if(linkState && !interface->linkState)
@@ -132,11 +145,13 @@ void rtl8211Tick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void rtl8211EnableIrq(NetInterface *interface)
+void rtl8211eEnableIrq(NetInterface *interface)
 {
    //Enable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -145,53 +160,55 @@ void rtl8211EnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void rtl8211DisableIrq(NetInterface *interface)
+void rtl8211eDisableIrq(NetInterface *interface)
 {
    //Disable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->disableIrq();
+   }
 }
 
 
 /**
- * @brief RTL8211 event handler
+ * @brief RTL8211E event handler
  * @param[in] interface Underlying network interface
  **/
 
-void rtl8211EventHandler(NetInterface *interface)
+void rtl8211eEventHandler(NetInterface *interface)
 {
    uint16_t status;
 
    //Read status register to acknowledge the interrupt
-   status = rtl8211ReadPhyReg(interface, RTL8211_PHY_REG_INSR);
+   status = rtl8211eReadPhyReg(interface, RTL8211E_INSR);
 
    //Link status change?
-   if(status & (INSR_AN_COMPLETE | INSR_LINK_STATUS))
+   if(status & (RTL8211E_INSR_AN_COMPLETE | RTL8211E_INSR_LINK_STATUS))
    {
-      //Any link failure condition is latched in the BMSR register... Reading
+      //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
-      status = rtl8211ReadPhyReg(interface, RTL8211_PHY_REG_BMSR);
-      status = rtl8211ReadPhyReg(interface, RTL8211_PHY_REG_BMSR);
+      status = rtl8211eReadPhyReg(interface, RTL8211E_BMSR);
+      status = rtl8211eReadPhyReg(interface, RTL8211E_BMSR);
 
       //Link is up?
-      if(status & BMSR_LINK_STATUS)
+      if(status & RTL8211E_BMSR_LINK_STATUS)
       {
          //Read PHY status register
-         status = rtl8211ReadPhyReg(interface, RTL8211_PHY_REG_PHYSR);
+         status = rtl8211eReadPhyReg(interface, RTL8211E_PHYSR);
 
          //Check current speed
-         switch(status & PHYSR_SPEED_MASK)
+         switch(status & RTL8211E_PHYSR_SPEED)
          {
          //10BASE-T
-         case PHYSR_SPEED_10:
+         case RTL8211E_PHYSR_SPEED_10MBPS:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             break;
          //100BASE-TX
-         case PHYSR_SPEED_100:
+         case RTL8211E_PHYSR_SPEED_100MBPS:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             break;
          //1000BASE-T
-         case PHYSR_SPEED_1000:
+         case RTL8211E_PHYSR_SPEED_1000MBPS:
             interface->linkSpeed = NIC_LINK_SPEED_1GBPS;
             break;
          //Unknown speed
@@ -202,7 +219,7 @@ void rtl8211EventHandler(NetInterface *interface)
          }
 
          //Check current duplex mode
-         if(status & PHYSR_DUPLEX)
+         if(status & RTL8211E_PHYSR_DUPLEX)
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          else
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
@@ -232,19 +249,12 @@ void rtl8211EventHandler(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void rtl8211WritePhyReg(NetInterface *interface, uint8_t address,
+void rtl8211eWritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = RTL8211_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -255,18 +265,11 @@ void rtl8211WritePhyReg(NetInterface *interface, uint8_t address,
  * @return Register value
  **/
 
-uint16_t rtl8211ReadPhyReg(NetInterface *interface, uint8_t address)
+uint16_t rtl8211eReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = RTL8211_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -275,7 +278,7 @@ uint16_t rtl8211ReadPhyReg(NetInterface *interface, uint8_t address)
  * @param[in] interface Underlying network interface
  **/
 
-void rtl8211DumpPhyReg(NetInterface *interface)
+void rtl8211eDumpPhyReg(NetInterface *interface)
 {
    uint8_t i;
 
@@ -283,7 +286,8 @@ void rtl8211DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, rtl8211ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         rtl8211eReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

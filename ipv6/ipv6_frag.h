@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _IPV6_FRAG_H
@@ -142,8 +142,9 @@ typedef struct
 extern systime_t ipv6FragTickCounter;
 
 //IPv6 datagram fragmentation and reassembly
-error_t ipv6FragmentDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *payload, size_t payloadOffset, size_t pathMtu, uint8_t hopLimit);
+error_t ipv6FragmentDatagram(NetInterface *interface,
+   Ipv6PseudoHeader *pseudoHeader, const NetBuffer *payload,
+   size_t payloadOffset, size_t pathMtu, uint_t flags);
 
 void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t fragHeaderOffset, size_t nextHeaderOffset);

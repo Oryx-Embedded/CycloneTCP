@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _LAN8742_DRIVER_H
@@ -41,245 +41,191 @@
    #error LAN8742_PHY_ADDR parameter is not valid
 #endif
 
-//LAN8742 registers
-#define LAN8742_PHY_REG_BMCR        0x00
-#define LAN8742_PHY_REG_BMSR        0x01
-#define LAN8742_PHY_REG_PHYIDR1     0x02
-#define LAN8742_PHY_REG_PHYIDR2     0x03
-#define LAN8742_PHY_REG_ANAR        0x04
-#define LAN8742_PHY_REG_ANLPAR      0x05
-#define LAN8742_PHY_REG_ANER        0x06
-#define LAN8742_PHY_REG_ANNPTR      0x07
-#define LAN8742_PHY_REG_ANNPRR      0x08
-#define LAN8742_PHY_REG_MMDACR      0x0D
-#define LAN8742_PHY_REG_MMDAADR     0x0E
-#define LAN8742_PHY_REG_ENCTR       0x10
-#define LAN8742_PHY_REG_MCSR        0x11
-#define LAN8742_PHY_REG_SMR         0x12
-#define LAN8742_PHY_REG_TDRPDCR     0x18
-#define LAN8742_PHY_REG_TDRCSR      0x19
-#define LAN8742_PHY_REG_SECR        0x1A
-#define LAN8742_PHY_REG_SCSIR       0x1B
-#define LAN8742_PHY_REG_CLR         0x1C
-#define LAN8742_PHY_REG_ISR         0x1D
-#define LAN8742_PHY_REG_IMR         0x1E
-#define LAN8742_PHY_REG_PSCSR       0x1F
+//LAN8742 PHY registers
+#define LAN8742_BMCR                         0x00
+#define LAN8742_BMSR                         0x01
+#define LAN8742_PHYID1                       0x02
+#define LAN8742_PHYID2                       0x03
+#define LAN8742_ANAR                         0x04
+#define LAN8742_ANLPAR                       0x05
+#define LAN8742_ANER                         0x06
+#define LAN8742_ANNPR                        0x07
+#define LAN8742_ANLPNPR                      0x08
+#define LAN8742_MMDACR                       0x0D
+#define LAN8742_MMDAADR                      0x0E
+#define LAN8742_ENCTR                        0x10
+#define LAN8742_MCSR                         0x11
+#define LAN8742_SMR                          0x12
+#define LAN8742_TDRPDCR                      0x18
+#define LAN8742_TDRCSR                       0x19
+#define LAN8742_SECR                         0x1A
+#define LAN8742_SCSIR                        0x1B
+#define LAN8742_CLR                          0x1C
+#define LAN8742_ISR                          0x1D
+#define LAN8742_IMR                          0x1E
+#define LAN8742_PSCSR                        0x1F
 
-//BMCR register
-#define BMCR_RESET                  (1 << 15)
-#define BMCR_LOOPBACK               (1 << 14)
-#define BMCR_SPEED_SEL              (1 << 13)
-#define BMCR_AN_EN                  (1 << 12)
-#define BMCR_POWER_DOWN             (1 << 11)
-#define BMCR_ISOLATE                (1 << 10)
-#define BMCR_RESTART_AN             (1 << 9)
-#define BMCR_DUPLEX_MODE            (1 << 8)
-#define BMCR_COL_TEST               (1 << 7)
+//Basic Control register
+#define LAN8742_BMCR_RESET                   0x8000
+#define LAN8742_BMCR_LOOPBACK                0x4000
+#define LAN8742_BMCR_SPEED_SEL               0x2000
+#define LAN8742_BMCR_AN_EN                   0x1000
+#define LAN8742_BMCR_POWER_DOWN              0x0800
+#define LAN8742_BMCR_ISOLATE                 0x0400
+#define LAN8742_BMCR_RESTART_AN              0x0200
+#define LAN8742_BMCR_DUPLEX_MODE             0x0100
 
-//BMSR register
-#define BMSR_100BT4                 (1 << 15)
-#define BMSR_100BTX_FD              (1 << 14)
-#define BMSR_100BTX                 (1 << 13)
-#define BMSR_10BT_FD                (1 << 12)
-#define BMSR_10BT                   (1 << 11)
-#define BMSR_100BT2_FD              (1 << 10)
-#define BMSR_100BT2                 (1 << 9)
-#define BMSR_EXTENTED_STATUS        (1 << 8)
-#define BMSR_AN_COMPLETE            (1 << 5)
-#define BMSR_REMOTE_FAULT           (1 << 4)
-#define BMSR_AN_ABLE                (1 << 3)
-#define BMSR_LINK_STATUS            (1 << 2)
-#define BMSR_JABBER_DETECT          (1 << 1)
-#define BMSR_EXTENDED_CAP           (1 << 0)
+//Basic Status register
+#define LAN8742_BMSR_100BT4                  0x8000
+#define LAN8742_BMSR_100BTX_FD               0x4000
+#define LAN8742_BMSR_100BTX_HD               0x2000
+#define LAN8742_BMSR_10BT_FD                 0x1000
+#define LAN8742_BMSR_10BT_HD                 0x0800
+#define LAN8742_BMSR_100BT2_FD               0x0400
+#define LAN8742_BMSR_100BT2_HD               0x0200
+#define LAN8742_BMSR_EXTENDED_STATUS         0x0100
+#define LAN8742_BMSR_AN_COMPLETE             0x0020
+#define LAN8742_BMSR_REMOTE_FAULT            0x0010
+#define LAN8742_BMSR_AN_CAPABLE              0x0008
+#define LAN8742_BMSR_LINK_STATUS             0x0004
+#define LAN8742_BMSR_JABBER_DETECT           0x0002
+#define LAN8742_BMSR_EXTENDED_CAPABLE        0x0001
 
-//ANAR register
-#define ANAR_NP                     (1 << 15)
-#define ANAR_RF                     (1 << 13)
-#define ANAR_PAUSE1                 (1 << 11)
-#define ANAR_PAUSE0                 (1 << 10)
-#define ANAR_100BTX_FD              (1 << 8)
-#define ANAR_100BTX                 (1 << 7)
-#define ANAR_10BT_FD                (1 << 6)
-#define ANAR_10BT                   (1 << 5)
-#define ANAR_SELECTOR4              (1 << 4)
-#define ANAR_SELECTOR3              (1 << 3)
-#define ANAR_SELECTOR2              (1 << 2)
-#define ANAR_SELECTOR1              (1 << 1)
-#define ANAR_SELECTOR0              (1 << 0)
+//PHY Identifier 1 register
+#define LAN8742_PHYID1_PHY_ID_MSB            0xFFFF
+#define LAN8742_PHYID1_PHY_ID_MSB_DEFAULT    0x0007
 
-//ANLPAR register
-#define ANLPAR_NP                   (1 << 15)
-#define ANLPAR_ACK                  (1 << 14)
-#define ANLPAR_RF                   (1 << 13)
-#define ANLPAR_PAUSE1               (1 << 11)
-#define ANLPAR_PAUSE0               (1 << 10)
-#define ANLPAR_100BT4               (1 << 9)
-#define ANLPAR_100BTX_FD            (1 << 8)
-#define ANLPAR_100BTX               (1 << 7)
-#define ANLPAR_10BT_FD              (1 << 6)
-#define ANLPAR_10BT                 (1 << 5)
-#define ANLPAR_SELECTOR4            (1 << 4)
-#define ANLPAR_SELECTOR3            (1 << 3)
-#define ANLPAR_SELECTOR2            (1 << 2)
-#define ANLPAR_SELECTOR1            (1 << 1)
-#define ANLPAR_SELECTOR0            (1 << 0)
+//PHY Identifier 2 register
+#define LAN8742_PHYID2_PHY_ID_LSB            0xFC00
+#define LAN8742_PHYID2_PHY_ID_LSB_DEFAULT    0xC000
+#define LAN8742_PHYID2_MODEL_NUM             0x03F0
+#define LAN8742_PHYID2_MODEL_NUM_DEFAULT     0x0130
+#define LAN8742_PHYID2_REVISION_NUM          0x000F
 
-//ANER register
-#define ANER_RX_NP_LOC_ABLE         (1 << 6)
-#define ANER_RX_NP_STOR_LOC         (1 << 5)
-#define ANER_PDF                    (1 << 4)
-#define ANER_LP_NP_ABLE             (1 << 3)
-#define ANER_NP_ABLE                (1 << 2)
-#define ANER_PAGE_RX                (1 << 1)
-#define ANER_LP_AN_ABLE             (1 << 0)
+//Auto-Negotiation Advertisement register
+#define LAN8742_ANAR_NEXT_PAGE               0x8000
+#define LAN8742_ANAR_REMOTE_FAULT            0x2000
+#define LAN8742_ANAR_PAUSE                   0x0C00
+#define LAN8742_ANAR_100BTX_FD               0x0100
+#define LAN8742_ANAR_100BTX_HD               0x0080
+#define LAN8742_ANAR_10BT_FD                 0x0040
+#define LAN8742_ANAR_10BT_HD                 0x0020
+#define LAN8742_ANAR_SELECTOR                0x001F
+#define LAN8742_ANAR_SELECTOR_DEFAULT        0x0001
 
-//ANNPTR register
-#define ANNPTR_NEXT_PAGE            (1 << 15)
-#define ANNPTR_MSG_PAGE             (1 << 13)
-#define ANNPTR_ACK2                 (1 << 12)
-#define ANNPTR_TOGGLE               (1 << 11)
-#define ANNPTR_MESSAGE10            (1 << 10)
-#define ANNPTR_MESSAGE9             (1 << 9)
-#define ANNPTR_MESSAGE8             (1 << 8)
-#define ANNPTR_MESSAGE7             (1 << 7)
-#define ANNPTR_MESSAGE6             (1 << 6)
-#define ANNPTR_MESSAGE5             (1 << 5)
-#define ANNPTR_MESSAGE4             (1 << 4)
-#define ANNPTR_MESSAGE3             (1 << 3)
-#define ANNPTR_MESSAGE2             (1 << 2)
-#define ANNPTR_MESSAGE1             (1 << 1)
-#define ANNPTR_MESSAGE0             (1 << 0)
+//Auto-Negotiation Link Partner Ability register
+#define LAN8742_ANLPAR_NEXT_PAGE             0x8000
+#define LAN8742_ANLPAR_ACK                   0x4000
+#define LAN8742_ANLPAR_REMOTE_FAULT          0x2000
+#define LAN8742_ANLPAR_PAUSE                 0x0400
+#define LAN8742_ANLPAR_100BT4                0x0200
+#define LAN8742_ANLPAR_100BTX_FD             0x0100
+#define LAN8742_ANLPAR_100BTX_HD             0x0080
+#define LAN8742_ANLPAR_10BT_FD               0x0040
+#define LAN8742_ANLPAR_10BT_HD               0x0020
+#define LAN8742_ANLPAR_SELECTOR              0x001F
+#define LAN8742_ANLPAR_SELECTOR_DEFAULT      0x0001
 
-//ANNPRR register
-#define ANNPRR_NEXT_PAGE            (1 << 15)
-#define ANNPRR_ACK                  (1 << 14)
-#define ANNPRR_MSG_PAGE             (1 << 13)
-#define ANNPRR_ACK2                 (1 << 12)
-#define ANNPRR_TOGGLE               (1 << 11)
-#define ANNPRR_MESSAGE10            (1 << 10)
-#define ANNPRR_MESSAGE9             (1 << 9)
-#define ANNPRR_MESSAGE8             (1 << 8)
-#define ANNPRR_MESSAGE7             (1 << 7)
-#define ANNPRR_MESSAGE6             (1 << 6)
-#define ANNPRR_MESSAGE5             (1 << 5)
-#define ANNPRR_MESSAGE4             (1 << 4)
-#define ANNPRR_MESSAGE3             (1 << 3)
-#define ANNPRR_MESSAGE2             (1 << 2)
-#define ANNPRR_MESSAGE1             (1 << 1)
-#define ANNPRR_MESSAGE0             (1 << 0)
+//Auto-Negotiation Expansion register
+#define LAN8742_ANER_RECEIVE_NP_LOC_ABLE     0x0040
+#define LAN8742_ANER_RECEIVE_NP_STOR_LOC     0x0020
+#define LAN8742_ANER_PAR_DETECT_FAULT        0x0010
+#define LAN8742_ANER_LP_NEXT_PAGE_ABLE       0x0008
+#define LAN8742_ANER_NEXT_PAGE_ABLE          0x0004
+#define LAN8742_ANER_PAGE_RECEIVED           0x0002
+#define LAN8742_ANER_LP_AN_ABLE              0x0001
 
-//MMDACR register
-#define MMDACR_FUNCTION1            (1 << 15)
-#define MMDACR_FUNCTION0            (1 << 14)
-#define MMDACR_DEVAD4               (1 << 4)
-#define MMDACR_DEVAD3               (1 << 3)
-#define MMDACR_DEVAD2               (1 << 2)
-#define MMDACR_DEVAD1               (1 << 1)
-#define MMDACR_DEVAD0               (1 << 0)
+//Auto Negotiation Next Page TX register
+#define LAN8742_ANNPR_NEXT_PAGE              0x8000
+#define LAN8742_ANNPR_MSG_PAGE               0x2000
+#define LAN8742_ANNPR_ACK2                   0x1000
+#define LAN8742_ANNPR_TOGGLE                 0x0800
+#define LAN8742_ANNPR_MESSAGE                0x07FF
 
-//ENCTR register
-#define ENCTR_EDPD_TX_NLP_EN        (1 << 15)
-#define ENCTR_EDPD_TX_NLP_ITS1      (1 << 14)
-#define ENCTR_EDPD_TX_NLP_ITS0      (1 << 13)
-#define ENCTR_EDPD_RX_NLP_WAKE_EN   (1 << 12)
-#define ENCTR_EDPD_RX_NLP_MIDS1     (1 << 11)
-#define ENCTR_EDPD_RX_NLP_MIDS0     (1 << 10)
-#define ENCTR_EDPD_EXT_CROSSOVER    (1 << 1)
-#define ENCTR_EXT_CROSSOVER_TIME    (1 << 0)
+//Auto Negotiation Next Page RX register
+#define LAN8742_ANLPNPR_NEXT_PAGE            0x8000
+#define LAN8742_ANLPNPR_ACK                  0x4000
+#define LAN8742_ANLPNPR_MSG_PAGE             0x2000
+#define LAN8742_ANLPNPR_ACK2                 0x1000
+#define LAN8742_ANLPNPR_TOGGLE               0x0800
+#define LAN8742_ANLPNPR_MESSAGE              0x07FF
 
-//MCSR register
-#define MCSR_EDPWRDOWN              (1 << 13)
-#define MCSR_FARLOOPBACK            (1 << 9)
-#define MCSR_ALTINT                 (1 << 6)
-#define MCSR_ENERGYON               (1 << 1)
+//MMD Access Control register
+#define LAN8742_MMDACR_FUNC                  0xC000
+#define LAN8742_MMDACR_FUNC_ADDR             0x0000
+#define LAN8742_MMDACR_FUNC_DATA_NO_POST_INC 0x4000
+#define LAN8742_MMDACR_DEVAD                 0x001F
 
-//SMR register
-#define SMR_MODE2                   (1 << 7)
-#define SMR_MODE1                   (1 << 6)
-#define SMR_MODE0                   (1 << 5)
-#define SMR_PHYAD4                  (1 << 4)
-#define SMR_PHYAD3                  (1 << 3)
-#define SMR_PHYAD2                  (1 << 2)
-#define SMR_PHYAD1                  (1 << 1)
-#define SMR_PHYAD0                  (1 << 0)
+//EDPD NLP/Crossover Time Configuration register
+#define LAN8742_ENCTR_EDPD_TX_NLP_EN         0x8000
+#define LAN8742_ENCTR_EDPD_TX_NLP_ITS        0x6000
+#define LAN8742_ENCTR_EDPD_RX_NLP_WAKE_EN    0x1000
+#define LAN8742_ENCTR_EDPD_RX_NLP_MIDS       0x0C00
+#define LAN8742_ENCTR_EDPD_EXT_CROSSOVER     0x0002
+#define LAN8742_ENCTR_EXT_CROSSOVER_TIME     0x0001
 
-//TDRPDCR register
-#define TDRPDCR_DELAY_IN            (1 << 15)
-#define TDRPDCR_LINE_BREAK_COUNTER2 (1 << 14)
-#define TDRPDCR_LINE_BREAK_COUNTER1 (1 << 13)
-#define TDRPDCR_LINE_BREAK_COUNTER0 (1 << 12)
-#define TDRPDCR_PATTERN_HIGH5       (1 << 11)
-#define TDRPDCR_PATTERN_HIGH4       (1 << 10)
-#define TDRPDCR_PATTERN_HIGH3       (1 << 9)
-#define TDRPDCR_PATTERN_HIGH2       (1 << 8)
-#define TDRPDCR_PATTERN_HIGH1       (1 << 7)
-#define TDRPDCR_PATTERN_HIGH0       (1 << 6)
-#define TDRPDCR_PATTERN_LOW5        (1 << 5)
-#define TDRPDCR_PATTERN_LOW4        (1 << 4)
-#define TDRPDCR_PATTERN_LOW3        (1 << 3)
-#define TDRPDCR_PATTERN_LOW2        (1 << 2)
-#define TDRPDCR_PATTERN_LOW1        (1 << 1)
-#define TDRPDCR_PATTERN_LOW0        (1 << 0)
+//Mode Control/Status register
+#define LAN8742_MCSR_EDPWRDOWN               0x2000
+#define LAN8742_MCSR_FARLOOPBACK             0x0200
+#define LAN8742_MCSR_ALTINT                  0x0040
+#define LAN8742_MCSR_ENERGYON                0x0002
 
-//TDRCSR register
-#define TDRCSR_EN                   (1 << 15)
-#define TDRCSR_AD_FILTER_EN         (1 << 14)
-#define TDRCSR_CH_CABLE_TYPE1       (1 << 10)
-#define TDRCSR_CH_CABLE_TYPE0       (1 << 9)
-#define TDRCSR_CH_STATUS            (1 << 8)
-#define TDRCSR_CH_LENGTH7           (1 << 7)
-#define TDRCSR_CH_LENGTH6           (1 << 6)
-#define TDRCSR_CH_LENGTH5           (1 << 5)
-#define TDRCSR_CH_LENGTH4           (1 << 4)
-#define TDRCSR_CH_LENGTH3           (1 << 3)
-#define TDRCSR_CH_LENGTH2           (1 << 2)
-#define TDRCSR_CH_LENGTH1           (1 << 1)
-#define TDRCSR_CH_LENGTH0           (1 << 0)
+//Special Modes register
+#define LAN8742_SMR_MODE                     0x00E0
+#define LAN8742_SMR_PHYAD                    0x001F
 
-//SCSIR register
-#define SCSIR_AMDIXCTRL             (1 << 15)
-#define SCSIR_CH_SELECT             (1 << 13)
-#define SCSIR_SQEOFF                (1 << 11)
-#define SCSIR_XPOL                  (1 << 4)
+//TDR Patterns/Delay Control register
+#define LAN8742_TDRPDCR_DELAY_IN             0x8000
+#define LAN8742_TDRPDCR_LINE_BREAK_COUNT     0x7000
+#define LAN8742_TDRPDCR_PATTERN_HIGH         0x0FC0
+#define LAN8742_TDRPDCR_PATTERN_LOW          0x003F
 
-//CLR register
-#define CLR_CBLN3                   (1 << 15)
-#define CLR_CBLN2                   (1 << 14)
-#define CLR_CBLN1                   (1 << 13)
-#define CLR_CBLN0                   (1 << 12)
+//TDR Control/Status register
+#define LAN8742_TDRCSR_TDR_EN                0x8000
+#define LAN8742_TDRCSR_AD_FILTER_EN          0x4000
+#define LAN8742_TDRCSR_CH_CABLE_TYPE         0x0600
+#define LAN8742_TDRCSR_CH_STATUS             0x0100
+#define LAN8742_TDRCSR_CH_LENGTH             0x00FF
 
-//ISR register
-#define ISR_WOL                     (1 << 8)
-#define ISR_ENERGYON                (1 << 7)
-#define ISR_AN_COMPLETE             (1 << 6)
-#define ISR_REMOTE_FAULT            (1 << 5)
-#define ISR_LINK_DOWN               (1 << 4)
-#define ISR_AN_LP_ACK               (1 << 3)
-#define ISR_PD_FAULT                (1 << 2)
-#define ISR_AN_PAGE_RECEIVED        (1 << 1)
+//Symbol Error Counter register
+#define LAN8742_SECR_SYM_ERR_CNT             0xFFFF
 
-//IMR register
-#define IMR_WOL                     (1 << 8)
-#define IMR_ENERGYON                (1 << 7)
-#define IMR_AN_COMPLETE             (1 << 6)
-#define IMR_REMOTE_FAULT            (1 << 5)
-#define IMR_LINK_DOWN               (1 << 4)
-#define IMR_AN_LP_ACK               (1 << 3)
-#define IMR_PD_FAULT                (1 << 2)
-#define IMR_AN_PAGE_RECEIVED        (1 << 1)
+//Special Control/Status Indication register
+#define LAN8742_SCSIR_AMDIXCTRL              0x8000
+#define LAN8742_SCSIR_CH_SELECT              0x2000
+#define LAN8742_SCSIR_SQEOFF                 0x0800
+#define LAN8742_SCSIR_XPOL                   0x0010
 
-//PSCSR register
-#define PSCSR_AUTODONE              (1 << 12)
-#define PSCSR_HCDSPEED2             (1 << 4)
-#define PSCSR_HCDSPEED1             (1 << 3)
-#define PSCSR_HCDSPEED0             (1 << 2)
+//Cable Length register
+#define LAN8742_CLR_CBLN                     0xF000
 
-//Speed indication
-#define PSCSR_HCDSPEED_MASK         (7 << 2)
-#define PSCSR_HCDSPEED_10BT         (1 << 2)
-#define PSCSR_HCDSPEED_100BTX       (2 << 2)
-#define PSCSR_HCDSPEED_10BT_FD      (5 << 2)
-#define PSCSR_HCDSPEED_100BTX_FD    (6 << 2)
+//Interrupt Source Flag register
+#define LAN8742_ISR_WOL                      0x0100
+#define LAN8742_ISR_ENERGYON                 0x0080
+#define LAN8742_ISR_AN_COMPLETE              0x0040
+#define LAN8742_ISR_REMOTE_FAULT             0x0020
+#define LAN8742_ISR_LINK_DOWN                0x0010
+#define LAN8742_ISR_AN_LP_ACK                0x0008
+#define LAN8742_ISR_PAR_DETECT_FAULT         0x0004
+#define LAN8742_ISR_AN_PAGE_RECEIVED         0x0002
+
+//Interrupt Mask register
+#define LAN8742_IMR_WOL                      0x0100
+#define LAN8742_IMR_ENERGYON                 0x0080
+#define LAN8742_IMR_AN_COMPLETE              0x0040
+#define LAN8742_IMR_REMOTE_FAULT             0x0020
+#define LAN8742_IMR_LINK_DOWN                0x0010
+#define LAN8742_IMR_AN_LP_ACK                0x0008
+#define LAN8742_IMR_PAR_DETECT_FAULT         0x0004
+#define LAN8742_IMR_AN_PAGE_RECEIVED         0x0002
+
+//PHY Special Control/Status register
+#define LAN8742_PSCSR_AUTODONE               0x1000
+#define LAN8742_PSCSR_HCDSPEED               0x001C
+#define LAN8742_PSCSR_HCDSPEED_10BT_HD       0x0004
+#define LAN8742_PSCSR_HCDSPEED_100BTX_HD     0x0008
+#define LAN8742_PSCSR_HCDSPEED_10BT_FD       0x0014
+#define LAN8742_PSCSR_HCDSPEED_100BTX_FD     0x0018
 
 //C++ guard
 #ifdef __cplusplus

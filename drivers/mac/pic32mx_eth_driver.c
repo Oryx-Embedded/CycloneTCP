@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -110,7 +110,9 @@ error_t pic32mxEthInit(NetInterface *interface)
    ETHCON1CLR = _ETHCON1_ON_MASK | _ETHCON1_TXRTS_POSITION | _ETHCON1_RXEN_MASK;
 
    //Wait activity abort by polling the ETHBUSY bit
-   while(ETHSTAT & _ETHSTAT_ETHBUSY_MASK);
+   while(ETHSTAT & _ETHSTAT_ETHBUSY_MASK)
+   {
+   }
 
    //Enable the Ethernet controller by setting the ON bit
    ETHCON1SET = _ETHCON1_ON_MASK;
@@ -336,7 +338,7 @@ void pic32mxEthIrqHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -374,7 +376,7 @@ void pic32mxEthIrqHandler(void)
    //Clear ETHIF interrupt flag before exiting the service routine
    IFS1CLR = _IFS1_ETHIF_MASK;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -628,54 +630,84 @@ error_t pic32mxEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void pic32mxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void pic32mxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   //Set PHY address and register address
-   EMAC1MADR = (phyAddr << _EMAC1MADR_PHYADDR_POSITION) | regAddr;
-   //Start a write operation
-   EMAC1MWTD = data & _EMAC1MWTD_MWTD_MASK;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set PHY address and register address
+      EMAC1MADR = (phyAddr << _EMAC1MADR_PHYADDR_POSITION) | regAddr;
+      //Start a write operation
+      EMAC1MWTD = data & _EMAC1MWTD_MWTD_MASK;
 
-   //Wait for busy bit to be set
-   __asm__ __volatile__ ("nop;");
-   __asm__ __volatile__ ("nop;");
-   __asm__ __volatile__ ("nop;");
+      //Wait for busy bit to be set
+      __asm__ __volatile__ ("nop;");
+      __asm__ __volatile__ ("nop;");
+      __asm__ __volatile__ ("nop;");
 
-   //Wait for the write to complete
-   while(EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK);
+      //Wait for the write to complete
+      while(EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t pic32mxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t pic32mxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   //Set PHY address and register address
-   EMAC1MADR = (phyAddr << _EMAC1MADR_PHYADDR_POSITION) | regAddr;
-   //Start a read operation
-   EMAC1MCMD = _EMAC1MCMD_READ_MASK;
+   uint16_t data;
 
-   //Wait for busy bit to be set
-   __asm__ __volatile__ ("nop;");
-   __asm__ __volatile__ ("nop;");
-   __asm__ __volatile__ ("nop;");
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set PHY address and register address
+      EMAC1MADR = (phyAddr << _EMAC1MADR_PHYADDR_POSITION) | regAddr;
+      //Start a read operation
+      EMAC1MCMD = _EMAC1MCMD_READ_MASK;
 
-   //Wait for the read to complete
-   while(EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK);
+      //Wait for busy bit to be set
+      __asm__ __volatile__ ("nop;");
+      __asm__ __volatile__ ("nop;");
+      __asm__ __volatile__ ("nop;");
 
-   //Clear command register
-   EMAC1MCMD = 0;
-   //Return PHY register contents
-   return EMAC1MRDD & _EMAC1MRDD_MRDD_MASK;
+      //Wait for the read to complete
+      while(EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK)
+      {
+      }
+
+      //Clear command register
+      EMAC1MCMD = 0;
+      //Get register value
+      data = EMAC1MRDD & _EMAC1MRDD_MRDD_MASK;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _S7G2_ETH_DRIVER_H
@@ -142,13 +142,6 @@
 #define EDMAC_RD1_RFL      0x0000FFFF
 #define EDMAC_RD2_RBA      0xFFFFFFFF
 
-//Serial Management Interface
-#define SMI_SYNC           0xFFFFFFFF
-#define SMI_START          0x00000001
-#define SMI_WRITE          0x00000001
-#define SMI_READ           0x00000002
-#define SMI_TA             0x00000002
-
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
@@ -203,8 +196,11 @@ error_t s7g2EthReceivePacket(NetInterface *interface);
 error_t s7g2EthUpdateMacAddrFilter(NetInterface *interface);
 error_t s7g2EthUpdateMacConfig(NetInterface *interface);
 
-void s7g2EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t s7g2EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void s7g2EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t s7g2EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 void s7g2EthWriteSmi(uint32_t data, uint_t length);
 uint32_t s7g2EthReadSmi(uint_t length);

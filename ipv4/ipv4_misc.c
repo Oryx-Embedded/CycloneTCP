@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -595,7 +595,7 @@ uint_t ipv4GetPrefixLength(Ipv4Addr mask)
    for(i = 0; i < 32; i++)
    {
       //Check the value of the current bit
-      if(!(mask & (1 << (31 - i))))
+      if(!(mask & (1U << (31 - i))))
          break;
    }
 

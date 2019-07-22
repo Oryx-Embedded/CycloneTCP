@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -1569,12 +1569,12 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
  * @param[in] pseudoHeader IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
- * @param[in] hopLimit Hop Limit value. Default value is used when this parameter is zero
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
 error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint8_t hopLimit)
+   NetBuffer *buffer, size_t offset, uint_t flags)
 {
    error_t error;
    size_t length;
@@ -1591,10 +1591,10 @@ error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    length = netBufferGetLength(buffer) - offset;
 
    //Check whether the Hop Limit value is zero
-   if(hopLimit == 0)
+   if((flags & IP_FLAG_HOP_LIMIT) == 0)
    {
       //Use default Hop Limit value
-      hopLimit = interface->ipv6Context.curHopLimit;
+      flags |= interface->ipv6Context.curHopLimit;
    }
 
 #if (IPV6_PMTU_SUPPORT == ENABLED)
@@ -1613,16 +1613,16 @@ error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    if((length + sizeof(Ipv6Header)) <= pathMtu)
    {
       //Send data as is
-      error = ipv6SendPacket(interface, pseudoHeader,
-         0, 0, buffer, offset, hopLimit);
+      error = ipv6SendPacket(interface, pseudoHeader, 0, 0, buffer, offset,
+         flags);
    }
    //If the payload length exceeds the PMTU then the device must fragment the data
    else
    {
 #if (IPV6_FRAG_SUPPORT == ENABLED)
       //Fragment IP datagram into smaller packets
-      error = ipv6FragmentDatagram(interface, pseudoHeader,
-         buffer, offset, pathMtu, hopLimit);
+      error = ipv6FragmentDatagram(interface, pseudoHeader, buffer, offset,
+         pathMtu, flags);
 #else
       //Fragmentation is not supported
       error = ERROR_MESSAGE_TOO_LONG;
@@ -1642,12 +1642,13 @@ error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
  * @param[in] fragOffset Fragment offset field
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
- * @param[in] hopLimit Hop Limit value
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
 error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   uint32_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset, uint8_t hopLimit)
+   uint32_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
+   uint_t flags)
 {
    error_t error;
    size_t length;
@@ -1712,7 +1713,7 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    packet->flowLabelH = 0;
    packet->flowLabelL = 0;
    packet->payloadLen = htons(length - sizeof(Ipv6Header));
-   packet->hopLimit = hopLimit;
+   packet->hopLimit = flags & IP_FLAG_HOP_LIMIT;
    packet->srcAddr = pseudoHeader->srcAddr;
    packet->destAddr = pseudoHeader->destAddr;
 
@@ -1788,7 +1789,7 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
          {
             //Perform next-hop determination
             error = ndpSelectNextHop(interface, &pseudoHeader->destAddr, NULL,
-               &destIpAddr);
+               &destIpAddr, flags);
 
             //Check status code
             if(error == NO_ERROR)

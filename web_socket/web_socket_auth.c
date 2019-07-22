@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -73,7 +73,7 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
       return ERROR_INVALID_SYNTAX;
 
    //Basic access authentication?
-   if(!strcmp(token, "Basic"))
+   if(!strcasecmp(token, "Basic"))
    {
       //Basic authentication is required by the WebSocket server
       authContext->requiredAuthMode = WS_AUTH_MODE_BASIC;
@@ -189,7 +189,7 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       n = sprintf(output, "Authorization: Basic ");
 
       //The client sends the userid and password, separated by a single colon
-      //character, within a Base64 encoded string in the credentials
+      //character, within a Base64-encoded string in the credentials
       k = sprintf(temp, "%s:%s", authContext->username,
          authContext->password);
 
@@ -245,7 +245,7 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       //Debug message
       TRACE_DEBUG("  HA2: %s\r\n", ha2);
 
-      //Compute MD5(HA1 : nonce : nc : cnonce : qop : HA1)
+      //Compute MD5(HA1 : nonce : nc : cnonce : qop : HA2)
       md5Init(&md5Context);
       md5Update(&md5Context, ha1, strlen(ha1));
       md5Update(&md5Context, ":", 1);
@@ -314,7 +314,7 @@ void webSocketConvertArrayToHexString(const uint8_t *input,
    size_t i;
 
    //Hex conversion table
-   static const char_t hexDigit[] =
+   static const char_t hexDigit[16] =
    {
       '0', '1', '2', '3', '4', '5', '6', '7',
       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'

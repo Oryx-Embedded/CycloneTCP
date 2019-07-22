@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -361,7 +361,7 @@ void f28m35xEthIrqHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -396,7 +396,7 @@ void f28m35xEthIrqHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -633,42 +633,72 @@ error_t f28m35xEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void f28m35xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void f28m35xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   //Set PHY address
-   MAC_MAR_R = phyAddr;
-   //Data to be written in the PHY register
-   MAC_MTXD_R = data & MAC_MTXD_MDTX_M;
-   //Start a write operation
-   MAC_MCTL_R = (regAddr << 3) | MAC_MCTL_WRITE | MAC_MCTL_START;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set PHY address
+      MAC_MAR_R = phyAddr;
+      //Data to be written in the PHY register
+      MAC_MTXD_R = data & MAC_MTXD_MDTX_M;
+      //Start a write operation
+      MAC_MCTL_R = (regAddr << 3) | MAC_MCTL_WRITE | MAC_MCTL_START;
 
-   //Wait for the write to complete
-   while(MAC_MCTL_R & MAC_MCTL_START);
+      //Wait for the write to complete
+      while(MAC_MCTL_R & MAC_MCTL_START)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t f28m35xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t f28m35xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   //Set PHY address
-   MAC_MAR_R = phyAddr;
-   //Start a read operation
-   MAC_MCTL_R = (regAddr << 3) | MAC_MCTL_START;
+   uint16_t data;
 
-   //Wait for the read to complete
-   while(MAC_MCTL_R & MAC_MCTL_START);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set PHY address
+      MAC_MAR_R = phyAddr;
+      //Start a read operation
+      MAC_MCTL_R = (regAddr << 3) | MAC_MCTL_START;
 
-   //Return PHY register contents
-   return MAC_MRXD_R & MAC_MRXD_MDRX_M;
+      //Wait for the read to complete
+      while(MAC_MCTL_R & MAC_MCTL_START)
+      {
+      }
+
+      //Get register value
+      data = MAC_MRXD_R & MAC_MRXD_MDRX_M;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }

@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -871,12 +871,12 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
  * @param[in] pseudoHeader IPv4 pseudo header
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
- * @param[in] ttl TTL value. Default Time-To-Live is used when this parameter is zero
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
 error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint8_t ttl)
+   NetBuffer *buffer, size_t offset, uint_t flags)
 {
    error_t error;
    size_t length;
@@ -894,10 +894,10 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
    length = netBufferGetLength(buffer) - offset;
 
    //Check whether the TTL value is zero
-   if(ttl == 0)
+   if((flags & IP_FLAG_TTL) == 0)
    {
       //Use default Time-To-Live value
-      ttl = IPV4_DEFAULT_TTL;
+      flags |= IPV4_DEFAULT_TTL;
    }
 
    //Identification field is primarily used to identify
@@ -909,8 +909,8 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
    if((length + sizeof(Ipv4Header)) <= interface->ipv4Context.linkMtu)
    {
       //Send data as is
-      error = ipv4SendPacket(interface,
-         pseudoHeader, id, 0, buffer, offset, ttl);
+      error = ipv4SendPacket(interface, pseudoHeader, id, 0, buffer, offset,
+         flags);
    }
    //If the payload length exceeds the network interface MTU
    //then the device must fragment the data
@@ -918,8 +918,8 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
    {
 #if (IPV4_FRAG_SUPPORT == ENABLED)
       //Fragment IP datagram into smaller packets
-      error = ipv4FragmentDatagram(interface,
-         pseudoHeader, id, buffer, offset, ttl);
+      error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer, offset,
+         flags);
 #else
       //Fragmentation is not supported
       error = ERROR_MESSAGE_TOO_LONG;
@@ -939,12 +939,13 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
  * @param[in] fragOffset Fragment offset field
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
- * @param[in] ttl Time-To-Live value
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
 error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset, uint8_t ttl)
+   uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
+   uint_t flags)
 {
    error_t error;
    size_t length;
@@ -972,14 +973,15 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    packet->totalLength = htons(length);
    packet->identification = htons(fragId);
    packet->fragmentOffset = htons(fragOffset);
-   packet->timeToLive = ttl;
+   packet->timeToLive = flags & IP_FLAG_TTL;
    packet->protocol = pseudoHeader->protocol;
    packet->headerChecksum = 0;
    packet->srcAddr = pseudoHeader->srcAddr;
    packet->destAddr = pseudoHeader->destAddr;
 
    //Calculate IP header checksum
-   packet->headerChecksum = ipCalcChecksumEx(buffer, offset, packet->headerLength * 4);
+   packet->headerChecksum = ipCalcChecksumEx(buffer, offset,
+      packet->headerLength * 4);
 
    //Ensure the source address is valid
    error = ipv4CheckSourceAddr(interface, pseudoHeader->srcAddr);
@@ -1064,6 +1066,12 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
          else if(ipv4IsOnLink(interface, destIpAddr))
          {
             //Resolve destination address before sending the packet
+            error = arpResolve(interface, destIpAddr, &destMacAddr);
+         }
+         //No routing?
+         else if((flags & IP_FLAG_DONT_ROUTE) != 0)
+         {
+            //Do not send the packet via a gateway
             error = arpResolve(interface, destIpAddr, &destMacAddr);
          }
          //Destination host is outside the local subnet?

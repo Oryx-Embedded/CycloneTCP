@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -86,7 +86,7 @@ error_t modbusClientTransaction(ModbusClientContext *context)
             &n, SOCKET_FLAG_NO_DELAY);
 
          //Check status code
-         if(!error)
+         if(error == NO_ERROR || error == ERROR_TIMEOUT)
          {
             //Advance data pointer
             context->requestAduPos += n;
@@ -113,7 +113,7 @@ error_t modbusClientTransaction(ModbusClientContext *context)
             sizeof(ModbusHeader) - context->responseAduPos, &n, 0);
 
          //Check status code
-         if(!error)
+         if(error == NO_ERROR)
          {
             //Advance data pointer
             context->responseAduPos += n;
@@ -134,7 +134,7 @@ error_t modbusClientTransaction(ModbusClientContext *context)
             context->responseAduLen - context->responseAduPos, &n, 0);
 
          //Check status code
-         if(!error)
+         if(error == NO_ERROR)
          {
             //Advance data pointer
             context->responseAduPos += n;

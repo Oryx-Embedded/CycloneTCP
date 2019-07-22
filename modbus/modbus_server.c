@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -215,6 +215,9 @@ void modbusServerTask(ModbusServerContext *context)
    SocketEventDesc eventDesc[MODBUS_SERVER_MAX_CONNECTIONS + 1];
 
 #if (NET_RTOS_SUPPORT == ENABLED)
+   //Task prologue
+   osEnterTask();
+
    //Process events
    while(1)
    {

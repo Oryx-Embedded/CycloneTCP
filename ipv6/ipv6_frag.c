@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -54,12 +54,13 @@ systime_t ipv6FragTickCounter;
  * @param[in] payload Multi-part buffer containing the payload
  * @param[in] payloadOffset Offset to the first payload byte
  * @param[in] pathMtu PMTU value
- * @param[in] hopLimit Hop Limit value
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
-error_t ipv6FragmentDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *payload, size_t payloadOffset, size_t pathMtu, uint8_t hopLimit)
+error_t ipv6FragmentDatagram(NetInterface *interface,
+   Ipv6PseudoHeader *pseudoHeader, const NetBuffer *payload,
+   size_t payloadOffset, size_t pathMtu, uint_t flags)
 {
    error_t error;
    uint32_t id;
@@ -116,7 +117,7 @@ error_t ipv6FragmentDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHe
 
          //Do not set the MF flag for the last fragment
          error = ipv6SendPacket(interface, pseudoHeader, id,
-            offset, fragment, fragmentOffset, hopLimit);
+            offset, fragment, fragmentOffset, flags);
       }
       else
       {
@@ -127,7 +128,7 @@ error_t ipv6FragmentDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHe
 
          //Fragmented packets must have the M flag set
          error = ipv6SendPacket(interface, pseudoHeader, id,
-            offset | IPV6_FLAG_M, fragment, fragmentOffset, hopLimit);
+            offset | IPV6_FLAG_M, fragment, fragmentOffset, flags);
       }
 
       //Failed to send current IP fragment?

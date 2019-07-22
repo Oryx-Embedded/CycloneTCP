@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _RZA1_ETH_DRIVER_H
@@ -217,13 +217,6 @@
 #define ETHER_RD1_RDL            0x0000FFFF
 #define ETHER_RD2_RBA            0xFFFFFFFF
 
-//Serial Management Interface
-#define SMI_SYNC                 0xFFFFFFFF
-#define SMI_START                0x00000001
-#define SMI_WRITE                0x00000001
-#define SMI_READ                 0x00000002
-#define SMI_TA                   0x00000002
-
 //C++ guard
 #ifdef __cplusplus
    extern "C" {
@@ -279,8 +272,11 @@ error_t rza1EthReceivePacket(NetInterface *interface);
 error_t rza1EthUpdateMacAddrFilter(NetInterface *interface);
 error_t rza1EthUpdateMacConfig(NetInterface *interface);
 
-void rza1EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t rza1EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void rza1EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t rza1EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 void rza1EthWriteSmi(uint32_t data, uint_t length);
 uint32_t rza1EthReadSmi(uint_t length);

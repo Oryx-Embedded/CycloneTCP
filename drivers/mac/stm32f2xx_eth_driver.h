@@ -1,6 +1,6 @@
 /**
- * @file stm32f2x7_eth_driver.h
- * @brief STM32F207/217 Ethernet MAC controller
+ * @file stm32f2xx_eth_driver.h
+ * @brief STM32F2 Ethernet MAC controller
  *
  * @section License
  *
@@ -25,62 +25,62 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
-#ifndef _STM32F2X7_ETH_DRIVER_H
-#define _STM32F2X7_ETH_DRIVER_H
+#ifndef _STM32F2XX_ETH_DRIVER_H
+#define _STM32F2XX_ETH_DRIVER_H
 
 //Dependencies
 #include "core/nic.h"
 
 //Number of TX buffers
-#ifndef STM32F2X7_ETH_TX_BUFFER_COUNT
-   #define STM32F2X7_ETH_TX_BUFFER_COUNT 3
-#elif (STM32F2X7_ETH_TX_BUFFER_COUNT < 1)
-   #error STM32F2X7_ETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef STM32F2XX_ETH_TX_BUFFER_COUNT
+   #define STM32F2XX_ETH_TX_BUFFER_COUNT 3
+#elif (STM32F2XX_ETH_TX_BUFFER_COUNT < 1)
+   #error STM32F2XX_ETH_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef STM32F2X7_ETH_TX_BUFFER_SIZE
-   #define STM32F2X7_ETH_TX_BUFFER_SIZE 1536
-#elif (STM32F2X7_ETH_TX_BUFFER_SIZE != 1536)
-   #error STM32F2X7_ETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef STM32F2XX_ETH_TX_BUFFER_SIZE
+   #define STM32F2XX_ETH_TX_BUFFER_SIZE 1536
+#elif (STM32F2XX_ETH_TX_BUFFER_SIZE != 1536)
+   #error STM32F2XX_ETH_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef STM32F2X7_ETH_RX_BUFFER_COUNT
-   #define STM32F2X7_ETH_RX_BUFFER_COUNT 6
-#elif (STM32F2X7_ETH_RX_BUFFER_COUNT < 1)
-   #error STM32F2X7_ETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef STM32F2XX_ETH_RX_BUFFER_COUNT
+   #define STM32F2XX_ETH_RX_BUFFER_COUNT 6
+#elif (STM32F2XX_ETH_RX_BUFFER_COUNT < 1)
+   #error STM32F2XX_ETH_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef STM32F2X7_ETH_RX_BUFFER_SIZE
-   #define STM32F2X7_ETH_RX_BUFFER_SIZE 1536
-#elif (STM32F2X7_ETH_RX_BUFFER_SIZE != 1536)
-   #error STM32F2X7_ETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef STM32F2XX_ETH_RX_BUFFER_SIZE
+   #define STM32F2XX_ETH_RX_BUFFER_SIZE 1536
+#elif (STM32F2XX_ETH_RX_BUFFER_SIZE != 1536)
+   #error STM32F2XX_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Interrupt priority grouping
-#ifndef STM32F2X7_ETH_IRQ_PRIORITY_GROUPING
-   #define STM32F2X7_ETH_IRQ_PRIORITY_GROUPING 3
-#elif (STM32F2X7_ETH_IRQ_PRIORITY_GROUPING < 0)
-   #error STM32F2X7_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
+#ifndef STM32F2XX_ETH_IRQ_PRIORITY_GROUPING
+   #define STM32F2XX_ETH_IRQ_PRIORITY_GROUPING 3
+#elif (STM32F2XX_ETH_IRQ_PRIORITY_GROUPING < 0)
+   #error STM32F2XX_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
 #endif
 
 //Ethernet interrupt group priority
-#ifndef STM32F2X7_ETH_IRQ_GROUP_PRIORITY
-   #define STM32F2X7_ETH_IRQ_GROUP_PRIORITY 12
-#elif (STM32F2X7_ETH_IRQ_GROUP_PRIORITY < 0)
-   #error STM32F2X7_ETH_IRQ_GROUP_PRIORITY parameter is not valid
+#ifndef STM32F2XX_ETH_IRQ_GROUP_PRIORITY
+   #define STM32F2XX_ETH_IRQ_GROUP_PRIORITY 12
+#elif (STM32F2XX_ETH_IRQ_GROUP_PRIORITY < 0)
+   #error STM32F2XX_ETH_IRQ_GROUP_PRIORITY parameter is not valid
 #endif
 
 //Ethernet interrupt subpriority
-#ifndef STM32F2X7_ETH_IRQ_SUB_PRIORITY
-   #define STM32F2X7_ETH_IRQ_SUB_PRIORITY 0
-#elif (STM32F2X7_ETH_IRQ_SUB_PRIORITY < 0)
-   #error STM32F2X7_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#ifndef STM32F2XX_ETH_IRQ_SUB_PRIORITY
+   #define STM32F2XX_ETH_IRQ_SUB_PRIORITY 0
+#elif (STM32F2XX_ETH_IRQ_SUB_PRIORITY < 0)
+   #error STM32F2XX_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
 //Transmit DMA descriptor flags
@@ -175,7 +175,7 @@ typedef struct
    uint32_t tdes5;
    uint32_t tdes6;
    uint32_t tdes7;
-} Stm32f2x7TxDmaDesc;
+} Stm32f2xxTxDmaDesc;
 
 
 /**
@@ -192,35 +192,38 @@ typedef struct
    uint32_t rdes5;
    uint32_t rdes6;
    uint32_t rdes7;
-} Stm32f2x7RxDmaDesc;
+} Stm32f2xxRxDmaDesc;
 
 
-//STM32F207/217 Ethernet MAC driver
-extern const NicDriver stm32f2x7EthDriver;
+//STM32F2 Ethernet MAC driver
+extern const NicDriver stm32f2xxEthDriver;
 
-//STM32F207/217 Ethernet MAC related functions
-error_t stm32f2x7EthInit(NetInterface *interface);
-void stm32f2x7EthInitGpio(NetInterface *interface);
-void stm32f2x7EthInitDmaDesc(NetInterface *interface);
+//STM32F2 Ethernet MAC related functions
+error_t stm32f2xxEthInit(NetInterface *interface);
+void stm32f2xxEthInitGpio(NetInterface *interface);
+void stm32f2xxEthInitDmaDesc(NetInterface *interface);
 
-void stm32f2x7EthTick(NetInterface *interface);
+void stm32f2xxEthTick(NetInterface *interface);
 
-void stm32f2x7EthEnableIrq(NetInterface *interface);
-void stm32f2x7EthDisableIrq(NetInterface *interface);
-void stm32f2x7EthEventHandler(NetInterface *interface);
+void stm32f2xxEthEnableIrq(NetInterface *interface);
+void stm32f2xxEthDisableIrq(NetInterface *interface);
+void stm32f2xxEthEventHandler(NetInterface *interface);
 
-error_t stm32f2x7EthSendPacket(NetInterface *interface,
+error_t stm32f2xxEthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t stm32f2x7EthReceivePacket(NetInterface *interface);
+error_t stm32f2xxEthReceivePacket(NetInterface *interface);
 
-error_t stm32f2x7EthUpdateMacAddrFilter(NetInterface *interface);
-error_t stm32f2x7EthUpdateMacConfig(NetInterface *interface);
+error_t stm32f2xxEthUpdateMacAddrFilter(NetInterface *interface);
+error_t stm32f2xxEthUpdateMacConfig(NetInterface *interface);
 
-void stm32f2x7EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t stm32f2x7EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void stm32f2xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
 
-uint32_t stm32f2x7EthCalcCrc(const void *data, size_t length);
+uint16_t stm32f2xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
+
+uint32_t stm32f2xxEthCalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus

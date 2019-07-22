@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -1542,7 +1542,9 @@ error_t snmpEncodeInt32(int32_t value, uint8_t *dest, size_t *length)
 
    //Copy integer value
    while(i < 4)
+   {
       dest[j++] = src[i++];
+   }
 
    //Total number of bytes that have been written
    *length = j;
@@ -1592,7 +1594,9 @@ error_t snmpEncodeUnsignedInt32(uint32_t value, uint8_t *dest, size_t *length)
 
    //Copy integer value
    while(i < 4)
+   {
       dest[j++] = src[i++];
+   }
 
    //Total number of bytes that have been written
    *length = j;
@@ -1638,11 +1642,15 @@ error_t snmpEncodeUnsignedInt64(uint64_t value, uint8_t *dest, size_t *length)
 
    //Check the most significant bit
    if(src[i] & 0x80)
+   {
       dest[j++] = 0;
+   }
 
    //Copy integer value
    while(i < 8)
+   {
       dest[j++] = src[i++];
+   }
 
    //Total number of bytes that have been written
    *length = j;

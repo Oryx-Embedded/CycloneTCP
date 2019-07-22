@@ -33,7 +33,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -163,7 +163,7 @@ error_t ftpClientBindToInterface(FtpClientContext *context,
 /**
  * @brief Establish a connection with the specified FTP server
  * @param[in] context Pointer to the FTP client context
- * @param[in] serverIpAddr IP address of the FTP server
+ * @param[in] serverIpAddr IP address of the FTP server to connect to
  * @param[in] serverPort Port number
  * @param[in] mode FTP connection mode
  * @return Error code
@@ -1307,6 +1307,7 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
    size_t length, size_t *written, uint_t flags)
 {
    error_t error;
+   size_t n;
 
    //Make sure the FTP client context is valid
    if(context == NULL)
@@ -1316,27 +1317,25 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
    if(data == NULL && length != 0)
       return ERROR_INVALID_PARAMETER;
 
+   //Actual number of bytes written
+   n = 0;
+
    //Check current state
    if(context->state == FTP_CLIENT_STATE_WRITING_DATA)
    {
       //Transmit data to the FTP server
-      error = ftpClientSendData(&context->dataConnection, data, length,
-         written, flags);
+      error = ftpClientSendData(&context->dataConnection, data, length, &n,
+         flags);
 
       //Check status code
-      if(error == NO_ERROR)
+      if(error == NO_ERROR || error == ERROR_TIMEOUT)
       {
-         //Save current time
-         context->timestamp = osGetSystemTime();
-      }
-      else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
-      {
-         //Check whether the timeout has elapsed
-         error = ftpClientCheckTimeout(context);
-      }
-      else
-      {
-         //Communication error
+         //Any data transmitted?
+         if(n > 0)
+         {
+            //Save current time
+            context->timestamp = osGetSystemTime();
+         }
       }
    }
    else
@@ -1344,6 +1343,17 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
       //Invalid state
       error = ERROR_WRONG_STATE;
    }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = ftpClientCheckTimeout(context);
+   }
+
+   //Total number of data that have been written
+   if(written != NULL)
+      *written = n;
 
    //Return status code
    return error;

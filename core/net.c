@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,6 +57,7 @@
 #include "netbios/nbns_client.h"
 #include "netbios/nbns_responder.h"
 #include "netbios/nbns_common.h"
+#include "llmnr/llmnr_responder.h"
 #include "mibs/mib2_module.h"
 #include "str.h"
 #include "debug.h"
@@ -543,8 +544,8 @@ error_t netSetVlanId(NetInterface *interface, uint16_t vlanId)
    if(interface == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //The VLAN identifier is encoded in a 12-bit field
-   if(vlanId > VLAN_VID_MASK)
+   //The VID value FFF is reserved
+   if((vlanId & VLAN_VID_MASK) == VLAN_VID_MASK)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
@@ -577,8 +578,8 @@ error_t netSetVmanId(NetInterface *interface, uint16_t vmanId)
    if(interface == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //The VMAN identifier is encoded in a 12-bit field
-   if(vmanId > VLAN_VID_MASK)
+   //The VID value FFF is reserved
+   if((vmanId & VLAN_VID_MASK) == VLAN_VID_MASK)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
@@ -1024,9 +1025,9 @@ error_t netConfigInterface(NetInterface *interface)
          break;
 #endif
 
-#if (LLMNR_CLIENT_SUPPORT == ENABLED || LLMNR_RESPONDER_SUPPORT == ENABLED)
-      //LLMNR related initialization
-      error = llmnrInit(interface);
+#if (LLMNR_RESPONDER_SUPPORT == ENABLED)
+      //LLMNR responder initialization
+      error = llmnrResponderInit(interface);
       //Any error to report?
       if(error)
          break;

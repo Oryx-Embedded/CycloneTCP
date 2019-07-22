@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -74,7 +74,7 @@ error_t webSocketOpenConnection(WebSocket *webSocket)
       return error;
 
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
-      //Use TLS to secure the connection?
+      //TLS-secured connection?
       if(webSocket->tlsInitCallback != NULL)
       {
          TlsConnectionEnd connectionEnd;
@@ -144,7 +144,7 @@ error_t webSocketEstablishConnection(WebSocket *webSocket,
    error = socketConnect(webSocket->socket, serverIpAddr, serverPort);
 
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
-   //Use TLS to secure the connection?
+   //TLS-secured connection?
    if(webSocket->tlsInitCallback != NULL)
    {
       //Check status code

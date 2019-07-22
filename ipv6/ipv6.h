@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _IPV6_H
@@ -537,10 +537,11 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t optionOffset, size_t optionLen);
 
 error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint8_t hopLimit);
+   NetBuffer *buffer, size_t offset, uint_t flags);
 
 error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   uint32_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset, uint8_t hopLimit);
+   uint32_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
+   uint_t flags);
 
 error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
 error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);

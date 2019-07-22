@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -95,7 +95,7 @@ error_t smtpClientSendCommand(SmtpClientContext *context,
             context->commandLen - context->bufferPos, &n, 0);
 
          //Check status code
-         if(!error)
+         if(error == NO_ERROR || error == ERROR_TIMEOUT)
          {
             //Advance data pointer
             context->bufferPos += n;
@@ -121,7 +121,7 @@ error_t smtpClientSendCommand(SmtpClientContext *context,
                &n, SOCKET_FLAG_BREAK_CRLF);
 
             //Check status code
-            if(!error)
+            if(error == NO_ERROR)
             {
                //Advance data pointer
                context->replyLen += n;

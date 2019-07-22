@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,22 +64,36 @@ error_t dp83822Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing DP83822...\r\n");
 
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = DP83822_PHY_ADDR;
+   }
+
    //Initialize external interrupt line driver
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->init();
+   }
 
    //Reset PHY transceiver
-   dp83822WritePhyReg(interface, DP83822_PHY_REG_BMCR, BMCR_RESET);
+   dp83822WritePhyReg(interface, DP83822_BMCR, DP83822_BMCR_RESET);
+
    //Wait for the reset to complete
-   while(dp83822ReadPhyReg(interface, DP83822_PHY_REG_BMCR) & BMCR_RESET);
+   while(dp83822ReadPhyReg(interface, DP83822_BMCR) & DP83822_BMCR_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    dp83822DumpPhyReg(interface);
 
    //Configure PWR_DOWN/INT pin as an interrupt output
-   dp83822WritePhyReg(interface, DP83822_PHY_REG_PHYSCR, PHYSCR_INT_EN | PHYSCR_INT_OE);
+   dp83822WritePhyReg(interface, DP83822_PHYSCR, DP83822_PHYSCR_INT_EN |
+      DP83822_PHYSCR_INT_OE);
+
    //The PHY will generate interrupts when link status changes are detected
-   dp83822WritePhyReg(interface, DP83822_PHY_REG_MISR1, MISR1_LINK_INT_EN);
+   dp83822WritePhyReg(interface, DP83822_MISR1, DP83822_MISR1_LINK_INT_EN);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -105,9 +119,9 @@ void dp83822Tick(NetInterface *interface)
    if(interface->extIntDriver == NULL)
    {
       //Read basic status register
-      value = dp83822ReadPhyReg(interface, DP83822_PHY_REG_BMSR);
+      value = dp83822ReadPhyReg(interface, DP83822_BMSR);
       //Retrieve current link state
-      linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
+      linkState = (value & DP83822_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
       //Link up event?
       if(linkState && !interface->linkState)
@@ -138,7 +152,9 @@ void dp83822EnableIrq(NetInterface *interface)
 {
    //Enable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -151,7 +167,9 @@ void dp83822DisableIrq(NetInterface *interface)
 {
    //Disable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->disableIrq();
+   }
 }
 
 
@@ -165,25 +183,25 @@ void dp83822EventHandler(NetInterface *interface)
    uint16_t status;
 
    //Read status register to acknowledge the interrupt
-   status = dp83822ReadPhyReg(interface, DP83822_PHY_REG_MISR1);
+   status = dp83822ReadPhyReg(interface, DP83822_MISR1);
 
    //Link status change?
-   if(status & MISR1_LINK_INT)
+   if(status & DP83822_MISR1_LINK_INT)
    {
       //Read PHY status register
-      status = dp83822ReadPhyReg(interface, DP83822_PHY_REG_PHYSTS);
+      status = dp83822ReadPhyReg(interface, DP83822_PHYSTS);
 
       //Link is up?
-      if(status & PHYSTS_LINK_STATUS)
+      if(status & DP83822_PHYSTS_LINK_STATUS)
       {
          //Check current speed
-         if(status & PHYSTS_SPEED_STATUS)
+         if(status & DP83822_PHYSTS_SPEED_STATUS)
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          else
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
 
          //Check duplex mode
-         if(status & PHYSTS_DUPLEX_STATUS)
+         if(status & DP83822_PHYSTS_DUPLEX_STATUS)
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          else
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
@@ -216,16 +234,9 @@ void dp83822EventHandler(NetInterface *interface)
 void dp83822WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = DP83822_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -238,16 +249,9 @@ void dp83822WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t dp83822ReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = DP83822_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -264,7 +268,8 @@ void dp83822DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, dp83822ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         dp83822ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

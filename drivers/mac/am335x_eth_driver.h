@@ -1,6 +1,6 @@
 /**
  * @file am335x_eth_driver.h
- * @brief Sitara AM335x Ethernet MAC controller
+ * @brief Sitara AM335x Gigabit Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _AM335X_ETH_DRIVER_H
@@ -450,8 +450,11 @@ error_t am335xEthSendPacketPort2(NetInterface *interface,
 error_t am335xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t am335xEthUpdateMacConfig(NetInterface *interface);
 
-void am335xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t am335xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void am335xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t am335xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 void am335xEthWriteEntry(uint_t index, const Am335xAleEntry *entry);
 void am335xEthReadEntry(uint_t index, Am335xAleEntry *entry);

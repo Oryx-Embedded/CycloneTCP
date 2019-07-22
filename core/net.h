@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _NET_H
@@ -89,13 +89,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "1.9.2"
+#define CYCLONE_TCP_VERSION_STRING "1.9.4"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 1
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 9
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 2
+#define CYCLONE_TCP_REV_NUMBER 4
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -135,7 +135,7 @@ struct _NetInterface;
 
 //Maximum length of host name
 #ifndef NET_MAX_HOSTNAME_LEN
-   #define NET_MAX_HOSTNAME_LEN 16
+   #define NET_MAX_HOSTNAME_LEN 24
 #elif (NET_MAX_HOSTNAME_LEN < 1)
    #error NET_MAX_HOSTNAME_LEN parameter is not valid
 #endif

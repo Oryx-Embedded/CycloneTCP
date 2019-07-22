@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -668,8 +668,8 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
             return error;
 
          //vacmSecurityName is used as 2nd instance identifier
-         error = mibEncodeString(nextOid, *nextOidLen, &n,
-            entry->securityName, FALSE);
+         error = mibEncodeString(nextOid, *nextOidLen, &n, entry->securityName,
+            FALSE);
          //Any error to report?
          if(error)
             return error;

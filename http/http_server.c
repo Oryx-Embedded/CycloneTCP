@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -255,6 +255,9 @@ void httpListenerTask(void *param)
    HttpConnection *connection;
    Socket *socket;
 
+   //Task prologue
+   osEnterTask();
+
    //Retrieve the HTTP server context
    context = (HttpServerContext *) param;
 
@@ -321,6 +324,9 @@ void httpConnectionTask(void *param)
    uint_t counter;
    HttpConnection *connection;
 
+   //Task prologue
+   osEnterTask();
+
    //Point to the structure representing the HTTP connection
    connection = (HttpConnection *) param;
 
@@ -334,8 +340,8 @@ void httpConnectionTask(void *param)
       error = NO_ERROR;
 
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-      //Use TLS to secure the connection?
-      if(connection->settings->useTls)
+      //TLS-secured connection?
+      if(connection->settings->tlsInitCallback != NULL)
       {
          //Debug message
          TRACE_INFO("Initializing TLS session...\r\n");
@@ -700,7 +706,7 @@ error_t httpReadStream(HttpConnection *connection,
 
          //Total number of data that have been read
          *received += n;
-         //Remaining data still available in the current chunk
+         //Number of bytes left to process in the current chunk
          connection->request.byteCount -= n;
 
          //The HTTP_FLAG_BREAK_CHAR flag causes the function to stop reading
@@ -917,7 +923,7 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
 #else
    error_t error;
    size_t length;
-   uint8_t *data;
+   const uint8_t *data;
 
    //Retrieve the full pathname
    httpGetAbsolutePath(connection, uri, connection->buffer,
@@ -1073,6 +1079,16 @@ error_t httpSendErrorResponse(HttpConnection *connection,
    //Compute the length of the response
    length = strlen(template) + strlen(message) - 4;
 
+   //Check whether the HTTP request has a body
+   if(strcasecmp(connection->request.method, "GET") &&
+      strcasecmp(connection->request.method, "HEAD") &&
+      strcasecmp(connection->request.method, "DELETE"))
+   {
+      //Drop the HTTP request body and close the connection after sending
+      //the HTTP response
+      connection->response.keepAlive = FALSE;
+   }
+
    //Format HTTP response header
    connection->response.statusCode = statusCode;
    connection->response.contentType = mimeGetType(".htm");
@@ -1128,6 +1144,16 @@ error_t httpSendRedirectResponse(HttpConnection *connection,
 
    //Compute the length of the response
    length = strlen(template) + 2 * strlen(uri) - 4;
+
+   //Check whether the HTTP request has a body
+   if(strcasecmp(connection->request.method, "GET") &&
+      strcasecmp(connection->request.method, "HEAD") &&
+      strcasecmp(connection->request.method, "DELETE"))
+   {
+      //Drop the HTTP request body and close the connection after sending
+      //the HTTP response
+      connection->response.keepAlive = FALSE;
+   }
 
    //Format HTTP response header
    connection->response.statusCode = statusCode;

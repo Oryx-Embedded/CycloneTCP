@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _TFTP_CLIENT_H
@@ -161,7 +161,7 @@ error_t tftpClientFlushFile(TftpClientContext *context);
 error_t tftpClientReadFile(TftpClientContext *context,
    void *data, size_t size, size_t *received, uint_t flags);
 
-void tftpClientCloseFile(TftpClientContext *context);
+error_t tftpClientCloseFile(TftpClientContext *context);
 
 void tftpClientDeinit(TftpClientContext *context);
 

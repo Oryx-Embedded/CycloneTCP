@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _SNTP_CLIENT_MISC_H
@@ -34,6 +34,11 @@
 //Dependencies
 #include "core/net.h"
 #include "sntp/sntp_client.h"
+
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
+#endif
 
 //SNTP client related functions
 error_t sntpClientOpenConnection(SntpClientContext *context);

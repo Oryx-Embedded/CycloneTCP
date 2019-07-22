@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _NIC_H
@@ -54,6 +54,14 @@
 #elif (NIC_CONTEXT_SIZE < 1)
    #error NIC_CONTEXT_SIZE parameter is not valid
 #endif
+
+//Serial Management Interface
+#define SMI_SYNC         0xFFFFFFFF
+#define SMI_START        1
+#define SMI_OPCODE_0     0
+#define SMI_OPCODE_WRITE 1
+#define SMI_OPCODE_READ  2
+#define SMI_TA           2
 
 //C++ guard
 #ifdef __cplusplus
@@ -118,11 +126,18 @@ typedef void (*NicTick)(NetInterface *interface);
 typedef void (*NicEnableIrq)(NetInterface *interface);
 typedef void (*NicDisableIrq)(NetInterface *interface);
 typedef void (*NicEventHandler)(NetInterface *interface);
-typedef error_t (*NicSendPacket)(NetInterface *interface, const NetBuffer *buffer, size_t offset);
+
+typedef error_t (*NicSendPacket)(NetInterface *interface,
+   const NetBuffer *buffer, size_t offset);
+
 typedef error_t (*NicUpdateMacAddrFilter)(NetInterface *interface);
 typedef error_t (*NicUpdateMacConfig)(NetInterface *interface);
-typedef void (*NicWritePhyReg)(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-typedef uint16_t (*NicReadPhyReg)(uint8_t phyAddr, uint8_t regAddr);
+
+typedef void (*NicWritePhyReg)(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+typedef uint16_t (*NicReadPhyReg)(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 //PHY abstraction layer
 typedef error_t (*PhyInit)(NetInterface *interface);

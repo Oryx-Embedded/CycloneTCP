@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _IP_H
@@ -50,6 +50,18 @@ typedef enum
    IP_PROTOCOL_TCP  = 6,
    IP_PROTOCOL_UDP  = 17
 } IpProtocol;
+
+
+/**
+ * @brief Flags used by I/O functions
+ **/
+
+typedef enum
+{
+   IP_FLAG_DONT_ROUTE = 0x0400,
+   IP_FLAG_TTL        = 0x00FF,
+   IP_FLAG_HOP_LIMIT  = 0x00FF
+} IpFlags;
 
 
 /**
@@ -97,7 +109,7 @@ extern const IpAddr IP_ADDR_UNSPECIFIED;
 
 //IP related functions
 error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint8_t ttl);
+   NetBuffer *buffer, size_t offset, uint_t flags);
 
 error_t ipSelectSourceAddr(NetInterface **interface,
    const IpAddr *destAddr, IpAddr *srcAddr);

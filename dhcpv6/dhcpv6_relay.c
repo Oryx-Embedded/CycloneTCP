@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -178,7 +178,7 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings 
             break;
       }
 
-      //Propagate exception if necessary...
+      //Propagate exception if necessary
       if(error)
          break;
 
@@ -362,9 +362,13 @@ void dhcpv6RelayTask(void *param)
 {
    error_t error;
    uint_t i;
+   Dhcpv6RelayContext *context;
+
+   //Task prologue
+   osEnterTask();
 
    //Point to the DHCPv6 relay agent context
-   Dhcpv6RelayContext *context = (Dhcpv6RelayContext *) param;
+   context = (Dhcpv6RelayContext *) param;
 
    //Specify the events the application is interested in for
    //each client-facing sockets

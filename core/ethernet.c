@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -252,12 +252,12 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
 #endif
 #if (ETH_VLAN_SUPPORT == ENABLED)
       //Check VLAN identifier
-      if(nicGetVlanId(virtualInterface) != vlanId)
+      if((nicGetVlanId(virtualInterface) & VLAN_VID_MASK) != vlanId)
          continue;
 #endif
 #if (ETH_VMAN_SUPPORT == ENABLED)
       //Check VMAN identifier
-      if(nicGetVmanId(virtualInterface) != vmanId)
+      if((nicGetVmanId(virtualInterface) & VLAN_VID_MASK) != vmanId)
          continue;
 #endif
 

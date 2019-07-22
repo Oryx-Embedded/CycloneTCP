@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -275,8 +275,10 @@ error_t coapClientSendRequest(CoapClientRequest *request,
 error_t coapClientCancelRequest(CoapClientRequest *request)
 {
    error_t error;
+#if (COAP_CLIENT_OBSERVE_SUPPORT == ENABLED)
    uint32_t value;
    CoapMessageHeader *header;
+#endif
 
    //Make sure the CoAP request handle is valid
    if(request == NULL)

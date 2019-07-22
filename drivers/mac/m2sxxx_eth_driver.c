@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -339,7 +339,7 @@ void EthernetMAC_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -374,7 +374,7 @@ void EthernetMAC_IRQHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -605,42 +605,72 @@ error_t m2sxxxEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void m2sxxxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void m2sxxxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   //Set PHY address and register address
-   MAC->MII_ADDRESS = (phyAddr << MII_ADDRESS_PHY_ADDR_POS) | regAddr;
-   //Start a write operation
-   MAC->MII_CTRL = data;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set PHY address and register address
+      MAC->MII_ADDRESS = (phyAddr << MII_ADDRESS_PHY_ADDR_POS) | regAddr;
+      //Start a write operation
+      MAC->MII_CTRL = data;
 
-   //Wait for the write to complete
-   while(MAC->MII_INDICATORS & MII_INDICATORS_BUSY);
+      //Wait for the write to complete
+      while(MAC->MII_INDICATORS & MII_INDICATORS_BUSY)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t m2sxxxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t m2sxxxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   //Set PHY address and register address
-   MAC->MII_ADDRESS = (phyAddr << MII_ADDRESS_PHY_ADDR_POS) | regAddr;
-   //Start a read operation
-   MAC->MII_COMMAND = MII_COMMAND_READ;
+   uint16_t data;
 
-   //Wait for the read to complete
-   while(MAC->MII_INDICATORS & MII_INDICATORS_BUSY);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set PHY address and register address
+      MAC->MII_ADDRESS = (phyAddr << MII_ADDRESS_PHY_ADDR_POS) | regAddr;
+      //Start a read operation
+      MAC->MII_COMMAND = MII_COMMAND_READ;
 
-   //Clear command register
-   MAC->MII_COMMAND = 0;
-   //Return PHY register contents
-   return MAC->MII_STATUS;
+      //Wait for the read to complete
+      while(MAC->MII_INDICATORS & MII_INDICATORS_BUSY)
+      {
+      }
+
+      //Clear command register
+      MAC->MII_COMMAND = 0;
+      //Get register value
+      data = MAC->MII_STATUS;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }

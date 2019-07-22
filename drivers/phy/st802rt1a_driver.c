@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,10 +64,20 @@ error_t st802rt1aInit(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing ST802RT1A...\r\n");
 
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = ST802RT1A_PHY_ADDR;
+   }
+
    //Reset PHY transceiver
-   st802rt1aWritePhyReg(interface, ST802RT1A_PHY_REG_RN00, RN00_SOFT_RESET);
+   st802rt1aWritePhyReg(interface, ST802RT1A_CNTRL, ST802RT1A_CNTRL_RESET);
+
    //Wait for the reset to complete
-   while(st802rt1aReadPhyReg(interface, ST802RT1A_PHY_REG_RN00) & RN00_SOFT_RESET);
+   while(st802rt1aReadPhyReg(interface, ST802RT1A_CNTRL) & ST802RT1A_CNTRL_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    st802rt1aDumpPhyReg(interface);
@@ -93,9 +103,9 @@ void st802rt1aTick(NetInterface *interface)
    bool_t linkState;
 
    //Read status register
-   value = st802rt1aReadPhyReg(interface, ST802RT1A_PHY_REG_RN01);
+   value = st802rt1aReadPhyReg(interface, ST802RT1A_STATS);
    //Retrieve current link state
-   linkState = (value & RN01_LINK_STATUS) ? TRUE : FALSE;
+   linkState = (value & ST802RT1A_STATS_LINK_STATUS) ? TRUE : FALSE;
 
    //Link up event?
    if(linkState && !interface->linkState)
@@ -147,43 +157,43 @@ void st802rt1aEventHandler(NetInterface *interface)
    bool_t linkState;
 
    //Read status register
-   value = st802rt1aReadPhyReg(interface, ST802RT1A_PHY_REG_RN01);
+   value = st802rt1aReadPhyReg(interface, ST802RT1A_STATS);
    //Retrieve current link state
-   linkState = (value & RN01_LINK_STATUS) ? TRUE : FALSE;
+   linkState = (value & ST802RT1A_STATS_LINK_STATUS) ? TRUE : FALSE;
 
    //Link is up?
    if(linkState && !interface->linkState)
    {
       //Read RN13 register
-      value = st802rt1aReadPhyReg(interface, ST802RT1A_PHY_REG_RN13);
+      value = st802rt1aReadPhyReg(interface, ST802RT1A_XCCNT);
 
       //Check current operation mode
-      switch(value & RN13_CMODE_MASK)
+      switch(value & ST802RT1A_XCCNT_CMODE)
       {
-      //10BASE-T
-      case RN13_CMODE_10BT:
+      //10BASE-T half-duplex
+      case ST802RT1A_XCCNT_CMODE_10BT_HD:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
       //10BASE-T full-duplex
-      case RN13_CMODE_10BT_FD:
+      case ST802RT1A_XCCNT_CMODE_10BT_FD:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
-      //100BASE-TX
-      case RN13_CMODE_100BTX:
+      //100BASE-TX half-duplex
+      case ST802RT1A_XCCNT_CMODE_100BTX_HD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
       //100BASE-TX full-duplex
-      case RN13_CMODE_100BTX_FD:
+      case ST802RT1A_XCCNT_CMODE_100BTX_FD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
       //Unknown operation mode
       default:
          //Debug message
-         TRACE_WARNING("Invalid Duplex mode\r\n");
+         TRACE_WARNING("Invalid operation mode!\r\n");
          break;
       }
 
@@ -218,16 +228,9 @@ void st802rt1aEventHandler(NetInterface *interface)
 void st802rt1aWritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = ST802RT1A_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -240,16 +243,9 @@ void st802rt1aWritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t st802rt1aReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = ST802RT1A_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -266,7 +262,8 @@ void st802rt1aDumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, st802rt1aReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         st802rt1aReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

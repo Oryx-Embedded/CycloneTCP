@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,10 +64,20 @@ error_t upd60611Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing uPD60611...\r\n");
 
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = UPD60611_PHY_ADDR;
+   }
+
    //Reset PHY transceiver
-   upd60611WritePhyReg(interface, UPD60611_PHY_REG_BMCR, BMCR_RESET);
+   upd60611WritePhyReg(interface, UPD60611_BMCR, UPD60611_BMCR_RESET);
+
    //Wait for the reset to complete
-   while(upd60611ReadPhyReg(interface, UPD60611_PHY_REG_BMCR) & BMCR_RESET);
+   while(upd60611ReadPhyReg(interface, UPD60611_BMCR) & UPD60611_BMCR_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    upd60611DumpPhyReg(interface);
@@ -93,9 +103,9 @@ void upd60611Tick(NetInterface *interface)
    bool_t linkState;
 
    //Read basic status register
-   value = upd60611ReadPhyReg(interface, UPD60611_PHY_REG_BMSR);
+   value = upd60611ReadPhyReg(interface, UPD60611_BMSR);
    //Retrieve current link state
-   linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
+   linkState = (value & UPD60611_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
    //Link up event?
    if(linkState && !interface->linkState)
@@ -146,47 +156,47 @@ void upd60611EventHandler(NetInterface *interface)
    uint16_t value;
    bool_t linkState;
 
-   //Any link failure condition is latched in the BMSR register... Reading
+   //Any link failure condition is latched in the BMSR register. Reading
    //the register twice will always return the actual link status
-   value = upd60611ReadPhyReg(interface, UPD60611_PHY_REG_BMSR);
-   value = upd60611ReadPhyReg(interface, UPD60611_PHY_REG_BMSR);
+   value = upd60611ReadPhyReg(interface, UPD60611_BMSR);
+   value = upd60611ReadPhyReg(interface, UPD60611_BMSR);
 
    //Retrieve current link state
-   linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
+   linkState = (value & UPD60611_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
    //Link is up?
    if(linkState && !interface->linkState)
    {
       //Read PHY special control/status register
-      value = upd60611ReadPhyReg(interface, UPD60611_PHY_REG_PSCSR);
+      value = upd60611ReadPhyReg(interface, UPD60611_PSCSR);
 
       //Check current operation mode
-      switch(value & PSCSR_HCDSPEED_MASK)
+      switch(value & UPD60611_PSCSR_HCDSPEED)
       {
-      //10BASE-T
-      case PSCSR_HCDSPEED_10BT:
+      //10BASE-T half-duplex
+      case UPD60611_PSCSR_HCDSPEED_10BT_HD:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
       //10BASE-T full-duplex
-      case PSCSR_HCDSPEED_10BT_FD:
+      case UPD60611_PSCSR_HCDSPEED_10BT_FD:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
-      //100BASE-TX
-      case PSCSR_HCDSPEED_100BTX:
+      //100BASE-TX half-duplex
+      case UPD60611_PSCSR_HCDSPEED_100BTX_HD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
       //100BASE-TX full-duplex
-      case PSCSR_HCDSPEED_100BTX_FD:
+      case UPD60611_PSCSR_HCDSPEED_100BTX_FD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
       //Unknown operation mode
       default:
          //Debug message
-         TRACE_WARNING("Invalid Duplex mode\r\n");
+         TRACE_WARNING("Invalid operation mode!\r\n");
          break;
       }
 
@@ -221,16 +231,9 @@ void upd60611EventHandler(NetInterface *interface)
 void upd60611WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = UPD60611_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -243,16 +246,9 @@ void upd60611WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t upd60611ReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = UPD60611_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -269,7 +265,8 @@ void upd60611DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, upd60611ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         upd60611ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

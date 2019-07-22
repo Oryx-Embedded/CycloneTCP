@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -42,6 +42,7 @@
 #include "dns/dns_client.h"
 #include "mdns/mdns_client.h"
 #include "netbios/nbns_client.h"
+#include "llmnr/llmnr_client.h"
 #include "debug.h"
 
 //Socket table
@@ -540,8 +541,8 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
    if(socket->type == SOCKET_TYPE_DGRAM)
    {
       //Send UDP datagram
-      error = udpSendDatagram(socket, destIpAddr,
-         destPort, data, length, written);
+      error = udpSendDatagram(socket, destIpAddr, destPort, data, length,
+         written, flags);
    }
    else
 #endif
@@ -550,7 +551,8 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
    if(socket->type == SOCKET_TYPE_RAW_IP)
    {
       //Send a raw IP packet
-      error = rawSocketSendIpPacket(socket, destIpAddr, data, length, written);
+      error = rawSocketSendIpPacket(socket, destIpAddr, data, length,
+         written, flags);
    }
    else if(socket->type == SOCKET_TYPE_RAW_ETH)
    {
@@ -856,7 +858,8 @@ void socketClose(Socket *socket)
  * @return Error code
  **/
 
-error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent, systime_t timeout)
+error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
+   systime_t timeout)
 {
    uint_t i;
    bool_t status;
@@ -864,7 +867,7 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent, s
    OsEvent eventObject;
 
    //Check parameters
-   if(!eventDesc || !size)
+   if(eventDesc == NULL || size == 0)
       return ERROR_INVALID_PARAMETER;
 
    //Try to use the supplied event object to receive notifications
@@ -889,33 +892,40 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent, s
    //Loop through descriptors
    for(i = 0; i < size; i++)
    {
-      //Clear event flags
-      eventDesc[i].eventFlags = 0;
-      //Subscribe to the requested events
-      socketRegisterEvents(eventDesc[i].socket, event, eventDesc[i].eventMask);
+      //Valid socket handle?
+      if(eventDesc[i].socket != NULL)
+      {
+         //Clear event flags
+         eventDesc[i].eventFlags = 0;
+         //Subscribe to the requested events
+         socketRegisterEvents(eventDesc[i].socket, event, eventDesc[i].eventMask);
+      }
    }
 
    //Block the current task until an event occurs
    status = osWaitForEvent(event, timeout);
 
-   //Any socket event is in the signaled state?
-   if(status)
+   //Loop through descriptors
+   for(i = 0; i < size; i++)
    {
-      //Loop through descriptors
-      for(i = 0; i < size; i++)
+      //Valid socket handle?
+      if(eventDesc[i].socket != NULL)
       {
-         //Retrieve event flags for the current socket
-         socketGetEvents(eventDesc[i].socket, &eventDesc[i].eventFlags);
-         //Clear unnecessary flags
-         eventDesc[i].eventFlags &= eventDesc[i].eventMask;
+         //Any socket event in the signaled state?
+         if(status)
+         {
+            //Retrieve event flags for the current socket
+            eventDesc[i].eventFlags = socketGetEvents(eventDesc[i].socket);
+            //Clear unnecessary flags
+            eventDesc[i].eventFlags &= eventDesc[i].eventMask;
+         }
+
+         //Unsubscribe previously registered events
+         socketUnregisterEvents(eventDesc[i].socket);
       }
    }
 
-   //Unsubscribe previously registered events
-   for(i = 0; i < size; i++)
-      socketUnregisterEvents(eventDesc[i].socket);
-
-   //Reset event object before exiting...
+   //Reset event object
    osResetEvent(event);
 
    //Release previously allocated resources
@@ -932,110 +942,106 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent, s
  * @param[in] socket Handle that identifies a socket
  * @param[in] event Event object used to receive notifications
  * @param[in] eventMask Logic OR of the requested socket events
- * @return Error code
  **/
 
-error_t socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask)
+void socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask)
 {
-   //Make sure the socket handle is valid
-   if(socket == NULL)
-      return ERROR_INVALID_PARAMETER;
+   //Valid socket handle?
+   if(socket != NULL)
+   {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
 
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
+      //An user event may have been previously registered...
+      if(socket->userEvent != NULL)
+         socket->eventMask |= eventMask;
+      else
+         socket->eventMask = eventMask;
 
-   //An user event may have been previously registered...
-   if(socket->userEvent != NULL)
-      socket->eventMask |= eventMask;
-   else
-      socket->eventMask = eventMask;
-
-   //Suscribe to get notified of events
-   socket->userEvent = event;
+      //Suscribe to get notified of events
+      socket->userEvent = event;
 
 #if (TCP_SUPPORT == ENABLED)
-   //Handle TCP specific events
-   if(socket->type == SOCKET_TYPE_STREAM)
-   {
-      tcpUpdateEvents(socket);
-   }
+      //Handle TCP specific events
+      if(socket->type == SOCKET_TYPE_STREAM)
+      {
+         tcpUpdateEvents(socket);
+      }
 #endif
 #if (UDP_SUPPORT == ENABLED)
-   //Handle UDP specific events
-   if(socket->type == SOCKET_TYPE_DGRAM)
-   {
-      udpUpdateEvents(socket);
-   }
+      //Handle UDP specific events
+      if(socket->type == SOCKET_TYPE_DGRAM)
+      {
+         udpUpdateEvents(socket);
+      }
 #endif
 #if (RAW_SOCKET_SUPPORT == ENABLED)
-   //Handle events that are specific to raw sockets
-   if(socket->type == SOCKET_TYPE_RAW_IP ||
-      socket->type == SOCKET_TYPE_RAW_ETH)
-   {
-      rawSocketUpdateEvents(socket);
-   }
+      //Handle events that are specific to raw sockets
+      if(socket->type == SOCKET_TYPE_RAW_IP ||
+         socket->type == SOCKET_TYPE_RAW_ETH)
+      {
+         rawSocketUpdateEvents(socket);
+      }
 #endif
 
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
-   //Successful processing
-   return NO_ERROR;
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+   }
 }
 
 
 /**
  * @brief Unsubscribe previously registered events
  * @param[in] socket Handle that identifies a socket
- * @return Error code
  **/
 
-error_t socketUnregisterEvents(Socket *socket)
+void socketUnregisterEvents(Socket *socket)
 {
-   //Make sure the socket handle is valid
-   if(socket == NULL)
-      return ERROR_INVALID_PARAMETER;
+   //Valid socket handle?
+   if(socket != NULL)
+   {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
 
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
+      //Unsuscribe socket events
+      socket->userEvent = NULL;
 
-   //Unsuscribe socket events
-   socket->userEvent = NULL;
-
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
-   //Successful processing
-   return NO_ERROR;
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+   }
 }
 
 
 /**
  * @brief Retrieve event flags for a specified socket
  * @param[in] socket Handle that identifies a socket
- * @param[out] eventFlags Logic OR of events in the signaled state
- * @return Error code
+ * @return Logic OR of events in the signaled state
  **/
 
-error_t socketGetEvents(Socket *socket, uint_t *eventFlags)
+uint_t socketGetEvents(Socket *socket)
 {
-   //Make sure the socket handle is valid
-   if(socket == NULL)
+   uint_t eventFlags;
+
+   //Valid socket handle?
+   if(socket != NULL)
    {
-      //Always return a valid value
-      *eventFlags = 0;
-      //Report an error
-      return ERROR_INVALID_PARAMETER;
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
+
+      //Read event flags for the specified socket
+      eventFlags = socket->eventFlags;
+
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+   }
+   else
+   {
+      //The socket handle is not valid
+      eventFlags = 0;
    }
 
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Read event flags for the specified socket
-   *eventFlags = socket->eventFlags;
-
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
-   //Successful processing
-   return NO_ERROR;
+   //Return the events in the signaled state
+   return eventFlags;
 }
 
 
@@ -1052,25 +1058,29 @@ error_t getHostByName(NetInterface *interface,
    const char_t *name, IpAddr *ipAddr, uint_t flags)
 {
    error_t error;
+   HostType type;
+   HostnameResolver protocol;
 
    //Default address type depends on TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED)
-   HostType type = HOST_TYPE_IPV4;
+   type = HOST_TYPE_IPV4;
 #elif (IPV6_SUPPORT == ENABLED)
-   HostType type = HOST_TYPE_IPV6;
+   type = HOST_TYPE_IPV6;
 #else
-   HostType type = HOST_TYPE_ANY;
+   type = HOST_TYPE_ANY;
 #endif
 
    //Default name resolution protocol depends on TCP/IP stack configuration
 #if (DNS_CLIENT_SUPPORT == ENABLED)
-   HostnameResolver protocol = HOST_NAME_RESOLVER_DNS;
+   protocol = HOST_NAME_RESOLVER_DNS;
 #elif (MDNS_CLIENT_SUPPORT == ENABLED)
-   HostnameResolver protocol = HOST_NAME_RESOLVER_MDNS;
+   protocol = HOST_NAME_RESOLVER_MDNS;
 #elif (NBNS_CLIENT_SUPPORT == ENABLED)
-   HostnameResolver protocol = HOST_NAME_RESOLVER_NBNS;
+   protocol = HOST_NAME_RESOLVER_NBNS;
+#elif (LLMNR_CLIENT_SUPPORT == ENABLED)
+   protocol = HOST_NAME_RESOLVER_LLMNR;
 #else
-   HostnameResolver protocol = HOST_NAME_RESOLVER_ANY;
+   protocol = HOST_NAME_RESOLVER_ANY;
 #endif
 
    //Check parameters
@@ -1109,6 +1119,11 @@ error_t getHostByName(NetInterface *interface,
          //Use NBNS to resolve the specified host name
          protocol = HOST_NAME_RESOLVER_NBNS;
       }
+      else if(flags & HOST_NAME_RESOLVER_LLMNR)
+      {
+         //Use LLMNR to resolve the specified host name
+         protocol = HOST_NAME_RESOLVER_LLMNR;
+      }
       else
       {
          //Retrieve the length of the host name to be resolved
@@ -1127,6 +1142,13 @@ error_t getHostByName(NetInterface *interface,
 #if (NBNS_CLIENT_SUPPORT == ENABLED)
             //Use NetBIOS Name Service to resolve the specified host name
             protocol = HOST_NAME_RESOLVER_NBNS;
+#endif
+         }
+         else if(!strchr(name, '.'))
+         {
+#if (LLMNR_CLIENT_SUPPORT == ENABLED)
+            //Use LLMNR to resolve the specified host name
+            protocol = HOST_NAME_RESOLVER_LLMNR;
 #endif
          }
       }
@@ -1155,6 +1177,15 @@ error_t getHostByName(NetInterface *interface,
       {
          //Perform host name resolution
          error = nbnsResolve(interface, name, ipAddr);
+      }
+      else
+#endif
+#if (LLMNR_CLIENT_SUPPORT == ENABLED)
+      //Use LLMNR protocol?
+      if(protocol == HOST_NAME_RESOLVER_LLMNR)
+      {
+         //Perform host name resolution
+         error = llmnrResolve(interface, name, type, ipAddr);
       }
       else
 #endif

@@ -1,6 +1,6 @@
 /**
  * @file zynq7000_eth_driver.h
- * @brief Zynq-7000 Ethernet MAC controller
+ * @brief Zynq-7000 Gigabit Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _ZYNQ7000_ETH_DRIVER_H
@@ -279,8 +279,11 @@ error_t zynq7000EthReceivePacket(NetInterface *interface);
 error_t zynq7000EthUpdateMacAddrFilter(NetInterface *interface);
 error_t zynq7000EthUpdateMacConfig(NetInterface *interface);
 
-void zynq7000EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t zynq7000EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void zynq7000EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t zynq7000EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _ETHERNET_H
@@ -93,8 +93,11 @@
 #define ETH_CRC_SIZE 4
 
 //VLAN tag control information
+#define VLAN_PCP_POS 13
+#define VLAN_DEI_POS 12
+#define VLAN_VID_POS 0
 #define VLAN_PCP_MASK 0xE000
-#define VLAN_CFI_MASK 0x1000
+#define VLAN_DEI_MASK 0x1000
 #define VLAN_VID_MASK 0x0FFF
 
 //Copy MAC address

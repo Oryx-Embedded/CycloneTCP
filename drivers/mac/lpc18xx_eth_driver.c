@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -123,7 +123,10 @@ error_t lpc18xxEthInit(NetInterface *interface)
 
    //Enable Ethernet peripheral clock
    LPC_CCU1->CLK_M3_ETHERNET_CFG |= CCU1_CLK_M3_ETHERNET_CFG_RUN_Msk;
-   while(!(LPC_CCU1->CLK_M3_ETHERNET_STAT & CCU1_CLK_M3_ETHERNET_STAT_RUN_Msk));
+   //Wait for completion
+   while(!(LPC_CCU1->CLK_M3_ETHERNET_STAT & CCU1_CLK_M3_ETHERNET_STAT_RUN_Msk))
+   {
+   }
 
    //Reset DMA
    LPC_RGU->RESET_EXT_STAT19 |= RGU_RESET_EXT_STAT19_MASTER_RESET_Msk;
@@ -138,12 +141,17 @@ error_t lpc18xxEthInit(NetInterface *interface)
 
    //Reset Ethernet peripheral
    LPC_RGU->RESET_CTRL0 = RGU_RESET_CTRL0_ETHERNET_RST_Msk;
-   while(!(LPC_RGU->RESET_ACTIVE_STATUS0 & RGU_RESET_ACTIVE_STATUS0_ETHERNET_RST_Msk));
+   //Wait for the reset to complete
+   while(!(LPC_RGU->RESET_ACTIVE_STATUS0 & RGU_RESET_ACTIVE_STATUS0_ETHERNET_RST_Msk))
+   {
+   }
 
    //Perform a software reset
    LPC_ETHERNET->DMA_BUS_MODE |= ETHERNET_DMA_BUS_MODE_SWR_Msk;
    //Wait for the reset to complete
-   while(LPC_ETHERNET->DMA_BUS_MODE & ETHERNET_DMA_BUS_MODE_SWR_Msk);
+   while(LPC_ETHERNET->DMA_BUS_MODE & ETHERNET_DMA_BUS_MODE_SWR_Msk)
+   {
+   }
 
    //Adjust MDC clock range
    LPC_ETHERNET->MAC_MII_ADDR = ETHERNET_MAC_MII_ADDR_CR_DIV62;
@@ -224,7 +232,10 @@ void lpc18xxEthInitGpio(NetInterface *interface)
 {
    //Enable GPIO peripheral clock
    LPC_CCU1->CLK_M3_GPIO_CFG |= CCU1_CLK_M3_GPIO_CFG_RUN_Msk;
-   while(!(LPC_CCU1->CLK_M3_GPIO_STAT & CCU1_CLK_M3_GPIO_STAT_RUN_Msk));
+   //Wait for completion
+   while(!(LPC_CCU1->CLK_M3_GPIO_STAT & CCU1_CLK_M3_GPIO_STAT_RUN_Msk))
+   {
+   }
 
    //Select RMII operation mode
    LPC_CREG->CREG6 &= ~CREG_CREG6_ETHMODE_Msk;
@@ -373,7 +384,7 @@ void ETHERNET_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -412,7 +423,7 @@ void ETHERNET_IRQHandler(void)
    //Clear NIS and AIS interrupt flags
    LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_NIS_Msk | ETHERNET_DMA_STAT_AIE_Msk;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -664,61 +675,90 @@ error_t lpc18xxEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void lpc18xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void lpc18xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   value = LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_CR_Msk;
-   //Set up a write operation
-   value |= ETHERNET_MAC_MII_ADDR_W_Msk | ETHERNET_MAC_MII_ADDR_GB_Msk;
-   //PHY address
-   value |= (phyAddr << ETHERNET_MAC_MII_ADDR_PA_Pos) & ETHERNET_MAC_MII_ADDR_PA_Msk;
-   //Register address
-   value |= (regAddr << ETHERNET_MAC_MII_ADDR_GR_Pos) & ETHERNET_MAC_MII_ADDR_GR_Msk;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Take care not to alter MDC clock configuration
+      temp = LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_CR_Msk;
+      //Set up a write operation
+      temp |= ETHERNET_MAC_MII_ADDR_W_Msk | ETHERNET_MAC_MII_ADDR_GB_Msk;
+      //PHY address
+      temp |= (phyAddr << ETHERNET_MAC_MII_ADDR_PA_Pos) & ETHERNET_MAC_MII_ADDR_PA_Msk;
+      //Register address
+      temp |= (regAddr << ETHERNET_MAC_MII_ADDR_GR_Pos) & ETHERNET_MAC_MII_ADDR_GR_Msk;
 
-   //Data to be written in the PHY register
-   LPC_ETHERNET->MAC_MII_DATA = data & ETHERNET_MAC_MII_DATA_GD_Msk;
+      //Data to be written in the PHY register
+      LPC_ETHERNET->MAC_MII_DATA = data & ETHERNET_MAC_MII_DATA_GD_Msk;
 
-   //Start a write operation
-   LPC_ETHERNET->MAC_MII_ADDR = value;
-   //Wait for the write to complete
-   while(LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_GB_Msk);
+      //Start a write operation
+      LPC_ETHERNET->MAC_MII_ADDR = temp;
+      //Wait for the write to complete
+      while(LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_GB_Msk)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t lpc18xxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t lpc18xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   value = LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_CR_Msk;
-   //Set up a read operation
-   value |= ETHERNET_MAC_MII_ADDR_GB_Msk;
-   //PHY address
-   value |= (phyAddr << ETHERNET_MAC_MII_ADDR_PA_Pos) & ETHERNET_MAC_MII_ADDR_PA_Msk;
-   //Register address
-   value |= (regAddr << ETHERNET_MAC_MII_ADDR_GR_Pos) & ETHERNET_MAC_MII_ADDR_GR_Msk;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Take care not to alter MDC clock configuration
+      temp = LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_CR_Msk;
+      //Set up a read operation
+      temp |= ETHERNET_MAC_MII_ADDR_GB_Msk;
+      //PHY address
+      temp |= (phyAddr << ETHERNET_MAC_MII_ADDR_PA_Pos) & ETHERNET_MAC_MII_ADDR_PA_Msk;
+      //Register address
+      temp |= (regAddr << ETHERNET_MAC_MII_ADDR_GR_Pos) & ETHERNET_MAC_MII_ADDR_GR_Msk;
 
-   //Start a read operation
-   LPC_ETHERNET->MAC_MII_ADDR = value;
-   //Wait for the read to complete
-   while(LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_GB_Msk);
+      //Start a read operation
+      LPC_ETHERNET->MAC_MII_ADDR = temp;
+      //Wait for the read to complete
+      while(LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_GB_Msk)
+      {
+      }
 
-   //Return PHY register contents
-   return LPC_ETHERNET->MAC_MII_DATA & ETHERNET_MAC_MII_DATA_GD_Msk;
+      //Get register value
+      data = LPC_ETHERNET->MAC_MII_DATA & ETHERNET_MAC_MII_DATA_GD_Msk;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

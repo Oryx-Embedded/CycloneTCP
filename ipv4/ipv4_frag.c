@@ -34,7 +34,7 @@
  * - RFC 815: IP datagram reassembly algorithms
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,12 +64,13 @@ systime_t ipv4FragTickCounter;
  * @param[in] id Fragment identification
  * @param[in] payload Multi-part buffer containing the payload
  * @param[in] payloadOffset Offset to the first payload byte
- * @param[in] timeToLive TTL value
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
-error_t ipv4FragmentDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   uint16_t id, const NetBuffer *payload, size_t payloadOffset, uint8_t timeToLive)
+error_t ipv4FragmentDatagram(NetInterface *interface,
+   Ipv4PseudoHeader *pseudoHeader, uint16_t id, const NetBuffer *payload,
+   size_t payloadOffset, uint_t flags)
 {
    error_t error;
    size_t offset;
@@ -119,7 +120,7 @@ error_t ipv4FragmentDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHe
 
          //Do not set the MF flag for the last fragment
          error = ipv4SendPacket(interface, pseudoHeader, id,
-            offset / 8, fragment, fragmentOffset, timeToLive);
+            offset / 8, fragment, fragmentOffset, flags);
       }
       else
       {
@@ -130,7 +131,7 @@ error_t ipv4FragmentDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHe
 
          //Fragmented packets must have the MF flag set
          error = ipv4SendPacket(interface, pseudoHeader, id,
-            IPV4_FLAG_MF | (offset / 8), fragment, fragmentOffset, timeToLive);
+            IPV4_FLAG_MF | (offset / 8), fragment, fragmentOffset, flags);
       }
 
       //Failed to send current IP packet?
@@ -513,7 +514,8 @@ void ipv4FragTick(NetInterface *interface)
  * @return Matching fragment descriptor
  **/
 
-Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface, const Ipv4Header *packet)
+Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
+   const Ipv4Header *packet)
 {
    error_t error;
    uint_t i;

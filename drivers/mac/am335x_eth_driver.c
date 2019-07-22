@@ -1,6 +1,6 @@
 /**
  * @file am335x_eth_driver.c
- * @brief Sitara AM335x Ethernet MAC controller
+ * @brief Sitara AM335x Gigabit Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -362,27 +362,37 @@ void am335xEthInitInstance(NetInterface *interface)
       //Reset CPSW subsystem
       CPSW_SS_SOFT_RESET_R = CPSW_SS_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_SS_SOFT_RESET_R & CPSW_SS_SOFT_RESET_SOFT_RESET);
+      while(CPSW_SS_SOFT_RESET_R & CPSW_SS_SOFT_RESET_SOFT_RESET)
+      {
+      }
 
       //Reset CPSW wrapper module
       CPSW_WR_SOFT_RESET_R = CPSW_WR_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_WR_SOFT_RESET_R & CPSW_WR_SOFT_RESET_SOFT_RESET);
+      while(CPSW_WR_SOFT_RESET_R & CPSW_WR_SOFT_RESET_SOFT_RESET)
+      {
+      }
 
       //Reset CPSW sliver 1 logic
       CPSW_SL1_SOFT_RESET_R = CPSW_SL_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_SL1_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET);
+      while(CPSW_SL1_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET)
+      {
+      }
 
       //Reset CPSW sliver 2 logic
       CPSW_SL2_SOFT_RESET_R = CPSW_SL_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_SL2_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET);
+      while(CPSW_SL2_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET)
+      {
+      }
 
       //Reset CPSW CPDMA module
       CPSW_CPDMA_CPDMA_SOFT_RESET_R = CPSW_CPDMA_CPDMA_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_CPDMA_CPDMA_SOFT_RESET_R & CPSW_CPDMA_CPDMA_SOFT_RESET_SOFT_RESET);
+      while(CPSW_CPDMA_CPDMA_SOFT_RESET_R & CPSW_CPDMA_CPDMA_SOFT_RESET_SOFT_RESET)
+      {
+      }
 
       //Initialize the HDPs and the CPs to NULL
       for(i = CPSW_CH0; i <= CPSW_CH7; i++)
@@ -884,7 +894,7 @@ void am335xEthTxIrqHandler(void)
    uint32_t temp;
    Am335xTxBufferDesc *p;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -964,7 +974,7 @@ void am335xEthTxIrqHandler(void)
    //Writes the DMA end of interrupt vector
    CPSW_CPDMA_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_TX_PULSE;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -978,7 +988,7 @@ void am335xEthRxIrqHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -1006,7 +1016,7 @@ void am335xEthRxIrqHandler(void)
    //Writes the DMA end of interrupt vector
    CPSW_CPDMA_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_RX_PULSE;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -1411,56 +1421,85 @@ error_t am335xEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void am335xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void am335xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = MDIO_USERACCESS0_GO | MDIO_USERACCESS0_WRITE;
-   //PHY address
-   value |= (phyAddr << MDIO_USERACCESS0_PHYADR_SHIFT) & MDIO_USERACCESS0_PHYADR;
-   //Register address
-   value |= (regAddr << MDIO_USERACCESS0_REGADR_SHIFT) & MDIO_USERACCESS0_REGADR;
-   //Register value
-   value |= data & MDIO_USERACCESS0_DATA;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = MDIO_USERACCESS0_GO | MDIO_USERACCESS0_WRITE;
+      //PHY address
+      temp |= (phyAddr << MDIO_USERACCESS0_PHYADR_SHIFT) & MDIO_USERACCESS0_PHYADR;
+      //Register address
+      temp |= (regAddr << MDIO_USERACCESS0_REGADR_SHIFT) & MDIO_USERACCESS0_REGADR;
+      //Register value
+      temp |= data & MDIO_USERACCESS0_DATA;
 
-   //Start a write operation
-   MDIO_USERACCESS0_R = value;
-   //Wait for the write to complete
-   while(MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO);
+      //Start a write operation
+      MDIO_USERACCESS0_R = temp;
+      //Wait for the write to complete
+      while(MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t am335xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t am335xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = MDIO_USERACCESS0_GO | MDIO_USERACCESS0_READ;
-   //PHY address
-   value |= (phyAddr << MDIO_USERACCESS0_PHYADR_SHIFT) & MDIO_USERACCESS0_PHYADR;
-   //Register address
-   value |= (regAddr << MDIO_USERACCESS0_REGADR_SHIFT) & MDIO_USERACCESS0_REGADR;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = MDIO_USERACCESS0_GO | MDIO_USERACCESS0_READ;
+      //PHY address
+      temp |= (phyAddr << MDIO_USERACCESS0_PHYADR_SHIFT) & MDIO_USERACCESS0_PHYADR;
+      //Register address
+      temp |= (regAddr << MDIO_USERACCESS0_REGADR_SHIFT) & MDIO_USERACCESS0_REGADR;
 
-   //Start a read operation
-   MDIO_USERACCESS0_R = value;
-   //Wait for the read to complete
-   while(MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO);
+      //Start a read operation
+      MDIO_USERACCESS0_R = temp;
+      //Wait for the read to complete
+      while(MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO)
+      {
+      }
 
-   //Return PHY register contents
-   return MDIO_USERACCESS0_R & MDIO_USERACCESS0_DATA;
+      //Get register value
+      data = MDIO_USERACCESS0_R & MDIO_USERACCESS0_DATA;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

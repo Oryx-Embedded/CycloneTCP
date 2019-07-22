@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -361,7 +361,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
 /**
  * @brief Compare parameter name with the supplied string
  * @param[in] param Pointer to the parameter
- * @param[in] s NULL-terminated string
+ * @param[in] name NULL-terminated string
  * @return Comparison result
  **/
 
@@ -394,7 +394,7 @@ bool_t httpCompareParamName(const HttpParam *param, const char_t *name)
 /**
  * @brief Compare parameter name with the supplied string
  * @param[in] param Pointer to the parameter
- * @param[in] s NULL-terminated string
+ * @param[in] value NULL-terminated string
  * @return Comparison result
  **/
 
@@ -428,7 +428,7 @@ bool_t httpCompareParamValue(const HttpParam *param, const char_t *value)
  * @brief Copy the value of a parameter
  * @param[in] param Pointer to the parameter
  * @param[out] value Pointer to the buffer where to copy the parameter value
- * @param[out] Maximum number of characters the buffer can hold
+ * @param[out] maxLen Maximum number of characters the buffer can hold
  * @return Error code
  **/
 

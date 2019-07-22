@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _MK6X_ETH_DRIVER_H
@@ -176,8 +176,11 @@ error_t mk6xEthReceivePacket(NetInterface *interface);
 error_t mk6xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t mk6xEthUpdateMacConfig(NetInterface *interface);
 
-void mk6xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t mk6xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void mk6xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t mk6xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 uint32_t mk6xEthCalcCrc(const void *data, size_t length);
 

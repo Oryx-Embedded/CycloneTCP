@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -126,7 +126,9 @@ error_t a2fxxxm3EthInit(NetInterface *interface)
    //Perform a software reset
    MAC->CSR0 |= CSR0_SWR_MASK;
    //Wait for the reset to complete
-   while(MAC->CSR0 & CSR0_SWR_MASK);
+   while(MAC->CSR0 & CSR0_SWR_MASK)
+   {
+   }
 
    //PHY transceiver initialization
    error = interface->phyDriver->init(interface);
@@ -272,7 +274,7 @@ void EthernetMAC_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -310,7 +312,7 @@ void EthernetMAC_IRQHandler(void)
    //Clear NIS interrupt flag
    MAC->CSR5 = CSR5_NIS_MASK;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -584,19 +586,21 @@ error_t a2fxxxm3EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void a2fxxxm3EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void a2fxxxm3EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
    //Synchronization pattern
    a2fxxxm3EthWriteSmi(SMI_SYNC, 32);
    //Start of frame
    a2fxxxm3EthWriteSmi(SMI_START, 2);
    //Set up a write operation
-   a2fxxxm3EthWriteSmi(SMI_WRITE, 2);
+   a2fxxxm3EthWriteSmi(opcode, 2);
    //Write PHY address
    a2fxxxm3EthWriteSmi(phyAddr, 5);
    //Write register address
@@ -612,12 +616,14 @@ void a2fxxxm3EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t a2fxxxm3EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t a2fxxxm3EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
    uint16_t data;
 
@@ -626,7 +632,7 @@ uint16_t a2fxxxm3EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
    //Start of frame
    a2fxxxm3EthWriteSmi(SMI_START, 2);
    //Set up a read operation
-   a2fxxxm3EthWriteSmi(SMI_READ, 2);
+   a2fxxxm3EthWriteSmi(opcode, 2);
    //Write PHY address
    a2fxxxm3EthWriteSmi(phyAddr, 5);
    //Write register address

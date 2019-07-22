@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -280,7 +280,7 @@ void aps3EthTxIrqHandler(void)
 {
    bool_t flag;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -300,7 +300,7 @@ void aps3EthTxIrqHandler(void)
       }
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -313,7 +313,7 @@ void aps3EthRxIrqHandler(void)
 {
    bool_t flag;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -327,7 +327,7 @@ void aps3EthRxIrqHandler(void)
    //Notify the TCP/IP stack of the event
    flag = osSetEventFromIsr(&netEvent);
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -565,54 +565,88 @@ error_t aps3EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void aps3EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void aps3EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   //Wait for the MII management module to be ready
-   while(!eth_miim->miim_status);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Wait for the MII management module to be ready
+      while(!eth_miim->miim_status)
+      {
+      }
 
-   //PHY address
-   eth_miim->miim_phy_addr = phyAddr;
-   //Register address
-   eth_miim->miim_phy_register_addr = regAddr;
-   //Data to be written in the PHY register
-   eth_miim->miim_data = data;
+      //PHY address
+      eth_miim->miim_phy_addr = phyAddr;
+      //Register address
+      eth_miim->miim_phy_register_addr = regAddr;
+      //Data to be written in the PHY register
+      eth_miim->miim_data = data;
 
-   //Start a write operation
-   eth_miim->miim_read_write = 0;
-   //Wait for the write to complete
-   while(!eth_miim->miim_status);
+      //Start a write operation
+      eth_miim->miim_read_write = 0;
+      //Wait for the write to complete
+      while(!eth_miim->miim_status)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t aps3EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t aps3EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   //Wait for the MII management module to be ready
-   while(!eth_miim->miim_status);
+   uint16_t data;
 
-   //PHY address
-   eth_miim->miim_phy_addr = phyAddr;
-   //Register address
-   eth_miim->miim_phy_register_addr = regAddr;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Wait for the MII management module to be ready
+      while(!eth_miim->miim_status)
+      {
+      }
 
-   //Start a read operation
-   eth_miim->miim_read_write = 1;
-   //Wait for the read to complete
-   while(!eth_miim->miim_status);
+      //PHY address
+      eth_miim->miim_phy_addr = phyAddr;
+      //Register address
+      eth_miim->miim_phy_register_addr = regAddr;
 
-   //Return PHY register contents
-   return eth_miim->miim_data;
+      //Start a read operation
+      eth_miim->miim_read_write = 1;
+      //Wait for the read to complete
+      while(!eth_miim->miim_status)
+      {
+      }
+
+      //Get register value
+      data = eth_miim->miim_data;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

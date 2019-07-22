@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _LPC54608_ETH_DRIVER_H
@@ -82,20 +82,6 @@
 #elif (LPC54608_ETH_IRQ_SUB_PRIORITY < 0)
    #error LPC54608_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
-
-//MMCRIMR register
-#define ENET_MMCRIMR_RXLPITRCIM  0x08000000
-#define ENET_MMCRIMR_RXLPIUSCIM  0x04000000
-#define ENET_MMCRIMR_RXUCGPIM    0x00020000
-#define ENET_MMCRIMR_RXALGNERPIM 0x00000040
-#define ENET_MMCRIMR_RXCRCERPIM  0x00000020
-
-//MMCTIMR register
-#define ENET_MMCTIMR_TXLPITRCIM  0x08000000
-#define ENET_MMCTIMR_TXLPIUSCIM  0x04000000
-#define ENET_MMCTIMR_TXGPKTIM    0x00200000
-#define ENET_MMCTIMR_TXMCOLGPIM  0x00008000
-#define ENET_MMCTIMR_TXSCOLGPIM  0x00004000
 
 //Transmit normal descriptor (read format)
 #define ENET_TDES0_BUF1AP        0xFFFFFFFF
@@ -230,8 +216,11 @@ error_t lpc54608EthReceivePacket(NetInterface *interface);
 error_t lpc54608EthUpdateMacAddrFilter(NetInterface *interface);
 error_t lpc54608EthUpdateMacConfig(NetInterface *interface);
 
-void lpc54608EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t lpc54608EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void lpc54608EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t lpc54608EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

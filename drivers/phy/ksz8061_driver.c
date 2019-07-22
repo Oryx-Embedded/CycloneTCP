@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,20 +64,33 @@ error_t ksz8061Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing KSZ8061...\r\n");
 
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = KSZ8061_PHY_ADDR;
+   }
+
    //Initialize external interrupt line driver
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->init();
+   }
 
    //Reset PHY transceiver
-   ksz8061WritePhyReg(interface, KSZ8061_PHY_REG_BMCR, BMCR_RESET);
+   ksz8061WritePhyReg(interface, KSZ8061_BMCR, KSZ8061_BMCR_RESET);
+
    //Wait for the reset to complete
-   while(ksz8061ReadPhyReg(interface, KSZ8061_PHY_REG_BMCR) & BMCR_RESET);
+   while(ksz8061ReadPhyReg(interface, KSZ8061_BMCR) & KSZ8061_BMCR_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    ksz8061DumpPhyReg(interface);
 
    //The PHY will generate interrupts when link status changes are detected
-   ksz8061WritePhyReg(interface, KSZ8061_PHY_REG_ICSR, ICSR_LINK_DOWN_IE | ICSR_LINK_UP_IE);
+   ksz8061WritePhyReg(interface, KSZ8061_ICSR, KSZ8061_ICSR_LINK_DOWN_IE |
+      KSZ8061_ICSR_LINK_UP_IE);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -103,9 +116,9 @@ void ksz8061Tick(NetInterface *interface)
    if(interface->extIntDriver == NULL)
    {
       //Read basic status register
-      value = ksz8061ReadPhyReg(interface, KSZ8061_PHY_REG_BMSR);
+      value = ksz8061ReadPhyReg(interface, KSZ8061_BMSR);
       //Retrieve current link state
-      linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
+      linkState = (value & KSZ8061_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
       //Link up event?
       if(linkState && !interface->linkState)
@@ -136,7 +149,9 @@ void ksz8061EnableIrq(NetInterface *interface)
 {
    //Enable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -149,7 +164,9 @@ void ksz8061DisableIrq(NetInterface *interface)
 {
    //Disable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->disableIrq();
+   }
 }
 
 
@@ -163,49 +180,49 @@ void ksz8061EventHandler(NetInterface *interface)
    uint16_t value;
 
    //Read status register to acknowledge the interrupt
-   value = ksz8061ReadPhyReg(interface, KSZ8061_PHY_REG_ICSR);
+   value = ksz8061ReadPhyReg(interface, KSZ8061_ICSR);
 
    //Link status change?
-   if(value & (ICSR_LINK_DOWN_IF | ICSR_LINK_UP_IF))
+   if(value & (KSZ8061_ICSR_LINK_DOWN_IF | KSZ8061_ICSR_LINK_UP_IF))
    {
-      //Any link failure condition is latched in the BMSR register... Reading
+      //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
-      value = ksz8061ReadPhyReg(interface, KSZ8061_PHY_REG_BMSR);
-      value = ksz8061ReadPhyReg(interface, KSZ8061_PHY_REG_BMSR);
+      value = ksz8061ReadPhyReg(interface, KSZ8061_BMSR);
+      value = ksz8061ReadPhyReg(interface, KSZ8061_BMSR);
 
       //Link is up?
-      if(value & BMSR_LINK_STATUS)
+      if(value & KSZ8061_BMSR_LINK_STATUS)
       {
          //Read PHY control register
-         value = ksz8061ReadPhyReg(interface, KSZ8061_PHY_REG_PHYCON1);
+         value = ksz8061ReadPhyReg(interface, KSZ8061_PHYCON1);
 
          //Check current operation mode
-         switch(value & PHYCON1_OP_MODE_MASK)
+         switch(value & KSZ8061_PHYCON1_OP_MODE)
          {
-         //10BASE-T
-         case PHYCON1_OP_MODE_10BT:
+         //10BASE-T half-duplex
+         case KSZ8061_PHYCON1_OP_MODE_10BT_HD:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
          //10BASE-T full-duplex
-         case PHYCON1_OP_MODE_10BT_FD:
+         case KSZ8061_PHYCON1_OP_MODE_10BT_FD:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
-         //100BASE-TX
-         case PHYCON1_OP_MODE_100BTX:
+         //100BASE-TX half-duplex
+         case KSZ8061_PHYCON1_OP_MODE_100BTX_HD:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
          //100BASE-TX full-duplex
-         case PHYCON1_OP_MODE_100BTX_FD:
+         case KSZ8061_PHYCON1_OP_MODE_100BTX_FD:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
          //Unknown operation mode
          default:
             //Debug message
-            TRACE_WARNING("Invalid Duplex mode\r\n");
+            TRACE_WARNING("Invalid operation mode!\r\n");
             break;
          }
 
@@ -237,16 +254,9 @@ void ksz8061EventHandler(NetInterface *interface)
 void ksz8061WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = KSZ8061_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -259,16 +269,9 @@ void ksz8061WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t ksz8061ReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = KSZ8061_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -285,7 +288,8 @@ void ksz8061DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, ksz8061ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         ksz8061ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

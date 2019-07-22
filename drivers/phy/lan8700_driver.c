@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,20 +64,33 @@ error_t lan8700Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing LAN8700...\r\n");
 
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = LAN8700_PHY_ADDR;
+   }
+
    //Initialize external interrupt line driver
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->init();
+   }
 
    //Reset PHY transceiver (soft reset)
-   lan8700WritePhyReg(interface, LAN8700_PHY_REG_BMCR, BMCR_RESET);
+   lan8700WritePhyReg(interface, LAN8700_BMCR, LAN8700_BMCR_RESET);
+
    //Wait for the reset to complete
-   while(lan8700ReadPhyReg(interface, LAN8700_PHY_REG_BMCR) & BMCR_RESET);
+   while(lan8700ReadPhyReg(interface, LAN8700_BMCR) & LAN8700_BMCR_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    lan8700DumpPhyReg(interface);
 
    //The PHY will generate interrupts when link status changes are detected
-   lan8700WritePhyReg(interface, LAN8700_PHY_REG_IMR, IMR_AN_COMPLETE | IMR_LINK_DOWN);
+   lan8700WritePhyReg(interface, LAN8700_IMR, LAN8700_IMR_AN_COMPLETE |
+      LAN8700_IMR_LINK_DOWN);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -103,9 +116,9 @@ void lan8700Tick(NetInterface *interface)
    if(interface->extIntDriver == NULL)
    {
       //Read basic status register
-      value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_BMSR);
+      value = lan8700ReadPhyReg(interface, LAN8700_BMSR);
       //Retrieve current link state
-      linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
+      linkState = (value & LAN8700_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
       //Link up event?
       if(linkState && !interface->linkState)
@@ -136,7 +149,9 @@ void lan8700EnableIrq(NetInterface *interface)
 {
    //Enable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -149,7 +164,9 @@ void lan8700DisableIrq(NetInterface *interface)
 {
    //Disable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->disableIrq();
+   }
 }
 
 
@@ -163,49 +180,49 @@ void lan8700EventHandler(NetInterface *interface)
    uint16_t value;
 
    //Read status register to acknowledge the interrupt
-   value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_ISR);
+   value = lan8700ReadPhyReg(interface, LAN8700_ISR);
 
    //Link status change?
-   if(value & (IMR_AN_COMPLETE | IMR_LINK_DOWN))
+   if(value & (LAN8700_IMR_AN_COMPLETE | LAN8700_IMR_LINK_DOWN))
    {
-      //Any link failure condition is latched in the BMSR register... Reading
+      //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
-      value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_BMSR);
-      value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_BMSR);
+      value = lan8700ReadPhyReg(interface, LAN8700_BMSR);
+      value = lan8700ReadPhyReg(interface, LAN8700_BMSR);
 
       //Link is up?
-      if(value & BMSR_LINK_STATUS)
+      if(value & LAN8700_BMSR_LINK_STATUS)
       {
          //Read PHY special control/status register
-         value = lan8700ReadPhyReg(interface, LAN8700_PHY_REG_PSCSR);
+         value = lan8700ReadPhyReg(interface, LAN8700_PSCSR);
 
          //Check current operation mode
-         switch(value & PSCSR_HCDSPEED_MASK)
+         switch(value & LAN8700_PSCSR_HCDSPEED)
          {
-         //10BASE-T
-         case PSCSR_HCDSPEED_10BT:
+         //10BASE-T half-duplex
+         case LAN8700_PSCSR_HCDSPEED_10BT_HD:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
          //10BASE-T full-duplex
-         case PSCSR_HCDSPEED_10BT_FD:
+         case LAN8700_PSCSR_HCDSPEED_10BT_FD:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
-         //100BASE-TX
-         case PSCSR_HCDSPEED_100BTX:
+         //100BASE-TX half-duplex
+         case LAN8700_PSCSR_HCDSPEED_100BTX_HD:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
          //100BASE-TX full-duplex
-         case PSCSR_HCDSPEED_100BTX_FD:
+         case LAN8700_PSCSR_HCDSPEED_100BTX_FD:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
          //Unknown operation mode
          default:
             //Debug message
-            TRACE_WARNING("Invalid Duplex mode\r\n");
+            TRACE_WARNING("Invalid operation mode!\r\n");
             break;
          }
 
@@ -237,16 +254,9 @@ void lan8700EventHandler(NetInterface *interface)
 void lan8700WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = LAN8700_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -259,16 +269,9 @@ void lan8700WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t lan8700ReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = LAN8700_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -285,7 +288,8 @@ void lan8700DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, lan8700ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         lan8700ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

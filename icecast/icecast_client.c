@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -296,6 +296,9 @@ void icecastClientTask(void *param)
    size_t length;
    size_t received;
    IcecastClientContext *context;
+
+   //Task prologue
+   osEnterTask();
 
    //Retrieve the Icecast client context
    context = (IcecastClientContext *) param;

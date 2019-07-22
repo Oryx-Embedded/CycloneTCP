@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _SAMV71_ETH_DRIVER_H
@@ -92,6 +92,21 @@
    #define SAMV71_ETH_IRQ_SUB_PRIORITY 0
 #elif (SAMV71_ETH_IRQ_SUB_PRIORITY < 0)
    #error SAMV71_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#endif
+
+//Backward compatibility
+#ifndef PIO_PD9A_GMDIO
+   #define PIO_PD9A_GMDIO PIO_PD9A_GMAC_GMDIO
+   #define PIO_PD8A_GMDC  PIO_PD8A_GMAC_GMDC
+   #define PIO_PD7A_GRXER PIO_PD7A_GMAC_GRXER
+   #define PIO_PD6A_GRX1  PIO_PD6A_GMAC_GRX1
+   #define PIO_PD5A_GRX0  PIO_PD5A_GMAC_GRX0
+   #define PIO_PD4A_GRXDV PIO_PD4A_GMAC_GRXDV
+   #define PIO_PD3A_GTX1  PIO_PD3A_GMAC_GTX1
+   #define PIO_PD2A_GTX0  PIO_PD2A_GMAC_GTX0
+   #define PIO_PD1A_GTXEN PIO_PD1A_GMAC_GTXEN
+   #define PIO_PD0A_GTXCK PIO_PD0A_GMAC_GTXCK
+   #define GMAC_SA        GmacSa
 #endif
 
 //RMII signals
@@ -184,8 +199,11 @@ error_t samv71EthReceivePacket(NetInterface *interface);
 error_t samv71EthUpdateMacAddrFilter(NetInterface *interface);
 error_t samv71EthUpdateMacConfig(NetInterface *interface);
 
-void samv71EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t samv71EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void samv71EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t samv71EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

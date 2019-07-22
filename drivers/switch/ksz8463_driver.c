@@ -1,6 +1,6 @@
 /**
  * @file ksz8463_driver.c
- * @brief KSZ8463 Ethernet switch
+ * @brief KSZ8463 3-port Ethernet switch
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -86,41 +86,50 @@ error_t ksz8463Init(NetInterface *interface)
       //Initialize SPI
       interface->spiDriver->init();
 
+      //Wait for the serial interface to be ready
+      do
+      {
+         //Read CIDER register
+         temp = ksz8463ReadSwitchReg(interface, KSZ8463_CIDER);
+
+         //The returned data is invalid until the serial interface is ready
+      } while((temp & KSZ8463_CIDER_FAMILY_ID) != KSZ8463_CIDER_FAMILY_ID_DEFAULT);
+
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
       //Tail tagging mode?
       if(interface->port != 0)
       {
          //Enable tail tag feature
-         temp = ksz8463ReadSwitchReg(interface, KSZ8463_SW_REG_GLOBAL_CTRL8);
-         temp |= GLOBAL_CTRL8_TAIL_TAG_EN;
-         ksz8463WriteSwitchReg(interface, KSZ8463_SW_REG_GLOBAL_CTRL8, temp);
+         temp = ksz8463ReadSwitchReg(interface, KSZ8463_SGCR8);
+         temp |= KSZ8463_SGCR8_TAIL_TAG_EN;
+         ksz8463WriteSwitchReg(interface, KSZ8463_SGCR8, temp);
 
          //Loop through ports
          for(port = KSZ8463_PORT1; port <= KSZ8463_PORT2; port++)
          {
             //Disable packet transmission and switch address learning
-            temp = ksz8463ReadSwitchReg(interface, KSZ8463_SW_REG_PORT_CTRL2(port));
-            temp &= ~PORT_CTRL2_TRANSMIT_EN;
-            temp |= PORT_CTRL2_RECEIVE_EN | PORT_CTRL2_LEARNING_DIS;
-            ksz8463WriteSwitchReg(interface, KSZ8463_SW_REG_PORT_CTRL2(port), temp);
+            temp = ksz8463ReadSwitchReg(interface, KSZ8463_PnCR2(port));
+            temp &= ~KSZ8463_PnCR2_TRANSMIT_EN;
+            temp |= KSZ8463_PnCR2_RECEIVE_EN | KSZ8463_PnCR2_LEARNING_DIS;
+            ksz8463WriteSwitchReg(interface, KSZ8463_PnCR2(port), temp);
          }
       }
       else
 #endif
       {
          //Disable tail tag feature
-         temp = ksz8463ReadSwitchReg(interface, KSZ8463_SW_REG_GLOBAL_CTRL8);
-         temp &= ~GLOBAL_CTRL8_TAIL_TAG_EN;
-         ksz8463WriteSwitchReg(interface, KSZ8463_SW_REG_GLOBAL_CTRL8, temp);
+         temp = ksz8463ReadSwitchReg(interface, KSZ8463_SGCR8);
+         temp &= ~KSZ8463_SGCR8_TAIL_TAG_EN;
+         ksz8463WriteSwitchReg(interface, KSZ8463_SGCR8, temp);
 
          //Loop through ports
          for(port = KSZ8463_PORT1; port <= KSZ8463_PORT2; port++)
          {
             //Enable transmission, reception and switch address learning
-            temp = ksz8463ReadSwitchReg(interface, KSZ8463_SW_REG_PORT_CTRL2(port));
-            temp |= PORT_CTRL2_TRANSMIT_EN | PORT_CTRL2_RECEIVE_EN;
-            temp &= ~PORT_CTRL2_LEARNING_DIS;
-            ksz8463WriteSwitchReg(interface, KSZ8463_SW_REG_PORT_CTRL2(port), temp);
+            temp = ksz8463ReadSwitchReg(interface, KSZ8463_PnCR2(port));
+            temp |= KSZ8463_PnCR2_TRANSMIT_EN | KSZ8463_PnCR2_RECEIVE_EN;
+            temp &= ~KSZ8463_PnCR2_LEARNING_DIS;
+            ksz8463WriteSwitchReg(interface, KSZ8463_PnCR2(port), temp);
          }
       }
 
@@ -171,19 +180,18 @@ bool_t ksz8463GetLinkState(NetInterface *interface, uint8_t port)
       if(interface->spiDriver != NULL)
       {
          //Read port status register
-         status = ksz8463ReadSwitchReg(interface,
-            KSZ8463_SW_REG_PORT_STAT(port));
+         status = ksz8463ReadSwitchReg(interface, KSZ8463_PnSR(port));
 
          //Retrieve current link state
-         linkState = (status & PORT_STAT_LINK_STATUS) ? TRUE : FALSE;
+         linkState = (status & KSZ8463_PnSR_LINK_STATUS) ? TRUE : FALSE;
       }
       else
       {
          //Read status register
-         status = ksz8463ReadPhyReg(interface, port, KSZ8463_PHY_REG_BMSR);
+         status = ksz8463ReadPhyReg(interface, port, KSZ8463_BMSR);
 
          //Retrieve current link state
-         linkState = (status & BMSR_LINK_STATUS) ? TRUE : FALSE;
+         linkState = (status & KSZ8463_BMSR_LINK_STATUS) ? TRUE : FALSE;
       }
 
       //Release exclusive access
@@ -238,11 +246,10 @@ void ksz8463Tick(NetInterface *interface)
                if(port >= KSZ8463_PORT1 && port <= KSZ8463_PORT2)
                {
                   //Read port status register
-                  status = ksz8463ReadSwitchReg(interface,
-                     KSZ8463_SW_REG_PORT_STAT(port));
+                  status = ksz8463ReadSwitchReg(interface, KSZ8463_PnSR(port));
 
                   //Retrieve current link state
-                  linkState = (status & PORT_STAT_LINK_STATUS) ? TRUE : FALSE;
+                  linkState = (status & KSZ8463_PnSR_LINK_STATUS) ? TRUE : FALSE;
 
                   //Link up or link down event?
                   if(linkState != virtualInterface->linkState)
@@ -270,20 +277,19 @@ void ksz8463Tick(NetInterface *interface)
          if(interface->spiDriver != NULL)
          {
             //Read port status register
-            status = ksz8463ReadSwitchReg(interface,
-               KSZ8463_SW_REG_PORT_STAT(port));
+            status = ksz8463ReadSwitchReg(interface, KSZ8463_PnSR(port));
 
             //Retrieve current link state
-            if(status & PORT_STAT_LINK_STATUS)
+            if(status & KSZ8463_PnSR_LINK_STATUS)
                linkState = TRUE;
          }
          else
          {
             //Read status register
-            status = ksz8463ReadPhyReg(interface, port, KSZ8463_PHY_REG_BMSR);
+            status = ksz8463ReadPhyReg(interface, port, KSZ8463_BMSR);
 
             //Retrieve current link state
-            if(status & BMSR_LINK_STATUS)
+            if(status & KSZ8463_BMSR_LINK_STATUS)
                linkState = TRUE;
          }
       }
@@ -359,11 +365,10 @@ void ksz8463EventHandler(NetInterface *interface)
                if(port >= KSZ8463_PORT1 && port <= KSZ8463_PORT2)
                {
                   //Read port status register
-                  status = ksz8463ReadSwitchReg(interface,
-                     KSZ8463_SW_REG_PORT_STAT(port));
+                  status = ksz8463ReadSwitchReg(interface, KSZ8463_PnSR(port));
 
                   //Retrieve current link state
-                  linkState = (status & PORT_STAT_LINK_STATUS) ? TRUE : FALSE;
+                  linkState = (status & KSZ8463_PnSR_LINK_STATUS) ? TRUE : FALSE;
 
                   //Link up event?
                   if(linkState && !virtualInterface->linkState)
@@ -374,13 +379,13 @@ void ksz8463EventHandler(NetInterface *interface)
                      interface->nicDriver->updateMacConfig(interface);
 
                      //Check current speed
-                     if(status & PORT_STAT_OP_SPEED)
+                     if(status & KSZ8463_PnSR_OP_SPEED)
                         virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
                      else
                         virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
 
                      //Check duplex mode
-                     if(status & PORT_STAT_OP_MODE)
+                     if(status & KSZ8463_PnSR_OP_DUPLEX)
                         virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
                      else
                         virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
@@ -418,20 +423,19 @@ void ksz8463EventHandler(NetInterface *interface)
          if(interface->spiDriver != NULL)
          {
             //Read port status register
-            status = ksz8463ReadSwitchReg(interface,
-               KSZ8463_SW_REG_PORT_STAT(port));
+            status = ksz8463ReadSwitchReg(interface, KSZ8463_PnSR(port));
 
             //Retrieve current link state
-            if(status & PORT_STAT_LINK_STATUS)
+            if(status & KSZ8463_PnSR_LINK_STATUS)
                linkState = TRUE;
          }
          else
          {
             //Read status register
-            status = ksz8463ReadPhyReg(interface, port, KSZ8463_PHY_REG_BMSR);
+            status = ksz8463ReadPhyReg(interface, port, KSZ8463_BMSR);
 
             //Retrieve current link state
-            if(status & BMSR_LINK_STATUS)
+            if(status & KSZ8463_BMSR_LINK_STATUS)
                linkState = TRUE;
          }
       }
@@ -570,7 +574,7 @@ void ksz8463WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(port, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
 }
 
 
@@ -586,7 +590,7 @@ uint16_t ksz8463ReadPhyReg(NetInterface *interface, uint8_t port,
    uint8_t address)
 {
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(port, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ, port, address);
 }
 
 
@@ -616,7 +620,7 @@ void ksz8463DumpPhyReg(NetInterface *interface, uint8_t port)
 /**
  * @brief Write switch register
  * @param[in] interface Underlying network interface
- * @param[in] address PHY register address
+ * @param[in] address Switch register address
  * @param[in] data Register value
  **/
 
@@ -666,7 +670,7 @@ void ksz8463WriteSwitchReg(NetInterface *interface, uint16_t address,
 /**
  * @brief Read switch register
  * @param[in] interface Underlying network interface
- * @param[in] address PHY register address
+ * @param[in] address Switch register address
  * @return Register value
  **/
 
@@ -730,7 +734,7 @@ void ksz8463DumpSwitchReg(NetInterface *interface)
    for(i = 0; i < 256; i += 2)
    {
       //Display current switch register
-      TRACE_DEBUG("0x%04" PRIX16 " (%03" PRIu16 ") : 0x%04" PRIX16 "\r\n",
+      TRACE_DEBUG("0x%02" PRIX16 " (%02" PRIu16 ") : 0x%04" PRIX16 "\r\n",
          i, i, ksz8463ReadSwitchReg(interface, i));
    }
 

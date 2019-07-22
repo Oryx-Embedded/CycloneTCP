@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -129,6 +129,9 @@ error_t efm32gg11EthInit(NetInterface *interface)
    CMU_ClockEnable(cmuClock_HFPER, true);
    //Enable Ethernet peripheral clock
    CMU_ClockEnable(cmuClock_ETH, true);
+
+   //Disable transmit and receive circuits
+   ETH->NETWORKCTRL = 0;
 
    //GPIO configuration
    efm32gg11EthInitGpio(interface);
@@ -408,7 +411,7 @@ void ETH_IRQHandler(void)
    volatile uint32_t tsr;
    volatile uint32_t rsr;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -450,7 +453,7 @@ void ETH_IRQHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -741,39 +744,39 @@ error_t efm32gg11EthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the first unicast address filter
    if(j >= 1)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       ETH->SPECADDR2BOTTOM = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
       ETH->SPECADDR2TOP = unicastMacAddr[0].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       ETH->SPECADDR2BOTTOM = 0;
    }
 
    //Configure the second unicast address filter
    if(j >= 2)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       ETH->SPECADDR3BOTTOM = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
       ETH->SPECADDR3TOP = unicastMacAddr[1].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       ETH->SPECADDR3BOTTOM = 0;
    }
 
    //Configure the third unicast address filter
    if(j >= 3)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       ETH->SPECADDR4BOTTOM = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
       ETH->SPECADDR4TOP = unicastMacAddr[2].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       ETH->SPECADDR4BOTTOM = 0;
    }
 
@@ -825,60 +828,89 @@ error_t efm32gg11EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void efm32gg11EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void efm32gg11EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = _ETH_PHYMNGMNT_WRITE1_MASK;
-   value |= (1 << _ETH_PHYMNGMNT_OPERATION_SHIFT) & _ETH_PHYMNGMNT_OPERATION_MASK;
-   value |= (2 << _ETH_PHYMNGMNT_WRITE10_SHIFT) & _ETH_PHYMNGMNT_WRITE10_MASK;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = _ETH_PHYMNGMNT_WRITE1_MASK;
+      temp |= (1 << _ETH_PHYMNGMNT_OPERATION_SHIFT) & _ETH_PHYMNGMNT_OPERATION_MASK;
+      temp |= (2 << _ETH_PHYMNGMNT_WRITE10_SHIFT) & _ETH_PHYMNGMNT_WRITE10_MASK;
 
-   //PHY address
-   value |= (phyAddr << _ETH_PHYMNGMNT_PHYADDR_SHIFT) & _ETH_PHYMNGMNT_PHYADDR_MASK;
-   //Register address
-   value |= (regAddr << _ETH_PHYMNGMNT_REGADDR_SHIFT) & _ETH_PHYMNGMNT_REGADDR_MASK;
-   //Register value
-   value |= data & _ETH_PHYMNGMNT_PHYRWDATA_MASK;
+      //PHY address
+      temp |= (phyAddr << _ETH_PHYMNGMNT_PHYADDR_SHIFT) & _ETH_PHYMNGMNT_PHYADDR_MASK;
+      //Register address
+      temp |= (regAddr << _ETH_PHYMNGMNT_REGADDR_SHIFT) & _ETH_PHYMNGMNT_REGADDR_MASK;
+      //Register value
+      temp |= data & _ETH_PHYMNGMNT_PHYRWDATA_MASK;
 
-   //Start a write operation
-   ETH->PHYMNGMNT = value;
-   //Wait for the write to complete
-   while(!(ETH->NETWORKSTATUS & _ETH_NETWORKSTATUS_MANDONE_MASK));
+      //Start a write operation
+      ETH->PHYMNGMNT = temp;
+      //Wait for the write to complete
+      while(!(ETH->NETWORKSTATUS & _ETH_NETWORKSTATUS_MANDONE_MASK))
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t efm32gg11EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t efm32gg11EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = _ETH_PHYMNGMNT_WRITE1_MASK;
-   value |= (2 << _ETH_PHYMNGMNT_OPERATION_SHIFT) & _ETH_PHYMNGMNT_OPERATION_MASK;
-   value |= (2 << _ETH_PHYMNGMNT_WRITE10_SHIFT) & _ETH_PHYMNGMNT_WRITE10_MASK;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = _ETH_PHYMNGMNT_WRITE1_MASK;
+      temp |= (2 << _ETH_PHYMNGMNT_OPERATION_SHIFT) & _ETH_PHYMNGMNT_OPERATION_MASK;
+      temp |= (2 << _ETH_PHYMNGMNT_WRITE10_SHIFT) & _ETH_PHYMNGMNT_WRITE10_MASK;
 
-   //PHY address
-   value |= (phyAddr << _ETH_PHYMNGMNT_PHYADDR_SHIFT) & _ETH_PHYMNGMNT_PHYADDR_MASK;
-   //Register address
-   value |= (regAddr << _ETH_PHYMNGMNT_REGADDR_SHIFT) & _ETH_PHYMNGMNT_REGADDR_MASK;
+      //PHY address
+      temp |= (phyAddr << _ETH_PHYMNGMNT_PHYADDR_SHIFT) & _ETH_PHYMNGMNT_PHYADDR_MASK;
+      //Register address
+      temp |= (regAddr << _ETH_PHYMNGMNT_REGADDR_SHIFT) & _ETH_PHYMNGMNT_REGADDR_MASK;
 
-   //Start a read operation
-   ETH->PHYMNGMNT = value;
-   //Wait for the read to complete
-   while(!(ETH->NETWORKSTATUS & _ETH_NETWORKSTATUS_MANDONE_MASK));
+      //Start a read operation
+      ETH->PHYMNGMNT = temp;
+      //Wait for the read to complete
+      while(!(ETH->NETWORKSTATUS & _ETH_NETWORKSTATUS_MANDONE_MASK))
+      {
+      }
 
-   //Return PHY register contents
-   return ETH->PHYMNGMNT & _ETH_PHYMNGMNT_PHYRWDATA_MASK;
+      //Get register value
+      data = ETH->PHYMNGMNT & _ETH_PHYMNGMNT_PHYRWDATA_MASK;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }

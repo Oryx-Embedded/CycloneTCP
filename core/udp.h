@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _UDP_H
@@ -122,11 +122,12 @@ error_t udpProcessDatagram(NetInterface *interface,
    IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset);
 
 error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
-   uint16_t destPort, const void *data, size_t length, size_t *written);
+   uint16_t destPort, const void *data, size_t length, size_t *written,
+   uint_t flags);
 
 error_t udpSendDatagramEx(NetInterface *interface, const IpAddr *srcIpAddr,
    uint16_t srcPort, const IpAddr *destIpAddr, uint16_t destPort,
-   NetBuffer *buffer, size_t offset, uint8_t ttl);
+   NetBuffer *buffer, size_t offset, uint_t flags);
 
 error_t udpReceiveDatagram(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
    IpAddr *destIpAddr, void *data, size_t size, size_t *received, uint_t flags);

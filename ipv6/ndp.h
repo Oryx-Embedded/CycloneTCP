@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _NDP_H
@@ -222,6 +222,7 @@ typedef enum
    NDP_OPT_RECURSIVE_DNS_SERVER   = 25,
    NDP_OPT_DNS_SEARCH_LIST        = 31,
    NDP_OPT_6LOWPAN_CONTEXT        = 34,
+   NDP_OPT_CAPTIVE_PORTAL         = 37,
    NDP_OPT_ANY                    = 255
 } NdpOptionType;
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -51,8 +51,8 @@
  * @param[out] ipAddr IP address corresponding to the specified host name
  **/
 
-error_t dnsResolve(NetInterface *interface,
-   const char_t *name, HostType type, IpAddr *ipAddr)
+error_t dnsResolve(NetInterface *interface, const char_t *name,
+   HostType type, IpAddr *ipAddr)
 {
    error_t error;
    DnsCacheEntry *entry;
@@ -102,6 +102,7 @@ error_t dnsResolve(NetInterface *interface,
       entry->interface = interface;
       //Select primary DNS server
       entry->dnsServerNum = 0;
+
       //Get an ephemeral port number
       entry->port = udpGetDynamicPort();
 
@@ -110,7 +111,8 @@ error_t dnsResolve(NetInterface *interface,
       entry->id = (uint16_t) netGetRand();
 
       //Callback function to be called when a DNS response is received
-      error = udpAttachRxCallback(interface, entry->port, dnsProcessResponse, NULL);
+      error = udpAttachRxCallback(interface, entry->port, dnsProcessResponse,
+         NULL);
 
       //Check status code
       if(!error)
@@ -391,6 +393,7 @@ void dnsProcessResponse(NetInterface *interface, const IpPseudoHeader *pseudoHea
    //Check message type
    if(!message->qr)
       return;
+
    //The DNS message shall contain one question
    if(ntohs(message->qdcount) != 1)
       return;

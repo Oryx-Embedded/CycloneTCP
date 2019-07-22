@@ -1,6 +1,6 @@
 /**
  * @file ksz8873_driver.h
- * @brief KSZ8873 Ethernet switch
+ * @brief KSZ8873 3-port Ethernet switch
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _KSZ8873_DRIVER_H
@@ -35,144 +35,177 @@
 #include "core/nic.h"
 
 //KSZ8873 ports
-#define KSZ8873_PORT1                       1
-#define KSZ8873_PORT2                       2
+#define KSZ8873_PORT1 1
+#define KSZ8873_PORT2 2
 
 //SPI command byte
-#define KSZ8873_SPI_CMD_WRITE               0x02
-#define KSZ8873_SPI_CMD_READ                0x03
+#define KSZ8873_SPI_CMD_WRITE 0x02
+#define KSZ8873_SPI_CMD_READ  0x03
 
 //KSZ8873 PHY registers
-#define KSZ8873_PHY_REG_BMCR                0x00
-#define KSZ8873_PHY_REG_BMSR                0x01
-#define KSZ8873_PHY_REG_PHYIDR1             0x02
-#define KSZ8873_PHY_REG_PHYIDR2             0x03
-#define KSZ8873_PHY_REG_ANAR                0x04
-#define KSZ8873_PHY_REG_ANLPAR              0x05
-#define KSZ8873_PHY_REG_LINKMDCS            0x1D
-#define KSZ8873_PHY_REG_PHYSCS              0x1F
+#define KSZ8873_BMCR                                 0x00
+#define KSZ8873_BMSR                                 0x01
+#define KSZ8873_PHYID1                               0x02
+#define KSZ8873_PHYID2                               0x03
+#define KSZ8873_ANAR                                 0x04
+#define KSZ8873_ANLPAR                               0x05
+#define KSZ8873_LINKMD                               0x1D
+#define KSZ8873_PHYSCS                               0x1F
 
-//BMCR register
-#define BMCR_SOFT_RESET                     (1 << 15)
-#define BMCR_LOOPBACK                       (1 << 14)
-#define BMCR_FORCE_100                      (1 << 13)
-#define BMCR_AN_EN                          (1 << 12)
-#define BMCR_POWER_DOWN                     (1 << 11)
-#define BMCR_ISOLATE                        (1 << 10)
-#define BMCR_RESTART_AN                     (1 << 9)
-#define BMCR_FORCE_FULL_DUPLEX              (1 << 8)
-#define BMCR_COL_TEST                       (1 << 7)
-#define BMCR_HP_MDIX                        (1 << 5)
-#define BMCR_FORCE_MDI                      (1 << 4)
-#define BMCR_DIS_AUTO_MDIX                  (1 << 3)
-#define BMCR_DIS_FAR_END_FAULT              (1 << 2)
-#define BMCR_DIS_TRANSMIT                   (1 << 1)
-#define BMCR_DIS_LED                        (1 << 0)
+//KSZ8873 Switch registers
+#define KSZ8873_CHIP_ID0                             0x00
+#define KSZ8873_CHIP_ID1                             0x01
+#define KSZ8873_GLOBAL_CTRL0                         0x02
+#define KSZ8873_GLOBAL_CTRL1                         0x03
+#define KSZ8873_PORT1_CTRL0                          0x10
+#define KSZ8873_PORT1_CTRL1                          0x11
+#define KSZ8873_PORT1_CTRL2                          0x12
+#define KSZ8873_PORT1_STAT0                          0x1E
+#define KSZ8873_PORT1_STAT1                          0x1F
+#define KSZ8873_PORT2_CTRL0                          0x20
+#define KSZ8873_PORT2_CTRL1                          0x21
+#define KSZ8873_PORT2_CTRL2                          0x22
+#define KSZ8873_PORT2_STAT0                          0x2E
+#define KSZ8873_PORT2_STAT1                          0x2F
+#define KSZ8873_PORT3_CTRL0                          0x30
+#define KSZ8873_PORT3_CTRL1                          0x31
+#define KSZ8873_PORT3_CTRL2                          0x32
+#define KSZ8873_PORT3_STAT0                          0x3E
+#define KSZ8873_PORT3_STAT1                          0x3F
 
-//BMSR register
-#define BMSR_100BT4                         (1 << 15)
-#define BMSR_100BTX_FD                      (1 << 14)
-#define BMSR_100BTX                         (1 << 13)
-#define BMSR_10BT_FD                        (1 << 12)
-#define BMSR_10BT                           (1 << 11)
-#define BMSR_NO_PREAMBLE                    (1 << 6)
-#define BMSR_AN_COMPLETE                    (1 << 5)
-#define BMSR_FAR_END_FAULT                  (1 << 4)
-#define BMSR_AN_ABLE                        (1 << 3)
-#define BMSR_LINK_STATUS                    (1 << 2)
-#define BMSR_JABBER_TEST                    (1 << 1)
-#define BMSR_EXTENDED_CAP                   (1 << 0)
+//KSZ8873 Switch register access macros
+#define KSZ8873_PORTn_CTRL0(port)                    (0x00 + ((port) * 0x10))
+#define KSZ8873_PORTn_CTRL1(port)                    (0x01 + ((port) * 0x10))
+#define KSZ8873_PORTn_CTRL2(port)                    (0x02 + ((port) * 0x10))
+#define KSZ8873_PORTn_STAT0(port)                    (0x0E + ((port) * 0x10))
+#define KSZ8873_PORTn_STAT1(port)                    (0x0F + ((port) * 0x10))
 
-//ANAR register
-#define ANAR_NEXT_PAGE                      (1 << 15)
-#define ANAR_REMOTE_FAULT                   (1 << 13)
-#define ANAR_PAUSE                          (1 << 10)
-#define ANAR_100BTX_FD                      (1 << 8)
-#define ANAR_100BTX                         (1 << 7)
-#define ANAR_10BT_FD                        (1 << 6)
-#define ANAR_10BT                           (1 << 5)
-#define ANAR_SELECTOR4                      (1 << 4)
-#define ANAR_SELECTOR3                      (1 << 3)
-#define ANAR_SELECTOR2                      (1 << 2)
-#define ANAR_SELECTOR1                      (1 << 1)
-#define ANAR_SELECTOR0                      (1 << 0)
+//MII Basic Control register
+#define KSZ8873_BMCR_RESET                           0x8000
+#define KSZ8873_BMCR_LOOPBACK                        0x4000
+#define KSZ8873_BMCR_FORCE_100                       0x2000
+#define KSZ8873_BMCR_AN_EN                           0x1000
+#define KSZ8873_BMCR_POWER_DOWN                      0x0800
+#define KSZ8873_BMCR_ISOLATE                         0x0400
+#define KSZ8873_BMCR_RESTART_AN                      0x0200
+#define KSZ8873_BMCR_FORCE_FULL_DUPLEX               0x0100
+#define KSZ8873_BMCR_COL_TEST                        0x0080
+#define KSZ8873_BMCR_HP_MDIX                         0x0020
+#define KSZ8873_BMCR_FORCE_MDI                       0x0010
+#define KSZ8873_BMCR_AUTO_MDIX_DIS                   0x0008
+#define KSZ8873_BMCR_FAR_END_FAULT_DIS               0x0004
+#define KSZ8873_BMCR_TRANSMIT_DIS                    0x0002
+#define KSZ8873_BMCR_LED_DIS                         0x0001
 
-//ANLPAR register
-#define ANLPAR_NEXT_PAGE                    (1 << 15)
-#define ANLPAR_LP_ACK                       (1 << 14)
-#define ANLPAR_REMOTE_FAULT                 (1 << 13)
-#define ANLPAR_PAUSE                        (1 << 10)
-#define ANLPAR_100BTX_FD                    (1 << 8)
-#define ANLPAR_100BTX                       (1 << 7)
-#define ANLPAR_10BT_FD                      (1 << 6)
-#define ANLPAR_10BT                         (1 << 5)
+//MII Basic Status register
+#define KSZ8873_BMSR_100BT4                          0x8000
+#define KSZ8873_BMSR_100BTX_FD                       0x4000
+#define KSZ8873_BMSR_100BTX_HD                       0x2000
+#define KSZ8873_BMSR_10BT_FD                         0x1000
+#define KSZ8873_BMSR_10BT_HD                         0x0800
+#define KSZ8873_BMSR_PREAMBLE_SUPPR                  0x0040
+#define KSZ8873_BMSR_AN_COMPLETE                     0x0020
+#define KSZ8873_BMSR_FAR_END_FAULT                   0x0010
+#define KSZ8873_BMSR_AN_CAPABLE                      0x0008
+#define KSZ8873_BMSR_LINK_STATUS                     0x0004
+#define KSZ8873_BMSR_JABBER_TEST                     0x0002
+#define KSZ8873_BMSR_EXTENDED_CAPABLE                0x0001
 
-//LINKMDCS register
-#define LINKMDCS_VCT_EN                     (1 << 15)
-#define LINKMDCS_VCT_RESULT1                (1 << 14)
-#define LINKMDCS_VCT_RESULT0                (1 << 13)
-#define LINKMDCS_VCT_10M_SHORT              (1 << 12)
-#define LINKMDCS_VCT_FAULT_COUNT8           (1 << 8)
-#define LINKMDCS_VCT_FAULT_COUNT7           (1 << 7)
-#define LINKMDCS_VCT_FAULT_COUNT6           (1 << 6)
-#define LINKMDCS_VCT_FAULT_COUNT5           (1 << 5)
-#define LINKMDCS_VCT_FAULT_COUNT4           (1 << 4)
-#define LINKMDCS_VCT_FAULT_COUNT3           (1 << 3)
-#define LINKMDCS_VCT_FAULT_COUNT2           (1 << 2)
-#define LINKMDCS_VCT_FAULT_COUNT1           (1 << 1)
-#define LINKMDCS_VCT_FAULT_COUNT0           (1 << 0)
+//PHYID High register
+#define KSZ8873_PHYID1_DEFAULT                       0x0022
 
-//PHYSCS register
-#define PHYSCS_POLRVS                       (1 << 5)
-#define PHYSCS_MDIX_STATUS                  (1 << 4)
-#define PHYSCS_FORCE_LINK                   (1 << 3)
-#define PHYSCS_PWRSAVE                      (1 << 2)
-#define PHYSCS_REMOTE_LOOPBACK              (1 << 1)
+//PHYID Low register
+#define KSZ8873_PHYID2_DEFAULT                       0x1430
 
-//KSZ8873 switch registers
-#define KSZ8873_SW_REG_GLOBAL_CTRL1         3
-#define KSZ8873_SW_REG_PORT_CTRL2(n)        (18 + (((n) - 1) * 16))
-#define KSZ8873_SW_REG_PORT_STAT0(n)        (30 + (((n) - 1) * 16))
-#define KSZ8873_SW_REG_PORT_STAT1(n)        (31 + (((n) - 1) * 16))
+//Auto-Negotiation Advertisement Ability register
+#define KSZ8873_ANAR_NEXT_PAGE                       0x8000
+#define KSZ8873_ANAR_REMOTE_FAULT                    0x2000
+#define KSZ8873_ANAR_PAUSE                           0x0400
+#define KSZ8873_ANAR_100BTX_FD                       0x0100
+#define KSZ8873_ANAR_100BTX_HD                       0x0080
+#define KSZ8873_ANAR_10BT_FD                         0x0040
+#define KSZ8873_ANAR_10BT_HD                         0x0020
+#define KSZ8873_ANAR_SELECTOR                        0x001F
+#define KSZ8873_ANAR_SELECTOR_DEFAULT                0x0001
 
-//Global control 1 register
-#define GLOBAL_CTRL1_PASS_ALL_FRAMES        (1 << 7)
-#define GLOBAL_CTRL1_TAIL_TAG_EN            (1 << 6)
-#define GLOBAL_CTRL1_TX_FLOW_CTRL_EN        (1 << 5)
-#define GLOBAL_CTRL1_RX_FLOW_CTRL_EN        (1 << 4)
-#define GLOBAL_CTRL1_FRAME_LEN_CHECK_EN     (1 << 3)
-#define GLOBAL_CTRL1_AGING_EN               (1 << 2)
-#define GLOBAL_CTRL1_FAST_AGE_EN            (1 << 1)
-#define GLOBAL_CTRL1_AGGRESSIVE_BACK_OFF_EN (1 << 0)
+//Auto-Negotiation Link Partner Ability register
+#define KSZ8873_ANLPAR_NEXT_PAGE                     0x8000
+#define KSZ8873_ANLPAR_LP_ACK                        0x4000
+#define KSZ8873_ANLPAR_REMOTE_FAULT                  0x2000
+#define KSZ8873_ANLPAR_PAUSE                         0x0400
+#define KSZ8873_ANLPAR_100BTX_FD                     0x0100
+#define KSZ8873_ANLPAR_100BTX_HD                     0x0080
+#define KSZ8873_ANLPAR_10BT_FD                       0x0040
+#define KSZ8873_ANLPAR_10BT_HD                       0x0020
 
-//Port control 2 register
-#define PORT_CTRL2_TX_QUEUE_SPLIT_EN        (1 << 7)
-#define PORT_CTRL2_INGRESS_VLAN_FILT        (1 << 6)
-#define PORT_CTRL2_DISCARD_NON_PVID_PACKETS (1 << 5)
-#define PORT_CTRL2_FORCE_FLOW_CTRL          (1 << 4)
-#define PORT_CTRL2_BACK_PRESSURE_EN         (1 << 3)
-#define PORT_CTRL2_TRANSMIT_EN              (1 << 2)
-#define PORT_CTRL2_RECEIVE_EN               (1 << 1)
-#define PORT_CTRL2_LEARNING_DIS             (1 << 0)
+//LinkMD Control/Status register
+#define KSZ8873_LINKMD_TEST_EN                       0x8000
+#define KSZ8873_LINKMD_RESULT                        0x6000
+#define KSZ8873_LINKMD_SHORT                         0x1000
+#define KSZ8873_LINKMD_FAULT_COUNT                   0x01FF
 
-//Port status 0 register
-#define PORT_STAT0_MDIX_STATUS              (1 << 7)
-#define PORT_STAT0_AN_DONE                  (1 << 6)
-#define PORT_STAT0_LINK_GOOD                (1 << 5)
-#define PORT_STAT0_LP_FLOW_CTRL_CAPABLE     (1 << 4)
-#define PORT_STAT0_100BT_FD_CAPABLE         (1 << 3)
-#define PORT_STAT0_100BT_HF_CAPABLE         (1 << 2)
-#define PORT_STAT0_10BT_FD_CAPABLE          (1 << 1)
-#define PORT_STAT0_10BT_HD_CAPABLE          (1 << 0)
+//PHY Special Control/Status register
+#define KSZ8873_PHYSCS_OP_MODE                       0x0700
+#define KSZ8873_PHYSCS_OP_MODE_AN                    0x0100
+#define KSZ8873_PHYSCS_OP_MODE_10BT_HD               0x0200
+#define KSZ8873_PHYSCS_OP_MODE_100BTX_HD             0x0300
+#define KSZ8873_PHYSCS_OP_MODE_10BT_FD               0x0500
+#define KSZ8873_PHYSCS_OP_MODE_100BTX_FD             0x0600
+#define KSZ8873_PHYSCS_OP_MODE_ISOLATE               0x0700
+#define KSZ8873_PHYSCS_POLRVS                        0x0020
+#define KSZ8873_PHYSCS_MDIX_STATUS                   0x0010
+#define KSZ8873_PHYSCS_FORCE_LINK                    0x0008
+#define KSZ8873_PHYSCS_PWRSAVE                       0x0004
+#define KSZ8873_PHYSCS_REMOTE_LOOPBACK               0x0002
 
-//Port status 1 register
-#define PORT_STAT1_HP_MDIX                  (1 << 7)
-#define PORT_STAT1_POLRVS                   (1 << 5)
-#define PORT_STAT1_TX_FLOW_CTRL_EN          (1 << 4)
-#define PORT_STAT1_RX_FLOW_CTRL_EN          (1 << 3)
-#define PORT_STAT1_OP_SPEED                 (1 << 2)
-#define PORT_STAT1_OP_MODE                  (1 << 1)
-#define PORT_STAT1_FAR_END_FAULT            (1 << 0)
+//Chip ID0 register
+#define KSZ8873_CHIP_ID0_FAMILY_ID                   0xFF
+#define KSZ8873_CHIP_ID0_FAMILY_ID_DEFAULT           0x88
+
+//Chip ID1 / Start Switch register
+#define KSZ8873_CHIP_ID1_CHIP_ID                     0xF0
+#define KSZ8873_CHIP_ID1_CHIP_ID_DEFAULT             0x30
+#define KSZ8873_CHIP_ID1_REVISION_ID                 0x0E
+#define KSZ8873_CHIP_ID1_START_SWITCH                0x01
+
+//Global Control 1 register
+#define KSZ8873_GLOBAL_CTRL1_PASS_ALL_FRAMES         0x80
+#define KSZ8873_GLOBAL_CTRL1_TAIL_TAG_EN             0x40
+#define KSZ8873_GLOBAL_CTRL1_TX_FLOW_CTRL_EN         0x20
+#define KSZ8873_GLOBAL_CTRL1_RX_FLOW_CTRL_EN         0x10
+#define KSZ8873_GLOBAL_CTRL1_FRAME_LEN_CHECK_EN      0x08
+#define KSZ8873_GLOBAL_CTRL1_AGING_EN                0x04
+#define KSZ8873_GLOBAL_CTRL1_FAST_AGE_EN             0x02
+#define KSZ8873_GLOBAL_CTRL1_AGGRESSIVE_BACK_OFF_EN  0x01
+
+//Port N Control 2 register
+#define KSZ8873_PORTn_CTRL2_TX_QUEUE_SPLIT_EN        0x80
+#define KSZ8873_PORTn_CTRL2_INGRESS_VLAN_FILT        0x40
+#define KSZ8873_PORTn_CTRL2_DISCARD_NON_PVID_PACKETS 0x20
+#define KSZ8873_PORTn_CTRL2_FORCE_FLOW_CTRL          0x10
+#define KSZ8873_PORTn_CTRL2_BACK_PRESSURE_EN         0x08
+#define KSZ8873_PORTn_CTRL2_TRANSMIT_EN              0x04
+#define KSZ8873_PORTn_CTRL2_RECEIVE_EN               0x02
+#define KSZ8873_PORTn_CTRL2_LEARNING_DIS             0x01
+
+//Port N Status 0 register
+#define KSZ8873_PORTn_STAT0_MDIX_STATUS              0x80
+#define KSZ8873_PORTn_STAT0_AN_DONE                  0x40
+#define KSZ8873_PORTn_STAT0_LINK_GOOD                0x20
+#define KSZ8873_PORTn_STAT0_LP_FLOW_CTRL_CAPABLE     0x10
+#define KSZ8873_PORTn_STAT0_LP_100BTX_FD_CAPABLE     0x08
+#define KSZ8873_PORTn_STAT0_LP_100BTX_HF_CAPABLE     0x04
+#define KSZ8873_PORTn_STAT0_LP_10BT_FD_CAPABLE       0x02
+#define KSZ8873_PORTn_STAT0_LP_10BT_HD_CAPABLE       0x01
+
+//Port N Status 1 register
+#define KSZ8873_PORTn_STAT1_HP_MDIX                  0x80
+#define KSZ8873_PORTn_STAT1_POLRVS                   0x20
+#define KSZ8873_PORTn_STAT1_TX_FLOW_CTRL_EN          0x10
+#define KSZ8873_PORTn_STAT1_RX_FLOW_CTRL_EN          0x08
+#define KSZ8873_PORTn_STAT1_OP_SPEED                 0x04
+#define KSZ8873_PORTn_STAT1_OP_DUPLEX                0x02
+#define KSZ8873_PORTn_STAT1_FAR_END_FAULT            0x01
 
 //Tail tag encoding
 #define KSZ8873_TAIL_TAG_ENCODE(port) ((port) & 0x03)

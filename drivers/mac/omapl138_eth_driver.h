@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _OMAPL138_ETH_DRIVER_H
@@ -336,8 +336,11 @@ error_t omapl138EthReceivePacket(NetInterface *interface);
 error_t omapl138EthUpdateMacAddrFilter(NetInterface *interface);
 error_t omapl138EthUpdateMacConfig(NetInterface *interface);
 
-void omapl138EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t omapl138EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void omapl138EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t omapl138EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

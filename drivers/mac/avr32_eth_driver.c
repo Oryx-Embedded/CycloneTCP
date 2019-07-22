@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -124,6 +124,9 @@ error_t avr32EthInit(NetInterface *interface)
 
    //Save underlying network interface
    nicDriverInterface = interface;
+
+   //Disable transmit and receive circuits
+   AVR32_MACB.ncr = 0;
 
    //GPIO configuration
    avr32EthInitGpio(interface);
@@ -311,13 +314,13 @@ void avr32EthDisableIrq(NetInterface *interface)
 
 __attribute__((naked)) void avr32EthIrqWrapper(void)
 {
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //Call Ethernet MAC interrupt handler
    avr32EthIrqHandler();
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -682,54 +685,83 @@ error_t avr32EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void avr32EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void avr32EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = MACB_MAN_SOF_01 | MACB_MAN_RW_01 | MACB_MAN_CODE_10;
-   //PHY address
-   value |= (phyAddr << AVR32_MACB_MAN_PHYA_OFFSET) & AVR32_MACB_MAN_PHYA_MASK;
-   //Register address
-   value |= (regAddr << AVR32_MACB_MAN_REGA_OFFSET) & AVR32_MACB_MAN_REGA_MASK;
-   //Register value
-   value |= data & AVR32_MACB_MAN_DATA_MASK;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = MACB_MAN_SOF_01 | MACB_MAN_RW_01 | MACB_MAN_CODE_10;
+      //PHY address
+      temp |= (phyAddr << AVR32_MACB_MAN_PHYA_OFFSET) & AVR32_MACB_MAN_PHYA_MASK;
+      //Register address
+      temp |= (regAddr << AVR32_MACB_MAN_REGA_OFFSET) & AVR32_MACB_MAN_REGA_MASK;
+      //Register value
+      temp |= data & AVR32_MACB_MAN_DATA_MASK;
 
-   //Start a write operation
-   AVR32_MACB.man = value;
-   //Wait for the write to complete
-   while(!(AVR32_MACB.nsr & AVR32_MACB_NSR_IDLE_MASK));
+      //Start a write operation
+      AVR32_MACB.man = temp;
+      //Wait for the write to complete
+      while(!(AVR32_MACB.nsr & AVR32_MACB_NSR_IDLE_MASK))
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t avr32EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t avr32EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = MACB_MAN_SOF_01 | MACB_MAN_RW_10 | MACB_MAN_CODE_10;
-   //PHY address
-   value |= (phyAddr << AVR32_MACB_MAN_PHYA_OFFSET) & AVR32_MACB_MAN_PHYA_MASK;
-   //Register address
-   value |= (regAddr << AVR32_MACB_MAN_REGA_OFFSET) & AVR32_MACB_MAN_REGA_MASK;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = MACB_MAN_SOF_01 | MACB_MAN_RW_10 | MACB_MAN_CODE_10;
+      //PHY address
+      temp |= (phyAddr << AVR32_MACB_MAN_PHYA_OFFSET) & AVR32_MACB_MAN_PHYA_MASK;
+      //Register address
+      temp |= (regAddr << AVR32_MACB_MAN_REGA_OFFSET) & AVR32_MACB_MAN_REGA_MASK;
 
-   //Start a read operation
-   AVR32_MACB.man = value;
-   //Wait for the read to complete
-   while(!(AVR32_MACB.nsr & AVR32_MACB_NSR_IDLE_MASK));
+      //Start a read operation
+      AVR32_MACB.man = temp;
+      //Wait for the read to complete
+      while(!(AVR32_MACB.nsr & AVR32_MACB_NSR_IDLE_MASK))
+      {
+      }
 
-   //Return PHY register contents
-   return AVR32_MACB.man & AVR32_MACB_MAN_DATA_MASK;
+      //Get register value
+      data = AVR32_MACB.man & AVR32_MACB_MAN_DATA_MASK;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }

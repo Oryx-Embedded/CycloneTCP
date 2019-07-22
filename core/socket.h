@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _SOCKET_H
@@ -102,6 +102,7 @@ typedef enum
 typedef enum
 {
    SOCKET_ETH_PROTO_ALL  = 0x0000,
+   SOCKET_ETH_PROTO_LLC  = 0x05DC,
    SOCKET_ETH_PROTO_IPV4 = 0x0800,
    SOCKET_ETH_PROTO_ARP  = 0x0806,
    SOCKET_ETH_PROTO_IPV6 = 0x86DD
@@ -349,10 +350,12 @@ error_t socketGetRemoteAddr(Socket *socket, IpAddr *remoteIpAddr, uint16_t *remo
 error_t socketShutdown(Socket *socket, uint_t how);
 void socketClose(Socket *socket);
 
-error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent, systime_t timeout);
-error_t socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask);
-error_t socketUnregisterEvents(Socket *socket);
-error_t socketGetEvents(Socket *socket, uint_t *eventFlags);
+error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
+   systime_t timeout);
+
+void socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask);
+void socketUnregisterEvents(Socket *socket);
+uint_t socketGetEvents(Socket *socket);
 
 error_t getHostByName(NetInterface *interface,
    const char_t *name, IpAddr *ipAddr, uint_t flags);

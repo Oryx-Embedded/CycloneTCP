@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -499,11 +499,12 @@ bool_t ndpIsFirstHopRouter(NetInterface *interface,
  * @param[in] destAddr Destination address
  * @param[in] unreachableNextHop Address of the unreachable next-hop (optional parameter)
  * @param[out] nextHop Next-hop address to be used
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
 error_t ndpSelectNextHop(NetInterface *interface, const Ipv6Addr *destAddr,
-   const Ipv6Addr *unreachableNextHop, Ipv6Addr *nextHop)
+   const Ipv6Addr *unreachableNextHop, Ipv6Addr *nextHop, uint_t flags)
 {
    error_t error;
 
@@ -518,21 +519,27 @@ error_t ndpSelectNextHop(NetInterface *interface, const Ipv6Addr *destAddr,
    }
    else
    {
-      //The sender performs a longest prefix match against the Prefix
-      //List to determine whether the packet's destination is on-link
-      //or off-link
+      //The sender performs a longest prefix match against the Prefix List to
+      //determine whether the packet's destination is on-link or off-link
       if(ipv6IsOnLink(interface, destAddr))
       {
-         //If the destination is on-link, the next-hop address is the
-         //same as the packet's destination address
+         //If the destination is on-link, the next-hop address is the same as
+         //the packet's destination address
+         *nextHop = *destAddr;
+         //Successful next-hop determination
+         error = NO_ERROR;
+      }
+      else if((flags & IP_FLAG_DONT_ROUTE) != 0)
+      {
+         //Do not send the packet via a router
          *nextHop = *destAddr;
          //Successful next-hop determination
          error = NO_ERROR;
       }
       else
       {
-         //If the destination is off-link, the sender selects a router
-         //from the Default Router List
+         //If the destination is off-link, the sender selects a router from
+         //the Default Router List
          error = ndpSelectDefaultRouter(interface, unreachableNextHop, nextHop);
       }
    }
@@ -565,7 +572,7 @@ void ndpUpdateNextHop(NetInterface *interface, const Ipv6Addr *unreachableNextHo
       {
          //Perform next-hop determination
          error = ndpSelectNextHop(interface, &entry->destAddr, &entry->nextHop,
-            &entry->nextHop);
+            &entry->nextHop, 0);
 
          //Next-hop determination failed?
          if(error)

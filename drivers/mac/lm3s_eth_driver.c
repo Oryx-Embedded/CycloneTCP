@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -131,7 +131,9 @@ error_t lm3sEthInit(NetInterface *interface)
    //Reset PHY transceiver
    lm3sEthWritePhyReg(PHY_MR0, PHY_MR0_RESET);
    //Wait for the reset to complete
-   while(lm3sEthReadPhyReg(PHY_MR0) & PHY_MR0_RESET);
+   while(lm3sEthReadPhyReg(PHY_MR0) & PHY_MR0_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    lm3sEthDumpPhyReg();
@@ -238,7 +240,7 @@ void ETH_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -285,7 +287,7 @@ void ETH_IRQHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -582,7 +584,9 @@ void lm3sEthWritePhyReg(uint8_t address, uint16_t data)
    MAC_MCTL_R = (address << 3) | MAC_MCTL_WRITE | MAC_MCTL_START;
 
    //Wait for the write to complete
-   while(MAC_MCTL_R & MAC_MCTL_START);
+   while(MAC_MCTL_R & MAC_MCTL_START)
+   {
+   }
 }
 
 
@@ -598,7 +602,9 @@ uint16_t lm3sEthReadPhyReg(uint8_t address)
    MAC_MCTL_R = (address << 3) | MAC_MCTL_START;
 
    //Wait for the read to complete
-   while(MAC_MCTL_R & MAC_MCTL_START);
+   while(MAC_MCTL_R & MAC_MCTL_START)
+   {
+   }
 
    //Return PHY register contents
    return MAC_MRXD_R & MAC_MRXD_MDRX_M;
@@ -617,7 +623,8 @@ void lm3sEthDumpPhyReg(void)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, lm3sEthReadPhyReg(i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         lm3sEthReadPhyReg(i));
    }
 
    //Terminate with a line feed

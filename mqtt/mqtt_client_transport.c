@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -159,6 +159,9 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
          error = ERROR_OPEN_FAILED;
       }
    }
+#endif
+#if (MQTT_CLIENT_WS_SUPPORT == ENABLED && MQTT_CLIENT_TLS_SUPPORT == ENABLED && \
+   WEB_SOCKET_TLS_SUPPORT == ENABLED)
    //Secure WebSocket transport protocol?
    else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
    {

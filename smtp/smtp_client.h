@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _SMTP_CLIENT_H
@@ -266,8 +266,8 @@ struct _SmtpClientContext
    bool_t authPlainSupported;                  ///<PLAIN authentication mechanism supported
    bool_t authCramMd5Supported;                ///<CRAM-MD5 authentication mechanism supported
    char_t buffer[SMTP_CLIENT_BUFFER_SIZE + 1]; ///<Memory buffer for input/output operations
-   size_t bufferPos;                           ///<Current position in the buffer
    size_t bufferLen;                           ///<Length of the buffer, in bytes
+   size_t bufferPos;                           ///<Current position in the buffer
    size_t commandLen;                          ///<Length of the SMTP command, in bytes
    size_t replyLen;                            ///<Length of the SMTP reply, in bytes
    uint_t replyCode;                           ///<SMTP reply code

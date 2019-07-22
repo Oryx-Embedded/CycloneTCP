@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -425,7 +425,7 @@ error_t enc28j60SendPacket(NetInterface *interface,
    if(!interface->linkState)
    {
       //The transmitter can accept another packet
-      osSetEventFromIsr(&interface->nicTxEvent);
+      osSetEvent(&interface->nicTxEvent);
       //Drop current packet
       return NO_ERROR;
    }
@@ -1012,7 +1012,8 @@ void enc28j60DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIX8 ": 0x%04" PRIX16 "\r\n", i, enc28j60ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIX8 ": 0x%04" PRIX16 "\r\n", i,
+         enc28j60ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -81,7 +81,7 @@ static Fm4RxDmaDesc *rxCurDmaDesc;
 
 
 /**
- * @brief Spansion FM4 Ethernet MAC driver
+ * @brief FM4 Ethernet MAC driver
  **/
 
 const NicDriver fm4EthDriver =
@@ -106,7 +106,7 @@ const NicDriver fm4EthDriver =
 
 
 /**
- * @brief Spansion FM4 Ethernet MAC initialization
+ * @brief FM4 Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
@@ -116,7 +116,7 @@ error_t fm4EthInit(NetInterface *interface)
    error_t error;
 
    //Debug message
-   TRACE_INFO("Initializing Spansion FM4 Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing FM4 Ethernet MAC...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -134,10 +134,14 @@ error_t fm4EthInit(NetInterface *interface)
    //Perform a software reset
    FM4_ETHERNET_MAC0->BMR_f.SWR = 1;
    //Wait for the reset to complete
-   while(FM4_ETHERNET_MAC0->BMR_f.SWR);
+   while(FM4_ETHERNET_MAC0->BMR_f.SWR)
+   {
+   }
 
    //Ensure that on-going AHB transactions are complete
-   while(FM4_ETHERNET_MAC0->AHBSR_f.AHBS);
+   while(FM4_ETHERNET_MAC0->AHBSR_f.AHBS)
+   {
+   }
 
    //Adjust MDC clock range depending on HCLK frequency
    FM4_ETHERNET_MAC0->GAR_f.CR = 5;
@@ -300,8 +304,6 @@ void fm4EthInitGpio(NetInterface *interface)
    //Reset PHY transceiver
    FM4_GPIO->PDOR6_f.PA = 0;
    sleep(10);
-
-   //Take the PHY transceiver out of reset
    FM4_GPIO->PDOR6_f.PA = 1;
    sleep(10);
 }
@@ -375,7 +377,7 @@ void fm4EthInitDmaDesc(NetInterface *interface)
 
 
 /**
- * @brief Spansion FM4 Ethernet MAC timer handler
+ * @brief FM4 Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to
  * handle periodic operations such as polling the link state
@@ -419,14 +421,14 @@ void fm4EthDisableIrq(NetInterface *interface)
 
 
 /**
- * @brief Spansion FM4 Ethernet MAC interrupt service routine
+ * @brief FM4 Ethernet MAC interrupt service routine
  **/
 
 void ETHER0_IRQHandler(void)
 {
    bool_t flag;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -461,13 +463,13 @@ void ETHER0_IRQHandler(void)
    //Clear NIS interrupt flag
    bFM4_ETHERNET_MAC0_SR_NIS = 1;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
 
 /**
- * @brief Spansion FM4 Ethernet MAC event handler
+ * @brief FM4 Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 
@@ -704,53 +706,83 @@ error_t fm4EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void fm4EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void fm4EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   //Set up a write operation
-   FM4_ETHERNET_MAC0->GAR_f.GW = 1;
-   //PHY address
-   FM4_ETHERNET_MAC0->GAR_f.PA = phyAddr;
-   //Register address
-   FM4_ETHERNET_MAC0->GAR_f.GR = regAddr;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      FM4_ETHERNET_MAC0->GAR_f.GW = 1;
+      //PHY address
+      FM4_ETHERNET_MAC0->GAR_f.PA = phyAddr;
+      //Register address
+      FM4_ETHERNET_MAC0->GAR_f.GR = regAddr;
 
-   //Data to be written in the PHY register
-   FM4_ETHERNET_MAC0->GDR_f.GD = data;
+      //Data to be written in the PHY register
+      FM4_ETHERNET_MAC0->GDR_f.GD = data;
 
-   //Start a write operation
-   FM4_ETHERNET_MAC0->GAR_f.GB = 1;
-   //Wait for the write to complete
-   while(FM4_ETHERNET_MAC0->GAR_f.GB);
+      //Start a write operation
+      FM4_ETHERNET_MAC0->GAR_f.GB = 1;
+      //Wait for the write to complete
+      while(FM4_ETHERNET_MAC0->GAR_f.GB)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t fm4EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t fm4EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   //Set up a read operation
-   FM4_ETHERNET_MAC0->GAR_f.GW = 0;
-   //PHY address
-   FM4_ETHERNET_MAC0->GAR_f.PA = phyAddr;
-   //Register address
-   FM4_ETHERNET_MAC0->GAR_f.GR = regAddr;
+   uint16_t data;
 
-   //Start a read operation
-   FM4_ETHERNET_MAC0->GAR_f.GB = 1;
-   //Wait for the read to complete
-   while(FM4_ETHERNET_MAC0->GAR_f.GB);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      FM4_ETHERNET_MAC0->GAR_f.GW = 0;
+      //PHY address
+      FM4_ETHERNET_MAC0->GAR_f.PA = phyAddr;
+      //Register address
+      FM4_ETHERNET_MAC0->GAR_f.GR = regAddr;
 
-   //Return PHY register contents
-   return FM4_ETHERNET_MAC0->GDR_f.GD;
+      //Start a read operation
+      FM4_ETHERNET_MAC0->GAR_f.GB = 1;
+      //Wait for the read to complete
+      while(FM4_ETHERNET_MAC0->GAR_f.GB)
+      {
+      }
+
+      //Get register value
+      data = FM4_ETHERNET_MAC0->GDR_f.GD;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

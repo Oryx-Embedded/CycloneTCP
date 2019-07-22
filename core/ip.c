@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -52,12 +52,12 @@ const IpAddr IP_ADDR_UNSPECIFIED = {0};
  * @param[in] pseudoHeader IP pseudo header
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first payload byte
- * @param[in] ttl TTL value. Default Time-To-Live is used when this parameter is zero
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
 error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint8_t ttl)
+   NetBuffer *buffer, size_t offset, uint_t flags)
 {
    error_t error;
 
@@ -67,7 +67,7 @@ error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
    {
       //Form an IPv4 packet and send it
       error = ipv4SendDatagram(interface, &pseudoHeader->ipv4Data,
-         buffer, offset, ttl);
+         buffer, offset, flags);
    }
    else
 #endif
@@ -77,7 +77,7 @@ error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
    {
       //Form an IPv6 packet and send it
       error = ipv6SendDatagram(interface, &pseudoHeader->ipv6Data,
-         buffer, offset, ttl);
+         buffer, offset, flags);
    }
    else
 #endif

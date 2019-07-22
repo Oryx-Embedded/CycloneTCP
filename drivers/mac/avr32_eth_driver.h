@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _AVR32_ETH_DRIVER_H
@@ -173,8 +173,11 @@ error_t avr32EthReceivePacket(NetInterface *interface);
 error_t avr32EthUpdateMacAddrFilter(NetInterface *interface);
 error_t avr32EthUpdateMacConfig(NetInterface *interface);
 
-void avr32EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t avr32EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void avr32EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t avr32EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

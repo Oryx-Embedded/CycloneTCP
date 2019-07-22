@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -55,9 +55,10 @@
  * @return Error code
  **/
 
-error_t snmpFormatInformRequestMessage(SnmpAgentContext *context, SnmpVersion version,
-   const char_t *userName, uint_t genericTrapType, uint_t specificTrapCode,
-   const SnmpTrapObject *objectList, uint_t objectListSize)
+error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
+   SnmpVersion version, const char_t *userName, uint_t genericTrapType,
+   uint_t specificTrapCode, const SnmpTrapObject *objectList,
+   uint_t objectListSize)
 {
    error_t error;
 
@@ -190,9 +191,10 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context, SnmpVersion ve
  * @return Error code
  **/
 
-error_t snmpFormatInformRequestPdu(SnmpAgentContext *context, SnmpVersion version,
-   const char_t *userName, uint_t genericTrapType, uint_t specificTrapCode,
-   const SnmpTrapObject *objectList, uint_t objectListSize)
+error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
+   SnmpVersion version, const char_t *userName, uint_t genericTrapType,
+   uint_t specificTrapCode, const SnmpTrapObject *objectList,
+   uint_t objectListSize)
 {
    error_t error;
    SnmpMessage *message;
@@ -323,7 +325,8 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context, SnmpVersion versio
  * @return Error code
  **/
 
-error_t snmpFormatGetRequestMessage(SnmpAgentContext *context, SnmpVersion version)
+error_t snmpFormatGetRequestMessage(SnmpAgentContext *context,
+   SnmpVersion version)
 {
    error_t error;
 

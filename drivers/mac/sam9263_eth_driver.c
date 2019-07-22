@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -125,6 +125,9 @@ error_t sam9263EthInit(NetInterface *interface)
 
    //Enable EMAC peripheral clock
    AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_EMAC);
+
+   //Disable transmit and receive circuits
+   AT91C_BASE_EMAC->EMAC_NCR = 0;
 
    //GPIO configuration
    sam9263EthInitGpio(interface);
@@ -329,7 +332,7 @@ void sam9263EthIrqHandler(void)
    volatile uint32_t tsr;
    volatile uint32_t rsr;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -368,7 +371,7 @@ void sam9263EthIrqHandler(void)
    //Write AIC_EOICR register before exiting
    AT91C_BASE_AIC->AIC_EOICR = 0;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -658,39 +661,39 @@ error_t sam9263EthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the first unicast address filter
    if(j >= 1)
    {
-      //The addresse is activated when SAH register is written
+      //The address is activated when SAH register is written
       AT91C_BASE_EMAC->EMAC_SA2L = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
       AT91C_BASE_EMAC->EMAC_SA2H = unicastMacAddr[0].w[2];
    }
    else
    {
-      //The addresse is activated when SAL register is written
+      //The address is deactivated when SAL register is written
       AT91C_BASE_EMAC->EMAC_SA2L = 0;
    }
 
    //Configure the second unicast address filter
    if(j >= 2)
    {
-      //The addresse is activated when SAH register is written
+      //The address is activated when SAH register is written
       AT91C_BASE_EMAC->EMAC_SA3L = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
       AT91C_BASE_EMAC->EMAC_SA3H = unicastMacAddr[1].w[2];
    }
    else
    {
-      //The addresse is activated when SAL register is written
+      //The address is deactivated when SAL register is written
       AT91C_BASE_EMAC->EMAC_SA3L = 0;
    }
 
    //Configure the third unicast address filter
    if(j >= 3)
    {
-      //The addresse is activated when SAH register is written
+      //The address is activated when SAH register is written
       AT91C_BASE_EMAC->EMAC_SA4L = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
       AT91C_BASE_EMAC->EMAC_SA4H = unicastMacAddr[2].w[2];
    }
    else
    {
-      //The addresse is activated when SAL register is written
+      //The address is deactivated when SAL register is written
       AT91C_BASE_EMAC->EMAC_SA4L = 0;
    }
 
@@ -742,54 +745,83 @@ error_t sam9263EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void sam9263EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void sam9263EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = AT91C_EMAC_SOF_01 | AT91C_EMAC_RW_01 | AT91C_EMAC_CODE_10;
-   //PHY address
-   value |= (phyAddr << 23) & AT91C_EMAC_PHYA;
-   //Register address
-   value |= (regAddr << 18) & AT91C_EMAC_REGA;
-   //Register value
-   value |= data & AT91C_EMAC_DATA;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = AT91C_EMAC_SOF_01 | AT91C_EMAC_RW_01 | AT91C_EMAC_CODE_10;
+      //PHY address
+      temp |= (phyAddr << 23) & AT91C_EMAC_PHYA;
+      //Register address
+      temp |= (regAddr << 18) & AT91C_EMAC_REGA;
+      //Register value
+      temp |= data & AT91C_EMAC_DATA;
 
-   //Start a write operation
-   AT91C_BASE_EMAC->EMAC_MAN = value;
-   //Wait for the write to complete
-   while(!(AT91C_BASE_EMAC->EMAC_NSR & AT91C_EMAC_IDLE));
+      //Start a write operation
+      AT91C_BASE_EMAC->EMAC_MAN = temp;
+      //Wait for the write to complete
+      while(!(AT91C_BASE_EMAC->EMAC_NSR & AT91C_EMAC_IDLE))
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t sam9263EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t sam9263EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = AT91C_EMAC_SOF_01 | AT91C_EMAC_RW_10 | AT91C_EMAC_CODE_10;
-   //PHY address
-   value |= (phyAddr << 23) & AT91C_EMAC_PHYA;
-   //Register address
-   value |= (regAddr << 18) & AT91C_EMAC_REGA;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = AT91C_EMAC_SOF_01 | AT91C_EMAC_RW_10 | AT91C_EMAC_CODE_10;
+      //PHY address
+      temp |= (phyAddr << 23) & AT91C_EMAC_PHYA;
+      //Register address
+      temp |= (regAddr << 18) & AT91C_EMAC_REGA;
 
-   //Start a read operation
-   AT91C_BASE_EMAC->EMAC_MAN = value;
-   //Wait for the read to complete
-   while(!(AT91C_BASE_EMAC->EMAC_NSR & AT91C_EMAC_IDLE));
+      //Start a read operation
+      AT91C_BASE_EMAC->EMAC_MAN = temp;
+      //Wait for the read to complete
+      while(!(AT91C_BASE_EMAC->EMAC_NSR & AT91C_EMAC_IDLE))
+      {
+      }
 
-   //Return PHY register contents
-   return AT91C_BASE_EMAC->EMAC_MAN & AT91C_EMAC_DATA;
+      //Get register value
+      data = AT91C_BASE_EMAC->EMAC_MAN & AT91C_EMAC_DATA;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }

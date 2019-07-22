@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -184,7 +184,7 @@ error_t nbnsSendResponse(NetInterface *interface,
    //A response packet is always sent to the source UDP port and source IP
    //address of the request packet
    error = udpSendDatagramEx(interface, NULL, NBNS_PORT, destIpAddr,
-      destPort, buffer, offset, IPV4_DEFAULT_TTL);
+      destPort, buffer, offset, IP_FLAG_DONT_ROUTE | IPV4_DEFAULT_TTL);
 
    //Free previously allocated memory
    netBufferFree(buffer);

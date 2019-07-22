@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -203,8 +203,13 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
    if(error)
       return error;
 
-   //Format SNMP message header
-   error = snmpWriteMessageHeader(&context->response);
+   //Any response?
+   if(context->response.length > 0)
+   {
+      //Format SNMP message header
+      error = snmpWriteMessageHeader(&context->response);
+   }
+
    //Return status code
    return error;
 #else
@@ -261,8 +266,13 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
    if(error)
       return error;
 
-   //Format SNMP message header
-   error = snmpWriteMessageHeader(&context->response);
+   //Any response?
+   if(context->response.length > 0)
+   {
+      //Format SNMP message header
+      error = snmpWriteMessageHeader(&context->response);
+   }
+
    //Return status code
    return error;
 #else

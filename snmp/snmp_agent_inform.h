@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _SNMP_AGENT_INFORM_H
@@ -77,15 +77,19 @@ typedef enum
 
 
 //SNMP inform related functions
-error_t snmpFormatInformRequestMessage(SnmpAgentContext *context, SnmpVersion version,
-   const char_t *userName, uint_t genericTrapType, uint_t specificTrapCode,
-   const SnmpTrapObject *objectList, uint_t objectListSize);
+error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
+   SnmpVersion version, const char_t *userName, uint_t genericTrapType,
+   uint_t specificTrapCode, const SnmpTrapObject *objectList,
+   uint_t objectListSize);
 
-error_t snmpFormatInformRequestPdu(SnmpAgentContext *context, SnmpVersion version,
-   const char_t *userName, uint_t genericTrapType, uint_t specificTrapCode,
-   const SnmpTrapObject *objectList, uint_t objectListSize);
+error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
+   SnmpVersion version, const char_t *userName, uint_t genericTrapType,
+   uint_t specificTrapCode, const SnmpTrapObject *objectList,
+   uint_t objectListSize);
 
-error_t snmpFormatGetRequestMessage(SnmpAgentContext *context, SnmpVersion version);
+error_t snmpFormatGetRequestMessage(SnmpAgentContext *context,
+   SnmpVersion version);
+
 error_t snmpFormatGetRequestPdu(SnmpAgentContext *context, SnmpVersion version);
 
 error_t snmpProcessGetResponsePdu(SnmpAgentContext *context);

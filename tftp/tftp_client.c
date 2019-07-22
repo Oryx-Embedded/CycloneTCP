@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -96,7 +96,7 @@ error_t tftpClientBindToInterface(TftpClientContext *context,
 
 
 /**
- * @brief Establish connection with the TFTP server
+ * @brief Specify the address of the TFTP server
  * @param[in] context Pointer to the TFTP client context
  * @param[in] serverIpAddr IP address of the TFTP server to connect to
  * @param[in] serverPort UDP port number
@@ -266,14 +266,22 @@ error_t tftpClientWriteFile(TftpClientContext *context,
    size_t n;
    size_t totalLength;
 
+   //Make sure the TFTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Check parameters
+   if(data == NULL && length != 0)
+      return ERROR_INVALID_PARAMETER;
+
    //Initialize status code
    error = NO_ERROR;
 
-   //Total number of bytes that have been written
+   //Actual number of bytes written
    totalLength = 0;
 
    //Write as much data as possible
-   while(totalLength < length)
+   while(totalLength < length && !error)
    {
       //Check current state
       if(context->state == TFTP_CLIENT_STATE_DATA)
@@ -321,10 +329,6 @@ error_t tftpClientWriteFile(TftpClientContext *context,
          //Report an error
          error = ERROR_WRITE_FAILED;
       }
-
-      //Any error to report?
-      if(error)
-         break;
    }
 
    //Total number of bytes successfully written
@@ -345,6 +349,10 @@ error_t tftpClientWriteFile(TftpClientContext *context,
 error_t tftpClientFlushFile(TftpClientContext *context)
 {
    error_t error;
+
+   //Make sure the TFTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
 
    //Initialize status code
    error = NO_ERROR;
@@ -409,6 +417,10 @@ error_t tftpClientReadFile(TftpClientContext *context,
    error_t error;
    size_t n;
 
+   //Check parameters
+   if(context == NULL || data == NULL || received == NULL)
+      return ERROR_INVALID_PARAMETER;
+
    //Initialize status code
    error = NO_ERROR;
 
@@ -416,7 +428,7 @@ error_t tftpClientReadFile(TftpClientContext *context,
    *received = 0;
 
    //Read as much data as possible
-   while(*received < size)
+   while(*received < size && !error)
    {
       //Check current state
       if(context->state == TFTP_CLIENT_STATE_DATA)
@@ -475,7 +487,6 @@ error_t tftpClientReadFile(TftpClientContext *context,
          if(*received > 0)
          {
             //Some data are pending in the receive buffer
-            error = NO_ERROR;
             break;
          }
          else
@@ -489,10 +500,6 @@ error_t tftpClientReadFile(TftpClientContext *context,
          //Report an error
          error = ERROR_READ_FAILED;
       }
-
-      //Any error to report?
-      if(error)
-         break;
    }
 
    //Return status code
@@ -503,15 +510,23 @@ error_t tftpClientReadFile(TftpClientContext *context,
 /**
  * @brief Close the file
  * @param[in] context Pointer to the TFTP client context
+ * @return Error code
  **/
 
-void tftpClientCloseFile(TftpClientContext *context)
+error_t tftpClientCloseFile(TftpClientContext *context)
 {
+   //Make sure the TFTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
    //Close connection with the TFTP server
    tftpClientCloseConnection(context);
 
    //Back to default state
    context->state = TFTP_CLIENT_STATE_CLOSED;
+
+   //Successful processing
+   return NO_ERROR;
 }
 
 

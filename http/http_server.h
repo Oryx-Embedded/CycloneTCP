@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -251,6 +251,11 @@
    #define HTTP_SERVER_BOUNDARY_MAX_LEN 70
 #elif (HTTP_SERVER_BOUNDARY_MAX_LEN < 1)
    #error HTTP_SERVER_BOUNDARY_MAX_LEN parameter is not valid
+#endif
+
+//Application specific context
+#ifndef HTTP_SERVER_PRIVATE_CONTEXT
+   #define HTTP_SERVER_PRIVATE_CONTEXT
 #endif
 
 //File system support?
@@ -514,7 +519,7 @@ typedef struct
    char_t rootDirectory[HTTP_SERVER_ROOT_DIR_MAX_LEN + 1];      ///<Web root directory
    char_t defaultDocument[HTTP_SERVER_DEFAULT_DOC_MAX_LEN + 1]; ///<Default home page
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-   bool_t useTls;                                               ///<HTTP over TLS
+   bool_t useTls;                                               ///<Deprecated flag
    TlsInitCallback tlsInitCallback;                             ///<TLS initialization callback function
 #endif
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
@@ -594,6 +599,7 @@ struct _HttpConnection
    size_t bodyPos;
    size_t bodyLen;
 #endif
+   HTTP_SERVER_PRIVATE_CONTEXT                         ///<Application specific context
 };
 
 

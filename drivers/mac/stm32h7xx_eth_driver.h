@@ -1,6 +1,6 @@
 /**
  * @file stm32h7xx_eth_driver.h
- * @brief STM32H743/753 Ethernet MAC controller
+ * @brief STM32H7 Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _STM32H7XX_ETH_DRIVER_H
@@ -84,18 +84,22 @@
 #endif
 
 //MMCRIMR register
-#define ETH_MMCRIMR_RXLPITRCIM  0x08000000
-#define ETH_MMCRIMR_RXLPIUSCIM  0x04000000
-#define ETH_MMCRIMR_RXUCGPIM    0x00020000
-#define ETH_MMCRIMR_RXALGNERPIM 0x00000040
-#define ETH_MMCRIMR_RXCRCERPIM  0x00000020
+#ifndef ETH_MMCRIMR_RXLPITRCIM
+   #define ETH_MMCRIMR_RXLPITRCIM  0x08000000
+   #define ETH_MMCRIMR_RXLPIUSCIM  0x04000000
+   #define ETH_MMCRIMR_RXUCGPIM    0x00020000
+   #define ETH_MMCRIMR_RXALGNERPIM 0x00000040
+   #define ETH_MMCRIMR_RXCRCERPIM  0x00000020
+#endif
 
 //MMCTIMR register
-#define ETH_MMCTIMR_TXLPITRCIM  0x08000000
-#define ETH_MMCTIMR_TXLPIUSCIM  0x04000000
-#define ETH_MMCTIMR_TXGPKTIM    0x00200000
-#define ETH_MMCTIMR_TXMCOLGPIM  0x00008000
-#define ETH_MMCTIMR_TXSCOLGPIM  0x00004000
+#ifndef ETH_MMCTIMR_TXLPITRCIM
+   #define ETH_MMCTIMR_TXLPITRCIM  0x08000000
+   #define ETH_MMCTIMR_TXLPIUSCIM  0x04000000
+   #define ETH_MMCTIMR_TXGPKTIM    0x00200000
+   #define ETH_MMCTIMR_TXMCOLGPIM  0x00008000
+   #define ETH_MMCTIMR_TXSCOLGPIM  0x00004000
+#endif
 
 //Transmit normal descriptor (read format)
 #define ETH_TDES0_BUF1AP        0xFFFFFFFF
@@ -239,10 +243,10 @@ typedef struct
 } Stm32h7xxRxDmaDesc;
 
 
-//STM32H743/753 Ethernet MAC driver
+//STM32H7 Ethernet MAC driver
 extern const NicDriver stm32h7xxEthDriver;
 
-//STM32H743/753 Ethernet MAC related functions
+//STM32H7 Ethernet MAC related functions
 error_t stm32h7xxEthInit(NetInterface *interface);
 void stm32h7xxEthInitGpio(NetInterface *interface);
 void stm32h7xxEthInitDmaDesc(NetInterface *interface);
@@ -261,8 +265,11 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface);
 error_t stm32h7xxEthUpdateMacAddrFilter(NetInterface *interface);
 error_t stm32h7xxEthUpdateMacConfig(NetInterface *interface);
 
-void stm32h7xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t stm32h7xxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void stm32h7xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t stm32h7xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 uint32_t stm32h7xxEthCalcCrc(const void *data, size_t length);
 

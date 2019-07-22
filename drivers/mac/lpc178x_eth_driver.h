@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _LPC178X_ETH_DRIVER_H
@@ -390,8 +390,11 @@ error_t lpc178xEthReceivePacket(NetInterface *interface);
 error_t lpc178xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t lpc178xEthUpdateMacConfig(NetInterface *interface);
 
-void lpc178xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t lpc178xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void lpc178xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t lpc178xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 uint32_t lpc178xEthCalcCrc(const void *data, size_t length);
 

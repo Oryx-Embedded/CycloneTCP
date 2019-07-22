@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -108,7 +108,9 @@ error_t mpc57xxEthInit(NetInterface *interface)
    //Reset ENET module
    ENET_0->ECR = ENET_ECR_RESET_MASK;
    //Wait for the reset to complete
-   while(ENET_0->ECR & ENET_ECR_RESET_MASK);
+   while(ENET_0->ECR & ENET_ECR_RESET_MASK)
+   {
+   }
 
    //Receive control register
    ENET_0->RCR = ENET_RCR_MAX_FL(MPC57XX_ETH_RX_BUFFER_SIZE) |
@@ -353,7 +355,7 @@ void ENET0_Tx_IRQHandler(void)
 {
    bool_t flag;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -376,7 +378,7 @@ void ENET0_Tx_IRQHandler(void)
       ENET_0->TDAR = ENET_TDAR_TDAR_MASK;
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -389,7 +391,7 @@ void ENET0_Rx_IRQHandler(void)
 {
    bool_t flag;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -407,7 +409,7 @@ void ENET0_Rx_IRQHandler(void)
       flag = osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -420,7 +422,7 @@ void ENET0_Err_IRQHandler(void)
 {
    bool_t flag;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -438,7 +440,7 @@ void ENET0_Err_IRQHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -770,60 +772,91 @@ error_t mpc57xxEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void mpc57xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void mpc57xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = ENET_MMFR_ST(1) | ENET_MMFR_OP(1) | ENET_MMFR_TA(2);
-   //PHY address
-   value |= ENET_MMFR_PA(phyAddr);
-   //Register address
-   value |= ENET_MMFR_RA(regAddr);
-   //Register value
-   value |= ENET_MMFR_DATA(data);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = ENET_MMFR_ST(1) | ENET_MMFR_OP(1) | ENET_MMFR_TA(2);
+      //PHY address
+      temp |= ENET_MMFR_PA(phyAddr);
+      //Register address
+      temp |= ENET_MMFR_RA(regAddr);
+      //Register value
+      temp |= ENET_MMFR_DATA(data);
 
-   //Clear MII interrupt flag
-   ENET_0->EIR = ENET_EIR_MII_MASK;
-   //Start a write operation
-   ENET_0->MMFR = value;
-   //Wait for the write to complete
-   while(!(ENET_0->EIR & ENET_EIR_MII_MASK));
+      //Clear MII interrupt flag
+      ENET_0->EIR = ENET_EIR_MII_MASK;
+      //Start a write operation
+      ENET_0->MMFR = temp;
+
+      //Wait for the write to complete
+      while(!(ENET_0->EIR & ENET_EIR_MII_MASK))
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t mpc57xxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t mpc57xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = ENET_MMFR_ST(1) | ENET_MMFR_OP(2) | ENET_MMFR_TA(2);
-   //PHY address
-   value |= ENET_MMFR_PA(phyAddr);
-   //Register address
-   value |= ENET_MMFR_RA(regAddr);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = ENET_MMFR_ST(1) | ENET_MMFR_OP(2) | ENET_MMFR_TA(2);
+      //PHY address
+      temp |= ENET_MMFR_PA(phyAddr);
+      //Register address
+      temp |= ENET_MMFR_RA(regAddr);
 
-   //Clear MII interrupt flag
-   ENET_0->EIR = ENET_EIR_MII_MASK;
-   //Start a read operation
-   ENET_0->MMFR = value;
-   //Wait for the read to complete
-   while(!(ENET_0->EIR & ENET_EIR_MII_MASK));
+      //Clear MII interrupt flag
+      ENET_0->EIR = ENET_EIR_MII_MASK;
+      //Start a read operation
+      ENET_0->MMFR = temp;
 
-   //Return PHY register contents
-   return ENET_0->MMFR & ENET_MMFR_DATA_MASK;
+      //Wait for the read to complete
+      while(!(ENET_0->EIR & ENET_EIR_MII_MASK))
+      {
+      }
+
+      //Get register value
+      data = ENET_0->MMFR & ENET_MMFR_DATA_MASK;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

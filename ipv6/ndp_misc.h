@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _NDP_MISC_H
@@ -54,7 +54,7 @@ bool_t ndpIsFirstHopRouter(NetInterface *interface,
    const Ipv6Addr *destAddr, const Ipv6Addr *nextHop);
 
 error_t ndpSelectNextHop(NetInterface *interface, const Ipv6Addr *destAddr,
-   const Ipv6Addr *unreachableNextHop, Ipv6Addr *nextHop);
+   const Ipv6Addr *unreachableNextHop, Ipv6Addr *nextHop, uint_t flags);
 
 void ndpUpdateNextHop(NetInterface *interface, const Ipv6Addr *nextHop);
 

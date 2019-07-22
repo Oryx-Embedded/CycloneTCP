@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -93,6 +93,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          //Check protocol field
          if(socket->protocol != pseudoHeader->ipv4Data.protocol)
             continue;
+
          //Destination IP address filtering
          if(socket->localIpAddr.length != 0)
          {
@@ -290,9 +291,24 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
       //Check whether the socket is bound to a particular interface
       if(socket->interface && socket->interface != interface)
          continue;
+
       //Check protocol field
-      if(socket->protocol != SOCKET_ETH_PROTO_ALL && socket->protocol != ntohs(header->type))
-         continue;
+      if(socket->protocol == SOCKET_ETH_PROTO_ALL)
+      {
+         //Accept all EtherType values
+      }
+      else if(socket->protocol == SOCKET_ETH_PROTO_LLC)
+      {
+         //Only accept LLC frames
+         if(ntohs(header->type) > ETH_MTU)
+            continue;
+      }
+      else
+      {
+         //Only accept frames with the correct EtherType value
+         if(ntohs(header->type) != socket->protocol)
+            continue;
+      }
 
       //The current socket meets all the criteria
       break;
@@ -388,17 +404,21 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
  * @param[in] data Pointer to raw data
  * @param[in] length Length of the raw data
  * @param[out] written Actual number of bytes written (optional parameter)
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
 error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
-   const void *data, size_t length, size_t *written)
+   const void *data, size_t length, size_t *written, uint_t flags)
 {
    error_t error;
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
    IpPseudoHeader pseudoHeader;
+
+   //Ignore unused flags
+   flags &= SOCKET_FLAG_DONT_ROUTE;
 
    //The socket may be bound to a particular network interface
    interface = socket->interface;
@@ -472,7 +492,8 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
       }
 
       //Send raw IP datagram
-      error = ipSendDatagram(interface, &pseudoHeader, buffer, offset, socket->ttl);
+      error = ipSendDatagram(interface, &pseudoHeader, buffer, offset,
+         flags | socket->ttl);
       //Failed to send data?
       if(error)
          break;

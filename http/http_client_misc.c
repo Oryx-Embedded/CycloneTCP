@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -288,7 +288,7 @@ error_t httpClientParseStatusLine(HttpClientContext *context, char_t *line,
 /**
  * @brief Parse HTTP response header field
  * @param[in] context Pointer to the HTTP client context
- * @param[in] buffer Pointer to the header field
+ * @param[in] line Pointer to the header field
  * @param[in] length Length of the header field
  * @return Error code
  **/
@@ -437,8 +437,12 @@ error_t httpClientParseConnectionField(HttpClientContext *context,
       //Check current value
       if(n == 10 && !strncasecmp(value, "keep-alive", 10))
       {
-         //The connection is persistent
-         context->keepAlive = TRUE;
+         //Check HTTP request state
+         if(context->requestState == HTTP_REQ_STATE_FORMAT_HEADER)
+         {
+            //Make the connection persistent
+            context->keepAlive = TRUE;
+         }
       }
       else if(n == 5 && !strncasecmp(value, "close", 5))
       {
@@ -526,7 +530,7 @@ error_t httpClientParseContentLengthField(HttpClientContext *context,
 /**
  * @brief Parse chunk-size field
  * @param[in] context Pointer to the HTTP client context
- * @param[in] buffer Pointer to the chunk-size field
+ * @param[in] line Pointer to the chunk-size field
  * @param[in] length Length of the chunk-size field
  * @return Error code
  **/

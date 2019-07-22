@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -250,7 +250,6 @@ error_t pingSendRequest(PingContext *context,
       //interface to use when pinging the specified host
       error = ipv4SelectSourceAddr(&interface, targetIpAddr->ipv4Addr,
          &srcIpAddr);
-
       //Any error to report?
       if(error)
          return error;
@@ -275,7 +274,6 @@ error_t pingSendRequest(PingContext *context,
       //interface to use when pinging the specified host
       error = ipv6SelectSourceAddr(&interface, &targetIpAddr->ipv6Addr,
          &pseudoHeader.srcAddr);
-
       //Any error to report?
       if(error)
          return error;

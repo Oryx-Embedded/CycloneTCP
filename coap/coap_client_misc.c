@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -568,7 +568,6 @@ error_t coapClientProcessResponse(CoapClientRequest *request,
    const CoapMessage *response)
 {
    error_t error;
-   uint32_t value;
    CoapClientContext *context;
    const CoapMessageHeader *header;
 
@@ -599,6 +598,8 @@ error_t coapClientProcessResponse(CoapClientRequest *request,
       header->type == COAP_TYPE_ACK)
    {
 #if (COAP_CLIENT_OBSERVE_SUPPORT == ENABLED)
+      uint32_t value;
+
       //Search the CoAP request for an Observe option
       error = coapGetUintOption(&request->message, COAP_OPT_OBSERVE, 0, &value);
 

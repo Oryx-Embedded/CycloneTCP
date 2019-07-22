@@ -33,7 +33,7 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -45,7 +45,6 @@
 #include "smtp/smtp_client_auth.h"
 #include "smtp/smtp_client_transport.h"
 #include "smtp/smtp_client_misc.h"
-#include "core/socket.h"
 #include "str.h"
 #include "debug.h"
 
@@ -178,7 +177,8 @@ error_t smtpClientConnect(SmtpClientContext *context,
    if(context == NULL || serverIpAddr == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Check connection modes
+#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
+   //Check connection mode
    if(mode != SMTP_MODE_PLAINTEXT &&
       mode != SMTP_MODE_IMPLICIT_TLS &&
       mode != SMTP_MODE_EXPLICIT_TLS)
@@ -186,6 +186,14 @@ error_t smtpClientConnect(SmtpClientContext *context,
       //The connection mode is not valid
       return ERROR_INVALID_PARAMETER;
    }
+#else
+   //Check connection mode
+   if(mode != SMTP_MODE_PLAINTEXT)
+   {
+      //The connection mode is not valid
+      return ERROR_INVALID_PARAMETER;
+   }
+#endif
 
    //Initialize status code
    error = NO_ERROR;
@@ -323,6 +331,7 @@ error_t smtpClientConnect(SmtpClientContext *context,
             //Check SMTP response code
             if(SMTP_REPLY_CODE_2YZ(context->replyCode))
             {
+#if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
                //Explicit TLS?
                if(mode == SMTP_MODE_EXPLICIT_TLS && context->tlsContext == NULL)
                {
@@ -337,6 +346,7 @@ error_t smtpClientConnect(SmtpClientContext *context,
                   }
                }
                else
+#endif
                {
                   //The SMTP client is connected
                   smtpClientChangeState(context, SMTP_CLIENT_STATE_CONNECTED);
@@ -667,7 +677,7 @@ error_t smtpClientWriteMailHeader(SmtpClientContext *context,
                context->bufferLen - context->bufferPos, &n, 0);
 
             //Check status code
-            if(!error)
+            if(error == NO_ERROR || error == ERROR_TIMEOUT)
             {
                //Advance data pointer
                context->bufferPos += n;
@@ -718,6 +728,7 @@ error_t smtpClientWriteMailBody(SmtpClientContext *context,
    const void *data, size_t length, size_t *written, uint_t flags)
 {
    error_t error;
+   size_t n;
 
    //Make sure the SMTP client context is valid
    if(context == NULL)
@@ -727,26 +738,24 @@ error_t smtpClientWriteMailBody(SmtpClientContext *context,
    if(data == NULL && length != 0)
       return ERROR_INVALID_PARAMETER;
 
+   //Actual number of bytes written
+   n = 0;
+
    //Check current state
    if(context->state == SMTP_CLIENT_STATE_MAIL_BODY)
    {
       //Transmit the contents of the body
-      error = smtpClientSendData(context, data, length, written, flags);
+      error = smtpClientSendData(context, data, length, &n, flags);
 
       //Check status code
-      if(error == NO_ERROR)
+      if(error == NO_ERROR || error == ERROR_TIMEOUT)
       {
-         //Save current time
-         context->timestamp = osGetSystemTime();
-      }
-      else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
-      {
-         //Check whether the timeout has elapsed
-         error = smtpClientCheckTimeout(context);
-      }
-      else
-      {
-         //Communication error
+         //Any data transmitted?
+         if(n > 0)
+         {
+            //Save current time
+            context->timestamp = osGetSystemTime();
+         }
       }
    }
    else
@@ -754,6 +763,17 @@ error_t smtpClientWriteMailBody(SmtpClientContext *context,
       //Invalid state
       error = ERROR_WRONG_STATE;
    }
+
+  //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = smtpClientCheckTimeout(context);
+   }
+
+   //Total number of data that have been written
+   if(written != NULL)
+      *written = n;
 
    //Return status code
    return error;
@@ -815,7 +835,7 @@ error_t smtpClientWriteMultipartHeader(SmtpClientContext *context,
                context->bufferLen - context->bufferPos, &n, 0);
 
             //Check status code
-            if(!error)
+            if(error == NO_ERROR || error == ERROR_TIMEOUT)
             {
                //Advance data pointer
                context->bufferPos += n;
@@ -850,7 +870,7 @@ error_t smtpClientWriteMultipartHeader(SmtpClientContext *context,
                context->bufferLen - context->bufferPos, &n, 0);
 
             //Check status code
-            if(!error)
+            if(error == NO_ERROR || error == ERROR_TIMEOUT)
             {
                //Advance data pointer
                context->bufferPos += n;
@@ -940,7 +960,7 @@ error_t smtpClientWriteMultipartBody(SmtpClientContext *context,
       if(context->base64Encoding)
       {
          //Send as much data as possible
-         while(totalLength < length)
+         while(totalLength < length && !error)
          {
             //Any data pending in the transmit buffer?
             if(context->bufferLen < 4)
@@ -987,22 +1007,16 @@ error_t smtpClientWriteMultipartBody(SmtpClientContext *context,
                   context->bufferLen - context->bufferPos, &n, 0);
 
                //Check status code
-               if(error == NO_ERROR)
+               if(error == NO_ERROR || error == ERROR_TIMEOUT)
                {
-                  //Advance data pointer
-                  context->bufferPos += n;
-                  //Save current time
-                  context->timestamp = osGetSystemTime();
-               }
-               else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
-               {
-                  //Check whether the timeout has elapsed
-                  error = smtpClientCheckTimeout(context);
-               }
-               else
-               {
-                  //Communication error
-                  break;
+                  //Any data transmitted?
+                  if(n > 0)
+                  {
+                     //Advance data pointer
+                     context->bufferPos += n;
+                     //Save current time
+                     context->timestamp = osGetSystemTime();
+                  }
                }
             }
             else
@@ -1016,22 +1030,19 @@ error_t smtpClientWriteMultipartBody(SmtpClientContext *context,
       else
       {
          //Send raw data
-         error = smtpClientSendData(context, data, length, &totalLength, flags);
+         error = smtpClientSendData(context, data, length, &n, flags);
 
          //Check status code
-         if(error == NO_ERROR)
+         if(error == NO_ERROR || error == ERROR_TIMEOUT)
          {
-            //Save current time
-            context->timestamp = osGetSystemTime();
-         }
-         else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
-         {
-            //Check whether the timeout has elapsed
-            error = smtpClientCheckTimeout(context);
-         }
-         else
-         {
-            //Communication error
+            //Any data transmitted?
+            if(n > 0)
+            {
+               //Actual number of bytes written
+               totalLength += n;
+               //Save current time
+               context->timestamp = osGetSystemTime();
+            }
          }
       }
    }
@@ -1039,6 +1050,13 @@ error_t smtpClientWriteMultipartBody(SmtpClientContext *context,
    {
       //Invalid state
       error = ERROR_WRONG_STATE;
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = smtpClientCheckTimeout(context);
    }
 
    //Total number of data that have been written
@@ -1265,7 +1283,6 @@ error_t smtpClientClose(SmtpClientContext *context)
 
    //Close connection
    smtpClientCloseConnection(context);
-
    //Update SMTP client state
    smtpClientChangeState(context, SMTP_CLIENT_STATE_DISCONNECTED);
 

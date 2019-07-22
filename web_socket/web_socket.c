@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -340,7 +340,7 @@ error_t webSocketSetSubProtocol(WebSocket *webSocket, const char_t *subProtocol)
  * @param[in] webSocket Handle to a WebSocket
  * @param[in] username NULL-terminated string containing the user name to be used
  * @param[in] password NULL-terminated string containing the password to be used
- * @param[in] allowedAuthModes Logic OR of allowed HTTP authentication modes
+ * @param[in] allowedAuthModes Logic OR of allowed HTTP authentication schemes
  * @return Error code
  **/
 
@@ -361,7 +361,7 @@ error_t webSocketSetAuthInfo(WebSocket *webSocket, const char_t *username,
    strSafeCopy(authContext->username, username, WEB_SOCKET_USERNAME_MAX_LEN);
    //Save password
    strSafeCopy(authContext->password, password, WEB_SOCKET_PASSWORD_MAX_LEN);
-   //Save the list of allowed HTTP authentication modes
+   //Save the list of allowed HTTP authentication schemes
    authContext->allowedAuthModes = allowedAuthModes;
 #endif
 
@@ -755,7 +755,7 @@ error_t webSocketParseClientHandshake(WebSocket *webSocket)
       else if(webSocket->state == WS_STATE_CONNECTING)
       {
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
-         //Use TLS to secure the connection?
+         //TLS-secured connection?
          if(webSocket->tlsInitCallback != NULL)
          {
             //Establish TLS connection

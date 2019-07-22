@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -104,7 +104,9 @@ error_t mcf5225xEthInit(NetInterface *interface)
    //Reset FEC module
    MCF_FEC_ECR = MCF_FEC_ECR_RESET;
    //Wait for the reset to complete
-   while(MCF_FEC_ECR & MCF_FEC_ECR_RESET);
+   while(MCF_FEC_ECR & MCF_FEC_ECR_RESET)
+   {
+   }
 
    //Receive control register
    MCF_FEC_RCR = MCF_FEC_RCR_MAX_FL(MCF5225X_ETH_RX_BUFFER_SIZE) |
@@ -207,8 +209,6 @@ void mcf5225xEthInitGpio(NetInterface *interface)
    //Reset PHY transceiver
    MCF_RCM_RCR |= MCF_RCM_RCR_FRCRSTOUT;
    sleep(10);
-
-   //Take the PHY transceiver out of reset
    MCF_RCM_RCR &= ~MCF_RCM_RCR_FRCRSTOUT;
    sleep(10);
 }
@@ -335,7 +335,7 @@ __declspec(interrupt) void mcf5225xEthIrqHandler(void)
    bool_t flag;
    uint32_t events;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -393,7 +393,7 @@ __declspec(interrupt) void mcf5225xEthIrqHandler(void)
          MCF_FEC_EIR_MII | MCF_FEC_EIR_LC | MCF_FEC_EIR_RL | MCF_FEC_EIR_UN;
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -711,60 +711,91 @@ error_t mcf5225xEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void mcf5225xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void mcf5225xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = MCF_FEC_MMFR_ST(1) | MCF_FEC_MMFR_OP(1) | MCF_FEC_MMFR_TA(2);
-   //PHY address
-   value |= MCF_FEC_MMFR_PA(phyAddr);
-   //Register address
-   value |= MCF_FEC_MMFR_RA(regAddr);
-   //Register value
-   value |= MCF_FEC_MMFR_DATA(data);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = MCF_FEC_MMFR_ST(1) | MCF_FEC_MMFR_OP(1) | MCF_FEC_MMFR_TA(2);
+      //PHY address
+      temp |= MCF_FEC_MMFR_PA(phyAddr);
+      //Register address
+      temp |= MCF_FEC_MMFR_RA(regAddr);
+      //Register value
+      temp |= MCF_FEC_MMFR_DATA(data);
 
-   //Clear MII interrupt flag
-   MCF_FEC_EIR = MCF_FEC_EIR_MII;
-   //Start a write operation
-   MCF_FEC_MMFR = value;
-   //Wait for the write to complete
-   while(!(MCF_FEC_EIR & MCF_FEC_EIR_MII));
+      //Clear MII interrupt flag
+      MCF_FEC_EIR = MCF_FEC_EIR_MII;
+      //Start a write operation
+      MCF_FEC_MMFR = temp;
+
+      //Wait for the write to complete
+      while(!(MCF_FEC_EIR & MCF_FEC_EIR_MII))
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t mcf5225xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t mcf5225xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = MCF_FEC_MMFR_ST(1) | MCF_FEC_MMFR_OP(2) | MCF_FEC_MMFR_TA(2);
-   //PHY address
-   value |= MCF_FEC_MMFR_PA(phyAddr);
-   //Register address
-   value |= MCF_FEC_MMFR_RA(regAddr);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = MCF_FEC_MMFR_ST(1) | MCF_FEC_MMFR_OP(2) | MCF_FEC_MMFR_TA(2);
+      //PHY address
+      temp |= MCF_FEC_MMFR_PA(phyAddr);
+      //Register address
+      temp |= MCF_FEC_MMFR_RA(regAddr);
 
-   //Clear MII interrupt flag
-   MCF_FEC_EIR = MCF_FEC_EIR_MII;
-   //Start a read operation
-   MCF_FEC_MMFR = value;
-   //Wait for the read to complete
-   while(!(MCF_FEC_EIR & MCF_FEC_EIR_MII));
+      //Clear MII interrupt flag
+      MCF_FEC_EIR = MCF_FEC_EIR_MII;
+      //Start a read operation
+      MCF_FEC_MMFR = temp;
 
-   //Return PHY register contents
-   return MCF_FEC_MMFR;
+      //Wait for the read to complete
+      while(!(MCF_FEC_EIR & MCF_FEC_EIR_MII))
+      {
+      }
+
+      //Get register value
+      data = MCF_FEC_MMFR;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

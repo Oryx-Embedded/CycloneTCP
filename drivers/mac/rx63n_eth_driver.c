@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -495,7 +495,7 @@ __interrupt void rx63nEthIrqHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -739,19 +739,21 @@ error_t rx63nEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void rx63nEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void rx63nEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
    //Synchronization pattern
    rx63nEthWriteSmi(SMI_SYNC, 32);
    //Start of frame
    rx63nEthWriteSmi(SMI_START, 2);
    //Set up a write operation
-   rx63nEthWriteSmi(SMI_WRITE, 2);
+   rx63nEthWriteSmi(opcode, 2);
    //Write PHY address
    rx63nEthWriteSmi(phyAddr, 5);
    //Write register address
@@ -767,12 +769,14 @@ void rx63nEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t rx63nEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t rx63nEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
    uint16_t data;
 
@@ -781,7 +785,7 @@ uint16_t rx63nEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
    //Start of frame
    rx63nEthWriteSmi(SMI_START, 2);
    //Set up a read operation
-   rx63nEthWriteSmi(SMI_READ, 2);
+   rx63nEthWriteSmi(opcode, 2);
    //Write PHY address
    rx63nEthWriteSmi(phyAddr, 5);
    //Write register address

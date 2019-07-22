@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -141,7 +141,9 @@ error_t rza1EthInit(NetInterface *interface)
    //written to both the SWRT and SWRR bits simultaneously
    ETHER.EDMR0 = ETHER_EDMR0_SWRT | ETHER_EDMR0_SWRR;
    //Wait for the reset to complete
-   while(ETHER.EDMR0 & (ETHER_EDMR0_SWRT | ETHER_EDMR0_SWRR));
+   while(ETHER.EDMR0 & (ETHER_EDMR0_SWRT | ETHER_EDMR0_SWRR))
+   {
+   }
 
    //PHY transceiver initialization
    error = interface->phyDriver->init(interface);
@@ -624,8 +626,6 @@ void rza1EthInitGpio(NetInterface *interface)
    //Reset the PHY transceiver
    PORT2.Pn.BIT.Pn7 = 0;
    sleep(10);
-
-   //Take the PHY transceiver out of reset
    PORT2.Pn.BIT.Pn7 = 1;
    sleep(10);
 #endif
@@ -751,7 +751,7 @@ void rza1EthIrqHandler(uint32_t intSense)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -786,7 +786,7 @@ void rza1EthIrqHandler(uint32_t intSense)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -1001,14 +1001,18 @@ error_t rza1EthUpdateMacAddrFilter(NetInterface *interface)
 
          //The contents of the CAM entry table registers cannot be
          //modified while the ADSBSY flag is set
-         while(ETHER.TSU_ADSBSY & ETHER_TSU_ADSBSY_ADSBSY);
+         while(ETHER.TSU_ADSBSY & ETHER_TSU_ADSBSY_ADSBSY)
+         {
+         }
 
          //Set the upper 32 bits of the MAC address
          *addrHigh = (entry->addr.b[0] << 24) | (entry->addr.b[1] << 16) |
             (entry->addr.b[2] << 8) |entry->addr.b[3];
 
          //Wait for the ADSBSY flag to be cleared
-         while(ETHER.TSU_ADSBSY & ETHER_TSU_ADSBSY_ADSBSY);
+         while(ETHER.TSU_ADSBSY & ETHER_TSU_ADSBSY_ADSBSY)
+         {
+         }
 
          //Set the lower 16 bits of the MAC address
          *addrLow = (entry->addr.b[4] << 8) | entry->addr.b[5];
@@ -1049,19 +1053,21 @@ error_t rza1EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void rza1EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void rza1EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
    //Synchronization pattern
    rza1EthWriteSmi(SMI_SYNC, 32);
    //Start of frame
    rza1EthWriteSmi(SMI_START, 2);
    //Set up a write operation
-   rza1EthWriteSmi(SMI_WRITE, 2);
+   rza1EthWriteSmi(opcode, 2);
    //Write PHY address
    rza1EthWriteSmi(phyAddr, 5);
    //Write register address
@@ -1077,12 +1083,14 @@ void rza1EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t rza1EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t rza1EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
    uint16_t data;
 
@@ -1091,7 +1099,7 @@ uint16_t rza1EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
    //Start of frame
    rza1EthWriteSmi(SMI_START, 2);
    //Set up a read operation
-   rza1EthWriteSmi(SMI_READ, 2);
+   rza1EthWriteSmi(opcode, 2);
    //Write PHY address
    rza1EthWriteSmi(phyAddr, 5);
    //Write register address

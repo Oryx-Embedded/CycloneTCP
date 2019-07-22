@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _HTTP_CLIENT_TRANSPORT_H
@@ -54,6 +54,8 @@ error_t httpClientSendData(HttpClientContext *context, const void *data,
 
 error_t httpClientReceiveData(HttpClientContext *context, void *data,
    size_t size, size_t *received, uint_t flags);
+
+error_t httpClientSaveSession(HttpClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus

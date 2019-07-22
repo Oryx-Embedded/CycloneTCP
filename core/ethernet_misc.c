@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -200,8 +200,8 @@ error_t ethEncodeVlanTag(NetBuffer *buffer, size_t *offset, uint16_t vlanId,
    //Point to the VLAN tag
    vlanTag = netBufferAt(buffer, *offset);
 
-   //The VLAN identifier is encoded in a 12-bit field
-   vlanTag->tci = htons(vlanId & VLAN_VID_MASK);
+   //The TCI field is divided into PCP, DEI, and VID
+   vlanTag->tci = htons(vlanId);
 
    //The EtherType field indicates which protocol is encapsulated in the
    //payload
@@ -236,16 +236,10 @@ error_t ethDecodeVlanTag(const uint8_t *frame, size_t length, uint16_t *vlanId,
    //Point to the VLAN tag
    vlanTag = (VlanTag *) frame;
 
-   //The VLAN identifier is encoded in a 12-bit field
+   //The VID is encoded in a 12-bit field. The null VID indicates that the
+   //tag header contains only priority information (refer to IEEE 802.1q,
+   //section 9.6)
    *vlanId = ntohs(vlanTag->tci) & VLAN_VID_MASK;
-
-   //The null VID indicates that the tag header contains only priority
-   //information (refer to IEEE 802.1q, section 9.6)
-   if(*vlanId == 0)
-   {
-      //Drop the received frame
-      return ERROR_WRONG_IDENTIFIER;
-   }
 
    //The EtherType field indicates which protocol is encapsulated in the
    //payload

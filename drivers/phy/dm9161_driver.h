@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _DM9161_DRIVER_H
@@ -41,165 +41,157 @@
    #error DM9161_PHY_ADDR parameter is not valid
 #endif
 
-//DM9161 registers
-#define DM9161_PHY_REG_BMCR      0x00
-#define DM9161_PHY_REG_BMSR      0x01
-#define DM9161_PHY_REG_PHYIDR1   0x02
-#define DM9161_PHY_REG_PHYIDR2   0x03
-#define DM9161_PHY_REG_ANAR      0x04
-#define DM9161_PHY_REG_ANLPAR    0x05
-#define DM9161_PHY_REG_ANER      0x06
-#define DM9161_PHY_REG_DSCR      0x10
-#define DM9161_PHY_REG_DSCSR     0x11
-#define DM9161_PHY_REG_10BTCSR   0x12
-#define DM9161_PHY_REG_MDINTR    0x15
-#define DM9161_PHY_REG_RECR      0x16
-#define DM9161_PHY_REG_DISCR     0x17
-#define DM9161_PHY_REG_RLSR      0x18
+//DM9161 PHY registers
+#define DM9161_BMCR                          0x00
+#define DM9161_BMSR                          0x01
+#define DM9161_PHYID1                        0x02
+#define DM9161_PHYID2                        0x03
+#define DM9161_ANAR                          0x04
+#define DM9161_ANLPAR                        0x05
+#define DM9161_ANER                          0x06
+#define DM9161_DSCR                          0x10
+#define DM9161_DSCSR                         0x11
+#define DM9161_10BTCSR                       0x12
+#define DM9161_MDINTR                        0x15
+#define DM9161_RECR                          0x16
+#define DM9161_DISCR                         0x17
+#define DM9161_RLSR                          0x18
 
-//BMCR register
-#define BMCR_RESET               (1 << 15)
-#define BMCR_LOOPBACK            (1 << 14)
-#define BMCR_SPEED_SEL           (1 << 13)
-#define BMCR_AN_EN               (1 << 12)
-#define BMCR_POWER_DOWN          (1 << 11)
-#define BMCR_ISOLATE             (1 << 10)
-#define BMCR_RESTART_AN          (1 << 9)
-#define BMCR_DUPLEX_MODE         (1 << 8)
-#define BMCR_COL_TEST            (1 << 7)
+//Basic Mode Control register
+#define DM9161_BMCR_RESET                    0x8000
+#define DM9161_BMCR_LOOPBACK                 0x4000
+#define DM9161_BMCR_SPEED_SEL                0x2000
+#define DM9161_BMCR_AN_EN                    0x1000
+#define DM9161_BMCR_POWER_DOWN               0x0800
+#define DM9161_BMCR_ISOLATE                  0x0400
+#define DM9161_BMCR_RESTART_AN               0x0200
+#define DM9161_BMCR_DUPLEX_MODE              0x0100
+#define DM9161_BMCR_COL_TEST                 0x0080
 
-//BMSR register
-#define BMSR_100BT4              (1 << 15)
-#define BMSR_100BTX_FD           (1 << 14)
-#define BMSR_100BTX              (1 << 13)
-#define BMSR_10BT_FD             (1 << 12)
-#define BMSR_10BT                (1 << 11)
-#define BMSR_NO_PREAMBLE         (1 << 6)
-#define BMSR_AN_COMPLETE         (1 << 5)
-#define BMSR_REMOTE_FAULT        (1 << 4)
-#define BMSR_AN_ABLE             (1 << 3)
-#define BMSR_LINK_STATUS         (1 << 2)
-#define BMSR_JABBER_DETECT       (1 << 1)
-#define BMSR_EXTENDED_CAP        (1 << 0)
+//Basic Mode Status register
+#define DM9161_BMSR_100BT4                   0x8000
+#define DM9161_BMSR_100BTX_FD                0x4000
+#define DM9161_BMSR_100BTX_HD                0x2000
+#define DM9161_BMSR_10BT_FD                  0x1000
+#define DM9161_BMSR_10BT_HD                  0x0800
+#define DM9161_BMSR_MF_PREAMBLE_SUPPR        0x0040
+#define DM9161_BMSR_AN_COMPLETE              0x0020
+#define DM9161_BMSR_REMOTE_FAULT             0x0010
+#define DM9161_BMSR_AN_CAPABLE               0x0008
+#define DM9161_BMSR_LINK_STATUS              0x0004
+#define DM9161_BMSR_JABBER_DETECT            0x0002
+#define DM9161_BMSR_EXTENDED_CAPABLE         0x0001
 
-//ANAR register
-#define ANAR_NP                  (1 << 15)
-#define ANAR_ACK                 (1 << 14)
-#define ANAR_RF                  (1 << 13)
-#define ANAR_FCS                 (1 << 10)
-#define ANAR_100BT4              (1 << 9)
-#define ANAR_100BTX_FD           (1 << 8)
-#define ANAR_100BTX              (1 << 7)
-#define ANAR_10BT_FD             (1 << 6)
-#define ANAR_10BT                (1 << 5)
-#define ANAR_SELECTOR4           (1 << 4)
-#define ANAR_SELECTOR3           (1 << 3)
-#define ANAR_SELECTOR2           (1 << 2)
-#define ANAR_SELECTOR1           (1 << 1)
-#define ANAR_SELECTOR0           (1 << 0)
+//PHY Identifier 1 register
+#define DM9161_PHYID1_OUI_MSB                0xFFFF
+#define DM9161_PHYID1_OUI_MSB_DEFAULT        0x0181
 
-//ANLPAR register
-#define ANLPAR_NP                (1 << 15)
-#define ANLPAR_ACK               (1 << 14)
-#define ANLPAR_RF                (1 << 13)
-#define ANLPAR_FCS               (1 << 10)
-#define ANLPAR_100BT4            (1 << 9)
-#define ANLPAR_100BTX_FD         (1 << 8)
-#define ANLPAR_100BTX            (1 << 7)
-#define ANLPAR_10BT_FD           (1 << 6)
-#define ANLPAR_10BT              (1 << 5)
-#define ANLPAR_SELECTOR4         (1 << 4)
-#define ANLPAR_SELECTOR3         (1 << 3)
-#define ANLPAR_SELECTOR2         (1 << 2)
-#define ANLPAR_SELECTOR1         (1 << 1)
-#define ANLPAR_SELECTOR0         (1 << 0)
+//PHY Identifier 2 register
+#define DM9161_PHYID2_OUI_LSB                0xFC00
+#define DM9161_PHYID2_OUI_LSB_DEFAULT        0xB800
+#define DM9161_PHYID2_VNDR_MDL               0x03F0
+#define DM9161_PHYID2_VNDR_MDL_DEFAULT       0x0080
+#define DM9161_PHYID2_MDL_REV                0x000F
 
-//ANER register
-#define ANER_PDF                 (1 << 4)
-#define ANER_LP_NP_ABLE          (1 << 3)
-#define ANER_NP_ABLE             (1 << 2)
-#define ANER_PAGE_RX             (1 << 1)
-#define ANER_LP_AN_ABLE          (1 << 0)
+//Auto-Negotiation Advertisement register
+#define DM9161_ANAR_NEXT_PAGE                0x8000
+#define DM9161_ANAR_ACK                      0x4000
+#define DM9161_ANAR_REMOTE_FAULT             0x2000
+#define DM9161_ANAR_FCS                      0x0400
+#define DM9161_ANAR_100BT4                   0x0200
+#define DM9161_ANAR_100BTX_FD                0x0100
+#define DM9161_ANAR_100BTX_HD                0x0080
+#define DM9161_ANAR_10BT_FD                  0x0040
+#define DM9161_ANAR_10BT_HD                  0x0020
+#define DM9161_ANAR_SELECTOR                 0x001F
+#define DM9161_ANAR_SELECTOR_DEFAULT         0x0001
 
-//DSCR register
-#define DSCR_BP_4B5B             (1 << 15)
-#define DSCR_BP_SCR              (1 << 14)
-#define DSCR_BP_ALIGN            (1 << 13)
-#define DSCR_BP_ADPOK            (1 << 12)
-#define DSCR_REPEATER            (1 << 11)
-#define DSCR_TX                  (1 << 10)
-#define DSCR_FEF                 (1 << 9)
-#define DSCR_RMII_EN             (1 << 8)
-#define DSCR_F_LINK_100          (1 << 7)
-#define DSCR_SPLED_CTL           (1 << 6)
-#define DSCR_COLLED_CTL          (1 << 5)
-#define DSCR_RPDCTR_EN           (1 << 4)
-#define DSCR_SMRST               (1 << 3)
-#define DSCR_MFPSC               (1 << 2)
-#define DSCR_SLEEP               (1 << 1)
-#define DSCR_RLOUT               (1 << 0)
+//Auto-Negotiation Link Partner Ability register
+#define DM9161_ANLPAR_NEXT_PAGE              0x8000
+#define DM9161_ANLPAR_ACK                    0x4000
+#define DM9161_ANLPAR_REMOTE_FAULT           0x2000
+#define DM9161_ANLPAR_FCS                    0x0400
+#define DM9161_ANLPAR_100BT4                 0x0200
+#define DM9161_ANLPAR_100BTX_FD              0x0100
+#define DM9161_ANLPAR_100BTX_HD              0x0080
+#define DM9161_ANLPAR_10BT_FD                0x0040
+#define DM9161_ANLPAR_10BT_HD                0x0020
+#define DM9161_ANLPAR_SELECTOR               0x001F
+#define DM9161_ANLPAR_SELECTOR_DEFAULT       0x0001
 
-//DSCSR register
-#define DSCSR_100FDX             (1 << 15)
-#define DSCSR_100HDX             (1 << 14)
-#define DSCSR_10FDX              (1 << 13)
-#define DSCSR_10HDX              (1 << 12)
-#define DSCSR_PHYADR4            (1 << 8)
-#define DSCSR_PHYADR3            (1 << 7)
-#define DSCSR_PHYADR2            (1 << 6)
-#define DSCSR_PHYADR1            (1 << 5)
-#define DSCSR_PHYADR0            (1 << 4)
-#define DSCSR_ANMB3              (1 << 3)
-#define DSCSR_ANMB2              (1 << 2)
-#define DSCSR_ANMB1              (1 << 1)
-#define DSCSR_ANMB0              (1 << 0)
+//Auto-Negotiation Expansion register
+#define DM9161_ANER_PAR_DETECT_FAULT         0x0010
+#define DM9161_ANER_LP_NP_ABLE               0x0008
+#define DM9161_ANER_NP_ABLE                  0x0004
+#define DM9161_ANER_PAGE_RX                  0x0002
+#define DM9161_ANER_LP_AN_ABLE               0x0001
 
-//10BTCSR register
-#define _10BTCSR_LP_EN           (1 << 14)
-#define _10BTCSR_HBE             (1 << 13)
-#define _10BTCSR_SQUELCH         (1 << 12)
-#define _10BTCSR_JABEN           (1 << 11)
-#define _10BTCSR_10BT_SER        (1 << 10)
-#define _10BTCSR_POLR            (1 << 0)
+//DAVICOM Specified Configuration register
+#define DM9161_DSCR_BP_4B5B                  0x8000
+#define DM9161_DSCR_BP_SCR                   0x4000
+#define DM9161_DSCR_BP_ALIGN                 0x2000
+#define DM9161_DSCR_BP_ADPOK                 0x1000
+#define DM9161_DSCR_REPEATER                 0x0800
+#define DM9161_DSCR_TX                       0x0400
+#define DM9161_DSCR_FEF                      0x0200
+#define DM9161_DSCR_RMII_EN                  0x0100
+#define DM9161_DSCR_F_LINK_100               0x0080
+#define DM9161_DSCR_SPLED_CTL                0x0040
+#define DM9161_DSCR_COLLED_CTL               0x0020
+#define DM9161_DSCR_RPDCTR_EN                0x0010
+#define DM9161_DSCR_SMRST                    0x0008
+#define DM9161_DSCR_MFPSC                    0x0004
+#define DM9161_DSCR_SLEEP                    0x0002
+#define DM9161_DSCR_RLOUT                    0x0001
 
-//MDINTR register
-#define MDINTR_INTR_PEND         (1 << 15)
-#define MDINTR_FDX_MASK          (1 << 11)
-#define MDINTR_SPD_MASK          (1 << 10)
-#define MDINTR_LINK_MASK         (1 << 9)
-#define MDINTR_INTR_MASK         (1 << 8)
-#define MDINTR_FDX_CHANGE        (1 << 4)
-#define MDINTR_SPD_CHANGE        (1 << 3)
-#define MDINTR_LINK_CHANGE       (1 << 2)
-#define MDINTR_INTR_STATUS       (1 << 0)
+//DAVICOM Specified Configuration and Status register
+#define DM9161_DSCSR_100FDX                  0x8000
+#define DM9161_DSCSR_100HDX                  0x4000
+#define DM9161_DSCSR_10FDX                   0x2000
+#define DM9161_DSCSR_10HDX                   0x1000
+#define DM9161_DSCSR_PHYADR                  0x01F0
+#define DM9161_DSCSR_ANMB                    0x000F
+#define DM9161_DSCSR_ANMB_IDLE               0x0000
+#define DM9161_DSCSR_ANMB_ABILITY_MATCH      0x0001
+#define DM9161_DSCSR_ANMB_ACK_MATCH          0x0002
+#define DM9161_DSCSR_ANMB_ACK_MATCH_FAIL     0x0003
+#define DM9161_DSCSR_ANMB_CONSIST_MATCH      0x0004
+#define DM9161_DSCSR_ANMB_CONSIST_MATCH_FAIL 0x0005
+#define DM9161_DSCSR_ANMB_LINK_READY         0x0006
+#define DM9161_DSCSR_ANMB_LINK_READY_FAIL    0x0007
+#define DM9161_DSCSR_ANMB_AN_COMPLETE        0x0008
 
-//RLSR register
-#define RLSR_LH_LEDST            (1 << 13)
-#define RLSR_LH_CSTS             (1 << 12)
-#define RLSR_LH_RMII             (1 << 11)
-#define RLSR_LH_SCRAM            (1 << 10)
-#define RLSR_LH_REPTR            (1 << 9)
-#define RLSR_LH_TSTMOD           (1 << 8)
-#define RLSR_LH_OP2              (1 << 7)
-#define RLSR_LH_OP1              (1 << 6)
-#define RLSR_LH_OP0              (1 << 5)
-#define RLSR_LH_PH4              (1 << 4)
-#define RLSR_LH_PH3              (1 << 3)
-#define RLSR_LH_PH2              (1 << 2)
-#define RLSR_LH_PH1              (1 << 1)
-#define RLSR_LH_PH0              (1 << 0)
+//10BASE-T Configuration/Status register
+#define DM9161_10BTCSR_LP_EN                 0x4000
+#define DM9161_10BTCSR_HBE                   0x2000
+#define DM9161_10BTCSR_SQUELCH               0x1000
+#define DM9161_10BTCSR_JABEN                 0x0800
+#define DM9161_10BTCSR_10BT_SER              0x0400
+#define DM9161_10BTCSR_POLR                  0x0001
 
-//Auto-negotiation state machine
-#define DSCSR_ANMB_MASK                      0x000F
-#define DSCSR_ANMB_IDLE                      0x0000
-#define DSCSR_ANMB_ABILITY_MATCH             0x0001
-#define DSCSR_ANMB_ACK_MATCH                 0x0002
-#define DSCSR_ANMB_ACK_MATCH_FAILED          0x0003
-#define DSCSR_ANMB_CONSIST_MATCH             0x0004
-#define DSCSR_ANMB_CONSIST_MATCH_FAILED      0x0005
-#define DSCSR_ANMB_SIGNAL_LINK_READY         0x0006
-#define DSCSR_ANMB_SIGNAL_LINK_READY_FAILED  0x0007
-#define DSCSR_ANMB_AN_SUCCESS                0x0008
+//DAVICOM Specified Interrupt register
+#define DM9161_MDINTR_INTR_PEND              0x8000
+#define DM9161_MDINTR_FDX_MASK               0x0800
+#define DM9161_MDINTR_SPD_MASK               0x0400
+#define DM9161_MDINTR_LINK_MASK              0x0200
+#define DM9161_MDINTR_INTR_MASK              0x0100
+#define DM9161_MDINTR_FDX_CHANGE             0x0010
+#define DM9161_MDINTR_SPD_CHANGE             0x0008
+#define DM9161_MDINTR_LINK_CHANGE            0x0004
+#define DM9161_MDINTR_INTR_STATUS            0x0001
+
+//DAVICOM Specified Disconnect Counter register
+#define DM9161_DISCR_DISCONNECT_COUNT        0x00FF
+
+//DAVICOM Hardware Reset Latch State register
+#define DM9161_RLSR_LH_LEDST                 0x2000
+#define DM9161_RLSR_LH_CSTS                  0x1000
+#define DM9161_RLSR_LH_RMII                  0x0800
+#define DM9161_RLSR_LH_SCRAM                 0x0400
+#define DM9161_RLSR_LH_REPTR                 0x0200
+#define DM9161_RLSR_LH_TSTMOD                0x0100
+#define DM9161_RLSR_LH_OP                    0x00E0
+#define DM9161_RLSR_LH_PH                    0x001F
 
 //C++ guard
 #ifdef __cplusplus

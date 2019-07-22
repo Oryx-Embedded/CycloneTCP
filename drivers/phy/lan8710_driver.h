@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _LAN8710_DRIVER_H
@@ -41,155 +41,135 @@
    #error LAN8710_PHY_ADDR parameter is not valid
 #endif
 
-//LAN8710 registers
-#define LAN8710_PHY_REG_BMCR        0x00
-#define LAN8710_PHY_REG_BMSR        0x01
-#define LAN8710_PHY_REG_PHYIDR1     0x02
-#define LAN8710_PHY_REG_PHYIDR2     0x03
-#define LAN8710_PHY_REG_ANAR        0x04
-#define LAN8710_PHY_REG_ANLPAR      0x05
-#define LAN8710_PHY_REG_ANER        0x06
-#define LAN8710_PHY_REG_SRR         0x10
-#define LAN8710_PHY_REG_MCSR        0x11
-#define LAN8710_PHY_REG_SMR         0x12
-#define LAN8710_PHY_REG_SECR        0x1A
-#define LAN8710_PHY_REG_SCSIR       0x1B
-#define LAN8710_PHY_REG_SITCR       0x1C
-#define LAN8710_PHY_REG_ISR         0x1D
-#define LAN8710_PHY_REG_IMR         0x1E
-#define LAN8710_PHY_REG_PSCSR       0x1F
+//LAN8710 PHY registers
+#define LAN8710_BMCR                      0x00
+#define LAN8710_BMSR                      0x01
+#define LAN8710_PHYID1                    0x02
+#define LAN8710_PHYID2                    0x03
+#define LAN8710_ANAR                      0x04
+#define LAN8710_ANLPAR                    0x05
+#define LAN8710_ANER                      0x06
+#define LAN8710_MCSR                      0x11
+#define LAN8710_SMR                       0x12
+#define LAN8710_SECR                      0x1A
+#define LAN8710_SCSIR                     0x1B
+#define LAN8710_ISR                       0x1D
+#define LAN8710_IMR                       0x1E
+#define LAN8710_PSCSR                     0x1F
 
-//BMCR register
-#define BMCR_RESET                  (1 << 15)
-#define BMCR_LOOPBACK               (1 << 14)
-#define BMCR_SPEED_SEL              (1 << 13)
-#define BMCR_AN_EN                  (1 << 12)
-#define BMCR_POWER_DOWN             (1 << 11)
-#define BMCR_ISOLATE                (1 << 10)
-#define BMCR_RESTART_AN             (1 << 9)
-#define BMCR_DUPLEX_MODE            (1 << 8)
-#define BMCR_COL_TEST               (1 << 7)
+//Basic Control register
+#define LAN8710_BMCR_RESET                0x8000
+#define LAN8710_BMCR_LOOPBACK             0x4000
+#define LAN8710_BMCR_SPEED_SEL            0x2000
+#define LAN8710_BMCR_AN_EN                0x1000
+#define LAN8710_BMCR_POWER_DOWN           0x0800
+#define LAN8710_BMCR_ISOLATE              0x0400
+#define LAN8710_BMCR_RESTART_AN           0x0200
+#define LAN8710_BMCR_DUPLEX_MODE          0x0100
+#define LAN8710_BMCR_COL_TEST             0x0080
 
-//BMSR register
-#define BMSR_100BT4                 (1 << 15)
-#define BMSR_100BTX_FD              (1 << 14)
-#define BMSR_100BTX                 (1 << 13)
-#define BMSR_10BT_FD                (1 << 12)
-#define BMSR_10BT                   (1 << 11)
-#define BMSR_AN_COMPLETE            (1 << 5)
-#define BMSR_REMOTE_FAULT           (1 << 4)
-#define BMSR_AN_ABLE                (1 << 3)
-#define BMSR_LINK_STATUS            (1 << 2)
-#define BMSR_JABBER_DETECT          (1 << 1)
-#define BMSR_EXTENDED_CAP           (1 << 0)
+//Basic Status register
+#define LAN8710_BMSR_100BT4               0x8000
+#define LAN8710_BMSR_100BTX_FD            0x4000
+#define LAN8710_BMSR_100BTX_HD            0x2000
+#define LAN8710_BMSR_10BT_FD              0x1000
+#define LAN8710_BMSR_10BT_HD              0x0800
+#define LAN8710_BMSR_100BT2_FD            0x0400
+#define LAN8710_BMSR_100BT2_HD            0x0200
+#define LAN8710_BMSR_EXTENDED_STATUS      0x0100
+#define LAN8710_BMSR_AN_COMPLETE          0x0020
+#define LAN8710_BMSR_REMOTE_FAULT         0x0010
+#define LAN8710_BMSR_AN_CAPABLE           0x0008
+#define LAN8710_BMSR_LINK_STATUS          0x0004
+#define LAN8710_BMSR_JABBER_DETECT        0x0002
+#define LAN8710_BMSR_EXTENDED_CAPABLE     0x0001
 
-//ANAR register
-#define ANAR_NP                     (1 << 15)
-#define ANAR_RF                     (1 << 13)
-#define ANAR_PAUSE1                 (1 << 11)
-#define ANAR_PAUSE0                 (1 << 10)
-#define ANAR_100BT4                 (1 << 9)
-#define ANAR_100BTX_FD              (1 << 8)
-#define ANAR_100BTX                 (1 << 7)
-#define ANAR_10BT_FD                (1 << 6)
-#define ANAR_10BT                   (1 << 5)
-#define ANAR_SELECTOR4              (1 << 4)
-#define ANAR_SELECTOR3              (1 << 3)
-#define ANAR_SELECTOR2              (1 << 2)
-#define ANAR_SELECTOR1              (1 << 1)
-#define ANAR_SELECTOR0              (1 << 0)
+//PHY Identifier 1 register
+#define LAN8710_PHYID1_PHY_ID_MSB         0xFFFF
+#define LAN8710_PHYID1_PHY_ID_MSB_DEFAULT 0x0007
 
-//ANLPAR register
-#define ANLPAR_NP                   (1 << 15)
-#define ANLPAR_ACK                  (1 << 14)
-#define ANLPAR_RF                   (1 << 13)
-#define ANLPAR_PAUSE                (1 << 10)
-#define ANLPAR_100BT4               (1 << 9)
-#define ANLPAR_100BTX_FD            (1 << 8)
-#define ANLPAR_100BTX               (1 << 7)
-#define ANLPAR_10BT_FD              (1 << 6)
-#define ANLPAR_10BT                 (1 << 5)
-#define ANLPAR_SELECTOR4            (1 << 4)
-#define ANLPAR_SELECTOR3            (1 << 3)
-#define ANLPAR_SELECTOR2            (1 << 2)
-#define ANLPAR_SELECTOR1            (1 << 1)
-#define ANLPAR_SELECTOR0            (1 << 0)
+//PHY Identifier 2 register
+#define LAN8710_PHYID2_PHY_ID_LSB         0xFC00
+#define LAN8710_PHYID2_PHY_ID_LSB_DEFAULT 0xC000
+#define LAN8710_PHYID2_MODEL_NUM          0x03F0
+#define LAN8710_PHYID2_MODEL_NUM_DEFAULT  0x00F0
+#define LAN8710_PHYID2_REVISION_NUM       0x000F
 
-//ANER register
-#define ANER_PDF                    (1 << 4)
-#define ANER_LP_NP_ABLE             (1 << 3)
-#define ANER_NP_ABLE                (1 << 2)
-#define ANER_PAGE_RX                (1 << 1)
-#define ANER_LP_AN_ABLE             (1 << 0)
+//Auto-Negotiation Advertisement register
+#define LAN8710_ANAR_REMOTE_FAULT         0x2000
+#define LAN8710_ANAR_PAUSE                0x0C00
+#define LAN8710_ANAR_100BTX_FD            0x0100
+#define LAN8710_ANAR_100BTX_HD            0x0080
+#define LAN8710_ANAR_10BT_FD              0x0040
+#define LAN8710_ANAR_10BT_HD              0x0020
+#define LAN8710_ANAR_SELECTOR             0x001F
+#define LAN8710_ANAR_SELECTOR_DEFAULT     0x0001
 
-//SRR register
-#define SRR_SILICON_REVISON3        (1 << 9)
-#define SRR_SILICON_REVISON2        (1 << 8)
-#define SRR_SILICON_REVISON1        (1 << 7)
-#define SRR_SILICON_REVISON0        (1 << 6)
+//Auto-Negotiation Link Partner Ability register
+#define LAN8710_ANLPAR_NEXT_PAGE          0x8000
+#define LAN8710_ANLPAR_ACK                0x4000
+#define LAN8710_ANLPAR_REMOTE_FAULT       0x2000
+#define LAN8710_ANLPAR_PAUSE              0x0400
+#define LAN8710_ANLPAR_100BT4             0x0200
+#define LAN8710_ANLPAR_100BTX_FD          0x0100
+#define LAN8710_ANLPAR_100BTX_HD          0x0080
+#define LAN8710_ANLPAR_10BT_FD            0x0040
+#define LAN8710_ANLPAR_10BT_HD            0x0020
+#define LAN8710_ANLPAR_SELECTOR           0x001F
+#define LAN8710_ANLPAR_SELECTOR_DEFAULT   0x0001
 
-//MCSR register
-#define MCSR_EDPWRDOWN              (1 << 13)
-#define MCSR_LOWSQEN                (1 << 11)
-#define MCSR_MDPREBP                (1 << 10)
-#define MCSR_FARLOOPBACK            (1 << 9)
-#define MCSR_ALTINT                 (1 << 6)
-#define MCSR_PHYADBP                (1 << 3)
-#define MCSR_FORCE_GOOD_LINK_STATUS (1 << 2)
-#define MCSR_ENERGYON               (1 << 1)
+//Auto-Negotiation Expansion register
+#define LAN8710_ANER_PAR_DETECT_FAULT     0x0010
+#define LAN8710_ANER_LP_NEXT_PAGE_ABLE    0x0008
+#define LAN8710_ANER_NEXT_PAGE_ABLE       0x0004
+#define LAN8710_ANER_PAGE_RECEIVED        0x0002
+#define LAN8710_ANER_LP_AN_ABLE           0x0001
 
-//SMR register
-#define SMR_MIIMODE                 (1 << 14)
-#define SMR_MODE2                   (1 << 7)
-#define SMR_MODE1                   (1 << 6)
-#define SMR_MODE0                   (1 << 5)
-#define SMR_PHYAD4                  (1 << 4)
-#define SMR_PHYAD3                  (1 << 3)
-#define SMR_PHYAD2                  (1 << 2)
-#define SMR_PHYAD1                  (1 << 1)
-#define SMR_PHYAD0                  (1 << 0)
+//Mode Control/Status register
+#define LAN8710_MCSR_EDPWRDOWN            0x2000
+#define LAN8710_MCSR_FARLOOPBACK          0x0200
+#define LAN8710_MCSR_ALTINT               0x0040
+#define LAN8710_MCSR_ENERGYON             0x0002
 
-//SCSIR register
-#define SCSIR_AMDIXCTRL            (1 << 15)
-#define SCSIR_CH_SELECT            (1 << 13)
-#define SCSIR_SQEOFF               (1 << 11)
-#define SCSIR_XPOL                 (1 << 4)
+//Special Modes register
+#define LAN8710_SMR_MIIMODE               0x4000
+#define LAN8710_SMR_MODE                  0x00E0
+#define LAN8710_SMR_PHYAD                 0x001F
 
-//ISR register
-#define ISR_ENERGYON                (1 << 7)
-#define ISR_AN_COMPLETE             (1 << 6)
-#define ISR_REMOTE_FAULT            (1 << 5)
-#define ISR_LINK_DOWN               (1 << 4)
-#define ISR_AN_LP_ACK               (1 << 3)
-#define ISR_PD_FAULT                (1 << 2)
-#define ISR_AN_PAGE_RECEIVED        (1 << 1)
+//Symbol Error Counter register
+#define LAN8710_SECR_SYM_ERR_CNT          0xFFFF
 
-//IMR register
-#define IMR_ENERGYON                (1 << 7)
-#define IMR_AN_COMPLETE             (1 << 6)
-#define IMR_REMOTE_FAULT            (1 << 5)
-#define IMR_LINK_DOWN               (1 << 4)
-#define IMR_AN_LP_ACK               (1 << 3)
-#define IMR_PD_FAULT                (1 << 2)
-#define IMR_AN_PAGE_RECEIVED        (1 << 1)
+//Special Control/Status Indication register
+#define LAN8710_SCSIR_AMDIXCTRL           0x8000
+#define LAN8710_SCSIR_CH_SELECT           0x2000
+#define LAN8710_SCSIR_SQEOFF              0x0800
+#define LAN8710_SCSIR_XPOL                0x0010
 
-//PSCSR register
-#define PSCSR_AUTODONE              (1 << 12)
-#define PSCSR_GPO2                  (1 << 9)
-#define PSCSR_GPO1                  (1 << 8)
-#define PSCSR_GPO0                  (1 << 7)
-#define PSCSR_ENABLE_4B5B           (1 << 6)
-#define PSCSR_HCDSPEED2             (1 << 4)
-#define PSCSR_HCDSPEED1             (1 << 3)
-#define PSCSR_HCDSPEED0             (1 << 2)
-#define PSCSR_SCRAMBLE_DISABLE      (1 << 0)
+//Interrupt Source register
+#define LAN8710_ISR_ENERGYON              0x0080
+#define LAN8710_ISR_AN_COMPLETE           0x0040
+#define LAN8710_ISR_REMOTE_FAULT          0x0020
+#define LAN8710_ISR_LINK_DOWN             0x0010
+#define LAN8710_ISR_AN_LP_ACK             0x0008
+#define LAN8710_ISR_PAR_DETECT_FAULT      0x0004
+#define LAN8710_ISR_AN_PAGE_RECEIVED      0x0002
 
-//Speed indication
-#define PSCSR_HCDSPEED_MASK         (7 << 2)
-#define PSCSR_HCDSPEED_10BT         (1 << 2)
-#define PSCSR_HCDSPEED_100BTX       (2 << 2)
-#define PSCSR_HCDSPEED_10BT_FD      (5 << 2)
-#define PSCSR_HCDSPEED_100BTX_FD    (6 << 2)
+//Interrupt Mask register
+#define LAN8710_IMR_ENERGYON              0x0080
+#define LAN8710_IMR_AN_COMPLETE           0x0040
+#define LAN8710_IMR_REMOTE_FAULT          0x0020
+#define LAN8710_IMR_LINK_DOWN             0x0010
+#define LAN8710_IMR_AN_LP_ACK             0x0008
+#define LAN8710_IMR_PAR_DETECT_FAULT      0x0004
+#define LAN8710_IMR_AN_PAGE_RECEIVED      0x0002
+
+//PHY Special Control/Status register
+#define LAN8710_PSCSR_AUTODONE            0x1000
+#define LAN8710_PSCSR_HCDSPEED            0x001C
+#define LAN8710_PSCSR_HCDSPEED_10BT_HD    0x0004
+#define LAN8710_PSCSR_HCDSPEED_100BTX_HD  0x0008
+#define LAN8710_PSCSR_HCDSPEED_10BT_FD    0x0014
+#define LAN8710_PSCSR_HCDSPEED_100BTX_FD  0x0018
 
 //C++ guard
 #ifdef __cplusplus

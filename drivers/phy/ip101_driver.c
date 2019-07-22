@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,10 +64,20 @@ error_t ip101Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing IP101...\r\n");
 
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = IP101_PHY_ADDR;
+   }
+
    //Reset PHY transceiver
-   ip101WritePhyReg(interface, IP101_PHY_REG_BMCR, BMCR_RESET);
+   ip101WritePhyReg(interface, IP101_BMCR, IP101_BMCR_RESET);
+
    //Wait for the reset to complete
-   while(ip101ReadPhyReg(interface, IP101_PHY_REG_BMCR) & BMCR_RESET);
+   while(ip101ReadPhyReg(interface, IP101_BMCR) & IP101_BMCR_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    ip101DumpPhyReg(interface);
@@ -93,9 +103,9 @@ void ip101Tick(NetInterface *interface)
    bool_t linkState;
 
    //Read basic status register
-   value = ip101ReadPhyReg(interface, IP101_PHY_REG_PHYMCSSR);
+   value = ip101ReadPhyReg(interface, IP101_PHYMCSSR);
    //Retrieve current link state
-   linkState = (value & PHYMCSSR_LINK_UP) ? TRUE : FALSE;
+   linkState = (value & IP101_PHYMCSSR_LINK_UP) ? TRUE : FALSE;
 
    //Link up event?
    if(linkState && !interface->linkState)
@@ -146,38 +156,38 @@ void ip101EventHandler(NetInterface *interface)
    uint16_t value;
 
    //Read PHY status register
-   value = ip101ReadPhyReg(interface, IP101_PHY_REG_PHYMCSSR);
+   value = ip101ReadPhyReg(interface, IP101_PHYMCSSR);
 
    //Link is up?
-   if(value & PHYMCSSR_LINK_UP)
+   if(value & IP101_PHYMCSSR_LINK_UP)
    {
       //Check current operation mode
-      switch(value & PHYMCSSR_OP_MODE_MASK)
+      switch(value & IP101_PHYMCSSR_OP_MODE)
       {
-      //10BASE-T
-      case PHYMCSSR_OP_MODE_10M_HD:
+      //10BASE-T half-duplex
+      case IP101_PHYMCSSR_OP_MODE_10M_HD:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
       //10BASE-T full-duplex
-      case PHYMCSSR_OP_MODE_10M_FD:
+      case IP101_PHYMCSSR_OP_MODE_10M_FD:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
-      //100BASE-TX
-      case PHYMCSSR_OP_MODE_100M_HD:
+      //100BASE-TX half-duplex
+      case IP101_PHYMCSSR_OP_MODE_100M_HD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
       //100BASE-TX full-duplex
-      case PHYMCSSR_OP_MODE_100_FD:
+      case IP101_PHYMCSSR_OP_MODE_100M_FD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
       //Unknown operation mode
       default:
          //Debug message
-         TRACE_WARNING("Invalid Duplex mode\r\n");
+         TRACE_WARNING("Invalid operation mode!\r\n");
          break;
       }
 
@@ -208,16 +218,9 @@ void ip101EventHandler(NetInterface *interface)
 void ip101WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = IP101_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -230,16 +233,9 @@ void ip101WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t ip101ReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = IP101_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -256,7 +252,8 @@ void ip101DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, ip101ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         ip101ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

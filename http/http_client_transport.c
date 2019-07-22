@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -143,12 +143,6 @@ error_t httpClientEstablishConnection(HttpClientContext *context,
    {
       //Establish TLS connection
       error = tlsConnect(context->tlsContext);
-      //Any error to report?
-      if(error)
-         return error;
-
-      //Save TLS session
-      error = tlsSaveSessionState(context->tlsContext, &context->tlsSession);
       //Any error to report?
       if(error)
          return error;
@@ -285,6 +279,33 @@ error_t httpClientReceiveData(HttpClientContext *context, void *data,
       //Receive data
       error = socketReceive(context->socket, data, size, received, flags);
    }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Save TLS session
+ * @param[in] context Pointer to the HTTP client context
+ * @return Error code
+ **/
+
+error_t httpClientSaveSession(HttpClientContext *context)
+{
+   error_t error;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+#if (HTTP_CLIENT_TLS_SUPPORT == ENABLED)
+   //TLS-secured connection?
+   if(context->tlsContext != NULL)
+   {
+      //Save TLS session
+      error = tlsSaveSessionState(context->tlsContext, &context->tlsSession);
+   }
+#endif
 
    //Return status code
    return error;

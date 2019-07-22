@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -1668,7 +1668,7 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
             //Get the descriptor associated with the current entry
             s = fds->fd_array[j];
             //Retrieve event flags for the current socket
-            socketGetEvents(&socketTable[s], &eventFlags);
+            eventFlags = socketGetEvents(&socketTable[s]);
             //Unsubscribe previously registered events
             socketUnregisterEvents(&socketTable[s]);
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -345,7 +345,7 @@ void ENET_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -387,7 +387,7 @@ void ENET_IRQHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -641,51 +641,82 @@ error_t lpc178xEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void lpc178xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void lpc178xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   //Clear MCMD register
-   LPC_EMAC->MCMD = 0;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Clear MCMD register
+      LPC_EMAC->MCMD = 0;
 
-   //PHY address
-   LPC_EMAC->MADR = (phyAddr << 8) & MADR_PHY_ADDRESS;
-   //Register address
-   LPC_EMAC->MADR |= regAddr & MADR_REGISTER_ADDRESS;
-   //Data to be written in the PHY register
-   LPC_EMAC->MWTD = data & MWTD_WRITE_DATA;
+      //PHY address
+      LPC_EMAC->MADR = (phyAddr << 8) & MADR_PHY_ADDRESS;
+      //Register address
+      LPC_EMAC->MADR |= regAddr & MADR_REGISTER_ADDRESS;
+      //Data to be written in the PHY register
+      LPC_EMAC->MWTD = data & MWTD_WRITE_DATA;
 
-   //Wait for the write to complete
-   while(LPC_EMAC->MIND & MIND_BUSY);
+      //Wait for the write to complete
+      while(LPC_EMAC->MIND & MIND_BUSY)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t lpc178xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t lpc178xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   //PHY address
-   LPC_EMAC->MADR = (phyAddr << 8) & MADR_PHY_ADDRESS;
-   //Register address
-   LPC_EMAC->MADR |= regAddr & MADR_REGISTER_ADDRESS;
+   uint16_t data;
 
-   //Start a read operation
-   LPC_EMAC->MCMD = MCMD_READ;
-   //Wait for the read to complete
-   while(LPC_EMAC->MIND & MIND_BUSY);
-   //Clear MCMD register
-   LPC_EMAC->MCMD = 0;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //PHY address
+      LPC_EMAC->MADR = (phyAddr << 8) & MADR_PHY_ADDRESS;
+      //Register address
+      LPC_EMAC->MADR |= regAddr & MADR_REGISTER_ADDRESS;
 
-   //Return PHY register contents
-   return LPC_EMAC->MRDD & MRDD_READ_DATA;
+      //Start a read operation
+      LPC_EMAC->MCMD = MCMD_READ;
+      //Wait for the read to complete
+      while(LPC_EMAC->MIND & MIND_BUSY)
+      {
+      }
+
+      //Clear MCMD register
+      LPC_EMAC->MCMD = 0;
+
+      //Get register value
+      data = LPC_EMAC->MRDD & MRDD_READ_DATA;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

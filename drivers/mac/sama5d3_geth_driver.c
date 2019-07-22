@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -132,6 +132,9 @@ error_t sama5d3GigabitEthInit(NetInterface *interface)
    //Enable IRQ controller peripheral clock
    PMC->PMC_PCER1 = (1 << (ID_IRQ - 32));
 
+   //Disable transmit and receive circuits
+   GMAC->GMAC_NCR = 0;
+
    //GPIO configuration
    sama5d3GigabitEthInitGpio(interface);
 
@@ -196,8 +199,8 @@ error_t sama5d3GigabitEthInit(NetInterface *interface)
 }
 
 
-//SAMA5D3-Xplained or SAMA5D3-EDS evaluation board?
-#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS)
+//SAMA5D3-Xplained, SAMA5D3-EDS or EVB-KSZ9477 evaluation board?
+#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS) || defined(USE_EVB_KSZ9477)
 
 /**
  * @brief GPIO configuration
@@ -334,7 +337,7 @@ void sama5d3GigabitEthIrqHandler(void)
    volatile uint32_t tsr;
    volatile uint32_t rsr;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -374,7 +377,7 @@ void sama5d3GigabitEthIrqHandler(void)
    //Write AIC_EOICR register before exiting
    AIC->AIC_EOICR = 0;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -655,8 +658,30 @@ error_t sama5d3GigabitEthUpdateMacAddrFilter(NetInterface *interface)
             if(j < 3)
             {
                //Save the unicast address
-               unicastMacAddr[j++] = entry->addr;
+               unicastMacAddr[j] = entry->addr;
             }
+            else
+            {
+               //Point to the MAC address
+               p = entry->addr.b;
+
+               //Apply the hash function
+               k = (p[0] >> 6) ^ p[0];
+               k ^= (p[1] >> 4) ^ (p[1] << 2);
+               k ^= (p[2] >> 2) ^ (p[2] << 4);
+               k ^= (p[3] >> 6) ^ p[3];
+               k ^= (p[4] >> 4) ^ (p[4] << 2);
+               k ^= (p[5] >> 2) ^ (p[5] << 4);
+
+               //The hash value is reduced to a 6-bit index
+               k &= 0x3F;
+
+               //Update hash table contents
+               hashTable[k / 32] |= (1 << (k % 32));
+            }
+
+            //Increment the number of unicast addresses
+            j++;
          }
       }
    }
@@ -664,41 +689,47 @@ error_t sama5d3GigabitEthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the first unicast address filter
    if(j >= 1)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       GMAC->GMAC_SA[1].GMAC_SAB = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
       GMAC->GMAC_SA[1].GMAC_SAT = unicastMacAddr[0].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       GMAC->GMAC_SA[1].GMAC_SAB = 0;
    }
 
    //Configure the second unicast address filter
    if(j >= 2)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       GMAC->GMAC_SA[2].GMAC_SAB = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
       GMAC->GMAC_SA[2].GMAC_SAT = unicastMacAddr[1].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       GMAC->GMAC_SA[2].GMAC_SAB = 0;
    }
 
    //Configure the third unicast address filter
    if(j >= 3)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       GMAC->GMAC_SA[3].GMAC_SAB = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
       GMAC->GMAC_SA[3].GMAC_SAT = unicastMacAddr[2].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       GMAC->GMAC_SA[3].GMAC_SAB = 0;
    }
+
+   //The perfect MAC filter supports only 3 unicast addresses
+   if(j >= 4)
+      GMAC->GMAC_NCFGR |= GMAC_NCFGR_UNIHEN;
+   else
+      GMAC->GMAC_NCFGR &= ~GMAC_NCFGR_UNIHEN;
 
    //Configure the multicast address filter
    GMAC->GMAC_HRB = hashTable[0];
@@ -761,54 +792,83 @@ error_t sama5d3GigabitEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void sama5d3GigabitEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void sama5d3GigabitEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = GMAC_MAN_CLTTO | GMAC_MAN_OP(1) | GMAC_MAN_WTN(2);
-   //PHY address
-   value |= GMAC_MAN_PHYA(phyAddr);
-   //Register address
-   value |= GMAC_MAN_REGA(regAddr);
-   //Register value
-   value |= GMAC_MAN_DATA(data);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = GMAC_MAN_CLTTO | GMAC_MAN_OP(1) | GMAC_MAN_WTN(2);
+      //PHY address
+      temp |= GMAC_MAN_PHYA(phyAddr);
+      //Register address
+      temp |= GMAC_MAN_REGA(regAddr);
+      //Register value
+      temp |= GMAC_MAN_DATA(data);
 
-   //Start a write operation
-   GMAC->GMAC_MAN = value;
-   //Wait for the write to complete
-   while(!(GMAC->GMAC_NSR & GMAC_NSR_IDLE));
+      //Start a write operation
+      GMAC->GMAC_MAN = temp;
+      //Wait for the write to complete
+      while(!(GMAC->GMAC_NSR & GMAC_NSR_IDLE))
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t sama5d3GigabitEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t sama5d3GigabitEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = GMAC_MAN_CLTTO | GMAC_MAN_OP(2) | GMAC_MAN_WTN(2);
-   //PHY address
-   value |= GMAC_MAN_PHYA(phyAddr);
-   //Register address
-   value |= GMAC_MAN_REGA(regAddr);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = GMAC_MAN_CLTTO | GMAC_MAN_OP(2) | GMAC_MAN_WTN(2);
+      //PHY address
+      temp |= GMAC_MAN_PHYA(phyAddr);
+      //Register address
+      temp |= GMAC_MAN_REGA(regAddr);
 
-   //Start a read operation
-   GMAC->GMAC_MAN = value;
-   //Wait for the read to complete
-   while(!(GMAC->GMAC_NSR & GMAC_NSR_IDLE));
+      //Start a read operation
+      GMAC->GMAC_MAN = temp;
+      //Wait for the read to complete
+      while(!(GMAC->GMAC_NSR & GMAC_NSR_IDLE))
+      {
+      }
 
-   //Return PHY register contents
-   return GMAC->GMAC_MAN & GMAC_MAN_DATA_Msk;
+      //Get register value
+      data = GMAC->GMAC_MAN & GMAC_MAN_DATA_Msk;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }

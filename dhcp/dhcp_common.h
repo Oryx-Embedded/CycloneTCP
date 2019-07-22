@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _DHCP_COMMON_H
@@ -179,6 +179,7 @@ typedef enum
    DHCP_OPT_STREETTALK_SERVER            = 75,
    DHCP_OPT_STDA_SERVER                  = 76,
    DHCP_OPT_RAPID_COMMIT                 = 80,
+   DHCP_OPT_CAPTIVE_PORTAL               = 160,
    DHCP_OPT_END                          = 255
 } DhcpOptionCode;
 

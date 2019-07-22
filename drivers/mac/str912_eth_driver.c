@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -357,7 +357,7 @@ void ENET_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -392,7 +392,7 @@ void ENET_IRQHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -635,57 +635,86 @@ error_t str912EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void str912EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void str912EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = ENET_MIIA_WR | ENET_MIIA_BUSY;
-   //PHY address
-   value |= (phyAddr << 11) & ENET_MIIA_PADDR;
-   //Register address
-   value |= (regAddr << 6) & ENET_MIIA_RADDR;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = ENET_MIIA_WR | ENET_MIIA_BUSY;
+      //PHY address
+      temp |= (phyAddr << 11) & ENET_MIIA_PADDR;
+      //Register address
+      temp |= (regAddr << 6) & ENET_MIIA_RADDR;
 
-   //Data to be written in the PHY register
-   ENET_MAC->MIID = data & ENET_MIID_RDATA;
+      //Data to be written in the PHY register
+      ENET_MAC->MIID = data & ENET_MIID_RDATA;
 
-   //Start a write operation
-   ENET_MAC->MIIA = value;
-   //Wait for the write to complete
-   while(ENET_MAC->MIIA & ENET_MIIA_BUSY);
+      //Start a write operation
+      ENET_MAC->MIIA = temp;
+      //Wait for the write to complete
+      while(ENET_MAC->MIIA & ENET_MIIA_BUSY)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t str912EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t str912EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = ENET_MIIA_BUSY;
-   //PHY address
-   value |= (phyAddr << 11) & ENET_MIIA_PADDR;
-   //Register address
-   value |= (regAddr << 6) & ENET_MIIA_RADDR;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = ENET_MIIA_BUSY;
+      //PHY address
+      temp |= (phyAddr << 11) & ENET_MIIA_PADDR;
+      //Register address
+      temp |= (regAddr << 6) & ENET_MIIA_RADDR;
 
-   //Start a read operation
-   ENET_MAC->MIIA = value;
-   //Wait for the read to complete
-   while(ENET_MAC->MIIA & ENET_MIIA_BUSY);
+      //Start a read operation
+      ENET_MAC->MIIA = temp;
+      //Wait for the read to complete
+      while(ENET_MAC->MIIA & ENET_MIIA_BUSY)
+      {
+      }
 
-   //Return PHY register contents
-   return ENET_MAC->MIID & ENET_MIID_RDATA;
+      //Get register value
+      data = ENET_MAC->MIID & ENET_MIID_RDATA;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

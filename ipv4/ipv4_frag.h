@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _IPV4_FRAG_H
@@ -134,15 +134,18 @@ typedef struct
 extern systime_t ipv4FragTickCounter;
 
 //IPv4 datagram fragmentation and reassembly
-error_t ipv4FragmentDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   uint16_t id, const NetBuffer *payload, size_t payloadOffset, uint8_t timeToLive);
+error_t ipv4FragmentDatagram(NetInterface *interface,
+   Ipv4PseudoHeader *pseudoHeader, uint16_t id, const NetBuffer *payload,
+   size_t payloadOffset, uint_t flags);
 
 void ipv4ReassembleDatagram(NetInterface *interface,
    const Ipv4Header *packet, size_t length);
 
 void ipv4FragTick(NetInterface *interface);
 
-Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface, const Ipv4Header *packet);
+Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
+   const Ipv4Header *packet);
+
 void ipv4FlushFragQueue(NetInterface *interface);
 
 Ipv4HoleDesc *ipv4FindHole(Ipv4FragDesc *frag, uint16_t offset);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _FM4_ETH_DRIVER_H
@@ -84,77 +84,77 @@
 #endif
 
 //Transmit DMA descriptor flags
-#define ETH_TDES0_OWN    0x80000000
-#define ETH_TDES0_IC     0x40000000
-#define ETH_TDES0_LS     0x20000000
-#define ETH_TDES0_FS     0x10000000
-#define ETH_TDES0_DC     0x08000000
-#define ETH_TDES0_DP     0x04000000
-#define ETH_TDES0_TTSE   0x02000000
-#define ETH_TDES0_CIC    0x00C00000
-#define ETH_TDES0_TER    0x00200000
-#define ETH_TDES0_TCH    0x00100000
-#define ETH_TDES0_TTSS   0x00020000
-#define ETH_TDES0_IHE    0x00010000
-#define ETH_TDES0_ES     0x00008000
-#define ETH_TDES0_JT     0x00004000
-#define ETH_TDES0_FF     0x00002000
-#define ETH_TDES0_IPE    0x00001000
-#define ETH_TDES0_LCA    0x00000800
-#define ETH_TDES0_NC     0x00000400
-#define ETH_TDES0_LCO    0x00000200
-#define ETH_TDES0_EC     0x00000100
-#define ETH_TDES0_VF     0x00000080
-#define ETH_TDES0_CC     0x00000078
-#define ETH_TDES0_ED     0x00000004
-#define ETH_TDES0_UF     0x00000002
-#define ETH_TDES0_DB     0x00000001
-#define ETH_TDES1_TBS2   0x1FFF0000
-#define ETH_TDES1_TBS1   0x00001FFF
-#define ETH_TDES2_B1AP   0xFFFFFFFF
-#define ETH_TDES3_B2AP   0xFFFFFFFF
-#define ETH_TDES6_TTSL   0xFFFFFFFF
-#define ETH_TDES7_TTSH   0xFFFFFFFF
+#define ETH_TDES0_OWN  0x80000000
+#define ETH_TDES0_IC   0x40000000
+#define ETH_TDES0_LS   0x20000000
+#define ETH_TDES0_FS   0x10000000
+#define ETH_TDES0_DC   0x08000000
+#define ETH_TDES0_DP   0x04000000
+#define ETH_TDES0_TTSE 0x02000000
+#define ETH_TDES0_CIC  0x00C00000
+#define ETH_TDES0_TER  0x00200000
+#define ETH_TDES0_TCH  0x00100000
+#define ETH_TDES0_TTSS 0x00020000
+#define ETH_TDES0_IHE  0x00010000
+#define ETH_TDES0_ES   0x00008000
+#define ETH_TDES0_JT   0x00004000
+#define ETH_TDES0_FF   0x00002000
+#define ETH_TDES0_IPE  0x00001000
+#define ETH_TDES0_LCA  0x00000800
+#define ETH_TDES0_NC   0x00000400
+#define ETH_TDES0_LCO  0x00000200
+#define ETH_TDES0_EC   0x00000100
+#define ETH_TDES0_VF   0x00000080
+#define ETH_TDES0_CC   0x00000078
+#define ETH_TDES0_ED   0x00000004
+#define ETH_TDES0_UF   0x00000002
+#define ETH_TDES0_DB   0x00000001
+#define ETH_TDES1_TBS2 0x1FFF0000
+#define ETH_TDES1_TBS1 0x00001FFF
+#define ETH_TDES2_B1AP 0xFFFFFFFF
+#define ETH_TDES3_B2AP 0xFFFFFFFF
+#define ETH_TDES6_TTSL 0xFFFFFFFF
+#define ETH_TDES7_TTSH 0xFFFFFFFF
 
 //Receive DMA descriptor flags
-#define ETH_RDES0_OWN    0x80000000
-#define ETH_RDES0_AFM    0x40000000
-#define ETH_RDES0_FL     0x3FFF0000
-#define ETH_RDES0_ES     0x00008000
-#define ETH_RDES0_DE     0x00004000
-#define ETH_RDES0_SAF    0x00002000
-#define ETH_RDES0_LE     0x00001000
-#define ETH_RDES0_OE     0x00000800
-#define ETH_RDES0_VLAN   0x00000400
-#define ETH_RDES0_FS     0x00000200
-#define ETH_RDES0_LS     0x00000100
-#define ETH_RDES0_TS     0x00000080
-#define ETH_RDES0_LCO    0x00000040
-#define ETH_RDES0_FT     0x00000020
-#define ETH_RDES0_RWT    0x00000010
-#define ETH_RDES0_RE     0x00000008
-#define ETH_RDES0_DBE    0x00000004
-#define ETH_RDES0_CE     0x00000002
-#define ETH_RDES0_ESA    0x00000001
-#define ETH_RDES1_DIC    0x80000000
-#define ETH_RDES1_RBS2   0x1FFF0000
-#define ETH_RDES1_RER    0x00008000
-#define ETH_RDES1_RCH    0x00004000
-#define ETH_RDES1_RBS1   0x00001FFF
-#define ETH_RDES2_B1AP  0xFFFFFFFF
-#define ETH_RDES3_B2AP  0xFFFFFFFF
-#define ETH_RDES4_TD     0x00004000
-#define ETH_RDES4_PV     0x00002000
-#define ETH_RDES4_PFT    0x00001000
-#define ETH_RDES4_MT     0x00000F00
-#define ETH_RDES4_IP6R   0x00000080
-#define ETH_RDES4_IP4R   0x00000040
-#define ETH_RDES4_IPCB   0x00000020
-#define ETH_RDES4_IPE    0x00000010
-#define ETH_RDES4_IPHE   0x00000008
-#define ETH_RDES4_IPT    0x00000007
-#define ETH_RDES6_RTSL   0xFFFFFFFF
-#define ETH_RDES7_RTSH   0xFFFFFFFF
+#define ETH_RDES0_OWN  0x80000000
+#define ETH_RDES0_AFM  0x40000000
+#define ETH_RDES0_FL   0x3FFF0000
+#define ETH_RDES0_ES   0x00008000
+#define ETH_RDES0_DE   0x00004000
+#define ETH_RDES0_SAF  0x00002000
+#define ETH_RDES0_LE   0x00001000
+#define ETH_RDES0_OE   0x00000800
+#define ETH_RDES0_VLAN 0x00000400
+#define ETH_RDES0_FS   0x00000200
+#define ETH_RDES0_LS   0x00000100
+#define ETH_RDES0_TS   0x00000080
+#define ETH_RDES0_LCO  0x00000040
+#define ETH_RDES0_FT   0x00000020
+#define ETH_RDES0_RWT  0x00000010
+#define ETH_RDES0_RE   0x00000008
+#define ETH_RDES0_DBE  0x00000004
+#define ETH_RDES0_CE   0x00000002
+#define ETH_RDES0_ESA  0x00000001
+#define ETH_RDES1_DIC  0x80000000
+#define ETH_RDES1_RBS2 0x1FFF0000
+#define ETH_RDES1_RER  0x00008000
+#define ETH_RDES1_RCH  0x00004000
+#define ETH_RDES1_RBS1 0x00001FFF
+#define ETH_RDES2_B1AP 0xFFFFFFFF
+#define ETH_RDES3_B2AP 0xFFFFFFFF
+#define ETH_RDES4_TD   0x00004000
+#define ETH_RDES4_PV   0x00002000
+#define ETH_RDES4_PFT  0x00001000
+#define ETH_RDES4_MT   0x00000F00
+#define ETH_RDES4_IP6R 0x00000080
+#define ETH_RDES4_IP4R 0x00000040
+#define ETH_RDES4_IPCB 0x00000020
+#define ETH_RDES4_IPE  0x00000010
+#define ETH_RDES4_IPHE 0x00000008
+#define ETH_RDES4_IPT  0x00000007
+#define ETH_RDES6_RTSL 0xFFFFFFFF
+#define ETH_RDES7_RTSH 0xFFFFFFFF
 
 //C++ guard
 #ifdef __cplusplus
@@ -196,10 +196,10 @@ typedef struct
 } Fm4RxDmaDesc;
 
 
-//Spansion FM4 Ethernet MAC driver
+//FM4 Ethernet MAC driver
 extern const NicDriver fm4EthDriver;
 
-//Spansion FM4 Ethernet MAC related functions
+//FM4 Ethernet MAC related functions
 error_t fm4EthInit(NetInterface *interface);
 void fm4EthInitGpio(NetInterface *interface);
 void fm4EthInitDmaDesc(NetInterface *interface);
@@ -218,8 +218,11 @@ error_t fm4EthReceivePacket(NetInterface *interface);
 error_t fm4EthUpdateMacAddrFilter(NetInterface *interface);
 error_t fm4EthUpdateMacConfig(NetInterface *interface);
 
-void fm4EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t fm4EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void fm4EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t fm4EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 uint32_t fm4EthCalcCrc(const void *data, size_t length);
 

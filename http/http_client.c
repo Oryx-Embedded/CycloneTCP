@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -202,7 +202,6 @@ error_t httpClientSetTimeout(HttpClientContext *context, systime_t timeout)
  * @param[in] context Pointer to the HTTP client context
  * @param[in] username NULL-terminated string containing the user name to be used
  * @param[in] password NULL-terminated string containing the password to be used
- * @param[in] allowedAuthModes Logic OR of allowed HTTP authentication schemes
  * @return Error code
  **/
 
@@ -971,12 +970,10 @@ error_t httpClientWriteHeader(HttpClientContext *context)
                   context->bufferLen - context->bufferPos, &n, 0);
 
                //Check status code
-               if(!error)
+               if(error == NO_ERROR || error == ERROR_TIMEOUT)
                {
                   //Advance data pointer
                   context->bufferPos += n;
-                  //Save current time
-                  context->timestamp = osGetSystemTime();
                }
             }
             else
@@ -1085,15 +1082,19 @@ error_t httpClientWriteBody(HttpClientContext *context, const void *data,
                error = httpClientSendData(context, data, n, &n, flags);
 
                //Check status code
-               if(!error)
+               if(error == NO_ERROR || error == ERROR_TIMEOUT)
                {
-                  //Advance data pointer
-                  data = (uint8_t *) data + n;
-                  totalLength += n;
-                  context->bodyPos += n;
+                  //Any data transmitted?
+                  if(n > 0)
+                  {
+                     //Advance data pointer
+                     data = (uint8_t *) data + n;
+                     totalLength += n;
+                     context->bodyPos += n;
 
-                  //Save current time
-                  context->timestamp = osGetSystemTime();
+                     //Save current time
+                     context->timestamp = osGetSystemTime();
+                  }
                }
             }
             else
@@ -1114,12 +1115,10 @@ error_t httpClientWriteBody(HttpClientContext *context, const void *data,
                context->bufferLen - context->bufferPos, &n, 0);
 
             //Check status code
-            if(!error)
+            if(error == NO_ERROR || error == ERROR_TIMEOUT)
             {
                //Advance data pointer
                context->bufferPos += n;
-               //Save current time
-               context->timestamp = osGetSystemTime();
             }
          }
          else
@@ -1141,15 +1140,19 @@ error_t httpClientWriteBody(HttpClientContext *context, const void *data,
             error = httpClientSendData(context, data, n, &n, flags);
 
             //Check status code
-            if(!error)
+            if(error == NO_ERROR || error == ERROR_TIMEOUT)
             {
-               //Advance data pointer
-               data = (uint8_t *) data + n;
-               totalLength += n;
-               context->bodyPos += n;
+               //Any data transmitted?
+               if(n > 0)
+               {
+                  //Advance data pointer
+                  data = (uint8_t *) data + n;
+                  totalLength += n;
+                  context->bodyPos += n;
 
-               //Save current time
-               context->timestamp = osGetSystemTime();
+                  //Save current time
+                  context->timestamp = osGetSystemTime();
+               }
             }
          }
          else
@@ -1224,12 +1227,10 @@ error_t httpClientWriteTrailer(HttpClientContext *context)
                context->bufferLen - context->bufferPos, &n, 0);
 
             //Check status code
-            if(!error)
+            if(error == NO_ERROR || error == ERROR_TIMEOUT)
             {
                //Advance data pointer
                context->bufferPos += n;
-               //Save current time
-               context->timestamp = osGetSystemTime();
             }
          }
          else
@@ -1332,8 +1333,15 @@ error_t httpClientReadHeader(HttpClientContext *context)
                //An empty line indicates the end of the header fields
                if(context->bufferLen == context->bufferPos)
                {
-                  //The HTTP response header has been successfully received
-                  httpClientChangeRequestState(context, HTTP_REQ_STATE_PARSE_HEADER);
+                  //Save TLS session
+                  error = httpClientSaveSession(context);
+
+                  //Check status code
+                  if(!error)
+                  {
+                     //The HTTP response header has been successfully received
+                     httpClientChangeRequestState(context, HTTP_REQ_STATE_PARSE_HEADER);
+                  }
                }
                else
                {
@@ -1355,7 +1363,7 @@ error_t httpClientReadHeader(HttpClientContext *context)
             //Check status code
             if(!error)
             {
-               //Advance data pointer
+               //Adjust the length of the buffer
                context->bufferLen += n;
                //Save current time
                context->timestamp = osGetSystemTime();
@@ -1627,6 +1635,8 @@ error_t httpClientReadBody(HttpClientContext *context, void *data,
                   {
                      //The HTTP transaction is complete
                      httpClientChangeRequestState(context, HTTP_REQ_STATE_COMPLETE);
+                     //Close the HTTP connection
+                     httpClientChangeState(context, HTTP_CLIENT_STATE_DISCONNECTING);
                      //The end of the response body has been reached
                      error = ERROR_END_OF_STREAM;
                   }
@@ -1663,7 +1673,7 @@ error_t httpClientReadBody(HttpClientContext *context, void *data,
             //Check status code
             if(!error)
             {
-               //Advance data pointer
+               //Adjust the length of the buffer
                context->bufferLen += n;
                //Save current time
                context->timestamp = osGetSystemTime();
@@ -1823,7 +1833,7 @@ error_t httpClientReadTrailer(HttpClientContext *context)
                //Check status code
                if(!error)
                {
-                  //Advance data pointer
+                  //Adjust the length of the buffer
                   context->bufferLen += n;
                   //Save current time
                   context->timestamp = osGetSystemTime();
@@ -1906,95 +1916,112 @@ error_t httpClientCloseBody(HttpClientContext *context)
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Check HTTP connection state
-   if(context->state != HTTP_CLIENT_STATE_CONNECTED)
-      return ERROR_WRONG_STATE;
-
    //Initialize status code
    error = NO_ERROR;
 
    //Close HTTP request or response body
    while(!error)
    {
-      //Check HTTP request state
-      if(context->requestState == HTTP_REQ_STATE_SEND_BODY)
+      //Check HTTP connection state
+      if(context->state == HTTP_CLIENT_STATE_CONNECTED)
       {
-         //Chunked transfer encoding?
-         if(context->chunkedEncoding)
+         //Check HTTP request state
+         if(context->requestState == HTTP_REQ_STATE_SEND_BODY)
          {
-            //The chunked encoding is ended by any chunk whose size is zero
-            error = httpClientFormatChunkSize(context, 0);
-         }
-         else
-         {
-            //Ensure the HTTP request body is complete
-            if(context->bodyPos == context->bodyLen)
+            //Chunked transfer encoding?
+            if(context->chunkedEncoding)
             {
-               //Flush receive buffer
-               context->bufferLen = 0;
-               context->bufferPos = 0;
-
-               //Receive the HTTP response header
-               httpClientChangeRequestState(context,
-                  HTTP_REQ_STATE_RECEIVE_STATUS_LINE);
+               //The chunked encoding is ended by any chunk whose size is zero
+               error = httpClientFormatChunkSize(context, 0);
             }
             else
             {
-               //Incomplete request body
+               //Ensure the HTTP request body is complete
+               if(context->bodyPos == context->bodyLen)
+               {
+                  //Flush receive buffer
+                  context->bufferLen = 0;
+                  context->bufferPos = 0;
+
+                  //Receive the HTTP response header
+                  httpClientChangeRequestState(context,
+                     HTTP_REQ_STATE_RECEIVE_STATUS_LINE);
+               }
+               else
+               {
+                  //Incomplete request body
+                  error = ERROR_WRONG_STATE;
+               }
+            }
+         }
+         else if(context->requestState == HTTP_REQ_STATE_SEND_CHUNK_DATA)
+         {
+            //Ensure the chunk data is complete
+            if(context->bodyPos == context->bodyLen)
+            {
+               //The chunked encoding is ended by any chunk whose size is zero
+               error = httpClientFormatChunkSize(context, 0);
+            }
+            else
+            {
+               //Incomplete chunk data
                error = ERROR_WRONG_STATE;
             }
          }
-      }
-      else if(context->requestState == HTTP_REQ_STATE_SEND_CHUNK_DATA)
-      {
-         //Ensure the chunk data is complete
-         if(context->bodyPos == context->bodyLen)
+         else if(context->requestState == HTTP_REQ_STATE_FORMAT_TRAILER ||
+            context->requestState == HTTP_REQ_STATE_RECEIVE_STATUS_LINE)
          {
-            //The chunked encoding is ended by any chunk whose size is zero
-            error = httpClientFormatChunkSize(context, 0);
+            //The HTTP request body is closed
+            break;
+         }
+         else if(context->requestState == HTTP_REQ_STATE_PARSE_HEADER ||
+            context->requestState == HTTP_REQ_STATE_RECEIVE_BODY ||
+            context->requestState == HTTP_REQ_STATE_RECEIVE_CHUNK_SIZE ||
+            context->requestState == HTTP_REQ_STATE_RECEIVE_CHUNK_DATA)
+         {
+            //Consume HTTP response body
+            error = httpClientReadBody(context, context->buffer,
+               HTTP_CLIENT_BUFFER_SIZE, &n, 0);
+
+            //Check whether the end of the response body has been reached
+            if(error == ERROR_END_OF_STREAM)
+            {
+               //Continue reading the optional trailer
+               error = NO_ERROR;
+            }
+         }
+         else if(context->requestState == HTTP_REQ_STATE_RECEIVE_TRAILER)
+         {
+            //Consume HTTP trailer
+            error = httpClientReadTrailer(context);
+         }
+         else if(context->requestState == HTTP_REQ_STATE_PARSE_TRAILER ||
+            context->requestState == HTTP_REQ_STATE_COMPLETE)
+         {
+            //The HTTP response body is closed
+            break;
          }
          else
          {
-            //Incomplete chunk data
+            //Invalid HTTP request state
             error = ERROR_WRONG_STATE;
          }
       }
-      else if(context->requestState == HTTP_REQ_STATE_FORMAT_TRAILER ||
-         context->requestState == HTTP_REQ_STATE_RECEIVE_STATUS_LINE)
+      else if(context->state == HTTP_CLIENT_STATE_DISCONNECTING)
       {
-         //The HTTP request body is closed
-         break;
+         //Shutdown connection
+         error = httpClientDisconnect(context);
       }
-      else if(context->requestState == HTTP_REQ_STATE_PARSE_HEADER ||
-         context->requestState == HTTP_REQ_STATE_RECEIVE_BODY ||
-         context->requestState == HTTP_REQ_STATE_RECEIVE_CHUNK_SIZE ||
-         context->requestState == HTTP_REQ_STATE_RECEIVE_CHUNK_DATA)
+      else if(context->state == HTTP_CLIENT_STATE_DISCONNECTED)
       {
-         //Consume HTTP response body
-         error = httpClientReadBody(context, context->buffer,
-            HTTP_CLIENT_BUFFER_SIZE, &n, 0);
-
-         //Check whether the end of the response body has been reached
-         if(error == ERROR_END_OF_STREAM)
-         {
-            //Continue reading the optional trailer
-            error = NO_ERROR;
-         }
-      }
-      else if(context->requestState == HTTP_REQ_STATE_RECEIVE_TRAILER)
-      {
-         //Consume HTTP trailer
-         error = httpClientReadTrailer(context);
-      }
-      else if(context->requestState == HTTP_REQ_STATE_PARSE_TRAILER ||
-         context->requestState == HTTP_REQ_STATE_COMPLETE)
-      {
-         //The HTTP response body is closed
+         //Rewind to the beginning of the buffer
+         context->bufferPos = 0;
+         //We are done
          break;
       }
       else
       {
-         //Invalid HTTP request state
+         //Invalid HTTP connection state
          error = ERROR_WRONG_STATE;
       }
    }

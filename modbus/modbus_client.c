@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -875,8 +875,8 @@ error_t modbusClientMaskWriteReg(ModbusClientContext *context,
  **/
 
 error_t modbusClientReadWriteMultipleRegs(ModbusClientContext *context,
-   uint16_t readAddress, uint16_t readQuantity, uint16_t *readValue,
-   uint16_t writeAddress, uint16_t writeQuantity, const uint16_t *writeValue)
+   uint16_t readAddress, uint_t readQuantity, uint16_t *readValue,
+   uint16_t writeAddress, uint_t writeQuantity, const uint16_t *writeValue)
 {
    error_t error;
 

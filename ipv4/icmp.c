@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -339,8 +339,8 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code
       icmpDumpErrorMessage(icmpHeader);
 
       //Send ICMP Error message
-      error = ipv4SendDatagram(interface, &pseudoHeader,
-         icmpMessage, offset, IPV4_DEFAULT_TTL);
+      error = ipv4SendDatagram(interface, &pseudoHeader, icmpMessage, offset,
+         IPV4_DEFAULT_TTL);
    }
 
    //Free previously allocated memory

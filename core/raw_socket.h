@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _RAW_SOCKET_H
@@ -63,7 +63,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
    const uint8_t *data, size_t length);
 
 error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
-   const void *data, size_t length, size_t *written);
+   const void *data, size_t length, size_t *written, uint_t flags);
 
 error_t rawSocketSendEthPacket(Socket *socket, const void *data,
    size_t length, size_t *written);

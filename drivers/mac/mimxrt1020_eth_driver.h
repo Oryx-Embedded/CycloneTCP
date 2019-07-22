@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _MIMXRT1020_ETH_DRIVER_H
@@ -163,8 +163,11 @@ error_t mimxrt1020EthReceivePacket(NetInterface *interface);
 error_t mimxrt1020EthUpdateMacAddrFilter(NetInterface *interface);
 error_t mimxrt1020EthUpdateMacConfig(NetInterface *interface);
 
-void mimxrt1020EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t mimxrt1020EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void mimxrt1020EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t mimxrt1020EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 uint32_t mimxrt1020EthCalcCrc(const void *data, size_t length);
 

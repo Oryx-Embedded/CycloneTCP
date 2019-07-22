@@ -1,6 +1,6 @@
 /**
  * @file ksz8873_driver.c
- * @brief KSZ8873 Ethernet switch
+ * @brief KSZ8873 3-port Ethernet switch
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -85,49 +85,62 @@ error_t ksz8873Init(NetInterface *interface)
    {
       //Initialize SPI
       interface->spiDriver->init();
+   }
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-      //Tail tagging mode?
-      if(interface->port != 0)
+   //Wait for the serial interface to be ready
+   do
+   {
+      //Read CHIP_ID0 register
+      temp = ksz8873ReadSwitchReg(interface, KSZ8873_CHIP_ID0);
+
+      //The returned data is invalid until the serial interface is ready
+   } while(temp != KSZ8873_CHIP_ID0_FAMILY_ID_DEFAULT);
+
+   //Tail tagging mode?
+   if(interface->port != 0)
+   {
+      //Enable tail tag feature
+      temp = ksz8873ReadSwitchReg(interface, KSZ8873_GLOBAL_CTRL1);
+      temp |= KSZ8873_GLOBAL_CTRL1_TAIL_TAG_EN;
+      ksz8873WriteSwitchReg(interface, KSZ8873_GLOBAL_CTRL1, temp);
+
+      //Loop through ports
+      for(port = KSZ8873_PORT1; port <= KSZ8873_PORT2; port++)
       {
-         //Enable tail tag feature
-         temp = ksz8873ReadSwitchReg(interface, KSZ8873_SW_REG_GLOBAL_CTRL1);
-         temp |= GLOBAL_CTRL1_TAIL_TAG_EN;
-         ksz8873WriteSwitchReg(interface, KSZ8873_SW_REG_GLOBAL_CTRL1, temp);
-
-         //Loop through ports
-         for(port = KSZ8873_PORT1; port <= KSZ8873_PORT2; port++)
-         {
-            //Disable packet transmission and switch address learning
-            temp = ksz8873ReadSwitchReg(interface, KSZ8873_SW_REG_PORT_CTRL2(port));
-            temp &= ~PORT_CTRL2_TRANSMIT_EN;
-            temp |= PORT_CTRL2_RECEIVE_EN | PORT_CTRL2_LEARNING_DIS;
-            ksz8873WriteSwitchReg(interface, KSZ8873_SW_REG_PORT_CTRL2(port), temp);
-         }
+         //Disable packet transmission and switch address learning
+         temp = ksz8873ReadSwitchReg(interface, KSZ8873_PORTn_CTRL2(port));
+         temp &= ~KSZ8873_PORTn_CTRL2_TRANSMIT_EN;
+         temp |= KSZ8873_PORTn_CTRL2_RECEIVE_EN;
+         temp |= KSZ8873_PORTn_CTRL2_LEARNING_DIS;
+         ksz8873WriteSwitchReg(interface, KSZ8873_PORTn_CTRL2(port), temp);
       }
-      else
-#endif
-      {
-         //Disable tail tag feature
-         temp = ksz8873ReadSwitchReg(interface, KSZ8873_SW_REG_GLOBAL_CTRL1);
-         temp &= ~GLOBAL_CTRL1_TAIL_TAG_EN;
-         ksz8873WriteSwitchReg(interface, KSZ8873_SW_REG_GLOBAL_CTRL1, temp);
-
-         //Loop through ports
-         for(port = KSZ8873_PORT1; port <= KSZ8873_PORT2; port++)
-         {
-            //Enable transmission, reception and switch address learning
-            temp = ksz8873ReadSwitchReg(interface, KSZ8873_SW_REG_PORT_CTRL2(port));
-            temp |= PORT_CTRL2_TRANSMIT_EN | PORT_CTRL2_RECEIVE_EN;
-            temp &= ~PORT_CTRL2_LEARNING_DIS;
-            ksz8873WriteSwitchReg(interface, KSZ8873_SW_REG_PORT_CTRL2(port), temp);
-         }
-      }
-
-      //Dump switch registers for debugging purpose
-      ksz8873DumpSwitchReg(interface);
    }
    else
+   {
+      //Disable tail tag feature
+      temp = ksz8873ReadSwitchReg(interface, KSZ8873_GLOBAL_CTRL1);
+      temp &= ~KSZ8873_GLOBAL_CTRL1_TAIL_TAG_EN;
+      ksz8873WriteSwitchReg(interface, KSZ8873_GLOBAL_CTRL1, temp);
+
+      //Loop through ports
+      for(port = KSZ8873_PORT1; port <= KSZ8873_PORT2; port++)
+      {
+         //Enable transmission, reception and switch address learning
+         temp = ksz8873ReadSwitchReg(interface, KSZ8873_PORTn_CTRL2(port));
+         temp |= KSZ8873_PORTn_CTRL2_TRANSMIT_EN;
+         temp |= KSZ8873_PORTn_CTRL2_RECEIVE_EN;
+         temp &= ~KSZ8873_PORTn_CTRL2_LEARNING_DIS;
+         ksz8873WriteSwitchReg(interface, KSZ8873_PORTn_CTRL2(port), temp);
+      }
+   }
+
+   //Dump switch registers for debugging purpose
+   ksz8873DumpSwitchReg(interface);
+#endif
+
+   //SMI interface mode?
+   if(interface->spiDriver == NULL)
    {
       //Loop through ports
       for(port = KSZ8873_PORT1; port <= KSZ8873_PORT2; port++)
@@ -171,19 +184,18 @@ bool_t ksz8873GetLinkState(NetInterface *interface, uint8_t port)
       if(interface->spiDriver != NULL)
       {
          //Read port status 0 register
-         status = ksz8873ReadSwitchReg(interface,
-            KSZ8873_SW_REG_PORT_STAT0(port));
+         status = ksz8873ReadSwitchReg(interface, KSZ8873_PORTn_STAT0(port));
 
          //Retrieve current link state
-         linkState = (status & PORT_STAT0_LINK_GOOD) ? TRUE : FALSE;
+         linkState = (status & KSZ8873_PORTn_STAT0_LINK_GOOD) ? TRUE : FALSE;
       }
       else
       {
          //Read status register
-         status = ksz8873ReadPhyReg(interface, port, KSZ8873_PHY_REG_BMSR);
+         status = ksz8873ReadPhyReg(interface, port, KSZ8873_BMSR);
 
          //Retrieve current link state
-         linkState = (status & BMSR_LINK_STATUS) ? TRUE : FALSE;
+         linkState = (status & KSZ8873_BMSR_LINK_STATUS) ? TRUE : FALSE;
       }
 
       //Release exclusive access
@@ -218,40 +230,36 @@ void ksz8873Tick(NetInterface *interface)
       uint_t i;
       NetInterface *virtualInterface;
 
-      //SPI slave mode?
-      if(interface->spiDriver != NULL)
+      //Loop through network interfaces
+      for(i = 0; i < NET_INTERFACE_COUNT; i++)
       {
-         //Loop through network interfaces
-         for(i = 0; i < NET_INTERFACE_COUNT; i++)
+         //Point to the current interface
+         virtualInterface = &netInterface[i];
+
+         //Check whether the current virtual interface is attached to the
+         //physical interface
+         if(virtualInterface == interface || virtualInterface->parent == interface)
          {
-            //Point to the current interface
-            virtualInterface = &netInterface[i];
+            //The tail tag is used to indicate the source/destination port
+            port = virtualInterface->port;
 
-            //Check whether the current virtual interface is attached to the
-            //physical interface
-            if(virtualInterface == interface || virtualInterface->parent == interface)
+            //Valid port?
+            if(port >= KSZ8873_PORT1 && port <= KSZ8873_PORT2)
             {
-               //The tail tag is used to indicate the source/destination port
-               port = virtualInterface->port;
+               //Read port status 0 register
+               status = ksz8873ReadSwitchReg(interface,
+                  KSZ8873_PORTn_STAT0(port));
 
-               //Valid port?
-               if(port >= KSZ8873_PORT1 && port <= KSZ8873_PORT2)
+               //Retrieve current link state
+               linkState = (status & KSZ8873_PORTn_STAT0_LINK_GOOD) ? TRUE : FALSE;
+
+               //Link up or link down event?
+               if(linkState != virtualInterface->linkState)
                {
-                  //Read port status 0 register
-                  status = ksz8873ReadSwitchReg(interface,
-                     KSZ8873_SW_REG_PORT_STAT0(port));
-
-                  //Retrieve current link state
-                  linkState = (status & PORT_STAT0_LINK_GOOD) ? TRUE : FALSE;
-
-                  //Link up or link down event?
-                  if(linkState != virtualInterface->linkState)
-                  {
-                     //Set event flag
-                     interface->phyEvent = TRUE;
-                     //Notify the TCP/IP stack of the event
-                     osSetEvent(&netEvent);
-                  }
+                  //Set event flag
+                  interface->phyEvent = TRUE;
+                  //Notify the TCP/IP stack of the event
+                  osSetEvent(&netEvent);
                }
             }
          }
@@ -270,20 +278,19 @@ void ksz8873Tick(NetInterface *interface)
          if(interface->spiDriver != NULL)
          {
             //Read port status 0 register
-            status = ksz8873ReadSwitchReg(interface,
-               KSZ8873_SW_REG_PORT_STAT0(port));
+            status = ksz8873ReadSwitchReg(interface, KSZ8873_PORTn_STAT0(port));
 
             //Retrieve current link state
-            if(status & PORT_STAT0_LINK_GOOD)
+            if(status & KSZ8873_PORTn_STAT0_LINK_GOOD)
                linkState = TRUE;
          }
          else
          {
             //Read status register
-            status = ksz8873ReadPhyReg(interface, port, KSZ8873_PHY_REG_BMSR);
+            status = ksz8873ReadPhyReg(interface, port, KSZ8873_BMSR);
 
             //Retrieve current link state
-            if(status & BMSR_LINK_STATUS)
+            if(status & KSZ8873_BMSR_LINK_STATUS)
                linkState = TRUE;
          }
       }
@@ -338,72 +345,68 @@ void ksz8873EventHandler(NetInterface *interface)
       uint_t i;
       NetInterface *virtualInterface;
 
-      //SPI slave mode?
-      if(interface->spiDriver != NULL)
+      //Loop through network interfaces
+      for(i = 0; i < NET_INTERFACE_COUNT; i++)
       {
-         //Loop through network interfaces
-         for(i = 0; i < NET_INTERFACE_COUNT; i++)
+         //Point to the current interface
+         virtualInterface = &netInterface[i];
+
+         //Check whether the current virtual interface is attached to the
+         //physical interface
+         if(virtualInterface == interface ||
+            virtualInterface->parent == interface)
          {
-            //Point to the current interface
-            virtualInterface = &netInterface[i];
+            //The tail tag is used to indicate the source/destination port
+            port = virtualInterface->port;
 
-            //Check whether the current virtual interface is attached to the
-            //physical interface
-            if(virtualInterface == interface ||
-               virtualInterface->parent == interface)
+            //Valid port?
+            if(port >= KSZ8873_PORT1 && port <= KSZ8873_PORT2)
             {
-               //The tail tag is used to indicate the source/destination port
-               port = virtualInterface->port;
+               //Read port status 0 register
+               status = ksz8873ReadSwitchReg(interface,
+                  KSZ8873_PORTn_STAT0(port));
 
-               //Valid port?
-               if(port >= KSZ8873_PORT1 && port <= KSZ8873_PORT2)
+               //Retrieve current link state
+               linkState = (status & KSZ8873_PORTn_STAT0_LINK_GOOD) ? TRUE : FALSE;
+
+               //Link up event?
+               if(linkState && !virtualInterface->linkState)
                {
-                  //Read port status 0 register
+                  //Adjust MAC configuration parameters for proper operation
+                  interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+                  interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+                  interface->nicDriver->updateMacConfig(interface);
+
+                  //Read port status 1 register
                   status = ksz8873ReadSwitchReg(interface,
-                     KSZ8873_SW_REG_PORT_STAT0(port));
+                     KSZ8873_PORTn_STAT1(port));
 
-                  //Retrieve current link state
-                  linkState = (status & PORT_STAT0_LINK_GOOD) ? TRUE : FALSE;
+                  //Check current speed
+                  if(status & KSZ8873_PORTn_STAT1_OP_SPEED)
+                     virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+                  else
+                     virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
 
-                  //Link up event?
-                  if(linkState && !virtualInterface->linkState)
-                  {
-                     //Adjust MAC configuration parameters for proper operation
-                     interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                     interface->duplexMode = NIC_FULL_DUPLEX_MODE;
-                     interface->nicDriver->updateMacConfig(interface);
+                  //Check duplex mode
+                  if(status & KSZ8873_PORTn_STAT1_OP_DUPLEX)
+                     virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
+                  else
+                     virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
 
-                     //Read port status 1 register
-                     status = ksz8873ReadSwitchReg(interface,
-                        KSZ8873_SW_REG_PORT_STAT1(port));
+                  //Update link state
+                  virtualInterface->linkState = TRUE;
 
-                     //Check current speed
-                     if(status & PORT_STAT1_OP_SPEED)
-                        virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                     else
-                        virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+                  //Process link state change event
+                  nicNotifyLinkChange(virtualInterface);
+               }
+               //Link down event
+               else if(!linkState && virtualInterface->linkState)
+               {
+                  //Update link state
+                  virtualInterface->linkState = FALSE;
 
-                     //Check duplex mode
-                     if(status & PORT_STAT1_OP_MODE)
-                        virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
-                     else
-                        virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
-
-                     //Update link state
-                     virtualInterface->linkState = TRUE;
-
-                     //Process link state change event
-                     nicNotifyLinkChange(virtualInterface);
-                  }
-                  //Link down event
-                  else if(!linkState && virtualInterface->linkState)
-                  {
-                     //Update link state
-                     virtualInterface->linkState = FALSE;
-
-                     //Process link state change event
-                     nicNotifyLinkChange(virtualInterface);
-                  }
+                  //Process link state change event
+                  nicNotifyLinkChange(virtualInterface);
                }
             }
          }
@@ -422,20 +425,19 @@ void ksz8873EventHandler(NetInterface *interface)
          if(interface->spiDriver != NULL)
          {
             //Read port status 0 register
-            status = ksz8873ReadSwitchReg(interface,
-               KSZ8873_SW_REG_PORT_STAT0(port));
+            status = ksz8873ReadSwitchReg(interface, KSZ8873_PORTn_STAT0(port));
 
             //Retrieve current link state
-            if(status & PORT_STAT0_LINK_GOOD)
+            if(status & KSZ8873_PORTn_STAT0_LINK_GOOD)
                linkState = TRUE;
          }
          else
          {
             //Read status register
-            status = ksz8873ReadPhyReg(interface, port, KSZ8873_PHY_REG_BMSR);
+            status = ksz8873ReadPhyReg(interface, port, KSZ8873_BMSR);
 
             //Retrieve current link state
-            if(status & BMSR_LINK_STATUS)
+            if(status & KSZ8873_BMSR_LINK_STATUS)
                linkState = TRUE;
          }
       }
@@ -574,7 +576,7 @@ void ksz8873WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(port, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
 }
 
 
@@ -590,7 +592,7 @@ uint16_t ksz8873ReadPhyReg(NetInterface *interface, uint8_t port,
    uint8_t address)
 {
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(port, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ, port, address);
 }
 
 
@@ -620,13 +622,16 @@ void ksz8873DumpPhyReg(NetInterface *interface, uint8_t port)
 /**
  * @brief Write switch register
  * @param[in] interface Underlying network interface
- * @param[in] address PHY register address
+ * @param[in] address Switch register address
  * @param[in] data Register value
  **/
 
 void ksz8873WriteSwitchReg(NetInterface *interface, uint8_t address,
    uint8_t data)
 {
+   uint8_t phyAddr;
+   uint8_t regAddr;
+
    //SPI slave mode?
    if(interface->spiDriver != NULL)
    {
@@ -646,8 +651,17 @@ void ksz8873WriteSwitchReg(NetInterface *interface, uint8_t address,
    }
    else
    {
-      //The MDC/MDIO interface does not have access to all the configuration
-      //registers. It can only access the standard MIIM registers
+      //SMI register read access is selected when opcode is set to 0 and
+      //bit 4 of the PHY address is set to 0
+      phyAddr = (address >> 5) & 0x07;
+
+      //Register address field forms register address bits 4:0
+      regAddr = address & 0x1F;
+
+      //Registers are 8 data bits wide. For write operation, data bits 15:8
+      //are not defined, and hence can be set to either zeroes or ones
+      interface->nicDriver->writePhyReg(SMI_OPCODE_0, phyAddr, regAddr,
+         data);
    }
 }
 
@@ -655,12 +669,14 @@ void ksz8873WriteSwitchReg(NetInterface *interface, uint8_t address,
 /**
  * @brief Read switch register
  * @param[in] interface Underlying network interface
- * @param[in] address PHY register address
+ * @param[in] address Switch register address
  * @return Register value
  **/
 
 uint8_t ksz8873ReadSwitchReg(NetInterface *interface, uint8_t address)
 {
+   uint8_t phyAddr;
+   uint8_t regAddr;
    uint8_t data;
 
    //SPI slave mode?
@@ -682,9 +698,17 @@ uint8_t ksz8873ReadSwitchReg(NetInterface *interface, uint8_t address)
    }
    else
    {
-      //The MDC/MDIO interface does not have access to all the configuration
-      //registers. It can only access the standard MIIM registers
-      data = 0;
+      //SMI register read access is selected when opcode is set to 0 and
+      //bit 4 of the PHY address is set to 1
+      phyAddr = 0x10 | ((address >> 5) & 0x07);
+
+      //Register address field forms register address bits 4:0
+      regAddr = address & 0x1F;
+
+      //Registers are 8 data bits wide. For read operation, data bits 15:8
+      //are read back as zeroes
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_0, phyAddr,
+         regAddr) & 0xFF;
    }
 
    //Return register value
@@ -705,7 +729,7 @@ void ksz8873DumpSwitchReg(NetInterface *interface)
    for(i = 0; i < 256; i++)
    {
       //Display current switch register
-      TRACE_DEBUG("0x%02" PRIX8 " (%02" PRIu8 ") : 0x%02" PRIX8 "\r\n",
+      TRACE_DEBUG("0x%02" PRIX16 " (%02" PRIu16 ") : 0x%02" PRIX8 "\r\n",
          i, i, ksz8873ReadSwitchReg(interface, i));
    }
 

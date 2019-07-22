@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -45,8 +45,8 @@ const uint8_t MODBUS_ROLE_OID[11] = {0x2B, 0x06, 0x01, 0x04, 0x01, 0x83, 0x89, 0
 
 
 /**
- * @brief Parse the X.509 certificate of the client
- * @param[in] context Pointer to the TLS context
+ * @brief Parse client's certificate
+ * @param[in] tlsContext Pointer to the TLS context
  * @param[in] certInfo Pointer to the X.509 certificate
  * @param[in] pathLen Certificate path length
  * @param[in] param Handle referencing a Modbus/TCP client connection

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _FTP_CLIENT_H
@@ -162,11 +162,11 @@ typedef enum
 
 typedef enum
 {
-   FTP_FLAG_PEEK       = 0x0200,
    FTP_FLAG_WAIT_ALL   = 0x0800,
    FTP_FLAG_BREAK_CHAR = 0x1000,
    FTP_FLAG_BREAK_CRLF = 0x100A,
-   FTP_FLAG_WAIT_ACK   = 0x2000
+   FTP_FLAG_NO_DELAY   = 0x4000,
+   FTP_FLAG_DELAY      = 0x8000
 } FtpFileFlags;
 
 

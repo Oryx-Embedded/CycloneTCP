@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -115,7 +115,9 @@ error_t esp32EthInit(NetInterface *interface)
    //Perform a software reset
    REG_SET_BIT(EMAC_DMABUSMODE_REG, EMAC_SW_RST);
    //Wait for the reset to complete
-   while(REG_GET_BIT(EMAC_DMABUSMODE_REG, EMAC_SW_RST));
+   while(REG_GET_BIT(EMAC_DMABUSMODE_REG, EMAC_SW_RST))
+   {
+   }
 
    //Adjust MDC clock range
    REG_SET_FIELD(EMAC_GMIIADDR_REG, EMAC_MIICSRCLK, 1);
@@ -349,7 +351,7 @@ void IRAM_ATTR esp32EthIrqHandler(void *arg)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -387,7 +389,7 @@ void IRAM_ATTR esp32EthIrqHandler(void *arg)
    //Clear NIS interrupt flag
    REG_WRITE(EMAC_DMASTATUS_REG, EMAC_NORM_INT_SUMM_M);
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -685,59 +687,88 @@ error_t esp32EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void esp32EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void esp32EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   value = REG_READ(EMAC_GMIIADDR_REG) & EMAC_MIICSRCLK_M;
-   //Set up a write operation
-   value |= EMAC_MIIWRITE_M | EMAC_MIIBUSY_M;
-   //PHY address
-   value |= (phyAddr << EMAC_MIIDEV_S) & EMAC_MIIDEV_M;
-   //Register address
-   value |= (regAddr << EMAC_MIIREG_S) & EMAC_MIIREG_M;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Take care not to alter MDC clock configuration
+      temp = REG_READ(EMAC_GMIIADDR_REG) & EMAC_MIICSRCLK_M;
+      //Set up a write operation
+      temp |= EMAC_MIIWRITE_M | EMAC_MIIBUSY_M;
+      //PHY address
+      temp |= (phyAddr << EMAC_MIIDEV_S) & EMAC_MIIDEV_M;
+      //Register address
+      temp |= (regAddr << EMAC_MIIREG_S) & EMAC_MIIREG_M;
 
-   //Data to be written in the PHY register
-   REG_WRITE(EMAC_MIIDATA_REG, data);
+      //Data to be written in the PHY register
+      REG_WRITE(EMAC_MIIDATA_REG, data);
 
-   //Start a write operation
-   REG_WRITE(EMAC_GMIIADDR_REG, value);
-   //Wait for the write to complete
-   while(REG_GET_BIT(EMAC_GMIIADDR_REG, EMAC_MIIBUSY));
+      //Start a write operation
+      REG_WRITE(EMAC_GMIIADDR_REG, temp);
+      //Wait for the write to complete
+      while(REG_GET_BIT(EMAC_GMIIADDR_REG, EMAC_MIIBUSY))
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t esp32EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t esp32EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   value = REG_READ(EMAC_GMIIADDR_REG) & EMAC_MIICSRCLK_M;
-   //Set up a read operation
-   value |= EMAC_MIIBUSY_M;
-   //PHY address
-   value |= (phyAddr << EMAC_MIIDEV_S) & EMAC_MIIDEV_M;
-   //Register address
-   value |= (regAddr << EMAC_MIIREG_S) & EMAC_MIIREG_M;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Take care not to alter MDC clock configuration
+      temp = REG_READ(EMAC_GMIIADDR_REG) & EMAC_MIICSRCLK_M;
+      //Set up a read operation
+      temp |= EMAC_MIIBUSY_M;
+      //PHY address
+      temp |= (phyAddr << EMAC_MIIDEV_S) & EMAC_MIIDEV_M;
+      //Register address
+      temp |= (regAddr << EMAC_MIIREG_S) & EMAC_MIIREG_M;
 
-   //Start a read operation
-   REG_WRITE(EMAC_GMIIADDR_REG, value);
-   //Wait for the read to complete
-   while(REG_GET_BIT(EMAC_GMIIADDR_REG, EMAC_MIIBUSY));
+      //Start a read operation
+      REG_WRITE(EMAC_GMIIADDR_REG, temp);
+      //Wait for the read to complete
+      while(REG_GET_BIT(EMAC_GMIIADDR_REG, EMAC_MIIBUSY))
+      {
+      }
 
-   //Return PHY register contents
-   return REG_READ(EMAC_MIIDATA_REG);
+      //Get register value
+      data = REG_READ(EMAC_MIIDATA_REG);
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }

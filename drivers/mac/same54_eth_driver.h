@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _SAME54_ETH_DRIVER_H
@@ -165,8 +165,11 @@ error_t same54EthReceivePacket(NetInterface *interface);
 error_t same54EthUpdateMacAddrFilter(NetInterface *interface);
 error_t same54EthUpdateMacConfig(NetInterface *interface);
 
-void same54EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t same54EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void same54EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t same54EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

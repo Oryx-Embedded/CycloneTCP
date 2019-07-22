@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -663,7 +663,7 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
    //Finalize hash computation
    hash->final(hashContext, response);
 
-   //Convert resulting digest to hex string
+   //Convert the resulting digest to hex string
    httpEncodeHexString(response, hash->digestSize, response);
 
    //Successful processing

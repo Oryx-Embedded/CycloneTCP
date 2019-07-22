@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _SNTP_CLIENT_H
@@ -61,6 +61,11 @@
    #define SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT 15000
 #elif (SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT < 1000)
    #error SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT parameter is not valid
+#endif
+
+//C++ guard
+#ifdef __cplusplus
+   extern "C" {
 #endif
 
 

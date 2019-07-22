@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,43 +64,55 @@ error_t ar8031Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing AR8031...\r\n");
 
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = AR8031_PHY_ADDR;
+   }
+
    //Initialize external interrupt line driver
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->init();
+   }
 
    //Reset PHY transceiver
-   ar8031WritePhyReg(interface, AR8031_PHY_REG_BMCR, BMCR_RESET);
+   ar8031WritePhyReg(interface, AR8031_BMCR, AR8031_BMCR_RESET);
+
    //Wait for the reset to complete
-   while(ar8031ReadPhyReg(interface, AR8031_PHY_REG_BMCR) & BMCR_RESET);
+   while(ar8031ReadPhyReg(interface, AR8031_BMCR) & AR8031_BMCR_RESET)
+   {
+   }
 
    //Chip configuration register
-   ar8031WritePhyReg(interface, AR8031_PHY_REG_CHIP_CONFIG,
-      CHIP_CONFIG_BT_BX_REG_SEL | CHIP_CONFIG_PRIORITY_SEL);
+   ar8031WritePhyReg(interface, AR8031_CHIP_CONF,
+      AR8031_CHIP_CONF_BT_BX_REG_SEL | AR8031_CHIP_CONF_PRIORITY_SEL);
 
    //Basic mode control register
-   ar8031WritePhyReg(interface, AR8031_PHY_REG_BMCR,
-      BMCR_SPEED_SEL_LSB | BMCR_AN_EN | BMCR_DUPLEX_MODE);
+   ar8031WritePhyReg(interface, AR8031_BMCR, AR8031_BMCR_SPEED_SEL_LSB |
+      AR8031_BMCR_AN_EN | AR8031_BMCR_DUPLEX_MODE);
 
    //Auto-negotiation advertisement register
-   ar8031WritePhyReg(interface, AR8031_PHY_REG_ANAR,
-      ANAR_XNP_ABLE | ANAR_ASYMMETRIC_PAUSE | ANAR_PAUSE | ANAR_100BTX_FD |
-      ANAR_100BTX_HD | ANAR_10BT_FD | ANAR_10BT_HD | ANAR_SELECTOR0);
+   ar8031WritePhyReg(interface, AR8031_ANAR, AR8031_ANAR_XNP_ABLE |
+      AR8031_ANAR_ASYM_PAUSE | AR8031_ANAR_PAUSE | AR8031_ANAR_100BTX_FD |
+      AR8031_ANAR_100BTX_HD | AR8031_ANAR_10BT_FD | AR8031_ANAR_10BT_HD |
+      AR8031_ANAR_SELECTOR_DEFAULT);
 
    //1000 BASE-T control register
-   ar8031WritePhyReg(interface, AR8031_PHY_REG_1000BT_CTRL,
-      _1000BT_CTRL_1000BT_FD);
+   ar8031WritePhyReg(interface, AR8031_GBCR, AR8031_GBCR_1000BT_FD);
 
    //Function control register
-   ar8031WritePhyReg(interface, AR8031_PHY_REG_FUNCTION_CTRL,
-      FUNCTION_ASSERT_CRS_ON_TX | FUNCTION_MDI_CROSSOVER_MODE1 |
-      FUNCTION_MDI_CROSSOVER_MODE0 | FUNCTION_POLARITY_REVERSAL);
+   ar8031WritePhyReg(interface, AR8031_FUNC_CTRL,
+      AR8031_FUNC_CTRL_ASSERT_CRS_ON_TX | AR8031_FUNC_CTRL_MDIX_MODE_AUTO |
+      AR8031_FUNC_CTRL_POLARITY_REVERSAL);
 
    //Dump PHY registers for debugging purpose
    ar8031DumpPhyReg(interface);
 
    //The PHY will generate interrupts when link status changes are detected
-   ar8031WritePhyReg(interface, AR8031_PHY_REG_INT_EN,
-      INT_STATUS_LINK_FAIL | INT_STATUS_LINK_SUCCESS);
+   ar8031WritePhyReg(interface, AR8031_INT_EN, AR8031_INT_STATUS_LINK_FAIL |
+      AR8031_INT_STATUS_LINK_SUCCESS);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -126,9 +138,9 @@ void ar8031Tick(NetInterface *interface)
    if(interface->extIntDriver == NULL)
    {
       //Read basic status register
-      value = ar8031ReadPhyReg(interface, AR8031_PHY_REG_BMSR);
+      value = ar8031ReadPhyReg(interface, AR8031_BMSR);
       //Retrieve current link state
-      linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
+      linkState = (value & AR8031_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
       //Link up event?
       if(linkState && !interface->linkState)
@@ -159,7 +171,9 @@ void ar8031EnableIrq(NetInterface *interface)
 {
    //Enable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -172,7 +186,9 @@ void ar8031DisableIrq(NetInterface *interface)
 {
    //Disable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->disableIrq();
+   }
 }
 
 
@@ -186,30 +202,30 @@ void ar8031EventHandler(NetInterface *interface)
    uint16_t status;
 
    //Read status register to acknowledge the interrupt
-   status = ar8031ReadPhyReg(interface, AR8031_PHY_REG_INT_STATUS);
+   status = ar8031ReadPhyReg(interface, AR8031_INT_STATUS);
 
    //Link status change?
-   if(status & (INT_STATUS_LINK_FAIL | INT_STATUS_LINK_SUCCESS))
+   if(status & (AR8031_INT_STATUS_LINK_FAIL | AR8031_INT_STATUS_LINK_SUCCESS))
    {
       //Read PHY status register
-      status = ar8031ReadPhyReg(interface, AR8031_PHY_REG_PHY_STATUS);
+      status = ar8031ReadPhyReg(interface, AR8031_PHY_STATUS);
 
       //Link is up?
-      if(status & PHY_STATUS_LINK)
+      if(status & AR8031_PHY_STATUS_LINK)
       {
          //Check current speed
-         switch(status & PHY_STATUS_SPEED_MASK)
+         switch(status & AR8031_PHY_STATUS_SPEED)
          {
          //10BASE-T
-         case PHY_STATUS_SPEED_10:
+         case AR8031_PHY_STATUS_SPEED_10MBPS:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             break;
          //100BASE-TX
-         case PHY_STATUS_SPEED_100:
+         case AR8031_PHY_STATUS_SPEED_100MBPS:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             break;
          //1000BASE-T
-         case PHY_STATUS_SPEED_1000:
+         case AR8031_PHY_STATUS_SPEED_1000MBPS:
             interface->linkSpeed = NIC_LINK_SPEED_1GBPS;
             break;
          //Unknown speed
@@ -220,7 +236,7 @@ void ar8031EventHandler(NetInterface *interface)
          }
 
          //Check current duplex mode
-         if(status & PHY_STATUS_DUPLEX)
+         if(status & AR8031_PHY_STATUS_DUPLEX)
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          else
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
@@ -253,16 +269,9 @@ void ar8031EventHandler(NetInterface *interface)
 void ar8031WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = AR8031_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -275,16 +284,9 @@ void ar8031WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t ar8031ReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = AR8031_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -301,7 +303,8 @@ void ar8031DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, ar8031ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         ar8031ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

@@ -30,7 +30,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -78,7 +78,7 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
 #else
    uint_t i;
    uint_t j;
-   char_t *data;
+   const char_t *data;
 #endif
 
    //Recursion limit exceeded?
@@ -108,7 +108,7 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
    }
 #else
    //Get the resource data associated with the URI
-   error = resGetData(connection->buffer, (uint8_t **) &data, &length);
+   error = resGetData(connection->buffer, (const uint8_t **) &data, &length);
    //The specified URI cannot be found?
    if(error)
       return error;
@@ -557,7 +557,7 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
          error = ERROR_NOT_FOUND;
       }
 #else
-      uint8_t *data;
+      const uint8_t *data;
 
       //Retrieve the full pathname
       httpGetAbsolutePath(connection, path,

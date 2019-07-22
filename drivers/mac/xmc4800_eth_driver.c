@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -143,7 +143,9 @@ error_t xmc4800EthInit(NetInterface *interface)
    //Reset DMA controller
    ETH0->BUS_MODE |= ETH_BUS_MODE_SWR_Msk;
    //Wait for the reset to complete
-   while(ETH0->BUS_MODE & ETH_BUS_MODE_SWR_Msk);
+   while(ETH0->BUS_MODE & ETH_BUS_MODE_SWR_Msk)
+   {
+   }
 
    //Adjust MDC clock range depending on ETH clock frequency
    ETH0->GMII_ADDRESS = ETH_GMII_ADDRESS_CR_DIV62;
@@ -389,7 +391,7 @@ void ETH0_0_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -427,7 +429,7 @@ void ETH0_0_IRQHandler(void)
    //Clear NIS interrupt flag
    ETH0->STATUS = ETH_STATUS_NIS_Msk;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -652,11 +654,13 @@ error_t xmc4800EthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the first unicast address filter
    if(j >= 1)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       ETH0->MAC_ADDRESS1_LOW = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
       ETH0->MAC_ADDRESS1_HIGH = unicastMacAddr[0].w[2] | ETH_MAC_ADDRESS1_HIGH_AE_Msk;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       ETH0->MAC_ADDRESS1_LOW = 0;
       ETH0->MAC_ADDRESS1_HIGH = 0;
    }
@@ -664,11 +668,13 @@ error_t xmc4800EthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the second unicast address filter
    if(j >= 2)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       ETH0->MAC_ADDRESS2_LOW = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
       ETH0->MAC_ADDRESS2_HIGH = unicastMacAddr[1].w[2] | ETH_MAC_ADDRESS2_HIGH_AE_Msk;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       ETH0->MAC_ADDRESS2_LOW = 0;
       ETH0->MAC_ADDRESS2_HIGH = 0;
    }
@@ -676,11 +682,13 @@ error_t xmc4800EthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the third unicast address filter
    if(j >= 3)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       ETH0->MAC_ADDRESS3_LOW = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
       ETH0->MAC_ADDRESS3_HIGH = unicastMacAddr[2].w[2] | ETH_MAC_ADDRESS3_HIGH_AE_Msk;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       ETH0->MAC_ADDRESS3_LOW = 0;
       ETH0->MAC_ADDRESS3_HIGH = 0;
    }
@@ -733,61 +741,90 @@ error_t xmc4800EthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void xmc4800EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void xmc4800EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   value = ETH0->GMII_ADDRESS & ETH_GMII_ADDRESS_CR_Msk;
-   //Set up a write operation
-   value |= ETH_GMII_ADDRESS_MW_Msk | ETH_GMII_ADDRESS_MB_Msk;
-   //PHY address
-   value |= (phyAddr << ETH_GMII_ADDRESS_PA_Pos) & ETH_GMII_ADDRESS_PA_Msk;
-   //Register address
-   value |= (regAddr << ETH_GMII_ADDRESS_MR_Pos) & ETH_GMII_ADDRESS_MR_Msk;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Take care not to alter MDC clock configuration
+      temp = ETH0->GMII_ADDRESS & ETH_GMII_ADDRESS_CR_Msk;
+      //Set up a write operation
+      temp |= ETH_GMII_ADDRESS_MW_Msk | ETH_GMII_ADDRESS_MB_Msk;
+      //PHY address
+      temp |= (phyAddr << ETH_GMII_ADDRESS_PA_Pos) & ETH_GMII_ADDRESS_PA_Msk;
+      //Register address
+      temp |= (regAddr << ETH_GMII_ADDRESS_MR_Pos) & ETH_GMII_ADDRESS_MR_Msk;
 
-   //Data to be written in the PHY register
-   ETH0->GMII_DATA = data & ETH_GMII_DATA_MD_Msk;
+      //Data to be written in the PHY register
+      ETH0->GMII_DATA = data & ETH_GMII_DATA_MD_Msk;
 
-   //Start a write operation
-   ETH0->GMII_ADDRESS = value;
-   //Wait for the write to complete
-   while(ETH0->GMII_ADDRESS & ETH_GMII_ADDRESS_MB_Msk);
+      //Start a write operation
+      ETH0->GMII_ADDRESS = temp;
+      //Wait for the write to complete
+      while(ETH0->GMII_ADDRESS & ETH_GMII_ADDRESS_MB_Msk)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t xmc4800EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t xmc4800EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   value = ETH0->GMII_ADDRESS & ETH_GMII_ADDRESS_CR_Msk;
-   //Set up a read operation
-   value |= ETH_GMII_ADDRESS_MB_Msk;
-   //PHY address
-   value |= (phyAddr << ETH_GMII_ADDRESS_PA_Pos) & ETH_GMII_ADDRESS_PA_Msk;
-   //Register address
-   value |= (regAddr << ETH_GMII_ADDRESS_MR_Pos) & ETH_GMII_ADDRESS_MR_Msk;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Take care not to alter MDC clock configuration
+      temp = ETH0->GMII_ADDRESS & ETH_GMII_ADDRESS_CR_Msk;
+      //Set up a read operation
+      temp |= ETH_GMII_ADDRESS_MB_Msk;
+      //PHY address
+      temp |= (phyAddr << ETH_GMII_ADDRESS_PA_Pos) & ETH_GMII_ADDRESS_PA_Msk;
+      //Register address
+      temp |= (regAddr << ETH_GMII_ADDRESS_MR_Pos) & ETH_GMII_ADDRESS_MR_Msk;
 
-   //Start a read operation
-   ETH0->GMII_ADDRESS = value;
-   //Wait for the read to complete
-   while(ETH0->GMII_ADDRESS & ETH_GMII_ADDRESS_MB_Msk);
+      //Start a read operation
+      ETH0->GMII_ADDRESS = temp;
+      //Wait for the read to complete
+      while(ETH0->GMII_ADDRESS & ETH_GMII_ADDRESS_MB_Msk)
+      {
+      }
 
-   //Return PHY register contents
-   return ETH0->GMII_DATA & ETH_GMII_DATA_MD_Msk;
+      //Get register value
+      data = ETH0->GMII_DATA & ETH_GMII_DATA_MD_Msk;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -125,6 +125,9 @@ error_t sam3xEthInit(NetInterface *interface)
 
    //Enable EMAC peripheral clock
    PMC->PMC_PCER1 = (1 << (ID_EMAC - 32));
+
+   //Disable transmit and receive circuits
+   EMAC->EMAC_NCR = 0;
 
    //GPIO configuration
    sam3xEthInitGpio(interface);
@@ -325,7 +328,7 @@ void EMAC_Handler(void)
    volatile uint32_t tsr;
    volatile uint32_t rsr;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -361,7 +364,7 @@ void EMAC_Handler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -651,39 +654,39 @@ error_t sam3xEthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the first unicast address filter
    if(j >= 1)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       EMAC->EMAC_SA[1].EMAC_SAxB = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
       EMAC->EMAC_SA[1].EMAC_SAxT = unicastMacAddr[0].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       EMAC->EMAC_SA[1].EMAC_SAxB = 0;
    }
 
    //Configure the second unicast address filter
    if(j >= 2)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       EMAC->EMAC_SA[2].EMAC_SAxB = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
       EMAC->EMAC_SA[2].EMAC_SAxT = unicastMacAddr[1].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       EMAC->EMAC_SA[2].EMAC_SAxB = 0;
    }
 
    //Configure the third unicast address filter
    if(j >= 3)
    {
-      //The addresse is activated when SAT register is written
+      //The address is activated when SAT register is written
       EMAC->EMAC_SA[3].EMAC_SAxB = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
       EMAC->EMAC_SA[3].EMAC_SAxT = unicastMacAddr[2].w[2];
    }
    else
    {
-      //The addresse is activated when SAB register is written
+      //The address is deactivated when SAB register is written
       EMAC->EMAC_SA[3].EMAC_SAxB = 0;
    }
 
@@ -735,54 +738,83 @@ error_t sam3xEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void sam3xEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void sam3xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
-   //Set up a write operation
-   value = EMAC_MAN_SOF(1) | EMAC_MAN_RW(1) | EMAC_MAN_CODE(2);
-   //PHY address
-   value |= EMAC_MAN_PHYA(phyAddr);
-   //Register address
-   value |= EMAC_MAN_REGA(regAddr);
-   //Register value
-   value |= EMAC_MAN_DATA(data);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      //Set up a write operation
+      temp = EMAC_MAN_SOF(1) | EMAC_MAN_RW(1) | EMAC_MAN_CODE(2);
+      //PHY address
+      temp |= EMAC_MAN_PHYA(phyAddr);
+      //Register address
+      temp |= EMAC_MAN_REGA(regAddr);
+      //Register value
+      temp |= EMAC_MAN_DATA(data);
 
-   //Start a write operation
-   EMAC->EMAC_MAN = value;
-   //Wait for the write to complete
-   while(!(EMAC->EMAC_NSR & EMAC_NSR_IDLE));
+      //Start a write operation
+      EMAC->EMAC_MAN = temp;
+      //Wait for the write to complete
+      while(!(EMAC->EMAC_NSR & EMAC_NSR_IDLE))
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t sam3xEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t sam3xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-   uint32_t value;
+   uint16_t data;
+   uint32_t temp;
 
-   //Set up a read operation
-   value = EMAC_MAN_SOF(1) | EMAC_MAN_RW(2) | EMAC_MAN_CODE(2);
-   //PHY address
-   value |= EMAC_MAN_PHYA(phyAddr);
-   //Register address
-   value |= EMAC_MAN_REGA(regAddr);
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      //Set up a read operation
+      temp = EMAC_MAN_SOF(1) | EMAC_MAN_RW(2) | EMAC_MAN_CODE(2);
+      //PHY address
+      temp |= EMAC_MAN_PHYA(phyAddr);
+      //Register address
+      temp |= EMAC_MAN_REGA(regAddr);
 
-   //Start a read operation
-   EMAC->EMAC_MAN = value;
-   //Wait for the read to complete
-   while(!(EMAC->EMAC_NSR & EMAC_NSR_IDLE));
+      //Start a read operation
+      EMAC->EMAC_MAN = temp;
+      //Wait for the read to complete
+      while(!(EMAC->EMAC_NSR & EMAC_NSR_IDLE))
+      {
+      }
 
-   //Return PHY register contents
-   return EMAC->EMAC_MAN & EMAC_MAN_DATA_Msk;
+      //Get register value
+      data = EMAC->EMAC_MAN & EMAC_MAN_DATA_Msk;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
+
+   //Return the value of the PHY register
+   return data;
 }

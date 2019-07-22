@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -137,17 +137,23 @@ error_t tm4c129EthInit(NetInterface *interface)
 
    //Enable Ethernet controller clock
    SysCtlPeripheralEnable(SYSCTL_PERIPH_EMAC0);
+
    //Reset Ethernet controller
    SysCtlPeripheralReset(SYSCTL_PERIPH_EMAC0);
    //Wait for the reset to complete
-   while(!SysCtlPeripheralReady(SYSCTL_PERIPH_EMAC0));
+   while(!SysCtlPeripheralReady(SYSCTL_PERIPH_EMAC0))
+   {
+   }
 
    //Enable internal PHY clock
    SysCtlPeripheralEnable(SYSCTL_PERIPH_EPHY0);
+
    //Reset internal PHY
    SysCtlPeripheralReset(SYSCTL_PERIPH_EPHY0);
    //Wait for the reset to complete
-   while(!SysCtlPeripheralReady(SYSCTL_PERIPH_EPHY0));
+   while(!SysCtlPeripheralReady(SYSCTL_PERIPH_EPHY0))
+   {
+   }
 
    //GPIO configuration
    tm4c129EthInitGpio(interface);
@@ -155,7 +161,9 @@ error_t tm4c129EthInit(NetInterface *interface)
    //Perform a software reset
    EMAC0_DMABUSMOD_R |= EMAC_DMABUSMOD_SWR;
    //Wait for the reset to complete
-   while(EMAC0_DMABUSMOD_R & EMAC_DMABUSMOD_SWR);
+   while(EMAC0_DMABUSMOD_R & EMAC_DMABUSMOD_SWR)
+   {
+   }
 
    //Adjust MDC clock range depending on SYSCLK frequency
    EMAC0_MIIADDR_R = EMAC_MIIADDR_CR_100_150;
@@ -163,7 +171,9 @@ error_t tm4c129EthInit(NetInterface *interface)
    //Reset PHY transceiver
    tm4c129EthWritePhyReg(EPHY_BMCR, EPHY_BMCR_MIIRESET);
    //Wait for the reset to complete
-   while(tm4c129EthReadPhyReg(EPHY_BMCR) & EPHY_BMCR_MIIRESET);
+   while(tm4c129EthReadPhyReg(EPHY_BMCR) & EPHY_BMCR_MIIRESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    tm4c129EthDumpPhyReg();
@@ -399,7 +409,7 @@ void EMAC0_Handler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -452,7 +462,7 @@ void EMAC0_Handler(void)
    //Clear NIS interrupt flag
    EMAC0_DMARIS_R = EMAC_DMARIS_NIS;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
@@ -745,11 +755,13 @@ error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the first unicast address filter
    if(j >= 1)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       EMAC0_ADDR1L_R = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
       EMAC0_ADDR1H_R = unicastMacAddr[0].w[2] | EMAC_ADDR1H_AE;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       EMAC0_ADDR1L_R = 0;
       EMAC0_ADDR1H_R = 0;
    }
@@ -757,11 +769,13 @@ error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the second unicast address filter
    if(j >= 2)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       EMAC0_ADDR2L_R = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
       EMAC0_ADDR2H_R = unicastMacAddr[1].w[2] | EMAC_ADDR2H_AE;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       EMAC0_ADDR2L_R = 0;
       EMAC0_ADDR2H_R = 0;
    }
@@ -769,11 +783,13 @@ error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the third unicast address filter
    if(j >= 3)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       EMAC0_ADDR3L_R = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
       EMAC0_ADDR3H_R = unicastMacAddr[2].w[2] | EMAC_ADDR3H_AE;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       EMAC0_ADDR3L_R = 0;
       EMAC0_ADDR3H_R = 0;
    }
@@ -799,24 +815,26 @@ error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
 
 void tm4c129EthWritePhyReg(uint8_t regAddr, uint16_t data)
 {
-   uint32_t value;
+   uint32_t temp;
 
    //Take care not to alter MDC clock configuration
-   value = EMAC0_MIIADDR_R & EMAC_MIIADDR_CR_M;
+   temp = EMAC0_MIIADDR_R & EMAC_MIIADDR_CR_M;
    //Set up a write operation
-   value |= EMAC_MIIADDR_MIIW | EMAC_MIIADDR_MIIB;
+   temp |= EMAC_MIIADDR_MIIW | EMAC_MIIADDR_MIIB;
    //The address of the integrated PHY is 0
-   value |= (0 << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
+   temp |= (0 << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
    //Register address
-   value |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
+   temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
 
    //Data to be written in the PHY register
    EMAC0_MIIDATA_R = data & EMAC_MIIDATA_DATA_M;
 
    //Start a write operation
-   EMAC0_MIIADDR_R = value;
+   EMAC0_MIIADDR_R = temp;
    //Wait for the write to complete
-   while(EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB);
+   while(EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB)
+   {
+   }
 }
 
 
@@ -828,21 +846,23 @@ void tm4c129EthWritePhyReg(uint8_t regAddr, uint16_t data)
 
 uint16_t tm4c129EthReadPhyReg(uint8_t regAddr)
 {
-   uint32_t value;
+   uint32_t temp;
 
    //Take care not to alter MDC clock configuration
-   value = EMAC0_MIIADDR_R & EMAC_MIIADDR_CR_M;
+   temp = EMAC0_MIIADDR_R & EMAC_MIIADDR_CR_M;
    //Set up a read operation
-   value |= EMAC_MIIADDR_MIIB;
+   temp |= EMAC_MIIADDR_MIIB;
    //The address of the integrated PHY is 0
-   value |= (0 << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
+   temp |= (0 << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
    //Register address
-   value |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
+   temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
 
    //Start a read operation
-   EMAC0_MIIADDR_R = value;
+   EMAC0_MIIADDR_R = temp;
    //Wait for the read to complete
-   while(EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB);
+   while(EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB)
+   {
+   }
 
    //Return PHY register contents
    return EMAC0_MIIDATA_R & EMAC_MIIDATA_DATA_M;
@@ -861,7 +881,8 @@ void tm4c129EthDumpPhyReg(void)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, tm4c129EthReadPhyReg(i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         tm4c129EthReadPhyReg(i));
    }
 
    //Terminate with a line feed

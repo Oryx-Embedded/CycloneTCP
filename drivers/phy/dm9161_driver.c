@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -61,25 +61,36 @@ const PhyDriver dm9161PhyDriver =
 
 error_t dm9161Init(NetInterface *interface)
 {
-   volatile uint32_t status;
-
    //Debug message
    TRACE_INFO("Initializing DM9161...\r\n");
 
+   //Undefined PHY address?
+   if(interface->phyAddr >= 32)
+   {
+      //Use the default address
+      interface->phyAddr = DM9161_PHY_ADDR;
+   }
+
    //Initialize external interrupt line driver
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->init();
+   }
 
    //Reset PHY transceiver
-   dm9161WritePhyReg(interface, DM9161_PHY_REG_BMCR, BMCR_RESET);
+   dm9161WritePhyReg(interface, DM9161_BMCR, DM9161_BMCR_RESET);
+
    //Wait for the reset to complete
-   while(dm9161ReadPhyReg(interface, DM9161_PHY_REG_BMCR) & BMCR_RESET);
+   while(dm9161ReadPhyReg(interface, DM9161_BMCR) & DM9161_BMCR_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    dm9161DumpPhyReg(interface);
 
    //The PHY will generate interrupts when link status changes are detected
-   dm9161WritePhyReg(interface, DM9161_PHY_REG_MDINTR, ~(MDINTR_LINK_MASK | MDINTR_INTR_MASK));
+   dm9161WritePhyReg(interface, DM9161_MDINTR, ~(DM9161_MDINTR_LINK_MASK |
+      DM9161_MDINTR_INTR_MASK));
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -105,9 +116,9 @@ void dm9161Tick(NetInterface *interface)
    if(interface->extIntDriver == NULL)
    {
       //Read basic status register
-      value = dm9161ReadPhyReg(interface, DM9161_PHY_REG_BMSR);
+      value = dm9161ReadPhyReg(interface, DM9161_BMSR);
       //Retrieve current link state
-      linkState = (value & BMSR_LINK_STATUS) ? TRUE : FALSE;
+      linkState = (value & DM9161_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
       //Link up event?
       if(linkState && !interface->linkState)
@@ -138,7 +149,9 @@ void dm9161EnableIrq(NetInterface *interface)
 {
    //Enable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -151,7 +164,9 @@ void dm9161DisableIrq(NetInterface *interface)
 {
    //Disable PHY transceiver interrupts
    if(interface->extIntDriver != NULL)
+   {
       interface->extIntDriver->disableIrq();
+   }
 }
 
 
@@ -166,33 +181,33 @@ void dm9161EventHandler(NetInterface *interface)
    bool_t end;
 
    //Read status register to acknowledge the interrupt
-   value = dm9161ReadPhyReg(interface, DM9161_PHY_REG_MDINTR);
+   value = dm9161ReadPhyReg(interface, DM9161_MDINTR);
 
    //Link status change?
-   if(value & MDINTR_LINK_CHANGE)
+   if(value & DM9161_MDINTR_LINK_CHANGE)
    {
-      //Any link failure condition is latched in the BMSR register... Reading
+      //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
-      value = dm9161ReadPhyReg(interface, DM9161_PHY_REG_BMSR);
-      value = dm9161ReadPhyReg(interface, DM9161_PHY_REG_BMSR);
+      value = dm9161ReadPhyReg(interface, DM9161_BMSR);
+      value = dm9161ReadPhyReg(interface, DM9161_BMSR);
 
       //Link is up?
-      if(value & BMSR_LINK_STATUS)
+      if(value & DM9161_BMSR_LINK_STATUS)
       {
          //Wait for the auto-negotiation to complete
          do
          {
             //Read DSCSR register
-            value = dm9161ReadPhyReg(interface, DM9161_PHY_REG_DSCSR);
+            value = dm9161ReadPhyReg(interface, DM9161_DSCSR);
 
             //Check current state
-            switch(value & DSCSR_ANMB_MASK)
+            switch(value & DM9161_DSCSR_ANMB)
             {
             //Auto-negotiation is still in progress?
-            case DSCSR_ANMB_ABILITY_MATCH:
-            case DSCSR_ANMB_ACK_MATCH:
-            case DSCSR_ANMB_CONSIST_MATCH:
-            case DSCSR_ANMB_SIGNAL_LINK_READY:
+            case DM9161_DSCSR_ANMB_ABILITY_MATCH:
+            case DM9161_DSCSR_ANMB_ACK_MATCH:
+            case DM9161_DSCSR_ANMB_CONSIST_MATCH:
+            case DM9161_DSCSR_ANMB_LINK_READY:
                end = FALSE;
                break;
             //Auto-negotiation is complete?
@@ -205,28 +220,28 @@ void dm9161EventHandler(NetInterface *interface)
          } while(!end);
 
          //Read DSCSR register
-         value = dm9161ReadPhyReg(interface, DM9161_PHY_REG_DSCSR);
+         value = dm9161ReadPhyReg(interface, DM9161_DSCSR);
 
          //Check current operation mode
-         if(value & DSCSR_10HDX)
+         if(value & DM9161_DSCSR_10HDX)
          {
             //10BASE-T half-duplex
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          }
-         else if(value & DSCSR_10FDX)
+         else if(value & DM9161_DSCSR_10FDX)
          {
             //10BASE-T full-duplex
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          }
-         else if(value & DSCSR_100HDX)
+         else if(value & DM9161_DSCSR_100HDX)
          {
             //100BASE-TX half-duplex
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          }
-         else if(value & DSCSR_100FDX)
+         else if(value & DM9161_DSCSR_100FDX)
          {
             //100BASE-TX full-duplex
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
@@ -235,7 +250,7 @@ void dm9161EventHandler(NetInterface *interface)
          else
          {
             //Debug message
-            TRACE_WARNING("Invalid Duplex mode\r\n");
+            TRACE_WARNING("Invalid operation mode!\r\n");
          }
 
          //Update link state
@@ -266,16 +281,9 @@ void dm9161EventHandler(NetInterface *interface)
 void dm9161WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = DM9161_PHY_ADDR;
-
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(phyAddr, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+      interface->phyAddr, address, data);
 }
 
 
@@ -288,16 +296,9 @@ void dm9161WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t dm9161ReadPhyReg(NetInterface *interface, uint8_t address)
 {
-   uint8_t phyAddr;
-
-   //Get the address of the PHY transceiver
-   if(interface->phyAddr < 32)
-      phyAddr = interface->phyAddr;
-   else
-      phyAddr = DM9161_PHY_ADDR;
-
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(phyAddr, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+      interface->phyAddr, address);
 }
 
 
@@ -314,7 +315,8 @@ void dm9161DumpPhyReg(NetInterface *interface)
    for(i = 0; i < 32; i++)
    {
       //Display current PHY register
-      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i, dm9161ReadPhyReg(interface, i));
+      TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
+         dm9161ReadPhyReg(interface, i));
    }
 
    //Terminate with a line feed

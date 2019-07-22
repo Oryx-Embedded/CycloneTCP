@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _XMC4700_ETH_DRIVER_H
@@ -283,8 +283,11 @@ error_t xmc4700EthReceivePacket(NetInterface *interface);
 error_t xmc4700EthUpdateMacAddrFilter(NetInterface *interface);
 error_t xmc4700EthUpdateMacConfig(NetInterface *interface);
 
-void xmc4700EthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t xmc4700EthReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void xmc4700EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t xmc4700EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 uint32_t xmc4700EthCalcCrc(const void *data, size_t length);
 

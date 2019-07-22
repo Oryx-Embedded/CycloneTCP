@@ -1,6 +1,6 @@
 /**
  * @file stm32f7xx_eth_driver.c
- * @brief STM32F746/756 Ethernet MAC controller
+ * @brief STM32F7 Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -85,7 +85,7 @@ static Stm32f7xxRxDmaDesc *rxCurDmaDesc;
 
 
 /**
- * @brief STM32F746/756 Ethernet MAC driver
+ * @brief STM32F7 Ethernet MAC driver
  **/
 
 const NicDriver stm32f7xxEthDriver =
@@ -110,7 +110,7 @@ const NicDriver stm32f7xxEthDriver =
 
 
 /**
- * @brief STM32F746/756 Ethernet MAC initialization
+ * @brief STM32F7 Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
@@ -120,7 +120,7 @@ error_t stm32f7xxEthInit(NetInterface *interface)
    error_t error;
 
    //Debug message
-   TRACE_INFO("Initializing STM32F7xx Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing STM32F7 Ethernet MAC...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -140,7 +140,9 @@ error_t stm32f7xxEthInit(NetInterface *interface)
    //Perform a software reset
    ETH->DMABMR |= ETH_DMABMR_SR;
    //Wait for the reset to complete
-   while(ETH->DMABMR & ETH_DMABMR_SR);
+   while(ETH->DMABMR & ETH_DMABMR_SR)
+   {
+   }
 
    //Adjust MDC clock range depending on HCLK frequency
    ETH->MACMIIAR = ETH_MACMIIAR_CR_Div102;
@@ -217,11 +219,11 @@ error_t stm32f7xxEthInit(NetInterface *interface)
 }
 
 
-//STM32756G-EVAL, STM32F769I-EVAL, STM32F746G-DISCOVERY, STM32F769I-DISCOVERY
-//Nucleo-F746ZG or Nucleo-F767ZI evaluation board?
+//STM32756G-EVAL, STM32F769I-EVAL, STM32F746G-Discovery, STM32F7508-Discovery,
+//STM32F769I-Discovery, Nucleo-F746ZG or Nucleo-F767ZI evaluation board?
 #if defined(USE_STM32756G_EVAL) || defined(USE_STM32F769I_EVAL) || \
-   defined(USE_STM32746G_DISCO) || defined(USE_STM32F769I_DISCO) || \
-   defined(USE_STM32F7XX_NUCLEO_144)
+   defined(USE_STM32746G_DISCO) || defined(USE_STM32F7508_DISCO) || \
+   defined(USE_STM32F769I_DISCO) ||defined(USE_STM32F7XX_NUCLEO_144)
 
 /**
  * @brief GPIO configuration
@@ -334,8 +336,8 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    //GPIO_InitStructure.Pin = GPIO_PIN_10;
    //HAL_GPIO_Init(GPIOI, &GPIO_InitStructure);
 
-//STM32F746G-DISCOVERY or STM32F769I-DISCOVERY evaluation board?
-#elif defined(USE_STM32746G_DISCO) || defined(USE_STM32F769I_DISCO)
+//STM32F746G-Discovery or STM32F7508-Discovery evaluation board?
+#elif defined(USE_STM32746G_DISCO) || defined(USE_STM32F7508_DISCO)
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -360,6 +362,43 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
    GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_RX_ER (PG2), ETH_RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13)
+   //and ETH_RMII_TXD1 (PG14)
+   GPIO_InitStructure.Pin = GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+//STM32F769I-Discovery evaluation board?
+#elif defined(USE_STM32F769I_DISCO)
+   //Enable SYSCFG clock
+   __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOD_CLK_ENABLE();
+   __HAL_RCC_GPIOG_CLK_ENABLE();
+
+   //Select RMII interface mode
+   SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
+
+   //Configure RMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_RX_ER (PD5)
+   GPIO_InitStructure.Pin = GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
 
    //Configure ETH_RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13) and ETH_RMII_TXD1 (PG14)
    GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
@@ -397,7 +436,7 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-   //Configure RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13)
+   //Configure RMII_TX_EN (PG11) and ETH_RMII_TXD0 (PG13)
    GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 #endif
@@ -472,7 +511,7 @@ void stm32f7xxEthInitDmaDesc(NetInterface *interface)
 
 
 /**
- * @brief STM32F746/756 Ethernet MAC timer handler
+ * @brief STM32F7 Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to
  * handle periodic operations such as polling the link state
@@ -516,7 +555,7 @@ void stm32f7xxEthDisableIrq(NetInterface *interface)
 
 
 /**
- * @brief STM32F746/756 Ethernet MAC interrupt service routine
+ * @brief STM32F7 Ethernet MAC interrupt service routine
  **/
 
 void ETH_IRQHandler(void)
@@ -524,7 +563,7 @@ void ETH_IRQHandler(void)
    bool_t flag;
    uint32_t status;
 
-   //Enter interrupt service routine
+   //Interrupt service routine prologue
    osEnterIsr();
 
    //This flag will be set if a higher priority task must be woken
@@ -562,13 +601,13 @@ void ETH_IRQHandler(void)
    //Clear NIS interrupt flag
    ETH->DMASR = ETH_DMASR_NIS;
 
-   //Leave interrupt service routine
+   //Interrupt service routine epilogue
    osExitIsr(flag);
 }
 
 
 /**
- * @brief STM32F746/756 Ethernet MAC event handler
+ * @brief STM32F7 Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 
@@ -795,11 +834,13 @@ error_t stm32f7xxEthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the first unicast address filter
    if(j >= 1)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       ETH->MACA1LR = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
       ETH->MACA1HR = unicastMacAddr[0].w[2] | ETH_MACA1HR_AE;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       ETH->MACA1LR = 0;
       ETH->MACA1HR = 0;
    }
@@ -807,11 +848,13 @@ error_t stm32f7xxEthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the second unicast address filter
    if(j >= 2)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       ETH->MACA2LR = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
       ETH->MACA2HR = unicastMacAddr[1].w[2] | ETH_MACA2HR_AE;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       ETH->MACA2LR = 0;
       ETH->MACA2HR = 0;
    }
@@ -819,11 +862,13 @@ error_t stm32f7xxEthUpdateMacAddrFilter(NetInterface *interface)
    //Configure the third unicast address filter
    if(j >= 3)
    {
+      //When the AE bit is set, the entry is used for perfect filtering
       ETH->MACA3LR = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
       ETH->MACA3HR = unicastMacAddr[2].w[2] | ETH_MACA3HR_AE;
    }
    else
    {
+      //When the AE bit is cleared, the entry is ignored
       ETH->MACA3LR = 0;
       ETH->MACA3HR = 0;
    }
@@ -876,12 +921,14 @@ error_t stm32f7xxEthUpdateMacConfig(NetInterface *interface)
 
 /**
  * @brief Write PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void stm32f7xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
+void stm32f7xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
 #if defined(STM32F7XX_ETH_MDC_PIN) && defined(STM32F7XX_ETH_MDIO_PIN)
    //Synchronization pattern
@@ -889,7 +936,7 @@ void stm32f7xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
    //Start of frame
    stm32f7xxEthWriteSmi(SMI_START, 2);
    //Set up a write operation
-   stm32f7xxEthWriteSmi(SMI_WRITE, 2);
+   stm32f7xxEthWriteSmi(opcode, 2);
    //Write PHY address
    stm32f7xxEthWriteSmi(phyAddr, 5);
    //Write register address
@@ -901,46 +948,58 @@ void stm32f7xxEthWritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
    //Release MDIO
    stm32f7xxEthReadSmi(1);
 #else
-   uint32_t temp;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
+   {
+      uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   temp = ETH->MACMIIAR & ETH_MACMIIAR_CR;
-   //Set up a write operation
-   temp |= ETH_MACMIIAR_MW | ETH_MACMIIAR_MB;
-   //PHY address
-   temp |= (phyAddr << 11) & ETH_MACMIIAR_PA;
-   //Register address
-   temp |= (regAddr << 6) & ETH_MACMIIAR_MR;
+      //Take care not to alter MDC clock configuration
+      temp = ETH->MACMIIAR & ETH_MACMIIAR_CR;
+      //Set up a write operation
+      temp |= ETH_MACMIIAR_MW | ETH_MACMIIAR_MB;
+      //PHY address
+      temp |= (phyAddr << 11) & ETH_MACMIIAR_PA;
+      //Register address
+      temp |= (regAddr << 6) & ETH_MACMIIAR_MR;
 
-   //Data to be written in the PHY register
-   ETH->MACMIIDR = data & ETH_MACMIIDR_MD;
+      //Data to be written in the PHY register
+      ETH->MACMIIDR = data & ETH_MACMIIDR_MD;
 
-   //Start a write operation
-   ETH->MACMIIAR = temp;
-   //Wait for the write to complete
-   while(ETH->MACMIIAR & ETH_MACMIIAR_MB);
+      //Start a write operation
+      ETH->MACMIIAR = temp;
+      //Wait for the write to complete
+      while(ETH->MACMIIAR & ETH_MACMIIAR_MB)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+   }
 #endif
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] phyAddr PHY address
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t stm32f7xxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
+uint16_t stm32f7xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
-#if defined(STM32F7XX_ETH_MDC_PIN) && defined(STM32F7XX_ETH_MDIO_PIN)
    uint16_t data;
 
+#if defined(STM32F7XX_ETH_MDC_PIN) && defined(STM32F7XX_ETH_MDIO_PIN)
    //Synchronization pattern
    stm32f7xxEthWriteSmi(SMI_SYNC, 32);
    //Start of frame
    stm32f7xxEthWriteSmi(SMI_START, 2);
    //Set up a read operation
-   stm32f7xxEthWriteSmi(SMI_READ, 2);
+   stm32f7xxEthWriteSmi(opcode, 2);
    //Write PHY address
    stm32f7xxEthWriteSmi(phyAddr, 5);
    //Write register address
@@ -952,28 +1011,38 @@ uint16_t stm32f7xxEthReadPhyReg(uint8_t phyAddr, uint8_t regAddr)
    //Force the PHY to release the MDIO pin
    stm32f7xxEthReadSmi(1);
 #else
-   uint16_t data;
-   uint32_t temp;
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
+   {
+      uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   temp = ETH->MACMIIAR & ETH_MACMIIAR_CR;
-   //Set up a read operation
-   temp |= ETH_MACMIIAR_MB;
-   //PHY address
-   temp |= (phyAddr << 11) & ETH_MACMIIAR_PA;
-   //Register address
-   temp |= (regAddr << 6) & ETH_MACMIIAR_MR;
+      //Take care not to alter MDC clock configuration
+      temp = ETH->MACMIIAR & ETH_MACMIIAR_CR;
+      //Set up a read operation
+      temp |= ETH_MACMIIAR_MB;
+      //PHY address
+      temp |= (phyAddr << 11) & ETH_MACMIIAR_PA;
+      //Register address
+      temp |= (regAddr << 6) & ETH_MACMIIAR_MR;
 
-   //Start a read operation
-   ETH->MACMIIAR = temp;
-   //Wait for the read to complete
-   while(ETH->MACMIIAR & ETH_MACMIIAR_MB);
+      //Start a read operation
+      ETH->MACMIIAR = temp;
+      //Wait for the read to complete
+      while(ETH->MACMIIAR & ETH_MACMIIAR_MB)
+      {
+      }
 
-   //Read register value
-   data = ETH->MACMIIDR & ETH_MACMIIDR_MD;
+      //Get register value
+      data = ETH->MACMIIDR & ETH_MACMIIDR_MD;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
+   }
 #endif
 
-   //Return PHY register contents
+   //Return the value of the PHY register
    return data;
 }
 

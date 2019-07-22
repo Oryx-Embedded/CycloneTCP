@@ -1,6 +1,6 @@
 /**
  * @file lan9303_driver.c
- * @brief LAN9303 Ethernet switch
+ * @brief LAN9303 3-port Ethernet switch
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -62,53 +62,79 @@ const PhyDriver lan9303PhyDriver =
 error_t lan9303Init(NetInterface *interface)
 {
    uint_t port;
+   uint32_t value;
 
    //Debug message
    TRACE_INFO("Initializing LAN9303...\r\n");
+
+   //Chip-level reset/configuration completion can be determined by first
+   //polling the BYTE_TEST register
+   do
+   {
+      //Read BYTE_TEST register
+      value = lan9303ReadSysReg(interface, LAN9303_BYTE_TEST);
+
+      //The returned data is invalid until the serial interface reset is
+      //complete
+   } while(value != LAN9303_BYTE_TEST_DEFAULT);
+
+   //The completion of the entire chip-level reset must then be determined
+   //by polling the READY bit of the HW_CFG register
+   do
+   {
+      //Read HW_CFG register
+      value = lan9303ReadSysReg(interface, LAN9303_HW_CFG);
+
+      //When set, the READY bit indicates that the reset has completed and
+      //the device is ready to be accessed
+   } while((value & LAN9303_HW_CFG_DEVICE_READY) == 0);
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    //Special VLAN tagging mode?
    if(interface->port != 0)
    {
       //Enable special VLAN tagging mode
-      lan9303WriteSwitchReg(interface, LAN9303_SW_REG_SWE_INGRSS_PORT_TYP,
-         SWE_INGRSS_PORT_TYP_PORT0);
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_INGRSS_PORT_TYP,
+         LAN9303_SWE_INGRSS_PORT_TYP_PORT0);
 
       //Configure egress VLAN tagging rules
-      lan9303WriteSwitchReg(interface, LAN9303_SW_REG_BM_EGRSS_PORT_TYPE,
-         BM_EGRSS_PORT_TYPE_PORT0_CPU);
+      lan9303WriteSwitchReg(interface, LAN9303_BM_EGRSS_PORT_TYPE,
+         LAN9303_BM_EGRSS_PORT_TYPE_PORT0_CPU);
 
       //Configure port mirroring
-      lan9303WriteSwitchReg(interface, LAN9303_SW_REG_SWE_PORT_MIRROR,
-         SWE_PORT_MIRROR_EN_RX_MIRRORING_FILT | SWE_PORT_MIRROR_SNIFFER_PORT0 |
-         SWE_PORT_MIRROR_MIRRORED_PORT2 | SWE_PORT_MIRROR_MIRRORED_PORT1 |
-         SWE_PORT_MIRROR_EN_RX_MIRRORING);
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_MIRROR,
+         LAN9303_SWE_PORT_MIRROR_RX_MIRRORING_FILT_EN |
+         LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT0 |
+         LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT2 |
+         LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT1 |
+         LAN9303_SWE_PORT_MIRROR_RX_MIRRORING_EN);
 
       //Configure port state
-      lan9303WriteSwitchReg(interface, LAN9303_SW_REG_SWE_PORT_STATE,
-         SWE_PORT_STATE_PORT2_LISTENING | SWE_PORT_STATE_PORT1_LISTENING |
-         SWE_PORT_STATE_PORT0_FORWARDING);
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_STATE,
+         LAN9303_SWE_PORT_STATE_PORT2_LISTENING |
+         LAN9303_SWE_PORT_STATE_PORT1_LISTENING |
+         LAN9303_SWE_PORT_STATE_PORT0_FORWARDING);
    }
    else
 #endif
    {
       //Disable special VLAN tagging mode
-      lan9303WriteSwitchReg(interface, LAN9303_SW_REG_SWE_INGRSS_PORT_TYP, 0);
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_INGRSS_PORT_TYP, 0);
 
       //Revert to default configuration
-      lan9303WriteSwitchReg(interface, LAN9303_SW_REG_BM_EGRSS_PORT_TYPE, 0);
-      lan9303WriteSwitchReg(interface, LAN9303_SW_REG_SWE_PORT_MIRROR, 0);
-      lan9303WriteSwitchReg(interface, LAN9303_SW_REG_SWE_PORT_STATE, 0);
+      lan9303WriteSwitchReg(interface, LAN9303_BM_EGRSS_PORT_TYPE, 0);
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_MIRROR, 0);
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_STATE, 0);
    }
 
    //Configure port 0 receive parameters
-   lan9303WriteSwitchReg(interface, LAN9303_SW_REG_MAC_RX_CFG(0),
-      MAC_RX_CFG_REJECT_MAC_TYPES | MAC_RX_CFG_RX_EN);
+   lan9303WriteSwitchReg(interface, LAN9303_MAC_RX_CFG(0),
+      LAN9303_MAC_RX_CFG_REJECT_MAC_TYPES | LAN9303_MAC_RX_CFG_RX_EN);
 
    //Configure port 0 transmit parameters
-   lan9303WriteSwitchReg(interface, LAN9303_SW_REG_MAC_TX_CFG(0),
-      MAC_TX_CFG_IFG_CONFIG_DEFAULT | MAC_TX_CFG_TX_PAD_EN |
-      MAC_TX_CFG_TX_EN);
+   lan9303WriteSwitchReg(interface, LAN9303_MAC_TX_CFG(0),
+      LAN9303_MAC_TX_CFG_IFG_CONFIG_DEFAULT | LAN9303_MAC_TX_CFG_TX_PAD_EN |
+      LAN9303_MAC_TX_CFG_TX_EN);
 
    //Loop through ports
    for(port = LAN9303_PORT1; port <= LAN9303_PORT2; port++)
@@ -147,12 +173,12 @@ bool_t lan9303GetLinkState(NetInterface *interface, uint8_t port)
       //Get exclusive access
       osAcquireMutex(&netMutex);
       //Read status register
-      status = lan9303ReadPhyReg(interface, port, LAN9303_PHY_REG_BMSR);
+      status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
       //Release exclusive access
       osReleaseMutex(&netMutex);
 
       //Retrieve current link state
-      linkState = (status & BMSR_LINK_STATUS) ? TRUE : FALSE;
+      linkState = (status & LAN9303_BMSR_LINK_STATUS) ? TRUE : FALSE;
    }
    else
    {
@@ -200,10 +226,10 @@ void lan9303Tick(NetInterface *interface)
             if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
             {
                //Read status register
-               status = lan9303ReadPhyReg(interface, port, LAN9303_PHY_REG_BMSR);
+               status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
 
                //Retrieve current link state
-               linkState = (status & BMSR_LINK_STATUS) ? TRUE : FALSE;
+               linkState = (status & LAN9303_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
                //Link up or link down event?
                if(linkState != virtualInterface->linkState)
@@ -227,10 +253,10 @@ void lan9303Tick(NetInterface *interface)
       for(port = LAN9303_PORT1; port <= LAN9303_PORT2; port++)
       {
          //Read status register
-         status = lan9303ReadPhyReg(interface, port, LAN9303_PHY_REG_BMSR);
+         status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
 
          //Retrieve current link state
-         if(status & BMSR_LINK_STATUS)
+         if(status & LAN9303_BMSR_LINK_STATUS)
             linkState = TRUE;
       }
 
@@ -301,10 +327,10 @@ void lan9303EventHandler(NetInterface *interface)
             if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
             {
                //Read status register
-               status = lan9303ReadPhyReg(interface, port, LAN9303_PHY_REG_BMSR);
+               status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
 
                //Retrieve current link state
-               linkState = (status & BMSR_LINK_STATUS) ? TRUE : FALSE;
+               linkState = (status & LAN9303_BMSR_LINK_STATUS) ? TRUE : FALSE;
 
                //Link up event?
                if(linkState && !virtualInterface->linkState)
@@ -315,35 +341,35 @@ void lan9303EventHandler(NetInterface *interface)
                   interface->nicDriver->updateMacConfig(interface);
 
                   //Read PHY special control/status register
-                  status = lan9303ReadPhyReg(interface, port, LAN9303_PHY_REG_PSCSR);
+                  status = lan9303ReadPhyReg(interface, port, LAN9303_PSCSR);
 
                   //Check current operation mode
-                  switch(status & PSCSR_HCDSPEED_MASK)
+                  switch(status & LAN9303_PSCSR_SPEED)
                   {
-                  //10BASE-T
-                  case PSCSR_HCDSPEED_10BT:
+                  //10BASE-T half-duplex
+                  case LAN9303_PSCSR_SPEED_10BT_HD:
                      virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
                      virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
                      break;
                   //10BASE-T full-duplex
-                  case PSCSR_HCDSPEED_10BT_FD:
+                  case LAN9303_PSCSR_SPEED_10BT_FD:
                      virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
                      virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
                      break;
-                  //100BASE-TX
-                  case PSCSR_HCDSPEED_100BTX:
+                  //100BASE-TX half-duplex
+                  case LAN9303_PSCSR_SPEED_100BTX_HD:
                      virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
                      virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
                      break;
                   //100BASE-TX full-duplex
-                  case PSCSR_HCDSPEED_100BTX_FD:
+                  case LAN9303_PSCSR_SPEED_100BTX_FD:
                      virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
                      virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
                      break;
                   //Unknown operation mode
                   default:
                      //Debug message
-                     TRACE_WARNING("Invalid Duplex mode\r\n");
+                     TRACE_WARNING("Invalid operation mode!\r\n");
                      break;
                   }
 
@@ -376,10 +402,10 @@ void lan9303EventHandler(NetInterface *interface)
       for(port = LAN9303_PORT1; port <= LAN9303_PORT2; port++)
       {
          //Read status register
-         status = lan9303ReadPhyReg(interface, port, LAN9303_PHY_REG_BMSR);
+         status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
 
          //Retrieve current link state
-         if(status & BMSR_LINK_STATUS)
+         if(status & LAN9303_BMSR_LINK_STATUS)
             linkState = TRUE;
       }
 
@@ -545,7 +571,7 @@ void lan9303WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(port, address, data);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
 }
 
 
@@ -561,7 +587,7 @@ uint16_t lan9303ReadPhyReg(NetInterface *interface, uint8_t port,
    uint8_t address)
 {
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(port, address);
+   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ, port, address);
 }
 
 
@@ -609,9 +635,12 @@ void lan9303WriteSysReg(NetInterface *interface, uint16_t address,
    regAddr = (address >> 1) & 0x1F;
 
    //Write the low word of the SMI register
-   interface->nicDriver->writePhyReg(phyAddr, regAddr, data & 0xFFFF);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, phyAddr, regAddr,
+      data & 0xFFFF);
+
    //Write the high word of the SMI register
-   interface->nicDriver->writePhyReg(phyAddr, regAddr + 1, (data >> 16) & 0xFFFF);
+   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, phyAddr, regAddr + 1,
+      (data >> 16) & 0xFFFF);
 }
 
 
@@ -636,9 +665,11 @@ uint32_t lan9303ReadSysReg(NetInterface *interface, uint16_t address)
    regAddr = (address >> 1) & 0x1F;
 
    //Read the low word of the SMI register
-   data = interface->nicDriver->readPhyReg(phyAddr, regAddr);
+   data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ, phyAddr, regAddr);
+
    //Read the high word of the SMI register
-   data |= interface->nicDriver->readPhyReg(phyAddr, regAddr + 1) << 16;
+   data |= interface->nicDriver->readPhyReg(SMI_OPCODE_READ, phyAddr,
+      regAddr + 1) << 16;
 
    //Return register value
    return data;
@@ -681,26 +712,26 @@ void lan9303WriteSwitchReg(NetInterface *interface, uint16_t address,
 
    //To perform a write to an individual switch fabric register, the desired
    //data must first be written into the SWITCH_CSR_DATA register
-   lan9303WriteSysReg(interface, LAN9303_SYS_REG_SWITCH_CSR_DATA, data);
+   lan9303WriteSysReg(interface, LAN9303_SWITCH_CSR_DATA, data);
 
    //Set up a write operation
-   value = SWITCH_CSR_CMD_BUSY | SWITCH_CSR_CMD_BE;
-   //Register address
-   value |= address & SWITCH_CSR_CMD_ADDR;
+   value = LAN9303_SWITCH_CSR_CMD_BUSY | LAN9303_SWITCH_CSR_CMD_BE;
+   //Set register address
+   value |= address & LAN9303_SWITCH_CSR_CMD_ADDR;
 
    //The write cycle is initiated by performing a single write to the
    //SWITCH_CSR_CMD register
-   lan9303WriteSysReg(interface, LAN9303_SYS_REG_SWITCH_CSR_CMD, value);
+   lan9303WriteSysReg(interface, LAN9303_SWITCH_CSR_CMD, value);
 
    //The completion of the write cycle is indicated by the clearing of the
    //CSR_BUSY bit
    do
    {
       //Read SWITCH_CSR_CMD register
-      value = lan9303ReadSysReg(interface, LAN9303_SYS_REG_SWITCH_CSR_CMD);
+      value = lan9303ReadSysReg(interface, LAN9303_SWITCH_CSR_CMD);
 
       //Poll CSR_BUSY bit
-   } while(value & SWITCH_CSR_CMD_BUSY);
+   } while(value & LAN9303_SWITCH_CSR_CMD_BUSY);
 }
 
 
@@ -716,24 +747,26 @@ uint32_t lan9303ReadSwitchReg(NetInterface *interface, uint16_t address)
    uint32_t value;
 
    //Set up a read operation
-   value = SWITCH_CSR_CMD_BUSY | SWITCH_CSR_CMD_READ | SWITCH_CSR_CMD_BE;
-   //Register address
-   value |= address & SWITCH_CSR_CMD_ADDR;
+   value = LAN9303_SWITCH_CSR_CMD_BUSY | LAN9303_SWITCH_CSR_CMD_READ |
+      LAN9303_SWITCH_CSR_CMD_BE;
+
+   //Set register address
+   value |= address & LAN9303_SWITCH_CSR_CMD_ADDR;
 
    //To perform a read of an individual switch fabric register, the read cycle
    //must be initiated by performing a single write to the SWITCH_CSR_CMD
    //register
-   lan9303WriteSysReg(interface, LAN9303_SYS_REG_SWITCH_CSR_CMD, value);
+   lan9303WriteSysReg(interface, LAN9303_SWITCH_CSR_CMD, value);
 
    //Valid data is available for reading when the CSR_BUSY bit is cleared
    do
    {
       //Read SWITCH_CSR_CMD register
-      value = lan9303ReadSysReg(interface, LAN9303_SYS_REG_SWITCH_CSR_CMD);
+      value = lan9303ReadSysReg(interface, LAN9303_SWITCH_CSR_CMD);
 
       //Poll CSR_BUSY bit
-   } while(value & SWITCH_CSR_CMD_BUSY);
+   } while(value & LAN9303_SWITCH_CSR_CMD_BUSY);
 
    //Read data from the SWITCH_CSR_DATA register
-   return lan9303ReadSysReg(interface, LAN9303_SYS_REG_SWITCH_CSR_DATA);
+   return lan9303ReadSysReg(interface, LAN9303_SWITCH_CSR_DATA);
 }

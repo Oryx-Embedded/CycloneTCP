@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -952,7 +952,7 @@ error_t ipv6cpParseOption(PppContext *context, PppOption *option,
       //If some configuration options received in the Configure-Request are not
       //recognizable or not acceptable for negotiation, then the implementation
       //must transmit a Configure-Reject
-      if(outPacket->code == PPP_CODE_CONFIGURE_REJ)
+      if(outPacket != NULL && outPacket->code == PPP_CODE_CONFIGURE_REJ)
       {
          //The options field of the Configure-Reject packet is filled
          //with the unrecognized options from the Configure-Request

@@ -1,5 +1,5 @@
 /**
- * @file mcimx6ul_eth1_driver.h
+ * @file mcimx6ul_eth2_driver.h
  * @brief i.MX6UL Ethernet MAC controller (ENET2 instance)
  *
  * @section License
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _MCIMX6UL_ETH2_DRIVER_H
@@ -149,8 +149,11 @@ error_t mcimx6ulEth2ReceivePacket(NetInterface *interface);
 error_t mcimx6ulEth2UpdateMacAddrFilter(NetInterface *interface);
 error_t mcimx6ulEth2UpdateMacConfig(NetInterface *interface);
 
-void mcimx6ulEth2WritePhyReg(uint8_t phyAddr, uint8_t regAddr, uint16_t data);
-uint16_t mcimx6ulEth2ReadPhyReg(uint8_t phyAddr, uint8_t regAddr);
+void mcimx6ulEth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t mcimx6ulEth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
 
 uint32_t mcimx6ulEth2CalcCrc(const void *data, size_t length);
 

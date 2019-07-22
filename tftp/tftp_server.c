@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 //Switch to the appropriate trace level
@@ -191,6 +191,9 @@ void tftpServerTask(TftpServerContext *context)
    TftpClientConnection *connection;
 
 #if (NET_RTOS_SUPPORT == ENABLED)
+   //Task prologue
+   osEnterTask();
+
    //Process events
    while(1)
    {

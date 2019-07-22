@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.2
+ * @version 1.9.4
  **/
 
 #ifndef _IPV4_H
@@ -378,10 +378,11 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
 void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer);
 
 error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint8_t ttl);
+   NetBuffer *buffer, size_t offset, uint_t flags);
 
 error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset, uint8_t ttl);
+   uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
+   uint_t flags);
 
 error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
 error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
