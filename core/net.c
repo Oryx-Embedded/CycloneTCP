@@ -25,17 +25,19 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
-#define TRACE_LEVEL ETH_TRACE_LEVEL
+#define TRACE_LEVEL NIC_TRACE_LEVEL
 
 //Dependencies
 #include <stdlib.h>
 #include "core/net.h"
 #include "core/socket.h"
+#include "core/raw_socket.h"
 #include "core/tcp_timer.h"
+#include "core/tcp_misc.h"
 #include "core/ethernet.h"
 #include "ipv4/arp.h"
 #include "ipv4/ipv4.h"
@@ -59,6 +61,7 @@
 #include "netbios/nbns_common.h"
 #include "llmnr/llmnr_responder.h"
 #include "mibs/mib2_module.h"
+#include "mibs/if_mib_module.h"
 #include "str.h"
 #include "debug.h"
 
@@ -837,7 +840,7 @@ error_t netSetLinkState(NetInterface *interface, NicLinkState linkState)
       //Update link state
       interface->linkState = linkState;
       //Process link state change event
-      nicNotifyLinkChange(interface);
+      netProcessLinkChange(interface);
    }
 
    //Release exclusive access
@@ -1065,6 +1068,270 @@ error_t netConfigInterface(NetInterface *interface)
 
 
 /**
+ * @brief Start network interface
+ * @param[in] interface Network interface to start
+ * @return Error code
+ **/
+
+error_t netStartInterface(NetInterface *interface)
+{
+   error_t error;
+   NetInterface *physicalInterface;
+
+   //Make sure the network interface is valid
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+
+   //Check whether the interface is enabled for operation
+   if(!interface->configured)
+   {
+      //Virtual interface?
+      if(interface != physicalInterface)
+      {
+#if (ETH_SUPPORT == ENABLED)
+         //Valid MAC address assigned to the virtual interface?
+         if(!macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+         {
+            //Configure the physical interface to accept the MAC address of
+            //the virtual interface
+            error = ethAcceptMacAddr(physicalInterface, &interface->macAddr);
+         }
+#endif
+      }
+      else
+      {
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+         //Valid switch driver?
+         if(interface->phyDriver != NULL &&
+            interface->phyDriver->init != NULL &&
+            interface->phyDriver->tagFrame != NULL &&
+            interface->phyDriver->untagFrame != NULL)
+         {
+            //Reconfigure switch operation
+            error = interface->phyDriver->init(interface);
+         }
+#endif
+         //Check status code
+         if(!error)
+         {
+            //Update the MAC filter
+            error = nicUpdateMacAddrFilter(interface);
+         }
+      }
+   }
+
+   //Enable network interface
+   interface->configured = TRUE;
+
+   //Check whether the TCP/IP process is running
+   if(netTaskRunning)
+   {
+      //Interrupts can be safely enabled
+      if(interface->nicDriver != NULL)
+         interface->nicDriver->enableIrq(interface);
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Stop network interface
+ * @param[in] interface Network interface to stop
+ * @return Error code
+ **/
+
+error_t netStopInterface(NetInterface *interface)
+{
+   NetInterface *physicalInterface;
+
+   //Make sure the network interface is valid
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+
+   //Check whether the interface is enabled for operation
+   if(interface->configured)
+   {
+      //Update link state
+      interface->linkState = FALSE;
+      //Process link state change event
+      netProcessLinkChange(interface);
+      
+      //Disable hardware interrupts
+      if(interface->nicDriver != NULL)
+         interface->nicDriver->disableIrq(interface);
+
+      //Disable network interface
+      interface->configured = FALSE;
+
+      //Virtual interface?
+      if(interface != physicalInterface)
+      {
+#if (ETH_SUPPORT == ENABLED)
+         //Valid MAC address assigned to the virtual interface?
+         if(!macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+         {
+            //Drop the corresponding address from the MAC filter table of
+            //the physical interface
+            ethDropMacAddr(physicalInterface, &interface->macAddr);
+         }
+#endif
+      }
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful operation
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Process link state change event
+ * @param[in] interface Underlying network interface
+ **/
+
+void netProcessLinkChange(NetInterface *interface)
+{
+   uint_t i;
+   Socket *socket;
+
+   //Check link state
+   if(interface->linkState)
+   {
+      //Display link state
+      TRACE_INFO("Link is up (%s)...\r\n", interface->name);
+
+      //Display link speed
+      if(interface->linkSpeed == NIC_LINK_SPEED_1GBPS)
+      {
+         //1000BASE-T
+         TRACE_INFO("  Link speed = 1000 Mbps\r\n");
+      }
+      else if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+      {
+         //100BASE-TX
+         TRACE_INFO("  Link speed = 100 Mbps\r\n");
+      }
+      else if(interface->linkSpeed == NIC_LINK_SPEED_10MBPS)
+      {
+         //10BASE-T
+         TRACE_INFO("  Link speed = 10 Mbps\r\n");
+      }
+      else if(interface->linkSpeed != NIC_LINK_SPEED_UNKNOWN)
+      {
+         //10BASE-T
+         TRACE_INFO("  Link speed = %" PRIu32 " bps\r\n",
+            interface->linkSpeed);
+      }
+
+      //Display duplex mode
+      if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+      {
+         //1000BASE-T
+         TRACE_INFO("  Duplex mode = Full-Duplex\r\n");
+      }
+      else if(interface->duplexMode == NIC_HALF_DUPLEX_MODE)
+      {
+         //100BASE-TX
+         TRACE_INFO("  Duplex mode = Half-Duplex\r\n");
+      }
+   }
+   else
+   {
+      //Display link state
+      TRACE_INFO("Link is down (%s)...\r\n", interface->name);
+   }
+
+   //The time at which the interface entered its current operational state
+   MIB2_SET_TIME_TICKS(ifGroup.ifTable[interface->index].ifLastChange,
+      osGetSystemTime() / 10);
+   IF_MIB_SET_TIME_TICKS(ifTable[interface->index].ifLastChange,
+      osGetSystemTime() / 10);
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Notify IPv4 of link state changes
+   ipv4LinkChangeEvent(interface);
+#endif
+
+#if (IPV6_SUPPORT == ENABLED)
+   //Notify IPv6 of link state changes
+   ipv6LinkChangeEvent(interface);
+#endif
+
+#if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
+   NBNS_CLIENT_SUPPORT == ENABLED)
+   //Flush DNS cache
+   dnsFlushCache(interface);
+#endif
+
+#if (MDNS_RESPONDER_SUPPORT == ENABLED)
+   //Perform probing and announcing
+   mdnsResponderLinkChangeEvent(interface->mdnsResponderContext);
+#endif
+
+#if (DNS_SD_SUPPORT == ENABLED)
+   //Perform probing and announcing
+   dnsSdLinkChangeEvent(interface->dnsSdContext);
+#endif
+   //Notify registered users of link state changes
+   netInvokeLinkChangeCallback(interface, interface->linkState);
+
+   //Loop through opened sockets
+   for(i = 0; i < SOCKET_MAX_COUNT; i++)
+   {
+      //Point to the current socket
+      socket = socketTable + i;
+
+#if (TCP_SUPPORT == ENABLED)
+      //Connection-oriented socket?
+      if(socket->type == SOCKET_TYPE_STREAM)
+      {
+         tcpUpdateEvents(socket);
+      }
+#endif
+
+#if (UDP_SUPPORT == ENABLED)
+      //Connectionless socket?
+      if(socket->type == SOCKET_TYPE_DGRAM)
+      {
+         udpUpdateEvents(socket);
+      }
+#endif
+
+#if (RAW_SOCKET_SUPPORT == ENABLED)
+      //Raw socket?
+      if(socket->type == SOCKET_TYPE_RAW_IP ||
+         socket->type == SOCKET_TYPE_RAW_ETH)
+      {
+         rawSocketUpdateEvents(socket);
+      }
+#endif
+   }
+}
+
+
+/**
  * @brief TCP/IP events handling
  **/
 
@@ -1077,6 +1344,9 @@ void netTask(void)
    NetInterface *interface;
 
 #if (NET_RTOS_SUPPORT == ENABLED)
+   //Task prologue
+   osEnterTask();
+
    //Get exclusive access
    osAcquireMutex(&netMutex);
 

@@ -30,7 +30,7 @@
  * of an SNMP entity. Refer to RFC 3418 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _SNMP_COMMUNITY_MIB_MODULE_H
@@ -49,7 +49,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -71,7 +71,7 @@ extern const MibModule snmpCommunityMibModule;
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

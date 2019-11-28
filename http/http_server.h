@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -105,6 +105,13 @@
    #define HTTP_SERVER_MULTIPART_TYPE_SUPPORT DISABLED
 #elif (HTTP_SERVER_MULTIPART_TYPE_SUPPORT != ENABLED && HTTP_SERVER_MULTIPART_TYPE_SUPPORT != DISABLED)
    #error HTTP_SERVER_MULTIPART_TYPE_SUPPORT parameter is not valid
+#endif
+
+//Cookie support
+#ifndef HTTP_SERVER_COOKIE_SUPPORT
+   #define HTTP_SERVER_COOKIE_SUPPORT DISABLED
+#elif (HTTP_SERVER_COOKIE_SUPPORT != ENABLED && HTTP_SERVER_COOKIE_SUPPORT != DISABLED)
+   #error HTTP_SERVER_COOKIE_SUPPORT parameter is not valid
 #endif
 
 //Stack size required to run the HTTP server
@@ -253,6 +260,13 @@
    #error HTTP_SERVER_BOUNDARY_MAX_LEN parameter is not valid
 #endif
 
+//Maximum length for cookies
+#ifndef HTTP_SERVER_COOKIE_MAX_LEN
+   #define HTTP_SERVER_COOKIE_MAX_LEN 256
+#elif (HTTP_SERVER_COOKIE_MAX_LEN < 1)
+   #error HTTP_SERVER_COOKIE_MAX_LEN parameter is not valid
+#endif
+
 //Application specific context
 #ifndef HTTP_SERVER_PRIVATE_CONTEXT
    #define HTTP_SERVER_PRIVATE_CONTEXT
@@ -305,7 +319,7 @@ struct _HttpConnection;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -477,6 +491,9 @@ typedef struct
    char_t boundary[HTTP_SERVER_BOUNDARY_MAX_LEN + 1];        ///<Boundary string
    size_t boundaryLength;                                    ///<Boundary string length
 #endif
+#if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
+   char_t cookie[HTTP_SERVER_COOKIE_MAX_LEN + 1];            ///<Cookie header field
+#endif
 } HttpRequest;
 
 
@@ -486,8 +503,8 @@ typedef struct
 
 typedef struct
 {
-   uint_t version;              ///<HTTP version number
-   uint_t statusCode;           ///<HTTP status code
+   uint_t version;                                   ///<HTTP version number
+   uint_t statusCode;                                ///<HTTP status code
    bool_t keepAlive;
    bool_t noCache;
    uint_t maxAge;
@@ -497,10 +514,13 @@ typedef struct
    size_t contentLength;
    size_t byteCount;
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-   HttpAuthenticateHeader auth; ///<Authenticate header
+   HttpAuthenticateHeader auth;                      ///<Authenticate header
 #endif
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
    bool_t gzipEncoding;
+#endif
+#if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
+   char_t setCookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///<Set-Cookie header field
 #endif
 } HttpResponse;
 
@@ -514,8 +534,8 @@ typedef struct
    NetInterface *interface;                                     ///<Underlying network interface
    uint16_t port;                                               ///<HTTP server port number
    uint_t backlog;                                              ///<Maximum length of the pending connection queue
-   uint_t maxConnections;                                       ///<Maximum number of simultaneous connections
-   HttpConnection *connections;                                 ///<HTTP client connections
+   uint_t maxConnections;                                       ///<Maximum number of client connections
+   HttpConnection *connections;                                 ///<Client connections
    char_t rootDirectory[HTTP_SERVER_ROOT_DIR_MAX_LEN + 1];      ///<Web root directory
    char_t defaultDocument[HTTP_SERVER_DEFAULT_DOC_MAX_LEN + 1]; ///<Default home page
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
@@ -554,7 +574,7 @@ struct _HttpServerContext
    OsTask *taskHandle;                                           ///<Listener task handle
    OsSemaphore semaphore;                                        ///<Semaphore limiting the number of connections
    Socket *socket;                                               ///<Listening socket
-   HttpConnection *connections;                                  ///<HTTP client connections
+   HttpConnection *connections;                                  ///<Client connections
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
    TlsTicketContext tlsTicketContext;                            ///<TLS ticket encryption context
 #endif
@@ -643,7 +663,7 @@ error_t httpDecodePercentEncodedString(const char_t *input,
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

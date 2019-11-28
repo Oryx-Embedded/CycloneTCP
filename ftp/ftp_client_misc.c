@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -87,7 +87,7 @@ error_t ftpClientSendCommand(FtpClientContext *context)
       if(context->bufferPos < context->commandLen)
       {
          //Send more data
-         error = ftpClientSendData(&context->controlConnection,
+         error = ftpClientWriteChannel(&context->controlChannel,
             context->buffer + context->bufferPos,
             context->commandLen - context->bufferPos, &n, 0);
 
@@ -112,7 +112,7 @@ error_t ftpClientSendCommand(FtpClientContext *context)
          if(more)
          {
             //Receive more data
-            error = ftpClientReceiveData(&context->controlConnection,
+            error = ftpClientReadChannel(&context->controlChannel,
                context->buffer + context->replyLen,
                FTP_CLIENT_BUFFER_SIZE - 1 - context->replyLen,
                &n, SOCKET_FLAG_BREAK_CRLF);
@@ -724,7 +724,7 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
    {
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
       //TLS-secured connection?
-      if(context->controlConnection.tlsContext != NULL)
+      if(context->controlChannel.tlsContext != NULL)
       {
          //A PBSZ command must be issued, but must have a parameter
          //of '0' to indicate that no buffering is taking place and
@@ -801,13 +801,13 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
       if(direction)
       {
          //Open data socket
-         error = ftpClientOpenConnection(context, &context->dataConnection,
+         error = ftpClientOpenChannel(context, &context->dataChannel,
             FTP_CLIENT_MAX_TCP_BUFFER_SIZE, FTP_CLIENT_MIN_TCP_BUFFER_SIZE);
       }
       else
       {
          //Open data socket
-         error = ftpClientOpenConnection(context, &context->dataConnection,
+         error = ftpClientOpenChannel(context, &context->dataChannel,
             FTP_CLIENT_MIN_TCP_BUFFER_SIZE, FTP_CLIENT_MAX_TCP_BUFFER_SIZE);
       }
 
@@ -818,13 +818,13 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
          if(!context->passiveMode)
          {
             //Place the data socket in the listening state
-            error = socketListen(context->dataConnection.socket, 1);
+            error = socketListen(context->dataChannel.socket, 1);
 
             //Check status code
             if(!error)
             {
                //Retrieve local IP address
-               error = socketGetLocalAddr(context->controlConnection.socket,
+               error = socketGetLocalAddr(context->controlChannel.socket,
                   &ipAddr, NULL);
             }
 
@@ -832,7 +832,7 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
             if(!error)
             {
                //Retrieve local port number
-               error = socketGetLocalAddr(context->dataConnection.socket,
+               error = socketGetLocalAddr(context->dataChannel.socket,
                   NULL, &port);
             }
 
@@ -904,7 +904,7 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
    else if(context->state == FTP_CLIENT_STATE_CONNECTING_TCP)
    {
       //Establish data connection
-      error = socketConnect(context->dataConnection.socket,
+      error = socketConnect(context->dataChannel.socket,
          &context->serverIpAddr, context->serverPort);
 
       //Check status code
@@ -935,21 +935,21 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
             {
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
                //TLS-secured connection?
-               if(context->controlConnection.tlsContext != NULL)
+               if(context->controlChannel.tlsContext != NULL)
                {
                   //Check data transfer direction
                   if(direction)
                   {
                      //TLS initialization
-                     error = ftpClientOpenSecureConnection(context,
-                        &context->dataConnection, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
+                     error = ftpClientOpenSecureChannel(context,
+                        &context->dataChannel, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
                         FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE);
                   }
                   else
                   {
                      //TLS initialization
-                     error = ftpClientOpenSecureConnection(context,
-                        &context->dataConnection, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
+                     error = ftpClientOpenSecureChannel(context,
+                        &context->dataChannel, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
                         FTP_CLIENT_MAX_TLS_RX_BUFFER_SIZE);
                   }
 
@@ -978,23 +978,23 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
    else if(context->state == FTP_CLIENT_STATE_ACCEPTING_TCP)
    {
       //Wait for the server to connect back to the client's data port
-      socket = socketAccept(context->dataConnection.socket, NULL, NULL);
+      socket = socketAccept(context->dataChannel.socket, NULL, NULL);
 
       //Valid socket handle?
       if(socket != NULL)
       {
          //Close the listening socket
-         socketClose(context->dataConnection.socket);
+         socketClose(context->dataChannel.socket);
          //Save socket handle
-         context->dataConnection.socket = socket;
+         context->dataChannel.socket = socket;
 
          //Set timeout
-         error = socketSetTimeout(context->dataConnection.socket,
+         error = socketSetTimeout(context->dataChannel.socket,
             context->timeout);
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
          //TLS-secured connection?
-         if(context->controlConnection.tlsContext != NULL)
+         if(context->controlChannel.tlsContext != NULL)
          {
             //Check status code
             if(!error)
@@ -1003,15 +1003,15 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
                if(direction)
                {
                   //TLS initialization
-                  error = ftpClientOpenSecureConnection(context,
-                     &context->dataConnection, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
+                  error = ftpClientOpenSecureChannel(context,
+                     &context->dataChannel, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
                      FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE);
                }
                else
                {
                   //TLS initialization
-                  error = ftpClientOpenSecureConnection(context,
-                     &context->dataConnection, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
+                  error = ftpClientOpenSecureChannel(context,
+                     &context->dataChannel, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
                      FTP_CLIENT_MAX_TLS_RX_BUFFER_SIZE);
                }
             }
@@ -1039,7 +1039,7 @@ error_t ftpClientInitDataTransfer(FtpClientContext *context, bool_t direction)
    else if(context->state == FTP_CLIENT_STATE_CONNECTING_TLS)
    {
       //Perform TLS handshake
-      error = ftpClientEstablishSecureConnection(&context->dataConnection);
+      error = ftpClientEstablishSecureChannel(&context->dataChannel);
 
       //Check status code
       if(!error)
@@ -1085,13 +1085,13 @@ error_t ftpClientTerminateDataTransfer(FtpClientContext *context)
       else if(context->state == FTP_CLIENT_STATE_DISCONNECTING_1)
       {
          //Shutdown data connection
-         error = ftpClientShutdownConnection(&context->dataConnection);
+         error = ftpClientShutdownChannel(&context->dataChannel);
 
          //Check status code
          if(!error)
          {
             //Close data connection
-            ftpClientCloseConnection(&context->dataConnection);
+            ftpClientCloseChannel(&context->dataChannel);
 
             //Flush buffer
             context->bufferPos = 0;
@@ -1146,7 +1146,7 @@ error_t ftpClientTerminateDataTransfer(FtpClientContext *context)
    if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
       //Close data connection
-      ftpClientCloseConnection(&context->dataConnection);
+      ftpClientCloseChannel(&context->dataChannel);
       //Update FTP client state
       ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
    }

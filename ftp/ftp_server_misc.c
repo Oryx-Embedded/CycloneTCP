@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -33,16 +33,50 @@
 
 //Dependencies
 #include "ftp/ftp_server.h"
-#include "ftp/ftp_server_events.h"
-#include "ftp/ftp_server_commands.h"
+#include "ftp/ftp_server_control.h"
+#include "ftp/ftp_server_data.h"
 #include "ftp/ftp_server_misc.h"
-#include "str.h"
 #include "path.h"
-#include "error.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
 #if (FTP_SERVER_SUPPORT == ENABLED)
+
+
+/**
+ * @brief Handle periodic operations
+ * @param[in] context Pointer to the FTP server context
+ **/
+
+void ftpServerTick(FtpServerContext *context)
+{
+   uint_t i;
+   systime_t time;
+   FtpClientConnection *connection;
+
+   //Get current time
+   time = osGetSystemTime();
+
+   //Loop through the connection table
+   for(i = 0; i < context->settings.maxConnections; i++)
+   {
+      //Point to the current entry
+      connection = &context->connections[i];
+
+      //Check the state of the current connection
+      if(connection->controlChannel.state != FTP_CHANNEL_STATE_CLOSED)
+      {
+         //Disconnect inactive client after idle timeout
+         if(timeCompare(time, connection->timestamp + FTP_SERVER_TIMEOUT) >= 0)
+         {
+            //Debug message
+            TRACE_INFO("FTP server: Closing inactive connection...\r\n");
+            //Close connection with the client
+            ftpServerCloseConnection(connection);
+         }
+      }
+   }
+}
 
 
 /**
@@ -81,376 +115,6 @@ uint16_t ftpServerGetPassivePort(FtpServerContext *context)
 
    //Return the passive port number
    return port;
-}
-
-
-/**
- * @brief Close client connection properly
- * @param[in] context Pointer to the FTP server context
- * @param[in] connection Pointer to the client connection to be closed
- **/
-
-void ftpServerCloseConnection(FtpServerContext *context,
-   FtpClientConnection *connection)
-{
-   uint_t i;
-
-   //Make sure the connection is active
-   if(connection != NULL)
-   {
-      //Loop through client connection table
-      for(i = 0; i < FTP_SERVER_MAX_CONNECTIONS; i++)
-      {
-         //Search the table for the specified connection
-         if(context->connection[i] == connection)
-         {
-            //Close data connection
-            ftpServerCloseDataConnection(connection);
-            //Close control connection
-            ftpServerCloseControlConnection(connection);
-
-            //Release previously allocated resources
-            if(connection->file != NULL)
-               fsCloseFile(connection->file);
-
-            if(connection->dir != NULL)
-               fsCloseDir(connection->dir);
-
-            //Free memory
-            memPoolFree(connection->buffer);
-            memPoolFree(connection);
-
-            //Mark the entry as free
-            context->connection[i] = NULL;
-            //We are done
-            break;
-         }
-      }
-   }
-}
-
-
-/**
- * @brief Accept control connection
- * @param[in] context Pointer to the FTP server context
- * @return Pointer to the connection
- **/
-
-FtpClientConnection *ftpServerAcceptControlConnection(FtpServerContext *context)
-{
-   error_t error;
-   uint_t i;
-   Socket *socket;
-   IpAddr clientIpAddr;
-   uint16_t clientPort;
-   FtpClientConnection *connection;
-
-   //Accept incoming connection
-   socket = socketAccept(context->socket, &clientIpAddr, &clientPort);
-   //Failure detected?
-   if(socket == NULL)
-      return NULL;
-
-   //Force the socket to operate in non-blocking mode
-   error = socketSetTimeout(socket, 0);
-   //Any error to report?
-   if(error)
-   {
-      //Close socket
-      socketClose(socket);
-      //Exit immediately
-      return NULL;
-   }
-
-   //Loop through client connection table
-   for(i = 0; i < FTP_SERVER_MAX_CONNECTIONS; i++)
-   {
-      //Check whether the entry is currently in used or not
-      if(context->connection[i] == NULL)
-      {
-         //Allocate resources for the new connection
-         connection = memPoolAlloc(sizeof(FtpClientConnection));
-         //Failed to allocate memory?
-         if(connection == NULL)
-         {
-            //Debug message
-            TRACE_ERROR("FTP server: Failed to allocate memory!\r\n");
-            //Exit immediately
-            break;
-         }
-
-         //Clear the structure
-         memset(connection, 0, sizeof(FtpClientConnection));
-
-         //Allocate a memory buffer for I/O operations
-         connection->buffer = memPoolAlloc(FTP_SERVER_BUFFER_SIZE);
-         //Failed to allocate memory
-         if(connection->buffer == NULL)
-         {
-            //Clean up side effects
-            memPoolFree(connection);
-            //Debug message
-            TRACE_ERROR("FTP server: Failed to allocate memory!\r\n");
-            //Exit immediately
-            break;
-         }
-
-         //Debug message
-         TRACE_INFO("TCP server: Control connection established with client %s port %" PRIu16 "...\r\n",
-            ipAddrToString(&clientIpAddr, NULL), clientPort);
-
-         //Underlying network interface
-         connection->interface = socket->interface;
-         //Save socket handle
-         connection->controlSocket = socket;
-         //Set home directory
-         strcpy(connection->homeDir, context->settings.rootDir);
-         //Set current directory
-         strcpy(connection->currentDir, context->settings.rootDir);
-
-         //Format greeting message
-         strcpy(connection->response, "220 Service ready for new user\r\n");
-         //Debug message
-         TRACE_DEBUG("FTP server: %s", connection->response);
-
-         //Number of bytes in the response buffer
-         connection->responseLength = strlen(connection->response);
-         connection->responsePos = 0;
-
-         //The client connection is ready for use
-         context->connection[i] = connection;
-         //Successful processing
-         return connection;
-      }
-   }
-
-   //Debug message
-   TRACE_INFO("TCP server: Connection refused with client %s port %" PRIu16 "...\r\n",
-      ipAddrToString(&clientIpAddr, NULL), clientPort);
-
-   //Close socket
-   socketClose(socket);
-   //The FTP server cannot accept the incoming connection request
-   return NULL;
-}
-
-
-/**
- * @brief Close control connection
- * @param[in] connection Pointer to the client connection
- **/
-
-void ftpServerCloseControlConnection(FtpClientConnection *connection)
-{
-   IpAddr clientIpAddr;
-   uint16_t clientPort;
-
-   //Any running control connection?
-   if(connection->controlSocket != NULL)
-   {
-      //Retrieve the address of the peer to which a socket is connected
-      socketGetRemoteAddr(connection->controlSocket, &clientIpAddr, &clientPort);
-
-      //Debug message
-      TRACE_INFO("FTP server: Closing control connection with client %s port %" PRIu16 "...\r\n",
-         ipAddrToString(&clientIpAddr, NULL), clientPort);
-
-      //Close control connection
-      socketClose(connection->controlSocket);
-      connection->controlSocket = NULL;
-
-      //Back to idle state
-      connection->controlState = FTP_CONTROL_STATE_IDLE;
-   }
-}
-
-
-/**
- * @brief Open data connection
- * @param[in] context Pointer to the FTP server context
- * @param[in] connection Pointer to the client connection
- * @return Error code
- **/
-
-error_t ftpServerOpenDataConnection(FtpServerContext *context,
-   FtpClientConnection *connection)
-{
-   error_t error;
-
-   //Release previously allocated resources
-   ftpServerCloseDataConnection(connection);
-
-   //No port specified?
-   if(!connection->remotePort)
-      return ERROR_FAILURE;
-
-   //Debug message
-   TRACE_INFO("FTP server: Opening data connection with client %s port %" PRIu16 "...\r\n",
-      ipAddrToString(&connection->remoteIpAddr, NULL), connection->remotePort);
-
-   //Open data socket
-   connection->dataSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
-   //Failed to open socket?
-   if(!connection->dataSocket)
-      return ERROR_OPEN_FAILED;
-
-   //Start of exception handling block
-   do
-   {
-      //Force the socket to operate in non-blocking mode
-      error = socketSetTimeout(connection->dataSocket, 0);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Adjust the size of the TX buffer
-      error = socketSetTxBufferSize(connection->dataSocket,
-         FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Adjust the size of the RX buffer
-      error = socketSetRxBufferSize(connection->dataSocket,
-         FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Associate the socket with the relevant interface
-      error = socketBindToInterface(connection->dataSocket, connection->interface);
-      //Unable to bind the socket to the desired interface?
-      if(error)
-         break;
-
-      //The server initiates the data connection from port 20
-      error = socketBind(connection->dataSocket, &IP_ADDR_ANY,
-         context->settings.dataPort);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Establish data connection
-      error = socketConnect(connection->dataSocket,
-         &connection->remoteIpAddr, connection->remotePort);
-      //Any error to report?
-      if(error != NO_ERROR && error != ERROR_TIMEOUT)
-         break;
-
-      //Connection is being established
-      error = NO_ERROR;
-
-      //End of exception handling block
-   } while(0);
-
-   //Any error to report?
-   if(error)
-   {
-      //Clean up side effects
-      ftpServerCloseDataConnection(connection);
-      //Exit immediately
-      return error;
-   }
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief Accept data connection
- * @param[in] connection Pointer to the client connection
- **/
-
-void ftpServerAcceptDataConnection(FtpClientConnection *connection)
-{
-   error_t error;
-   Socket *socket;
-   IpAddr clientIpAddr;
-   uint16_t clientPort;
-
-   //Accept incoming connection
-   socket = socketAccept(connection->dataSocket, &clientIpAddr, &clientPort);
-   //Failure detected?
-   if(socket == NULL)
-      return;
-
-   //Debug message
-   TRACE_INFO("FTP server: Data connection established with client %s port %" PRIu16 "...\r\n",
-      ipAddrToString(&clientIpAddr, NULL), clientPort);
-
-   //Close the listening socket
-   socketClose(connection->dataSocket);
-   //Save socket handle
-   connection->dataSocket = socket;
-
-   //Force the socket to operate in non-blocking mode
-   error = socketSetTimeout(connection->dataSocket, 0);
-   //Any error to report?
-   if(error)
-   {
-      //Clean up side effects
-      socketClose(connection->dataSocket);
-      //Exit immediately
-      return;
-   }
-
-   //Check current state
-   if(connection->controlState == FTP_CONTROL_STATE_LIST ||
-      connection->controlState == FTP_CONTROL_STATE_RETR)
-   {
-      //Prepare to send data
-      connection->dataState = FTP_DATA_STATE_SEND;
-   }
-   else if(connection->controlState == FTP_CONTROL_STATE_STOR ||
-      connection->controlState == FTP_CONTROL_STATE_APPE)
-   {
-      //Prepare to receive data
-      connection->dataState = FTP_DATA_STATE_RECEIVE;
-   }
-   else
-   {
-      //Data transfer direction is unknown...
-      connection->dataState = FTP_DATA_STATE_IDLE;
-   }
-}
-
-
-/**
- * @brief Close data connection
- * @param[in] connection Pointer to the client connection
- **/
-
-void ftpServerCloseDataConnection(FtpClientConnection *connection)
-{
-   IpAddr clientIpAddr;
-   uint16_t clientPort;
-
-   //Any running data connection?
-   if(connection->dataSocket != NULL)
-   {
-      //Retrieve the address of the peer to which a socket is connected
-      socketGetRemoteAddr(connection->dataSocket, &clientIpAddr, &clientPort);
-
-      //Check whether the data connection is established
-      if(clientPort != 0)
-      {
-         //Debug message
-         TRACE_INFO("FTP server: Closing data connection with client %s port %" PRIu16 "...\r\n",
-            ipAddrToString(&clientIpAddr, NULL), clientPort);
-      }
-
-      //Close data connection
-      socketClose(connection->dataSocket);
-      connection->dataSocket = NULL;
-
-      //Re initialize data connection
-      connection->passiveMode = FALSE;
-      connection->remotePort = 0;
-
-      //Back to default state
-      connection->dataState = FTP_DATA_STATE_CLOSED;
-   }
 }
 
 
@@ -510,17 +174,20 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
 
 /**
  * @brief Get permissions for the specified file or directory
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] path Canonical path of the file
  * @return Access rights for the specified file
  **/
 
-uint_t ftpServerGetFilePermissions(FtpServerContext *context,
-   FtpClientConnection *connection, const char_t *path)
+uint_t ftpServerGetFilePermissions(FtpClientConnection *connection,
+   const char_t *path)
 {
    size_t n;
    uint_t perm;
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
 
    //Calculate the length of the home directory
    n = strlen(connection->homeDir);
@@ -535,7 +202,8 @@ uint_t ftpServerGetFilePermissions(FtpServerContext *context,
       if(context->settings.getFilePermCallback != NULL)
       {
          //Retrieve access rights for the specified file
-         perm = context->settings.getFilePermCallback(connection, connection->user, path);
+         perm = context->settings.getFilePermCallback(connection,
+            connection->user, path);
       }
       else
       {
@@ -555,13 +223,106 @@ uint_t ftpServerGetFilePermissions(FtpServerContext *context,
 
 
 /**
+ * @brief Format a directory entry in UNIX-style format
+ * @param[in] dirEntry Pointer to the directory entry
+ * @param[in] perm Access rights for the specified file
+ * @param[out] buffer Buffer where to format the directory entry
+ * @return Length of resulting string, in bytes
+ **/
+
+size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
+   char_t *buffer)
+{
+   size_t n;
+   time_t time;
+   time_t modified;
+
+   //Abbreviated months
+   static const char months[13][4] =
+   {
+      "   ",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+   };
+
+   //Format links, owner, group and size fields
+   n = sprintf(buffer, "----------   1 owner    group    %10" PRIu32,
+      dirEntry->size);
+
+   //Check whether the current entry is a directory
+   if(dirEntry->attributes & FS_FILE_ATTR_DIRECTORY)
+   {
+      buffer[0] = 'd';
+   }
+
+   //Read access permitted?
+   if(perm & FTP_FILE_PERM_READ)
+   {
+      buffer[1] = 'r';
+      buffer[4] = 'r';
+      buffer[7] = 'r';
+   }
+
+   //Write access permitted?
+   if(perm & FTP_FILE_PERM_WRITE)
+   {
+      //Make sure the file is not marked as read-only
+      if(!(dirEntry->attributes & FS_FILE_ATTR_READ_ONLY))
+      {
+         buffer[2] = 'w';
+         buffer[5] = 'w';
+         buffer[8] = 'w';
+      }
+   }
+
+   //Get current time
+   time = getCurrentUnixTime();
+   //Get modification time
+   modified = convertDateToUnixTime(&dirEntry->modified);
+
+   //Check whether the modification time is within the previous 180 days
+   if(time > modified && time < (modified + FTP_SERVER_180_DAYS))
+   {
+      //The format of the date/time field is Mmm dd hh:mm
+      n += sprintf(buffer + n, " %s %02" PRIu8 " %02" PRIu8 ":%02" PRIu8,
+         months[MIN(dirEntry->modified.month, 12)], dirEntry->modified.day,
+         dirEntry->modified.hours, dirEntry->modified.minutes);
+   }
+   else
+   {
+      //The format of the date/time field is Mmm dd  yyyy
+      n += sprintf(buffer + n, " %s %02" PRIu8 "  %04" PRIu16,
+         months[MIN(dirEntry->modified.month, 12)], dirEntry->modified.day,
+         dirEntry->modified.year);
+   }
+
+   //Append filename
+   n += sprintf(buffer + n, " %s\r\n", dirEntry->name);
+
+   //Return the length of the resulting string, in bytes
+   return n;
+}
+
+
+/**
  * @brief Strip root dir from specified pathname
  * @param[in] context Pointer to the FTP server context
  * @param[in] path input pathname
  * @return Resulting pathname with root dir stripped
  **/
 
-const char_t *ftpServerStripRootDir(FtpServerContext *context, const char_t *path)
+const char_t *ftpServerStripRootDir(FtpServerContext *context,
+   const char_t *path)
 {
    //Default directory
    static const char_t defaultDir[] = "/";
@@ -592,7 +353,8 @@ const char_t *ftpServerStripRootDir(FtpServerContext *context, const char_t *pat
  * @return Resulting pathname with home directory stripped
  **/
 
-const char_t *ftpServerStripHomeDir(FtpClientConnection *connection, const char_t *path)
+const char_t *ftpServerStripHomeDir(FtpClientConnection *connection,
+   const char_t *path)
 {
    //Default directory
    static const char_t defaultDir[] = "/";
@@ -613,6 +375,36 @@ const char_t *ftpServerStripHomeDir(FtpClientConnection *connection, const char_
       return path + n;
    else
       return defaultDir;
+}
+
+
+/**
+ * @brief Close client connection properly
+ * @param[in] connection Pointer to the client connection to be closed
+ **/
+
+void ftpServerCloseConnection(FtpClientConnection *connection)
+{
+   //Close data connection
+   ftpServerCloseDataChannel(connection);
+   //Close control connection
+   ftpServerCloseControlChannel(connection);
+
+   //Valid file pointer?
+   if(connection->file != NULL)
+   {
+      //Close file
+      fsCloseFile(connection->file);
+      connection->file = NULL;
+   }
+
+   //Valid directory pointer?
+   if(connection->dir != NULL)
+   {
+      //Close directory
+      fsCloseDir(connection->dir);
+      connection->dir = NULL;
+   }
 }
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -67,10 +67,16 @@ void modbusServerGetDefaultSettings(ModbusServerSettings *settings)
    settings->unlockCallback = NULL;
    //Get coil state callback function
    settings->readCoilCallback = NULL;
+   //Get discrete input state callback function
+   settings->readDiscreteInputCallback = NULL;
    //Set coil state callback function
    settings->writeCoilCallback = NULL;
    //Get register value callback function
    settings->readRegCallback = NULL;
+   //Get holding register value callback function
+   settings->readHoldingRegCallback = NULL;
+   //Get input register value callback function
+   settings->readInputRegCallback = NULL;
    //Set register value callback function
    settings->writeRegCallback = NULL;
    //PDU processing callback
@@ -355,7 +361,7 @@ void modbusServerDeinit(ModbusServerContext *context)
    //Make sure the Modbus/TCP server context is valid
    if(context != NULL)
    {
-      //Loop through client connection table
+      //Loop through the connection table
       for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
       {
          //Close client connection

@@ -1,6 +1,6 @@
 /**
  * @file mk6x_eth_driver.h
- * @brief Freescale Kinetis K60/K64/K65/K66 Ethernet MAC controller
+ * @brief NXP Kinetis K60/K64/K65/K66 Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MK6X_ETH_DRIVER_H
@@ -151,7 +151,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //Kinetis K6x Ethernet MAC driver
@@ -186,7 +186,7 @@ uint32_t mk6xEthCalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

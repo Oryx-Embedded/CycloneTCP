@@ -1,6 +1,6 @@
 /**
  * @file mkv5x_eth_driver.h
- * @brief Freescale Kinetis KV5x Ethernet MAC controller
+ * @brief NXP Kinetis KV5x Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MKV5X_ETH_DRIVER_H
@@ -138,7 +138,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //Kinetis KV5x Ethernet MAC driver
@@ -173,7 +173,7 @@ uint32_t mkv5xEthCalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

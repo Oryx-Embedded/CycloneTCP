@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -409,6 +409,12 @@ error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
    //Ignore unused flags
    flags &= SOCKET_FLAG_DONT_ROUTE;
 
+   //Check whether the destination IP address is a multicast address
+   if(ipIsMulticastAddr(destIpAddr))
+      flags |= socket->multicastTtl;
+   else
+      flags |= socket->ttl;
+
    //Allocate a memory buffer to hold the UDP datagram
    buffer = udpAllocBuffer(0, &offset);
    //Failed to allocate buffer?
@@ -423,7 +429,7 @@ error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
    {
       //Send UDP datagram
       error = udpSendDatagramEx(socket->interface, NULL, socket->localPort,
-         destIpAddr, destPort, buffer, offset, flags | socket->ttl);
+         destIpAddr, destPort, buffer, offset, flags);
    }
 
    //Successful processing?
@@ -549,8 +555,8 @@ error_t udpSendDatagramEx(NetInterface *interface, const IpAddr *srcIpAddr,
       {
          //Select the source IPv6 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv6SelectSourceAddr(&interface,
-            &destIpAddr->ipv6Addr, &pseudoHeader.ipv6Data.srcAddr);
+         error = ipv6SelectSourceAddr(&interface, &destIpAddr->ipv6Addr,
+            &pseudoHeader.ipv6Data.srcAddr);
          //Any error to report?
          if(error)
             return error;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -35,12 +35,11 @@
 #include <stdlib.h>
 #include "ipv4/ipv4_misc.h"
 #include "ftp/ftp_server.h"
-#include "ftp/ftp_server_events.h"
 #include "ftp/ftp_server_commands.h"
+#include "ftp/ftp_server_data.h"
 #include "ftp/ftp_server_misc.h"
 #include "str.h"
 #include "path.h"
-#include "error.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -49,25 +48,23 @@
 
 /**
  * @brief FTP command processing
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  **/
 
-void ftpServerProcessCmd(FtpServerContext *context,
-   FtpClientConnection *connection)
+void ftpServerProcessCommand(FtpClientConnection *connection)
 {
    size_t n;
    char_t *p;
 
-   //The <CRLF> sequence should be used to terminate the command line
-   for(n = 0; n < connection->commandLength; n++)
+   //The CRLF sequence should be used to terminate the command line
+   for(n = 0; n < connection->commandLen; n++)
    {
       if(connection->command[n] == '\n')
          break;
    }
 
    //Any command to process?
-   if(n < connection->commandLength)
+   if(n < connection->commandLen)
    {
       //Properly terminate the string with a NULL character
       connection->command[n] = '\0';
@@ -78,167 +75,213 @@ void ftpServerProcessCmd(FtpServerContext *context,
       TRACE_DEBUG("FTP client: %s\r\n", connection->command);
 
       //Command line too long?
-      if(connection->controlState == FTP_CONTROL_STATE_DISCARD)
+      if(connection->controlChannel.state == FTP_CHANNEL_STATE_DISCARD)
       {
          //Switch to idle state
-         connection->controlState = FTP_CONTROL_STATE_IDLE;
+         connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
          //Format response message
          strcpy(connection->response, "500 Command line too long\r\n");
       }
       else
       {
-         //The command name and the arguments are separated by one or more spaces
-         for(p = connection->command; *p != '\0' && *p != ' '; p++);
+         //The command name and the arguments are separated by one or more
+         //spaces
+         for(p = connection->command; *p != '\0' && *p != ' '; p++)
+         {
+         }
 
          //Space character found?
          if(*p == ' ')
          {
             //Split the string at the first occurrence of the space character
             *(p++) = '\0';
+
             //Skip extra whitespace
-            while(*p == ' ') p++;
+            while(*p == ' ')
+            {
+               p++;
+            }
          }
 
-         //NOOP command received
+         //NOOP command received?
          if(!strcasecmp(connection->command, "NOOP"))
-            ftpServerProcessNoop(context, connection, p);
-         //SYST command received
+         {
+            ftpServerProcessNoop(connection, p);
+         }
+         //SYST command received?
          else if(!strcasecmp(connection->command, "SYST"))
-            ftpServerProcessSyst(context, connection, p);
+         {
+            ftpServerProcessSyst(connection, p);
+         }
          //FEAT command received?
          else if(!strcasecmp(connection->command, "FEAT"))
-            ftpServerProcessFeat(context, connection, p);
+         {
+            ftpServerProcessFeat(connection, p);
+         }
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+         //AUTH command received?
+         else if(!strcasecmp(connection->command, "AUTH"))
+         {
+            ftpServerProcessAuth(connection, p);
+         }
+         //PBSZ command received?
+         else if(!strcasecmp(connection->command, "PBSZ"))
+         {
+            ftpServerProcessPbsz(connection, p);
+         }
+         //PROT command received?
+         else if(!strcasecmp(connection->command, "PROT"))
+         {
+            ftpServerProcessProt(connection, p);
+         }
+#endif
          //TYPE command received?
          else if(!strcasecmp(connection->command, "TYPE"))
-            ftpServerProcessType(context, connection, p);
+         {
+            ftpServerProcessType(connection, p);
+         }
          //STRU command received?
          else if(!strcasecmp(connection->command, "STRU"))
-            ftpServerProcessStru(context, connection, p);
+         {
+            ftpServerProcessStru(connection, p);
+         }
          //MODE command received?
          else if(!strcasecmp(connection->command, "MODE"))
-            ftpServerProcessMode(context, connection, p);
+         {
+            ftpServerProcessMode(connection, p);
+         }
          //USER command received?
          else if(!strcasecmp(connection->command, "USER"))
-            ftpServerProcessUser(context, connection, p);
+         {
+            ftpServerProcessUser(connection, p);
+         }
          //PASS command received?
          else if(!strcasecmp(connection->command, "PASS"))
-            ftpServerProcessPass(context, connection, p);
+         {
+            ftpServerProcessPass(connection, p);
+         }
          //REIN command received?
          else if(!strcasecmp(connection->command, "REIN"))
-            ftpServerProcessRein(context, connection, p);
+         {
+            ftpServerProcessRein(connection, p);
+         }
          //QUIT command received?
          else if(!strcasecmp(connection->command, "QUIT"))
-            ftpServerProcessQuit(context, connection, p);
+         {
+            ftpServerProcessQuit(connection, p);
+         }
          //PORT command received?
          else if(!strcasecmp(connection->command, "PORT"))
-            ftpServerProcessPort(context, connection, p);
+         {
+            ftpServerProcessPort(connection, p);
+         }
          //EPRT command received?
          else if(!strcasecmp(connection->command, "EPRT"))
-            ftpServerProcessEprt(context, connection, p);
+         {
+            ftpServerProcessEprt(connection, p);
+         }
          //PASV command received?
          else if(!strcasecmp(connection->command, "PASV"))
-            ftpServerProcessPasv(context, connection, p);
+         {
+            ftpServerProcessPasv(connection, p);
+         }
          //EPSV command received?
          else if(!strcasecmp(connection->command, "EPSV"))
-            ftpServerProcessEpsv(context, connection, p);
+         {
+            ftpServerProcessEpsv(connection, p);
+         }
          //ABOR command received?
          else if(!strcasecmp(connection->command, "ABOR"))
-            ftpServerProcessAbor(context, connection, p);
+         {
+            ftpServerProcessAbor(connection, p);
+         }
          //PWD command received?
          else if(!strcasecmp(connection->command, "PWD"))
-            ftpServerProcessPwd(context, connection, p);
+         {
+            ftpServerProcessPwd(connection, p);
+         }
          //LIST command received?
          else if(!strcasecmp(connection->command, "LIST"))
-            ftpServerProcessList(context, connection, p);
+         {
+            ftpServerProcessList(connection, p);
+         }
          //CWD command received?
          else if(!strcasecmp(connection->command, "CWD"))
-            ftpServerProcessCwd(context, connection, p);
+         {
+            ftpServerProcessCwd(connection, p);
+         }
          //CDUP command received?
          else if(!strcasecmp(connection->command, "CDUP"))
-            ftpServerProcessCdup(context, connection, p);
+         {
+            ftpServerProcessCdup(connection, p);
+         }
          //MKD command received?
          else if(!strcasecmp(connection->command, "MKD"))
-            ftpServerProcessMkd(context, connection, p);
+         {
+            ftpServerProcessMkd(connection, p);
+         }
          //RMD command received?
          else if(!strcasecmp(connection->command, "RMD"))
-            ftpServerProcessRmd(context, connection, p);
+         {
+            ftpServerProcessRmd(connection, p);
+         }
          //SIZE command received?
          else if(!strcasecmp(connection->command, "SIZE"))
-            ftpServerProcessSize(context, connection, p);
+         {
+            ftpServerProcessSize(connection, p);
+         }
          //RETR command received?
          else if(!strcasecmp(connection->command, "RETR"))
-            ftpServerProcessRetr(context, connection, p);
+         {
+            ftpServerProcessRetr(connection, p);
+         }
          //STOR command received?
          else if(!strcasecmp(connection->command, "STOR"))
-            ftpServerProcessStor(context, connection, p);
+         {
+            ftpServerProcessStor(connection, p);
+         }
          //APPE command received?
          else if(!strcasecmp(connection->command, "APPE"))
-            ftpServerProcessAppe(context, connection, p);
+         {
+            ftpServerProcessAppe(connection, p);
+         }
          //RNFR command received?
          else if(!strcasecmp(connection->command, "RNFR"))
-            ftpServerProcessRnfr(context, connection, p);
+         {
+            ftpServerProcessRnfr(connection, p);
+         }
          //RNTO command received?
          else if(!strcasecmp(connection->command, "RNTO"))
-            ftpServerProcessRnto(context, connection, p);
+         {
+            ftpServerProcessRnto(connection, p);
+         }
          //DELE command received?
          else if(!strcasecmp(connection->command, "DELE"))
-            ftpServerProcessDele(context, connection, p);
+         {
+            ftpServerProcessDele(connection, p);
+         }
          //Unknown command received?
          else
-            ftpServerProcessUnknownCmd(context, connection, p);
+         {
+            ftpServerProcessUnknownCmd(connection, p);
+         }
       }
 
       //Debug message
       TRACE_DEBUG("FTP server: %s", connection->response);
 
       //Number of bytes in the response buffer
-      connection->responseLength = strlen(connection->response);
+      connection->responseLen = strlen(connection->response);
       connection->responsePos = 0;
-
-      //Clear command line
-      connection->commandLength = 0;
    }
-   else if(connection->commandLength >= FTP_SERVER_MAX_LINE_LEN)
+   else if(connection->commandLen >= FTP_SERVER_MAX_LINE_LEN)
    {
-      //The command line is too long...
-      connection->controlState = FTP_CONTROL_STATE_DISCARD;
       //Drop incoming data
-      connection->commandLength = 0;
-   }
-}
-
-
-/**
- * @brief Unknown command processing
- * @param[in] context Pointer to the FTP server context
- * @param[in] connection Pointer to the client connection
- * @param[in] param Command line parameters
- **/
-
-void ftpServerProcessUnknownCmd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
-{
-   error_t error;
-
-   //Invoke user-defined callback, if any
-   if(context->settings.unknownCommandCallback != NULL)
-   {
-      //Custom command processing
-      error = context->settings.unknownCommandCallback(connection,
-         connection->command, param);
-   }
-   else
-   {
-      //Report an error
-      error = ERROR_INVALID_COMMAND;
+      connection->controlChannel.state = FTP_CHANNEL_STATE_DISCARD;
    }
 
-   //Invalid command received?
-   if(error == ERROR_INVALID_COMMAND)
-   {
-      //Format response message
-      strcpy(connection->response, "500 Command unrecognized\r\n");
-   }
+   //Flush command line
+   connection->commandLen = 0;
 }
 
 
@@ -248,13 +291,11 @@ void ftpServerProcessUnknownCmd(FtpServerContext *context,
  * The NOOP command does not affect any parameters or previously entered
  * commands. It specifies no action other than that the server send an OK reply
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessNoop(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessNoop(FtpClientConnection *connection, char_t *param)
 {
    //Send an OK reply
    strcpy(connection->response, "200 Command okay\r\n");
@@ -267,13 +308,11 @@ void ftpServerProcessNoop(FtpServerContext *context,
  * The SYST command is used to find out the type of operating system
  * at the server side
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessSyst(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessSyst(FtpClientConnection *connection, char_t *param)
 {
    //Format the response to the SYST command
    strcpy(connection->response, "215 UNIX Type: L8\r\n");
@@ -286,20 +325,201 @@ void ftpServerProcessSyst(FtpServerContext *context,
  * The FEAT command allows a client to discover which optional
  * commands a server supports
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessFeat(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessFeat(FtpClientConnection *connection, char_t *param)
 {
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
+#endif
+
    //Format the response to the FEAT command
-   strcpy(connection->response, "211-Features supported:\r\n");
+   strcpy(connection->response, "211-Extensions supported:\r\n");
+
+   //Each extension supported must be listed on a separate line
    strcat(connection->response, " SIZE\r\n");
    strcat(connection->response, " EPRT\r\n");
    strcat(connection->response, " EPSV\r\n");
+
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   //TLS security mode supported by the server?
+   if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
+      (context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
+   {
+      //If a server supports the FEAT command, then it must advertise
+      //supported AUTH, PBSZ, and PROT commands in the reply (refer to
+      //RFC 4217, section 6)
+      strcat(connection->response, " AUTH TLS\r\n");
+      strcat(connection->response, " PBSZ\r\n");
+      strcat(connection->response, " PROT\r\n");
+   }
+#endif
+
+   //Terminate feature listing
    strcat(connection->response, "211 End\r\n");
+}
+
+
+/**
+ * @brief AUTH command processing
+ *
+ * The AUTH command specifies the security mechanism
+ *
+ * @param[in] connection Pointer to the client connection
+ * @param[in] param Command line parameters
+ **/
+
+void ftpServerProcessAuth(FtpClientConnection *connection, char_t *param)
+{
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
+
+   //TLS security mode supported by the server?
+   if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0)
+   {
+      //When using implicit FTPS, a TLS connection is immediately established
+      //via port 990 before any command is exchanged
+      strcpy(connection->response, "534 Secure connection already negotiated\r\n");
+   }
+   else if((context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
+   {
+      //The argument specifies the security mechanism
+      if(*param != '\0')
+      {
+         //TLS security mechanism?
+         if(!strcasecmp(param, "TLS"))
+         {
+            //If the server is willing to accept the named security mechanism,
+            //and does not require any security data, it must respond with reply
+            //code 234
+            strcpy(connection->response, "234 AUTH TLS OK\r\n");
+
+            //Establish a protected session
+            connection->controlChannel.state = FTP_CHANNEL_STATE_AUTH_TLS_1;
+         }
+         else
+         {
+            //The security mechanism is unknown
+            strcpy(connection->response, "504 Unknown security scheme\r\n");
+         }
+      }
+      else
+      {
+         //The argument is missing
+         strcpy(connection->response, "501 Missing parameter\r\n");
+      }
+   }
+   else
+#endif
+   {
+      //TLS security mode is not supported
+      strcpy(connection->response, "502 Command not implemented\r\n");
+   }
+}
+
+
+/**
+ * @brief PBSZ command processing
+ *
+ * The PBSZ command specifies the maximum size, in bytes, of the encoded data
+ * blocks to be sent or received during file transfer
+ *
+ * @param[in] connection Pointer to the client connection
+ * @param[in] param Command line parameters
+ **/
+
+void ftpServerProcessPbsz(FtpClientConnection *connection, char_t *param)
+{
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
+
+   //TLS security mode supported by the server?
+   if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
+      (context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
+   {
+      //The argument specifies the maximum size of the encoded data blocks
+      if(*param != '\0')
+      {
+         //Format the response to the PBSZ command
+         strcpy(connection->response, "200 PBSZ=0\r\n");
+      }
+      else
+      {
+         //The argument is missing
+         strcpy(connection->response, "501 Missing parameter\r\n");
+      }
+   }
+   else
+#endif
+   {
+      //TLS security mode is not supported
+      strcpy(connection->response, "502 Command not implemented\r\n");
+   }
+}
+
+
+/**
+ * @brief PROT command processing
+ *
+ * The PROT command specifies the data channel protection level
+ *
+ * @param[in] connection Pointer to the client connection
+ * @param[in] param Command line parameters
+ **/
+
+void ftpServerProcessProt(FtpClientConnection *connection, char_t *param)
+{
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
+
+   //TLS security mode supported by the server?
+   if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
+      (context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
+   {
+      //The argument specifies the data protection level
+      if(*param != '\0')
+      {
+         //Private protection level?
+         if(!strcasecmp(param, "P"))
+         {
+            //The server must reply with a 200 reply code to indicate that the
+            //specified protection level is accepted
+            strcpy(connection->response, "200 Data protection level set to P\r\n");
+         }
+         //Unknown security mechanism?
+         else
+         {
+            //If the server does not understand the specified protection level,
+            //it should respond with reply code 504
+            strcpy(connection->response, "504 Unknown protection level\r\n");
+         }
+      }
+      else
+      {
+         //The argument is missing
+         strcpy(connection->response, "501 Missing parameter\r\n");
+      }
+   }
+   else
+#endif
+   {
+      //TLS security mode is not supported
+      strcpy(connection->response, "502 Command not implemented\r\n");
+   }
 }
 
 
@@ -308,13 +528,11 @@ void ftpServerProcessFeat(FtpServerContext *context,
  *
  * The TYPE command specifies the representation type
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessType(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessType(FtpClientConnection *connection, char_t *param)
 {
    //The argument specifies the representation type
    if(*param != '\0')
@@ -340,7 +558,7 @@ void ftpServerProcessType(FtpServerContext *context,
    }
    else
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
    }
 }
@@ -351,13 +569,11 @@ void ftpServerProcessType(FtpServerContext *context,
  *
  * The STRU command specifies the file structure
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessStru(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessStru(FtpClientConnection *connection, char_t *param)
 {
    //The argument specifies the file structure
    if(*param != '\0')
@@ -377,7 +593,7 @@ void ftpServerProcessStru(FtpServerContext *context,
    }
    else
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
    }
 }
@@ -388,13 +604,11 @@ void ftpServerProcessStru(FtpServerContext *context,
  *
  * The MODE command specifies the data transfer mode
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessMode(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessMode(FtpClientConnection *connection, char_t *param)
 {
    //The argument specifies the data transfer mode
    if(*param != '\0')
@@ -414,7 +628,7 @@ void ftpServerProcessMode(FtpServerContext *context,
    }
    else
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
    }
 }
@@ -425,20 +639,22 @@ void ftpServerProcessMode(FtpServerContext *context,
  *
  * The USER command is used to identify the user
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessUser(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
 {
    uint_t status;
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
 
    //The argument specifies the user name
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -453,6 +669,23 @@ void ftpServerProcessUser(FtpServerContext *context,
       return;
    }
 
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   //Cleartext FTP session?
+   if(connection->controlChannel.tlsContext == NULL)
+   {
+      //If the server needs AUTH, then it refuses to accept certain commands
+      //until it gets a successfully protected session (refer to RFC 4217,
+      //section 11.1)
+      if((context->settings.mode & FTP_SERVER_MODE_PLAINTEXT) == 0)
+      {
+         //Format response message
+         strcpy(connection->response, "421 Cleartext sessions are not accepted\r\n");
+         //Exit immediately
+         return;
+      }
+   }
+#endif
+
    //Save user name
    strcpy(connection->user, param);
    //Log out the user
@@ -464,9 +697,13 @@ void ftpServerProcessUser(FtpServerContext *context,
 
    //Invoke user-defined callback, if any
    if(context->settings.checkUserCallback != NULL)
+   {
       status = context->settings.checkUserCallback(connection, param);
+   }
    else
+   {
       status = FTP_ACCESS_ALLOWED;
+   }
 
    //Access allowed?
    if(status == FTP_ACCESS_ALLOWED)
@@ -480,7 +717,7 @@ void ftpServerProcessUser(FtpServerContext *context,
    else if(status == FTP_PASSWORD_REQUIRED)
    {
       //This command must be immediately followed by a PASS command
-      connection->controlState = FTP_CONTROL_STATE_USER;
+      connection->controlChannel.state = FTP_CHANNEL_STATE_USER;
       //Format response message
       strcpy(connection->response, "331 User name okay, need password\r\n");
    }
@@ -498,21 +735,23 @@ void ftpServerProcessUser(FtpServerContext *context,
  *
  * The USER command specifies the user's password
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessPass(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessPass(FtpClientConnection *connection, char_t *param)
 {
    uint_t status;
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
 
    //This command must immediately follow a USER command
-   if(connection->controlState != FTP_CONTROL_STATE_USER)
+   if(connection->controlChannel.state != FTP_CHANNEL_STATE_USER)
    {
       //Switch to idle state
-      connection->controlState = FTP_CONTROL_STATE_IDLE;
+      connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
       //Report an error
       strcpy(connection->response, "503 Bad sequence of commands\r\n");
       //Exit immediately
@@ -520,12 +759,12 @@ void ftpServerProcessPass(FtpServerContext *context,
    }
 
    //Switch to idle state
-   connection->controlState = FTP_CONTROL_STATE_IDLE;
+   connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
 
    //The argument specifies the password
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -533,9 +772,14 @@ void ftpServerProcessPass(FtpServerContext *context,
 
    //Invoke user-defined callback, if any
    if(context->settings.checkPasswordCallback != NULL)
-      status = context->settings.checkPasswordCallback(connection, connection->user, param);
+   {
+      status = context->settings.checkPasswordCallback(connection,
+         connection->user, param);
+   }
    else
+   {
       status = FTP_ACCESS_ALLOWED;
+   }
 
    //Access allowed?
    if(status == FTP_ACCESS_ALLOWED)
@@ -559,16 +803,14 @@ void ftpServerProcessPass(FtpServerContext *context,
  *
  * The REIN command is used to reinitialize a user session
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessRein(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessRein(FtpClientConnection *connection, char_t *param)
 {
    //Close data connection
-   ftpServerCloseDataConnection(connection);
+   ftpServerCloseDataChannel(connection);
 
    //Release previously allocated resources
    if(connection->file != NULL)
@@ -596,20 +838,18 @@ void ftpServerProcessRein(FtpServerContext *context,
  *
  * The QUIT command is used to terminate a user session
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessQuit(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessQuit(FtpClientConnection *connection, char_t *param)
 {
    //There are two cases to consider upon receipt of this command
-   if(connection->dataState == FTP_DATA_STATE_CLOSED)
+   if(connection->dataChannel.state == FTP_CHANNEL_STATE_CLOSED)
    {
       //If the FTP service command was already completed, the server closes
       //the data connection (if it is open)...
-      ftpServerCloseDataConnection(connection);
+      ftpServerCloseDataChannel(connection);
 
       //...and responds with a 221 reply
       strcpy(connection->response, "221 Service closing control connection\r\n");
@@ -618,7 +858,7 @@ void ftpServerProcessQuit(FtpServerContext *context,
    {
       //If the FTP service command is still in progress, the server aborts
       //the FTP service in progress and closes the data connection...
-      ftpServerCloseDataConnection(connection);
+      ftpServerCloseDataChannel(connection);
 
       //...returning a 426 reply to indicate that the service request
       //terminated abnormally
@@ -644,7 +884,7 @@ void ftpServerProcessQuit(FtpServerContext *context,
    //Clear account information
    connection->userLoggedIn = FALSE;
    //Gracefully disconnect from the remote host
-   connection->controlState = FTP_CONTROL_STATE_WAIT_ACK;
+   connection->controlChannel.state = FTP_CHANNEL_STATE_WAIT_ACK;
 }
 
 
@@ -653,13 +893,11 @@ void ftpServerProcessQuit(FtpServerContext *context,
  *
  * The PORT command specifies the data port to be used for the data connection
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessPort(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    size_t i;
@@ -677,17 +915,18 @@ void ftpServerProcessPort(FtpServerContext *context,
       return;
    }
 
-   //The argument is the concatenation of the IP address and the 16-bit port number
+   //The argument is the concatenation of the IP address and the 16-bit
+   //port number
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
 
    //Close the data connection, if any
-   ftpServerCloseDataConnection(connection);
+   ftpServerCloseDataChannel(connection);
 
    //Start of exception handling block
    do
@@ -728,7 +967,7 @@ void ftpServerProcessPort(FtpServerContext *context,
          break;
 
       //Convert the string representation to integer
-      connection->remotePort = strtoul(token, &end, 10) << 8;
+      connection->remotePort = (uint16_t) strtoul(token, &end, 10) << 8;
       //Syntax error?
       if(*end != '\0')
          break;
@@ -775,13 +1014,11 @@ void ftpServerProcessPort(FtpServerContext *context,
  * The EPRT command allows for the specification of an extended address
  * for the data connection
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessEprt(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t protocol;
@@ -803,14 +1040,14 @@ void ftpServerProcessEprt(FtpServerContext *context,
    //as well as the IP address and the 16-bit port number
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
 
    //Close the data connection, if any
-   ftpServerCloseDataConnection(connection);
+   ftpServerCloseDataChannel(connection);
 
    //Start of exception handling block
    do
@@ -888,7 +1125,7 @@ void ftpServerProcessEprt(FtpServerContext *context,
          break;
 
       //Convert the string representation to integer
-      connection->remotePort = strtoul(token, &end, 10);
+      connection->remotePort = (uint16_t) strtoul(token, &end, 10);
       //Syntax error?
       if(*end != '\0')
          break;
@@ -924,19 +1161,21 @@ void ftpServerProcessEprt(FtpServerContext *context,
  * to wait for a connection rather than initiate one upon receipt of
  * a transfer command
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessPasv(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    size_t n;
    char_t *p;
    IpAddr ipAddr;
    uint16_t port;
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
 
    //Ensure the user is logged in
    if(!connection->userLoggedIn)
@@ -948,7 +1187,7 @@ void ftpServerProcessPasv(FtpServerContext *context,
    }
 
    //Close the data connection, if any
-   ftpServerCloseDataConnection(connection);
+   ftpServerCloseDataChannel(connection);
 
    //Get the next passive port number to be used
    port = ftpServerGetPassivePort(context);
@@ -957,10 +1196,10 @@ void ftpServerProcessPasv(FtpServerContext *context,
    do
    {
       //Open data socket
-      connection->dataSocket = socketOpen(SOCKET_TYPE_STREAM,
+      connection->dataChannel.socket = socketOpen(SOCKET_TYPE_STREAM,
          SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
-      if(!connection->dataSocket)
+      if(!connection->dataChannel.socket)
       {
          //Report an error
          error = ERROR_OPEN_FAILED;
@@ -968,46 +1207,48 @@ void ftpServerProcessPasv(FtpServerContext *context,
       }
 
       //Force the socket to operate in non-blocking mode
-      error = socketSetTimeout(connection->dataSocket, 0);
+      error = socketSetTimeout(connection->dataChannel.socket, 0);
       //Any error to report?
       if(error)
          break;
 
       //Adjust the size of the TX buffer
-      error = socketSetTxBufferSize(connection->dataSocket,
-         FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
+      error = socketSetTxBufferSize(connection->dataChannel.socket,
+         FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
       //Adjust the size of the RX buffer
-      error = socketSetRxBufferSize(connection->dataSocket,
-         FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
+      error = socketSetRxBufferSize(connection->dataChannel.socket,
+         FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(connection->dataSocket,
+      error = socketBindToInterface(connection->dataChannel.socket,
          connection->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
          break;
 
       //Bind the socket to the passive port number
-      error = socketBind(connection->dataSocket, &IP_ADDR_ANY, port);
+      error = socketBind(connection->dataChannel.socket, &IP_ADDR_ANY,
+         port);
       //Failed to bind the socket to the desired port?
       if(error)
          break;
 
       //Place the data socket in the listening state
-      error = socketListen(connection->dataSocket, 1);
+      error = socketListen(connection->dataChannel.socket, 1);
       //Any error to report?
       if(error)
          break;
 
       //Retrieve the IP address of the client
-      error = socketGetRemoteAddr(connection->controlSocket, &ipAddr, NULL);
+      error = socketGetRemoteAddr(connection->controlChannel.socket, &ipAddr,
+         NULL);
       //Any error to report?
       if(error)
          break;
@@ -1020,8 +1261,8 @@ void ftpServerProcessPasv(FtpServerContext *context,
          break;
       }
 
-      //If the server is behind a NAT router, make sure the server knows its
-      //external IP address
+      //If the server is behind a NAT router, make sure the server knows
+      //its external IP address
       if(!ipv4IsOnLink(connection->interface, ipAddr.ipv4Addr) &&
          context->settings.publicIpv4Addr != IPV4_UNSPECIFIED_ADDR)
       {
@@ -1031,7 +1272,8 @@ void ftpServerProcessPasv(FtpServerContext *context,
       else
       {
          //The server must return its own IP address in the PASV reply
-         error = socketGetLocalAddr(connection->controlSocket, &ipAddr, NULL);
+         error = socketGetLocalAddr(connection->controlChannel.socket,
+            &ipAddr, NULL);
          //Any error to report?
          if(error)
             break;
@@ -1054,7 +1296,7 @@ void ftpServerProcessPasv(FtpServerContext *context,
       //Use passive data transfer
       connection->passiveMode = TRUE;
       //Update data connection state
-      connection->dataState = FTP_DATA_STATE_LISTEN;
+      connection->dataChannel.state = FTP_CHANNEL_STATE_LISTEN;
 
       //Format response message
       n = sprintf(connection->response, "227 Entering passive mode (");
@@ -1072,7 +1314,7 @@ void ftpServerProcessPasv(FtpServerContext *context,
    else
    {
       //Clean up side effects
-      ftpServerCloseDataConnection(connection);
+      ftpServerCloseDataChannel(connection);
 
       //Format response message
       strcpy(connection->response, "425 Can't enter passive mode\r\n");
@@ -1086,16 +1328,18 @@ void ftpServerProcessPasv(FtpServerContext *context,
  * The EPSV command requests that a server listen on a data port and
  * wait for a connection
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessEpsv(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessEpsv(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint16_t port;
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
 
    //Ensure the user is logged in
    if(!connection->userLoggedIn)
@@ -1107,7 +1351,7 @@ void ftpServerProcessEpsv(FtpServerContext *context,
    }
 
    //Close the data connection, if any
-   ftpServerCloseDataConnection(connection);
+   ftpServerCloseDataChannel(connection);
 
    //Get the next passive port number to be used
    port = ftpServerGetPassivePort(context);
@@ -1116,9 +1360,10 @@ void ftpServerProcessEpsv(FtpServerContext *context,
    do
    {
       //Open data socket
-      connection->dataSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+      connection->dataChannel.socket = socketOpen(SOCKET_TYPE_STREAM,
+         SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
-      if(!connection->dataSocket)
+      if(!connection->dataChannel.socket)
       {
          //Report an error
          error = ERROR_OPEN_FAILED;
@@ -1127,39 +1372,40 @@ void ftpServerProcessEpsv(FtpServerContext *context,
       }
 
       //Force the socket to operate in non-blocking mode
-      error = socketSetTimeout(connection->dataSocket, 0);
+      error = socketSetTimeout(connection->dataChannel.socket, 0);
       //Any error to report?
       if(error)
          break;
 
       //Adjust the size of the TX buffer
-      error = socketSetTxBufferSize(connection->dataSocket,
-         FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
+      error = socketSetTxBufferSize(connection->dataChannel.socket,
+         FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
       //Adjust the size of the RX buffer
-      error = socketSetRxBufferSize(connection->dataSocket,
-         FTP_SERVER_DATA_SOCKET_BUFFER_SIZE);
+      error = socketSetRxBufferSize(connection->dataChannel.socket,
+         FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(connection->dataSocket, connection->interface);
+      error = socketBindToInterface(connection->dataChannel.socket,
+         connection->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
          break;
 
       //Bind the socket to the passive port number
-      error = socketBind(connection->dataSocket, &IP_ADDR_ANY, port);
+      error = socketBind(connection->dataChannel.socket, &IP_ADDR_ANY, port);
       //Failed to bind the socket to the desired port?
       if(error)
          break;
 
       //Place the data socket in the listening state
-      error = socketListen(connection->dataSocket, 1);
+      error = socketListen(connection->dataChannel.socket, 1);
       //Any error to report?
       if(error)
          break;
@@ -1173,7 +1419,7 @@ void ftpServerProcessEpsv(FtpServerContext *context,
       //Use passive data transfer
       connection->passiveMode = TRUE;
       //Update data connection state
-      connection->dataState = FTP_DATA_STATE_LISTEN;
+      connection->dataChannel.state = FTP_CHANNEL_STATE_LISTEN;
 
       //The response code for entering passive mode using an extended address
       //must be 229
@@ -1183,7 +1429,7 @@ void ftpServerProcessEpsv(FtpServerContext *context,
    else
    {
       //Clean up side effects
-      ftpServerCloseDataConnection(connection);
+      ftpServerCloseDataChannel(connection);
 
       //Format response message
       strcpy(connection->response, "425 Can't enter passive mode\r\n");
@@ -1197,20 +1443,18 @@ void ftpServerProcessEpsv(FtpServerContext *context,
  * The ABOR command tells the server to abort the previous FTP
  * service command and any associated transfer of data
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessAbor(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessAbor(FtpClientConnection *connection, char_t *param)
 {
    //There are two cases to consider upon receipt of this command
-   if(connection->dataState == FTP_DATA_STATE_CLOSED)
+   if(connection->dataChannel.state == FTP_CHANNEL_STATE_CLOSED)
    {
       //If the FTP service command was already completed, the server closes
       //the data connection (if it is open)...
-      ftpServerCloseDataConnection(connection);
+      ftpServerCloseDataChannel(connection);
 
       //...and responds with a 226 reply, indicating that the abort command
       //was successfully processed
@@ -1220,7 +1464,7 @@ void ftpServerProcessAbor(FtpServerContext *context,
    {
       //If the FTP service command is still in progress, the server aborts
       //the FTP service in progress and closes the data connection...
-      ftpServerCloseDataConnection(connection);
+      ftpServerCloseDataChannel(connection);
 
       //...returning a 426 reply to indicate that the service request
       //terminated abnormally
@@ -1252,13 +1496,11 @@ void ftpServerProcessAbor(FtpServerContext *context,
  * The PWD command causes the name of the current working
  * directory to be returned in the reply
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessPwd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessPwd(FtpClientConnection *connection, char_t *param)
 {
    //Ensure the user is logged in
    if(!connection->userLoggedIn)
@@ -1281,13 +1523,11 @@ void ftpServerProcessPwd(FtpServerContext *context,
  * The CWD command allows the user to work with a different
  * directory
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessCwd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -1304,7 +1544,7 @@ void ftpServerProcessCwd(FtpServerContext *context,
    //The argument specifies the pathname
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -1324,7 +1564,7 @@ void ftpServerProcessCwd(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_READ))
@@ -1358,13 +1598,11 @@ void ftpServerProcessCwd(FtpServerContext *context,
  *
  * The CDUP command allows the user to change to the parent directory
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessCdup(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessCdup(FtpClientConnection *connection, char_t *param)
 {
    uint_t perm;
 
@@ -1385,7 +1623,7 @@ void ftpServerProcessCdup(FtpServerContext *context,
    pathCanonicalize(connection->path);
 
    //Retrieve permissions for the directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Check access rights
    if(perm & FTP_FILE_PERM_READ)
@@ -1405,13 +1643,11 @@ void ftpServerProcessCdup(FtpServerContext *context,
  *
  * The LIST command is used to list the content of a directory
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessList(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -1459,7 +1695,7 @@ void ftpServerProcessList(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_READ))
@@ -1470,7 +1706,7 @@ void ftpServerProcessList(FtpServerContext *context,
       return;
    }
 
-   //Open specified directory for reading
+   //Open the specified directory for reading
    connection->dir = fsOpenDir(connection->path);
 
    //Failed to open the directory?
@@ -1486,13 +1722,13 @@ void ftpServerProcessList(FtpServerContext *context,
    if(connection->passiveMode)
    {
       //Check whether the data connection is already opened
-      if(connection->dataState == FTP_DATA_STATE_IDLE)
-         connection->dataState = FTP_DATA_STATE_SEND;
+      if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+         connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
    }
    else
    {
       //Open the data connection
-      error = ftpServerOpenDataConnection(context, connection);
+      error = ftpServerOpenDataChannel(connection);
 
       //Any error to report?
       if(error)
@@ -1506,7 +1742,7 @@ void ftpServerProcessList(FtpServerContext *context,
       }
 
       //The data connection is ready to send data
-      connection->dataState = FTP_DATA_STATE_SEND;
+      connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
    }
 
    //Flush transmission buffer
@@ -1514,7 +1750,7 @@ void ftpServerProcessList(FtpServerContext *context,
    connection->bufferPos = 0;
 
    //LIST command is being processed
-   connection->controlState = FTP_CONTROL_STATE_LIST;
+   connection->controlChannel.state = FTP_CHANNEL_STATE_LIST;
 
    //Format response message
    strcpy(connection->response, "150 Opening data connection\r\n");
@@ -1527,13 +1763,11 @@ void ftpServerProcessList(FtpServerContext *context,
  * The MKD command causes the directory specified in the pathname
  * to be created as a directory
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessMkd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -1550,7 +1784,7 @@ void ftpServerProcessMkd(FtpServerContext *context,
    //The argument specifies the pathname
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -1570,7 +1804,7 @@ void ftpServerProcessMkd(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_WRITE))
@@ -1605,13 +1839,11 @@ void ftpServerProcessMkd(FtpServerContext *context,
  * The RMD command causes the directory specified in the pathname
  * to be removed
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessRmd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -1628,7 +1860,7 @@ void ftpServerProcessRmd(FtpServerContext *context,
    //The argument specifies the directory to be removed
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -1648,7 +1880,7 @@ void ftpServerProcessRmd(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_WRITE))
@@ -1681,13 +1913,11 @@ void ftpServerProcessRmd(FtpServerContext *context,
  *
  * The SIZE command is used to obtain the transfer size of the specified file
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessSize(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessSize(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -1705,7 +1935,7 @@ void ftpServerProcessSize(FtpServerContext *context,
    //The argument specifies the pathname of the file
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -1725,7 +1955,7 @@ void ftpServerProcessSize(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_LIST) && !(perm & FTP_FILE_PERM_READ))
@@ -1758,13 +1988,11 @@ void ftpServerProcessSize(FtpServerContext *context,
  *
  * The RETR command is used to retrieve the content of the specified file
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessRetr(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -1781,7 +2009,7 @@ void ftpServerProcessRetr(FtpServerContext *context,
    //The argument specifies the pathname of the file to read
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -1801,7 +2029,7 @@ void ftpServerProcessRetr(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_READ))
@@ -1828,13 +2056,13 @@ void ftpServerProcessRetr(FtpServerContext *context,
    if(connection->passiveMode)
    {
       //Check whether the data connection is already opened
-      if(connection->dataState == FTP_DATA_STATE_IDLE)
-         connection->dataState = FTP_DATA_STATE_SEND;
+      if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+         connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
    }
    else
    {
       //Open the data connection
-      error = ftpServerOpenDataConnection(context, connection);
+      error = ftpServerOpenDataChannel(connection);
 
       //Any error to report?
       if(error)
@@ -1848,7 +2076,7 @@ void ftpServerProcessRetr(FtpServerContext *context,
       }
 
       //The data connection is ready to send data
-      connection->dataState = FTP_DATA_STATE_SEND;
+      connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
    }
 
    //Flush transmission buffer
@@ -1856,7 +2084,7 @@ void ftpServerProcessRetr(FtpServerContext *context,
    connection->bufferPos = 0;
 
    //RETR command is being processed
-   connection->controlState = FTP_CONTROL_STATE_RETR;
+   connection->controlChannel.state = FTP_CHANNEL_STATE_RETR;
 
    //Format response message
    strcpy(connection->response, "150 Opening data connection\r\n");
@@ -1868,13 +2096,11 @@ void ftpServerProcessRetr(FtpServerContext *context,
  *
  * The STOR command is used to store data to the specified file
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessStor(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -1891,7 +2117,7 @@ void ftpServerProcessStor(FtpServerContext *context,
    //The argument specifies the pathname of the file to written
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -1911,7 +2137,7 @@ void ftpServerProcessStor(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_WRITE))
@@ -1939,13 +2165,13 @@ void ftpServerProcessStor(FtpServerContext *context,
    if(connection->passiveMode)
    {
       //Check whether the data connection is already opened
-      if(connection->dataState == FTP_DATA_STATE_IDLE)
-         connection->dataState = FTP_DATA_STATE_RECEIVE;
+      if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+         connection->dataChannel.state = FTP_CHANNEL_STATE_RECEIVE;
    }
    else
    {
       //Open the data connection
-      error = ftpServerOpenDataConnection(context, connection);
+      error = ftpServerOpenDataChannel(connection);
 
       //Any error to report?
       if(error)
@@ -1959,7 +2185,7 @@ void ftpServerProcessStor(FtpServerContext *context,
       }
 
       //The data connection is ready to receive data
-      connection->dataState = FTP_DATA_STATE_RECEIVE;
+      connection->dataChannel.state = FTP_CHANNEL_STATE_RECEIVE;
    }
 
    //Flush reception buffer
@@ -1967,7 +2193,7 @@ void ftpServerProcessStor(FtpServerContext *context,
    connection->bufferPos = 0;
 
    //STOR command is being processed
-   connection->controlState = FTP_CONTROL_STATE_STOR;
+   connection->controlChannel.state = FTP_CHANNEL_STATE_STOR;
 
    //Format response message
    strcpy(connection->response, "150 Opening data connection\r\n");
@@ -1979,13 +2205,11 @@ void ftpServerProcessStor(FtpServerContext *context,
  *
  * The APPE command is used to append data to the specified file
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessAppe(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -2002,7 +2226,7 @@ void ftpServerProcessAppe(FtpServerContext *context,
    //The argument specifies the pathname of the file to written
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -2022,7 +2246,7 @@ void ftpServerProcessAppe(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_WRITE))
@@ -2062,13 +2286,13 @@ void ftpServerProcessAppe(FtpServerContext *context,
    if(connection->passiveMode)
    {
       //Check whether the data connection is already opened
-      if(connection->dataState == FTP_DATA_STATE_IDLE)
-         connection->dataState = FTP_DATA_STATE_RECEIVE;
+      if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+         connection->dataChannel.state = FTP_CHANNEL_STATE_RECEIVE;
    }
    else
    {
       //Open the data connection
-      error = ftpServerOpenDataConnection(context, connection);
+      error = ftpServerOpenDataChannel(connection);
 
       //Any error to report?
       if(error)
@@ -2082,7 +2306,7 @@ void ftpServerProcessAppe(FtpServerContext *context,
       }
 
       //The data connection is ready to receive data
-      connection->dataState = FTP_DATA_STATE_RECEIVE;
+      connection->dataChannel.state = FTP_CHANNEL_STATE_RECEIVE;
    }
 
    //Flush reception buffer
@@ -2090,7 +2314,7 @@ void ftpServerProcessAppe(FtpServerContext *context,
    connection->bufferPos = 0;
 
    //APPE command is being processed
-   connection->controlState = FTP_CONTROL_STATE_APPE;
+   connection->controlChannel.state = FTP_CHANNEL_STATE_APPE;
 
    //Format response message
    strcpy(connection->response, "150 Opening data connection\r\n");
@@ -2103,13 +2327,11 @@ void ftpServerProcessAppe(FtpServerContext *context,
  * The RNFR command specifies the old pathname of the file which is
  * to be renamed
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessRnfr(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -2126,7 +2348,7 @@ void ftpServerProcessRnfr(FtpServerContext *context,
    //The argument specifies the file to be renamed
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -2146,7 +2368,7 @@ void ftpServerProcessRnfr(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_WRITE))
@@ -2167,7 +2389,7 @@ void ftpServerProcessRnfr(FtpServerContext *context,
    }
 
    //This command must be immediately followed by a RNTO command
-   connection->controlState = FTP_CONTROL_STATE_RNFR;
+   connection->controlChannel.state = FTP_CHANNEL_STATE_RNFR;
    //Format the response message
    strcpy(connection->response, "350 File exists, ready for destination name\r\n");
 }
@@ -2179,13 +2401,11 @@ void ftpServerProcessRnfr(FtpServerContext *context,
  * The RNTO command specifies the new pathname of the file specified
  * in the immediately preceding RNFR command
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessRnto(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -2201,10 +2421,10 @@ void ftpServerProcessRnto(FtpServerContext *context,
    }
 
    //This command must immediately follow a RNFR command
-   if(connection->controlState != FTP_CONTROL_STATE_RNFR)
+   if(connection->controlChannel.state != FTP_CHANNEL_STATE_RNFR)
    {
       //Switch to idle state
-      connection->controlState = FTP_CONTROL_STATE_IDLE;
+      connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
       //Report an error
       strcpy(connection->response, "503 Bad sequence of commands\r\n");
       //Exit immediately
@@ -2212,12 +2432,12 @@ void ftpServerProcessRnto(FtpServerContext *context,
    }
 
    //Switch to idle state
-   connection->controlState = FTP_CONTROL_STATE_IDLE;
+   connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
 
    //The argument specifies the new pathname
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -2237,7 +2457,7 @@ void ftpServerProcessRnto(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, newPath);
+   perm = ftpServerGetFilePermissions(connection, newPath);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_WRITE))
@@ -2280,13 +2500,11 @@ void ftpServerProcessRnto(FtpServerContext *context,
  * The DELE command causes the file specified in the pathname to be
  * deleted at the server site
  *
- * @param[in] context Pointer to the FTP server context
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
  **/
 
-void ftpServerProcessDele(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param)
+void ftpServerProcessDele(FtpClientConnection *connection, char_t *param)
 {
    error_t error;
    uint_t perm;
@@ -2303,7 +2521,7 @@ void ftpServerProcessDele(FtpServerContext *context,
    //The argument specifies the file to be deleted
    if(*param == '\0')
    {
-      //The argument is missing...
+      //The argument is missing
       strcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
@@ -2323,7 +2541,7 @@ void ftpServerProcessDele(FtpServerContext *context,
    }
 
    //Retrieve permissions for the specified directory
-   perm = ftpServerGetFilePermissions(context, connection, connection->path);
+   perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
    if(!(perm & FTP_FILE_PERM_WRITE))
@@ -2348,6 +2566,42 @@ void ftpServerProcessDele(FtpServerContext *context,
 
    //The specified file was successfully deleted
    strcpy(connection->response, "250 File deleted\r\n");
+}
+
+
+/**
+ * @brief Unknown command processing
+ * @param[in] connection Pointer to the client connection
+ * @param[in] param Command line parameters
+ **/
+
+void ftpServerProcessUnknownCmd(FtpClientConnection *connection, char_t *param)
+{
+   error_t error;
+   FtpServerContext *context;
+
+   //Point to the FTP server context
+   context = connection->context;
+
+   //Invoke user-defined callback, if any
+   if(context->settings.unknownCommandCallback != NULL)
+   {
+      //Custom command processing
+      error = context->settings.unknownCommandCallback(connection,
+         connection->command, param);
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_COMMAND;
+   }
+
+   //Invalid command received?
+   if(error == ERROR_INVALID_COMMAND)
+   {
+      //Format response message
+      strcpy(connection->response, "500 Command unrecognized\r\n");
+   }
 }
 
 #endif

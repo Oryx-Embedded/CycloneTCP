@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _SOCKET_H
@@ -63,7 +63,7 @@ struct _Socket;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -221,6 +221,7 @@ struct _Socket
    uint16_t remotePort;
    systime_t timeout;
    uint8_t ttl;
+   uint8_t multicastTtl;
    int_t errnoCode;
    OsEvent event;
    uint_t eventMask;
@@ -323,7 +324,9 @@ error_t socketSetTimeout(Socket *socket, systime_t timeout);
 error_t socketSetTxBufferSize(Socket *socket, size_t size);
 error_t socketSetRxBufferSize(Socket *socket, size_t size);
 
-error_t socketBindToInterface(Socket *socket, NetInterface *interface);
+error_t socketSetInterface(Socket *socket, NetInterface *interface);
+NetInterface *socketGetInterface(Socket *socket);
+
 error_t socketBind(Socket *socket, const IpAddr *localIpAddr, uint16_t localPort);
 error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePort);
 error_t socketListen(Socket *socket, uint_t backlog);
@@ -362,7 +365,7 @@ error_t getHostByName(NetInterface *interface,
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

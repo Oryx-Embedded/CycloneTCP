@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _LLMNR_COMMON_H
@@ -52,7 +52,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -105,7 +105,7 @@ extern const Ipv6Addr LLMNR_IPV6_MULTICAST_ADDR;
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

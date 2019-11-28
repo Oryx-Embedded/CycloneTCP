@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _DHCP_CLIENT_H
@@ -60,7 +60,7 @@
 
 //Maximum length of host name
 #ifndef DHCP_CLIENT_MAX_HOSTNAME_LEN
-   #define DHCP_CLIENT_MAX_HOSTNAME_LEN 15
+   #define DHCP_CLIENT_MAX_HOSTNAME_LEN 24
 #elif (DHCP_CLIENT_MAX_HOSTNAME_LEN < 1)
    #error DHCP_CLIENT_MAX_HOSTNAME_LEN parameter is not valid
 #endif
@@ -155,7 +155,7 @@ struct _DhcpClientContext;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -301,7 +301,7 @@ void dhcpClientDumpConfig(DhcpClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

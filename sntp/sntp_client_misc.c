@@ -30,7 +30,7 @@
  * in the Internet. Refer to RFC 4330 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -80,7 +80,6 @@ error_t sntpClientOpenConnection(SntpClientContext *context)
 /**
  * @brief Close UDP connection
  * @param[in] context Pointer to the SNTP client context
- * @return Error code
  **/
 
 void sntpClientCloseConnection(SntpClientContext *context)

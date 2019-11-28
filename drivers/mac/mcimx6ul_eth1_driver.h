@@ -1,6 +1,6 @@
 /**
  * @file mcimx6ul_eth1_driver.h
- * @brief i.MX6UL Ethernet MAC controller (ENET1 instance)
+ * @brief NXP i.MX6UL Ethernet MAC controller (ENET1 instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MCIMX6UL_ETH1_DRIVER_H
@@ -124,7 +124,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //i.MX6UL Ethernet MAC driver
@@ -159,7 +159,7 @@ uint32_t mcimx6ulEth1CalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

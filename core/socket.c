@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -309,7 +309,7 @@ error_t socketSetRxBufferSize(Socket *socket, size_t size)
  * @return Error code
  **/
 
-error_t socketBindToInterface(Socket *socket, NetInterface *interface)
+error_t socketSetInterface(Socket *socket, NetInterface *interface)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
@@ -320,6 +320,27 @@ error_t socketBindToInterface(Socket *socket, NetInterface *interface)
 
    //No error to report
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Retrieve the underlying interface
+ * @param[in] socket Handle to a socket
+ * @return Pointer to the underlying network interface
+ **/
+
+NetInterface *socketGetInterface(Socket *socket)
+{
+   NetInterface *interface = NULL;
+
+   //Make sure the socket handle is valid
+   if(socket != NULL)
+   {
+      interface = socket->interface;
+   }
+
+   //Return a pointer to the underlying network interface
+   return interface;
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -71,8 +71,8 @@ error_t modbusServerParseCertificate(TlsContext *tlsContext,
    {
       //The X.509 v3 certificate format also allows communities to define
       //private extensions to carry information unique to those communities
-      data = certInfo->extensions.rawData;
-      length = certInfo->extensions.rawDataLen;
+      data = certInfo->tbsCert.extensions.rawData;
+      length = certInfo->tbsCert.extensions.rawDataLen;
 
       //Loop through the extensions
       while(length > 0)

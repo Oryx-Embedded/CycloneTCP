@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -541,6 +541,13 @@ error_t lm3sEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    bool_t acceptMulticast;
+
+   //Debug message
+   TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   MAC_IA0_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   MAC_IA1_R = interface->macAddr.w[2];
 
    //This flag will be set if multicast addresses should be accepted
    acceptMulticast = FALSE;

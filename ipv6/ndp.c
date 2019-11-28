@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -1375,10 +1375,10 @@ error_t ndpSendRouterSol(NetInterface *interface)
    //The destination address is typically the all-routers multicast address
    pseudoHeader.destAddr = IPV6_LINK_LOCAL_ALL_ROUTERS_ADDR;
 
-   //Select the most appropriate source address to be used when
-   //sending the Router Solicitation message
-   error = ipv6SelectSourceAddr(&interface,
-      &pseudoHeader.destAddr, &pseudoHeader.srcAddr);
+   //Select the most appropriate source address to be used when sending the
+   //Router Solicitation message
+   error = ipv6SelectSourceAddr(&interface, &pseudoHeader.destAddr,
+      &pseudoHeader.srcAddr);
 
    //No address assigned to the interface?
    if(error)
@@ -1501,10 +1501,10 @@ error_t ndpSendNeighborSol(NetInterface *interface,
    }
    else
    {
-      //Select the most appropriate source address to be used
-      //when sending the Neighbor Solicitation message
-      error = ipv6SelectSourceAddr(&interface,
-         targetIpAddr, &pseudoHeader.srcAddr);
+      //Select the most appropriate source address to be used when sending
+      //the Neighbor Solicitation message
+      error = ipv6SelectSourceAddr(&interface, targetIpAddr,
+         &pseudoHeader.srcAddr);
 
       //No address assigned to the interface?
       if(error)
@@ -1612,19 +1612,19 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    }
    else
    {
-      //Otherwise, the node must unicast the advertisement to
-      //the destination IP address
+      //Otherwise, the node must unicast the advertisement to the
+      //destination IP address
       pseudoHeader.destAddr = *destIpAddr;
    }
 
-   //Check whether the target address is a valid anycast address
-   //assigned to the interface
+   //Check whether the target address is a valid anycast address assigned
+   //to the interface
    if(ipv6IsAnycastAddr(interface, targetIpAddr))
    {
-      //Select the most appropriate source address to be used
-      //when sending the Neighbor Advertisement message
-      error = ipv6SelectSourceAddr(&interface,
-         targetIpAddr, &pseudoHeader.srcAddr);
+      //Select the most appropriate source address to be used when sending
+      //the Neighbor Advertisement message
+      error = ipv6SelectSourceAddr(&interface, targetIpAddr,
+         &pseudoHeader.srcAddr);
 
       //No address assigned to the interface?
       if(error)

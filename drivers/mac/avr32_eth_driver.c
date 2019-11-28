@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -603,6 +603,15 @@ error_t avr32EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   AVR32_MACB.sa1b = interface->macAddr.b[0] |
+      (interface->macAddr.b[1] << 8) |
+      (interface->macAddr.b[2] << 16) |
+      (interface->macAddr.b[3] << 24);
+
+   AVR32_MACB.sa1t = interface->macAddr.b[4] |
+      (interface->macAddr.b[5] << 8);
 
    //Clear hash table
    hashTable[0] = 0;

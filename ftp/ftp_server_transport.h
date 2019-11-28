@@ -1,6 +1,6 @@
 /**
- * @file ftp_server_events.h
- * @brief FTP server (event handlers)
+ * @file ftp_server_transport.h
+ * @brief Transport protocol abstraction layer
  *
  * @section License
  *
@@ -25,36 +25,36 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
-#ifndef _FTP_SERVER_EVENTS_H
-#define _FTP_SERVER_EVENTS_H
+#ifndef _FTP_SERVER_TRANSPORT_H
+#define _FTP_SERVER_TRANSPORT_H
 
 //Dependencies
+#include "core/net.h"
 #include "ftp/ftp_server.h"
-
-//Time constant
-#define FTP_SERVER_180_DAYS (180 * 86400)
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //FTP server related functions
-void ftpServerControlEventHandler(FtpServerContext *context,
-   FtpClientConnection *connection, uint_t eventFlags);
+error_t ftpServerOpenSecureChannel(FtpServerContext *context,
+   FtpServerChannel *channel, size_t txBufferSize, size_t rxBufferSize);
 
-void ftpServerDataEventHandler(FtpServerContext *context,
-   FtpClientConnection *connection, uint_t eventFlags);
+error_t ftpServerEstablishSecureChannel(FtpServerChannel *channel);
 
-void ftpServerSendData(FtpServerContext *context, FtpClientConnection *connection);
-void ftpServerReceiveData(FtpServerContext *context, FtpClientConnection *connection);
+error_t ftpServerWriteChannel(FtpServerChannel *channel, const void *data,
+   size_t length, size_t *written, uint_t flags);
+
+error_t ftpServerReadChannel(FtpServerChannel *channel, void *data,
+   size_t size, size_t *received, uint_t flags);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

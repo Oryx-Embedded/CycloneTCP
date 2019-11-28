@@ -1,6 +1,6 @@
 /**
  * @file fm4_eth_driver.h
- * @brief Spansion FM4 Ethernet MAC controller
+ * @brief Cypress FM4 Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _FM4_ETH_DRIVER_H
@@ -158,7 +158,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -228,7 +228,7 @@ uint32_t fm4EthCalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

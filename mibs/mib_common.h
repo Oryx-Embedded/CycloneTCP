@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MIB_COMMON_H
@@ -47,7 +47,7 @@ struct _MibObject;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -366,7 +366,7 @@ error_t mibTestAndIncSpinLock(int32_t *spinLock, int32_t value, bool_t commit);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

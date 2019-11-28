@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -468,8 +468,8 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
       {
          //Select the source IPv6 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv6SelectSourceAddr(&interface,
-            &destIpAddr->ipv6Addr, &pseudoHeader.ipv6Data.srcAddr);
+         error = ipv6SelectSourceAddr(&interface, &destIpAddr->ipv6Addr,
+            &pseudoHeader.ipv6Data.srcAddr);
          //Any error to report?
          if(error)
             break;
@@ -535,6 +535,9 @@ error_t rawSocketSendEthPacket(Socket *socket, const void *data,
       interface = netGetDefaultInterface();
    else
       interface = socket->interface;
+
+   //Forward the frame to the physical interface
+   interface = nicGetPhysicalInterface(interface);
 
    //Ethernet interface?
    if(interface->nicDriver != NULL &&

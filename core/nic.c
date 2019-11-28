@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -34,21 +34,9 @@
 //Dependencies
 #include "core/net.h"
 #include "core/nic.h"
-#include "core/socket.h"
-#include "core/raw_socket.h"
-#include "core/tcp_misc.h"
-#include "core/udp.h"
+#include "core/ethernet.h"
 #include "ipv4/ipv4.h"
-#include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
-#include "ipv6/ipv6_misc.h"
-#include "dns/dns_cache.h"
-#include "dns/dns_client.h"
-#include "mdns/mdns_client.h"
-#include "mdns/mdns_responder.h"
-#include "dns_sd/dns_sd.h"
-#include "mibs/mib2_module.h"
-#include "mibs/if_mib_module.h"
 #include "debug.h"
 
 //Tick counter to handle periodic operations
@@ -302,8 +290,8 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
    TRACE_DEBUG_NET_BUFFER("  ", buffer, offset, length);
 #endif
 
-   //Valid NIC driver?
-   if(interface->nicDriver != NULL)
+   //Check whether the interface is enabled for operation
+   if(interface->configured && interface->nicDriver != NULL)
    {
       //Loopback interface?
       if(interface->nicDriver->type == NIC_TYPE_LOOPBACK)
@@ -396,135 +384,136 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length)
 {
    NicType type;
 
-   //Re-enable interrupts if necessary
+   //Check whether the interface is enabled for operation
    if(interface->configured)
    {
+      //Re-enable interrupts
       interface->nicDriver->enableIrq(interface);
-   }
 
-   //Debug message
-   TRACE_DEBUG("Packet received (%" PRIuSIZE " bytes)...\r\n", length);
-   TRACE_DEBUG_ARRAY("  ", packet, length);
+      //Debug message
+      TRACE_DEBUG("Packet received (%" PRIuSIZE " bytes)...\r\n", length);
+      TRACE_DEBUG_ARRAY("  ", packet, length);
 
-   //Retrieve network interface type
-   type = interface->nicDriver->type;
+      //Retrieve network interface type
+      type = interface->nicDriver->type;
 
 #if (ETH_SUPPORT == ENABLED)
-   //Ethernet interface?
-   if(type == NIC_TYPE_ETHERNET)
-   {
-      //Process incoming Ethernet frame
-      ethProcessFrame(interface, packet, length);
-   }
-   else
+      //Ethernet interface?
+      if(type == NIC_TYPE_ETHERNET)
+      {
+         //Process incoming Ethernet frame
+         ethProcessFrame(interface, packet, length);
+      }
+      else
 #endif
 #if (PPP_SUPPORT == ENABLED)
-   //PPP interface?
-   if(type == NIC_TYPE_PPP)
-   {
-      //Process incoming PPP frame
-      pppProcessFrame(interface, packet, length);
-   }
-   else
+      //PPP interface?
+      if(type == NIC_TYPE_PPP)
+      {
+         //Process incoming PPP frame
+         pppProcessFrame(interface, packet, length);
+      }
+      else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-   //6LoWPAN interface?
-   if(type == NIC_TYPE_6LOWPAN)
-   {
-      NetBuffer1 buffer;
+      //6LoWPAN interface?
+      if(type == NIC_TYPE_6LOWPAN)
+      {
+         NetBuffer1 buffer;
 
-      //The incoming packet fits in a single chunk
-      buffer.chunkCount = 1;
-      buffer.maxChunkCount = 1;
-      buffer.chunk[0].address = packet;
-      buffer.chunk[0].length = (uint16_t) length;
-      buffer.chunk[0].size = 0;
+         //The incoming packet fits in a single chunk
+         buffer.chunkCount = 1;
+         buffer.maxChunkCount = 1;
+         buffer.chunk[0].address = packet;
+         buffer.chunk[0].length = (uint16_t) length;
+         buffer.chunk[0].size = 0;
 
-      //Process incoming IPv6 packet
-      ipv6ProcessPacket(interface, (NetBuffer *) &buffer, 0);
-   }
-   else
+         //Process incoming IPv6 packet
+         ipv6ProcessPacket(interface, (NetBuffer *) &buffer, 0);
+      }
+      else
 #endif
 #if (NET_LOOPBACK_IF_SUPPORT == ENABLED)
-   //Loopback interface?
-   if(type == NIC_TYPE_LOOPBACK)
-   {
-#if (IPV4_SUPPORT == ENABLED)
-      //IPv4 packet received?
-      if(length >= sizeof(Ipv4Header) && (packet[0] >> 4) == 4)
+      //Loopback interface?
+      if(type == NIC_TYPE_LOOPBACK)
       {
-         error_t error;
-         uint_t i;
-         Ipv4Header *header;
-
-         //Point to the IPv4 header
-         header = (Ipv4Header *) packet;
-
-         //Loop through network interfaces
-         for(i = 0; i < NET_INTERFACE_COUNT; i++)
+#if (IPV4_SUPPORT == ENABLED)
+         //IPv4 packet received?
+         if(length >= sizeof(Ipv4Header) && (packet[0] >> 4) == 4)
          {
-            //Check destination address
-            error = ipv4CheckDestAddr(&netInterface[i], header->destAddr);
+            error_t error;
+            uint_t i;
+            Ipv4Header *header;
 
-            //Valid destination address?
-            if(!error)
+            //Point to the IPv4 header
+            header = (Ipv4Header *) packet;
+
+            //Loop through network interfaces
+            for(i = 0; i < NET_INTERFACE_COUNT; i++)
             {
-               //Process incoming IPv4 packet
-               ipv4ProcessPacket(&netInterface[i], (Ipv4Header *) packet,
-                  length);
+               //Check destination address
+               error = ipv4CheckDestAddr(&netInterface[i], header->destAddr);
+
+               //Valid destination address?
+               if(!error)
+               {
+                  //Process incoming IPv4 packet
+                  ipv4ProcessPacket(&netInterface[i], (Ipv4Header *) packet,
+                     length);
+               }
             }
          }
-      }
-      else
+         else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-      //IPv6 packet received?
-      if(length >= sizeof(Ipv6Header) && (packet[0] >> 4) == 6)
-      {
-         error_t error;
-         uint_t i;
-         NetBuffer1 buffer;
-         Ipv6Header *header;
-
-         //Point to the IPv6 header
-         header = (Ipv6Header *) packet;
-
-         //Loop through network interfaces
-         for(i = 0; i < NET_INTERFACE_COUNT; i++)
+         //IPv6 packet received?
+         if(length >= sizeof(Ipv6Header) && (packet[0] >> 4) == 6)
          {
-            //Check destination address
-            error = ipv6CheckDestAddr(&netInterface[i], &header->destAddr);
+            error_t error;
+            uint_t i;
+            NetBuffer1 buffer;
+            Ipv6Header *header;
 
-            //Valid destination address?
-            if(!error)
+            //Point to the IPv6 header
+            header = (Ipv6Header *) packet;
+
+            //Loop through network interfaces
+            for(i = 0; i < NET_INTERFACE_COUNT; i++)
             {
-               //The incoming packet fits in a single chunk
-               buffer.chunkCount = 1;
-               buffer.maxChunkCount = 1;
-               buffer.chunk[0].address = packet;
-               buffer.chunk[0].length = (uint16_t) length;
-               buffer.chunk[0].size = 0;
+               //Check destination address
+               error = ipv6CheckDestAddr(&netInterface[i], &header->destAddr);
 
-               //Process incoming IPv6 packet
-               ipv6ProcessPacket(&netInterface[i], (NetBuffer *) &buffer, 0);
+               //Valid destination address?
+               if(!error)
+               {
+                  //The incoming packet fits in a single chunk
+                  buffer.chunkCount = 1;
+                  buffer.maxChunkCount = 1;
+                  buffer.chunk[0].address = packet;
+                  buffer.chunk[0].length = (uint16_t) length;
+                  buffer.chunk[0].size = 0;
+
+                  //Process incoming IPv6 packet
+                  ipv6ProcessPacket(&netInterface[i], (NetBuffer *) &buffer, 0);
+               }
             }
+         }
+         else
+#endif
+         {
+            //Invalid version number
          }
       }
       else
 #endif
+      //Unknown interface type?
       {
-         //Invalid version number
+         //Silently discard the received packet
       }
-   }
-   else
-#endif
-   //Unknown interface type?
-   {
-      //Silently discard the received packet
-   }
 
-   //Disable interrupts
-   interface->nicDriver->disableIrq(interface);
+      //Disable interrupts
+      interface->nicDriver->disableIrq(interface);
+   }
 }
 
 
@@ -536,9 +525,8 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length)
 void nicNotifyLinkChange(NetInterface *interface)
 {
    uint_t i;
-   Socket *socket;
-   NetInterface *virtualInterface;
    NetInterface *physicalInterface;
+   NetInterface *virtualInterface;
 
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
@@ -567,120 +555,9 @@ void nicNotifyLinkChange(NetInterface *interface)
          //Update link state
          virtualInterface->linkState = interface->linkState;
 
-         //Check link state
-         if(virtualInterface->linkState)
-         {
-            //Display link state
-            TRACE_INFO("Link is up (%s)...\r\n", virtualInterface->name);
-
-            //Display link speed
-            if(virtualInterface->linkSpeed == NIC_LINK_SPEED_1GBPS)
-            {
-               //1000BASE-T
-               TRACE_INFO("  Link speed = 1000 Mbps\r\n");
-            }
-            else if(virtualInterface->linkSpeed == NIC_LINK_SPEED_100MBPS)
-            {
-               //100BASE-TX
-               TRACE_INFO("  Link speed = 100 Mbps\r\n");
-            }
-            else if(virtualInterface->linkSpeed == NIC_LINK_SPEED_10MBPS)
-            {
-               //10BASE-T
-               TRACE_INFO("  Link speed = 10 Mbps\r\n");
-            }
-            else if(virtualInterface->linkSpeed != NIC_LINK_SPEED_UNKNOWN)
-            {
-               //10BASE-T
-               TRACE_INFO("  Link speed = %" PRIu32 " bps\r\n",
-                  virtualInterface->linkSpeed);
-            }
-
-            //Display duplex mode
-            if(virtualInterface->duplexMode == NIC_FULL_DUPLEX_MODE)
-            {
-               //1000BASE-T
-               TRACE_INFO("  Duplex mode = Full-Duplex\r\n");
-            }
-            else if(virtualInterface->duplexMode == NIC_HALF_DUPLEX_MODE)
-            {
-               //100BASE-TX
-               TRACE_INFO("  Duplex mode = Half-Duplex\r\n");
-            }
-         }
-         else
-         {
-            //Display link state
-            TRACE_INFO("Link is down (%s)...\r\n", virtualInterface->name);
-         }
-
-         //The time at which the interface entered its current operational state
-         MIB2_SET_TIME_TICKS(ifGroup.ifTable[virtualInterface->index].ifLastChange,
-            osGetSystemTime() / 10);
-         IF_MIB_SET_TIME_TICKS(ifTable[virtualInterface->index].ifLastChange,
-            osGetSystemTime() / 10);
-
-#if (IPV4_SUPPORT == ENABLED)
-         //Notify IPv4 of link state changes
-         ipv4LinkChangeEvent(virtualInterface);
-#endif
-
-#if (IPV6_SUPPORT == ENABLED)
-         //Notify IPv6 of link state changes
-         ipv6LinkChangeEvent(virtualInterface);
-#endif
-
-#if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
-         NBNS_CLIENT_SUPPORT == ENABLED)
-         //Flush DNS cache
-         dnsFlushCache(virtualInterface);
-#endif
-
-#if (MDNS_RESPONDER_SUPPORT == ENABLED)
-         //Perform probing and announcing
-         mdnsResponderLinkChangeEvent(virtualInterface->mdnsResponderContext);
-#endif
-
-#if (DNS_SD_SUPPORT == ENABLED)
-         //Perform probing and announcing
-         dnsSdLinkChangeEvent(virtualInterface->dnsSdContext);
-#endif
-         //Notify registered users of link state changes
-         netInvokeLinkChangeCallback(virtualInterface,
-            virtualInterface->linkState);
+         //Process link state change event
+         netProcessLinkChange(virtualInterface);
       }
-   }
-
-   //Loop through opened sockets
-   for(i = 0; i < SOCKET_MAX_COUNT; i++)
-   {
-      //Point to the current socket
-      socket = socketTable + i;
-
-#if (TCP_SUPPORT == ENABLED)
-      //Connection-oriented socket?
-      if(socket->type == SOCKET_TYPE_STREAM)
-      {
-         tcpUpdateEvents(socket);
-      }
-#endif
-
-#if (UDP_SUPPORT == ENABLED)
-      //Connectionless socket?
-      if(socket->type == SOCKET_TYPE_DGRAM)
-      {
-         udpUpdateEvents(socket);
-      }
-#endif
-
-#if (RAW_SOCKET_SUPPORT == ENABLED)
-      //Raw socket?
-      if(socket->type == SOCKET_TYPE_RAW_IP ||
-         socket->type == SOCKET_TYPE_RAW_ETH)
-      {
-         rawSocketUpdateEvents(socket);
-      }
-#endif
    }
 
    //Disable interrupts

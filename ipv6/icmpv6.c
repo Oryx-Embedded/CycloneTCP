@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -578,8 +578,8 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type, uint8_t co
       pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
       //Select the relevant source address
-      error = ipv6SelectSourceAddr(&interface,
-         &pseudoHeader.destAddr, &pseudoHeader.srcAddr);
+      error = ipv6SelectSourceAddr(&interface, &pseudoHeader.destAddr,
+         &pseudoHeader.srcAddr);
 
       //Check status code
       if(!error)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _WINC1500_DRIVER_H
@@ -50,7 +50,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //WINC1500 driver
@@ -76,7 +76,7 @@ void winc1500AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

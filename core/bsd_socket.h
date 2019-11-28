@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -73,6 +73,7 @@
 #define SOCK_RAW         3
 
 //IP protocol identifiers
+#define IPPROTO_IP       0
 #define IPPROTO_ICMP     1
 #define IPPROTO_IGMP     2
 #define IPPROTO_TCP      6
@@ -119,6 +120,10 @@
 #define SO_MAX_MSG_SIZE  0x2003
 #define SO_BINDTODEVICE  0x3000
 
+//IP level options
+#define IP_TTL           2
+#define IP_MULTICAST_TTL 33
+
 //TCP level options
 #define TCP_NODELAY      0x0001
 
@@ -161,7 +166,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -324,7 +329,7 @@ const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

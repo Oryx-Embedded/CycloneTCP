@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _SNMP_AGENT_OBJECT_H
@@ -37,7 +37,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //SNMP agent related functions
@@ -55,7 +55,7 @@ error_t snmpFindMibObject(SnmpAgentContext *context,
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _DHCPV6_COMMON_H
@@ -54,7 +54,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -444,7 +444,7 @@ int32_t dhcpv6RandRange(int32_t min, int32_t max);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

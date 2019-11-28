@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -196,8 +196,8 @@ error_t same54EthInit(NetInterface *interface)
 }
 
 
-//SAME54-Xplained-Pro evaluation board?
-#if defined(USE_SAME54_XPLAINED_PRO)
+//SAME54-Xplained-Pro or SAME54-Curiosity-Ultra evaluation board?
+#if defined(USE_SAME54_XPLAINED_PRO) || defined(USE_SAME54_CURIOSITY_ULTRA)
 
 /**
  * @brief GPIO configuration
@@ -206,6 +206,8 @@ error_t same54EthInit(NetInterface *interface)
 
 void same54EthInitGpio(NetInterface *interface)
 {
+//SAME54-Xplained-Pro evaluation board?
+#if defined(USE_SAME54_XPLAINED_PRO)
    //Enable PORT bus clock (CLK_PORT_APB)
    MCLK->APBBMASK.bit.PORT_ = 1;
 
@@ -263,6 +265,67 @@ void same54EthInitGpio(NetInterface *interface)
    sleep(10);
    PORT->Group[2].OUTSET.reg = PORT_PC21;
    sleep(10);
+
+//SAME54-Curiosity-Ultra evaluation board?
+#elif defined(USE_SAME54_CURIOSITY_ULTRA)
+   //Enable PORT bus clock (CLK_PORT_APB)
+   MCLK->APBBMASK.bit.PORT_ = 1;
+
+   //Configure GRX1 (PA12)
+   PORT->Group[0].PINCFG[12].bit.PMUXEN = 1;
+   PORT->Group[0].PMUX[6].bit.PMUXE = MUX_PA12L_GMAC_GRX1;
+
+   //Configure GRX0 (PA13)
+   PORT->Group[0].PINCFG[13].bit.PMUXEN = 1;
+   PORT->Group[0].PMUX[6].bit.PMUXO = MUX_PA13L_GMAC_GRX0;
+
+   //Configure GTXCK (PA14)
+   PORT->Group[0].PINCFG[14].bit.PMUXEN = 1;
+   PORT->Group[0].PMUX[7].bit.PMUXE = MUX_PA14L_GMAC_GTXCK;
+
+   //Configure GRXER (PA15)
+   PORT->Group[0].PINCFG[15].bit.PMUXEN = 1;
+   PORT->Group[0].PMUX[7].bit.PMUXO = MUX_PA15L_GMAC_GRXER;
+
+   //Configure GTXEN (PA17)
+   PORT->Group[0].PINCFG[17].bit.DRVSTR = 1;
+   PORT->Group[0].PINCFG[17].bit.PMUXEN = 1;
+   PORT->Group[0].PMUX[8].bit.PMUXO = MUX_PA17L_GMAC_GTXEN;
+
+   //Configure GTX0 (PA18)
+   PORT->Group[0].PINCFG[18].bit.DRVSTR = 1;
+   PORT->Group[0].PINCFG[18].bit.PMUXEN = 1;
+   PORT->Group[0].PMUX[9].bit.PMUXE = MUX_PA18L_GMAC_GTX0;
+
+   //Configure GTX1 (PA19)
+   PORT->Group[0].PINCFG[19].bit.DRVSTR = 1;
+   PORT->Group[0].PINCFG[19].bit.PMUXEN = 1;
+   PORT->Group[0].PMUX[9].bit.PMUXO = MUX_PA19L_GMAC_GTX1;
+
+   //Configure GRXDV (PC20)
+   PORT->Group[2].PINCFG[20].bit.PMUXEN = 1;
+   PORT->Group[2].PMUX[10].bit.PMUXE = MUX_PC20L_GMAC_GRXDV;
+
+   //Configure GMDC (PC22)
+   PORT->Group[2].PINCFG[22].bit.PMUXEN = 1;
+   PORT->Group[2].PMUX[11].bit.PMUXE = MUX_PC22L_GMAC_GMDC;
+
+   //Configure GMDIO (PC23)
+   PORT->Group[2].PINCFG[23].bit.PMUXEN = 1;
+   PORT->Group[2].PMUX[11].bit.PMUXO = MUX_PC23L_GMAC_GMDIO;
+
+   //Select RMII operation mode
+   GMAC->UR.bit.MII = 0;
+
+   //Configure PHY_RESET (PC18) as an output
+   PORT->Group[2].DIRSET.reg = PORT_PC18;
+
+   //Reset PHY transceiver
+   PORT->Group[2].OUTCLR.reg = PORT_PC18;
+   sleep(10);
+   PORT->Group[2].OUTSET.reg = PORT_PC18;
+   sleep(10);
+#endif
 }
 
 #endif
@@ -646,6 +709,10 @@ error_t same54EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   GMAC->Sa[0].SAB.reg = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   GMAC->Sa[0].SAT.reg = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;

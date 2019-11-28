@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -44,43 +44,43 @@
 /**
  * @brief Open network connection
  * @param[in] context Pointer to the FTP client context
- * @param[in] connection Control or data connection
+ * @param[in] channel Control or data channel
  * @param[in] txBufferSize TX buffer size
  * @param[in] rxBufferSize RX buffer size
  * @return Error code
  **/
 
-error_t ftpClientOpenConnection(FtpClientContext *context,
-   FtpClientSocket *connection, size_t txBufferSize, size_t rxBufferSize)
+error_t ftpClientOpenChannel(FtpClientContext *context,
+   FtpClientChannel *channel, size_t txBufferSize, size_t rxBufferSize)
 {
    error_t error;
 
    //Open a TCP socket
-   connection->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+   channel->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
-   if(connection->socket == NULL)
+   if(channel->socket == NULL)
       return ERROR_OPEN_FAILED;
 
    //Associate the socket with the relevant interface
-   error = socketBindToInterface(connection->socket, context->interface);
+   error = socketBindToInterface(channel->socket, context->interface);
    //Any error to report?
    if(error)
       return error;
 
    //Set timeout
-   error = socketSetTimeout(connection->socket, context->timeout);
+   error = socketSetTimeout(channel->socket, context->timeout);
    //Any error to report?
    if(error)
       return error;
 
    //Specify the size of the send buffer
-   error = socketSetTxBufferSize(connection->socket, txBufferSize);
+   error = socketSetTxBufferSize(channel->socket, txBufferSize);
    //Any error to report?
    if(error)
       return error;
 
    //Specify the size of the receive buffer
-   error = socketSetRxBufferSize(connection->socket, rxBufferSize);
+   error = socketSetRxBufferSize(channel->socket, rxBufferSize);
    //Any error to report?
    if(error)
       return error;
@@ -93,48 +93,47 @@ error_t ftpClientOpenConnection(FtpClientContext *context,
 /**
  * @brief Open secure connection
  * @param[in] context Pointer to the FTP client context
- * @param[in] connection Control or data connection
+ * @param[in] channel Control or data channel
  * @param[in] txBufferSize TX buffer size
  * @param[in] rxBufferSize RX buffer size
  * @return Error code
  **/
 
-error_t ftpClientOpenSecureConnection(FtpClientContext *context,
-   FtpClientSocket *connection, size_t txBufferSize, size_t rxBufferSize)
+error_t ftpClientOpenSecureChannel(FtpClientContext *context,
+   FtpClientChannel *channel, size_t txBufferSize, size_t rxBufferSize)
 {
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    error_t error;
 
    //Allocate TLS context
-   connection->tlsContext = tlsInit();
+   channel->tlsContext = tlsInit();
    //Failed to allocate TLS context?
-   if(connection->tlsContext == NULL)
+   if(channel->tlsContext == NULL)
       return ERROR_OPEN_FAILED;
 
    //Select client operation mode
-   error = tlsSetConnectionEnd(connection->tlsContext,
-      TLS_CONNECTION_END_CLIENT);
+   error = tlsSetConnectionEnd(channel->tlsContext, TLS_CONNECTION_END_CLIENT);
    //Any error to report?
    if(error)
       return error;
 
    //Bind TLS to the relevant socket
-   error = tlsSetSocket(connection->tlsContext, connection->socket);
+   error = tlsSetSocket(channel->tlsContext, channel->socket);
    //Any error to report?
    if(error)
       return error;
 
    //Set TX and RX buffer size
-   error = tlsSetBufferSize(connection->tlsContext, txBufferSize, rxBufferSize);
+   error = tlsSetBufferSize(channel->tlsContext, txBufferSize, rxBufferSize);
    //Any error to report?
    if(error)
       return error;
 
-   //Data connection?
-   if(connection == &context->dataConnection)
+   //Data channel?
+   if(channel == &context->dataChannel)
    {
       //Save TLS session from control connection
-      error = tlsSaveSessionState(context->controlConnection.tlsContext,
+      error = tlsSaveSessionState(context->controlChannel.tlsContext,
          &context->tlsSession);
       //Any error to report?
       if(error)
@@ -142,8 +141,7 @@ error_t ftpClientOpenSecureConnection(FtpClientContext *context,
    }
 
    //Restore TLS session
-   error = tlsRestoreSessionState(connection->tlsContext,
-      &context->tlsSession);
+   error = tlsRestoreSessionState(channel->tlsContext, &context->tlsSession);
    //Any error to report?
    if(error)
       return error;
@@ -152,7 +150,7 @@ error_t ftpClientOpenSecureConnection(FtpClientContext *context,
    if(context->tlsInitCallback != NULL)
    {
       //Perform TLS related initialization
-      error = context->tlsInitCallback(context, connection->tlsContext);
+      error = context->tlsInitCallback(context, channel->tlsContext);
       //Any error to report?
       if(error)
          return error;
@@ -169,15 +167,15 @@ error_t ftpClientOpenSecureConnection(FtpClientContext *context,
 
 /**
  * @brief Establish secure connection
- * @param[in] connection Control or data connection
+ * @param[in] channel Control or data channel
  * @return Error code
  **/
 
-error_t ftpClientEstablishSecureConnection(FtpClientSocket *connection)
+error_t ftpClientEstablishSecureChannel(FtpClientChannel *channel)
 {
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Establish TLS connection
-   return tlsConnect(connection->tlsContext);
+   return tlsConnect(channel->tlsContext);
 #else
    //Not implemented
    return ERROR_NOT_IMPLEMENTED;
@@ -187,11 +185,11 @@ error_t ftpClientEstablishSecureConnection(FtpClientSocket *connection)
 
 /**
  * @brief Shutdown network connection
- * @param[in] connection Control or data connection
+ * @param[in] channel Control or data channel
  * @return Error code
  **/
 
-error_t ftpClientShutdownConnection(FtpClientSocket *connection)
+error_t ftpClientShutdownChannel(FtpClientChannel *channel)
 {
    error_t error;
 
@@ -200,10 +198,10 @@ error_t ftpClientShutdownConnection(FtpClientSocket *connection)
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Valid TLS context?
-   if(connection->tlsContext != NULL)
+   if(channel->tlsContext != NULL)
    {
       //Shutdown TLS session
-      error = tlsShutdown(connection->tlsContext);
+      error = tlsShutdown(channel->tlsContext);
    }
 #endif
 
@@ -211,10 +209,10 @@ error_t ftpClientShutdownConnection(FtpClientSocket *connection)
    if(!error)
    {
       //Valid TCP socket?
-      if(connection->socket != NULL)
+      if(channel->socket != NULL)
       {
          //Shutdown TCP connection
-         error = socketShutdown(connection->socket, SOCKET_SD_BOTH);
+         error = socketShutdown(channel->socket, SOCKET_SD_BOTH);
       }
    }
 
@@ -225,32 +223,32 @@ error_t ftpClientShutdownConnection(FtpClientSocket *connection)
 
 /**
  * @brief Close network connection
- * @param[in] connection Control or data connection
+ * @param[in] channel Control or data channel
  **/
 
-void ftpClientCloseConnection(FtpClientSocket *connection)
+void ftpClientCloseChannel(FtpClientChannel *channel)
 {
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Release TLS context
-   if(connection->tlsContext != NULL)
+   if(channel->tlsContext != NULL)
    {
-      tlsFree(connection->tlsContext);
-      connection->tlsContext = NULL;
+      tlsFree(channel->tlsContext);
+      channel->tlsContext = NULL;
    }
 #endif
 
    //Close TCP connection
-   if(connection->socket != NULL)
+   if(channel->socket != NULL)
    {
-      socketClose(connection->socket);
-      connection->socket = NULL;
+      socketClose(channel->socket);
+      channel->socket = NULL;
    }
 }
 
 
 /**
  * @brief Send data using the relevant transport protocol
- * @param[in] connection Control or data connection
+ * @param[in] channel Control or data channel
  * @param[in] data Pointer to a buffer containing the data to be transmitted
  * @param[in] length Number of bytes to be transmitted
  * @param[out] written Actual number of bytes written (optional parameter)
@@ -258,23 +256,23 @@ void ftpClientCloseConnection(FtpClientSocket *connection)
  * @return Error code
  **/
 
-error_t ftpClientSendData(FtpClientSocket *connection, const void *data,
+error_t ftpClientWriteChannel(FtpClientChannel *channel, const void *data,
    size_t length, size_t *written, uint_t flags)
 {
    error_t error;
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    //TLS-secured connection?
-   if(connection->tlsContext != NULL)
+   if(channel->tlsContext != NULL)
    {
       //Send TLS-encrypted data
-      error = tlsWrite(connection->tlsContext, data, length, written, flags);
+      error = tlsWrite(channel->tlsContext, data, length, written, flags);
    }
    else
 #endif
    {
       //Transmit data
-      error = socketSend(connection->socket, data, length, written, flags);
+      error = socketSend(channel->socket, data, length, written, flags);
    }
 
    //Return status code
@@ -284,7 +282,7 @@ error_t ftpClientSendData(FtpClientSocket *connection, const void *data,
 
 /**
  * @brief Receive data using the relevant transport protocol
- * @param[in] connection Control or data connection
+ * @param[in] channel Control or data channel
  * @param[out] data Buffer into which received data will be placed
  * @param[in] size Maximum number of bytes that can be received
  * @param[out] received Number of bytes that have been received
@@ -292,23 +290,23 @@ error_t ftpClientSendData(FtpClientSocket *connection, const void *data,
  * @return Error code
  **/
 
-error_t ftpClientReceiveData(FtpClientSocket *connection, void *data,
+error_t ftpClientReadChannel(FtpClientChannel *channel, void *data,
    size_t size, size_t *received, uint_t flags)
 {
    error_t error;
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    //TLS-secured connection?
-   if(connection->tlsContext != NULL)
+   if(channel->tlsContext != NULL)
    {
       //Receive TLS-encrypted data
-      error = tlsRead(connection->tlsContext, data, size, received, flags);
+      error = tlsRead(channel->tlsContext, data, size, received, flags);
    }
    else
 #endif
    {
       //Receive data
-      error = socketReceive(connection->socket, data, size, received, flags);
+      error = socketReceive(channel->socket, data, size, received, flags);
    }
 
    //Return status code

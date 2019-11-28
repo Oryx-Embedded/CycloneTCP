@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _STM32MP1XX_ETH_DRIVER_H
@@ -83,30 +83,24 @@
    #error STM32MP1XX_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
-//MACRC0R register
-#define ETH_MACRC0R_RXQ1EN_1    0x00000004
-#define ETH_MACRC0R_RXQ0EN_1    0x00000001
+//MMCTXIMR register
+#ifndef ETH_MMC_INTERRUPT_MASK_TXLPITRCIM_Msk
+   #define ETH_MMC_INTERRUPT_MASK_TXLPITRCIM_Msk ETH_MMCTXIMR_TXLPITRCIM_Msk
+#endif
 
-//MMCRIMR register
-#define ETH_MMCRIMR_RXLPITRCIM  0x08000000
-#define ETH_MMCRIMR_RXLPIUSCIM  0x04000000
-#define ETH_MMCRIMR_RXUCGPIM    0x00020000
-#define ETH_MMCRIMR_RXALGNERPIM 0x00000040
-#define ETH_MMCRIMR_RXCRCERPIM  0x00000020
-
-//MMCTIMR register
-#define ETH_MMCTIMR_TXLPITRCIM  0x08000000
-#define ETH_MMCTIMR_TXLPIUSCIM  0x04000000
-#define ETH_MMCTIMR_TXGPKTIM    0x00200000
-#define ETH_MMCTIMR_TXMCOLGPIM  0x00008000
-#define ETH_MMCTIMR_TXSCOLGPIM  0x00004000
-
-//MTLTQOMR register
-#define ETH_MTLTQOMR_TQS_7      0x00070000
-#define ETH_MTLTQOMR_TXQEN_2    0x00000008
-
-//MTLRQOMR register
-#define ETH_MTLRQOMR_RQS_7      0x00700000
+//Register access macros
+#define ETH_MACRXQC0R_RXQ0EN_Val(n) (((n) << ETH_MACRXQC0R_RXQ0EN_Pos) & ETH_MACRXQC0R_RXQ0EN_Msk)
+#define ETH_MACMDIOAR_CR_Val(n)     (((n) << ETH_MACMDIOAR_CR_Pos) & ETH_MACMDIOAR_CR_Msk)
+#define ETH_MACMDIOAR_GOC_Val(n)    (((n) << ETH_MACMDIOAR_GOC_Pos) & ETH_MACMDIOAR_GOC_Msk)
+#define ETH_MTLTXQ0OMR_TQS_Val(n)   (((n) << ETH_MTLTXQ0OMR_TQS_Pos) & ETH_MTLTXQ0OMR_TQS_Msk)
+#define ETH_MTLTXQ0OMR_TXQEN_Val(n) (((n) << ETH_MTLTXQ0OMR_TXQEN_Pos) & ETH_MTLTXQ0OMR_TXQEN_Msk)
+#define ETH_MTLRXQ0OMR_RQS_Val(n)   (((n) << ETH_MTLRXQ0OMR_RQS_Pos) & ETH_MTLRXQ0OMR_RQS_Msk)
+#define ETH_DMAMR_INTM_Val(n)       (((n) << ETH_DMAMR_INTM_Pos) & ETH_DMAMR_INTM_Msk)
+#define ETH_DMAMR_PR_Val(n)         (((n) << ETH_DMAMR_PR_Pos) & ETH_DMAMR_PR_Msk)
+#define ETH_DMAC0CR_DSL_Val(n)      (((n) << ETH_DMAC0CR_DSL_Pos) & ETH_DMAC0CR_DSL_Msk)
+#define ETH_DMAC0TXCR_TXPBL_Val(n)  (((n) << ETH_DMAC0TXCR_TXPBL_Pos) & ETH_DMAC0TXCR_TXPBL_Msk)
+#define ETH_DMAC0RXCR_RXPBL_Val(n)  (((n) << ETH_DMAC0RXCR_RXPBL_Pos) & ETH_DMAC0RXCR_RXPBL_Msk)
+#define ETH_DMAC0RXCR_RBSZ_Val(n)   (((n) << ETH_DMAC0RXCR_RBSZ_Pos) & ETH_DMAC0RXCR_RBSZ_Msk)
 
 //Transmit normal descriptor (read format)
 #define ETH_TDES0_BUF1AP        0xFFFFFFFF
@@ -220,7 +214,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -282,7 +276,7 @@ uint32_t stm32mp1xxEthCalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

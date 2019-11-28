@@ -1,6 +1,6 @@
 /**
  * @file mpc57xx_eth_driver.h
- * @brief Freescale MPC57xx Ethernet MAC controller
+ * @brief NXP MPC57xx Ethernet MAC controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MPC57XX_ETH_DRIVER_H
@@ -124,7 +124,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //MPC57xx Ethernet MAC driver
@@ -159,7 +159,7 @@ uint32_t mpc57xxEthCalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MODBUS_SERVER_MISC_H
@@ -37,7 +37,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //Modbus/TCP server related functions
@@ -62,10 +62,16 @@ void modbusServerUnlock(ModbusClientConnection *connection);
 error_t modbusServerReadCoil(ModbusClientConnection *connection,
    uint16_t address, bool_t *state);
 
+error_t modbusServerReadDiscreteInput(ModbusClientConnection *connection,
+   uint16_t address, bool_t *state);
+
 error_t modbusServerWriteCoil(ModbusClientConnection *connection,
    uint16_t address, bool_t state, bool_t commit);
 
-error_t modbusServerReadReg(ModbusClientConnection *connection,
+error_t modbusServerReadHoldingReg(ModbusClientConnection *connection,
+   uint16_t address, uint16_t *value);
+
+error_t modbusServerReadInputReg(ModbusClientConnection *connection,
    uint16_t address, uint16_t *value);
 
 error_t modbusServerWriteReg(ModbusClientConnection *connection,
@@ -75,7 +81,7 @@ ModbusExceptionCode modbusServerTranslateExceptionCode(error_t status);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

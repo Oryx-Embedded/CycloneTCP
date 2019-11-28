@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _FTP_CLIENT_H
@@ -124,7 +124,7 @@ struct _FtpClientContext;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -222,7 +222,7 @@ typedef error_t (*FtpClientTlsInitCallback)(FtpClientContext *context,
 
 
 /**
- * @brief Control or data connection
+ * @brief Control or data channel
  **/
 
 typedef struct
@@ -231,7 +231,7 @@ typedef struct
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    TlsContext *tlsContext; ///<TLS context
 #endif
-} FtpClientSocket;
+} FtpClientChannel;
 
 
 /**
@@ -251,8 +251,8 @@ struct _FtpClientContext
    TlsSessionState tlsSession;               ///<TLS session state
    FtpClientTlsInitCallback tlsInitCallback; ///<TLS initialization callback function
 #endif
-   FtpClientSocket controlConnection;        ///<Control connection
-   FtpClientSocket dataConnection;           ///<Data connection
+   FtpClientChannel controlChannel;          ///<Control channel
+   FtpClientChannel dataChannel;             ///<Data channel
    char_t buffer[FTP_CLIENT_BUFFER_SIZE];    ///<Memory buffer for input/output operations
    size_t bufferPos;                         ///<Current position in the buffer
    size_t commandLen;                        ///<Length of the FTP command, in bytes
@@ -324,8 +324,8 @@ error_t ftpClientReadFile(FtpClientContext *context, void *data, size_t size,
 
 error_t ftpClientCloseFile(FtpClientContext *context);
 
-error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldName,
-   const char_t *newName);
+error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldPath,
+   const char_t *newPath);
 
 error_t ftpClientDeleteFile(FtpClientContext *context, const char_t *path);
 
@@ -338,7 +338,7 @@ void ftpClientDeinit(FtpClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

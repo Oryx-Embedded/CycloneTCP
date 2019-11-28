@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -33,6 +33,7 @@
 
 //Dependencies
 #include "stm32f7xx.h"
+#include "stm32f7xx_hal.h"
 #include "core/net.h"
 #include "drivers/mac/stm32f7xx_eth_driver.h"
 #include "debug.h"
@@ -219,7 +220,7 @@ error_t stm32f7xxEthInit(NetInterface *interface)
 }
 
 
-//STM32756G-EVAL, STM32F769I-EVAL, STM32F746G-Discovery, STM32F7508-Discovery,
+//STM32756G-EVAL, STM32F769I-EVAL, STM32F746G-Discovery, STM32F7508-DK,
 //STM32F769I-Discovery, Nucleo-F746ZG or Nucleo-F767ZI evaluation board?
 #if defined(USE_STM32756G_EVAL) || defined(USE_STM32F769I_EVAL) || \
    defined(USE_STM32746G_DISCO) || defined(USE_STM32F7508_DISCO) || \
@@ -251,7 +252,7 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_8;
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
    GPIO_InitStructure.Alternate = GPIO_AF0_MCO;
    HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
 
@@ -266,14 +267,14 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = STM32F7XX_ETH_MDIO_PIN;
    GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
    GPIO_InitStructure.Pull = GPIO_PULLUP;
-   GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
    HAL_GPIO_Init(STM32F7XX_ETH_MDIO_GPIO, &GPIO_InitStructure);
 
    //Configure ETH_MDC as a GPIO
    GPIO_InitStructure.Pin = STM32F7XX_ETH_MDC_PIN;
    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
    HAL_GPIO_Init(STM32F7XX_ETH_MDC_GPIO, &GPIO_InitStructure);
 
    //Deassert MDC
@@ -284,7 +285,7 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_2;
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_PULLUP;
-   GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
    GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
 
@@ -292,7 +293,7 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_1;
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
    GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 #endif
@@ -300,7 +301,7 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    //Configure MII pins
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
    GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
 
    //Configure ETH_MII_CRS (PA0)
@@ -352,7 +353,7 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    //Configure RMII pins
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
    GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
 
    //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
@@ -385,7 +386,7 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    //Configure RMII pins
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
    GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
 
    //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
@@ -421,7 +422,7 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    //Configure RMII pins
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
    GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
 
    //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
@@ -787,6 +788,10 @@ error_t stm32f7xxEthUpdateMacAddrFilter(NetInterface *interface)
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
+   //Set the MAC address of the station
+   ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   ETH->MACA0HR = interface->macAddr.w[2];
+
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
    unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
@@ -1065,7 +1070,7 @@ void stm32f7xxEthWriteSmi(uint32_t data, uint_t length)
    GPIO_InitStructure.Pin = STM32F7XX_ETH_MDIO_PIN;
    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
    HAL_GPIO_Init(STM32F7XX_ETH_MDIO_GPIO, &GPIO_InitStructure);
 
    //Write the specified number of bits
@@ -1121,7 +1126,7 @@ uint32_t stm32f7xxEthReadSmi(uint_t length)
    GPIO_InitStructure.Pin = STM32F7XX_ETH_MDIO_PIN;
    GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
    GPIO_InitStructure.Pull = GPIO_PULLUP;
-   GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
    HAL_GPIO_Init(STM32F7XX_ETH_MDIO_GPIO, &GPIO_InitStructure);
 
    //Read the specified number of bits

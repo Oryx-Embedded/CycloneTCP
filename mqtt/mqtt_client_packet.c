@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -302,7 +302,7 @@ error_t mqttClientProcessConnAck(MqttClientContext *context,
 
    //Notify the application that a CONNACK packet has been received
    if(context->packetType == MQTT_PACKET_TYPE_CONNECT)
-      context->state = MQTT_CLIENT_STATE_PACKET_RECEIVED;
+      mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_RECEIVED);
 
    //Successful processing
    return NO_ERROR;
@@ -460,7 +460,7 @@ error_t mqttClientProcessPubAck(MqttClientContext *context,
 
    //Notify the application that a PUBACK packet has been received
    if(context->packetType == MQTT_PACKET_TYPE_PUBLISH && context->packetId == packetId)
-      context->state = MQTT_CLIENT_STATE_PACKET_RECEIVED;
+      mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_RECEIVED);
 
    //Return status code
    return error;
@@ -620,7 +620,7 @@ error_t mqttClientProcessPubComp(MqttClientContext *context,
 
    //Notify the application that a PUBCOMP packet has been received
    if(context->packetType == MQTT_PACKET_TYPE_PUBLISH && context->packetId == packetId)
-      context->state = MQTT_CLIENT_STATE_PACKET_RECEIVED;
+      mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_RECEIVED);
 
    //Successful processing
    return NO_ERROR;
@@ -664,7 +664,7 @@ error_t mqttClientProcessSubAck(MqttClientContext *context,
 
    //Notify the application that a SUBACK packet has been received
    if(context->packetType == MQTT_PACKET_TYPE_SUBSCRIBE && context->packetId == packetId)
-      context->state = MQTT_CLIENT_STATE_PACKET_RECEIVED;
+      mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_RECEIVED);
 
    //Successful processing
    return NO_ERROR;
@@ -708,7 +708,7 @@ error_t mqttClientProcessUnsubAck(MqttClientContext *context,
 
    //Notify the application that an UNSUBACK packet has been received
    if(context->packetType == MQTT_PACKET_TYPE_UNSUBSCRIBE && context->packetId == packetId)
-      context->state = MQTT_CLIENT_STATE_PACKET_RECEIVED;
+      mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_RECEIVED);
 
    //Successful processing
    return NO_ERROR;
@@ -740,7 +740,7 @@ error_t mqttClientProcessPingResp(MqttClientContext *context,
 
    //Notify the application that an PINGRESP packet has been received
    if(context->packetType == MQTT_PACKET_TYPE_PINGREQ)
-      context->state = MQTT_CLIENT_STATE_PACKET_RECEIVED;
+      mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_RECEIVED);
 
    //Successful processing
    return NO_ERROR;

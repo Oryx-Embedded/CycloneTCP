@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -97,7 +97,6 @@ error_t mqttClientInit(MqttClientContext *context)
 /**
  * @brief Initialize callback structure
  * @param[in] callbacks Pointer to a structure that contains callback functions
- * @return Error code
  **/
 
 void mqttClientInitCallbacks(MqttClientCallbacks *callbacks)
@@ -167,6 +166,55 @@ error_t mqttClientSetTransportProtocol(MqttClientContext *context,
 
    //Save the transport protocol to be used
    context->settings.transportProtocol = transportProtocol;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+#if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
+
+/**
+ * @brief Register TLS initialization callback function
+ * @param[in] context Pointer to the MQTT- client context
+ * @param[in] callback TLS initialization callback function
+ * @return Error code
+ **/
+
+error_t mqttClientRegisterTlsInitCallback(MqttClientContext *context,
+   MqttClientTlsInitCallback callback)
+{
+   //Check parameters
+   if(context == NULL || callback == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save callback function
+   context->callbacks.tlsInitCallback = callback;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+#endif
+
+
+/**
+ * @brief Register publish callback function
+ * @param[in] context Pointer to the MQTT client context
+ * @param[in] callback Callback function to be called when a PUBLISH message
+ *   is received
+ * @return Error code
+ **/
+
+error_t mqttClientRegisterPublishCallback(MqttClientContext *context,
+   MqttClientPublishCallback callback)
+{
+   //Make sure the MQTT client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save callback function
+   context->callbacks.publishCallback = callback;
 
    //Successful processing
    return NO_ERROR;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _FTP_SERVER_H
@@ -43,6 +43,13 @@
    #error FTP_SERVER_SUPPORT parameter is not valid
 #endif
 
+//FTP over TLS
+#ifndef FTP_SERVER_TLS_SUPPORT
+   #define FTP_SERVER_TLS_SUPPORT DISABLED
+#elif (FTP_SERVER_TLS_SUPPORT != ENABLED && FTP_SERVER_TLS_SUPPORT != DISABLED)
+   #error FTP_SERVER_TLS_SUPPORT parameter is not valid
+#endif
+
 //Stack size required to run the FTP server
 #ifndef FTP_SERVER_STACK_SIZE
    #define FTP_SERVER_STACK_SIZE 650
@@ -57,7 +64,7 @@
 
 //Maximum number of simultaneous connections
 #ifndef FTP_SERVER_MAX_CONNECTIONS
-   #define FTP_SERVER_MAX_CONNECTIONS 4
+   #define FTP_SERVER_MAX_CONNECTIONS 10
 #elif (FTP_SERVER_MAX_CONNECTIONS < 1)
    #error FTP_SERVER_MAX_CONNECTIONS parameter is not valid
 #endif
@@ -69,11 +76,11 @@
    #error FTP_SERVER_TIMEOUT parameter is not valid
 #endif
 
-//Socket polling timeout
-#ifndef FTP_SERVER_SOCKET_POLLING_TIMEOUT
-   #define FTP_SERVER_SOCKET_POLLING_TIMEOUT 2000
-#elif (FTP_SERVER_SOCKET_POLLING_TIMEOUT < 1000)
-   #error FTP_SERVER_SOCKET_POLLING_TIMEOUT parameter is not valid
+//FTP server tick interval
+#ifndef FTP_SERVER_TICK_INTERVAL
+   #define FTP_SERVER_TICK_INTERVAL 1000
+#elif (FTP_SERVER_TICK_INTERVAL < 100)
+   #error FTP_SERVER_TICK_INTERVAL parameter is not valid
 #endif
 
 //Maximum length of the pending connection queue
@@ -92,7 +99,7 @@
 
 //Size of buffer used for input/output operations
 #ifndef FTP_SERVER_BUFFER_SIZE
-   #define FTP_SERVER_BUFFER_SIZE 1536
+   #define FTP_SERVER_BUFFER_SIZE 1024
 #elif (FTP_SERVER_BUFFER_SIZE < 128)
    #error FTP_SERVER_BUFFER_SIZE parameter is not valid
 #endif
@@ -125,18 +132,39 @@
    #error FTP_SERVER_MAX_PATH_LEN parameter is not valid
 #endif
 
-//Socket buffer size (control connection)
-#ifndef FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE
-   #define FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE 1430
-#elif (FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE < 1)
-   #error FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE parameter is not valid
+//Minimum buffer size for TCP sockets
+#ifndef FTP_SERVER_MIN_TCP_BUFFER_SIZE
+   #define FTP_SERVER_MIN_TCP_BUFFER_SIZE 1430
+#elif (FTP_SERVER_MIN_TCP_BUFFER_SIZE < 512)
+   #error FTP_SERVER_MIN_TCP_BUFFER_SIZE parameter is not valid
 #endif
 
-//Socket buffer size (data connection)
-#ifndef FTP_SERVER_DATA_SOCKET_BUFFER_SIZE
-   #define FTP_SERVER_DATA_SOCKET_BUFFER_SIZE 2860
-#elif (FTP_SERVER_DATA_SOCKET_BUFFER_SIZE < 1)
-   #error FTP_SERVER_DATA_SOCKET_BUFFER_SIZE parameter is not valid
+//Maximum buffer size for TCP sockets
+#ifndef FTP_SERVER_MAX_TCP_BUFFER_SIZE
+   #define FTP_SERVER_MAX_TCP_BUFFER_SIZE 2860
+#elif (FTP_SERVER_MAX_TCP_BUFFER_SIZE < 512)
+   #error FTP_SERVER_MAX_TCP_BUFFER_SIZE parameter is not valid
+#endif
+
+//TX buffer size for TLS connections
+#ifndef FTP_SERVER_TLS_TX_BUFFER_SIZE
+   #define FTP_SERVER_TLS_TX_BUFFER_SIZE 4096
+#elif (FTP_SERVER_TLS_TX_BUFFER_SIZE < 512)
+   #error FTP_SERVER_TLS_TX_BUFFER_SIZE parameter is not valid
+#endif
+
+//Minimum RX buffer size for TLS connections
+#ifndef FTP_SERVER_MIN_TLS_RX_BUFFER_SIZE
+   #define FTP_SERVER_MIN_TLS_RX_BUFFER_SIZE 2048
+#elif (FTP_SERVER_MIN_TLS_RX_BUFFER_SIZE < 512)
+   #error FTP_SERVER_MIN_TLS_RX_BUFFER_SIZE parameter is not valid
+#endif
+
+//Maximum RX buffer size for TLS connections
+#ifndef FTP_SERVER_MAX_TLS_RX_BUFFER_SIZE
+   #define FTP_SERVER_MAX_TLS_RX_BUFFER_SIZE 16384
+#elif (FTP_SERVER_MAX_TLS_RX_BUFFER_SIZE < 512)
+   #error FTP_SERVER_MAX_TLS_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Passive port range (lower limit)
@@ -153,6 +181,13 @@
    #error FTP_SERVER_PASSIVE_PORT_MAX parameter is not valid
 #endif
 
+//TLS supported?
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   #include "core/crypto.h"
+   #include "tls.h"
+   #include "tls_ticket.h"
+#endif
+
 //FTP port number
 #define FTP_PORT 21
 //FTP data port number
@@ -163,48 +198,58 @@
 //FTPS data port number (implicit mode)
 #define FTPS_DATA_PORT 989
 
+//Forward declaration of FtpServerContext structure
+struct _FtpServerContext;
+#define FtpServerContext struct _FtpServerContext
+
+//Forward declaration of FtpClientConnection structure
+struct _FtpClientConnection;
+#define FtpClientConnection struct _FtpClientConnection
+
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
 /**
- * @brief Control connection state
+ * @brief Channel state
  **/
 
 typedef enum
 {
-   FTP_CONTROL_STATE_CLOSED      = 0,
-   FTP_CONTROL_STATE_IDLE        = 1,
-   FTP_CONTROL_STATE_DISCARD     = 2,
-   FTP_CONTROL_STATE_USER        = 3,
-   FTP_CONTROL_STATE_LIST        = 4,
-   FTP_CONTROL_STATE_RETR        = 5,
-   FTP_CONTROL_STATE_STOR        = 6,
-   FTP_CONTROL_STATE_APPE        = 7,
-   FTP_CONTROL_STATE_RNFR        = 8,
-   FTP_CONTROL_STATE_WAIT_ACK    = 9,
-   FTP_CONTROL_STATE_SHUTDOWN_TX = 10,
-   FTP_CONTROL_STATE_SHUTDOWN_RX = 11
-} FtpControlConnState;
+   FTP_CHANNEL_STATE_CLOSED       = 0,
+   FTP_CHANNEL_STATE_CONNECT_TLS  = 1,
+   FTP_CHANNEL_STATE_LISTEN       = 2,
+   FTP_CHANNEL_STATE_IDLE         = 3,
+   FTP_CHANNEL_STATE_SEND         = 4,
+   FTP_CHANNEL_STATE_RECEIVE      = 5,
+   FTP_CHANNEL_STATE_DISCARD      = 6,
+   FTP_CHANNEL_STATE_AUTH_TLS_1   = 7,
+   FTP_CHANNEL_STATE_AUTH_TLS_2   = 8,
+   FTP_CHANNEL_STATE_USER         = 9,
+   FTP_CHANNEL_STATE_LIST         = 10,
+   FTP_CHANNEL_STATE_RETR         = 11,
+   FTP_CHANNEL_STATE_STOR         = 12,
+   FTP_CHANNEL_STATE_APPE         = 13,
+   FTP_CHANNEL_STATE_RNFR         = 14,
+   FTP_CHANNEL_STATE_SHUTDOWN_TLS = 15,
+   FTP_CHANNEL_STATE_WAIT_ACK     = 16,
+   FTP_CHANNEL_STATE_SHUTDOWN_TX  = 17,
+   FTP_CHANNEL_STATE_SHUTDOWN_RX  = 18
+} FtpServerChannelState;
 
 
 /**
- * @brief Data connection state
+ * @brief Security modes
  **/
 
 typedef enum
 {
-   FTP_DATA_STATE_CLOSED      = 0,
-   FTP_DATA_STATE_LISTEN      = 1,
-   FTP_DATA_STATE_IDLE        = 2,
-   FTP_DATA_STATE_SEND        = 3,
-   FTP_DATA_STATE_RECEIVE     = 4,
-   FTP_DATA_STATE_WAIT_ACK    = 5,
-   FTP_DATA_STATE_SHUTDOWN_TX = 6,
-   FTP_DATA_STATE_SHUTDOWN_RX = 7
-} FtpDataConnState;
+   FTP_SERVER_MODE_PLAINTEXT    = 1,
+   FTP_SERVER_MODE_IMPLICIT_TLS = 2,
+   FTP_SERVER_MODE_EXPLICIT_TLS = 4
+} FtpServerMode;
 
 
 /**
@@ -232,18 +277,120 @@ typedef enum
 
 
 /**
- * @brief FTP client connection
+ * @brief Connection callback function
+ **/
+
+typedef error_t (*FtpServerConnectCallback)(FtpClientConnection *connection,
+   const IpAddr *clientIpAddr, uint16_t clientPort);
+
+
+/**
+ * @brief Disconnection callback function
+ **/
+
+typedef void (*FtpServerDisconnectCallback)(FtpClientConnection *connection,
+   const IpAddr *clientIpAddr, uint16_t clientPort);
+
+
+//TLS supported?
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+
+/**
+ * @brief TLS initialization callback function
+ **/
+
+typedef error_t (*FtpServerTlsInitCallback)(FtpClientConnection *connection,
+   TlsContext *tlsContext);
+
+#endif
+
+
+/**
+ * @brief User verification callback function
+ **/
+
+typedef uint_t (*FtpServerCheckUserCallback)(FtpClientConnection *connection,
+   const char_t *user);
+
+
+/**
+ * @brief Password verification callback function
+ **/
+
+typedef uint_t (*FtpServerCheckPasswordCallback)(FtpClientConnection *connection,
+   const char_t *user, const char_t *password);
+
+
+/**
+ * @brief Callback used to retrieve file permissions
+ **/
+
+typedef uint_t (*FtpServerGetFilePermCallback)(FtpClientConnection *connection,
+   const char_t *user, const char_t *path);
+
+
+/**
+ * @brief Unknown command callback function
+ **/
+
+typedef error_t (*FtpServerUnknownCommandCallback)(FtpClientConnection *connection,
+   const char_t *command, const char_t *param);
+
+
+/**
+ * @brief FTP server settings
  **/
 
 typedef struct
 {
+   NetInterface *interface;                                ///<Underlying network interface
+   uint16_t port;                                          ///<FTP command port number
+   uint16_t dataPort;                                      ///<FTP data port number
+   uint16_t passivePortMin;                                ///<Passive port range (lower value)
+   uint16_t passivePortMax;                                ///<Passive port range (upper value)
+   Ipv4Addr publicIpv4Addr;                                ///<Public IPv4 address to be used in PASV replies
+   uint_t mode;                                            ///<Security modes
+   uint_t maxConnections;                                  ///<Maximum number of client connections
+   FtpClientConnection *connections;                       ///<Client connections
+   char_t rootDir[FTP_SERVER_MAX_ROOT_DIR_LEN + 1];        ///<Root directory
+   FtpServerConnectCallback connectCallback;               ///<Connection callback function
+   FtpServerDisconnectCallback disconnectCallback;         ///<Disconnection callback function
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   FtpServerTlsInitCallback tlsInitCallback;               ///<TLS initialization callback function
+#endif
+   FtpServerCheckUserCallback checkUserCallback;           ///<User verification callback function
+   FtpServerCheckPasswordCallback checkPasswordCallback;   ///<Password verification callback function
+   FtpServerGetFilePermCallback getFilePermCallback;       ///<Callback used to retrieve file permissions
+   FtpServerUnknownCommandCallback unknownCommandCallback; ///<Unknown command callback function
+} FtpServerSettings;
+
+
+/**
+ * @brief Control or data channel
+ **/
+
+typedef struct
+{
+   FtpServerChannelState state; ///<Channel state
+   Socket *socket;              ///<Underlying TCP socket
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   TlsContext *tlsContext;      ///<TLS context
+#endif
+} FtpServerChannel;
+
+
+/**
+ * @brief FTP client connection
+ **/
+
+struct _FtpClientConnection
+{
+   FtpServerContext *context;                       ///<FTP server context
    NetInterface *interface;                         ///<Underlying network interface
    bool_t userLoggedIn;                             ///<This flag tells whether the user is logged in
    systime_t timestamp;                             ///<Time stamp to manage timeout
-   FtpControlConnState controlState;                ///<Control connection state
-   Socket *controlSocket;                           ///<Control connection socket
-   FtpDataConnState dataState;                      ///<Data connection state
-   Socket *dataSocket;                              ///<Data connection socket
+   FtpServerChannel controlChannel;                 ///<Control channel
+   FtpServerChannel dataChannel;                    ///<Data channel
    FsFile *file;                                    ///<File pointer
    FsDir *dir;                                      ///<Directory pointer
    bool_t passiveMode;                              ///<Passive data transfer
@@ -254,94 +401,52 @@ typedef struct
    char_t currentDir[FTP_SERVER_MAX_PATH_LEN + 1];  ///<Current directory
    char_t path[FTP_SERVER_MAX_PATH_LEN + 1];        ///<Pathname
    char_t command[FTP_SERVER_MAX_LINE_LEN + 1];     ///<Incoming command
-   size_t commandLength;                            ///<Number of bytes available in the command buffer
+   size_t commandLen;                               ///<Number of bytes available in the command buffer
    char_t response[FTP_SERVER_MAX_LINE_LEN + 1];    ///<Response buffer
-   size_t responseLength;                           ///<Number of bytes available in the response buffer
+   size_t responseLen;                              ///<Number of bytes available in the response buffer
    size_t responsePos;                              ///<Current position in the response buffer
-   char_t *buffer;                                  ///<Memory buffer for I/O operations
-   size_t bufferLength;                             ///<Number of bytes available in the I/O buffer
-   size_t bufferPos;                                ///<Current position in the I/O buffer
-} FtpClientConnection;
-
-
-/**
- * @brief User verification callback function
- **/
-
-typedef uint_t (*FtpCheckUserCallback)(FtpClientConnection *connection,
-   const char_t *user);
-
-
-/**
- * @brief Password verification callback function
- **/
-
-typedef uint_t (*FtpCheckPasswordCallback)(FtpClientConnection *connection,
-   const char_t *user, const char_t *password);
-
-
-/**
- * @brief Callback used to retrieve file permissions
- **/
-
-typedef uint_t (*FtpGetFilePermCallback)(FtpClientConnection *connection,
-   const char_t *user, const char_t *path);
-
-
-/**
- * @brief Unknown command callback function
- **/
-
-typedef error_t (*FtpUnknownCommandCallback)(FtpClientConnection *connection,
-   const char_t *command, const char_t *param);
-
-
-/**
- * @brief FTP server settings
- **/
-
-typedef struct
-{
-   NetInterface *interface;                          ///<Underlying network interface
-   uint16_t port;                                    ///<FTP command port number
-   uint16_t dataPort;                                ///<FTP data port number
-   uint16_t passivePortMin;                          ///<Passive port range (lower value)
-   uint16_t passivePortMax;                          ///<Passive port range (upper value)
-   Ipv4Addr publicIpv4Addr;                          ///<Public IPv4 address to be used in PASV replies
-   char_t rootDir[FTP_SERVER_MAX_ROOT_DIR_LEN + 1];  ///<Root directory
-   FtpCheckUserCallback checkUserCallback;           ///<User verification callback function
-   FtpCheckPasswordCallback checkPasswordCallback;   ///<Password verification callback function
-   FtpGetFilePermCallback getFilePermCallback;       ///<Callback used to retrieve file permissions
-   FtpUnknownCommandCallback unknownCommandCallback; ///<Unknown command callback function
-} FtpServerSettings;
+   char_t buffer[FTP_SERVER_BUFFER_SIZE];           ///<Memory buffer for input/output operations
+   size_t bufferLength;                             ///<Length of the buffer, in bytes
+   size_t bufferPos;                                ///<Current position in the buffer
+};
 
 
 /**
  * @brief FTP server context
  **/
 
-typedef struct
+struct _FtpServerContext
 {
    FtpServerSettings settings;                                    ///<User settings
    OsEvent event;                                                 ///<Event object used to poll the sockets
    Socket *socket;                                                ///<Listening socket
    uint16_t passivePort;                                          ///<Current passive port number
-   FtpClientConnection *connection[FTP_SERVER_MAX_CONNECTIONS];   ///<Client connections
+   FtpClientConnection *connections;                              ///<Client connections
    SocketEventDesc eventDesc[2 * FTP_SERVER_MAX_CONNECTIONS + 1]; ///<The events the application is interested in
-} FtpServerContext;
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+   TlsTicketContext tlsTicketContext;                            ///<TLS ticket encryption context
+#endif
+};
 
 
 //FTP server related functions
 void ftpServerGetDefaultSettings(FtpServerSettings *settings);
-error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settings);
+
+error_t ftpServerInit(FtpServerContext *context,
+   const FtpServerSettings *settings);
+
 error_t ftpServerStart(FtpServerContext *context);
-error_t ftpServerSetHomeDir(FtpClientConnection *connection, const char_t *homeDir);
+
+error_t ftpServerSetHomeDir(FtpClientConnection *connection,
+   const char_t *homeDir);
 
 void ftpServerTask(FtpServerContext *context);
 
+void ftpServerDeinit(FtpServerContext *context);
+
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

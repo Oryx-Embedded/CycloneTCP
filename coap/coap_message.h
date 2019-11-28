@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _COAP_MESSAGE_H
@@ -44,7 +44,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -61,7 +61,7 @@ typedef struct
 
 
 //CoAP related functions
-error_t coapClientParseMessage(const CoapMessage *message);
+error_t coapParseMessage(const CoapMessage *message);
 
 error_t coapParseMessageHeader(const uint8_t *p, size_t length,
    size_t *consumed);
@@ -89,7 +89,7 @@ bool_t coapCompareToken(const CoapMessageHeader *header1,
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

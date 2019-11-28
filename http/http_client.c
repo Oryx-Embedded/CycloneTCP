@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -44,6 +44,7 @@
 
 //Dependencies
 #include <limits.h>
+#include <stdarg.h>
 #include "core/net.h"
 #include "http/http_client.h"
 #include "http/http_client_auth.h"
@@ -577,7 +578,7 @@ error_t httpClientSetHost(HttpClientContext *context, const char_t *host,
       host, temp);
 
    //Adjust the length of the request header
-   context->bufferLen = context->bufferLen + n + m + 8;
+   context->bufferLen += n + m + 8;
 
    //Successful processing
    return NO_ERROR;
@@ -764,7 +765,7 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
       strncpy(p + 1, name, nameLen);
 
       //Adjust the length of the request header
-      context->bufferLen = context->bufferLen + nameLen + 1;
+      context->bufferLen += nameLen + 1;
    }
    else
    {
@@ -789,7 +790,7 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
       strncpy(p + nameLen + 2, value, valueLen);
 
       //Adjust the length of the request header
-      context->bufferLen = context->bufferLen + nameLen + valueLen + 2;
+      context->bufferLen += nameLen + valueLen + 2;
    }
 
    //Successful processing
@@ -848,8 +849,101 @@ error_t httpClientAddHeaderField(HttpClientContext *context,
    sprintf(context->buffer + context->bufferLen - 2, "%s: %s\r\n\r\n",
       name, value);
 
+   //Check header field name
+   if(!strcasecmp(name, "Connection"))
+   {
+      //Parse Connection header field
+      error = httpClientParseConnectionField(context, value);
+   }
+   else if(!strcasecmp(name, "Transfer-Encoding"))
+   {
+      //Parse Transfer-Encoding header field
+      error = httpClientParseTransferEncodingField(context, value);
+   }
+   else if(!strcasecmp(name, "Content-Length"))
+   {
+      //Parse Content-Length header field
+      error = httpClientParseContentLengthField(context, value);
+   }
+   else
+   {
+      //Discard unknown header fields
+      error = NO_ERROR;
+   }
+
    //Adjust the length of the request header
-   context->bufferLen = context->bufferLen + n;
+   context->bufferLen += n;
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Format an HTTP header field
+ * @param[in] context Pointer to the HTTP client context
+ * @param[in] name NULL-terminated string that holds the header field name
+ * @param[in] format NULL-terminated string that that contains a format string
+ * @param[in] ... Optional arguments
+ * @return Error code
+ **/
+
+error_t httpClientFormatHeaderField(HttpClientContext *context,
+   const char_t *name, const char_t *format, ...)
+{
+   error_t error;
+   size_t n;
+   size_t size;
+   size_t nameLen;
+   char_t *value;
+   va_list args;
+
+   //Check parameters
+   if(context == NULL || name == NULL || format == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //The field name must not be empty
+   if(name[0] == '\0')
+      return ERROR_INVALID_PARAMETER;
+
+   //Check HTTP request state
+   if(context->requestState != HTTP_REQ_STATE_FORMAT_HEADER &&
+      context->requestState != HTTP_REQ_STATE_FORMAT_TRAILER)
+   {
+      return ERROR_WRONG_STATE;
+   }
+
+   //Make sure the buffer contains a valid HTTP request
+   if(context->bufferLen < 2 || context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+      return ERROR_INVALID_SYNTAX;
+
+   //Retrieve the length of the field name
+   nameLen = strlen(name);
+
+   //Make sure the buffer is large enough to hold the new header field
+   if((context->bufferLen + nameLen + 4) > HTTP_CLIENT_BUFFER_SIZE)
+      return ERROR_BUFFER_OVERFLOW;
+
+   //Point to the buffer where to format the field value
+   value = context->buffer + context->bufferLen + nameLen;
+   //Calculate the maximum size of the formatted string
+   size = HTTP_CLIENT_BUFFER_SIZE - context->bufferLen - nameLen - 4;
+
+   //Initialize processing of a varying-length argument list
+   va_start(args, format);
+   //Format field value
+   n = vsnprintf(value, size, format, args);
+   //End varying-length argument list processing
+   va_end(args);
+
+   //A return value of size or more means that the output was truncated
+   if(n >= size)
+      return ERROR_BUFFER_OVERFLOW;
+
+   //Each header field consists of a case-insensitive field name followed
+   //by a colon, optional leading whitespace and the field value
+   strncpy(context->buffer + context->bufferLen - 2, name, nameLen);
+   strncpy(context->buffer + context->bufferLen + nameLen - 2, ": ", 2);
 
    //Check header field name
    if(!strcasecmp(name, "Connection"))
@@ -872,6 +966,12 @@ error_t httpClientAddHeaderField(HttpClientContext *context,
       //Discard unknown header fields
       error = NO_ERROR;
    }
+
+   //Terminate the header field with a CRLF sequence
+   strcpy(context->buffer + context->bufferLen + nameLen + n, "\r\n\r\n");
+
+   //Adjust the length of the request header
+   context->bufferLen += nameLen + n + 4;
 
    //Return status code
    return error;

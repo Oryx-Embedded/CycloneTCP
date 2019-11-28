@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _DNS_COMMON_H
@@ -68,7 +68,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -245,7 +245,7 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t po
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

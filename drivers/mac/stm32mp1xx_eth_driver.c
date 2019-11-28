@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -142,7 +142,7 @@ error_t stm32mp1xxEthInit(NetInterface *interface)
    }
 
    //Adjust MDC clock range depending on HCLK frequency
-   ETH->MACMDIOAR = ETH_MACMDIOAR_CR_DIV124;
+   ETH->MACMDIOAR = ETH_MACMDIOAR_CR_Val(5);
 
    //PHY transceiver initialization
    error = interface->phyDriver->init(interface);
@@ -166,55 +166,57 @@ error_t stm32mp1xxEthInit(NetInterface *interface)
    ETH->MACA3HR = 0;
 
    //Initialize hash table
-   ETH->MACHTHR = 0;
-   ETH->MACHTLR = 0;
+   ETH->MACHT0R = 0;
+   ETH->MACHT1R = 0;
 
    //Configure the receive filter
    ETH->MACPFR = ETH_MACPFR_HPF | ETH_MACPFR_HMC;
 
    //Disable flow control
-   ETH->MACTFCR = 0;
-   ETH->MACRFCR = 0;
+   ETH->MACQ0TXFCR = 0;
+   ETH->MACRXFCR = 0;
 
    //Enable the first RX queue
-   ETH->MACRC0R = ETH_MACRC0R_RXQ0EN_1;
+   ETH->MACRXQC0R = ETH_MACRXQC0R_RXQ0EN_Val(1);
 
    //Configure DMA operating mode
-   ETH->DMAMR = ETH_DMAMR_INTM_0 | ETH_DMAMR_PR_1_1;
+   ETH->DMAMR = ETH_DMAMR_INTM_Val(0) | ETH_DMAMR_PR_Val(0);
    //Configure system bus mode
    ETH->DMASBMR |= ETH_DMASBMR_AAL;
-   //The DMA takes the descriptor table as contiguous
-   ETH->DMACCR = ETH_DMACCR_DSL_0BIT;
 
+   //The DMA takes the descriptor table as contiguous
+   ETH->DMAC0CR = ETH_DMAC0CR_DSL_Val(0);
    //Configure TX features
-   ETH->DMACTCR = ETH_DMACTCR_TPBL_1PBL;
+   ETH->DMAC0TXCR = ETH_DMAC0TXCR_TXPBL_Val(1);
 
    //Configure RX features
-   ETH->DMACRCR = ETH_DMACRCR_RPBL_1PBL;
-   ETH->DMACRCR |= (STM32MP1XX_ETH_RX_BUFFER_SIZE << 1) & ETH_DMACRCR_RBSZ;
+   ETH->DMAC0RXCR = ETH_DMAC0RXCR_RXPBL_Val(1) |
+      ETH_DMAC0RXCR_RBSZ_Val(STM32MP1XX_ETH_RX_BUFFER_SIZE);
 
    //Enable store and forward mode for transmission
-   ETH->MTLTQOMR = ETH_MTLTQOMR_TQS_7 | ETH_MTLTQOMR_TXQEN_2 | ETH_MTLTQOMR_TSF;
+   ETH->MTLTXQ0OMR = ETH_MTLTXQ0OMR_TQS_Val(7) | ETH_MTLTXQ0OMR_TXQEN_Val(2) |
+      ETH_MTLTXQ0OMR_TSF;
+
    //Enable store and forward mode for reception
-   ETH->MTLRQOMR = ETH_MTLRQOMR_RQS_7 | ETH_MTLRQOMR_RSF;
+   ETH->MTLRXQ0OMR = ETH_MTLRXQ0OMR_RQS_Val(7) | ETH_MTLRXQ0OMR_RSF;
 
    //Initialize DMA descriptor lists
    stm32mp1xxEthInitDmaDesc(interface);
 
    //Prevent interrupts from being generated when the transmit statistic
    //counters reach half their maximum value
-   ETH->MMCTIMR = ETH_MMCTIMR_TXLPITRCIM | ETH_MMCTIMR_TXLPIUSCIM |
-      ETH_MMCTIMR_TXGPKTIM | ETH_MMCTIMR_TXMCOLGPIM | ETH_MMCTIMR_TXSCOLGPIM;
+   ETH->MMCTXIMR = ETH_MMCTXIMR_TXLPITRCIM | ETH_MMCTXIMR_TXLPIUSCIM |
+      ETH_MMCTXIMR_TXGPKTIM | ETH_MMCTXIMR_TXMCOLGPIM | ETH_MMCTXIMR_TXSCOLGPIM;
 
    //Prevent interrupts from being generated when the receive statistic
    //counters reach half their maximum value
-   ETH->MMCRIMR = ETH_MMCRIMR_RXLPITRCIM | ETH_MMCRIMR_RXLPIUSCIM |
-      ETH_MMCRIMR_RXUCGPIM | ETH_MMCRIMR_RXALGNERPIM | ETH_MMCRIMR_RXCRCERPIM;
+   ETH->MMCRXIMR = ETH_MMCRXIMR_RXLPITRCIM | ETH_MMCRXIMR_RXLPIUSCIM |
+      ETH_MMCRXIMR_RXUCGPIM | ETH_MMCRXIMR_RXALGNERPIM | ETH_MMCRXIMR_RXCRCERPIM;
 
    //Disable MAC interrupts
    ETH->MACIER = 0;
    //Enable the desired DMA interrupts
-   ETH->DMACIER = ETH_DMACIER_NIE | ETH_DMACIER_RIE | ETH_DMACIER_TIE;
+   ETH->DMAC0IER = ETH_DMAC0IER_NIE | ETH_DMAC0IER_RIE | ETH_DMAC0IER_TIE;
 
    //Set priority grouping (4 bits for pre-emption priority, no bits for subpriority)
    NVIC_SetPriorityGrouping(STM32MP1XX_ETH_IRQ_PRIORITY_GROUPING);
@@ -227,8 +229,8 @@ error_t stm32mp1xxEthInit(NetInterface *interface)
    ETH->MACCR |= ETH_MACCR_TE | ETH_MACCR_RE;
 
    //Enable DMA transmission and reception
-   ETH->DMACTCR |= ETH_DMACTCR_ST;
-   ETH->DMACRCR |= ETH_DMACRCR_SR;
+   ETH->DMAC0TXCR |= ETH_DMAC0TXCR_ST;
+   ETH->DMAC0RXCR |= ETH_DMAC0RXCR_SR;
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -259,6 +261,7 @@ void stm32mp1xxEthInitGpio(NetInterface *interface)
    __HAL_RCC_GPIOA_CLK_ENABLE();
    __HAL_RCC_GPIOB_CLK_ENABLE();
    __HAL_RCC_GPIOC_CLK_ENABLE();
+   //__HAL_RCC_GPIOD_CLK_ENABLE();
    __HAL_RCC_GPIOE_CLK_ENABLE();
    __HAL_RCC_GPIOG_CLK_ENABLE();
 
@@ -295,6 +298,18 @@ void stm32mp1xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_13 | GPIO_PIN_14;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 
+   //Configure PHY_RST (PD10)
+   //GPIO_InitStructure.Pin = GPIO_PIN_10;
+   //GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+   //GPIO_InitStructure.Pull = GPIO_NOPULL;
+   //GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_LOW;
+   //HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+   //Reset PHY transceiver
+   //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET);
+   //sleep(10);
+   //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);
+   //sleep(10);
 //STM32MP157C-DK2 evaluation board?
 #elif defined(USE_STM32MP15XX_DISCO)
    //Enable SYSCFG clock
@@ -394,14 +409,14 @@ void stm32mp1xxEthInitDmaDesc(NetInterface *interface)
    rxIndex = 0;
 
    //Start location of the TX descriptor list
-   ETH->DMACTDLAR = (uint32_t) &txDmaDesc[0];
+   ETH->DMAC0TXDLAR = (uint32_t) &txDmaDesc[0];
    //Length of the transmit descriptor ring
-   ETH->DMACTDRLR = STM32MP1XX_ETH_TX_BUFFER_COUNT - 1;
+   ETH->DMAC0TXRLR = STM32MP1XX_ETH_TX_BUFFER_COUNT - 1;
 
    //Start location of the RX descriptor list
-   ETH->DMACRDLAR = (uint32_t) &rxDmaDesc[0];
+   ETH->DMAC0RXDLAR = (uint32_t) &rxDmaDesc[0];
    //Length of the receive descriptor ring
-   ETH->DMACRDRLR = STM32MP1XX_ETH_RX_BUFFER_COUNT - 1;
+   ETH->DMAC0RXRLR = STM32MP1XX_ETH_RX_BUFFER_COUNT - 1;
 }
 
 
@@ -465,13 +480,13 @@ void ETH1_IRQHandler(void)
    flag = FALSE;
 
    //Read DMA status register
-   status = ETH->DMACSR;
+   status = ETH->DMAC0SR;
 
    //A packet has been transmitted?
-   if(status & ETH_DMACSR_TI)
+   if(status & ETH_DMAC0SR_TI)
    {
       //Clear TI interrupt flag
-      ETH->DMACSR = ETH_DMACSR_TI;
+      ETH->DMAC0SR = ETH_DMAC0SR_TI;
 
       //Check whether the TX buffer is available for writing
       if(!(txDmaDesc[txIndex].tdes3 & ETH_TDES3_OWN))
@@ -482,10 +497,10 @@ void ETH1_IRQHandler(void)
    }
 
    //A packet has been received?
-   if(status & ETH_DMACSR_RI)
+   if(status & ETH_DMAC0SR_RI)
    {
       //Disable RIE interrupt
-      ETH->DMACIER &= ~ETH_DMACIER_RIE;
+      ETH->DMAC0IER &= ~ETH_DMAC0IER_RIE;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -494,7 +509,7 @@ void ETH1_IRQHandler(void)
    }
 
    //Clear NIS interrupt flag
-   ETH->DMACSR = ETH_DMACSR_NIS;
+   ETH->DMAC0SR = ETH_DMAC0SR_NIS;
 
    //Interrupt service routine epilogue
    osExitIsr(flag);
@@ -511,10 +526,10 @@ void stm32mp1xxEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(ETH->DMACSR & ETH_DMACSR_RI)
+   if(ETH->DMAC0SR & ETH_DMAC0SR_RI)
    {
       //Clear interrupt flag
-      ETH->DMACSR = ETH_DMACSR_RI;
+      ETH->DMAC0SR = ETH_DMAC0SR_RI;
 
       //Process all pending packets
       do
@@ -527,7 +542,7 @@ void stm32mp1xxEthEventHandler(NetInterface *interface)
    }
 
    //Re-enable DMA interrupts
-   ETH->DMACIER = ETH_DMACIER_NIE | ETH_DMACIER_RIE | ETH_DMACIER_TIE;
+   ETH->DMAC0IER = ETH_DMAC0IER_NIE | ETH_DMAC0IER_RIE | ETH_DMAC0IER_TIE;
 }
 
 
@@ -574,9 +589,9 @@ error_t stm32mp1xxEthSendPacket(NetInterface *interface,
    __DSB();
 
    //Clear TBU flag to resume processing
-   ETH->DMACSR = ETH_DMACSR_TBU;
+   ETH->DMAC0SR = ETH_DMAC0SR_TBU;
    //Instruct the DMA to poll the transmit descriptor list
-   ETH->DMACTDTPR = 0;
+   ETH->DMAC0TXDTPR = 0;
 
    //Increment index and wrap around if necessary
    if(++txIndex >= STM32MP1XX_ETH_TX_BUFFER_COUNT)
@@ -654,9 +669,9 @@ error_t stm32mp1xxEthReceivePacket(NetInterface *interface)
    }
 
    //Clear RBU flag to resume processing
-   ETH->DMACSR = ETH_DMACSR_RBU;
+   ETH->DMAC0SR = ETH_DMAC0SR_RBU;
    //Instruct the DMA to poll the receive descriptor list
-   ETH->DMACRDTPR = 0;
+   ETH->DMAC0RXDTPR = 0;
 
    //Return status code
    return error;
@@ -681,6 +696,10 @@ error_t stm32mp1xxEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   ETH->MACA0HR = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
@@ -731,7 +750,7 @@ error_t stm32mp1xxEthUpdateMacAddrFilter(NetInterface *interface)
    {
       //When the AE bit is set, the entry is used for perfect filtering
       ETH->MACA1LR = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
-      ETH->MACA1HR = unicastMacAddr[0].w[2] | ETH_MACAHR_AE;
+      ETH->MACA1HR = unicastMacAddr[0].w[2] | ETH_MACA1HR_AE;
    }
    else
    {
@@ -745,7 +764,7 @@ error_t stm32mp1xxEthUpdateMacAddrFilter(NetInterface *interface)
    {
       //When the AE bit is set, the entry is used for perfect filtering
       ETH->MACA2LR = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
-      ETH->MACA2HR = unicastMacAddr[1].w[2] | ETH_MACAHR_AE;
+      ETH->MACA2HR = unicastMacAddr[1].w[2] | ETH_MACA2HR_AE;
    }
    else
    {
@@ -759,7 +778,7 @@ error_t stm32mp1xxEthUpdateMacAddrFilter(NetInterface *interface)
    {
       //When the AE bit is set, the entry is used for perfect filtering
       ETH->MACA3LR = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
-      ETH->MACA3HR = unicastMacAddr[2].w[2] | ETH_MACAHR_AE;
+      ETH->MACA3HR = unicastMacAddr[2].w[2] | ETH_MACA3HR_AE;
    }
    else
    {
@@ -769,12 +788,12 @@ error_t stm32mp1xxEthUpdateMacAddrFilter(NetInterface *interface)
    }
 
    //Configure the multicast address filter
-   ETH->MACHTHR = hashTable[0];
-   ETH->MACHTLR = hashTable[1];
+   ETH->MACHT0R = hashTable[0];
+   ETH->MACHT1R = hashTable[1];
 
    //Debug message
-   TRACE_DEBUG("  MACHTHR = %08" PRIX32 "\r\n", ETH->MACHTHR);
-   TRACE_DEBUG("  MACHTLR = %08" PRIX32 "\r\n", ETH->MACHTLR);
+   TRACE_DEBUG("  MACHT0R = %08" PRIX32 "\r\n", ETH->MACHT0R);
+   TRACE_DEBUG("  MACHT1R = %08" PRIX32 "\r\n", ETH->MACHT1R);
 
    //Successful processing
    return NO_ERROR;
@@ -846,19 +865,19 @@ void stm32mp1xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Take care not to alter MDC clock configuration
       temp = ETH->MACMDIOAR & ETH_MACMDIOAR_CR;
       //Set up a write operation
-      temp |= ETH_MACMDIOAR_MOC_WR | ETH_MACMDIOAR_MB;
+      temp |= ETH_MACMDIOAR_GOC_Val(1) | ETH_MACMDIOAR_GB;
       //PHY address
       temp |= (phyAddr << 21) & ETH_MACMDIOAR_PA;
       //Register address
       temp |= (regAddr << 16) & ETH_MACMDIOAR_RDA;
 
       //Data to be written in the PHY register
-      ETH->MACMDIODR = data & ETH_MACMDIODR_MD;
+      ETH->MACMDIODR = data & ETH_MACMDIODR_GD;
 
       //Start a write operation
       ETH->MACMDIOAR = temp;
       //Wait for the write to complete
-      while(ETH->MACMDIOAR & ETH_MACMDIOAR_MB)
+      while(ETH->MACMDIOAR & ETH_MACMDIOAR_GB)
       {
       }
    }
@@ -889,7 +908,7 @@ uint16_t stm32mp1xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Take care not to alter MDC clock configuration
       temp = ETH->MACMDIOAR & ETH_MACMDIOAR_CR;
       //Set up a read operation
-      temp |= ETH_MACMDIOAR_MOC_RD | ETH_MACMDIOAR_MB;
+      temp |= ETH_MACMDIOAR_GOC_Val(3) | ETH_MACMDIOAR_GB;
       //PHY address
       temp |= (phyAddr << 21) & ETH_MACMDIOAR_PA;
       //Register address
@@ -898,12 +917,12 @@ uint16_t stm32mp1xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       ETH->MACMDIOAR = temp;
       //Wait for the read to complete
-      while(ETH->MACMDIOAR & ETH_MACMDIOAR_MB)
+      while(ETH->MACMDIOAR & ETH_MACMDIOAR_GB)
       {
       }
 
       //Get register value
-      data = ETH->MACMDIODR & ETH_MACMDIODR_MD;
+      data = ETH->MACMDIODR & ETH_MACMDIODR_GD;
    }
    else
    {

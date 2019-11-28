@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -707,6 +707,10 @@ error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   EMAC0_ADDR0L_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   EMAC0_ADDR0H_R = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;

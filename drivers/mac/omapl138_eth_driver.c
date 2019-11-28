@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -205,13 +205,13 @@ error_t omapl138EthInit(NetInterface *interface)
    //Write the channel number to the MAC index register
    EMAC_MACINDEX_R = EMAC_CH0;
 
-   //Set the upper 32 bits of the source MAC address
+   //Set the upper 32 bits of the destination MAC address
    EMAC_MACADDRHI_R = interface->macAddr.b[0] |
       (interface->macAddr.b[1] << 8) |
       (interface->macAddr.b[2] << 16) |
       (interface->macAddr.b[3] << 24);
 
-   //Set the lower 16 bits of the source MAC address
+   //Set the lower 16 bits of the destination MAC address
    temp = interface->macAddr.b[4] |
       (interface->macAddr.b[5] << 8);
 
@@ -545,7 +545,7 @@ void omapl138EthTxIrqHandler(void)
       }
    }
 
-   //Writes the DMA end of interrupt vector
+   //Write the DMA end of interrupt vector
    EMAC_MACEOIVECTOR_R = EMAC_MACEOIVECTOR_C0TX;
 
    //Interrupt service routine epilogue
@@ -586,7 +586,7 @@ void omapl138EthRxIrqHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Writes the DMA end of interrupt vector
+   //Write the DMA end of interrupt vector
    EMAC_MACEOIVECTOR_R = EMAC_MACEOIVECTOR_C0RX;
 
    //Interrupt service routine epilogue

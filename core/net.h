@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _NET_H
@@ -89,13 +89,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "1.9.4"
+#define CYCLONE_TCP_VERSION_STRING "1.9.6"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 1
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 9
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 4
+#define CYCLONE_TCP_REV_NUMBER 6
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -175,7 +175,7 @@ struct _NetInterface;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -332,6 +332,10 @@ error_t netSetLinkState(NetInterface *interface, NicLinkState linkState);
 bool_t netGetLinkState(NetInterface *interface);
 
 error_t netConfigInterface(NetInterface *interface);
+error_t netStartInterface(NetInterface *interface);
+error_t netStopInterface(NetInterface *interface);
+
+void netProcessLinkChange(NetInterface *interface);
 
 void netTask(void);
 void netTick(void);
@@ -351,7 +355,7 @@ void netInvokeLinkChangeCallback(NetInterface *interface, bool_t linkState);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -142,13 +142,13 @@ error_t nuc472EthInit(NetInterface *interface)
    if(error)
       return error;
 
-   //Set the upper 32 bits of the source MAC address
+   //Set the upper 32 bits of the MAC address
    EMAC->CAM0M = interface->macAddr.b[3] |
       (interface->macAddr.b[2] << 8) |
       (interface->macAddr.b[1] << 16) |
       (interface->macAddr.b[0] << 24);
 
-   //Set the lower 16 bits of the source MAC address
+   //Set the lower 16 bits of the MAC address
    EMAC->CAM0L = (interface->macAddr.b[5] << 16) |
       (interface->macAddr.b[4] << 24);
 
@@ -199,35 +199,38 @@ error_t nuc472EthInit(NetInterface *interface)
 
 void nuc472EthInitGpio(NetInterface *interface)
 {
+   uint32_t temp;
+
    //Select RMII interface mode
    EMAC->CTL |= EMAC_CTL_RMIIEN_Msk | EMAC_CTL_RMIIRXCTL_Msk;
 
-   //Configure EMAC_REFCLK (PC.0), EMAC_RXERR (PC.1), EMAC_RXDV (PC.2),
-   //EMAC_RXD1 (PC.3), EMAC_RXD0 (PC.4), EMAC_TXD0 (PC.6) and EMAC_TXD1 (PC.7)
-    SYS->GPC_MFPL = SYS_GPC_MFPL_PC0MFP_EMAC_REFCLK |
-      SYS_GPC_MFPL_PC1MFP_EMAC_MII_RXERR |
-      SYS_GPC_MFPL_PC2MFP_EMAC_MII_RXDV |
-      SYS_GPC_MFPL_PC3MFP_EMAC_MII_RXD1 |
-      SYS_GPC_MFPL_PC4MFP_EMAC_MII_RXD0 |
-      SYS_GPC_MFPL_PC6MFP_EMAC_MII_TXD0 |
-      SYS_GPC_MFPL_PC7MFP_EMAC_MII_TXD1;
+   //Configure EMAC_MII_MDC (PB.14) and EMAC_MII_MDIO (PB.15)
+   temp = SYS->GPB_MFPH;
+   temp = (temp & ~SYS_GPB_MFPH_PB14MFP_Msk) | SYS_GPB_MFPH_PB14MFP_EMAC_MII_MDC;
+   temp = (temp & ~SYS_GPB_MFPH_PB15MFP_Msk) | SYS_GPB_MFPH_PB15MFP_EMAC_MII_MDIO;
+   SYS->GPB_MFPH = temp;
 
-   //Configure EMAC_TXEN (PC.8)
-   SYS->GPC_MFPH = SYS_GPC_MFPH_PC8MFP_EMAC_MII_TXEN;
+   //Configure EMAC_REFCLK (PC.0), EMAC_MII_RXERR (PC.1), EMAC_MII_RXDV (PC.2),
+   //EMAC_MII_RXD1 (PC.3), EMAC_MII_RXD0 (PC.4), EMAC_MII_TXD0 (PC.6) and
+   //EMAC_MII_TXD1 (PC.7)
+   temp = SYS->GPC_MFPL;
+   temp = (temp & ~SYS_GPC_MFPL_PC0MFP_Msk) | SYS_GPC_MFPL_PC0MFP_EMAC_REFCLK;
+   temp = (temp & ~SYS_GPC_MFPL_PC1MFP_Msk) | SYS_GPC_MFPL_PC1MFP_EMAC_MII_RXERR;
+   temp = (temp & ~SYS_GPC_MFPL_PC2MFP_Msk) | SYS_GPC_MFPL_PC2MFP_EMAC_MII_RXDV;
+   temp = (temp & ~SYS_GPC_MFPL_PC3MFP_Msk) | SYS_GPC_MFPL_PC3MFP_EMAC_MII_RXD1;
+   temp = (temp & ~SYS_GPC_MFPL_PC4MFP_Msk) | SYS_GPC_MFPL_PC4MFP_EMAC_MII_RXD0;
+   temp = (temp & ~SYS_GPC_MFPL_PC6MFP_Msk) | SYS_GPC_MFPL_PC6MFP_EMAC_MII_TXD0;
+   temp = (temp & ~SYS_GPC_MFPL_PC7MFP_Msk) | SYS_GPC_MFPL_PC7MFP_EMAC_MII_TXD1;
+   SYS->GPC_MFPL = temp;
 
-   //Enable high slew rate on RMII pins
-   PC->SLEWCTL |= GPIO_SLEWCTL_HSREN0_Msk |
-      GPIO_SLEWCTL_HSREN1_Msk |
-      GPIO_SLEWCTL_HSREN2_Msk |
-      GPIO_SLEWCTL_HSREN3_Msk |
-      GPIO_SLEWCTL_HSREN4_Msk |
-      GPIO_SLEWCTL_HSREN6_Msk |
-      GPIO_SLEWCTL_HSREN7_Msk |
+   //Configure EMAC_MII_TXEN (PC.8)
+   temp = SYS->GPC_MFPH;
+   temp = (temp & ~SYS_GPC_MFPH_PC8MFP_Msk) | SYS_GPC_MFPH_PC8MFP_EMAC_MII_TXEN;
+   SYS->GPC_MFPH = temp;
+
+   //Enable high slew rate on RMII output pins
+   PC->SLEWCTL |= GPIO_SLEWCTL_HSREN6_Msk | GPIO_SLEWCTL_HSREN7_Msk |
       GPIO_SLEWCTL_HSREN8_Msk;
-
-   //Configure EMAC_MDC (PB.14) and EMAC_MDIO (PB.15)
-   SYS->GPB_MFPH = SYS_GPB_MFPH_PB14MFP_EMAC_MII_MDC |
-      SYS_GPB_MFPH_PB15MFP_EMAC_MII_MDIO;
 }
 
 #endif
@@ -573,6 +576,9 @@ error_t nuc472EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    bool_t acceptMulticast;
+
+   //Debug message
+   TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //This flag will be set if multicast addresses should be accepted
    acceptMulticast = FALSE;

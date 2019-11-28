@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -42,12 +42,10 @@
 
 //Dependencies
 #include "ftp/ftp_server.h"
-#include "ftp/ftp_server_events.h"
-#include "ftp/ftp_server_commands.h"
+#include "ftp/ftp_server_control.h"
+#include "ftp/ftp_server_data.h"
 #include "ftp/ftp_server_misc.h"
-#include "str.h"
 #include "path.h"
-#include "error.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -68,13 +66,34 @@ void ftpServerGetDefaultSettings(FtpServerSettings *settings)
    settings->port = FTP_PORT;
    //FTP data port number
    settings->dataPort = FTP_DATA_PORT;
+
    //Passive port range
    settings->passivePortMin = FTP_SERVER_PASSIVE_PORT_MIN;
    settings->passivePortMax = FTP_SERVER_PASSIVE_PORT_MAX;
+
    //Public IPv4 address to be used in PASV replies
    settings->publicIpv4Addr = IPV4_UNSPECIFIED_ADDR;
+
+   //Default security mode (no security)
+   settings->mode = FTP_SERVER_MODE_PLAINTEXT;
+
+   //Client connections
+   settings->maxConnections = 0;
+   settings->connections = NULL;
+
    //Set root directory
    strcpy(settings->rootDir, "/");
+
+   //Connection callback function
+   settings->connectCallback = NULL;
+   //Disconnection callback function
+   settings->disconnectCallback = NULL;
+
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   //TLS initialization callback function
+   settings->tlsInitCallback = NULL;
+#endif
+
    //User verification callback function
    settings->checkUserCallback = NULL;
    //Password verification callback function
@@ -93,9 +112,11 @@ void ftpServerGetDefaultSettings(FtpServerSettings *settings)
  * @return Error code
  **/
 
-error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settings)
+error_t ftpServerInit(FtpServerContext *context,
+   const FtpServerSettings *settings)
 {
    error_t error;
+   uint_t i;
 
    //Debug message
    TRACE_INFO("Initializing FTP server...\r\n");
@@ -104,8 +125,21 @@ error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settin
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Check passive port range
+   //Sanity check
    if(settings->passivePortMax <= settings->passivePortMin)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
+
+   //Invalid number of client connections?
+   if(settings->maxConnections < 1 ||
+      settings->maxConnections > FTP_SERVER_MAX_CONNECTIONS)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
+
+   //Invalid pointer?
+   if(settings->connections == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Clear the FTP server context
@@ -113,10 +147,19 @@ error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settin
 
    //Save user settings
    context->settings = *settings;
+   //Client connections
+   context->connections = settings->connections;
 
    //Clean the root directory path
    pathCanonicalize(context->settings.rootDir);
    pathRemoveSlash(context->settings.rootDir);
+
+   //Loop through client connections
+   for(i = 0; i < context->settings.maxConnections; i++)
+   {
+      //Initialize the structure representing the client connection
+      memset(&context->connections[i], 0, sizeof(FtpClientConnection));
+   }
 
    //Create an event object to poll the state of sockets
    if(!osCreateEvent(&context->event))
@@ -147,14 +190,14 @@ error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settin
 
       //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(context->socket,
-         FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE);
+         FTP_SERVER_MIN_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
 
       //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(context->socket,
-         FTP_SERVER_CTRL_SOCKET_BUFFER_SIZE);
+         FTP_SERVER_MIN_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
          break;
@@ -165,7 +208,7 @@ error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settin
       if(error)
          break;
 
-      //Bind newly created socket to port 21
+      //The FTP server listens for connection requests on port 21
       error = socketBind(context->socket, &IP_ADDR_ANY, settings->port);
       //Failed to bind socket to port 21?
       if(error)
@@ -177,16 +220,22 @@ error_t ftpServerInit(FtpServerContext *context, const FtpServerSettings *settin
       if(error)
          break;
 
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+      //Initialize ticket encryption context
+      error = tlsInitTicketContext(&context->tlsTicketContext);
+      //Any error to report?
+      if(error)
+         return error;
+#endif
+
       //End of exception handling block
    } while(0);
 
-   //Did we encounter an error?
+   //Check status code
    if(error)
    {
-      //Free previously allocated resources
-      osDeleteEvent(&context->event);
-      //Close socket
-      socketClose(context->socket);
+      //Clean up side effects
+      ftpServerDeinit(context);
    }
 
    //Return status code
@@ -231,14 +280,16 @@ error_t ftpServerStart(FtpServerContext *context)
  * @return Error code
  **/
 
-error_t ftpServerSetHomeDir(FtpClientConnection *connection, const char_t *homeDir)
+error_t ftpServerSetHomeDir(FtpClientConnection *connection,
+   const char_t *homeDir)
 {
-   //Ensure the parameters are valid
+   //Check parameters
    if(connection == NULL || homeDir == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Set home directory
    pathCombine(connection->homeDir, homeDir, FTP_SERVER_MAX_HOME_DIR_LEN);
+
    //Clean the resulting path
    pathCanonicalize(connection->homeDir);
    pathRemoveSlash(connection->homeDir);
@@ -261,6 +312,7 @@ void ftpServerTask(FtpServerContext *context)
    error_t error;
    uint_t i;
    systime_t time;
+   systime_t timeout;
    FtpClientConnection *connection;
 
 #if (NET_RTOS_SUPPORT == ENABLED)
@@ -271,90 +323,45 @@ void ftpServerTask(FtpServerContext *context)
    while(1)
    {
 #endif
+      //Set polling timeout
+      timeout = FTP_SERVER_TICK_INTERVAL;
+
       //Clear event descriptor set
       memset(context->eventDesc, 0, sizeof(context->eventDesc));
 
       //Specify the events the application is interested in
-      for(i = 0; i < FTP_SERVER_MAX_CONNECTIONS; i++)
+      for(i = 0; i < context->settings.maxConnections; i++)
       {
          //Point to the structure describing the current connection
-         connection = context->connection[i];
+         connection = &context->connections[i];
 
-         //Loop through active connections only
-         if(connection != NULL)
+         //Check whether the control connection is active
+         if(connection->controlChannel.socket != NULL)
          {
-            //Ensure the control connection is opened
-            if(connection->controlSocket != NULL)
+            //Register the events related to the control connection
+            ftpServerRegisterControlChannelEvents(connection,
+               &context->eventDesc[2 * i]);
+
+            //Check whether the socket is ready for I/O operation
+            if(context->eventDesc[2 * i].eventFlags != 0)
             {
-               //Check the state of the control connection
-               if(connection->responseLength > 0)
-               {
-                  //Wait until there is more room in the send buffer
-                  context->eventDesc[2 * i].socket = connection->controlSocket;
-                  context->eventDesc[2 * i].eventMask = SOCKET_EVENT_TX_READY;
-               }
-               else if(connection->controlState == FTP_CONTROL_STATE_WAIT_ACK)
-               {
-                  //Wait for all the data to be transmitted and acknowledged
-                  context->eventDesc[2 * i].socket = connection->controlSocket;
-                  context->eventDesc[2 * i].eventMask = SOCKET_EVENT_TX_ACKED;
-               }
-               else if(connection->controlState == FTP_CONTROL_STATE_SHUTDOWN_TX)
-               {
-                  //Wait for the FIN to be acknowledged
-                  context->eventDesc[2 * i].socket = connection->controlSocket;
-                  context->eventDesc[2 * i].eventMask = SOCKET_EVENT_TX_SHUTDOWN;
-               }
-               else if(connection->controlState == FTP_CONTROL_STATE_SHUTDOWN_RX)
-               {
-                  //Wait for a FIN to be received
-                  context->eventDesc[2 * i].socket = connection->controlSocket;
-                  context->eventDesc[2 * i].eventMask = SOCKET_EVENT_RX_SHUTDOWN;
-               }
-               else
-               {
-                  //Wait for data to be available for reading
-                  context->eventDesc[2 * i].socket = connection->controlSocket;
-                  context->eventDesc[2 * i].eventMask = SOCKET_EVENT_RX_READY;
-               }
+               //No need to poll the underlying socket for incoming traffic
+               timeout = 0;
             }
+         }
 
-            //Ensure the data connection is opened
-            if(connection->dataSocket != NULL)
+         //Check whether the data connection is active
+         if(connection->dataChannel.socket != NULL)
+         {
+            //Register the events related to the data connection
+            ftpServerRegisterDataChannelEvents(connection,
+               &context->eventDesc[2 * i + 1]);
+
+            //Check whether the socket is ready for I/O operation
+            if(context->eventDesc[2 * i + 1].eventFlags != 0)
             {
-               //Check the state of the data connection
-               if(connection->dataState == FTP_DATA_STATE_LISTEN ||
-                  connection->dataState == FTP_DATA_STATE_RECEIVE)
-               {
-                  //Wait for data to be available for reading
-                  context->eventDesc[2 * i + 1].socket = connection->dataSocket;
-                  context->eventDesc[2 * i + 1].eventMask = SOCKET_EVENT_RX_READY;
-               }
-               else if(connection->dataState == FTP_DATA_STATE_SEND)
-               {
-                  //Wait until there is more room in the send buffer
-                  context->eventDesc[2 * i + 1].socket = connection->dataSocket;
-                  context->eventDesc[2 * i + 1].eventMask = SOCKET_EVENT_TX_READY;
-               }
-
-               else if(connection->dataState == FTP_DATA_STATE_WAIT_ACK)
-               {
-                  //Wait for all the data to be transmitted and acknowledged
-                  context->eventDesc[2 * i + 1].socket = connection->dataSocket;
-                  context->eventDesc[2 * i + 1].eventMask = SOCKET_EVENT_TX_ACKED;
-               }
-               else if(connection->dataState == FTP_DATA_STATE_SHUTDOWN_TX)
-               {
-                  //Wait for the FIN to be acknowledged
-                  context->eventDesc[2 * i + 1].socket = connection->dataSocket;
-                  context->eventDesc[2 * i + 1].eventMask = SOCKET_EVENT_TX_SHUTDOWN;
-               }
-               else if(connection->dataState == FTP_DATA_STATE_SHUTDOWN_RX)
-               {
-                  //Wait for a FIN to be received
-                  context->eventDesc[2 * i + 1].socket = connection->dataSocket;
-                  context->eventDesc[2 * i + 1].eventMask = SOCKET_EVENT_RX_SHUTDOWN;
-               }
+               //No need to poll the underlying socket for incoming traffic
+               timeout = 0;
             }
          }
       }
@@ -364,48 +371,47 @@ void ftpServerTask(FtpServerContext *context)
       context->eventDesc[2 * i].eventMask = SOCKET_EVENT_RX_READY;
 
       //Wait for one of the set of sockets to become ready to perform I/O
-      error = socketPoll(context->eventDesc, 2 * FTP_SERVER_MAX_CONNECTIONS + 1,
-         &context->event, FTP_SERVER_SOCKET_POLLING_TIMEOUT);
+      error = socketPoll(context->eventDesc,
+         2 * context->settings.maxConnections + 1, &context->event, timeout);
 
       //Get current time
       time = osGetSystemTime();
 
-      //Verify status code
-      if(!error)
+      //Check status code
+      if(error == NO_ERROR || error == ERROR_TIMEOUT)
       {
          //Event-driven processing
-         for(i = 0; i < FTP_SERVER_MAX_CONNECTIONS; i++)
+         for(i = 0; i < context->settings.maxConnections; i++)
          {
             //Point to the structure describing the current connection
-            connection = context->connection[i];
+            connection = &context->connections[i];
 
-            //Make sure the control connection is still active
-            if(connection != NULL && connection->controlSocket != NULL)
+            //Check whether the control connection is active
+            if(connection->controlChannel.socket != NULL)
             {
                //Check whether the control socket is to ready to perform I/O
                if(context->eventDesc[2 * i].eventFlags)
                {
                   //Update time stamp
                   connection->timestamp = time;
+
                   //Control connection event handler
-                  ftpServerControlEventHandler(context, connection,
+                  ftpServerProcessControlChannelEvents(connection,
                      context->eventDesc[2 * i].eventFlags);
                }
             }
 
-            //The connection may have been closed...
-            connection = context->connection[i];
-
-            //Make sure the data connection is still active
-            if(connection != NULL && connection->dataSocket != NULL)
+            //Check whether the data connection is active
+            if(connection->dataChannel.socket != NULL)
             {
                //Check whether the data socket is ready to perform I/O
                if(context->eventDesc[2 * i + 1].eventFlags)
                {
                   //Update time stamp
                   connection->timestamp = time;
+
                   //Data connection event handler
-                  ftpServerDataEventHandler(context, connection,
+                  ftpServerProcessDataChannelEvents(connection,
                      context->eventDesc[2 * i + 1].eventFlags);
                }
             }
@@ -414,36 +420,53 @@ void ftpServerTask(FtpServerContext *context)
          //Check the state of the listening socket
          if(context->eventDesc[2 * i].eventFlags & SOCKET_EVENT_RX_READY)
          {
-            //Process incoming connection request
-            connection = ftpServerAcceptControlConnection(context);
-            //Initialize time stamp
-            if(connection != NULL)
-               connection->timestamp = time;
+            //Accept connection request
+            ftpServerAcceptControlChannel(context);
          }
       }
 
-      //Manage timeouts
-      for(i = 0; i < FTP_SERVER_MAX_CONNECTIONS; i++)
-      {
-         //Point to the structure describing the current connection
-         connection = context->connection[i];
+      //Handle periodic operations
+      ftpServerTick(context);
 
-         //Any client connected?
-         if(connection != NULL)
-         {
-            //Disconnect inactive client after idle timeout
-            if((time - connection->timestamp) >= FTP_SERVER_TIMEOUT)
-            {
-               //Debug message
-               TRACE_INFO("FTP server: Closing inactive connection...\r\n");
-               //Close connection with the client
-               ftpServerCloseConnection(context, connection);
-            }
-         }
-      }
 #if (NET_RTOS_SUPPORT == ENABLED)
    }
 #endif
+}
+
+
+/**
+ * @brief Release FTP server context
+ * @param[in] context Pointer to the FTP server context
+ **/
+
+void ftpServerDeinit(FtpServerContext *context)
+{
+   uint_t i;
+
+   //Make sure the FTP server context is valid
+   if(context != NULL)
+   {
+      //Loop through the connection table
+      for(i = 0; i < context->settings.maxConnections; i++)
+      {
+         //Close client connection
+         ftpServerCloseConnection(&context->connections[i]);
+      }
+
+      //Close listening socket
+      socketClose(context->socket);
+
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+      //Release ticket encryption context
+      tlsFreeTicketContext(&context->tlsTicketContext);
+#endif
+
+      //Free previously allocated resources
+      osDeleteEvent(&context->event);
+
+      //Clear FTP server context
+      memset(context, 0, sizeof(FtpServerContext));
+   }
 }
 
 #endif

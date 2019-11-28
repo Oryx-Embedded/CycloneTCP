@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -96,7 +96,8 @@ void dhcpServerGetDefaultSettings(DhcpServerSettings *settings)
  * @return Error code
  **/
 
-error_t dhcpServerInit(DhcpServerContext *context, const DhcpServerSettings *settings)
+error_t dhcpServerInit(DhcpServerContext *context,
+   const DhcpServerSettings *settings)
 {
    error_t error;
    NetInterface *interface;
@@ -144,6 +145,43 @@ error_t dhcpServerInit(DhcpServerContext *context, const DhcpServerSettings *set
 
    //Return status code
    return error;
+}
+
+
+/**
+ * @brief Release DHCP server context
+ * @param[in] context Pointer to the DHCP server context
+ **/
+
+void dhcpServerDeinit(DhcpServerContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the DHCP server context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
+
+      //Point to the underlying network interface
+      interface = context->settings.interface;
+
+      //Valid network interface?
+      if(interface != NULL)
+      {
+         //Detach the DHCP server context from the network interface
+         interface->dhcpServerContext = NULL;
+
+         //Unregister callback function
+         udpDetachRxCallback(interface, DHCP_SERVER_PORT);
+      }
+
+      //Clear the DHCP server context
+      memset(context, 0, sizeof(DhcpServerContext));
+
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+   }
 }
 
 

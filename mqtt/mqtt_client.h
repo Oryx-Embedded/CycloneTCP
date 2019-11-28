@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -143,7 +143,7 @@ struct _MqttClientContext;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -350,6 +350,16 @@ error_t mqttClientSetVersion(MqttClientContext *context, MqttVersion version);
 error_t mqttClientSetTransportProtocol(MqttClientContext *context,
    MqttTransportProtocol transportProtocol);
 
+#if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
+
+error_t mqttClientRegisterTlsInitCallback(MqttClientContext *context,
+   MqttClientTlsInitCallback callback);
+
+#endif
+
+error_t mqttClientRegisterPublishCallback(MqttClientContext *context,
+   MqttClientPublishCallback callback);
+
 error_t mqttClientSetTimeout(MqttClientContext *context, systime_t timeout);
 error_t mqttClientSetKeepAlive(MqttClientContext *context, uint16_t keepAlive);
 
@@ -395,7 +405,7 @@ error_t mqttClientProcessEvents(MqttClientContext *context, systime_t timeout);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

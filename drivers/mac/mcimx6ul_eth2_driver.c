@@ -1,6 +1,6 @@
 /**
  * @file mcimx6ul_eth2_driver.c
- * @brief i.MX6UL Ethernet MAC controller (ENET2 instance)
+ * @brief NXP i.MX6UL Ethernet MAC controller (ENET2 instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -182,8 +182,10 @@ error_t mcimx6ulEth2Init(NetInterface *interface)
 
    //Use enhanced buffer descriptors
    ENET2->ECR = ENET_ECR_DBSWP_MASK | ENET_ECR_EN1588_MASK;
-   //Clear MIC counters
+
+   //Reset statistics counters
    ENET2->MIBC = ENET_MIBC_MIB_CLEAR_MASK;
+   ENET2->MIBC = 0;
 
    //Initialize buffer descriptors
    mcimx6ulEth2InitBufferDesc(interface);
@@ -763,12 +765,25 @@ error_t mcimx6ulEth2UpdateMacAddrFilter(NetInterface *interface)
    uint_t i;
    uint_t k;
    uint32_t crc;
+   uint32_t value;
    uint32_t unicastHashTable[2];
    uint32_t multicastHashTable[2];
    MacFilterEntry *entry;
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station (upper 16 bits)
+   value = interface->macAddr.b[5];
+   value |= (interface->macAddr.b[4] << 8);
+   ENET2->PAUR = ENET_PAUR_PADDR2(value) | ENET_PAUR_TYPE(0x8808);
+
+   //Set the MAC address of the station (lower 32 bits)
+   value = interface->macAddr.b[3];
+   value |= (interface->macAddr.b[2] << 8);
+   value |= (interface->macAddr.b[1] << 16);
+   value |= (interface->macAddr.b[0] << 24);
+   ENET2->PALR = ENET_PALR_PADDR1(value);
 
    //Clear hash table (unicast address filtering)
    unicastHashTable[0] = 0;

@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -69,9 +69,11 @@ void httpServerGetDefaultSettings(HttpServerSettings *settings)
    settings->port = HTTP_PORT;
    //Maximum length of the pending connection queue
    settings->backlog = HTTP_SERVER_BACKLOG;
+
    //Client connections
    settings->maxConnections = 0;
    settings->connections = NULL;
+
    //Specify the server's root directory
    strcpy(settings->rootDirectory, "/");
    //Set default home page
@@ -118,7 +120,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Check user settings
+   //Check settings
    if(settings->maxConnections == 0 || settings->connections == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -270,7 +272,7 @@ void httpListenerTask(void *param)
       //Limit the number of simultaneous connections to the HTTP server
       osWaitForSemaphore(&context->semaphore, INFINITE_DELAY);
 
-      //Loop through available client connections
+      //Loop through the connection table
       for(i = 0; i < context->settings.maxConnections; i++)
       {
          //Point to the current connection

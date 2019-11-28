@@ -33,7 +33,7 @@
  * - RFC 2782: A DNS RR for specifying the location of services (DNS SRV)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -510,7 +510,6 @@ void dnsSdTick(DnsSdContext *context)
    systime_t time;
    systime_t delay;
    NetInterface *interface;
-   MdnsState state;
 
    //Make sure DNS-SD has been properly instantiated
    if(context == NULL)
@@ -525,22 +524,21 @@ void dnsSdTick(DnsSdContext *context)
    //Check current state
    if(context->state == MDNS_STATE_INIT)
    {
-      //Check whether the mDNS responder has been properly instantiated
-      if(interface->mdnsResponderContext != NULL)
-         state = interface->mdnsResponderContext->state;
-      else
-         state = MDNS_STATE_INIT;
-
-      //Wait for mDNS probing to complete
-      if(state == MDNS_STATE_ANNOUNCING || state == MDNS_STATE_IDLE)
+      //Ensure the mDNS and DNS-SD services are running
+      if(context->running && interface->mdnsResponderContext != NULL)
       {
-         //Any registered services?
-         if(dnsSdGetNumServices(context) > 0)
+         //Wait for mDNS probing to complete
+         if(interface->mdnsResponderContext->state == MDNS_STATE_ANNOUNCING ||
+            interface->mdnsResponderContext->state == MDNS_STATE_IDLE)
          {
-            //Initial random delay
-            delay = netGetRandRange(MDNS_RAND_DELAY_MIN, MDNS_RAND_DELAY_MAX);
-            //Perform probing
-            dnsSdChangeState(context, MDNS_STATE_PROBING, delay);
+            //Any registered services?
+            if(dnsSdGetNumServices(context) > 0)
+            {
+               //Initial random delay
+               delay = netGetRandRange(MDNS_RAND_DELAY_MIN, MDNS_RAND_DELAY_MAX);
+               //Perform probing
+               dnsSdChangeState(context, MDNS_STATE_PROBING, delay);
+            }
          }
       }
    }

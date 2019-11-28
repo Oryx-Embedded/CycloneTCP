@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _IPV4_H
@@ -107,8 +107,8 @@ struct _Ipv4PseudoHeader;
 
 //Loopback IPv4 address
 #define IPV4_LOOPBACK_ADDR IPV4_ADDR(127, 0, 0, 1)
-#define IPV4_LOOPBACK_ADDR_PREFIX IPV4_ADDR(127, 0, 0, 0)
-#define IPV4_LOOPBACK_ADDR_MASK IPV4_ADDR(255, 0, 0, 0)
+#define IPV4_LOOPBACK_PREFIX IPV4_ADDR(127, 0, 0, 0)
+#define IPV4_LOOPBACK_MASK IPV4_ADDR(255, 0, 0, 0)
 
 //Link-local addresses
 #define IPV4_LINK_LOCAL_PREFIX IPV4_ADDR(169, 254, 0, 0)
@@ -148,19 +148,23 @@ struct _Ipv4PseudoHeader;
 
 //Determine whether an IPv4 address belongs to the subnet
 #define ipv4IsOnSubnet(entry, ipAddr) \
-   ((ipAddr & entry->subnetMask) == (entry->addr & entry->subnetMask))
+   (((ipAddr) & (entry)->subnetMask) == ((entry)->addr & (entry)->subnetMask))
+
+//Determine whether an IPv4 address is a loopback address
+#define ipv4IsLoopbackAddr(ipAddr) \
+   (((ipAddr) & IPV4_LOOPBACK_MASK) == IPV4_LOOPBACK_PREFIX)
 
 //Determine whether an IPv4 address is a link-local address
 #define ipv4IsLinkLocalAddr(ipAddr) \
-   ((ipAddr & IPV4_LINK_LOCAL_MASK) == IPV4_LINK_LOCAL_PREFIX)
+   (((ipAddr) & IPV4_LINK_LOCAL_MASK) == IPV4_LINK_LOCAL_PREFIX)
 
 //Determine whether an IPv4 address is a multicast address
 #define ipv4IsMulticastAddr(ipAddr) \
-   ((ipAddr & IPV4_MULTICAST_MASK) == IPV4_MULTICAST_PREFIX)
+   (((ipAddr) & IPV4_MULTICAST_MASK) == IPV4_MULTICAST_PREFIX)
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -394,7 +398,7 @@ void ipv4DumpHeader(const Ipv4Header *ipHeader);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

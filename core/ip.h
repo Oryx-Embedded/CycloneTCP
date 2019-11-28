@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _IP_H
@@ -37,7 +37,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -116,6 +116,7 @@ error_t ipSelectSourceAddr(NetInterface **interface,
 
 bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
 bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr);
+bool_t ipIsMulticastAddr(const IpAddr *ipAddr);
 
 error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
 error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
@@ -136,7 +137,7 @@ char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

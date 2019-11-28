@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -554,6 +554,11 @@ error_t lpc175xEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   LPC_EMAC->SA0 = interface->macAddr.w[2];
+   LPC_EMAC->SA1 = interface->macAddr.w[1];
+   LPC_EMAC->SA2 = interface->macAddr.w[0];
 
    //Clear hash table
    hashTable[0] = 0;

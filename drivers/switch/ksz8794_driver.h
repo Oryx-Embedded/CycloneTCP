@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _KSZ8794_DRIVER_H
@@ -57,40 +57,216 @@
 //KSZ8794 Switch registers
 #define KSZ8794_CHIP_ID0                             0x00
 #define KSZ8794_CHIP_ID1                             0x01
+#define KSZ8794_GLOBAL_CTRL0                         0x02
+#define KSZ8794_GLOBAL_CTRL1                         0x03
+#define KSZ8794_GLOBAL_CTRL2                         0x04
+#define KSZ8794_GLOBAL_CTRL3                         0x05
+#define KSZ8794_GLOBAL_CTRL4                         0x06
+#define KSZ8794_GLOBAL_CTRL5                         0x07
+#define KSZ8794_GLOBAL_CTRL6_MIB_CTRL                0x08
+#define KSZ8794_GLOBAL_CTRL7                         0x09
+#define KSZ8794_GLOBAL_CTRL8                         0x0A
+#define KSZ8794_GLOBAL_CTRL9                         0x0B
 #define KSZ8794_GLOBAL_CTRL10                        0x0C
+#define KSZ8794_GLOBAL_CTRL11                        0x0D
+#define KSZ8794_PD_MGMT_CTRL1                        0x0E
+#define KSZ8794_PD_MGMT_CTRL2                        0x0F
 #define KSZ8794_PORT1_CTRL0                          0x10
 #define KSZ8794_PORT1_CTRL1                          0x11
 #define KSZ8794_PORT1_CTRL2                          0x12
+#define KSZ8794_PORT1_CTRL3                          0x13
+#define KSZ8794_PORT1_CTRL4                          0x14
+#define KSZ8794_PORT1_CTRL5                          0x15
+#define KSZ8794_PORT1_CTRL7                          0x17
 #define KSZ8794_PORT1_STAT0                          0x18
 #define KSZ8794_PORT1_STAT1                          0x19
+#define KSZ8794_PORT1_PHY_CTRL8                      0x1A
+#define KSZ8794_PORT1_LINKMD                         0x1B
+#define KSZ8794_PORT1_PHY_CTRL9                      0x1C
+#define KSZ8794_PORT1_PHY_CTRL10                     0x1D
 #define KSZ8794_PORT1_STAT2                          0x1E
 #define KSZ8794_PORT1_CTRL11_STAT3                   0x1F
 #define KSZ8794_PORT2_CTRL0                          0x20
 #define KSZ8794_PORT2_CTRL1                          0x21
 #define KSZ8794_PORT2_CTRL2                          0x22
+#define KSZ8794_PORT2_CTRL3                          0x23
+#define KSZ8794_PORT2_CTRL4                          0x24
+#define KSZ8794_PORT2_CTRL5                          0x25
+#define KSZ8794_PORT2_CTRL7                          0x27
 #define KSZ8794_PORT2_STAT0                          0x28
 #define KSZ8794_PORT2_STAT1                          0x29
+#define KSZ8794_PORT2_PHY_CTRL8                      0x2A
+#define KSZ8794_PORT2_LINKMD                         0x2B
+#define KSZ8794_PORT2_PHY_CTRL9                      0x2C
+#define KSZ8794_PORT2_PHY_CTRL10                     0x2D
 #define KSZ8794_PORT2_STAT2                          0x2E
 #define KSZ8794_PORT2_CTRL11_STAT3                   0x2F
 #define KSZ8794_PORT3_CTRL0                          0x30
 #define KSZ8794_PORT3_CTRL1                          0x31
 #define KSZ8794_PORT3_CTRL2                          0x32
+#define KSZ8794_PORT3_CTRL3                          0x33
+#define KSZ8794_PORT3_CTRL4                          0x34
+#define KSZ8794_PORT3_CTRL5                          0x35
+#define KSZ8794_PORT3_CTRL7                          0x37
 #define KSZ8794_PORT3_STAT0                          0x38
 #define KSZ8794_PORT3_STAT1                          0x39
+#define KSZ8794_PORT3_PHY_CTRL8                      0x3A
+#define KSZ8794_PORT3_LINKMD                         0x3B
+#define KSZ8794_PORT3_PHY_CTRL9                      0x3C
+#define KSZ8794_PORT3_PHY_CTRL10                     0x3D
 #define KSZ8794_PORT3_STAT2                          0x3E
 #define KSZ8794_PORT3_CTRL11_STAT3                   0x3F
 #define KSZ8794_PORT4_CTRL0                          0x50
 #define KSZ8794_PORT4_CTRL1                          0x51
 #define KSZ8794_PORT4_CTRL2                          0x52
+#define KSZ8794_PORT4_CTRL3                          0x53
+#define KSZ8794_PORT4_CTRL4                          0x54
+#define KSZ8794_PORT4_CTRL5                          0x55
+#define KSZ8794_PORT4_IF_CTRL6                       0x56
+#define KSZ8794_MAC_ADDR0                            0x68
+#define KSZ8794_MAC_ADDR1                            0x69
+#define KSZ8794_MAC_ADDR2                            0x6A
+#define KSZ8794_MAC_ADDR3                            0x6B
+#define KSZ8794_MAC_ADDR4                            0x6C
+#define KSZ8794_MAC_ADDR5                            0x6D
+#define KSZ8794_IND_ACCESS_CTRL0                     0x6E
+#define KSZ8794_IND_ACCESS_CTRL1                     0x6F
+#define KSZ8794_IND_DATA8                            0x70
+#define KSZ8794_IND_DATA7                            0x71
+#define KSZ8794_IND_DATA6                            0x72
+#define KSZ8794_IND_DATA5                            0x73
+#define KSZ8794_IND_DATA4                            0x74
+#define KSZ8794_IND_DATA3                            0x75
+#define KSZ8794_IND_DATA2                            0x76
+#define KSZ8794_IND_DATA1                            0x77
+#define KSZ8794_IND_DATA0                            0x78
+#define KSZ8794_INT_STAT                             0x7C
+#define KSZ8794_INT_MASK                             0x7D
+#define KSZ8794_ACL_INT_STAT                         0x7E
+#define KSZ8794_ACL_CTRL                             0x7F
+#define KSZ8794_GLOBAL_CTRL12                        0x80
+#define KSZ8794_GLOBAL_CTRL13                        0x81
+#define KSZ8794_GLOBAL_CTRL14                        0x82
+#define KSZ8794_GLOBAL_CTRL15                        0x83
+#define KSZ8794_GLOBAL_CTRL16                        0x84
+#define KSZ8794_GLOBAL_CTRL17                        0x85
+#define KSZ8794_GLOBAL_CTRL18                        0x86
+#define KSZ8794_GLOBAL_CTRL19                        0x87
+#define KSZ8794_TOS_PRIO_CTRL0                       0x90
+#define KSZ8794_TOS_PRIO_CTRL1                       0x91
+#define KSZ8794_TOS_PRIO_CTRL2                       0x92
+#define KSZ8794_TOS_PRIO_CTRL3                       0x93
+#define KSZ8794_TOS_PRIO_CTRL4                       0x94
+#define KSZ8794_TOS_PRIO_CTRL5                       0x95
+#define KSZ8794_TOS_PRIO_CTRL6                       0x96
+#define KSZ8794_TOS_PRIO_CTRL7                       0x97
+#define KSZ8794_TOS_PRIO_CTRL8                       0x98
+#define KSZ8794_TOS_PRIO_CTRL9                       0x99
+#define KSZ8794_TOS_PRIO_CTRL10                      0x9A
+#define KSZ8794_TOS_PRIO_CTRL11                      0x9B
+#define KSZ8794_TOS_PRIO_CTRL12                      0x9C
+#define KSZ8794_TOS_PRIO_CTRL13                      0x9D
+#define KSZ8794_TOS_PRIO_CTRL14                      0x9E
+#define KSZ8794_TOS_PRIO_CTRL15                      0x9F
+#define KSZ8794_IND_BYTE                             0xA0
+#define KSZ8794_GLOBAL_CTRL20                        0xA3
+#define KSZ8794_GLOBAL_CTRL21                        0xA4
+#define KSZ8794_PORT1_CTRL12                         0xB0
+#define KSZ8794_PORT1_CTRL13                         0xB1
+#define KSZ8794_PORT1_CTRL14                         0xB2
+#define KSZ8794_PORT1_CTRL15                         0xB3
+#define KSZ8794_PORT1_CTRL16                         0xB4
+#define KSZ8794_PORT1_CTRL17                         0xB5
+#define KSZ8794_PORT1_RATE_LIMIT_CTRL                0xB6
+#define KSZ8794_PORT1_PRIO0_IG_LIMIT_CTRL1           0xB7
+#define KSZ8794_PORT1_PRIO1_IG_LIMIT_CTRL2           0xB8
+#define KSZ8794_PORT1_PRIO2_IG_LIMIT_CTRL3           0xB9
+#define KSZ8794_PORT1_PRIO3_IG_LIMIT_CTRL4           0xBA
+#define KSZ8794_PORT1_QUEUE0_EG_LIMIT_CTRL1          0xBB
+#define KSZ8794_PORT1_QUEUE1_EG_LIMIT_CTRL2          0xBC
+#define KSZ8794_PORT1_QUEUE2_EG_LIMIT_CTRL3          0xBD
+#define KSZ8794_PORT1_QUEUE3_EG_LIMIT_CTRL4          0xBE
+#define KSZ8794_TEST                                 0xBF
+#define KSZ8794_PORT2_CTRL12                         0xC0
+#define KSZ8794_PORT2_CTRL13                         0xC1
+#define KSZ8794_PORT2_CTRL14                         0xC2
+#define KSZ8794_PORT2_CTRL15                         0xC3
+#define KSZ8794_PORT2_CTRL16                         0xC4
+#define KSZ8794_PORT2_CTRL17                         0xC5
+#define KSZ8794_PORT2_RATE_LIMIT_CTRL                0xC6
+#define KSZ8794_PORT2_PRIO0_IG_LIMIT_CTRL1           0xC7
+#define KSZ8794_PORT2_PRIO1_IG_LIMIT_CTRL2           0xC8
+#define KSZ8794_PORT2_PRIO2_IG_LIMIT_CTRL3           0xC9
+#define KSZ8794_PORT2_PRIO3_IG_LIMIT_CTRL4           0xCA
+#define KSZ8794_PORT2_QUEUE0_EG_LIMIT_CTRL1          0xCB
+#define KSZ8794_PORT2_QUEUE1_EG_LIMIT_CTRL2          0xCC
+#define KSZ8794_PORT2_QUEUE2_EG_LIMIT_CTRL3          0xCD
+#define KSZ8794_PORT2_QUEUE3_EG_LIMIT_CTRL4          0xCE
+#define KSZ8794_PORT3_CTRL12                         0xD0
+#define KSZ8794_PORT3_CTRL13                         0xD1
+#define KSZ8794_PORT3_CTRL14                         0xD2
+#define KSZ8794_PORT3_CTRL15                         0xD3
+#define KSZ8794_PORT3_CTRL16                         0xD4
+#define KSZ8794_PORT3_CTRL17                         0xD5
+#define KSZ8794_PORT3_RATE_LIMIT_CTRL                0xD6
+#define KSZ8794_PORT3_PRIO0_IG_LIMIT_CTRL1           0xD7
+#define KSZ8794_PORT3_PRIO1_IG_LIMIT_CTRL2           0xD8
+#define KSZ8794_PORT3_PRIO2_IG_LIMIT_CTRL3           0xD9
+#define KSZ8794_PORT3_PRIO3_IG_LIMIT_CTRL4           0xDA
+#define KSZ8794_PORT3_QUEUE0_EG_LIMIT_CTRL1          0xDB
+#define KSZ8794_PORT3_QUEUE1_EG_LIMIT_CTRL2          0xDC
+#define KSZ8794_PORT3_QUEUE2_EG_LIMIT_CTRL3          0xDD
+#define KSZ8794_PORT3_QUEUE3_EG_LIMIT_CTRL4          0xDE
+#define KSZ8794_TEST2                                0xDF
+#define KSZ8794_TEST3                                0xEF
+#define KSZ8794_PORT4_CTRL12                         0xF0
+#define KSZ8794_PORT4_CTRL13                         0xF1
+#define KSZ8794_PORT4_CTRL14                         0xF2
+#define KSZ8794_PORT4_CTRL15                         0xF3
+#define KSZ8794_PORT4_CTRL16                         0xF4
+#define KSZ8794_PORT4_CTRL17                         0xF5
+#define KSZ8794_PORT4_RATE_LIMIT_CTRL                0xF6
+#define KSZ8794_PORT4_PRIO0_IG_LIMIT_CTRL1           0xF7
+#define KSZ8794_PORT4_PRIO1_IG_LIMIT_CTRL2           0xF8
+#define KSZ8794_PORT4_PRIO2_IG_LIMIT_CTRL3           0xF9
+#define KSZ8794_PORT4_PRIO3_IG_LIMIT_CTRL4           0xFA
+#define KSZ8794_PORT4_QUEUE0_EG_LIMIT_CTRL1          0xFB
+#define KSZ8794_PORT4_QUEUE1_EG_LIMIT_CTRL2          0xFC
+#define KSZ8794_PORT4_QUEUE2_EG_LIMIT_CTRL3          0xFD
+#define KSZ8794_PORT4_QUEUE3_EG_LIMIT_CTRL4          0xFE
+#define KSZ8794_TEST4                                0xFF
 
 //KSZ8794 Switch register access macros
 #define KSZ8794_PORTn_CTRL0(port)                    (0x00 + ((port) * 0x10))
 #define KSZ8794_PORTn_CTRL1(port)                    (0x01 + ((port) * 0x10))
 #define KSZ8794_PORTn_CTRL2(port)                    (0x02 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL3(port)                    (0x03 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL4(port)                    (0x04 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL5(port)                    (0x05 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL7(port)                    (0x07 + ((port) * 0x10))
 #define KSZ8794_PORTn_STAT0(port)                    (0x08 + ((port) * 0x10))
 #define KSZ8794_PORTn_STAT1(port)                    (0x09 + ((port) * 0x10))
+#define KSZ8794_PORTn_PHY_CTRL8(port)                (0x0A + ((port) * 0x10))
+#define KSZ8794_PORTn_LINKMD(port)                   (0x0B + ((port) * 0x10))
+#define KSZ8794_PORTn_PHY_CTRL9(port)                (0x0C + ((port) * 0x10))
+#define KSZ8794_PORTn_PHY_CTRL10(port)               (0x0D + ((port) * 0x10))
 #define KSZ8794_PORTn_STAT2(port)                    (0x0E + ((port) * 0x10))
 #define KSZ8794_PORTn_CTRL11_STAT3(port)             (0x0F + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL12(port)                   (0xA0 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL13(port)                   (0xA1 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL14(port)                   (0xA2 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL15(port)                   (0xA3 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL16(port)                   (0xA4 + ((port) * 0x10))
+#define KSZ8794_PORTn_CTRL17(port)                   (0xA5 + ((port) * 0x10))
+#define KSZ8794_PORTn_RATE_LIMIT_CTRL(port)          (0xA6 + ((port) * 0x10))
+#define KSZ8794_PORTn_PRIO0_IG_LIMIT_CTRL1(port)     (0xA7 + ((port) * 0x10))
+#define KSZ8794_PORTn_PRIO1_IG_LIMIT_CTRL2(port)     (0xA8 + ((port) * 0x10))
+#define KSZ8794_PORTn_PRIO2_IG_LIMIT_CTRL3(port)     (0xA9 + ((port) * 0x10))
+#define KSZ8794_PORTn_PRIO3_IG_LIMIT_CTRL4(port)     (0xAA + ((port) * 0x10))
+#define KSZ8794_PORTn_QUEUE0_EG_LIMIT_CTRL1(port)    (0xAB + ((port) * 0x10))
+#define KSZ8794_PORTn_QUEUE1_EG_LIMIT_CTRL2(port)    (0xAC + ((port) * 0x10))
+#define KSZ8794_PORTn_QUEUE2_EG_LIMIT_CTRL3(port)    (0xAD + ((port) * 0x10))
+#define KSZ8794_PORTn_QUEUE3_EG_LIMIT_CTRL4(port)    (0xAE + ((port) * 0x10))
 
 //Basic Control register
 #define KSZ8794_BMCR_RESET                           0x8000
@@ -172,19 +348,51 @@
 #define KSZ8794_CHIP_ID1_REVISION_ID                 0x0E
 #define KSZ8794_CHIP_ID1_START_SWITCH                0x01
 
+//Global Control 1 register
+#define KSZ8794_GLOBAL_CTRL1_2KB_PKT_SUPPORT         0x40
+#define KSZ8794_GLOBAL_CTRL1_TX_FLOW_CTRL_EN         0x20
+#define KSZ8794_GLOBAL_CTRL1_RX_FLOW_CTRL_EN         0x10
+#define KSZ8794_GLOBAL_CTRL1_FRAME_LEN_CHECK_EN      0x08
+#define KSZ8794_GLOBAL_CTRL1_AGING_EN                0x04
+#define KSZ8794_GLOBAL_CTRL1_FAST_AGE_EN             0x02
+#define KSZ8794_GLOBAL_CTRL1_AGGRESSIVE_BACK_OFF_EN  0x01
+
 //Global Control 10 register
 #define KSZ8794_GLOBAL_CTRL10_TAIL_TAG_EN            0x02
-#define KSZ8794_GLOBAL_CTRL10_PASS_FLOW_CTRL_PACKET  0x01
+#define KSZ8794_GLOBAL_CTRL10_PASS_FLOW_CTRL_PKT     0x01
+
+//Port N Control 0 register
+#define KSZ8794_PORTn_CTRL0_BCAST_STORM_PROTECT_EN   0x80
+#define KSZ8794_PORTn_CTRL0_DIFFSERV_PRIO_CLASS_EN   0x40
+#define KSZ8794_PORTn_CTRL0_802_1P_PRIO_CLASS_EN     0x20
+#define KSZ8794_PORTn_CTRL0_PORT_PRIO_CLASS_EN       0x18
+#define KSZ8794_PORTn_CTRL0_TAG_INSERTION            0x04
+#define KSZ8794_PORTn_CTRL0_TAG_REMOVAL              0x02
+#define KSZ8794_PORTn_CTRL0_TWO_QUEUE_SPLIT_EN       0x01
+
+//Port N Control 1 register
+#define KSZ8794_PORTn_CTRL1_SNIFFER_PORT             0x80
+#define KSZ8794_PORTn_CTRL1_RECEIVE_SNIFF            0x40
+#define KSZ8794_PORTn_CTRL1_TRANSMIT_SNIFF           0x20
+#define KSZ8794_PORTn_CTRL1_PORT_VLAN_MEMBERSHIP     0x1F
 
 //Port N Control 2 register
 #define KSZ8794_PORTn_CTRL2_USER_PRIO_CEILING        0x80
 #define KSZ8794_PORTn_CTRL2_INGRESS_VLAN_FILT        0x40
-#define KSZ8794_PORTn_CTRL2_DISCARD_NON_PVID_PACKETS 0x20
+#define KSZ8794_PORTn_CTRL2_DISCARD_NON_PVID_PKT     0x20
 #define KSZ8794_PORTn_CTRL2_FORCE_FLOW_CTRL          0x10
 #define KSZ8794_PORTn_CTRL2_BACK_PRESSURE_EN         0x08
 #define KSZ8794_PORTn_CTRL2_TRANSMIT_EN              0x04
 #define KSZ8794_PORTn_CTRL2_RECEIVE_EN               0x02
 #define KSZ8794_PORTn_CTRL2_LEARNING_DIS             0x01
+
+//Port N Control 3 register
+#define KSZ8794_PORTn_CTRL3_DEFAULT_USER_PRIO        0xE0
+#define KSZ8794_PORTn_CTRL3_DEFAULT_CFI              0x10
+#define KSZ8794_PORTn_CTRL3_DEFAULT_VID_MSB          0x0F
+
+//Port N Control 4 register
+#define KSZ8794_PORTn_CTRL4_DEFAULT_VID_LSB          0xFF
 
 //Port N Status 0 register
 #define KSZ8794_PORTn_STAT0_LP_FLOW_CTRL_CAPABLE     0x30
@@ -226,7 +434,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //KSZ8794 Ethernet switch driver
@@ -267,7 +475,7 @@ void ksz8794DumpSwitchReg(NetInterface *interface);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

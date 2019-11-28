@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _FTP_CLIENT_TRANSPORT_H
@@ -37,31 +37,31 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //FTP client related functions
-error_t ftpClientOpenConnection(FtpClientContext *context,
-   FtpClientSocket *connection, size_t txBufferSize, size_t rxBufferSize);
+error_t ftpClientOpenChannel(FtpClientContext *context,
+   FtpClientChannel *channel, size_t txBufferSize, size_t rxBufferSize);
 
-error_t ftpClientOpenSecureConnection(FtpClientContext *context,
-   FtpClientSocket *connection, size_t txBufferSize, size_t rxBufferSize);
+error_t ftpClientOpenSecureChannel(FtpClientContext *context,
+   FtpClientChannel *channel, size_t txBufferSize, size_t rxBufferSize);
 
-error_t ftpClientEstablishSecureConnection(FtpClientSocket *connection);
+error_t ftpClientEstablishSecureChannel(FtpClientChannel *channel);
 
-error_t ftpClientShutdownConnection(FtpClientSocket *connection);
+error_t ftpClientShutdownChannel(FtpClientChannel *channel);
 
-void ftpClientCloseConnection(FtpClientSocket *connection);
+void ftpClientCloseChannel(FtpClientChannel *channel);
 
-error_t ftpClientSendData(FtpClientSocket *connection, const void *data,
+error_t ftpClientWriteChannel(FtpClientChannel *channel, const void *data,
    size_t length, size_t *written, uint_t flags);
 
-error_t ftpClientReceiveData(FtpClientSocket *connection, void *data,
+error_t ftpClientReadChannel(FtpClientChannel *channel, void *data,
    size_t size, size_t *received, uint_t flags);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

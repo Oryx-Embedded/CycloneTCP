@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -120,7 +120,7 @@ struct _ModbusClientConnection;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -213,19 +213,22 @@ typedef error_t (*ModbusServerProcessPduCallback)(const uint8_t *request,
 
 typedef struct
 {
-   NetInterface *interface;                            ///<Underlying network interface
-   uint16_t port;                                      ///<Modbus/TCP port number
-   uint8_t unitId;                                     ///<Unit identifier
+   NetInterface *interface;                                ///<Underlying network interface
+   uint16_t port;                                          ///<Modbus/TCP port number
+   uint8_t unitId;                                         ///<Unit identifier
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
-   ModbusServerTlsInitCallback tlsInitCallback;        ///<TLS initialization callback function
+   ModbusServerTlsInitCallback tlsInitCallback;            ///<TLS initialization callback function
 #endif
-   ModbusServerLockCallback lockCallback;              ///<Lock Modbus table callback function
-   ModbusServerUnlockCallback unlockCallback;          ///<Unlock Modbus table callback function
-   ModbusServerReadCoilCallback readCoilCallback;      ///<Get coil state callback function
-   ModbusServerWriteCoilCallback writeCoilCallback;    ///<Set coil state callback function
-   ModbusServerReadRegCallback readRegCallback;        ///<Get register value callback function
-   ModbusServerWriteRegCallback writeRegCallback;      ///<Set register value callback function
-   ModbusServerProcessPduCallback processPduCallback;  ///<PDU processing callback
+   ModbusServerLockCallback lockCallback;                  ///<Lock Modbus table callback function
+   ModbusServerUnlockCallback unlockCallback;              ///<Unlock Modbus table callback function
+   ModbusServerReadCoilCallback readCoilCallback;          ///<Get coil state callback function
+   ModbusServerReadCoilCallback readDiscreteInputCallback; ///<Get discrete input state callback function
+   ModbusServerWriteCoilCallback writeCoilCallback;        ///<Set coil state callback function
+   ModbusServerReadRegCallback readRegCallback;            ///<Get register value callback function
+   ModbusServerReadRegCallback readHoldingRegCallback;     ///<Get holding register value callback function
+   ModbusServerReadRegCallback readInputRegCallback;       ///<Get input register value callback function
+   ModbusServerWriteRegCallback writeRegCallback;          ///<Set register value callback function
+   ModbusServerProcessPduCallback processPduCallback;      ///<PDU processing callback
 } ModbusServerSettings;
 
 
@@ -283,7 +286,7 @@ void modbusServerDeinit(ModbusServerContext *context);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

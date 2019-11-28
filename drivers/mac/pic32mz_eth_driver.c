@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -43,16 +43,16 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 static uint8_t txBuffer[PIC32MZ_ETH_TX_BUFFER_COUNT][PIC32MZ_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4)));
+   __attribute__((coherent, aligned(4)));
 //Receive buffer
 static uint8_t rxBuffer[PIC32MZ_ETH_RX_BUFFER_COUNT][PIC32MZ_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(4)));
+   __attribute__((coherent, aligned(4)));
 //Transmit buffer descriptors
 static Pic32mzTxBufferDesc txBufferDesc[PIC32MZ_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4)));
+   __attribute__((coherent, aligned(4)));
 //Receive buffer descriptors
 static Pic32mzRxBufferDesc rxBufferDesc[PIC32MZ_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4)));
+   __attribute__((coherent, aligned(4)));
 
 //Pointer to the current TX buffer descriptor
 static Pic32mzTxBufferDesc *txCurBufferDesc;
@@ -205,10 +205,11 @@ error_t pic32mzEthInit(NetInterface *interface)
 }
 
 
-//PIC32MZ EC Starter Kit, PIC32MZ EF Starter Kit, PIC32MZ EF Curiosity
-//or IoT Ethernet Kit?
+//PIC32MZ EC Starter Kit, PIC32MZ EF Starter Kit, PIC32MZ EF Curiosity,
+//PIC32MZ EF Curiosity 2.0 or IoT Ethernet Kit?
 #if defined(USE_PIC32MZ_EC_STARTER_KIT) || defined(USE_PIC32MZ_EF_STARTER_KIT) || \
-   defined(USE_PIC32MZ_EF_CURIOSITY) || defined(USE_IOT_ETHERNET_KIT)
+   defined(USE_PIC32MZ_EF_CURIOSITY) || defined(USE_PIC32MZ_EF_CURIOSITY_2) || \
+   defined(USE_IOT_ETHERNET_KIT)
 
 /**
  * @brief GPIO configuration
@@ -243,6 +244,19 @@ void pic32mzEthInitGpio(NetInterface *interface)
    //Disable analog pad on EREFCLK (AN11/RG9)
    ANSELGCLR = _ANSELG_ANSG9_MASK;
 
+//PIC32MZ EF Curiosity 2.0?
+#elif defined(USE_PIC32MZ_EF_CURIOSITY_2)
+   //Disable analog pad on ETXD0 (AN35/RJ8)
+   ANSELJCLR = _ANSELJ_ANSJ8_MASK;
+   //Disable analog pad on ETXD1 (AN36/RJ9)
+   ANSELJCLR = _ANSELJ_ANSJ9_MASK;
+   //Disable analog pad on EREFCLK (AN37/RJ11)
+   ANSELJCLR = _ANSELJ_ANSJ11_MASK;
+   //Disable analog pad on ERXERR (AN40/RH4)
+   ANSELHCLR = _ANSELH_ANSH4_MASK;
+   //Disable analog pad on ERXD1 (AN41/RH5)
+   ANSELHCLR = _ANSELH_ANSH5_MASK;
+
 //IoT Ethernet Kit?
 #elif defined(USE_IOT_ETHERNET_KIT)
    //Disable analog pad on ERXERR (AN18/RE4)
@@ -272,50 +286,50 @@ void pic32mzEthInitBufferDesc(NetInterface *interface)
    for(i = 0; i < PIC32MZ_ETH_TX_BUFFER_COUNT; i++)
    {
       //Point to the current descriptor
-      txCurBufferDesc = KVA0_TO_KVA1(&txBufferDesc[i]);
+      txCurBufferDesc = &txBufferDesc[i];
 
       //Use linked list rather than linear list
       txCurBufferDesc->control = ETH_TX_CTRL_NPV;
       //Transmit buffer address
-      txCurBufferDesc->address = (uint32_t) KVA_TO_PA(txBuffer[i]);
+      txCurBufferDesc->address = KVA_TO_PA(txBuffer[i]);
       //Transmit status vector
       txCurBufferDesc->status1 = 0;
       txCurBufferDesc->status2 = 0;
       //Next descriptor address
-      txCurBufferDesc->next = (uint32_t) KVA_TO_PA(&txBufferDesc[i + 1]);
+      txCurBufferDesc->next = KVA_TO_PA(&txBufferDesc[i + 1]);
    }
 
    //The last descriptor is chained to the first entry
-   txCurBufferDesc->next = (uint32_t) KVA_TO_PA(&txBufferDesc[0]);
+   txCurBufferDesc->next = KVA_TO_PA(&txBufferDesc[0]);
    //Point to the very first descriptor
-   txCurBufferDesc = KVA0_TO_KVA1(&txBufferDesc[0]);
+   txCurBufferDesc = &txBufferDesc[0];
 
    //Initialize RX descriptor list
    for(i = 0; i < PIC32MZ_ETH_RX_BUFFER_COUNT; i++)
    {
       //Point to the current descriptor
-      rxCurBufferDesc = KVA0_TO_KVA1(&rxBufferDesc[i]);
+      rxCurBufferDesc = &rxBufferDesc[i];
 
       //The descriptor is initially owned by the DMA
       rxCurBufferDesc->control = ETH_RX_CTRL_NPV | ETH_RX_CTRL_EOWN;
       //Receive buffer address
-      rxCurBufferDesc->address = (uint32_t) KVA_TO_PA(rxBuffer[i]);
+      rxCurBufferDesc->address = KVA_TO_PA(rxBuffer[i]);
       //Receive status vector
       rxCurBufferDesc->status1 = 0;
       rxCurBufferDesc->status2 = 0;
       //Next descriptor address
-      rxCurBufferDesc->next = (uint32_t) KVA_TO_PA(&rxBufferDesc[i + 1]);
+      rxCurBufferDesc->next = KVA_TO_PA(&rxBufferDesc[i + 1]);
    }
 
    //The last descriptor is chained to the first entry
-   rxCurBufferDesc->next = (uint32_t) KVA_TO_PA(&rxBufferDesc[0]);
+   rxCurBufferDesc->next = KVA_TO_PA(&rxBufferDesc[0]);
    //Point to the very first descriptor
-   rxCurBufferDesc = KVA0_TO_KVA1(&rxBufferDesc[0]);
+   rxCurBufferDesc = &rxBufferDesc[0];
 
    //Starting address of TX descriptor table
-   ETHTXST = (uint32_t) KVA_TO_PA(&txBufferDesc[0]);
+   ETHTXST = KVA_TO_PA(&txBufferDesc[0]);
    //Starting address of RX descriptor table
-   ETHRXST = (uint32_t) KVA_TO_PA(&rxBufferDesc[0]);
+   ETHRXST = KVA_TO_PA(&rxBufferDesc[0]);
    //Set receive buffer size
    ETHCON2 = PIC32MZ_ETH_RX_BUFFER_SIZE;
 }

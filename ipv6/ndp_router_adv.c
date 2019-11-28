@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -614,8 +614,8 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
 
    //Routers must use their link-local address as the source for Router
    //Advertisement messages so that hosts can uniquely identify routers
-   error = ipv6SelectSourceAddr(&interface,
-      &pseudoHeader.destAddr, &pseudoHeader.srcAddr);
+   error = ipv6SelectSourceAddr(&interface, &pseudoHeader.destAddr,
+      &pseudoHeader.srcAddr);
 
    //No link-local address assigned to the interface?
    if(error)

@@ -25,114 +25,61 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _FTP_SERVER_COMMANDS_H
 #define _FTP_SERVER_COMMANDS_H
 
 //Dependencies
+#include "core/net.h"
 #include "ftp/ftp_server.h"
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //FTP server related functions
-void ftpServerProcessCmd(FtpServerContext *context,
-   FtpClientConnection *connection);
+void ftpServerProcessCommand(FtpClientConnection *connection);
 
-void ftpServerProcessUnknownCmd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
+void ftpServerProcessNoop(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessSyst(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessFeat(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessAuth(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessPbsz(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessProt(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessType(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessStru(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessMode(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessUser(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessPass(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessRein(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessQuit(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessPort(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessEpsv(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessAbor(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessPwd(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessCdup(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessList(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessSize(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessStor(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessDele(FtpClientConnection *connection, char_t *param);
 
-void ftpServerProcessNoop(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessSyst(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessFeat(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessType(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessStru(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessMode(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessUser(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessPass(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessRein(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessQuit(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessPort(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessEprt(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessPasv(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessEpsv(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessAbor(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessPwd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessCwd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessCdup(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessList(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessMkd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessRmd(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessSize(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessRetr(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessStor(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessAppe(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessRnfr(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessRnto(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
-
-void ftpServerProcessDele(FtpServerContext *context,
-   FtpClientConnection *connection, char_t *param);
+void ftpServerProcessUnknownCmd(FtpClientConnection *connection, char_t *param);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

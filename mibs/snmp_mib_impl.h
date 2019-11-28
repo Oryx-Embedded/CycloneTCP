@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _SNMP_MIB_IMPL_H
@@ -36,7 +36,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //SNMP MIB related functions
@@ -93,7 +93,7 @@ error_t snmpMibGetSnmpSetSerialNo(const MibObject *object, const uint8_t *oid,
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

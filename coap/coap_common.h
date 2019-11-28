@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _COAP_COMMON_H
@@ -36,7 +36,7 @@
 
 //Maximum size of CoAP messages
 #ifndef COAP_MAX_MSG_SIZE
-   #define COAP_MAX_MSG_SIZE 1024
+   #define COAP_MAX_MSG_SIZE 1152
 #elif (COAP_MAX_MSG_SIZE < 16)
    #error COAP_MAX_MSG_SIZE parameter is not valid
 #endif
@@ -62,7 +62,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -208,7 +208,7 @@ typedef __start_packed struct
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

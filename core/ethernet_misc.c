@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -38,6 +38,7 @@
 #include "core/net.h"
 #include "core/nic.h"
 #include "core/ethernet.h"
+#include "core/ethernet_misc.h"
 #include "core/socket.h"
 #include "core/raw_socket.h"
 #include "core/tcp_timer.h"

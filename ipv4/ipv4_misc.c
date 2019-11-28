@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -477,7 +477,7 @@ bool_t ipv4IsLocalHostAddr(Ipv4Addr ipAddr)
    flag = FALSE;
 
    //Loopback address?
-   if((ipAddr & IPV4_LOOPBACK_ADDR_MASK) == IPV4_LOOPBACK_ADDR_PREFIX)
+   if(ipv4IsLoopbackAddr(ipAddr))
    {
       //The 127.0.0.0/8 block is assigned for use as the host loopback address.
       //A datagram sent by a higher-level protocol to an address anywhere within
@@ -552,7 +552,7 @@ uint_t ipv4GetAddrScope(Ipv4Addr ipAddr)
    else
    {
       //Loopback address?
-      if((ipAddr & IPV4_LOOPBACK_ADDR_MASK) == IPV4_LOOPBACK_ADDR_PREFIX)
+      if((ipAddr & IPV4_LOOPBACK_MASK) == IPV4_LOOPBACK_PREFIX)
       {
          //IPv4 loopback addresses, which have the prefix 127.0.0.0/8,
          //are assigned interface-local scope

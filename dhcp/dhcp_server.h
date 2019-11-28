@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _DHCP_SERVER_H
@@ -71,7 +71,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -128,7 +128,12 @@ extern systime_t dhcpServerTickCounter;
 
 //DHCP server related functions
 void dhcpServerGetDefaultSettings(DhcpServerSettings *settings);
-error_t dhcpServerInit(DhcpServerContext *context, const DhcpServerSettings *settings);
+
+error_t dhcpServerInit(DhcpServerContext *context,
+   const DhcpServerSettings *settings);
+
+void dhcpServerDeinit(DhcpServerContext *context);
+
 error_t dhcpServerStart(DhcpServerContext *context);
 error_t dhcpServerStop(DhcpServerContext *context);
 
@@ -168,7 +173,7 @@ error_t dhcpServerGetNextIpAddr(DhcpServerContext *context, Ipv4Addr *ipAddr);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

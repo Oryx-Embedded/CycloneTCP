@@ -33,7 +33,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -82,7 +82,6 @@ error_t ftpClientInit(FtpClientContext *context)
 
    //Initialize FTP client state
    context->state = FTP_CLIENT_STATE_DISCONNECTED;
-
    //Default timeout
    context->timeout = FTP_CLIENT_DEFAULT_TIMEOUT;
 
@@ -194,7 +193,7 @@ error_t ftpClientConnect(FtpClientContext *context,
          context->passiveMode = (mode & FTP_MODE_PASSIVE) ? TRUE : FALSE;
 
          //Open control socket
-         error = ftpClientOpenConnection(context, &context->controlConnection,
+         error = ftpClientOpenChannel(context, &context->controlChannel,
             FTP_CLIENT_MIN_TCP_BUFFER_SIZE, FTP_CLIENT_MIN_TCP_BUFFER_SIZE);
 
          //Check status code
@@ -207,7 +206,7 @@ error_t ftpClientConnect(FtpClientContext *context,
       else if(context->state == FTP_CLIENT_STATE_CONNECTING_TCP)
       {
          //Establish TCP connection
-         error = socketConnect(context->controlConnection.socket, serverIpAddr,
+         error = socketConnect(context->controlChannel.socket, serverIpAddr,
             serverPort);
 
          //Check status code
@@ -217,8 +216,8 @@ error_t ftpClientConnect(FtpClientContext *context,
             if(mode & FTP_MODE_IMPLICIT_TLS)
             {
                //TLS initialization
-               error = ftpClientOpenSecureConnection(context,
-                  &context->controlConnection, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
+               error = ftpClientOpenSecureChannel(context,
+                  &context->controlChannel, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
                   FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE);
 
                //Check status code
@@ -243,7 +242,7 @@ error_t ftpClientConnect(FtpClientContext *context,
       else if(context->state == FTP_CLIENT_STATE_CONNECTING_TLS)
       {
          //Perform TLS handshake
-         error = ftpClientEstablishSecureConnection(&context->controlConnection);
+         error = ftpClientEstablishSecureChannel(&context->controlChannel);
 
          //Check status code
          if(!error)
@@ -315,8 +314,8 @@ error_t ftpClientConnect(FtpClientContext *context,
             if(FTP_REPLY_CODE_2YZ(context->replyCode))
             {
                //TLS initialization
-               error = ftpClientOpenSecureConnection(context,
-                  &context->controlConnection, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
+               error = ftpClientOpenSecureChannel(context,
+                  &context->controlChannel, FTP_CLIENT_TLS_TX_BUFFER_SIZE,
                   FTP_CLIENT_MIN_TLS_RX_BUFFER_SIZE);
 
                //Check status code
@@ -356,7 +355,7 @@ error_t ftpClientConnect(FtpClientContext *context,
    if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
       //Clean up side effects
-      ftpClientCloseConnection(&context->controlConnection);
+      ftpClientCloseChannel(&context->controlChannel);
       //Update FTP client state
       ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTED);
    }
@@ -617,7 +616,7 @@ error_t ftpClientGetWorkingDir(FtpClientContext *context, char_t *path,
 /**
  * @brief Change working directory
  * @param[in] context Pointer to the FTP client context
- * @param[in] path The new current working directory
+ * @param[in] path New current working directory
  * @return Error code
  **/
 
@@ -878,7 +877,7 @@ error_t ftpClientOpenDir(FtpClientContext *context, const char_t *path)
    if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
       //Close data connection
-      ftpClientCloseConnection(&context->dataConnection);
+      ftpClientCloseChannel(&context->dataChannel);
       //Update FTP client state
       ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
    }
@@ -920,7 +919,7 @@ error_t ftpClientReadDir(FtpClientContext *context, FtpDirEntry *dirEntry)
          if(context->replyLen < (FTP_CLIENT_BUFFER_SIZE - 1))
          {
             //Receive data from the FTP server
-            error = ftpClientReceiveData(&context->dataConnection,
+            error = ftpClientReadChannel(&context->dataChannel,
                context->buffer + context->replyLen,
                FTP_CLIENT_BUFFER_SIZE - 1 - context->replyLen,
                &n, SOCKET_FLAG_BREAK_CRLF);
@@ -1004,7 +1003,7 @@ error_t ftpClientCloseDir(FtpClientContext *context)
 /**
  * @brief Create a new directory
  * @param[in] context Pointer to the FTP client context
- * @param[in] path The name of the new directory
+ * @param[in] path Name of the new directory
  * @return Error code
  **/
 
@@ -1076,7 +1075,7 @@ error_t ftpClientCreateDir(FtpClientContext *context, const char_t *path)
 
 
 /**
- * @brief Remove a directory on the FTP server
+ * @brief Remove a directory
  * @param[in] context Pointer to the FTP client context
  * @param[in] path Path to the directory to be removed
  * @return Error code
@@ -1283,7 +1282,7 @@ error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
    if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
       //Close data connection
-      ftpClientCloseConnection(&context->dataConnection);
+      ftpClientCloseChannel(&context->dataChannel);
       //Update FTP client state
       ftpClientChangeState(context, FTP_CLIENT_STATE_CONNECTED);
    }
@@ -1324,7 +1323,7 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
    if(context->state == FTP_CLIENT_STATE_WRITING_DATA)
    {
       //Transmit data to the FTP server
-      error = ftpClientSendData(&context->dataConnection, data, length, &n,
+      error = ftpClientWriteChannel(&context->dataChannel, data, length, &n,
          flags);
 
       //Check status code
@@ -1383,7 +1382,7 @@ error_t ftpClientReadFile(FtpClientContext *context, void *data, size_t size,
    if(context->state == FTP_CLIENT_STATE_READING_DATA)
    {
       //Receive data from the FTP server
-      error = ftpClientReceiveData(&context->dataConnection, data, size,
+      error = ftpClientReadChannel(&context->dataChannel, data, size,
          received, flags);
 
       //Check status code
@@ -1431,20 +1430,20 @@ error_t ftpClientCloseFile(FtpClientContext *context)
 
 
 /**
- * @brief Rename a remote file
+ * @brief Rename a file
  * @param[in] context Pointer to the FTP client context
- * @param[in] oldName The name of the remote file to rename
- * @param[in] newName The new name of the remote file
+ * @param[in] oldPath Name of an existing file or directory
+ * @param[in] newPath New name for the file or directory
  * @return Error code
  **/
 
-error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldName,
-   const char_t *newName)
+error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldPath,
+   const char_t *newPath)
 {
    error_t error;
 
    //Check parameters
-   if(context == NULL || oldName == NULL || newName == NULL)
+   if(context == NULL || oldPath == NULL || newPath == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Initialize status code
@@ -1457,7 +1456,7 @@ error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldName,
       if(context->state == FTP_CLIENT_STATE_CONNECTED)
       {
          //Format RNFR command
-         error = ftpClientFormatCommand(context, "RNFR", oldName);
+         error = ftpClientFormatCommand(context, "RNFR", oldPath);
 
          //Check status code
          if(!error)
@@ -1478,7 +1477,7 @@ error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldName,
             if(FTP_REPLY_CODE_3YZ(context->replyCode))
             {
                //Format RNTO command
-               error = ftpClientFormatCommand(context, "RNTO", newName);
+               error = ftpClientFormatCommand(context, "RNTO", newPath);
 
                //Check status code
                if(!error)
@@ -1666,13 +1665,13 @@ error_t ftpClientDisconnect(FtpClientContext *context)
       else if(context->state == FTP_CLIENT_STATE_DISCONNECTING_1)
       {
          //Shutdown data connection
-         error = ftpClientShutdownConnection(&context->dataConnection);
+         error = ftpClientShutdownChannel(&context->dataChannel);
 
          //Check status code
          if(!error)
          {
             //Close data connection
-            ftpClientCloseConnection(&context->dataConnection);
+            ftpClientCloseChannel(&context->dataChannel);
             //Update FTP client state
             ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTING_2);
          }
@@ -1680,13 +1679,13 @@ error_t ftpClientDisconnect(FtpClientContext *context)
       else if(context->state == FTP_CLIENT_STATE_DISCONNECTING_2)
       {
          //Shutdown control connection
-         error = ftpClientShutdownConnection(&context->controlConnection);
+         error = ftpClientShutdownChannel(&context->controlChannel);
 
          //Check status code
          if(!error)
          {
             //Close control connection
-            ftpClientCloseConnection(&context->controlConnection);
+            ftpClientCloseChannel(&context->controlChannel);
             //Update FTP client state
             ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTED);
          }
@@ -1714,8 +1713,8 @@ error_t ftpClientDisconnect(FtpClientContext *context)
    if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
    {
       //Close data and control connections
-      ftpClientCloseConnection(&context->dataConnection);
-      ftpClientCloseConnection(&context->controlConnection);
+      ftpClientCloseChannel(&context->dataChannel);
+      ftpClientCloseChannel(&context->controlChannel);
 
       //Update FTP client state
       ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTED);
@@ -1739,8 +1738,8 @@ error_t ftpClientClose(FtpClientContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Close data and control connections
-   ftpClientCloseConnection(&context->dataConnection);
-   ftpClientCloseConnection(&context->controlConnection);
+   ftpClientCloseChannel(&context->dataChannel);
+   ftpClientCloseChannel(&context->controlChannel);
 
    //Update FTP client state
    ftpClientChangeState(context, FTP_CLIENT_STATE_DISCONNECTED);
@@ -1761,8 +1760,8 @@ void ftpClientDeinit(FtpClientContext *context)
    if(context != NULL)
    {
       //Close data and control connections
-      ftpClientCloseConnection(&context->dataConnection);
-      ftpClientCloseConnection(&context->controlConnection);
+      ftpClientCloseChannel(&context->dataChannel);
+      ftpClientCloseChannel(&context->controlChannel);
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
       //Release TLS session state

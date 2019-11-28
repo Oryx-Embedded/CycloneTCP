@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _SSI_H
@@ -36,7 +36,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //SSI related functions
@@ -55,7 +55,7 @@ error_t ssiSearchTag(const char_t *s, size_t sLen, const char_t *tag, size_t tag
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _MODBUS_SERVER_SECURITY_H
@@ -40,12 +40,12 @@
    #include "core/crypto.h"
    #include "encoding/asn1.h"
    #include "encoding/oid.h"
-   #include "certificate/x509_cert_parse.h"
+   #include "pkix/x509_cert_parse.h"
 #endif
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //Modbus/TCP server related functions
@@ -59,7 +59,7 @@ error_t modbusServerEstablishSecureConnection(ModbusClientConnection *connection
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

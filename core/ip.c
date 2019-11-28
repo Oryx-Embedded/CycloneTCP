@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -241,6 +241,44 @@ bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr)
    }
 
    //Return TRUE if the IP address is unspecified, else FALSE
+   return result;
+}
+
+
+/**
+ * @brief Determine whether an IP address is a multicast address
+ * @param[in] ipAddr IP address
+ * @return TRUE if the IP address is a multicast address, else FALSE
+ **/
+
+bool_t ipIsMulticastAddr(const IpAddr *ipAddr)
+{
+   bool_t result;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 address?
+   if(ipAddr->length == sizeof(Ipv4Addr))
+   {
+      //Check whether the IPv4 address is a multicast address
+      result = ipv4IsMulticastAddr(ipAddr->ipv4Addr);
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 address?
+   if(ipAddr->length == sizeof(Ipv6Addr))
+   {
+      //Check whether the IPv6 address is a multicast address
+      result = ipv6IsMulticastAddr(&ipAddr->ipv6Addr);
+   }
+   else
+#endif
+   //Invalid IP address?
+   {
+      result = FALSE;
+   }
+
+   //Return TRUE if the IP address is a multicast address, else FALSE
    return result;
 }
 

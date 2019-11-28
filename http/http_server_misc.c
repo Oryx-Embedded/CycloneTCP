@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -481,6 +481,14 @@ void httpParseHeaderField(HttpConnection *connection,
          WEB_SOCKET_CLIENT_KEY_SIZE + 1);
    }
 #endif
+#if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
+   //Cookie header field?
+   else if(!strcasecmp(name, "Cookie"))
+   {
+      //Parse Cookie header field
+      httpParseCookieField(connection, value);
+   }
+#endif
 }
 
 
@@ -631,6 +639,21 @@ void httpParseAcceptEncodingField(HttpConnection *connection,
       //Get next value
       token = strtok_r(NULL, ",", &p);
    }
+#endif
+}
+
+
+/**
+ * @brief Parse Cookie header field
+ * @param[in] connection Structure representing an HTTP connection
+ * @param[in] value Accept-Encoding field value
+ **/
+
+void httpParseCookieField(HttpConnection *connection, char_t *value)
+{
+#if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
+   //Save the value of the header field
+   strSafeCopy(connection->request.cookie, value, HTTP_SERVER_COOKIE_MAX_LEN);
 #endif
 }
 
@@ -857,6 +880,15 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    {
       //Add WWW-Authenticate header field
       p += httpAddAuthenticateField(connection, p);
+   }
+#endif
+
+#if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
+   //Valid cookie
+   if(connection->response.setCookie[0] != '\0')
+   {
+      //Add Set-Cookie header field
+      p += sprintf(p, "Set-Cookie: %s\r\n", connection->response.setCookie);
    }
 #endif
 

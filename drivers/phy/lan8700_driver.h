@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _LAN8700_DRIVER_H
@@ -182,7 +182,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //LAN8700 Ethernet PHY driver
@@ -207,7 +207,7 @@ void lan8700DumpPhyReg(NetInterface *interface);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

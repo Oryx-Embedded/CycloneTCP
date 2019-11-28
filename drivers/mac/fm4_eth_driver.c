@@ -1,6 +1,6 @@
 /**
  * @file fm4_eth_driver.c
- * @brief Spansion FM4 Ethernet MAC controller
+ * @brief Cypress FM4 Ethernet MAC controller
  *
  * @section License
  *
@@ -25,14 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
 //Dependencies
-#include "s6e2cc.h"
+#include "mcu.h"
 #include "core/net.h"
 #include "drivers/mac/fm4_eth_driver.h"
 #include "debug.h"
@@ -198,9 +198,9 @@ error_t fm4EthInit(NetInterface *interface)
 
    //Prevent interrupts from being generated when statistic counters reach
    //half their maximum value
-   FM4_ETHERNET_MAC0->mmc_intr_mask_tx = 0xFFFFFFFF;
-   FM4_ETHERNET_MAC0->mmc_intr_mask_rx = 0xFFFFFFFF;
-   FM4_ETHERNET_MAC0->mmc_ipc_intr_mask_rx = 0xFFFFFFFF;
+   FM4_ETHERNET_MAC0->MMC_INTR_MASK_TX = 0xFFFFFFFF;
+   FM4_ETHERNET_MAC0->MMC_INTR_MASK_RX = 0xFFFFFFFF;
+   FM4_ETHERNET_MAC0->MMC_IPC_INTR_MASK_RX = 0xFFFFFFFF;
 
    //Disable MAC interrupts
    bFM4_ETHERNET_MAC0_IMR_LPIIM = 1;
@@ -236,8 +236,8 @@ error_t fm4EthInit(NetInterface *interface)
 }
 
 
-//SK-FM4-176L-S6E2CC-ETH evaluation board?
-#if defined(USE_SK_FM4_176L_S6E2CC_ETH)
+//SK-FM4-176L-S6E2CC-ETH or SK-FM4-176L-S6E2GM evaluation board?
+#if defined(USE_SK_FM4_176L_S6E2CC_ETH) || defined(USE_SK_FM4_176L_S6E2GM)
 
 /**
  * @brief GPIO configuration
@@ -298,13 +298,13 @@ void fm4EthInitGpio(NetInterface *interface)
    FM4_GPIO->EPFR14_f.E_SPLC = 1;
 
    //Configure PHY_RST as an output
-   FM4_GPIO->PFR6_f.PA = 0;
-   FM4_GPIO->DDR6_f.PA = 1;
+   FM4_GPIO->PFR6_f.P5 = 0;
+   FM4_GPIO->DDR6_f.P5 = 1;
 
    //Reset PHY transceiver
-   FM4_GPIO->PDOR6_f.PA = 0;
+   FM4_GPIO->PDOR6_f.P5 = 0;
    sleep(10);
-   FM4_GPIO->PDOR6_f.PA = 1;
+   FM4_GPIO->PDOR6_f.P5 = 1;
    sleep(10);
 }
 
@@ -639,6 +639,10 @@ error_t fm4EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   FM4_ETHERNET_MAC0->MAR0L = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   FM4_ETHERNET_MAC0->MAR0H = interface->macAddr.w[2];
 
    //Clear hash table
    hashTable[0] = 0;

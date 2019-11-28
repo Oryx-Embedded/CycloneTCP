@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -1308,7 +1308,9 @@ uint_t ipv6GetMulticastAddrScope(const Ipv6Addr *ipAddr)
    //must be treated the same as packets destined to a global multicast
    //address (refer to RFC 3513 section 2.7)
    if(scope == 0x0F)
+   {
       scope = IPV6_ADDR_SCOPE_GLOBAL;
+   }
 
    //Return the scope of the specified IPv6 multicast address
    return scope;
@@ -1327,6 +1329,7 @@ uint_t ipv6GetCommonPrefixLength(const Ipv6Addr *ipAddr1,
 {
    uint_t i;
    uint_t j;
+   uint8_t mask;
 
    //Clear bit counter
    j = 0;
@@ -1336,25 +1339,30 @@ uint_t ipv6GetCommonPrefixLength(const Ipv6Addr *ipAddr1,
    {
       //Loop as long as prefixes match
       if(ipAddr1->b[i] != ipAddr2->b[i])
+      {
          break;
+      }
    }
 
-   //Mismatch?
+   //Any mismatch?
    if(i < sizeof(Ipv6Addr))
    {
       //Perform a bit-for-bit comparison
       for(j = 0; j < 8; j++)
       {
          //Calculate the mask to be applied
-         uint8_t mask = 1 << (7 - j);
+         mask = 1 << (7 - j);
 
          //Loop as long as prefixes match
          if((ipAddr1->b[i] & mask) != (ipAddr2->b[i] & mask))
+         {
             break;
+         }
       }
    }
 
-   //Return the length of the longest common prefix, in bits
+   //Return the length of the longest prefix that the two addresses
+   //have in common
    return i * 8 + j;
 }
 
@@ -1369,21 +1377,31 @@ uint_t ipv6GetCommonPrefixLength(const Ipv6Addr *ipAddr1,
 error_t ipv6ComputeSolicitedNodeAddr(const Ipv6Addr *ipAddr,
    Ipv6Addr *solicitedNodeAddr)
 {
+   error_t error;
+
    //Ensure the specified address is a valid unicast or anycast address
-   if(ipv6IsMulticastAddr(ipAddr))
-      return ERROR_INVALID_ADDRESS;
+   if(!ipv6IsMulticastAddr(ipAddr))
+   {
+      //Copy the 104-bit prefix
+      ipv6CopyAddr(solicitedNodeAddr, &IPV6_SOLICITED_NODE_ADDR_PREFIX);
 
-   //Copy the 104-bit prefix
-   ipv6CopyAddr(solicitedNodeAddr, &IPV6_SOLICITED_NODE_ADDR_PREFIX);
+      //Take the low-order 24 bits of the address (unicast or anycast) and
+      //append those bits to the prefix
+      solicitedNodeAddr->b[13] = ipAddr->b[13];
+      solicitedNodeAddr->b[14] = ipAddr->b[14];
+      solicitedNodeAddr->b[15] = ipAddr->b[15];
 
-   //Take the low-order 24 bits of the address (unicast or
-   //anycast) and append those bits to the prefix
-   solicitedNodeAddr->b[13] = ipAddr->b[13];
-   solicitedNodeAddr->b[14] = ipAddr->b[14];
-   solicitedNodeAddr->b[15] = ipAddr->b[15];
+      //Sucessful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_ADDRESS;
+   }
 
-   //No error to report
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
@@ -1396,25 +1414,35 @@ error_t ipv6ComputeSolicitedNodeAddr(const Ipv6Addr *ipAddr,
 
 error_t ipv6MapMulticastAddrToMac(const Ipv6Addr *ipAddr, MacAddr *macAddr)
 {
+   error_t error;
+
    //Ensure the specified IPv6 address is a multicast address
-   if(!ipv6IsMulticastAddr(ipAddr))
-      return ERROR_INVALID_ADDRESS;
+   if(ipv6IsMulticastAddr(ipAddr))
+   {
+      //To support IPv6 multicasting, MAC address range of 33-33-00-00-00-00
+      //to 33-33-FF-FF-FF-FF is reserved (refer to RFC 2464)
+      macAddr->b[0] = 0x33;
+      macAddr->b[1] = 0x33;
 
-   //To support IPv6 multicasting, MAC address range of 33-33-00-00-00-00
-   //to 33-33-FF-FF-FF-FF is reserved (refer to RFC 2464)
-   macAddr->b[0] = 0x33;
-   macAddr->b[1] = 0x33;
+      //The low-order 32 bits of the IPv6 multicast address are mapped directly
+      //to the low-order 32 bits in the MAC-layer multicast address
+      macAddr->b[2] = ipAddr->b[12];
+      macAddr->b[3] = ipAddr->b[13];
+      macAddr->b[4] = ipAddr->b[14];
+      macAddr->b[5] = ipAddr->b[15];
 
-   //The low-order 32 bits of the IPv6 multicast address are mapped directly
-   //to the low-order 32 bits in the MAC-layer multicast address
-   macAddr->b[2] = ipAddr->b[12];
-   macAddr->b[3] = ipAddr->b[13];
-   macAddr->b[4] = ipAddr->b[14];
-   macAddr->b[5] = ipAddr->b[15];
+      //The specified IPv6 multicast address was successfully mapped to a
+      //MAC-layer address
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_ADDRESS;
+   }
 
-   //The specified IPv6 multicast address was successfully
-   //mapped to a MAC-layer address
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
@@ -1426,8 +1454,8 @@ error_t ipv6MapMulticastAddrToMac(const Ipv6Addr *ipAddr, MacAddr *macAddr)
 
 void ipv6GenerateLinkLocalAddr(const Eui64 *interfaceId, Ipv6Addr *ipAddr)
 {
-   //A link-local address is formed by combining the well-known
-   //link-local prefix fe80::/10 with the interface identifier
+   //A link-local address is formed by combining the well-known link-local
+   //prefix fe80::/10 with the interface identifier
    ipAddr->w[0] = HTONS(0xFE80);
    ipAddr->w[1] = HTONS(0x0000);
    ipAddr->w[2] = HTONS(0x0000);
@@ -1446,7 +1474,8 @@ void ipv6GenerateLinkLocalAddr(const Eui64 *interfaceId, Ipv6Addr *ipAddr)
  * @param[in] length Length of the incoming IP packet
  **/
 
-void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length)
+void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr,
+   size_t length)
 {
    //Check whether the destination address is a unicast or multicast address
    if(ipv6IsMulticastAddr(destIpAddr))
@@ -1473,7 +1502,8 @@ void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size
  * @param[in] length Length of the outgoing IP packet
  **/
 
-void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr, size_t length)
+void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr,
+   size_t length)
 {
    //Check whether the destination address is a unicast or multicast address
    if(ipv6IsMulticastAddr(destIpAddr))

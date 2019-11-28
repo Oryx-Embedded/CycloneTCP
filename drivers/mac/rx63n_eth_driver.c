@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -683,6 +683,16 @@ error_t rx63nEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    bool_t acceptMulticast;
+
+   //Debug message
+   TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the upper 32 bits of the MAC address
+   ETHERC.MAHR = (interface->macAddr.b[0] << 24) | (interface->macAddr.b[1] << 16) |
+      (interface->macAddr.b[2] << 8) | interface->macAddr.b[3];
+
+   //Set the lower 16 bits of the MAC address
+   ETHERC.MALR.BIT.MA = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
 
    //This flag will be set if multicast addresses should be accepted
    acceptMulticast = FALSE;

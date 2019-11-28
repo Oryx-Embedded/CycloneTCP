@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -971,7 +971,7 @@ void am335xEthTxIrqHandler(void)
       }
    }
 
-   //Writes the DMA end of interrupt vector
+   //Write the DMA end of interrupt vector
    CPSW_CPDMA_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_TX_PULSE;
 
    //Interrupt service routine epilogue
@@ -1013,7 +1013,7 @@ void am335xEthRxIrqHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-   //Writes the DMA end of interrupt vector
+   //Write the DMA end of interrupt vector
    CPSW_CPDMA_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_RX_PULSE;
 
    //Interrupt service routine epilogue

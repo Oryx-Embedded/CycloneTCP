@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _ETHERNET_H
@@ -117,7 +117,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -255,7 +255,7 @@ char_t *eui64AddrToString(const Eui64 *eui64, char_t *str);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

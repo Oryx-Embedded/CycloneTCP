@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -190,8 +190,8 @@ error_t esp32EthInit(NetInterface *interface)
 }
 
 
-//ESP32-EVB or ESP32-GATEWAY evaluation board?
-#if defined(ESP32_EVB) || defined(ESP32_GATEWAY)
+//ESP32-Ethernet-Kit, ESP32-EVB or ESP32-GATEWAY evaluation board?
+#if defined(ESP32_ETHERNET_KIT) || defined(ESP32_EVB) || defined(ESP32_GATEWAY)
 
 /**
  * @brief GPIO configuration
@@ -200,8 +200,11 @@ error_t esp32EthInit(NetInterface *interface)
 
 void esp32EthInitGpio(NetInterface *interface)
 {
+//ESP32-Ethernet-Kit?
+#if defined(ESP32_ETHERNET_KIT)
    //Select RMII interface mode
-   REG_SET_FIELD(EMAC_EX_PHYINF_CONF_REG, EMAC_EX_PHY_INTF_SEL, EMAC_EX_PHY_INTF_RMII);
+   REG_SET_FIELD(EMAC_EX_PHYINF_CONF_REG, EMAC_EX_PHY_INTF_SEL,
+      EMAC_EX_PHY_INTF_RMII);
 
    //Select clock source
    REG_SET_BIT(EMAC_EX_CLK_CTRL_REG, EMAC_EX_EXT_OSC_EN);
@@ -231,6 +234,52 @@ void esp32EthInitGpio(NetInterface *interface)
    //Configure MDIO (GPIO18)
    gpio_matrix_out(18, EMAC_MDO_O_IDX, 0, 0);
    gpio_matrix_in(18, EMAC_MDI_I_IDX, 0);
+
+   //Configure PHY_RST (GPIO5)
+   gpio_pad_select_gpio(5);
+   gpio_set_direction(5, GPIO_MODE_OUTPUT);
+
+   //Reset PHY transceiver
+   gpio_set_level(5, 0);
+   sleep(10);
+   gpio_set_level(5, 1);
+   sleep(10);
+
+//ESP32-EVB or ESP32-GATEWAY evaluation board?
+#elif defined(ESP32_EVB) || defined(ESP32_GATEWAY)
+   //Select RMII interface mode
+   REG_SET_FIELD(EMAC_EX_PHYINF_CONF_REG, EMAC_EX_PHY_INTF_SEL,
+      EMAC_EX_PHY_INTF_RMII);
+
+   //Select clock source
+   REG_SET_BIT(EMAC_EX_CLK_CTRL_REG, EMAC_EX_EXT_OSC_EN);
+   //Enable clock
+   REG_SET_BIT(EMAC_EX_OSCCLK_CONF_REG, EMAC_EX_OSC_CLK_SEL);
+
+   //Configure RMII CLK (GPIO0)
+   gpio_set_direction(0, GPIO_MODE_INPUT);
+
+   //Configure TXD0 (GPIO19)
+   PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO19_U, FUNC_GPIO19_EMAC_TXD0);
+   //Configure TX_EN (GPIO21)
+   PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO21_U, FUNC_GPIO21_EMAC_TX_EN);
+   //Configure TXD1 (GPIO22)
+   PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO22_U, FUNC_GPIO22_EMAC_TXD1);
+
+   //Configure RXD0 (GPIO25)
+   gpio_set_direction(25, GPIO_MODE_INPUT);
+   //Configure RXD1 (GPIO26)
+   gpio_set_direction(26, GPIO_MODE_INPUT);
+   //Configure CRS_DRV (GPIO27)
+   PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO27_U, FUNC_GPIO27_EMAC_RX_DV);
+
+   //Configure MDC (GPIO23)
+   gpio_matrix_out(23, EMAC_MDC_O_IDX, 0, 0);
+
+   //Configure MDIO (GPIO18)
+   gpio_matrix_out(18, EMAC_MDO_O_IDX, 0, 0);
+   gpio_matrix_in(18, EMAC_MDI_I_IDX, 0);
+#endif
 }
 
 #endif
@@ -565,13 +614,17 @@ error_t esp32EthUpdateMacAddrFilter(NetInterface *interface)
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //This flag will be set if multicast addresses should be accepted
-   acceptMulticast = FALSE;
+   //Set the MAC address of the station
+   REG_WRITE(EMAC_ADDR0HIGH_REG, interface->macAddr.w[2]);
+   REG_WRITE(EMAC_ADDR0LOW_REG, interface->macAddr.w[0] | (interface->macAddr.w[1] << 16));
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
    unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
    unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
+   //This flag will be set if multicast addresses should be accepted
+   acceptMulticast = FALSE;
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame

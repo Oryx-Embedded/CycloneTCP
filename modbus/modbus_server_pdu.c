@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -349,7 +349,7 @@ error_t modbusServerProcessReadDiscreteInputsReq(ModbusClientConnection *connect
    for(i = 0; i < quantity && !error; i++)
    {
       //Retrieve the state of the current coil
-      error = modbusServerReadCoil(connection, address + i, &state);
+      error = modbusServerReadDiscreteInput(connection, address + i, &state);
 
       //Successful read operation?
       if(!error)
@@ -431,7 +431,7 @@ error_t modbusServerProcessReadHoldingRegsReq(ModbusClientConnection *connection
    for(i = 0; i < quantity && !error; i++)
    {
       //Retrieve the value of the current register
-      error = modbusServerReadReg(connection, address + i, &value);
+      error = modbusServerReadHoldingReg(connection, address + i, &value);
       //Convert the value to network byte order
       response->regValue[i] = htons(value);
    }
@@ -504,7 +504,7 @@ error_t modbusServerProcessReadInputRegsReq(ModbusClientConnection *connection,
    for(i = 0; i < quantity && !error; i++)
    {
       //Retrieve the value of the current register
-      error = modbusServerReadReg(connection, address + i, &value);
+      error = modbusServerReadInputReg(connection, address + i, &value);
       //Convert the value to network byte order
       response->regValue[i] = htons(value);
    }
@@ -875,7 +875,7 @@ error_t modbusServerProcessMaskWriteRegReq(ModbusClientConnection *connection,
    modbusServerLock(connection);
 
    //Retrieve the value of the register
-   error = modbusServerReadReg(connection, address, &value);
+   error = modbusServerReadHoldingReg(connection, address, &value);
 
    //Check status code
    if(!error)
@@ -984,7 +984,7 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
    for(i = 0; i < readQuantity && !error; i++)
    {
       //Retrieve the value of the current register
-      error = modbusServerReadReg(connection, readAddress + i, &value);
+      error = modbusServerReadHoldingReg(connection, readAddress + i, &value);
 
       //Convert the value to network byte order
       response->readRegValue[i] = htons(value);

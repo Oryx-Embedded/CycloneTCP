@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _COAP_CLIENT_BLOCK_H
@@ -37,7 +37,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //CoAP client related functions
@@ -54,7 +54,7 @@ CoapBlockSize coapClientGetMaxBlockSize(void);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

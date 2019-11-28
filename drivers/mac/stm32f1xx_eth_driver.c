@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -33,6 +33,7 @@
 
 //Dependencies
 #include "stm32f1xx.h"
+#include "stm32f1xx_hal.h"
 #include "core/net.h"
 #include "drivers/mac/stm32f1xx_eth_driver.h"
 #include "debug.h"
@@ -706,6 +707,10 @@ error_t stm32f1xxEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   ETH->MACA0HR = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;

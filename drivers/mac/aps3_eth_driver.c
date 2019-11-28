@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -491,6 +491,10 @@ error_t aps3EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   eth_mac->addr_low = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   eth_mac->addr_high = interface->macAddr.w[2];
 
    //Clear hash table
    hashTable[0] = 0;

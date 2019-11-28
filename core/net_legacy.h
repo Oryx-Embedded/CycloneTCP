@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _NET_LEGACY_H
@@ -266,5 +266,7 @@
 #define MQTT_PROTOCOL_LEVEL_3_1 MQTT_VERSION_3_1
 #define MQTT_PROTOCOL_LEVEL_3_1_1 MQTT_VERSION_3_1_1
 #define mqttClientSetProtocolLevel mqttClientSetVersion
+
+#define socketBindToInterface socketSetInterface
 
 #endif

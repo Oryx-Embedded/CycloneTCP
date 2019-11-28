@@ -1,6 +1,6 @@
 /**
- * @file lpc54608_eth_driver.h
- * @brief LPC54608 Ethernet MAC controller
+ * @file lpc546xx_eth_driver.h
+ * @brief LPC54608/LPC54618/LPC54628 Ethernet MAC controller
  *
  * @section License
  *
@@ -25,62 +25,62 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
-#ifndef _LPC54608_ETH_DRIVER_H
-#define _LPC54608_ETH_DRIVER_H
+#ifndef _LPC546XX_ETH_DRIVER_H
+#define _LPC546XX_ETH_DRIVER_H
 
 //Dependencies
 #include "core/nic.h"
 
 //Number of TX buffers
-#ifndef LPC54608_ETH_TX_BUFFER_COUNT
-   #define LPC54608_ETH_TX_BUFFER_COUNT 3
-#elif (LPC54608_ETH_TX_BUFFER_COUNT < 1)
-   #error LPC54608_ETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef LPC546XX_ETH_TX_BUFFER_COUNT
+   #define LPC546XX_ETH_TX_BUFFER_COUNT 3
+#elif (LPC546XX_ETH_TX_BUFFER_COUNT < 1)
+   #error LPC546XX_ETH_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef LPC54608_ETH_TX_BUFFER_SIZE
-   #define LPC54608_ETH_TX_BUFFER_SIZE 1536
-#elif (LPC54608_ETH_TX_BUFFER_SIZE != 1536)
-   #error LPC54608_ETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef LPC546XX_ETH_TX_BUFFER_SIZE
+   #define LPC546XX_ETH_TX_BUFFER_SIZE 1536
+#elif (LPC546XX_ETH_TX_BUFFER_SIZE != 1536)
+   #error LPC546XX_ETH_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef LPC54608_ETH_RX_BUFFER_COUNT
-   #define LPC54608_ETH_RX_BUFFER_COUNT 6
-#elif (LPC54608_ETH_RX_BUFFER_COUNT < 1)
-   #error LPC54608_ETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef LPC546XX_ETH_RX_BUFFER_COUNT
+   #define LPC546XX_ETH_RX_BUFFER_COUNT 6
+#elif (LPC546XX_ETH_RX_BUFFER_COUNT < 1)
+   #error LPC546XX_ETH_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef LPC54608_ETH_RX_BUFFER_SIZE
-   #define LPC54608_ETH_RX_BUFFER_SIZE 1536
-#elif (LPC54608_ETH_RX_BUFFER_SIZE != 1536)
-   #error LPC54608_ETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef LPC546XX_ETH_RX_BUFFER_SIZE
+   #define LPC546XX_ETH_RX_BUFFER_SIZE 1536
+#elif (LPC546XX_ETH_RX_BUFFER_SIZE != 1536)
+   #error LPC546XX_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Interrupt priority grouping
-#ifndef LPC54608_ETH_IRQ_PRIORITY_GROUPING
-   #define LPC54608_ETH_IRQ_PRIORITY_GROUPING 4
-#elif (LPC54608_ETH_IRQ_PRIORITY_GROUPING < 0)
-   #error LPC54608_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
+#ifndef LPC546XX_ETH_IRQ_PRIORITY_GROUPING
+   #define LPC546XX_ETH_IRQ_PRIORITY_GROUPING 4
+#elif (LPC546XX_ETH_IRQ_PRIORITY_GROUPING < 0)
+   #error LPC546XX_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
 #endif
 
 //Ethernet interrupt group priority
-#ifndef LPC54608_ETH_IRQ_GROUP_PRIORITY
-   #define LPC54608_ETH_IRQ_GROUP_PRIORITY 6
-#elif (LPC54608_ETH_IRQ_GROUP_PRIORITY < 0)
-   #error LPC54608_ETH_IRQ_GROUP_PRIORITY parameter is not valid
+#ifndef LPC546XX_ETH_IRQ_GROUP_PRIORITY
+   #define LPC546XX_ETH_IRQ_GROUP_PRIORITY 6
+#elif (LPC546XX_ETH_IRQ_GROUP_PRIORITY < 0)
+   #error LPC546XX_ETH_IRQ_GROUP_PRIORITY parameter is not valid
 #endif
 
 //Ethernet interrupt subpriority
-#ifndef LPC54608_ETH_IRQ_SUB_PRIORITY
-   #define LPC54608_ETH_IRQ_SUB_PRIORITY 0
-#elif (LPC54608_ETH_IRQ_SUB_PRIORITY < 0)
-   #error LPC54608_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#ifndef LPC546XX_ETH_IRQ_SUB_PRIORITY
+   #define LPC546XX_ETH_IRQ_SUB_PRIORITY 0
+#elif (LPC546XX_ETH_IRQ_SUB_PRIORITY < 0)
+   #error LPC546XX_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
 //Transmit normal descriptor (read format)
@@ -164,7 +164,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -178,7 +178,7 @@ typedef struct
    uint32_t tdes1;
    uint32_t tdes2;
    uint32_t tdes3;
-} Lpc54608TxDmaDesc;
+} Lpc546xxTxDmaDesc;
 
 
 /**
@@ -191,40 +191,40 @@ typedef struct
    uint32_t rdes1;
    uint32_t rdes2;
    uint32_t rdes3;
-} Lpc54608RxDmaDesc;
+} Lpc546xxRxDmaDesc;
 
 
-//LPC54608 Ethernet MAC driver
-extern const NicDriver lpc54608EthDriver;
+//LPC546xx Ethernet MAC driver
+extern const NicDriver lpc546xxEthDriver;
 
-//LPC54608 Ethernet MAC related functions
-error_t lpc54608EthInit(NetInterface *interface);
-void lpc54608EthInitGpio(NetInterface *interface);
-void lpc54608EthInitDmaDesc(NetInterface *interface);
+//LPC546xx Ethernet MAC related functions
+error_t lpc546xxEthInit(NetInterface *interface);
+void lpc546xxEthInitGpio(NetInterface *interface);
+void lpc546xxEthInitDmaDesc(NetInterface *interface);
 
-void lpc54608EthTick(NetInterface *interface);
+void lpc546xxEthTick(NetInterface *interface);
 
-void lpc54608EthEnableIrq(NetInterface *interface);
-void lpc54608EthDisableIrq(NetInterface *interface);
-void lpc54608EthEventHandler(NetInterface *interface);
+void lpc546xxEthEnableIrq(NetInterface *interface);
+void lpc546xxEthDisableIrq(NetInterface *interface);
+void lpc546xxEthEventHandler(NetInterface *interface);
 
-error_t lpc54608EthSendPacket(NetInterface *interface,
+error_t lpc546xxEthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset);
 
-error_t lpc54608EthReceivePacket(NetInterface *interface);
+error_t lpc546xxEthReceivePacket(NetInterface *interface);
 
-error_t lpc54608EthUpdateMacAddrFilter(NetInterface *interface);
-error_t lpc54608EthUpdateMacConfig(NetInterface *interface);
+error_t lpc546xxEthUpdateMacAddrFilter(NetInterface *interface);
+error_t lpc546xxEthUpdateMacConfig(NetInterface *interface);
 
-void lpc54608EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void lpc546xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data);
 
-uint16_t lpc54608EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t lpc546xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

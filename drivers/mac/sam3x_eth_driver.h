@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _SAM3X_ETH_DRIVER_H
@@ -119,7 +119,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -175,7 +175,7 @@ uint16_t sam3xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

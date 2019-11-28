@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -48,7 +48,7 @@
  * @return Error code
  **/
 
-error_t coapClientParseMessage(const CoapMessage *message)
+error_t coapParseMessage(const CoapMessage *message)
 {
    error_t error;
    size_t n;

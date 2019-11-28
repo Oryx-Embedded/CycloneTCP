@@ -25,47 +25,49 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _FTP_SERVER_MISC_H
 #define _FTP_SERVER_MISC_H
 
 //Dependencies
+#include "core/net.h"
 #include "ftp/ftp_server.h"
+
+//Time constant
+#define FTP_SERVER_180_DAYS (180 * 86400)
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //FTP server related functions
+void ftpServerTick(FtpServerContext *context);
+
 uint16_t ftpServerGetPassivePort(FtpServerContext *context);
-
-void ftpServerCloseConnection(FtpServerContext *context,
-   FtpClientConnection *connection);
-
-FtpClientConnection *ftpServerAcceptControlConnection(FtpServerContext *context);
-void ftpServerCloseControlConnection(FtpClientConnection *connection);
-
-error_t ftpServerOpenDataConnection(FtpServerContext *context,
-   FtpClientConnection *connection);
-
-void ftpServerAcceptDataConnection(FtpClientConnection *connection);
-void ftpServerCloseDataConnection(FtpClientConnection *connection);
 
 error_t ftpServerGetPath(FtpClientConnection *connection,
    const char_t *inputPath, char_t *outputPath, size_t maxLen);
 
-uint_t ftpServerGetFilePermissions(FtpServerContext *context,
-   FtpClientConnection *connection, const char_t *path);
+uint_t ftpServerGetFilePermissions(FtpClientConnection *connection,
+   const char_t *path);
 
-const char_t *ftpServerStripRootDir(FtpServerContext *context, const char_t *path);
-const char_t *ftpServerStripHomeDir(FtpClientConnection *connection, const char_t *path);
+size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
+   char_t *buffer);
+
+const char_t *ftpServerStripRootDir(FtpServerContext *context,
+   const char_t *path);
+
+const char_t *ftpServerStripHomeDir(FtpClientConnection *connection,
+   const char_t *path);
+
+void ftpServerCloseConnection(FtpClientConnection *connection);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -33,6 +33,7 @@
 
 //Dependencies
 #include "stm32h7xx.h"
+#include "stm32h7xx_hal.h"
 #include "core/net.h"
 #include "drivers/mac/stm32h7xx_eth_driver.h"
 #include "debug.h"
@@ -238,10 +239,11 @@ error_t stm32h7xxEthInit(NetInterface *interface)
 
 
 //STM32F743I-EVAL, STM32F747I-EVAL, STM32H745I-Discovery, STM32H747I-Discovery,
-//Nucleo-H743ZI, Nucleo-H743ZI2 or Nucleo-H745ZI-Q evaluation board?
+//STM32H750B-DK, Nucleo-H743ZI, Nucleo-H743ZI2 or Nucleo-H745ZI-Q evaluation board?
 #if defined(USE_STM32H743I_EVAL) || defined(USE_STM32H747I_EVAL) || \
    defined(USE_STM32H745I_DISCO) || defined(USE_STM32H747I_DISCO) || \
-   defined(USE_STM32H7XX_NUCLEO_144) || defined(USE_STM32H7XX_NUCLEO_144_MB1363) || \
+   defined(USE_STM32H750B_DISCO) || defined(USE_STM32H7XX_NUCLEO_144) || \
+   defined(USE_STM32H7XX_NUCLEO_144_MB1363) || \
    defined(USE_STM32H7XX_NUCLEO_144_MB1364)
 
 /**
@@ -285,8 +287,8 @@ void stm32h7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 
-//STM32H745I-Discovery evaluation board?
-#elif defined(USE_STM32H745I_DISCO)
+//STM32H745I-Discovery or STM32H750B-DK evaluation board?
+#elif defined(USE_STM32H745I_DISCO) || defined(USE_STM32H750B_DISCO)
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -305,7 +307,7 @@ void stm32h7xxEthInitGpio(NetInterface *interface)
    //Configure MII pins
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
    GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
 
    //Configure ETH_MII_RX_CLK (PA1), ETH_MDIO (PA2) and ETH_MII_RX_DV (PA7)
@@ -708,6 +710,10 @@ error_t stm32h7xxEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
+
+   //Set the MAC address of the station
+   ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   ETH->MACA0HR = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;

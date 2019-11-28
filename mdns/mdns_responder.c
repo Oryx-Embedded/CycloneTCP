@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -403,11 +403,11 @@ void mdnsResponderTick(MdnsResponderContext *context)
    //Check current state
    if(context->state == MDNS_STATE_INIT)
    {
-      //Check whether a hostname has been assigned
-      if(context->hostname[0] != '\0')
+      //Wait for the link to be up before starting mDNS responder
+      if(context->running && interface->linkState)
       {
-         //Make sure that the link is up
-         if(interface->linkState)
+         //Check whether a hostname has been assigned
+         if(context->hostname[0] != '\0')
          {
             //Clear flag
             valid = FALSE;

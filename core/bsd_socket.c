@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -1094,6 +1094,63 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             break;
          }
       }
+      else if(level == IPPROTO_IP)
+      {
+         //Check option type
+         switch(optname)
+         {
+         //Time-to-live value
+         case IP_TTL:
+            //Check the length of the option
+            if(optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Save TTL value
+               sock->ttl = *val;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+            
+            //We are done
+            break;
+
+         //Time-to-live value for multicast packets
+         case IP_MULTICAST_TTL:
+            //Check the length of the option
+            if(optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Save TTL value
+               sock->multicastTtl = *val;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+            
+            //We are done
+            break;
+
+         //Unknown option
+         default:
+            //Report an error
+            sock->errnoCode = ENOPROTOOPT;
+            ret = SOCKET_ERROR;
+            break;
+         }
+      }
       else
       {
          //The specified level is not valid
@@ -1252,6 +1309,69 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
 
                //Clear error status
                sock->errnoCode = 0;
+
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+
+            //We are done
+            break;
+
+         //Unknown option
+         default:
+            //Report an error
+            sock->errnoCode = ENOPROTOOPT;
+            ret = SOCKET_ERROR;
+            break;
+         }
+      }
+      else if(level == IPPROTO_IP)
+      {
+         //Check option type
+         switch(optname)
+         {
+         //Time-to-live value
+         case IP_TTL:
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Return the current TTL value
+               *val = sock->ttl;
+               //Return the actual length of the option
+               *optlen = sizeof(int_t);
+
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+
+            //We are done
+            break;
+
+         //Time-to-live value for multicast packets
+         case IP_MULTICAST_TTL:
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Return the current TTL value
+               *val = sock->ttl;
+               //Return the actual length of the option
+               *optlen = sizeof(int_t);
 
                //Successful processing
                ret = SOCKET_SUCCESS;

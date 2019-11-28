@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -467,6 +467,47 @@ error_t modbusServerReadCoil(ModbusClientConnection *connection,
 
 
 /**
+ * @brief Get discrete input state
+ * @param[in] connection Pointer to the client connection
+ * @param[in] address Coil address
+ * @param[out] state Current coil state
+ * @return Error code
+ **/
+
+error_t modbusServerReadDiscreteInput(ModbusClientConnection *connection,
+   uint16_t address, bool_t *state)
+{
+   error_t error;
+   ModbusServerContext *context;
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
+
+   //Any registered callback?
+   if(context->settings.readDiscreteInputCallback != NULL)
+   {
+      //Invoke user callback function
+      error = context->settings.readDiscreteInputCallback(connection->role,
+         address, state);
+   }
+   else if(context->settings.readCoilCallback != NULL)
+   {
+      //Invoke user callback function
+      error = context->settings.readCoilCallback(connection->role, address,
+         state);
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_ADDRESS;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
  * @brief Set coil state
  * @param[in] connection Pointer to the client connection
  * @param[in] address Address of the coil
@@ -504,14 +545,14 @@ error_t modbusServerWriteCoil(ModbusClientConnection *connection,
 
 
 /**
- * @brief Get register value
+ * @brief Get holding register value
  * @param[in] connection Pointer to the client connection
  * @param[in] address Register address
  * @param[out] value Current register value
  * @return Error code
  **/
 
-error_t modbusServerReadReg(ModbusClientConnection *connection,
+error_t modbusServerReadHoldingReg(ModbusClientConnection *connection,
    uint16_t address, uint16_t *value)
 {
    error_t error;
@@ -521,7 +562,54 @@ error_t modbusServerReadReg(ModbusClientConnection *connection,
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.readRegCallback != NULL)
+   if(context->settings.readHoldingRegCallback != NULL)
+   {
+      //Invoke user callback function
+      error = context->settings.readHoldingRegCallback(connection->role,
+         address, value);
+   }
+   else if(context->settings.readRegCallback != NULL)
+   {
+      //Invoke user callback function
+      error = context->settings.readRegCallback(connection->role, address,
+         value);
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_ADDRESS;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Get input register value
+ * @param[in] connection Pointer to the client connection
+ * @param[in] address Register address
+ * @param[out] value Current register value
+ * @return Error code
+ **/
+
+error_t modbusServerReadInputReg(ModbusClientConnection *connection,
+   uint16_t address, uint16_t *value)
+{
+   error_t error;
+   ModbusServerContext *context;
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
+
+   //Any registered callback?
+   if(context->settings.readInputRegCallback != NULL)
+   {
+      //Invoke user callback function
+      error = context->settings.readInputRegCallback(connection->role,
+         address, value);
+   }
+   else if(context->settings.readRegCallback != NULL)
    {
       //Invoke user callback function
       error = context->settings.readRegCallback(connection->role, address,

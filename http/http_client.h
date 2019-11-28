@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 #ifndef _HTTP_CLIENT_H
@@ -94,7 +94,7 @@
 //Size of the buffer for input/output operations
 #ifndef HTTP_CLIENT_BUFFER_SIZE
    #define HTTP_CLIENT_BUFFER_SIZE 2048
-#elif (HTTP_CLIENT_BUFFER_SIZE < 64)
+#elif (HTTP_CLIENT_BUFFER_SIZE < 256)
    #error HTTP_CLIENT_BUFFER_SIZE parameter is not valid
 #endif
 
@@ -206,7 +206,7 @@ struct _HttpClientContext;
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 
@@ -344,6 +344,9 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
 error_t httpClientAddHeaderField(HttpClientContext *context,
    const char_t *name, const char_t *value);
 
+error_t httpClientFormatHeaderField(HttpClientContext *context,
+   const char_t *name, const char_t *format, ...);
+
 error_t httpClientSetContentLength(HttpClientContext *context, size_t length);
 error_t httpClientWriteHeader(HttpClientContext *context);
 
@@ -374,7 +377,7 @@ void httpClientDeinit(HttpClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

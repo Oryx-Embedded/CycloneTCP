@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -107,6 +107,11 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
    //Initialize status code
    error = NO_ERROR;
 
+   //Initialize variables
+   type = 0;
+   data = NULL;
+   header = NULL;
+
    //Start of exception handling block
    do
    {
@@ -158,6 +163,10 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       TRACE_DEBUG("Ethernet frame received (%" PRIuSIZE " bytes)...\r\n", length);
       //Dump Ethernet header contents for debugging purpose
       ethDumpHeader(header);
+
+#if defined(ETH_FRAME_FORWARD_HOOK)
+      ETH_FRAME_FORWARD_HOOK(interface, header, length);
+#endif
 
       //Retrieve the value of the EtherType field
       type = ntohs(header->type);

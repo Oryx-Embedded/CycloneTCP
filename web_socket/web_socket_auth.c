@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.4
+ * @version 1.9.6
  **/
 
 //Switch to the appropriate trace level
@@ -305,7 +305,6 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
  * @param[in] input Point to the byte array
  * @param[in] inputLen Length of the byte array
  * @param[out] output NULL-terminated string resulting from the conversion
- * @return Error code
  **/
 
 void webSocketConvertArrayToHexString(const uint8_t *input,
