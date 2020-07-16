@@ -1,12 +1,12 @@
 /**
  * @file dp83tc811_driver.c
- * @brief DP83TC811 Ethernet PHY transceiver
+ * @brief DP83TC811 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver dp83tc811PhyDriver =
    dp83tc811Tick,
    dp83tc811EnableIrq,
    dp83tc811DisableIrq,
-   dp83tc811EventHandler,
-   NULL,
-   NULL
+   dp83tc811EventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t dp83tc811Init(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = DP83TC811_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Initialize external interrupt line driver
@@ -179,7 +183,7 @@ void dp83tc811EventHandler(NetInterface *interface)
    value = dp83tc811ReadPhyReg(interface, DP83TC811_BMSR);
 
    //Link is up?
-   if(value & DP83TC811_BMSR_LINK_STATUS)
+   if((value & DP83TC811_BMSR_LINK_STATUS) != 0)
    {
       //Adjust MAC configuration parameters for proper operation
       interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
@@ -211,8 +215,16 @@ void dp83tc811WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -225,9 +237,22 @@ void dp83tc811WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t dp83tc811ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 
@@ -254,102 +279,54 @@ void dp83tc811DumpPhyReg(NetInterface *interface)
 
 
 /**
- * @brief Write MMD extended register
+ * @brief Write MMD register
  * @param[in] interface Underlying network interface
- * @param[in] address PHY register address
- * @param[in] data Register value
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @param[in] data MMD register value
  **/
 
-void dp83tc811WriteMmdReg(NetInterface *interface, uint16_t address,
-   uint16_t data)
+void dp83tc811WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data)
 {
-   //Write the value 0x001F to register REGCR
+   //Select register operation
    dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_ADDR | DP83TC811_REGCR_DEVAD_31);
+      DP83TC811_REGCR_COMMAND_ADDR | (devAddr & DP83TC811_REGCR_DEVAD));
 
-   //Write the desired register address to register ADDAR
-   dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, address);
+   //Write MMD register address
+   dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, regAddr);
 
-   //Write the value 0x401F to register REGCR
+   //Select data operation
    dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_DATA_NO_POST_INC | DP83TC811_REGCR_DEVAD_31);
+      DP83TC811_REGCR_COMMAND_DATA_NO_POST_INC | (devAddr & DP83TC811_REGCR_DEVAD));
 
-   //Write the content of the desired extended register set to register ADDAR
+   //Write the content of the MMD register
    dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, data);
 }
 
 
 /**
- * @brief Read MMD extended register
+ * @brief Read MMD register
  * @param[in] interface Underlying network interface
- * @param[in] address PHY register address
- * @return Register value
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @return MMD register value
  **/
 
-uint16_t dp83tc811ReadMmdReg(NetInterface *interface, uint16_t address)
+uint16_t dp83tc811ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr)
 {
-   //Write the value 0x001F to register REGCR
+   //Select register operation
    dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_ADDR | DP83TC811_REGCR_DEVAD_31);
+      DP83TC811_REGCR_COMMAND_ADDR | (devAddr & DP83TC811_REGCR_DEVAD));
 
-   //Write the desired register address to register ADDAR
-   dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, address);
+   //Write MMD register address
+   dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, regAddr);
 
-   //Write the value 0x401F to register REGCR
+   //Select data operation
    dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_DATA_NO_POST_INC | DP83TC811_REGCR_DEVAD_31);
+      DP83TC811_REGCR_COMMAND_DATA_NO_POST_INC | (devAddr & DP83TC811_REGCR_DEVAD));
 
-   //Read the content of the desired extended register set in register ADDAR
-   return dp83tc811ReadPhyReg(interface, DP83TC811_ADDAR);
-}
-
-
-/**
- * @brief Write MMD1 extended register
- * @param[in] interface Underlying network interface
- * @param[in] address PHY register address
- * @param[in] data Register value
- **/
-
-void dp83tc811WriteMmd1Reg(NetInterface *interface, uint16_t address,
-   uint16_t data)
-{
-   //Write the value 0x0001 to register REGCR
-   dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_ADDR | DP83TC811_REGCR_DEVAD_1);
-
-   //Write the desired register address to register ADDAR
-   dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, address);
-
-   //Write the value 0x4001 to register REGCR
-   dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_DATA_NO_POST_INC | DP83TC811_REGCR_DEVAD_1);
-
-   //Write the content of the desired extended register set to register ADDAR
-   dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, data);
-}
-
-
-/**
- * @brief Read MMD1 extended register
- * @param[in] interface Underlying network interface
- * @param[in] address PHY register address
- * @return Register value
- **/
-
-uint16_t dp83tc811ReadMmd1Reg(NetInterface *interface, uint16_t address)
-{
-   //Write the value 0x0001 to register REGCR
-   dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_ADDR | DP83TC811_REGCR_DEVAD_1);
-
-   //Write the desired register address to register ADDAR
-   dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, address);
-
-   //Write the value 0x4001 to register REGCR
-   dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_DATA_NO_POST_INC | DP83TC811_REGCR_DEVAD_1);
-
-   //Read the content of the desired extended register set in register ADDAR
+   //Read the content of the MMD register
    return dp83tc811ReadPhyReg(interface, DP83TC811_ADDAR);
 }

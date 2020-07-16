@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -107,7 +107,7 @@ error_t snmpFormatTrapMessage(SnmpAgentContext *context, SnmpVersion version,
 
       //Information about the user name is extracted from the local
       //configuration datastore
-      user = snmpFindUserEntry(context, userName, strlen(userName));
+      user = snmpFindUserEntry(context, userName, osStrlen(userName));
 
       //Invalid user name?
       if(user == NULL || user->status != MIB_ROW_STATUS_ACTIVE)
@@ -211,7 +211,7 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
 
       //Community name
       message->community = userName;
-      message->communityLen = strlen(userName);
+      message->communityLen = osStrlen(userName);
 
       //Prepare to send a Trap-PDU
       message->pduType = SNMP_PDU_TRAP;
@@ -240,7 +240,7 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
    {
       //Community name
       message->community = userName;
-      message->communityLen = strlen(userName);
+      message->communityLen = osStrlen(userName);
 
       //Prepare to send a SNMPv2-Trap-PDU
       message->pduType = SNMP_PDU_TRAP_V2;
@@ -278,7 +278,7 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
       message->msgAuthEngineTime = context->engineTime;
       //User name
       message->msgUserName = userName;
-      message->msgUserNameLen = strlen(userName);
+      message->msgUserNameLen = osStrlen(userName);
       //Authentication parameters
       message->msgAuthParameters = NULL;
       //Length of the authentication parameters
@@ -299,7 +299,7 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
       message->contextEngineIdLen = context->contextEngineLen;
       //Context name
       message->contextName = context->contextName;
-      message->contextNameLen = strlen(context->contextName);
+      message->contextNameLen = osStrlen(context->contextName);
 
       //Prepare to send a SNMPv2-Trap-PDU
       message->pduType = SNMP_PDU_TRAP_V2;

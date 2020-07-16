@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -75,11 +75,15 @@ error_t nbnsInit(NetInterface *interface)
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming NBNS message
  * @param[in] offset Offset to the first byte of the NBNS message
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @param[in] param Callback function parameter (not used)
  **/
 
-void nbnsProcessMessage(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *param)
+void nbnsProcessMessage(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
+   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
+   void *param)
 {
    size_t length;
    NbnsHeader *message;
@@ -162,7 +166,7 @@ size_t nbnsEncodeName(const char_t *src, uint8_t *dest)
    for(i = 0; i < 15 && src[i] != '\0'; i++)
    {
       //Convert current character to uppercase
-      c = toupper((uint8_t) src[i]);
+      c = osToupper(src[i]);
 
       //Encode character
       dest[j++] = NBNS_ENCODE_H(c);
@@ -320,7 +324,7 @@ bool_t nbnsCompareName(const NbnsHeader *message,
          break;
 
       //Perform case insensitive comparison
-      if(toupper((uint8_t) c) != toupper((uint8_t) *name))
+      if(osToupper(c) != osToupper(*name))
          return FALSE;
 
       //Advance data pointer

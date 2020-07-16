@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -100,7 +100,9 @@ error_t enc28j60Init(NetInterface *interface)
    context->rxBuffer = memPoolAlloc(ETH_MAX_FRAME_SIZE);
    //Failed to allocate memory?
    if(context->rxBuffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Read silicon revision ID
    revisionId = enc28j60ReadReg(interface, ENC28J60_REG_EREVID);
@@ -283,7 +285,7 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
    status = enc28j60ReadReg(interface, ENC28J60_REG_EIR);
 
    //Link status change?
-   if(status & EIR_LINKIF)
+   if((status & EIR_LINKIF) != 0)
    {
       //Disable LINKIE interrupt
       enc28j60ClearBit(interface, ENC28J60_REG_EIE, EIE_LINKIE);
@@ -295,7 +297,7 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if(status & EIR_PKTIF)
+   if((status & EIR_PKTIF) != 0)
    {
       //Disable PKTIE interrupt
       enc28j60ClearBit(interface, ENC28J60_REG_EIE, EIE_PKTIE);
@@ -307,7 +309,7 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if(status & (EIR_TXIF | EIE_TXERIE))
+   if((status & (EIR_TXIF | EIE_TXERIE)) != 0)
    {
       //Clear interrupt flags
       enc28j60ClearBit(interface, ENC28J60_REG_EIR, EIR_TXIF | EIE_TXERIE);
@@ -340,7 +342,7 @@ void enc28j60EventHandler(NetInterface *interface)
    status = enc28j60ReadReg(interface, ENC28J60_REG_EIR);
 
    //Check whether the link state has changed
-   if(status & EIR_LINKIF)
+   if((status & EIR_LINKIF) != 0)
    {
       //Clear PHY interrupts flags
       enc28j60ReadPhyReg(interface, ENC28J60_PHY_REG_PHIR);
@@ -350,7 +352,7 @@ void enc28j60EventHandler(NetInterface *interface)
       value = enc28j60ReadPhyReg(interface, ENC28J60_PHY_REG_PHSTAT2);
 
       //Check link state
-      if(value & PHSTAT2_LSTAT)
+      if((value & PHSTAT2_LSTAT) != 0)
       {
          //Link speed
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
@@ -376,7 +378,7 @@ void enc28j60EventHandler(NetInterface *interface)
    }
 
    //Check whether a packet has been received?
-   if(status & EIR_PKTIF)
+   if((status & EIR_PKTIF) != 0)
    {
       //Clear interrupt flag
       enc28j60ClearBit(interface, ENC28J60_REG_EIR, EIR_PKTIF);
@@ -401,11 +403,13 @@ void enc28j60EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t enc28j60SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -492,7 +496,7 @@ error_t enc28j60ReceivePacket(NetInterface *interface)
       enc28j60ReadBuffer(interface, (uint8_t *) &status, sizeof(uint16_t));
 
       //Make sure no error occurred
-      if(status & RSV_RECEIVED_OK)
+      if((status & RSV_RECEIVED_OK) != 0)
       {
          //Limit the number of data to read
          n = MIN(n, ETH_MAX_FRAME_SIZE);
@@ -532,8 +536,13 @@ error_t enc28j60ReceivePacket(NetInterface *interface)
    //Check whether a valid packet has been received
    if(!error)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->rxBuffer, n);
+      nicProcessPacket(interface, context->rxBuffer, n, &ancillary);
    }
 
    //Return status code
@@ -559,7 +568,7 @@ error_t enc28j60UpdateMacAddrFilter(NetInterface *interface)
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
-   memset(hashTable, 0, sizeof(hashTable));
+   osMemset(hashTable, 0, sizeof(hashTable));
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
@@ -722,7 +731,9 @@ uint8_t enc28j60ReadReg(NetInterface *interface, uint16_t address)
 
    //When reading MAC or MII registers, a dummy byte is first shifted out
    if((address & REG_TYPE_MASK) != ETH_REG_TYPE)
+   {
       interface->spiDriver->transfer(0x00);
+   }
 
    //Read register contents
    data = interface->spiDriver->transfer(0x00);
@@ -754,7 +765,9 @@ void enc28j60WritePhyReg(NetInterface *interface, uint16_t address,
    enc28j60WriteReg(interface, ENC28J60_REG_MIWRH, MSB(data));
 
    //Wait until the PHY register has been written
-   while(enc28j60ReadReg(interface, ENC28J60_REG_MISTAT) & MISTAT_BUSY);
+   while((enc28j60ReadReg(interface, ENC28J60_REG_MISTAT) & MISTAT_BUSY) != 0)
+   {
+   }
 }
 
 
@@ -775,7 +788,10 @@ uint16_t enc28j60ReadPhyReg(NetInterface *interface, uint16_t address)
    //Start read operation
    enc28j60WriteReg(interface, ENC28J60_REG_MICMD, MICMD_MIIRD);
    //Wait for the read operation to complete
-   while(enc28j60ReadReg(interface, ENC28J60_REG_MISTAT) & MISTAT_BUSY);
+   while((enc28j60ReadReg(interface, ENC28J60_REG_MISTAT) & MISTAT_BUSY) != 0)
+   {
+   }
+
    //Clear command register
    enc28j60WriteReg(interface, ENC28J60_REG_MICMD, 0);
 
@@ -825,7 +841,9 @@ void enc28j60WriteBuffer(NetInterface *interface,
 
          //Copy data to SRAM buffer
          for(j = 0; j < n; j++)
+         {
             interface->spiDriver->transfer(p[j]);
+         }
 
          //Process the next block from the start
          offset = 0;
@@ -862,7 +880,9 @@ void enc28j60ReadBuffer(NetInterface *interface,
 
    //Copy data from SRAM buffer
    for(i = 0; i < length; i++)
+   {
       data[i] = interface->spiDriver->transfer(0x00);
+   }
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
@@ -924,11 +944,13 @@ uint32_t enc28j60CalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -937,10 +959,14 @@ uint32_t enc28j60CalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 
@@ -978,11 +1004,17 @@ void enc28j60DumpReg(NetInterface *interface)
 
          //MAC and MII registers require a specific read sequence
          if(address >= 0x200 && address <= 0x219)
+         {
             address |= MAC_REG_TYPE;
+         }
          else if(address >= 0x300 && address <= 0x305)
+         {
             address |= MAC_REG_TYPE;
+         }
          else if(address == 0x30A)
+         {
             address |= MAC_REG_TYPE;
+         }
 
          //Display register contents
          TRACE_DEBUG("0x%02" PRIX8 "    ", enc28j60ReadReg(interface, address));

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -53,7 +53,7 @@ static uint16_t udpDynamicPort;
 //Mutex to prevent simultaneous access to the callback table
 OsMutex udpCallbackMutex;
 //Table that holds the registered user callbacks
-UdpRxCallbackDesc udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
+UdpRxCallbackEntry udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
 
 
 /**
@@ -74,7 +74,7 @@ error_t udpInit(void)
    }
 
    //Initialize callback table
-   memset(udpCallbackTable, 0, sizeof(udpCallbackTable));
+   osMemset(udpCallbackTable, 0, sizeof(udpCallbackTable));
 
    //Successful initialization
    return NO_ERROR;
@@ -124,11 +124,13 @@ uint16_t udpGetDynamicPort(void)
  * @param[in] pseudoHeader UDP pseudo header
  * @param[in] buffer Multi-part buffer containing the incoming UDP datagram
  * @param[in] offset Offset to the first byte of the UDP header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
-error_t udpProcessDatagram(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset)
+error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
+   const NetBuffer *buffer, size_t offset, NetRxAncillary *ancillary)
 {
    error_t error;
    uint_t i;
@@ -277,13 +279,14 @@ error_t udpProcessDatagram(NetInterface *interface,
    if(i >= SOCKET_MAX_COUNT)
    {
       //Invoke user callback, if any
-      error = udpInvokeRxCallback(interface, pseudoHeader, header, buffer, offset);
+      error = udpInvokeRxCallback(interface, pseudoHeader, header, buffer,
+         offset, ancillary);
       //Return status code
       return error;
    }
 
    //Empty receive queue?
-   if(!socket->receiveQueue)
+   if(socket->receiveQueue == NULL)
    {
       //Allocate a memory buffer to hold the data and the associated descriptor
       p = netBufferAlloc(sizeof(SocketQueueItem) + length);
@@ -307,9 +310,12 @@ error_t udpProcessDatagram(NetInterface *interface,
    {
       //Point to the very first item
       queueItem = socket->receiveQueue;
+
       //Reach the last item in the receive queue
       for(i = 1; queueItem->next; i++)
+      {
          queueItem = queueItem->next;
+      }
 
       //Make sure the receive queue is not full
       if(i >= UDP_RX_QUEUE_SIZE)
@@ -350,6 +356,7 @@ error_t udpProcessDatagram(NetInterface *interface,
       //Save the source IPv4 address
       queueItem->srcIpAddr.length = sizeof(Ipv4Addr);
       queueItem->srcIpAddr.ipv4Addr = pseudoHeader->ipv4Data.srcAddr;
+
       //Save the destination IPv4 address
       queueItem->destIpAddr.length = sizeof(Ipv4Addr);
       queueItem->destIpAddr.ipv4Addr = pseudoHeader->ipv4Data.destAddr;
@@ -362,6 +369,7 @@ error_t udpProcessDatagram(NetInterface *interface,
       //Save the source IPv6 address
       queueItem->srcIpAddr.length = sizeof(Ipv6Addr);
       queueItem->srcIpAddr.ipv6Addr = pseudoHeader->ipv6Data.srcAddr;
+
       //Save the destination IPv6 address
       queueItem->destIpAddr.length = sizeof(Ipv6Addr);
       queueItem->destIpAddr.ipv6Addr = pseudoHeader->ipv6Data.destAddr;
@@ -372,6 +380,9 @@ error_t udpProcessDatagram(NetInterface *interface,
    queueItem->offset = sizeof(SocketQueueItem);
    //Copy the payload
    netBufferCopy(queueItem->buffer, queueItem->offset, buffer, offset, length);
+
+   //Additional options can be passed to the stack along with the packet
+   queueItem->ancillary = *ancillary;
 
    //Notify user that data is available
    udpUpdateEvents(socket);
@@ -389,31 +400,17 @@ error_t udpProcessDatagram(NetInterface *interface,
 /**
  * @brief Send a UDP datagram
  * @param[in] socket Handle referencing the socket
- * @param[in] destIpAddr IP address of the target host
- * @param[in] destPort Target port number
- * @param[in] data Pointer to data payload
- * @param[in] length Length of the payload data
- * @param[out] written Actual number of bytes written (optional parameter)
+ * @param[in] message Pointer to the structure describing the datagram
  * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
-error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
-   uint16_t destPort, const void *data, size_t length, size_t *written,
-   uint_t flags)
+error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
 {
    error_t error;
    size_t offset;
    NetBuffer *buffer;
-
-   //Ignore unused flags
-   flags &= SOCKET_FLAG_DONT_ROUTE;
-
-   //Check whether the destination IP address is a multicast address
-   if(ipIsMulticastAddr(destIpAddr))
-      flags |= socket->multicastTtl;
-   else
-      flags |= socket->ttl;
+   NetTxAncillary ancillary;
 
    //Allocate a memory buffer to hold the UDP datagram
    buffer = udpAllocBuffer(0, &offset);
@@ -422,33 +419,84 @@ error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
       return ERROR_OUT_OF_MEMORY;
 
    //Copy data payload
-   error = netBufferAppend(buffer, data, length);
+   error = netBufferAppend(buffer, message->data, message->length);
 
    //Successful processing?
    if(!error)
    {
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+      //Set the TTL value to be used
+      if(message->ttl != 0)
+      {
+         ancillary.ttl = message->ttl;
+      }
+      else if(ipIsMulticastAddr(&message->destIpAddr))
+      {
+         ancillary.ttl = socket->multicastTtl;
+      }
+      else
+      {
+         ancillary.ttl = socket->ttl;
+      }
+
+      //This flag tells the stack that the destination is on a locally attached
+      //network and not to perform a lookup of the routing table
+      if(flags & SOCKET_FLAG_DONT_ROUTE)
+      {
+         ancillary.dontRoute = TRUE;
+      }
+
+#if (IP_DIFF_SERV_SUPPORT == ENABLED)
+      //Set DSCP field
+      ancillary.dscp = socket->dscp;
+#endif
+
+#if (ETH_SUPPORT == ENABLED)
+      //Set source and destination MAC addresses
+      ancillary.srcMacAddr = message->srcMacAddr;
+      ancillary.destMacAddr = message->destMacAddr;
+#endif
+
+#if (ETH_VLAN_SUPPORT == ENABLED)
+      //Set VLAN PCP and DEI fields
+      ancillary.vlanPcp = socket->vlanPcp;
+      ancillary.vlanDei = socket->vlanDei;
+#endif
+
+#if (ETH_VMAN_SUPPORT == ENABLED)
+      //Set VMAN PCP and DEI fields
+      ancillary.vmanPcp = socket->vmanPcp;
+      ancillary.vmanDei = socket->vmanDei;
+#endif
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+      //Set switch port identifier
+      ancillary.port = message->switchPort;
+#endif
+
+#if (ETH_TIMESTAMP_SUPPORT == ENABLED)
+      //Unique identifier for hardware time stamping
+      ancillary.timestampId = message->timestampId;
+#endif
+
       //Send UDP datagram
-      error = udpSendDatagramEx(socket->interface, NULL, socket->localPort,
-         destIpAddr, destPort, buffer, offset, flags);
-   }
-
-   //Successful processing?
-   if(!error)
-   {
-      //Total number of data bytes successfully transmitted
-      if(written != NULL)
-         *written = length;
+      error = udpSendBuffer(socket->interface, &message->srcIpAddr,
+         socket->localPort, &message->destIpAddr, message->destPort, buffer,
+         offset, &ancillary);
    }
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
 
 
 /**
- * @brief Send a UDP datagram (raw interface)
+ * @brief Send a UDP datagram
  * @param[in] interface Underlying network interface
  * @param[in] srcIpAddr Source IP address (optional parameter)
  * @param[in] srcPort Source port
@@ -456,13 +504,14 @@ error_t udpSendDatagram(Socket *socket, const IpAddr *destIpAddr,
  * @param[in] destPort Target port number
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first payload byte
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
-error_t udpSendDatagramEx(NetInterface *interface, const IpAddr *srcIpAddr,
+error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
    uint16_t srcPort, const IpAddr *destIpAddr, uint16_t destPort,
-   NetBuffer *buffer, size_t offset, uint_t flags)
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    size_t length;
@@ -600,7 +649,8 @@ error_t udpSendDatagramEx(NetInterface *interface, const IpAddr *srcIpAddr,
    udpDumpHeader(header);
 
    //Send UDP datagram
-   error = ipSendDatagram(interface, &pseudoHeader, buffer, offset, flags);
+   error = ipSendDatagram(interface, &pseudoHeader, buffer, offset, ancillary);
+
    //Return status code
    return error;
 }
@@ -619,19 +669,20 @@ error_t udpSendDatagramEx(NetInterface *interface, const IpAddr *srcIpAddr,
  * @return Error code
  **/
 
-error_t udpReceiveDatagram(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
-   IpAddr *destIpAddr, void *data, size_t size, size_t *received, uint_t flags)
+error_t udpReceiveDatagram(Socket *socket, SocketMsg *message, uint_t flags)
 {
+   error_t error;
    SocketQueueItem *queueItem;
 
    //The SOCKET_FLAG_DONT_WAIT enables non-blocking operation
-   if(!(flags & SOCKET_FLAG_DONT_WAIT))
+   if((flags & SOCKET_FLAG_DONT_WAIT) == 0)
    {
-      //The receive queue is empty?
-      if(!socket->receiveQueue)
+      //Check whether the receive queue is empty
+      if(socket->receiveQueue == NULL)
       {
          //Set the events the application is interested in
          socket->eventMask = SOCKET_EVENT_RX_READY;
+
          //Reset the event object
          osResetEvent(&socket->event);
 
@@ -644,45 +695,70 @@ error_t udpReceiveDatagram(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
       }
    }
 
-   //Check whether the read operation timed out
-   if(!socket->receiveQueue)
+   //Any datagram received?
+   if(socket->receiveQueue != NULL)
    {
-      //No data can be read
-      *received = 0;
+      //Point to the first item in the receive queue
+      queueItem = socket->receiveQueue;
+
+      //Copy data to user buffer
+      message->length = netBufferRead(message->data, queueItem->buffer,
+         queueItem->offset, message->size);
+
+      //Save the source IP address
+      message->srcIpAddr = queueItem->srcIpAddr;
+      //Save the source port number
+      message->srcPort = queueItem->srcPort;
+      //Save the destination IP address
+      message->destIpAddr = queueItem->destIpAddr;
+
+      //Save TTL value
+      message->ttl = queueItem->ancillary.ttl;
+
+#if (ETH_SUPPORT == ENABLED)
+      //Save source and destination MAC addresses
+      message->srcMacAddr = queueItem->ancillary.srcMacAddr;
+      message->destMacAddr = queueItem->ancillary.destMacAddr;
+#endif
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+      //Save switch port identifier
+      message->switchPort = queueItem->ancillary.port;
+#endif
+
+#if (ETH_TIMESTAMP_SUPPORT == ENABLED)
+      //Save captured time stamp
+      message->timestamp = queueItem->ancillary.timestamp;
+#endif
+
+      //If the SOCKET_FLAG_PEEK flag is set, the data is copied into the
+      //buffer but is not removed from the input queue
+      if((flags & SOCKET_FLAG_PEEK) == 0)
+      {
+         //Remove the item from the receive queue
+         socket->receiveQueue = queueItem->next;
+
+         //Deallocate memory buffer
+         netBufferFree(queueItem->buffer);
+      }
+
+      //Update the state of events
+      udpUpdateEvents(socket);
+
+      //Successful read operation
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Total number of data that have been received
+      message->length = 0;
+
       //Report a timeout error
-      return ERROR_TIMEOUT;
+      error = ERROR_TIMEOUT;
    }
 
-   //Point to the first item in the receive queue
-   queueItem = socket->receiveQueue;
-   //Copy data to user buffer
-   *received = netBufferRead(data, queueItem->buffer, queueItem->offset, size);
-
-   //Save the source IP address
-   if(srcIpAddr)
-      *srcIpAddr = queueItem->srcIpAddr;
-   //Save the source port number
-   if(srcPort)
-      *srcPort = queueItem->srcPort;
-   //Save the destination IP address
-   if(destIpAddr)
-      *destIpAddr = queueItem->destIpAddr;
-
-   //If the SOCKET_FLAG_PEEK flag is set, the data is copied
-   //into the buffer but is not removed from the input queue
-   if(!(flags & SOCKET_FLAG_PEEK))
-   {
-      //Remove the item from the receive queue
-      socket->receiveQueue = queueItem->next;
-      //Deallocate memory buffer
-      netBufferFree(queueItem->buffer);
-   }
-
-   //Update the state of events
-   udpUpdateEvents(socket);
-
-   //Successful read operation
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
@@ -761,11 +837,11 @@ void udpUpdateEvents(Socket *socket)
  * @return Error code
  **/
 
-error_t udpAttachRxCallback(NetInterface *interface,
-   uint16_t port, UdpRxCallback callback, void *param)
+error_t udpAttachRxCallback(NetInterface *interface, uint16_t port,
+   UdpRxCallback callback, void *param)
 {
    uint_t i;
-   UdpRxCallbackDesc *entry;
+   UdpRxCallbackEntry *entry;
 
    //Acquire exclusive access to the callback table
    osAcquireMutex(&udpCallbackMutex);
@@ -812,7 +888,7 @@ error_t udpDetachRxCallback(NetInterface *interface, uint16_t port)
 {
    error_t error;
    uint_t i;
-   UdpRxCallbackDesc *entry;
+   UdpRxCallbackEntry *entry;
 
    //Initialize status code
    error = ERROR_FAILURE;
@@ -855,16 +931,19 @@ error_t udpDetachRxCallback(NetInterface *interface, uint16_t port)
  * @param[in] header UDP header
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
-error_t udpInvokeRxCallback(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *header, const NetBuffer *buffer, size_t offset)
+error_t udpInvokeRxCallback(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const UdpHeader *header,
+   const NetBuffer *buffer, size_t offset, NetRxAncillary *ancillary)
 {
    error_t error;
    uint_t i;
    void *param;
-   UdpRxCallbackDesc *entry;
+   UdpRxCallbackEntry *entry;
 
    //Initialize status code
    error = ERROR_PORT_UNREACHABLE;
@@ -895,8 +974,8 @@ error_t udpInvokeRxCallback(NetInterface *interface, const IpPseudoHeader *pseud
                   osReleaseMutex(&udpCallbackMutex);
 
                //Invoke user callback function
-               entry->callback(interface, pseudoHeader,
-                  header, buffer, offset, param);
+               entry->callback(interface, pseudoHeader, header, buffer, offset,
+                  ancillary, param);
 
                //Acquire mutex
                if(param == NULL)

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -94,8 +94,8 @@ error_t rndisDriverInit(NetInterface *interface)
    rndisDriverInterface = interface;
 
    //Clear TX and RX buffers
-   memset(rndisTxBuffer, 0, sizeof(rndisTxBuffer));
-   memset(rndisRxBuffer, 0, sizeof(rndisRxBuffer));
+   osMemset(rndisTxBuffer, 0, sizeof(rndisTxBuffer));
+   osMemset(rndisRxBuffer, 0, sizeof(rndisRxBuffer));
 
    //Initialize variables
    rndisTxWriteIndex = 0;
@@ -119,8 +119,8 @@ error_t rndisDriverInit(NetInterface *interface)
 /**
  * @brief RNDIS driver timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -200,8 +200,13 @@ void rndisDriverEventHandler(NetInterface *interface)
       //Check whether a valid packet has been received
       if(!error)
       {
+         NetRxAncillary ancillary;
+
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_RX_ANCILLARY;
+
          //Pass the packet to the upper layer
-         nicProcessPacket(interface, temp, length);
+         nicProcessPacket(interface, temp, length, &ancillary);
       }
 
       //No more data in the receive buffer?
@@ -214,11 +219,13 @@ void rndisDriverEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t rndisDriverSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
    RndisPacketMsg *message;
@@ -344,7 +351,7 @@ error_t rndisDriverReceivePacket(NetInterface *interface,
             //Limit the number of data to read
             n = MIN(message->dataLength, size);
             //Copy data from the receive buffer
-            memcpy(buffer, (uint8_t *) message + message->dataOffset + 8, n);
+            osMemcpy(buffer, (uint8_t *) message + message->dataOffset + 8, n);
 
             //Total number of bytes that have been received
             *length = n;

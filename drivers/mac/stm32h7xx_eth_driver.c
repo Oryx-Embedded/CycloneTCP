@@ -1,12 +1,12 @@
 /**
  * @file stm32h7xx_eth_driver.c
- * @brief STM32H7 Ethernet MAC controller
+ * @brief STM32H7 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -46,19 +46,19 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = STM32H7XX_ETH_RAM_SECTION
 static uint8_t txBuffer[STM32H7XX_ETH_TX_BUFFER_COUNT][STM32H7XX_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = STM32H7XX_ETH_RAM_SECTION
 static uint8_t rxBuffer[STM32H7XX_ETH_RX_BUFFER_COUNT][STM32H7XX_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = STM32H7XX_ETH_RAM_SECTION
 static Stm32h7xxTxDmaDesc txDmaDesc[STM32H7XX_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = STM32H7XX_ETH_RAM_SECTION
 static Stm32h7xxRxDmaDesc rxDmaDesc[STM32H7XX_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
@@ -66,16 +66,16 @@ static Stm32h7xxRxDmaDesc rxDmaDesc[STM32H7XX_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer
 static uint8_t txBuffer[STM32H7XX_ETH_TX_BUFFER_COUNT][STM32H7XX_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(STM32H7XX_ETH_RAM_SECTION)));
 //Receive buffer
 static uint8_t rxBuffer[STM32H7XX_ETH_RX_BUFFER_COUNT][STM32H7XX_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(STM32H7XX_ETH_RAM_SECTION)));
 //Transmit DMA descriptors
 static Stm32h7xxTxDmaDesc txDmaDesc[STM32H7XX_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(STM32H7XX_ETH_RAM_SECTION)));
 //Receive DMA descriptors
 static Stm32h7xxRxDmaDesc rxDmaDesc[STM32H7XX_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(STM32H7XX_ETH_RAM_SECTION)));
 
 #endif
 
@@ -141,21 +141,38 @@ error_t stm32h7xxEthInit(NetInterface *interface)
    //Perform a software reset
    ETH->DMAMR |= ETH_DMAMR_SWR;
    //Wait for the reset to complete
-   while(ETH->DMAMR & ETH_DMAMR_SWR)
+   while((ETH->DMAMR & ETH_DMAMR_SWR) != 0)
    {
    }
 
    //Adjust MDC clock range depending on HCLK frequency
    ETH->MACMDIOAR = ETH_MACMDIOAR_CR_DIV124;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Use default MAC configuration
-   ETH->MACCR = ETH_MACCR_DO;
+   ETH->MACCR = ETH_MACCR_RESERVED15 | ETH_MACCR_DO;
 
    //Set the MAC address of the station
    ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
@@ -431,16 +448,29 @@ void stm32h7xxEthInitDmaDesc(NetInterface *interface)
 /**
  * @brief STM32H7 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void stm32h7xxEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -453,8 +483,22 @@ void stm32h7xxEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ETH_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -467,8 +511,22 @@ void stm32h7xxEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ETH_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -490,22 +548,22 @@ void ETH_IRQHandler(void)
    //Read DMA status register
    status = ETH->DMACSR;
 
-   //A packet has been transmitted?
-   if(status & ETH_DMACSR_TI)
+   //Packet transmitted?
+   if((status & ETH_DMACSR_TI) != 0)
    {
       //Clear TI interrupt flag
       ETH->DMACSR = ETH_DMACSR_TI;
 
       //Check whether the TX buffer is available for writing
-      if(!(txDmaDesc[txIndex].tdes3 & ETH_TDES3_OWN))
+      if((txDmaDesc[txIndex].tdes3 & ETH_TDES3_OWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & ETH_DMACSR_RI)
+   //Packet received?
+   if((status & ETH_DMACSR_RI) != 0)
    {
       //Disable RIE interrupt
       ETH->DMACIER &= ~ETH_DMACIER_RIE;
@@ -534,7 +592,7 @@ void stm32h7xxEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(ETH->DMACSR & ETH_DMACSR_RI)
+   if((ETH->DMACSR & ETH_DMACSR_RI) != 0)
    {
       //Clear interrupt flag
       ETH->DMACSR = ETH_DMACSR_RI;
@@ -559,11 +617,13 @@ void stm32h7xxEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t stm32h7xxEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    static uint8_t temp[STM32H7XX_ETH_TX_BUFFER_SIZE];
    size_t length;
@@ -581,12 +641,14 @@ error_t stm32h7xxEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txDmaDesc[txIndex].tdes3 & ETH_TDES3_OWN)
+   if((txDmaDesc[txIndex].tdes3 & ETH_TDES3_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(temp, buffer, offset, length);
-   memcpy(txBuffer[txIndex], temp, (length + 3) & ~3UL);
+   osMemcpy(txBuffer[txIndex], temp, (length + 3) & ~3UL);
 
    //Set the start address of the buffer
    txDmaDesc[txIndex].tdes0 = (uint32_t) txBuffer[txIndex];
@@ -605,10 +667,12 @@ error_t stm32h7xxEthSendPacket(NetInterface *interface,
 
    //Increment index and wrap around if necessary
    if(++txIndex >= STM32H7XX_ETH_TX_BUFFER_COUNT)
+   {
       txIndex = 0;
+   }
 
    //Check whether the next buffer is available for writing
-   if(!(txDmaDesc[txIndex].tdes3 & ETH_TDES3_OWN))
+   if((txDmaDesc[txIndex].tdes3 & ETH_TDES3_OWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -630,16 +694,17 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface)
    static uint8_t temp[STM32H7XX_ETH_RX_BUFFER_SIZE];
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_OWN))
+   if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_OWN) == 0)
    {
       //FD and LD flags should be set
-      if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_FD) &&
-         (rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_LD))
+      if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_FD) != 0 &&
+         (rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_LD) != 0)
       {
          //Make sure no error occurred
-         if(!(rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_ES))
+         if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_ES) == 0)
          {
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_PL;
@@ -647,10 +712,13 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface)
             n = MIN(n, STM32H7XX_ETH_RX_BUFFER_SIZE);
 
             //Copy data from the receive buffer
-            memcpy(temp, rxBuffer[rxIndex], (n + 3) & ~3UL);
+            osMemcpy(temp, rxBuffer[rxIndex], (n + 3) & ~3UL);
+
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, temp, n);
+            nicProcessPacket(interface, temp, n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -674,7 +742,9 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface)
 
       //Increment index and wrap around if necessary
       if(++rxIndex >= STM32H7XX_ETH_RX_BUFFER_COUNT)
+      {
          rxIndex = 0;
+      }
    }
    else
    {
@@ -829,15 +899,23 @@ error_t stm32h7xxEthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= ETH_MACCR_FES;
+   }
    else
+   {
       config &= ~ETH_MACCR_FES;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= ETH_MACCR_DM;
+   }
    else
+   {
       config &= ~ETH_MACCR_DM;
+   }
 
    //Update MAC configuration register
    ETH->MACCR = config;
@@ -878,7 +956,7 @@ void stm32h7xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       ETH->MACMDIOAR = temp;
       //Wait for the write to complete
-      while(ETH->MACMDIOAR & ETH_MACMDIOAR_MB)
+      while((ETH->MACMDIOAR & ETH_MACMDIOAR_MB) != 0)
       {
       }
    }
@@ -918,7 +996,7 @@ uint16_t stm32h7xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       ETH->MACMDIOAR = temp;
       //Wait for the read to complete
-      while(ETH->MACMDIOAR & ETH_MACMDIOAR_MB)
+      while((ETH->MACMDIOAR & ETH_MACMDIOAR_MB) != 0)
       {
       }
 
@@ -947,11 +1025,13 @@ uint32_t stm32h7xxEthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -960,10 +1040,14 @@ uint32_t stm32h7xxEthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

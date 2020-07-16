@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _MIB2_MODULE_H
@@ -193,8 +193,13 @@ typedef enum
    MIB2_IF_TYPE_SLIP            = 28,
    MIB2_IF_TYPE_RS232           = 33,
    MIB2_IF_TYPE_PARA            = 34,
+   MIB2_IF_TYPE_IEEE_802_11     = 71,
+   MIB2_IF_TYPE_HDLC            = 118,
+   MIB2_IF_TYPE_TUNNEL          = 131,
    MIB2_IF_TYPE_L2_VLAN         = 135,
    MIB2_IF_TYPE_USB             = 160,
+   MIB2_IF_TYPE_PLC             = 174,
+   MIB2_IF_TYPE_BRIDGE          = 209,
    MIB2_IF_TYPE_IEEE_802_15_4   = 259
 } Mib2IfType;
 
@@ -279,6 +284,17 @@ typedef enum
    MIB2_TCP_CONN_STATE_TIME_WAIT    = 11,
    MIB2_TCP_CONN_STATE_DELETE_TCB   = 12
 } Mib2TcpConnState;
+
+
+/**
+ * @brief Enabled/disabled state of authentication failure traps
+ **/
+
+typedef enum
+{
+   MIB2_AUTHEN_TRAPS_ENABLED  = 1,
+   MIB2_AUTHEN_TRAPS_DISABLED = 2
+} Mib2EnableAuthenTraps;
 
 
 /**

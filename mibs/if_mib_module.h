@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _IF_MIB_MODULE_H
@@ -72,8 +72,13 @@ typedef enum
    IF_MIB_IF_TYPE_SLIP            = 28,
    IF_MIB_IF_TYPE_RS232           = 33,
    IF_MIB_IF_TYPE_PARA            = 34,
+   IF_MIB_IF_TYPE_IEEE_802_11     = 71,
+   IF_MIB_IF_TYPE_HDLC            = 118,
+   IF_MIB_IF_TYPE_TUNNEL          = 131,
    IF_MIB_IF_TYPE_L2_VLAN         = 135,
    IF_MIB_IF_TYPE_USB             = 160,
+   IF_MIB_IF_TYPE_PLC             = 174,
+   IF_MIB_IF_TYPE_BRIDGE          = 209,
    IF_MIB_IF_TYPE_IEEE_802_15_4   = 259
 } IfMibIfType;
 

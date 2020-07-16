@@ -1,12 +1,12 @@
 /**
  * @file lan9303_driver.c
- * @brief LAN9303 3-port Ethernet switch
+ * @brief LAN9303 3-port Ethernet switch driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -41,7 +41,7 @@
  * @brief LAN9303 Ethernet switch driver
  **/
 
-const PhyDriver lan9303PhyDriver =
+const SwitchDriver lan9303SwitchDriver =
 {
    lan9303Init,
    lan9303Tick,
@@ -49,7 +49,20 @@ const PhyDriver lan9303PhyDriver =
    lan9303DisableIrq,
    lan9303EventHandler,
    lan9303TagFrame,
-   lan9303UntagFrame
+   lan9303UntagFrame,
+   lan9303GetLinkState,
+   lan9303GetLinkSpeed,
+   lan9303GetDuplexMode,
+   lan9303SetPortState,
+   lan9303GetPortState,
+   lan9303SetAgingTime,
+   lan9303EnableRsvdMcastTable,
+   lan9303AddStaticFdbEntry,
+   lan9303DeleteStaticFdbEntry,
+   lan9303GetStaticFdbEntry,
+   lan9303FlushStaticFdbTable,
+   lan9303GetDynamicFdbEntry,
+   lan9303FlushDynamicFdbTable
 };
 
 
@@ -66,6 +79,12 @@ error_t lan9303Init(NetInterface *interface)
 
    //Debug message
    TRACE_INFO("Initializing LAN9303...\r\n");
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
+   }
 
    //Chip-level reset/configuration completion can be determined by first
    //polling the BYTE_TEST register
@@ -90,18 +109,26 @@ error_t lan9303Init(NetInterface *interface)
    } while((value & LAN9303_HW_CFG_DEVICE_READY) == 0);
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Special VLAN tagging mode?
+   //Enable special VLAN tagging mode
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_INGRSS_PORT_TYP,
+      LAN9303_SWE_INGRSS_PORT_TYP_PORT0);
+
+   //Configure egress VLAN tagging rules
+   lan9303WriteSwitchReg(interface, LAN9303_BM_EGRSS_PORT_TYPE,
+      LAN9303_BM_EGRSS_PORT_TYPE_PORT0_CPU);
+#else
+   //Disable special VLAN tagging mode
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_INGRSS_PORT_TYP, 0);
+
+   //Revert to default configuration
+   lan9303WriteSwitchReg(interface, LAN9303_BM_EGRSS_PORT_TYPE, 0);
+#endif
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Port separation mode?
    if(interface->port != 0)
    {
-      //Enable special VLAN tagging mode
-      lan9303WriteSwitchReg(interface, LAN9303_SWE_INGRSS_PORT_TYP,
-         LAN9303_SWE_INGRSS_PORT_TYP_PORT0);
-
-      //Configure egress VLAN tagging rules
-      lan9303WriteSwitchReg(interface, LAN9303_BM_EGRSS_PORT_TYPE,
-         LAN9303_BM_EGRSS_PORT_TYPE_PORT0_CPU);
-
-      //Configure port mirroring
+      //Enable port mirroring
       lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_MIRROR,
          LAN9303_SWE_PORT_MIRROR_RX_MIRRORING_FILT_EN |
          LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT0 |
@@ -118,13 +145,14 @@ error_t lan9303Init(NetInterface *interface)
    else
 #endif
    {
-      //Disable special VLAN tagging mode
-      lan9303WriteSwitchReg(interface, LAN9303_SWE_INGRSS_PORT_TYP, 0);
-
-      //Revert to default configuration
-      lan9303WriteSwitchReg(interface, LAN9303_BM_EGRSS_PORT_TYPE, 0);
+      //Disable port mirroring
       lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_MIRROR, 0);
-      lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_STATE, 0);
+
+      //Configure port state
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_STATE,
+         LAN9303_SWE_PORT_STATE_PORT2_FORWARDING |
+         LAN9303_SWE_PORT_STATE_PORT1_FORWARDING |
+         LAN9303_SWE_PORT_STATE_PORT0_FORWARDING);
    }
 
    //Configure port 0 receive parameters
@@ -136,7 +164,7 @@ error_t lan9303Init(NetInterface *interface)
       LAN9303_MAC_TX_CFG_IFG_CONFIG_DEFAULT | LAN9303_MAC_TX_CFG_TX_PAD_EN |
       LAN9303_MAC_TX_CFG_TX_EN);
 
-   //Loop through ports
+   //Loop through the ports
    for(port = LAN9303_PORT1; port <= LAN9303_PORT2; port++)
    {
       //Debug message
@@ -156,42 +184,6 @@ error_t lan9303Init(NetInterface *interface)
 
 
 /**
- * @brief Get link state
- * @param[in] interface Underlying network interface
- * @param[in] port Port number
- * @return Link state
- **/
-
-bool_t lan9303GetLinkState(NetInterface *interface, uint8_t port)
-{
-   uint16_t status;
-   bool_t linkState;
-
-   //Check port number
-   if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
-   {
-      //Get exclusive access
-      osAcquireMutex(&netMutex);
-      //Read status register
-      status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
-      //Release exclusive access
-      osReleaseMutex(&netMutex);
-
-      //Retrieve current link state
-      linkState = (status & LAN9303_BMSR_LINK_STATUS) ? TRUE : FALSE;
-   }
-   else
-   {
-      //The specified port number is not valid
-      linkState = FALSE;
-   }
-
-   //Return link status
-   return linkState;
-}
-
-
-/**
  * @brief LAN9303 timer handler
  * @param[in] interface Underlying network interface
  **/
@@ -199,11 +191,10 @@ bool_t lan9303GetLinkState(NetInterface *interface, uint8_t port)
 void lan9303Tick(NetInterface *interface)
 {
    uint_t port;
-   uint16_t status;
    bool_t linkState;
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Special VLAN tagging mode?
+   //Port separation mode?
    if(interface->port != 0)
    {
       uint_t i;
@@ -217,28 +208,19 @@ void lan9303Tick(NetInterface *interface)
 
          //Check whether the current virtual interface is attached to the
          //physical interface
-         if(virtualInterface == interface || virtualInterface->parent == interface)
+         if(virtualInterface == interface ||
+            virtualInterface->parent == interface)
          {
-            //The VLAN identifier is used to indicate the source/destination port
-            port = virtualInterface->port;
+            //Retrieve current link state
+            linkState = lan9303GetLinkState(interface, virtualInterface->port);
 
-            //Valid port?
-            if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
+            //Link up or link down event?
+            if(linkState != virtualInterface->linkState)
             {
-               //Read status register
-               status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
-
-               //Retrieve current link state
-               linkState = (status & LAN9303_BMSR_LINK_STATUS) ? TRUE : FALSE;
-
-               //Link up or link down event?
-               if(linkState != virtualInterface->linkState)
-               {
-                  //Set event flag
-                  interface->phyEvent = TRUE;
-                  //Notify the TCP/IP stack of the event
-                  osSetEvent(&netEvent);
-               }
+               //Set event flag
+               interface->phyEvent = TRUE;
+               //Notify the TCP/IP stack of the event
+               osSetEvent(&netEvent);
             }
          }
       }
@@ -249,15 +231,14 @@ void lan9303Tick(NetInterface *interface)
       //Initialize link state
       linkState = FALSE;
 
-      //Loop through ports
+      //Loop through the ports
       for(port = LAN9303_PORT1; port <= LAN9303_PORT2; port++)
       {
-         //Read status register
-         status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
-
          //Retrieve current link state
-         if(status & LAN9303_BMSR_LINK_STATUS)
+         if(lan9303GetLinkState(interface, port))
+         {
             linkState = TRUE;
+         }
       }
 
       //Link up or link down event?
@@ -300,14 +281,14 @@ void lan9303DisableIrq(NetInterface *interface)
 void lan9303EventHandler(NetInterface *interface)
 {
    uint_t port;
-   uint16_t status;
    bool_t linkState;
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Special VLAN tagging mode?
+   //Port separation mode?
    if(interface->port != 0)
    {
       uint_t i;
+      uint16_t status;
       NetInterface *virtualInterface;
 
       //Loop through network interfaces
@@ -318,19 +299,17 @@ void lan9303EventHandler(NetInterface *interface)
 
          //Check whether the current virtual interface is attached to the
          //physical interface
-         if(virtualInterface == interface || virtualInterface->parent == interface)
+         if(virtualInterface == interface ||
+            virtualInterface->parent == interface)
          {
-            //The VLAN identifier is used to indicate the source/destination port
+            //Get the port number associated with the current interface
             port = virtualInterface->port;
 
             //Valid port?
             if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
             {
-               //Read status register
-               status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
-
                //Retrieve current link state
-               linkState = (status & LAN9303_BMSR_LINK_STATUS) ? TRUE : FALSE;
+               linkState = lan9303GetLinkState(interface, port);
 
                //Link up event?
                if(linkState && !virtualInterface->linkState)
@@ -351,21 +330,25 @@ void lan9303EventHandler(NetInterface *interface)
                      virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
                      virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
                      break;
+
                   //10BASE-T full-duplex
                   case LAN9303_PSCSR_SPEED_10BT_FD:
                      virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
                      virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
                      break;
+
                   //100BASE-TX half-duplex
                   case LAN9303_PSCSR_SPEED_100BTX_HD:
                      virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
                      virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
                      break;
+
                   //100BASE-TX full-duplex
                   case LAN9303_PSCSR_SPEED_100BTX_FD:
                      virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
                      virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
                      break;
+
                   //Unknown operation mode
                   default:
                      //Debug message
@@ -398,15 +381,14 @@ void lan9303EventHandler(NetInterface *interface)
       //Initialize link state
       linkState = FALSE;
 
-      //Loop through ports
+      //Loop through the ports
       for(port = LAN9303_PORT1; port <= LAN9303_PORT2; port++)
       {
-         //Read status register
-         status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
-
          //Retrieve current link state
-         if(status & LAN9303_BMSR_LINK_STATUS)
+         if(lan9303GetLinkState(interface, port))
+         {
             linkState = TRUE;
+         }
       }
 
       //Link up event?
@@ -437,39 +419,60 @@ void lan9303EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in,out] offset Offset to the first payload byte
- * @param[in] port Switch port identifier
- * @param[in,out] type Ethernet type
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t lan9303TagFrame(NetInterface *interface, NetBuffer *buffer,
-   size_t *offset, uint8_t port, uint16_t *type)
+   size_t *offset, NetTxAncillary *ancillary)
 {
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    error_t error;
-   VlanTag *vlanTag;
 
+   //Initialize status code
+   error = NO_ERROR;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    //Valid port?
-   if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
+   if(ancillary->port <= LAN9303_PORT2)
    {
       //Is there enough space for the VLAN tag?
       if(*offset >= sizeof(VlanTag))
       {
-         //Make room for the VLAN tag
-         *offset -= sizeof(VlanTag);
-         //Point to the special VLAN tag
-         vlanTag = netBufferAt(buffer, *offset);
+         EthHeader *header;
+         VlanTag *vlanTag;
 
-         //Bits 0 and 1 of the VID field specify the destination port
-         vlanTag->tci = LAN9303_VLAN_ID_ENCODE(port);
-         //The EtherType field indicates which protocol is encapsulated in the payload
-         vlanTag->type = htons(*type);
+         //Make room for the special VLAN tag
+         *offset -= sizeof(VlanTag);
+         //Point to the beginning of the frame
+         header = netBufferAt(buffer, *offset);
+
+         //Move the Ethernet header to make room for the special VLAN tag
+         osMemmove(header, (uint8_t *) header + sizeof(VlanTag),
+            sizeof(EthHeader));
+
+         //The special VLAN tag is a normal VLAN tag where the VID field is
+         //used as the destination port indicator
+         vlanTag = (VlanTag *) header->data;
+
+         //Default port number?
+         if(ancillary->port == 0)
+         {
+            //If VID bit 3 is one, then the normal ALR lookup is performed
+            vlanTag->tci = htons(LAN9303_VID_ALR_LOOKUP);
+         }
+         else
+         {
+            //VID bits 0 and 1 specify the destination port
+            vlanTag->tci = htons(LAN9303_VID_STP_OVERRIDE | ancillary->port);
+         }
+
+         //The EtherType field indicates which protocol is encapsulated in
+         //the payload
+         vlanTag->type = header->type;
 
          //A distinct Ethertype has been allocated for use in the TPID field
-         *type = ETH_TYPE_VLAN;
-
-         //Successful processing
-         error = NO_ERROR;
+         header->type = HTONS(ETH_TYPE_VLAN);
       }
       else
       {
@@ -479,16 +482,13 @@ error_t lan9303TagFrame(NetInterface *interface, NetBuffer *buffer,
    }
    else
    {
-      //Invalid port
-      error = ERROR_WRONG_IDENTIFIER;
+      //The port number is not valid
+      error = ERROR_INVALID_PORT;
    }
+#endif
 
    //Return status code
    return error;
-#else
-   //VLAN tagging mode is not implemented
-   return NO_ERROR;
-#endif
 }
 
 
@@ -497,19 +497,25 @@ error_t lan9303TagFrame(NetInterface *interface, NetBuffer *buffer,
  * @param[in] interface Underlying network interface
  * @param[in,out] frame Pointer to the received Ethernet frame
  * @param[in,out] length Length of the frame, in bytes
- * @param[out] port Switch port identifier
+ * @param[in,out] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t lan9303UntagFrame(NetInterface *interface, uint8_t **frame,
-   size_t *length, uint8_t *port)
+   size_t *length, NetRxAncillary *ancillary)
 {
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    error_t error;
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    EthHeader *header;
    VlanTag *vlanTag;
+#endif
 
-   //Point to the Ethernet frame header
+   //Initialize status code
+   error = NO_ERROR;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Point to the beginning of the frame
    header = (EthHeader *) *frame;
 
    //Check whether VLAN tagging is used
@@ -518,20 +524,21 @@ error_t lan9303UntagFrame(NetInterface *interface, uint8_t **frame,
       //Valid Ethernet frame received?
       if(*length >= (sizeof(EthHeader) + sizeof(VlanTag)))
       {
-         //Point to the special VLAN tag
+         //The special VLAN tag is a normal VLAN tag where the VID field is
+         //used as a source port indicator
          vlanTag = (VlanTag *) header->data;
 
-         //Bits 0 and 1 of the VID field specify the source port
-         *port = LAN9303_VLAN_ID_DECODE(vlanTag->tci);
-
+         //VID bits 0 and 1 specify the source port
+         ancillary->port = ntohs(vlanTag->tci) & LAN9303_VID_SRC_PORT;
          //Fix the value of the EtherType field
          header->type = vlanTag->type;
-         //Strip VLAN tag from Ethernet frame
-         memmove(*frame + sizeof(VlanTag), *frame, sizeof(EthHeader));
+
+         //Strip the VLAN tag from the Ethernet frame
+         osMemmove(*frame + sizeof(VlanTag), *frame, sizeof(EthHeader));
 
          //Point to the Ethernet frame header
          *frame += sizeof(VlanTag);
-         //Adjust the length of the frame
+         //Retrieve the length of the original frame
          *length -= sizeof(VlanTag);
 
          //Successful processing
@@ -549,13 +556,793 @@ error_t lan9303UntagFrame(NetInterface *interface, uint8_t **frame,
       //drop the incoming Ethernet frame
       error = ERROR_WRONG_IDENTIFIER;
    }
+#endif
 
    //Return status code
    return error;
-#else
-   //VLAN tagging mode is not implemented
+}
+
+
+/**
+ * @brief Get link state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Link state
+ **/
+
+bool_t lan9303GetLinkState(NetInterface *interface, uint8_t port)
+{
+   uint16_t status;
+   bool_t linkState;
+
+   //Check port number
+   if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
+   {
+      //Read status register
+      status = lan9303ReadPhyReg(interface, port, LAN9303_BMSR);
+
+      //Retrieve current link state
+      linkState = (status & LAN9303_BMSR_LINK_STATUS) ? TRUE : FALSE;
+   }
+   else
+   {
+      //The specified port number is not valid
+      linkState = FALSE;
+   }
+
+   //Return link status
+   return linkState;
+}
+
+
+/**
+ * @brief Get link speed
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Link speed
+ **/
+
+uint32_t lan9303GetLinkSpeed(NetInterface *interface, uint8_t port)
+{
+   uint16_t status;
+   uint32_t linkSpeed;
+
+   //Check port number
+   if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
+   {
+      //Read PHY special control/status register
+      status = lan9303ReadPhyReg(interface, port, LAN9303_PSCSR);
+
+      //Check current operation mode
+      switch(status & LAN9303_PSCSR_SPEED)
+      {
+      //10BASE-T
+      case LAN9303_PSCSR_SPEED_10BT_HD:
+      case LAN9303_PSCSR_SPEED_10BT_FD:
+         linkSpeed = NIC_LINK_SPEED_10MBPS;
+         break;
+
+      //100BASE-TX
+      case LAN9303_PSCSR_SPEED_100BTX_HD:
+      case LAN9303_PSCSR_SPEED_100BTX_FD:
+         linkSpeed = NIC_LINK_SPEED_100MBPS;
+         break;
+
+      //Unknown operation mode
+      default:
+         linkSpeed = NIC_LINK_SPEED_UNKNOWN;
+         break;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+      linkSpeed = NIC_LINK_SPEED_UNKNOWN;
+   }
+
+   //Return link status
+   return linkSpeed;
+}
+
+
+/**
+ * @brief Get duplex mode
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Duplex mode
+ **/
+
+NicDuplexMode lan9303GetDuplexMode(NetInterface *interface, uint8_t port)
+{
+   uint16_t status;
+   NicDuplexMode duplexMode;
+
+   //Check port number
+   if(port >= LAN9303_PORT1 && port <= LAN9303_PORT2)
+   {
+      //Read PHY special control/status register
+      status = lan9303ReadPhyReg(interface, port, LAN9303_PSCSR);
+
+      //Check current operation mode
+      switch(status & LAN9303_PSCSR_SPEED)
+      {
+      //10BASE-T or 100BASE-TX half-duplex
+      case LAN9303_PSCSR_SPEED_10BT_HD:
+      case LAN9303_PSCSR_SPEED_100BTX_HD:
+         duplexMode = NIC_HALF_DUPLEX_MODE;
+         break;
+
+      //10BASE-T or 100BASE-TX full-duplex
+      case LAN9303_PSCSR_SPEED_100BTX_FD:
+      case LAN9303_PSCSR_SPEED_10BT_FD:
+         duplexMode = NIC_FULL_DUPLEX_MODE;
+         break;
+
+      //Unknown operation mode
+      default:
+         duplexMode = NIC_UNKNOWN_DUPLEX_MODE;
+         break;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+      duplexMode = NIC_UNKNOWN_DUPLEX_MODE;
+   }
+
+   //Return duplex mode
+   return duplexMode;
+}
+
+
+/**
+ * @brief Set port state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @param[in] state Port state
+ * @return Duplex mode
+ **/
+
+void lan9303SetPortState(NetInterface *interface, uint8_t port,
+   SwitchPortState state)
+{
+   uint32_t temp;
+
+   //Read port state register
+   temp = lan9303ReadSwitchReg(interface, LAN9303_SWE_PORT_STATE);
+
+   //Check port number
+   if(port == LAN9303_PORT1)
+   {
+      //Clear current configuration
+      temp &= ~LAN9303_SWE_PORT_STATE_PORT1;
+
+      //Update port 1 state
+      switch(state)
+      {
+      case SWITCH_PORT_STATE_BLOCKING:
+         temp |= LAN9303_SWE_PORT_STATE_PORT1_LISTENING;
+         break;
+      case SWITCH_PORT_STATE_LEARNING:
+         temp |= LAN9303_SWE_PORT_STATE_PORT1_LEARNING;
+         break;
+      case SWITCH_PORT_STATE_FORWARDING:
+         temp |= LAN9303_SWE_PORT_STATE_PORT1_FORWARDING;
+         break;
+      default:
+         temp |= LAN9303_SWE_PORT_STATE_PORT1_DISABLED;
+         break;
+      }
+   }
+   else if(port == LAN9303_PORT2)
+   {
+      //Clear current configuration
+      temp &= ~LAN9303_SWE_PORT_STATE_PORT2;
+
+      //Update port 2 state
+      switch(state)
+      {
+      case SWITCH_PORT_STATE_BLOCKING:
+         temp |= LAN9303_SWE_PORT_STATE_PORT2_LISTENING;
+         break;
+      case SWITCH_PORT_STATE_LEARNING:
+         temp |= LAN9303_SWE_PORT_STATE_PORT2_LEARNING;
+         break;
+      case SWITCH_PORT_STATE_FORWARDING:
+         temp |= LAN9303_SWE_PORT_STATE_PORT2_FORWARDING;
+         break;
+      default:
+         temp |= LAN9303_SWE_PORT_STATE_PORT2_DISABLED;
+         break;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+   }
+
+   //Write the value back to port state register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_STATE, temp);
+}
+
+
+/**
+ * @brief Get port state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Port state
+ **/
+
+SwitchPortState lan9303GetPortState(NetInterface *interface, uint8_t port)
+{
+   uint16_t temp;
+   SwitchPortState state;
+
+   //Read port state register
+   temp = lan9303ReadSwitchReg(interface, LAN9303_SWE_PORT_STATE);
+
+   //Check port number
+   if(port == LAN9303_PORT1)
+   {
+      //Check port 1 state
+      switch(temp & LAN9303_SWE_PORT_STATE_PORT1)
+      {
+      case LAN9303_SWE_PORT_STATE_PORT1_LISTENING:
+         state = SWITCH_PORT_STATE_BLOCKING;
+         break;
+      case LAN9303_SWE_PORT_STATE_PORT1_LEARNING:
+         state = SWITCH_PORT_STATE_LEARNING;
+         break;
+      case LAN9303_SWE_PORT_STATE_PORT1_FORWARDING:
+         state = SWITCH_PORT_STATE_FORWARDING;
+         break;
+      default:
+         state = SWITCH_PORT_STATE_DISABLED;
+         break;
+      }
+   }
+   else if(port == LAN9303_PORT2)
+   {
+      //Check port 2 state
+      switch(temp & LAN9303_SWE_PORT_STATE_PORT2)
+      {
+      case LAN9303_SWE_PORT_STATE_PORT2_LISTENING:
+         state = SWITCH_PORT_STATE_BLOCKING;
+         break;
+      case LAN9303_SWE_PORT_STATE_PORT2_LEARNING:
+         state = SWITCH_PORT_STATE_LEARNING;
+         break;
+      case LAN9303_SWE_PORT_STATE_PORT2_FORWARDING:
+         state = SWITCH_PORT_STATE_FORWARDING;
+         break;
+      default:
+         state = SWITCH_PORT_STATE_DISABLED;
+         break;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+      state = SWITCH_PORT_STATE_DISABLED;
+   }
+
+   //Return port state
+   return state;
+}
+
+
+/**
+ * @brief Set aging time for dynamic filtering entries
+ * @param[in] interface Underlying network interface
+ * @param[in] agingTime Aging time, in seconds
+ **/
+
+void lan9303SetAgingTime(NetInterface *interface, uint32_t agingTime)
+{
+   //The aging period is fixed to 5 minutes
+}
+
+
+/**
+ * @brief Enable reserved multicast table
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable reserved group addresses
+ **/
+
+void lan9303EnableRsvdMcastTable(NetInterface *interface, bool_t enable)
+{
+   uint_t i;
+   SwitchFdbEntry entry;
+
+   //The reserved group addresses are in the range of 01-80-C2-00-00-00 to
+   //01-80-C2-00-00-0F
+   for(i = 0; i <= 15; i++)
+   {
+      //Specify the reserved group address to be added or removed
+      entry.macAddr.b[0] = 0x01;
+      entry.macAddr.b[1] = 0x80;
+      entry.macAddr.b[2] = 0xC2;
+      entry.macAddr.b[3] = 0x00;
+      entry.macAddr.b[4] = 0x00;
+      entry.macAddr.b[5] = i;
+
+      //Format forwarding database entry
+      entry.srcPort = 0;
+      entry.destPorts = SWITCH_CPU_PORT_MASK;
+      entry.override = TRUE;
+
+      //Update the static MAC table
+      if(enable)
+      {
+         lan9303AddStaticFdbEntry(interface, &entry);
+      }
+      else
+      {
+         lan9303DeleteStaticFdbEntry(interface, &entry);
+      }
+   }
+}
+
+
+/**
+ * @brief Add a new entry to the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t lan9303AddStaticFdbEntry(NetInterface *interface,
+   const SwitchFdbEntry *entry)
+{
+   uint32_t value;
+   uint32_t ports;
+
+   //Check whether the forward port is the CPU port
+   if(entry->destPorts == SWITCH_CPU_PORT_MASK)
+   {
+      ports = LAN9303_PORT0_MASK;
+   }
+   else
+   {
+      ports = entry->destPorts & LAN9303_PORT_MASK;
+   }
+
+   //Valid forward ports?
+   if(ports != 0)
+   {
+      //Write SWE_ALR_WR_DAT_0 and SWE_ALR_WR_DAT_1 with the desired MAC
+      //address and control bits
+      value = LAN9303_SWE_ALR_WR_DAT1_VALID | LAN9303_SWE_ALR_WR_DAT1_STATIC;
+
+      //When the Override bit set, packets received with a destination
+      //address that matches the MAC address in the SWE_ALR_WR_DAT_1 and
+      //SWE_ALR_WR_DAT_0 registers will be forwarded regardless of the port
+      //state
+      if(entry->override)
+      {
+         value |= LAN9303_SWE_ALR_WR_DAT1_AGE_OVERRIDE;
+      }
+
+      //Set the ports associated with this MAC address
+      switch(ports)
+      {
+      case LAN9303_PORT0_MASK:
+         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_0;
+         break;
+      case LAN9303_PORT1_MASK:
+         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_1;
+         break;
+      case LAN9303_PORT2_MASK:
+         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_2;
+         break;
+      case LAN9303_PORT0_1_MASK:
+         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_0_1;
+         break;
+      case LAN9303_PORT0_2_MASK:
+         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_0_2;
+         break;
+      case LAN9303_PORT1_2_MASK:
+         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_1_2;
+         break;
+      default:
+         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_0_1_2;
+         break;
+      }
+   }
+   else
+   {
+      //An entry can be deleted by setting the Valid bit to 0
+      value = LAN9303_SWE_ALR_WR_DAT1_STATIC;
+   }
+
+   //Copy MAC address (last 16 bits)
+   value |= entry->macAddr.b[4] | (entry->macAddr.b[5] << 8);
+   //Write SWE_ALR_WR_DAT_1 register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT1, value);
+
+   //Copy MAC address (first 32 bits)
+   value = entry->macAddr.b[0] | (entry->macAddr.b[1] << 8) |
+      (entry->macAddr.b[2] << 16) | (entry->macAddr.b[3] << 24);
+
+   //Write SWE_ALR_WR_DAT_0 register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT0, value);
+
+   //Write the SWE_ALR_CMD register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD,
+      LAN9303_SWE_ALR_CMD_MAKE_ENTRY);
+
+   //Poll the Make Pending bit in the SWE_ALR_CMD_STS register until it is
+   //cleared
+   do
+   {
+      //Read the SWE_ALR_CMD_STS register
+      value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_CMD_STS);
+
+      //Check the Make Pending bit
+   } while((value & LAN9303_SWE_ALR_CMD_STS_MAKE_PENDING) != 0);
+
+   //Clear the SWE_ALR_CMD register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD, 0);
+
+   //Successful processing
    return NO_ERROR;
-#endif
+}
+
+
+/**
+ * @brief Remove an entry from the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] entry Forwarding database entry to remove from the table
+ * @return Error code
+ **/
+
+error_t lan9303DeleteStaticFdbEntry(NetInterface *interface,
+   const SwitchFdbEntry *entry)
+{
+   uint32_t value;
+
+   //An entry can be deleted by setting the Valid bit to 0
+   value = LAN9303_SWE_ALR_WR_DAT1_STATIC;
+
+   //Specify the MAC address to remove (last 16 bits)
+   value |= entry->macAddr.b[4] | (entry->macAddr.b[5] << 8);
+   //Write SWE_ALR_WR_DAT_1 register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT1, value);
+
+   //Specify the MAC address to remove (first 32 bits)
+   value = entry->macAddr.b[0] | (entry->macAddr.b[1] << 8) |
+      (entry->macAddr.b[2] << 16) | (entry->macAddr.b[3] << 24);
+
+   //Write SWE_ALR_WR_DAT_0 register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT0, value);
+
+   //Write the SWE_ALR_CMD register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD,
+      LAN9303_SWE_ALR_CMD_MAKE_ENTRY);
+
+   //Poll the Make Pending bit in the SWE_ALR_CMD_STS register until it is
+   //cleared
+   do
+   {
+      //Read the SWE_ALR_CMD_STS register
+      value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_CMD_STS);
+
+      //Check the Make Pending bit
+   } while((value & LAN9303_SWE_ALR_CMD_STS_MAKE_PENDING) != 0);
+
+   //Clear the SWE_ALR_CMD register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD, 0);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Read an entry from the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] index Zero-based index of the entry to read
+ * @param[out] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t lan9303GetStaticFdbEntry(NetInterface *interface, uint_t index,
+   SwitchFdbEntry *entry)
+{
+   uint32_t value;
+
+   //Loop through the ALR table
+   while(index < LAN9303_ALR_TABLE_SIZE)
+   {
+      //First entry?
+      if(index == 0)
+      {
+         value = LAN9303_SWE_ALR_CMD_GET_FIRST_ENTRY;
+      }
+      else
+      {
+         value = LAN9303_SWE_ALR_CMD_GET_NEXT_ENTRY;
+      }
+
+      //Write the SWE_ALR_CMD register
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD, value);
+      //Clear the SWE_ALR_CMD register
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD, 0);
+
+      //Poll the Valid and End of Table bits in the SWE_ALR_RD_DAT_1 register
+      //until either is set
+      while(1)
+      {
+         //Read SWE_ALR_RD_DAT_1 register
+         value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT1);
+
+         //If the End of Table bit is set, then exit
+         if((value & LAN9303_SWE_ALR_RD_DAT1_END_OF_TABLE) != 0)
+         {
+            return ERROR_END_OF_TABLE;
+         }
+
+         //If the Valid bit is set, then the entry is valid
+         if((value & LAN9303_SWE_ALR_RD_DAT1_VALID) != 0)
+         {
+            break;
+         }
+      }
+
+      //Static entry?
+      if((value & LAN9303_SWE_ALR_RD_DAT1_STATIC) != 0)
+      {
+         break;
+      }
+
+      //Skip dynamic entries
+      index++;
+   }
+
+   //Store the data from SWE_ALR_RD_DAT_0 and SWE_ALR_RD_DAT_1 registers
+   entry->srcPort = 0;
+   entry->override = FALSE;
+
+   //Retrieve the ports associated with this MAC address
+   switch(value & LAN9303_SWE_ALR_RD_DAT1_PORT)
+   {
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_0:
+      entry->destPorts = LAN9303_PORT0_MASK;
+      break;
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_1:
+      entry->destPorts = LAN9303_PORT1_MASK;
+      break;
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_2:
+      entry->destPorts = LAN9303_PORT2_MASK;
+      break;
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_0_1:
+      entry->destPorts = LAN9303_PORT0_1_MASK;
+      break;
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_0_2:
+      entry->destPorts = LAN9303_PORT0_2_MASK;
+      break;
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_1_2:
+      entry->destPorts = LAN9303_PORT1_2_MASK;
+      break;
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_0_1_2:
+      entry->destPorts = LAN9303_PORT0_1_2_MASK;
+      break;
+   default:
+      entry->destPorts = 0;
+      break;
+   }
+
+   //Copy MAC address (last 16 bits)
+   entry->macAddr.b[4] = value & 0xFF;
+   entry->macAddr.b[5] = (value >> 8) & 0xFF;
+
+   //Read SWE_ALR_RD_DAT_0 register
+   value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT0);
+
+   //Copy MAC address (first 32 bits)
+   entry->macAddr.b[0] = value & 0xFF;
+   entry->macAddr.b[1] = (value >> 8) & 0xFF;
+   entry->macAddr.b[2] = (value >> 16) & 0xFF;
+   entry->macAddr.b[3] = (value >> 24) & 0xFF;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Flush static MAC table
+ * @param[in] interface Underlying network interface
+ **/
+
+void lan9303FlushStaticFdbTable(NetInterface *interface)
+{
+   error_t error;
+   uint_t i;
+   SwitchFdbEntry entry;
+
+   //Loop through the ALR table
+   for(i = 0; i < LAN9303_ALR_TABLE_SIZE; i++)
+   {
+      //Read current entry
+      error = lan9303GetStaticFdbEntry(interface, i, &entry);
+
+      //Valid entry?
+      if(!error)
+      {
+         //An entry can be deleted by setting the Valid bit to 0
+         lan9303DeleteStaticFdbEntry(interface, &entry);
+      }
+      else
+      {
+         //The end of the table has been reached
+         break;
+      }
+   }
+}
+
+
+/**
+ * @brief Read an entry from the dynamic MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] index Zero-based index of the entry to read
+ * @param[out] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t lan9303GetDynamicFdbEntry(NetInterface *interface, uint_t index,
+   SwitchFdbEntry *entry)
+{
+   uint32_t value;
+
+   //Loop through the ALR table
+   while(index < LAN9303_ALR_TABLE_SIZE)
+   {
+      //First entry?
+      if(index == 0)
+      {
+         value = LAN9303_SWE_ALR_CMD_GET_FIRST_ENTRY;
+      }
+      else
+      {
+         value = LAN9303_SWE_ALR_CMD_GET_NEXT_ENTRY;
+      }
+
+      //Write the SWE_ALR_CMD register
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD, value);
+      //Clear the SWE_ALR_CMD register
+      lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD, 0);
+
+      //Poll the Valid and End of Table bits in the SWE_ALR_RD_DAT_1 register
+      //until either is set
+      while(1)
+      {
+         //Read SWE_ALR_RD_DAT_1 register
+         value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT1);
+
+         //If the End of Table bit is set, then exit
+         if((value & LAN9303_SWE_ALR_RD_DAT1_END_OF_TABLE) != 0)
+         {
+            return ERROR_END_OF_TABLE;
+         }
+
+         //If the Valid bit is set, then the entry is valid
+         if((value & LAN9303_SWE_ALR_RD_DAT1_VALID) != 0)
+         {
+            break;
+         }
+      }
+
+      //Dynamic entry?
+      if((value & LAN9303_SWE_ALR_RD_DAT1_STATIC) == 0)
+      {
+         break;
+      }
+
+      //Skip static entries
+      index++;
+   }
+
+   //Store the data from SWE_ALR_RD_DAT_0 and SWE_ALR_RD_DAT_1 registers
+   entry->destPorts = 0;
+   entry->override = FALSE;
+
+   //Retrieve the port associated with this MAC address
+   switch(value & LAN9303_SWE_ALR_RD_DAT1_PORT)
+   {
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_0:
+      entry->srcPort = LAN9303_PORT0;
+      break;
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_1:
+      entry->srcPort = LAN9303_PORT1;
+      break;
+   case LAN9303_SWE_ALR_RD_DAT1_PORT_2:
+      entry->srcPort = LAN9303_PORT2;
+      break;
+   default:
+      entry->srcPort = 0;
+      break;
+   }
+
+   //Copy MAC address (last 16 bits)
+   entry->macAddr.b[4] = value & 0xFF;
+   entry->macAddr.b[5] = (value >> 8) & 0xFF;
+
+   //Read SWE_ALR_RD_DAT_0 register
+   value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT0);
+
+   //Copy MAC address (first 32 bits)
+   entry->macAddr.b[0] = value & 0xFF;
+   entry->macAddr.b[1] = (value >> 8) & 0xFF;
+   entry->macAddr.b[2] = (value >> 16) & 0xFF;
+   entry->macAddr.b[3] = (value >> 24) & 0xFF;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Flush dynamic MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ **/
+
+void lan9303FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
+{
+   error_t error;
+   uint_t i;
+   uint32_t value;
+   SwitchFdbEntry entry;
+
+   //Loop through the ALR table
+   for(i = 0; i < LAN9303_ALR_TABLE_SIZE; i++)
+   {
+      //Read current entry
+      error = lan9303GetDynamicFdbEntry(interface, i, &entry);
+
+      //Valid entry?
+      if(!error)
+      {
+         //Matching port number?
+         if(entry.srcPort == port || port == 0)
+         {
+            //Specify the MAC address to remove (last 16 bits)
+            value = entry.macAddr.b[4] | (entry.macAddr.b[5] << 8);
+            //Write SWE_ALR_WR_DAT_1 register
+            lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT1, value);
+
+            //Specify the MAC address to remove (first 32 bits)
+            value = entry.macAddr.b[0] | (entry.macAddr.b[1] << 8) |
+               (entry.macAddr.b[2] << 16) | (entry.macAddr.b[3] << 24);
+
+            //Write SWE_ALR_WR_DAT_0 register
+            lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT0, value);
+
+            //Write the SWE_ALR_CMD register
+            lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD,
+               LAN9303_SWE_ALR_CMD_MAKE_ENTRY);
+
+            //Poll the Make Pending bit in the SWE_ALR_CMD_STS register until
+            //it is cleared
+            do
+            {
+               //Read the SWE_ALR_CMD_STS register
+               value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_CMD_STS);
+
+               //Check the Make Pending bit
+            } while((value & LAN9303_SWE_ALR_CMD_STS_MAKE_PENDING) != 0);
+
+            //Clear the SWE_ALR_CMD register
+            lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD, 0);
+         }
+      }
+      else
+      {
+         //The end of the table has been reached
+         break;
+      }
+   }
 }
 
 
@@ -571,7 +1358,14 @@ void lan9303WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
+   }
 }
 
 
@@ -586,8 +1380,20 @@ void lan9303WritePhyReg(NetInterface *interface, uint8_t port,
 uint16_t lan9303ReadPhyReg(NetInterface *interface, uint8_t port,
    uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ, port, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ, port, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ, port, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 
@@ -634,13 +1440,27 @@ void lan9303WriteSysReg(NetInterface *interface, uint16_t address,
    //Register address field forms register address bits 5:1
    regAddr = (address >> 1) & 0x1F;
 
-   //Write the low word of the SMI register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, phyAddr, regAddr,
-      data & 0xFFFF);
+   //Write system CSR register
+   if(interface->smiDriver != NULL)
+   {
+      //Write the low word of the SMI register
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE, phyAddr, regAddr,
+         data & 0xFFFF);
 
-   //Write the high word of the SMI register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, phyAddr, regAddr + 1,
-      (data >> 16) & 0xFFFF);
+      //Write the high word of the SMI register
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE, phyAddr, regAddr + 1,
+         (data >> 16) & 0xFFFF);
+   }
+   else
+   {
+      //Write the low word of the SMI register
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, phyAddr, regAddr,
+         data & 0xFFFF);
+
+      //Write the high word of the SMI register
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, phyAddr, regAddr + 1,
+         (data >> 16) & 0xFFFF);
+   }
 }
 
 
@@ -664,12 +1484,27 @@ uint32_t lan9303ReadSysReg(NetInterface *interface, uint16_t address)
    //Register address field forms register address bits 5:1
    regAddr = (address >> 1) & 0x1F;
 
-   //Read the low word of the SMI register
-   data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ, phyAddr, regAddr);
+   //Read system CSR register
+   if(interface->smiDriver != NULL)
+   {
+      //Read the low word of the SMI register
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ, phyAddr,
+         regAddr);
 
-   //Read the high word of the SMI register
-   data |= interface->nicDriver->readPhyReg(SMI_OPCODE_READ, phyAddr,
-      regAddr + 1) << 16;
+      //Read the high word of the SMI register
+      data |= interface->smiDriver->readPhyReg(SMI_OPCODE_READ, phyAddr,
+         regAddr + 1) << 16;
+   }
+   else
+   {
+      //Read the low word of the SMI register
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ, phyAddr,
+         regAddr);
+
+      //Read the high word of the SMI register
+      data |= interface->nicDriver->readPhyReg(SMI_OPCODE_READ, phyAddr,
+         regAddr + 1) << 16;
+   }
 
    //Return register value
    return data;
@@ -731,7 +1566,7 @@ void lan9303WriteSwitchReg(NetInterface *interface, uint16_t address,
       value = lan9303ReadSysReg(interface, LAN9303_SWITCH_CSR_CMD);
 
       //Poll CSR_BUSY bit
-   } while(value & LAN9303_SWITCH_CSR_CMD_BUSY);
+   } while((value & LAN9303_SWITCH_CSR_CMD_BUSY) != 0);
 }
 
 
@@ -765,7 +1600,7 @@ uint32_t lan9303ReadSwitchReg(NetInterface *interface, uint16_t address)
       value = lan9303ReadSysReg(interface, LAN9303_SWITCH_CSR_CMD);
 
       //Poll CSR_BUSY bit
-   } while(value & LAN9303_SWITCH_CSR_CMD_BUSY);
+   } while((value & LAN9303_SWITCH_CSR_CMD_BUSY) != 0);
 
    //Read data from the SWITCH_CSR_DATA register
    return lan9303ReadSysReg(interface, LAN9303_SWITCH_CSR_DATA);

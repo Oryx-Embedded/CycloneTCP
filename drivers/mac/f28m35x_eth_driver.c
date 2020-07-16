@@ -1,12 +1,12 @@
 /**
  * @file f28m35x_eth_driver.c
- * @brief F28M35x Ethernet MAC controller
+ * @brief F28M35x Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -93,7 +93,7 @@ const NicDriver f28m35xEthDriver =
 
 
 /**
- * @brief F28M35x Ethernet MAC controller initialization
+ * @brief F28M35x Ethernet MAC driver initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
@@ -107,7 +107,7 @@ error_t f28m35xEthInit(NetInterface *interface)
 #endif
 
    //Debug message
-   TRACE_INFO("Initializing F28M35x Ethernet MAC controller...\r\n");
+   TRACE_INFO("Initializing F28M35x Ethernet MAC driver...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -125,11 +125,28 @@ error_t f28m35xEthInit(NetInterface *interface)
    //Adjust MDC clock frequency
    MAC_MDV_R = div & MAC_MDV_DIV_M;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the MAC address of the station
    MAC_IA0_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
@@ -214,7 +231,7 @@ void f28m35xEthInitGpio(NetInterface *interface)
 
    //Configure MII_RXD1 (PG1)
    GPIODirModeSet(GPIO_PORTG_BASE, GPIO_PIN_1, GPIO_DIR_MODE_HW);
-      GPIOPadConfigSet(GPIO_PORTG_BASE, GPIO_PIN_1, GPIO_PIN_TYPE_STD);
+   GPIOPadConfigSet(GPIO_PORTG_BASE, GPIO_PIN_1, GPIO_PIN_TYPE_STD);
    GPIOPinConfigure(GPIO_PG1_MIIRXD1);
 
    //Configure MII_RXDV (PG3)
@@ -299,16 +316,29 @@ void f28m35xEthInitGpio(NetInterface *interface)
 /**
  * @brief F28M35x Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void f28m35xEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -327,8 +357,22 @@ void f28m35xEthEnableIrq(NetInterface *interface)
    IntEnable(INT_ETH);
 #endif
 
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -347,8 +391,22 @@ void f28m35xEthDisableIrq(NetInterface *interface)
    IntDisable(INT_ETH);
 #endif
 
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -371,13 +429,13 @@ void f28m35xEthIrqHandler(void)
    status = MAC_RIS_R;
 
    //Transmit FIFO empty?
-   if(status & MAC_RIS_TXEMP)
+   if((status & MAC_RIS_TXEMP) != 0)
    {
       //Acknowledge TXEMP interrupt
       MAC_IACK_R = MAC_IACK_TXEMP;
 
       //Check whether the transmit FIFO is available for writing
-      if(!(MAC_TR_R & MAC_TR_NEWTX))
+      if((MAC_TR_R & MAC_TR_NEWTX) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -385,7 +443,7 @@ void f28m35xEthIrqHandler(void)
    }
 
    //Packet received?
-   if(status & MAC_RIS_RXINT)
+   if((status & MAC_RIS_RXINT) != 0)
    {
       //Disable RXINT interrupt
       MAC_IM_R &= ~MAC_IM_RXINTM;
@@ -409,13 +467,13 @@ void f28m35xEthIrqHandler(void)
 void f28m35xEthEventHandler(NetInterface *interface)
 {
    //Packet received?
-   if(MAC_RIS_R & MAC_RIS_RXINT)
+   if((MAC_RIS_R & MAC_RIS_RXINT) != 0)
    {
       //Acknowledge RXINT interrupt
       MAC_IACK_R = MAC_IACK_RXINT;
 
       //Process all the pending packets
-      while(MAC_NP_R & MAC_NP_NPR_M)
+      while((MAC_NP_R & MAC_NP_NPR_M) != 0)
       {
          //Read incoming packet
          f28m35xEthReceivePacket(interface);
@@ -432,11 +490,13 @@ void f28m35xEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t f28m35xEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t i;
    size_t length;
@@ -455,8 +515,10 @@ error_t f28m35xEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the transmit FIFO is available for writing
-   if(MAC_TR_R & MAC_TR_NEWTX)
+   if((MAC_TR_R & MAC_TR_NEWTX) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data
    netBufferRead(txBuffer + 2, buffer, offset, length);
@@ -472,7 +534,9 @@ error_t f28m35xEthSendPacket(NetInterface *interface,
 
    //Copy packet to transmit FIFO
    for(i = 0; i < length; i++)
+   {
       MAC_DATA_R = p[i];
+   }
 
    //Start transmitting
    MAC_TR_R = MAC_TR_NEWTX;
@@ -498,7 +562,7 @@ error_t f28m35xEthReceivePacket(NetInterface *interface)
    uint16_t *p;
 
    //Make sure the FIFO is not empty
-   if(MAC_NP_R & MAC_NP_NPR_M)
+   if((MAC_NP_R & MAC_NP_NPR_M) != 0)
    {
       //Read the first word
       data = MAC_DATA_R;
@@ -518,7 +582,9 @@ error_t f28m35xEthReceivePacket(NetInterface *interface)
 
          //Copy the first half word
          if(n > 0)
+         {
             *(p++) = (uint16_t) (data >> 16);
+         }
 
          //Copy data from receive FIFO
          for(i = 2; i < n; i += 4)
@@ -564,8 +630,13 @@ error_t f28m35xEthReceivePacket(NetInterface *interface)
    //Check whether a valid packet has been received
    if(!error)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, rxBuffer, n);
+      nicProcessPacket(interface, rxBuffer, n, &ancillary);
    }
 
    //Return status code
@@ -610,9 +681,13 @@ error_t f28m35xEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
+   {
       MAC_RCTL_R |= MAC_RCTL_AMUL;
+   }
    else
+   {
       MAC_RCTL_R &= ~MAC_RCTL_AMUL;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -629,9 +704,13 @@ error_t f28m35xEthUpdateMacConfig(NetInterface *interface)
 {
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       MAC_TCTL_R |= MAC_TCTL_DUPLEX;
+   }
    else
+   {
       MAC_TCTL_R &= ~MAC_TCTL_DUPLEX;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -660,7 +739,7 @@ void f28m35xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       MAC_MCTL_R = (regAddr << 3) | MAC_MCTL_WRITE | MAC_MCTL_START;
 
       //Wait for the write to complete
-      while(MAC_MCTL_R & MAC_MCTL_START)
+      while((MAC_MCTL_R & MAC_MCTL_START) != 0)
       {
       }
    }
@@ -693,7 +772,7 @@ uint16_t f28m35xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       MAC_MCTL_R = (regAddr << 3) | MAC_MCTL_START;
 
       //Wait for the read to complete
-      while(MAC_MCTL_R & MAC_MCTL_START)
+      while((MAC_MCTL_R & MAC_MCTL_START) != 0)
       {
       }
 

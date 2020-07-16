@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -118,6 +118,7 @@ error_t nbnsSendResponse(NetInterface *interface,
    NbnsHeader *message;
    NbnsAddrEntry *addrEntry;
    DnsResourceRecord *record;
+   NetTxAncillary ancillary;
 
    //Allocate a memory buffer to hold the NBNS response message
    buffer = udpAllocBuffer(DNS_MESSAGE_MAX_SIZE, &offset);
@@ -181,10 +182,17 @@ error_t nbnsSendResponse(NetInterface *interface,
    //Dump message
    dnsDumpMessage((DnsHeader *) message, length);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //This flag tells the stack that the destination is on a locally attached
+   //network and not to perform a lookup of the routing table
+   ancillary.dontRoute = TRUE;
+
    //A response packet is always sent to the source UDP port and source IP
    //address of the request packet
-   error = udpSendDatagramEx(interface, NULL, NBNS_PORT, destIpAddr,
-      destPort, buffer, offset, IP_FLAG_DONT_ROUTE | IPV4_DEFAULT_TTL);
+   error = udpSendBuffer(interface, NULL, NBNS_PORT, destIpAddr, destPort,
+      buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);

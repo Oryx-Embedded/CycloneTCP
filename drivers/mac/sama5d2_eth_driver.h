@@ -1,12 +1,12 @@
 /**
  * @file sama5d2_eth_driver.h
- * @brief SAMA5D2 Ethernet MAC controller
+ * @brief SAMA5D2 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _SAMA5D2_ETH_DRIVER_H
@@ -78,6 +78,11 @@
    #define SAMA5D2_ETH_IRQ_PRIORITY 0
 #elif (SAMA5D2_ETH_IRQ_PRIORITY < 0)
    #error SAMA5D2_ETH_IRQ_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef SAMA5D2_ETH_RAM_SECTION
+   #define SAMA5D2_ETH_RAM_SECTION ".region_ddr_nocache"
 #endif
 
 //TX buffer descriptor flags
@@ -159,7 +164,7 @@ void sama5d2EthIrqHandler(void);
 void sama5d2EthEventHandler(NetInterface *interface);
 
 error_t sama5d2EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t sama5d2EthReceivePacket(NetInterface *interface);
 

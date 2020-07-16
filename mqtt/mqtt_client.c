@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,7 @@ error_t mqttClientInit(MqttClientContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Clear MQTT client context
-   memset(context, 0, sizeof(MqttClientContext));
+   osMemset(context, 0, sizeof(MqttClientContext));
 
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
    //Initialize TLS session state
@@ -81,11 +81,11 @@ error_t mqttClientInit(MqttClientContext *context)
 
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
    //Default resource name (for WebSocket connections only)
-   strcpy(context->settings.uri, "/");
+   osStrcpy(context->settings.uri, "/");
 #endif
 
-   //Initialize state machine
-   context->state = MQTT_CLIENT_STATE_CLOSED;
+   //Initialize MQTT client state
+   context->state = MQTT_CLIENT_STATE_DISCONNECTED;
    //Initialize packet identifier
    context->packetId = 0;
 
@@ -102,7 +102,7 @@ error_t mqttClientInit(MqttClientContext *context)
 void mqttClientInitCallbacks(MqttClientCallbacks *callbacks)
 {
    //Initialize callback structure
-   memset(callbacks, 0, sizeof(MqttClientCallbacks));
+   osMemset(callbacks, 0, sizeof(MqttClientCallbacks));
 }
 
 
@@ -279,12 +279,12 @@ error_t mqttClientSetHost(MqttClientContext *context, const char_t *host)
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the length of the hostname is acceptable
-   if(strlen(host) > MQTT_CLIENT_MAX_HOST_LEN)
+   if(osStrlen(host) > MQTT_CLIENT_MAX_HOST_LEN)
       return ERROR_INVALID_LENGTH;
 
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
    //Save hostname (for WebSocket connections only)
-   strcpy(context->settings.host, host);
+   osStrcpy(context->settings.host, host);
 #endif
 
    //Successful processing
@@ -306,12 +306,12 @@ error_t mqttClientSetUri(MqttClientContext *context, const char_t *uri)
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the length of the resource name is acceptable
-   if(strlen(uri) > MQTT_CLIENT_MAX_URI_LEN)
+   if(osStrlen(uri) > MQTT_CLIENT_MAX_URI_LEN)
       return ERROR_INVALID_LENGTH;
 
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
    //Save resource name (for WebSocket connections only)
-   strcpy(context->settings.uri, uri);
+   osStrcpy(context->settings.uri, uri);
 #endif
 
    //Successful processing
@@ -334,11 +334,11 @@ error_t mqttClientSetIdentifier(MqttClientContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the length of the client identifier is acceptable
-   if(strlen(clientId) > MQTT_CLIENT_MAX_ID_LEN)
+   if(osStrlen(clientId) > MQTT_CLIENT_MAX_ID_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save client identifier
-   strcpy(context->settings.clientId, clientId);
+   osStrcpy(context->settings.clientId, clientId);
 
    //Successful processing
    return NO_ERROR;
@@ -361,18 +361,18 @@ error_t mqttClientSetAuthInfo(MqttClientContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the length of the user name is acceptable
-   if(strlen(username) > MQTT_CLIENT_MAX_USERNAME_LEN)
+   if(osStrlen(username) > MQTT_CLIENT_MAX_USERNAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save user name
-   strcpy(context->settings.username, username);
+   osStrcpy(context->settings.username, username);
 
    //Make sure the length of the password is acceptable
-   if(strlen(password) > MQTT_CLIENT_MAX_PASSWORD_LEN)
+   if(osStrlen(password) > MQTT_CLIENT_MAX_PASSWORD_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save password
-   strcpy(context->settings.password, password);
+   osStrcpy(context->settings.password, password);
 
    //Successful processing
    return NO_ERROR;
@@ -400,14 +400,14 @@ error_t mqttClientSetWillMessage(MqttClientContext *context, const char_t *topic
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the length of the Will topic is acceptable
-   if(strlen(topic) > MQTT_CLIENT_MAX_WILL_TOPIC_LEN)
+   if(osStrlen(topic) > MQTT_CLIENT_MAX_WILL_TOPIC_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Point to the Will message
    willMessage = &context->settings.willMessage;
 
    //Save Will topic
-   strcpy(willMessage->topic, topic);
+   osStrcpy(willMessage->topic, topic);
 
    //Any message payload
    if(length > 0)
@@ -417,11 +417,11 @@ error_t mqttClientSetWillMessage(MqttClientContext *context, const char_t *topic
          return ERROR_INVALID_PARAMETER;
 
       //Make sure the length of the Will message payload is acceptable
-      if(strlen(message) > MQTT_CLIENT_MAX_WILL_PAYLOAD_LEN)
+      if(osStrlen(message) > MQTT_CLIENT_MAX_WILL_PAYLOAD_LEN)
          return ERROR_INVALID_LENGTH;
 
       //Save Will message payload
-      memcpy(willMessage->payload, message, length);
+      osMemcpy(willMessage->payload, message, length);
    }
 
    //Length of the Will message payload
@@ -482,10 +482,10 @@ error_t mqttClientConnect(MqttClientContext *context,
    error = NO_ERROR;
 
    //Establish network connection
-   while(context->state != MQTT_CLIENT_STATE_IDLE)
+   while(!error)
    {
       //Check current state
-      if(context->state == MQTT_CLIENT_STATE_CLOSED)
+      if(context->state == MQTT_CLIENT_STATE_DISCONNECTED)
       {
          //Open network connection
          error = mqttClientOpenConnection(context);
@@ -499,18 +499,15 @@ error_t mqttClientConnect(MqttClientContext *context,
 
             //The network connection is open
             mqttClientChangeState(context, MQTT_CLIENT_STATE_CONNECTING);
-         }
-         else
-         {
-            //Clean up side effects
-            mqttClientCloseConnection(context);
+            //Save current time
+            context->startTime = osGetSystemTime();
          }
       }
       else if(context->state == MQTT_CLIENT_STATE_CONNECTING)
       {
          //Establish network connection
-         error = mqttClientEstablishConnection(context,
-            serverIpAddr, serverPort);
+         error = mqttClientEstablishConnection(context, serverIpAddr,
+            serverPort);
 
          //Check status code
          if(!error)
@@ -565,27 +562,32 @@ error_t mqttClientConnect(MqttClientContext *context,
          //A CONNACK packet has been received
          mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
       }
+      else if(context->state == MQTT_CLIENT_STATE_IDLE)
+      {
+         //The MQTT client is connected
+         break;
+      }
       else
       {
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
+   }
 
-      //Any error to report?
-      if(error)
-      {
-#if (NET_RTOS_SUPPORT == DISABLED)
-         //Timeout error?
-         if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
-            break;
-#endif
-         //Close connection
-         mqttClientCloseConnection(context);
-         //The connection is closed
-         mqttClientChangeState(context, MQTT_CLIENT_STATE_CLOSED);
-         //Exit immediately
-         break;
-      }
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = mqttClientCheckTimeout(context);
+   }
+
+   //Failed to establish connection with the MQTT server?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
+   {
+      //Clean up side effects
+      mqttClientCloseConnection(context);
+      //Update MQTT client state
+      mqttClientChangeState(context, MQTT_CLIENT_STATE_DISCONNECTED);
    }
 
    //Return status code
@@ -654,6 +656,8 @@ error_t mqttClientPublish(MqttClientContext *context,
 
                //Send PUBLISH packet
                mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+               //Save the time at which the packet was sent
+               context->startTime = osGetSystemTime();
             }
          }
          else
@@ -707,6 +711,13 @@ error_t mqttClientPublish(MqttClientContext *context,
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = mqttClientCheckTimeout(context);
    }
 
    //Return status code
@@ -769,6 +780,8 @@ error_t mqttClientSubscribe(MqttClientContext *context,
 
                //Send SUBSCRIBE packet
                mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+               //Save the time at which the packet was sent
+               context->startTime = osGetSystemTime();
             }
          }
          else
@@ -813,6 +826,13 @@ error_t mqttClientSubscribe(MqttClientContext *context,
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = mqttClientCheckTimeout(context);
    }
 
    //Return status code
@@ -873,6 +893,8 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
 
                //Send UNSUBSCRIBE packet
                mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+               //Save the time at which the packet was sent
+               context->startTime = osGetSystemTime();
             }
          }
          else
@@ -917,6 +939,13 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = mqttClientCheckTimeout(context);
    }
 
    //Return status code
@@ -971,10 +1000,8 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
 
                //Send PINGREQ packet
                mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
-
-               //Save the time at which the request was sent
-               if(rtt != NULL)
-                  context->pingTimestamp = osGetSystemTime();
+               //Save the time at which the packet was sent
+               context->startTime = osGetSystemTime();
             }
          }
          else
@@ -1015,7 +1042,7 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
          if(rtt != NULL)
          {
             //Compute round-trip time
-            *rtt = osGetSystemTime() - context->pingTimestamp;
+            *rtt = osGetSystemTime() - context->startTime;
          }
 
          //A PINGRESP packet has been received
@@ -1026,6 +1053,13 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
+   }
+
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = mqttClientCheckTimeout(context);
    }
 
    //Return status code
@@ -1081,7 +1115,7 @@ error_t mqttClientDisconnect(MqttClientContext *context)
    error = NO_ERROR;
 
    //Send DISCONNECT packet and shutdown network connection
-   while(context->state != MQTT_CLIENT_STATE_DISCONNECTED)
+   while(!error)
    {
       //Check current state
       if(context->state == MQTT_CLIENT_STATE_IDLE)
@@ -1103,6 +1137,8 @@ error_t mqttClientDisconnect(MqttClientContext *context)
 
             //Send DISCONNECT packet
             mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PACKET);
+            //Save the time at which the packet was sent
+            context->startTime = osGetSystemTime();
          }
       }
       else if(context->state == MQTT_CLIENT_STATE_SENDING_PACKET)
@@ -1131,15 +1167,32 @@ error_t mqttClientDisconnect(MqttClientContext *context)
             mqttClientChangeState(context, MQTT_CLIENT_STATE_DISCONNECTED);
          }
       }
+      else if(context->state == MQTT_CLIENT_STATE_DISCONNECTED)
+      {
+         //The MQTT client is disconnected
+         break;
+      }
       else
       {
          //Invalid state
          error = ERROR_NOT_CONNECTED;
       }
+   }
 
-      //Any error to report?
-      if(error)
-         break;
+   //Check status code
+   if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+   {
+      //Check whether the timeout has elapsed
+      error = mqttClientCheckTimeout(context);
+   }
+
+   //Failed to gracefully disconnect from the MQTT server?
+   if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
+   {
+      //Close connection
+      mqttClientCloseConnection(context);
+      //Update MQTT client state
+      mqttClientChangeState(context, MQTT_CLIENT_STATE_DISCONNECTED);
    }
 
    //Return status code
@@ -1161,10 +1214,10 @@ error_t mqttClientClose(MqttClientContext *context)
 
    //Close connection
    mqttClientCloseConnection(context);
-   //The connection is closed
-   mqttClientChangeState(context, MQTT_CLIENT_STATE_CLOSED);
+   //Update MQTT client state
+   mqttClientChangeState(context, MQTT_CLIENT_STATE_DISCONNECTED);
 
-   //Network connection successfully closed
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -1188,7 +1241,7 @@ void mqttClientDeinit(MqttClientContext *context)
 #endif
 
       //Clear MQTT client context
-      memset(context, 0, sizeof(MqttClientContext));
+      osMemset(context, 0, sizeof(MqttClientContext));
    }
 }
 

@@ -1,12 +1,12 @@
 /**
  * @file s32k148_eth_driver.h
- * @brief NXP S32K148 Ethernet MAC controller
+ * @brief NXP S32K148 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _S32K148_ETH_DRIVER_H
@@ -156,7 +156,7 @@ void s32k148EthDisableIrq(NetInterface *interface);
 void s32k148EthEventHandler(NetInterface *interface);
 
 error_t s32k148EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t s32k148EthReceivePacket(NetInterface *interface);
 

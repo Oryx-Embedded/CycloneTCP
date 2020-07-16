@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -58,11 +58,14 @@
  * @param[in] pseudoHeader IPv4 or IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the IP packet
  * @param[in] offset Offset to the first byte of the IP packet
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t rawSocketProcessIpPacket(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset)
+   IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   NetRxAncillary *ancillary)
 {
    uint_t i;
    size_t length;
@@ -165,7 +168,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       return ERROR_PROTOCOL_UNREACHABLE;
 
    //Empty receive queue?
-   if(!socket->receiveQueue)
+   if(socket->receiveQueue == NULL)
    {
       //Allocate a memory buffer to hold the data and the associated descriptor
       p = netBufferAlloc(sizeof(SocketQueueItem) + length);
@@ -189,9 +192,12 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
    {
       //Point to the very first item
       queueItem = socket->receiveQueue;
+
       //Reach the last item in the receive queue
       for(i = 1; queueItem->next; i++)
+      {
          queueItem = queueItem->next;
+      }
 
       //Make sure the receive queue is not full
       if(i >= RAW_SOCKET_RX_QUEUE_SIZE)
@@ -232,6 +238,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       //Save the source IPv4 address
       queueItem->srcIpAddr.length = sizeof(Ipv4Addr);
       queueItem->srcIpAddr.ipv4Addr = pseudoHeader->ipv4Data.srcAddr;
+
       //Save the destination IPv4 address
       queueItem->destIpAddr.length = sizeof(Ipv4Addr);
       queueItem->destIpAddr.ipv4Addr = pseudoHeader->ipv4Data.destAddr;
@@ -244,6 +251,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       //Save the source IPv6 address
       queueItem->srcIpAddr.length = sizeof(Ipv6Addr);
       queueItem->srcIpAddr.ipv6Addr = pseudoHeader->ipv6Data.srcAddr;
+
       //Save the destination IPv6 address
       queueItem->destIpAddr.length = sizeof(Ipv6Addr);
       queueItem->destIpAddr.ipv6Addr = pseudoHeader->ipv6Data.destAddr;
@@ -254,6 +262,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
    queueItem->offset = sizeof(SocketQueueItem);
    //Copy the raw data
    netBufferCopy(queueItem->buffer, queueItem->offset, buffer, offset, length);
+
+   //Additional options can be passed to the stack along with the packet
+   queueItem->ancillary = *ancillary;
 
    //Notify user that data is available
    rawSocketUpdateEvents(socket);
@@ -269,10 +280,12 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
  * @param[in] header Pointer to the Ethernet header
  * @param[in] data Pointer to the payload data
  * @param[in] length Length of the payload data, in bytes
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
 void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
-   const uint8_t *data, size_t length)
+   const uint8_t *data, size_t length, NetRxAncillary *ancillary)
 {
    uint_t i;
    Socket *socket;
@@ -319,7 +332,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
       return;
 
    //Empty receive queue?
-   if(!socket->receiveQueue)
+   if(socket->receiveQueue == NULL)
    {
       //Allocate a memory buffer to hold the data and the associated descriptor
       p = netBufferAlloc(sizeof(SocketQueueItem) + sizeof(EthHeader) + length);
@@ -343,9 +356,12 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
    {
       //Point to the very first item
       queueItem = socket->receiveQueue;
+
       //Reach the last item in the receive queue
       for(i = 1; queueItem->next; i++)
+      {
          queueItem = queueItem->next;
+      }
 
       //Make sure the receive queue is not full
       if(i >= RAW_SOCKET_RX_QUEUE_SIZE)
@@ -392,6 +408,9 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
    netBufferWrite(queueItem->buffer, queueItem->offset + sizeof(EthHeader),
       data, length);
 
+   //Additional options can be passed to the stack along with the packet
+   queueItem->ancillary = *ancillary;
+
    //Notify user that data is available
    rawSocketUpdateEvents(socket);
 }
@@ -400,25 +419,20 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
 /**
  * @brief Send an raw IP packet
  * @param[in] socket Handle referencing the socket
- * @param[in] destIpAddr IP address of the target host
- * @param[in] data Pointer to raw data
- * @param[in] length Length of the raw data
- * @param[out] written Actual number of bytes written (optional parameter)
+ * @param[in] message Pointer to the structure describing the raw packet
  * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
-error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
-   const void *data, size_t length, size_t *written, uint_t flags)
+error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
+   uint_t flags)
 {
    error_t error;
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
    IpPseudoHeader pseudoHeader;
-
-   //Ignore unused flags
-   flags &= SOCKET_FLAG_DONT_ROUTE;
+   NetTxAncillary ancillary;
 
    //The socket may be bound to a particular network interface
    interface = socket->interface;
@@ -433,20 +447,20 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
    do
    {
       //Copy the raw data
-      error = netBufferAppend(buffer, data, length);
+      error = netBufferAppend(buffer, message->data, message->length);
       //Any error to report?
       if(error)
          break;
 
 #if (IPV4_SUPPORT == ENABLED)
       //Destination address is an IPv4 address?
-      if(destIpAddr->length == sizeof(Ipv4Addr))
+      if(message->destIpAddr.length == sizeof(Ipv4Addr))
       {
          Ipv4Addr srcIpAddr;
 
          //Select the source IPv4 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv4SelectSourceAddr(&interface, destIpAddr->ipv4Addr,
+         error = ipv4SelectSourceAddr(&interface, message->destIpAddr.ipv4Addr,
             &srcIpAddr);
          //Any error to report?
          if(error)
@@ -455,20 +469,20 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
          //Format IPv4 pseudo header
          pseudoHeader.length = sizeof(Ipv4PseudoHeader);
          pseudoHeader.ipv4Data.srcAddr = srcIpAddr;
-         pseudoHeader.ipv4Data.destAddr = destIpAddr->ipv4Addr;
+         pseudoHeader.ipv4Data.destAddr = message->destIpAddr.ipv4Addr;
          pseudoHeader.ipv4Data.reserved = 0;
          pseudoHeader.ipv4Data.protocol = socket->protocol;
-         pseudoHeader.ipv4Data.length = htons(length);
+         pseudoHeader.ipv4Data.length = htons(message->length);
       }
       else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
       //Destination address is an IPv6 address?
-      if(destIpAddr->length == sizeof(Ipv6Addr))
+      if(message->destIpAddr.length == sizeof(Ipv6Addr))
       {
          //Select the source IPv6 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv6SelectSourceAddr(&interface, &destIpAddr->ipv6Addr,
+         error = ipv6SelectSourceAddr(&interface, &message->destIpAddr.ipv6Addr,
             &pseudoHeader.ipv6Data.srcAddr);
          //Any error to report?
          if(error)
@@ -476,8 +490,8 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
 
          //Format IPv6 pseudo header
          pseudoHeader.length = sizeof(Ipv6PseudoHeader);
-         pseudoHeader.ipv6Data.destAddr = destIpAddr->ipv6Addr;
-         pseudoHeader.ipv6Data.length = htonl(length);
+         pseudoHeader.ipv6Data.destAddr = message->destIpAddr.ipv6Addr;
+         pseudoHeader.ipv6Data.length = htonl(message->length);
          pseudoHeader.ipv6Data.reserved = 0;
          pseudoHeader.ipv6Data.nextHeader = socket->protocol;
       }
@@ -491,22 +505,76 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
          break;
       }
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+      //Set the TTL value to be used
+      if(message->ttl != 0)
+      {
+         ancillary.ttl = message->ttl;
+      }
+      else if(ipIsMulticastAddr(&message->destIpAddr))
+      {
+         ancillary.ttl = socket->multicastTtl;
+      }
+      else
+      {
+         ancillary.ttl = socket->ttl;
+      }
+
+      //This flag tells the stack that the destination is on a locally attached
+      //network and not to perform a lookup of the routing table
+      if(flags & SOCKET_FLAG_DONT_ROUTE)
+      {
+         ancillary.dontRoute = TRUE;
+      }
+
+#if (IP_DIFF_SERV_SUPPORT == ENABLED)
+      //Set DSCP field
+      ancillary.dscp = socket->dscp;
+#endif
+
+#if (ETH_SUPPORT == ENABLED)
+      //Set source and destination MAC addresses
+      ancillary.srcMacAddr = message->srcMacAddr;
+      ancillary.destMacAddr = message->destMacAddr;
+#endif
+
+#if (ETH_VLAN_SUPPORT == ENABLED)
+      //Set VLAN PCP and DEI fields
+      ancillary.vlanPcp = socket->vlanPcp;
+      ancillary.vlanDei = socket->vlanDei;
+#endif
+
+#if (ETH_VMAN_SUPPORT == ENABLED)
+      //Set VMAN PCP and DEI fields
+      ancillary.vmanPcp = socket->vmanPcp;
+      ancillary.vmanDei = socket->vmanDei;
+#endif
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+      //Set switch port identifier
+      ancillary.port = message->switchPort;
+#endif
+
+#if (ETH_TIMESTAMP_SUPPORT == ENABLED)
+      //Unique identifier for hardware time stamping
+      ancillary.timestampId = message->timestampId;
+#endif
+
       //Send raw IP datagram
       error = ipSendDatagram(interface, &pseudoHeader, buffer, offset,
-         flags | socket->ttl);
+         &ancillary);
       //Failed to send data?
       if(error)
          break;
-
-      //Total number of bytes successfully transmitted
-      if(written != NULL)
-         *written = length;
 
       //End of exception handling block
    } while(0);
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -515,26 +583,30 @@ error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
 /**
  * @brief Send an raw Ethernet packet
  * @param[in] socket Handle referencing the socket
- * @param[in] data Pointer to raw data
- * @param[in] length Length of the raw data
- * @param[out] written Actual number of bytes written (optional parameter)
+ * @param[in] message Pointer to the structure describing the raw packet
+ * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
 
-error_t rawSocketSendEthPacket(Socket *socket, const void *data,
-   size_t length, size_t *written)
+error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
+   uint_t flags)
 {
    error_t error;
 
 #if (ETH_SUPPORT == ENABLED)
+   size_t length;
    NetBuffer *buffer;
    NetInterface *interface;
 
    //Select the relevant network interface
-   if(!socket->interface)
-      interface = netGetDefaultInterface();
-   else
+   if(socket->interface != NULL)
+   {
       interface = socket->interface;
+   }
+   else
+   {
+      interface = netGetDefaultInterface();
+   }
 
    //Forward the frame to the physical interface
    interface = nicGetPhysicalInterface(interface);
@@ -549,10 +621,13 @@ error_t rawSocketSendEthPacket(Socket *socket, const void *data,
       if(buffer == NULL)
          return ERROR_OUT_OF_MEMORY;
 
-      //Copy the raw data
-      error = netBufferAppend(buffer, data, length);
+      //Get the length of the raw data
+      length = message->length;
 
-      //Successful processing?
+      //Copy the raw data
+      error = netBufferAppend(buffer, message->data, length);
+
+      //Check status code
       if(!error)
       {
          //Automatic padding not supported by hardware?
@@ -569,15 +644,16 @@ error_t rawSocketSendEthPacket(Socket *socket, const void *data,
 
                //Append padding bytes
                error = netBufferAppend(buffer, ethPadding, n);
-               //Any error to report?
-               if(error)
-                  return error;
 
                //Adjust frame length
                length += n;
             }
          }
+      }
 
+      //Check status code
+      if(!error)
+      {
          //CRC calculation not supported by hardware?
          if(!interface->nicDriver->autoCrcCalc)
          {
@@ -590,19 +666,34 @@ error_t rawSocketSendEthPacket(Socket *socket, const void *data,
 
             //Append the calculated CRC value
             error = netBufferAppend(buffer, &crc, sizeof(crc));
-            //Any error to report?
-            if(error)
-               return error;
 
             //Adjust frame length
             length += sizeof(crc);
          }
+      }
 
+      //Check status code
+      if(!error)
+      {
+         NetTxAncillary ancillary;
+
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+         //Set switch port identifier
+         ancillary.port = message->switchPort;
+#endif
+
+#if (ETH_TIMESTAMP_SUPPORT == ENABLED)
+         //Unique identifier for hardware time stamping
+         ancillary.timestampId = message->timestampId;
+#endif
          //Debug message
          TRACE_DEBUG("Sending raw Ethernet frame (%" PRIuSIZE " bytes)...\r\n", length);
 
          //Send the resulting packet over the specified link
-         error = nicSendPacket(interface, buffer, 0);
+         error = nicSendPacket(interface, buffer, 0, &ancillary);
       }
 
       //Free previously allocated memory block
@@ -614,14 +705,6 @@ error_t rawSocketSendEthPacket(Socket *socket, const void *data,
    {
       //Report an error
       error = ERROR_INVALID_INTERFACE;
-   }
-
-   //Successful processing?
-   if(!error)
-   {
-      //Total number of bytes successfully transmitted
-      if(written != NULL)
-         *written = length;
    }
 
    //Return status code
@@ -641,19 +724,21 @@ error_t rawSocketSendEthPacket(Socket *socket, const void *data,
  * @return Error code
  **/
 
-error_t rawSocketReceiveIpPacket(Socket *socket, IpAddr *srcIpAddr,
-   IpAddr *destIpAddr, void *data, size_t size, size_t *received, uint_t flags)
+error_t rawSocketReceiveIpPacket(Socket *socket, SocketMsg *message,
+   uint_t flags)
 {
+   error_t error;
    SocketQueueItem *queueItem;
 
    //The SOCKET_FLAG_DONT_WAIT enables non-blocking operation
-   if(!(flags & SOCKET_FLAG_DONT_WAIT))
+   if((flags & SOCKET_FLAG_DONT_WAIT) == 0)
    {
-      //The receive queue is empty?
-      if(!socket->receiveQueue)
+      //Check whether the receive queue is empty
+      if(socket->receiveQueue == NULL)
       {
          //Set the events the application is interested in
          socket->eventMask = SOCKET_EVENT_RX_READY;
+
          //Reset the event object
          osResetEvent(&socket->event);
 
@@ -666,42 +751,70 @@ error_t rawSocketReceiveIpPacket(Socket *socket, IpAddr *srcIpAddr,
       }
    }
 
-   //Check whether the read operation timed out
-   if(!socket->receiveQueue)
+   //Any packet received?
+   if(socket->receiveQueue != NULL)
    {
-      //No data can be read
-      *received = 0;
+      //Point to the first item in the receive queue
+      queueItem = socket->receiveQueue;
+
+      //Copy data to user buffer
+      message->length = netBufferRead(message->data, queueItem->buffer,
+         queueItem->offset, message->size);
+
+      //Save the source IP address
+      message->srcIpAddr = queueItem->srcIpAddr;
+      //Save the source port number
+      message->srcPort = queueItem->srcPort;
+      //Save the destination IP address
+      message->destIpAddr = queueItem->destIpAddr;
+
+      //Save TTL value
+      message->ttl = queueItem->ancillary.ttl;
+
+#if (ETH_SUPPORT == ENABLED)
+      //Save source and destination MAC addresses
+      message->srcMacAddr = queueItem->ancillary.srcMacAddr;
+      message->destMacAddr = queueItem->ancillary.destMacAddr;
+#endif
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+      //Save switch port identifier
+      message->switchPort = queueItem->ancillary.port;
+#endif
+
+#if (ETH_TIMESTAMP_SUPPORT == ENABLED)
+      //Save captured time stamp
+      message->timestamp = queueItem->ancillary.timestamp;
+#endif
+
+      //If the SOCKET_FLAG_PEEK flag is set, the data is copied into the
+      //buffer but is not removed from the input queue
+      if((flags & SOCKET_FLAG_PEEK) == 0)
+      {
+         //Remove the item from the receive queue
+         socket->receiveQueue = queueItem->next;
+
+         //Deallocate memory buffer
+         netBufferFree(queueItem->buffer);
+      }
+
+      //Update the state of events
+      rawSocketUpdateEvents(socket);
+
+      //Successful read operation
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Total number of data that have been received
+      message->length = 0;
+
       //Report a timeout error
-      return ERROR_TIMEOUT;
+      error = ERROR_TIMEOUT;
    }
 
-   //Point to the first item in the receive queue
-   queueItem = socket->receiveQueue;
-   //Copy data to user buffer
-   *received = netBufferRead(data, queueItem->buffer, queueItem->offset, size);
-
-   //Save the source IP address
-   if(srcIpAddr)
-      *srcIpAddr = queueItem->srcIpAddr;
-   //Save the destination IP address
-   if(destIpAddr)
-      *destIpAddr = queueItem->destIpAddr;
-
-   //If the SOCKET_FLAG_PEEK flag is set, the data is copied
-   //into the buffer but is not removed from the input queue
-   if(!(flags & SOCKET_FLAG_PEEK))
-   {
-      //Remove the item from the receive queue
-      socket->receiveQueue = queueItem->next;
-      //Deallocate memory buffer
-      netBufferFree(queueItem->buffer);
-   }
-
-   //Update the state of events
-   rawSocketUpdateEvents(socket);
-
-   //Successful read operation
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
@@ -715,19 +828,21 @@ error_t rawSocketReceiveIpPacket(Socket *socket, IpAddr *srcIpAddr,
  * @return Error code
  **/
 
-error_t rawSocketReceiveEthPacket(Socket *socket, void *data, size_t size,
-   size_t *received, uint_t flags)
+error_t rawSocketReceiveEthPacket(Socket *socket, SocketMsg *message,
+   uint_t flags)
 {
+   error_t error;
    SocketQueueItem *queueItem;
 
    //The SOCKET_FLAG_DONT_WAIT enables non-blocking operation
-   if(!(flags & SOCKET_FLAG_DONT_WAIT))
+   if((flags & SOCKET_FLAG_DONT_WAIT) == 0)
    {
-      //The receive queue is empty?
-      if(!socket->receiveQueue)
+      //Check whether the receive queue is empty
+      if(socket->receiveQueue == NULL)
       {
          //Set the events the application is interested in
          socket->eventMask = SOCKET_EVENT_RX_READY;
+
          //Reset the event object
          osResetEvent(&socket->event);
 
@@ -740,35 +855,60 @@ error_t rawSocketReceiveEthPacket(Socket *socket, void *data, size_t size,
       }
    }
 
-   //Check whether the read operation timed out
-   if(!socket->receiveQueue)
+   //Any packet received?
+   if(socket->receiveQueue != NULL)
    {
-      //No data can be read
-      *received = 0;
+      //Point to the first item in the receive queue
+      queueItem = socket->receiveQueue;
+
+      //Copy data to user buffer
+      message->length = netBufferRead(message->data, queueItem->buffer,
+         queueItem->offset, message->size);
+
+#if (ETH_SUPPORT == ENABLED)
+      //Save source and destination MAC addresses
+      message->srcMacAddr = queueItem->ancillary.srcMacAddr;
+      message->destMacAddr = queueItem->ancillary.destMacAddr;
+#endif
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+      //Save switch port identifier
+      message->switchPort = queueItem->ancillary.port;
+#endif
+
+#if (ETH_TIMESTAMP_SUPPORT == ENABLED)
+      //Save captured time stamp
+      message->timestamp = queueItem->ancillary.timestamp;
+#endif
+
+      //If the SOCKET_FLAG_PEEK flag is set, the data is copied into the
+      //buffer but is not removed from the input queue
+      if((flags & SOCKET_FLAG_PEEK) == 0)
+      {
+         //Remove the item from the receive queue
+         socket->receiveQueue = queueItem->next;
+
+         //Deallocate memory buffer
+         netBufferFree(queueItem->buffer);
+      }
+
+      //Update the state of events
+      rawSocketUpdateEvents(socket);
+
+      //Successful read operation
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Total number of data that have been received
+      message->length = 0;
+
       //Report a timeout error
-      return ERROR_TIMEOUT;
+      error = ERROR_TIMEOUT;
    }
 
-   //Point to the first item in the receive queue
-   queueItem = socket->receiveQueue;
-   //Copy data to user buffer
-   *received = netBufferRead(data, queueItem->buffer, queueItem->offset, size);
-
-   //If the SOCKET_FLAG_PEEK flag is set, the data is copied
-   //into the buffer but is not removed from the input queue
-   if(!(flags & SOCKET_FLAG_PEEK))
-   {
-      //Remove the item from the receive queue
-      socket->receiveQueue = queueItem->next;
-      //Deallocate memory buffer
-      netBufferFree(queueItem->buffer);
-   }
-
-   //Update the state of events
-   rawSocketUpdateEvents(socket);
-
-   //Successful read operation
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 

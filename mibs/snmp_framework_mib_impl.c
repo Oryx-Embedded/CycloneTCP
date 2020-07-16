@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,7 @@ error_t snmpFrameworkMibInit(void)
    TRACE_INFO("Initializing SNMP FRAMEWORK MIB base...\r\n");
 
    //Clear SNMP FRAMEWORK MIB base
-   memset(&snmpFrameworkMibBase, 0, sizeof(snmpFrameworkMibBase));
+   osMemset(&snmpFrameworkMibBase, 0, sizeof(snmpFrameworkMibBase));
 
    //Successful processing
    return NO_ERROR;
@@ -135,11 +135,11 @@ error_t snmpFrameworkMibGetSnmpEngineID(const MibObject *object,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy object value
-   memcpy(value->octetString, context->contextEngine, context->contextEngineLen);
+   osMemcpy(value->octetString, context->contextEngine, context->contextEngineLen);
    //Return object length
    *valueLen = context->contextEngineLen;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -168,7 +168,7 @@ error_t snmpFrameworkMibGetSnmpEngineBoots(const MibObject *object,
    //Get object value
    value->integer = context->engineBoots;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -197,7 +197,7 @@ error_t snmpFrameworkMibGetSnmpEngineTime(const MibObject *object,
    //Get object value
    value->integer = context->engineTime;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -218,7 +218,7 @@ error_t snmpFrameworkMibGetSnmpEngineMaxMessageSize(const MibObject *object,
    //Get object value
    value->integer = SNMP_MAX_MSG_SIZE;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 

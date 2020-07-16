@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -100,8 +100,8 @@ error_t loopbackDriverInit(NetInterface *interface)
 /**
  * @brief Loopback interface timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -169,11 +169,13 @@ void loopbackDriverEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t loopbackDriverSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    size_t length;
@@ -199,7 +201,9 @@ error_t loopbackDriverSendPacket(NetInterface *interface,
 
          //Increment index and wrap around if necessary
          if(++queueTxIndex >= LOOPBACK_DRIVER_QUEUE_SIZE)
+         {
             queueTxIndex = 0;
+         }
 
          //Update the length of the queue
          queueLength++;
@@ -233,17 +237,23 @@ error_t loopbackDriverSendPacket(NetInterface *interface,
 error_t loopbackDriverReceivePacket(NetInterface *interface)
 {
    error_t error;
+   NetRxAncillary ancillary;
 
    //Check whether a packet is pending in the queue
    if(queueLength > 0)
    {
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
       nicProcessPacket(interface, queue[queueRxIndex].data,
-         queue[queueRxIndex].length);
+         queue[queueRxIndex].length, &ancillary);
 
       //Increment index and wrap around if necessary
       if(++queueRxIndex >= LOOPBACK_DRIVER_QUEUE_SIZE)
+      {
          queueRxIndex = 0;
+      }
 
       //Update the length of the queue
       queueLength--;

@@ -1,12 +1,12 @@
 /**
  * @file am335x_eth_driver.c
- * @brief Sitara AM335x Gigabit Ethernet MAC controller
+ * @brief Sitara AM335x Gigabit Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -63,27 +63,27 @@ static NetInterface *nicDriverInterface2 = NULL;
 
 //Transmit buffer (port 1)
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = AM335X_ETH_RAM_SECTION
 static uint8_t txBuffer1[AM335X_ETH_TX_BUFFER_COUNT][AM335X_ETH_TX_BUFFER_SIZE];
 //Transmit buffer (port 2)
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = AM335X_ETH_RAM_SECTION
 static uint8_t txBuffer2[AM335X_ETH_TX_BUFFER_COUNT][AM335X_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = AM335X_ETH_RAM_SECTION
 static uint8_t rxBuffer[AM335X_ETH_RX_BUFFER_COUNT][AM335X_ETH_RX_BUFFER_SIZE];
 //Transmit buffer descriptors (port 1)
 #pragma data_alignment = 4
-#pragma location = ".ram_cppi"
+#pragma location = AM335X_ETH_RAM_CPPI_SECTION
 static Am335xTxBufferDesc txBufferDesc1[AM335X_ETH_TX_BUFFER_COUNT];
 //Transmit buffer descriptors (port 2)
 #pragma data_alignment = 4
-#pragma location = ".ram_cppi"
+#pragma location = AM335X_ETH_RAM_CPPI_SECTION
 static Am335xTxBufferDesc txBufferDesc2[AM335X_ETH_TX_BUFFER_COUNT];
 //Receive buffer descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_cppi"
+#pragma location = AM335X_ETH_RAM_CPPI_SECTION
 static Am335xRxBufferDesc rxBufferDesc[AM335X_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
@@ -91,22 +91,22 @@ static Am335xRxBufferDesc rxBufferDesc[AM335X_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer (port 1)
 static uint8_t txBuffer1[AM335X_ETH_TX_BUFFER_COUNT][AM335X_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(AM335X_ETH_RAM_SECTION)));
 //Transmit buffer (port 2)
 static uint8_t txBuffer2[AM335X_ETH_TX_BUFFER_COUNT][AM335X_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(AM335X_ETH_RAM_SECTION)));
 //Receive buffer
 static uint8_t rxBuffer[AM335X_ETH_RX_BUFFER_COUNT][AM335X_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(AM335X_ETH_RAM_SECTION)));
 //Transmit buffer descriptors (port 1)
 static Am335xTxBufferDesc txBufferDesc1[AM335X_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_cppi")));
+   __attribute__((aligned(4), __section__(AM335X_ETH_RAM_CPPI_SECTION)));
 //Transmit buffer descriptors (port 2)
 static Am335xTxBufferDesc txBufferDesc2[AM335X_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_cppi")));
+   __attribute__((aligned(4), __section__(AM335X_ETH_RAM_CPPI_SECTION)));
 //Receive buffer descriptors
 static Am335xRxBufferDesc rxBufferDesc[AM335X_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_cppi")));
+   __attribute__((aligned(4), __section__(AM335X_ETH_RAM_CPPI_SECTION)));
 
 #endif
 
@@ -188,11 +188,28 @@ error_t am335xEthInitPort1(NetInterface *interface)
    //Save underlying network interface
    nicDriverInterface1 = interface;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Unspecifield MAC address?
    if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
@@ -265,7 +282,9 @@ error_t am335xEthInitPort2(NetInterface *interface)
    error = interface->phyDriver->init(interface);
    //Failed to initialize PHY transceiver?
    if(error)
+   {
       return error;
+   }
 
    //Unspecifield MAC address?
    if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
@@ -354,7 +373,7 @@ void am335xEthInitInstance(NetInterface *interface)
       {
          //Get the state of the CPSW 125 MHz OCP clock
          temp = (CM_PER_CPSW_CLKSTCTRL_R & CM_PER_CPSW_CLKSTCTRL_CLKACTIVITY_CPSW_125MHZ_GCLK) >>
-           CM_PER_CPSW_CLKSTCTRL_CLKACTIVITY_CPSW_125MHZ_GCLK_SHIFT;
+            CM_PER_CPSW_CLKSTCTRL_CLKACTIVITY_CPSW_125MHZ_GCLK_SHIFT;
 
          //Keep looping as long as the clock is inactive
       } while(temp != CM_PER_CPSW_CLKSTCTRL_CLKACTIVITY_CPSW_125MHZ_GCLK_ACT);
@@ -362,35 +381,35 @@ void am335xEthInitInstance(NetInterface *interface)
       //Reset CPSW subsystem
       CPSW_SS_SOFT_RESET_R = CPSW_SS_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_SS_SOFT_RESET_R & CPSW_SS_SOFT_RESET_SOFT_RESET)
+      while((CPSW_SS_SOFT_RESET_R & CPSW_SS_SOFT_RESET_SOFT_RESET) != 0)
       {
       }
 
       //Reset CPSW wrapper module
       CPSW_WR_SOFT_RESET_R = CPSW_WR_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_WR_SOFT_RESET_R & CPSW_WR_SOFT_RESET_SOFT_RESET)
+      while((CPSW_WR_SOFT_RESET_R & CPSW_WR_SOFT_RESET_SOFT_RESET) != 0)
       {
       }
 
       //Reset CPSW sliver 1 logic
       CPSW_SL1_SOFT_RESET_R = CPSW_SL_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_SL1_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET)
+      while((CPSW_SL1_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET) != 0)
       {
       }
 
       //Reset CPSW sliver 2 logic
       CPSW_SL2_SOFT_RESET_R = CPSW_SL_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_SL2_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET)
+      while((CPSW_SL2_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET) != 0)
       {
       }
 
       //Reset CPSW CPDMA module
       CPSW_CPDMA_CPDMA_SOFT_RESET_R = CPSW_CPDMA_CPDMA_SOFT_RESET_SOFT_RESET;
       //Wait for the reset to complete
-      while(CPSW_CPDMA_CPDMA_SOFT_RESET_R & CPSW_CPDMA_CPDMA_SOFT_RESET_SOFT_RESET)
+      while((CPSW_CPDMA_CPDMA_SOFT_RESET_R & CPSW_CPDMA_CPDMA_SOFT_RESET_SOFT_RESET) != 0)
       {
       }
 
@@ -650,7 +669,7 @@ void am335xEthInitGpio(NetInterface *interface)
 #elif defined(USE_SBC_DIVA)
    //Select RMII interface mode for port 1 and RGMII interface mode for port 2
    CONTROL_GMII_SEL_R = CONTROL_GMII_SEL_RMII1_IO_CLK_EN |
-     CONTROL_GMII_SEL_GMII1_SEL_RMII | CONTROL_GMII_SEL_GMII2_SEL_RGMII;
+      CONTROL_GMII_SEL_GMII1_SEL_RMII | CONTROL_GMII_SEL_GMII2_SEL_RGMII;
 
    //Configure RMII1_REF_CLK (GPIO0_29)
    CONTROL_CONF_RMII1_REFCLK_R = CONTROL_CONF_RXACTIVE | CONTROL_CONF_MUXMODE(0);
@@ -814,19 +833,32 @@ void am335xEthInitBufferDesc(NetInterface *interface)
 /**
  * @brief AM335x Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void am335xEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 
    //Misqueued buffer condition?
-   if(rxCurBufferDesc->word3 & CPSW_RX_WORD3_OWNER)
+   if((rxCurBufferDesc->word3 & CPSW_RX_WORD3_OWNER) != 0)
    {
       if(CPSW_CPDMA_RX_HDP_R(CPSW_CH0) == 0)
       {
@@ -856,8 +888,22 @@ void am335xEthEnableIrq(NetInterface *interface)
    IntSystemEnable(SYS_INT_3PGSWRXINT0);
 #endif
 
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -878,8 +924,22 @@ void am335xEthDisableIrq(NetInterface *interface)
    IntSystemDisable(SYS_INT_3PGSWRXINT0);
 #endif
 
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -930,7 +990,7 @@ void am335xEthTxIrqHandler(void)
       CPSW_CPDMA_TX_CP_R(CPSW_CH1) = (uint32_t) p;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurBufferDesc1->word3 & CPSW_TX_WORD3_OWNER))
+      if((txCurBufferDesc1->word3 & CPSW_TX_WORD3_OWNER) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface1->nicTxEvent);
@@ -964,7 +1024,7 @@ void am335xEthTxIrqHandler(void)
       CPSW_CPDMA_TX_CP_R(CPSW_CH2) = (uint32_t) p;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurBufferDesc2->word3 & CPSW_TX_WORD3_OWNER))
+      if((txCurBufferDesc2->word3 & CPSW_TX_WORD3_OWNER) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface2->nicTxEvent);
@@ -1005,9 +1065,13 @@ void am335xEthRxIrqHandler(void)
 
       //Set event flag
       if(nicDriverInterface1 != NULL)
+      {
          nicDriverInterface1->nicEvent = TRUE;
+      }
       else if(nicDriverInterface2 != NULL)
+      {
          nicDriverInterface2->nicEvent = TRUE;
+      }
 
       //Notify the TCP/IP stack of the event
       flag |= osSetEventFromIsr(&netEvent);
@@ -1037,14 +1101,14 @@ void am335xEthEventHandler(NetInterface *interface)
    do
    {
       //The current buffer is available for reading?
-      if(!(rxCurBufferDesc->word3 & CPSW_RX_WORD3_OWNER))
+      if((rxCurBufferDesc->word3 & CPSW_RX_WORD3_OWNER) == 0)
       {
          //SOP and EOP flags should be set
-         if((rxCurBufferDesc->word3 & CPSW_RX_WORD3_SOP) &&
-            (rxCurBufferDesc->word3 & CPSW_RX_WORD3_EOP))
+         if((rxCurBufferDesc->word3 & CPSW_RX_WORD3_SOP) != 0 &&
+            (rxCurBufferDesc->word3 & CPSW_RX_WORD3_EOP) != 0)
          {
             //Make sure no error occurred
-            if(!(rxCurBufferDesc->word3 & CPSW_RX_WORD3_PKT_ERROR))
+            if((rxCurBufferDesc->word3 & CPSW_RX_WORD3_PKT_ERROR) == 0)
             {
                //Check the port on which the packet was received
                switch(rxCurBufferDesc->word3 & CPSW_RX_WORD3_FROM_PORT)
@@ -1072,7 +1136,7 @@ void am335xEthEventHandler(NetInterface *interface)
                if(interface != NULL)
                {
                   //Copy data from the receive buffer
-                  memcpy(buffer, (uint8_t *) rxCurBufferDesc->word1, (n + 3) & ~3UL);
+                  osMemcpy(buffer, (uint8_t *) rxCurBufferDesc->word1, (n + 3) & ~3UL);
 
                   //Packet successfully received
                   error = NO_ERROR;
@@ -1133,8 +1197,13 @@ void am335xEthEventHandler(NetInterface *interface)
       //Check whether a valid packet has been received
       if(!error)
       {
+         NetRxAncillary ancillary;
+
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_RX_ANCILLARY;
+
          //Pass the packet to the upper layer
-         nicProcessPacket(interface, buffer, n);
+         nicProcessPacket(interface, buffer, n, &ancillary);
       }
 
       //No more data in the receive buffer?
@@ -1150,11 +1219,13 @@ void am335xEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t am335xEthSendPacketPort1(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    static uint8_t temp[AM335X_ETH_TX_BUFFER_SIZE];
    size_t length;
@@ -1173,15 +1244,17 @@ error_t am335xEthSendPacketPort1(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurBufferDesc1->word3 & CPSW_TX_WORD3_OWNER)
+   if((txCurBufferDesc1->word3 & CPSW_TX_WORD3_OWNER) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Mark the end of the queue with a NULL pointer
    txCurBufferDesc1->word0 = (uint32_t) NULL;
 
    //Copy user data to the transmit buffer
    netBufferRead(temp, buffer, offset, length);
-   memcpy((uint8_t *) txCurBufferDesc1->word1, temp, (length + 3) & ~3UL);
+   osMemcpy((uint8_t *) txCurBufferDesc1->word1, temp, (length + 3) & ~3UL);
 
    //Set the length of the buffer
    txCurBufferDesc1->word2 = length & CPSW_TX_WORD2_BUFFER_LENGTH;
@@ -1219,7 +1292,7 @@ error_t am335xEthSendPacketPort1(NetInterface *interface,
    txCurBufferDesc1 = txCurBufferDesc1->next;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurBufferDesc1->word3 & CPSW_TX_WORD3_OWNER))
+   if((txCurBufferDesc1->word3 & CPSW_TX_WORD3_OWNER) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -1235,11 +1308,13 @@ error_t am335xEthSendPacketPort1(NetInterface *interface,
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t am335xEthSendPacketPort2(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    static uint8_t temp[AM335X_ETH_TX_BUFFER_SIZE];
    size_t length;
@@ -1258,15 +1333,17 @@ error_t am335xEthSendPacketPort2(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurBufferDesc2->word3 & CPSW_TX_WORD3_OWNER)
+   if((txCurBufferDesc2->word3 & CPSW_TX_WORD3_OWNER) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Mark the end of the queue with a NULL pointer
    txCurBufferDesc2->word0 = (uint32_t) NULL;
 
    //Copy user data to the transmit buffer
    netBufferRead(temp, buffer, offset, length);
-   memcpy((uint8_t *) txCurBufferDesc2->word1, temp, (length + 3) & ~3UL);
+   osMemcpy((uint8_t *) txCurBufferDesc2->word1, temp, (length + 3) & ~3UL);
 
    //Set the length of the buffer
    txCurBufferDesc2->word2 = length & CPSW_TX_WORD2_BUFFER_LENGTH;
@@ -1304,7 +1381,7 @@ error_t am335xEthSendPacketPort2(NetInterface *interface,
    txCurBufferDesc2 = txCurBufferDesc2->next;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurBufferDesc2->word3 & CPSW_TX_WORD3_OWNER))
+   if((txCurBufferDesc2->word3 & CPSW_TX_WORD3_OWNER) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -1332,11 +1409,17 @@ error_t am335xEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Select the relevant port number
    if(interface == nicDriverInterface1)
+   {
       port = CPSW_PORT1;
+   }
    else if(interface == nicDriverInterface2)
+   {
       port = CPSW_PORT2;
+   }
    else
+   {
       port = CPSW_PORT0;
+   }
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
@@ -1379,9 +1462,13 @@ error_t am335xEthUpdateMacConfig(NetInterface *interface)
 
    //Read MAC control register
    if(interface == nicDriverInterface1)
+   {
       config = CPSW_SL1_MACCONTROL_R;
+   }
    else if(interface == nicDriverInterface2)
+   {
       config = CPSW_SL2_MACCONTROL_R;
+   }
 
    //1000BASE-T operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_1GBPS)
@@ -1404,15 +1491,23 @@ error_t am335xEthUpdateMacConfig(NetInterface *interface)
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= CPSW_SL_MACCONTROL_FULLDUPLEX;
+   }
    else
+   {
       config &= ~CPSW_SL_MACCONTROL_FULLDUPLEX;
+   }
 
    //Update MAC control register
    if(interface == nicDriverInterface1)
+   {
       CPSW_SL1_MACCONTROL_R = config;
+   }
    else if(interface == nicDriverInterface2)
+   {
       CPSW_SL2_MACCONTROL_R = config;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -1447,7 +1542,7 @@ void am335xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       MDIO_USERACCESS0_R = temp;
       //Wait for the write to complete
-      while(MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO)
+      while((MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO) != 0)
       {
       }
    }
@@ -1485,7 +1580,7 @@ uint16_t am335xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       MDIO_USERACCESS0_R = temp;
       //Wait for the read to complete
-      while(MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO)
+      while((MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO) != 0)
       {
       }
 
@@ -1677,7 +1772,7 @@ error_t am335xEthAddVlanEntry(uint_t port, uint_t vlanId)
    uint_t index;
    Am335xAleEntry entry;
 
-   //Ensure that there are not duplicate address entries in the ALE table
+   //Ensure that there are no duplicate address entries in the ALE table
    index = am335xEthFindVlanEntry(vlanId);
 
    //No matching entry found?
@@ -1737,7 +1832,7 @@ error_t am335xEthAddVlanAddrEntry(uint_t port, uint_t vlanId, MacAddr *macAddr)
    uint_t index;
    Am335xAleEntry entry;
 
-   //Ensure that there are not duplicate address entries in the ALE table
+   //Ensure that there are no duplicate address entries in the ALE table
    index = am335xEthFindVlanAddrEntry(vlanId, macAddr);
 
    //No matching entry found?

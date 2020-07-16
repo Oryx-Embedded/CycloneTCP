@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -92,7 +92,7 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
       entry = dnsCreateEntry();
 
       //Record the host name whose IP address is unknown
-      strcpy(entry->name, name);
+      osStrcpy(entry->name, name);
 
       //Initialize DNS cache entry
       entry->type = HOST_TYPE_IPV4;
@@ -199,6 +199,7 @@ error_t nbnsSendQuery(DnsCacheEntry *entry)
    NbnsHeader *message;
    DnsQuestion *dnsQuestion;
    IpAddr destIpAddr;
+   NetTxAncillary ancillary;
 
    //Allocate a memory buffer to hold the NBNS query message
    buffer = udpAllocBuffer(DNS_MESSAGE_MAX_SIZE, &offset);
@@ -254,12 +255,16 @@ error_t nbnsSendQuery(DnsCacheEntry *entry)
    destIpAddr.length = sizeof(Ipv4Addr);
    ipv4GetBroadcastAddr(entry->interface, &destIpAddr.ipv4Addr);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //A request packet is always sent to the well known port 137
-   error = udpSendDatagramEx(entry->interface, NULL, NBNS_PORT,
-      &destIpAddr, NBNS_PORT, buffer, offset, IPV4_DEFAULT_TTL);
+   error = udpSendBuffer(entry->interface, NULL, NBNS_PORT, &destIpAddr,
+      NBNS_PORT, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }

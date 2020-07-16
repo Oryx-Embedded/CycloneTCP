@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -123,15 +123,15 @@ const char_t *mimeGetType(const char_t *filename)
    if(filename != NULL)
    {
       //Get the length of the specified filename
-      n = strlen(filename);
+      n = osStrlen(filename);
 
       //Search the MIME type that matches the specified extension
       for(i = 0; i < arraysize(mimeTypeList); i++)
       {
          //Length of the extension
-         m = strlen(mimeTypeList[i].extension);
+         m = osStrlen(mimeTypeList[i].extension);
          //Compare file extensions
-         if(m <= n && !strcasecmp(filename + n - m, mimeTypeList[i].extension))
+         if(m <= n && !osStrcasecmp(filename + n - m, mimeTypeList[i].extension))
             return mimeTypeList[i].type;
       }
    }

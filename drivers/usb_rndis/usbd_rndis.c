@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -198,7 +198,7 @@ uint8_t usbdRndisSetup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
    //Class specific request?
    case USB_REQ_TYPE_CLASS:
       //Check direction
-      if(req->bmRequest & 0x80)
+      if((req->bmRequest & 0x80) != 0)
       {
          //GET ENCAPSULATED RESPONSE request?
          if(req->bRequest == RNDIS_GET_ENCAPSULATED_RESPONSE)
@@ -355,7 +355,7 @@ uint8_t usbdRndisDataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
          rxBufferDesc = &rndisRxBuffer[rndisRxWriteIndex];
 
          //Copy data
-         memcpy(rxBufferDesc->data + rndisContext.rxBufferLen,
+         osMemcpy(rxBufferDesc->data + rndisContext.rxBufferLen,
             rndisContext.rxBuffer, length);
 
          //Update the length of the RX buffer

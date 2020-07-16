@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 2782: A DNS RR for specifying the location of services (DNS SRV)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -102,7 +102,7 @@ error_t dnsSdInit(DnsSdContext *context, const DnsSdSettings *settings)
    interface = settings->interface;
 
    //Clear the DNS-SD context
-   memset(context, 0, sizeof(DnsSdContext));
+   osMemset(context, 0, sizeof(DnsSdContext));
    //Save user settings
    context->settings = *settings;
 
@@ -127,7 +127,7 @@ error_t dnsSdInit(DnsSdContext *context, const DnsSdSettings *settings)
 
 error_t dnsSdStart(DnsSdContext *context)
 {
-   //Check parameter
+   //Make sure the DNS-SD context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -158,7 +158,7 @@ error_t dnsSdStart(DnsSdContext *context)
 
 error_t dnsSdStop(DnsSdContext *context)
 {
-   //Check parameter
+   //Make sure the DNS-SD context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -295,7 +295,7 @@ error_t dnsSdRegisterService(DnsSdContext *context, const char_t *serviceName,
       if(entry->name[0] != '\0')
       {
          //Check whether the specified service is already registered
-         if(!strcasecmp(entry->name, serviceName))
+         if(!osStrcasecmp(entry->name, serviceName))
             break;
       }
       else
@@ -350,7 +350,7 @@ error_t dnsSdRegisterService(DnsSdContext *context, const char_t *serviceName,
             //Write length field
             entry->metadata[k] = n;
             //Write text data
-            memcpy(entry->metadata + k + 1, metadata + j, n);
+            osMemcpy(entry->metadata + k + 1, metadata + j, n);
 
             //Jump to the next text data
             j = i + 1;
@@ -424,7 +424,7 @@ error_t dnsSdUnregisterService(DnsSdContext *context, const char_t *serviceName)
       entry = &context->serviceList[i];
 
       //Service name found?
-      if(!strcasecmp(entry->name, serviceName))
+      if(!osStrcasecmp(entry->name, serviceName))
       {
          //Send a goodbye packet
          dnsSdSendGoodbye(context, entry);
@@ -729,7 +729,7 @@ void dnsSdChangeInstanceName(DnsSdContext *context)
    char_t s[16];
 
    //Retrieve the length of the string
-   n = strlen(context->instanceName);
+   n = osStrlen(context->instanceName);
 
    //Parse the string backwards
    for(i = n; i > 0; i--)
@@ -744,7 +744,7 @@ void dnsSdChangeInstanceName(DnsSdContext *context)
       else
       {
          //Check whether the current character is a digit
-         if(!isdigit((uint8_t) context->instanceName[i - 1]))
+         if(!osIsdigit(context->instanceName[i - 1]))
             break;
       }
    }
@@ -778,7 +778,7 @@ void dnsSdChangeInstanceName(DnsSdContext *context)
    }
 
    //Convert the number to a string of characters
-   m = sprintf(s, " (%" PRIu32 ")", index);
+   m = osSprintf(s, " (%" PRIu32 ")", index);
 
    //Sanity check
    if((i + m) <= DNS_SD_MAX_INSTANCE_NAME_LEN)
@@ -1870,7 +1870,7 @@ error_t dnsSdAddTxtRecord(NetInterface *interface, MdnsMessage *message,
          return ERROR_MESSAGE_TOO_LONG;
 
       //Copy metadata
-      memcpy(record->rdata, service->metadata, service->metadataLength);
+      osMemcpy(record->rdata, service->metadata, service->metadataLength);
 
       //Update the length of the DNS message
       message->length = offset + service->metadataLength;
@@ -1917,7 +1917,7 @@ error_t dnsSdAddNsecRecord(NetInterface *interface, MdnsMessage *message,
    if(!duplicate)
    {
       //The bitmap identifies the resource record types that exist
-      memset(bitmap, 0, sizeof(bitmap));
+      osMemset(bitmap, 0, sizeof(bitmap));
 
       //TXT resource record is supported
       DNS_SET_NSEC_BITMAP(bitmap, DNS_RR_TYPE_TXT);
@@ -1979,7 +1979,7 @@ error_t dnsSdAddNsecRecord(NetInterface *interface, MdnsMessage *message,
       record->rdata[n++] = bitmapLength;
 
       //The Bitmap data identifies the resource record types that exist
-      memcpy(record->rdata + n, bitmap, bitmapLength);
+      osMemcpy(record->rdata + n, bitmap, bitmapLength);
 
       //Convert length field to network byte order
       record->rdlength = htons(n + bitmapLength);

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -239,7 +239,7 @@ error_t papProcessAuthReq(PppContext *context,
    //Limit the length of the string
    usernameLen = MIN(usernameLen, PPP_MAX_USERNAME_LEN);
    //Copy the name of the peer to be identified
-   memcpy(context->peerName, authReqPacket->peerId, usernameLen);
+   osMemcpy(context->peerName, authReqPacket->peerId, usernameLen);
    //Properly terminate the string with a NULL character
    context->peerName[usernameLen] = '\0';
 
@@ -431,9 +431,9 @@ error_t papSendAuthReq(PppContext *context)
    PapAuthReqPacket *authReqPacket;
 
    //Get the length of the user name
-   usernameLen = strlen(context->username);
+   usernameLen = osStrlen(context->username);
    //Get the length of the password
-   passwordLen = strlen(context->password);
+   passwordLen = osStrlen(context->password);
 
    //Calculate the length of the Authenticate-Request packet
    length = sizeof(PapAuthReqPacket) + 1 + usernameLen + passwordLen;
@@ -455,7 +455,7 @@ error_t papSendAuthReq(PppContext *context)
    //The Peer-ID-Length field indicates the length of Peer-ID field
    authReqPacket->peerIdLength = usernameLen;
    //Append Peer-ID
-   memcpy(authReqPacket->peerId, context->username, usernameLen);
+   osMemcpy(authReqPacket->peerId, context->username, usernameLen);
 
    //Point to the Passwd-Length field
    p = authReqPacket->peerId + usernameLen;
@@ -463,7 +463,7 @@ error_t papSendAuthReq(PppContext *context)
    p[0] = passwordLen;
 
    //Append Password
-   memcpy(p + 1, context->password, passwordLen);
+   osMemcpy(p + 1, context->password, passwordLen);
 
    //Adjust the length of the multi-part buffer
    netBufferSetLength(buffer, offset + length);
@@ -608,13 +608,13 @@ bool_t papCheckPassword(PppContext *context, const char_t *password)
    status = FALSE;
 
    //Retrieve the length of the password
-   n = strlen(password);
+   n = osStrlen(password);
 
    //Compare the length of the password against the expected value
    if(n == context->papFsm.passwordLen)
    {
       //Check whether the password is valid
-      if(!memcmp(password, context->papFsm.password, n))
+      if(!osMemcmp(password, context->papFsm.password, n))
          status = TRUE;
    }
 

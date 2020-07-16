@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -1117,7 +1117,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-            
+
             //We are done
             break;
 
@@ -1139,7 +1139,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-            
+
             //We are done
             break;
 
@@ -1913,37 +1913,69 @@ int_t selectFdIsSet(fd_set *fds, int_t s)
 
 
 /**
- * @brief Retrieve host address corresponding to a host name
+ * @brief Host name resolution
  * @param[in] name Name of the host to resolve
  * @param[out] info Address of the specified host
- * @return If no error occurs, gethostbyname returns 0. Otherwise
- *   it returns an appropriate error code
+ * @return Pointer to the hostent structure or a NULL if an error occurs
  **/
 
-int_t gethostbyname(const char_t *name, hostent *info)
+hostent *gethostbyname(const char_t *name)
+{
+   int_t herrno;
+   static hostent result;
+
+   //The hostent structure returned by the function resides in static
+   //memory area
+   return gethostbyname_r(name, &result, NULL, 0, &herrno);
+}
+
+
+/**
+ * @brief Host name resolution (reentrant version)
+ * @param[in] name Name of the host to resolve
+ * @param[in] result Pointer to a hostent structure where the function can
+ *   store the host entry
+ * @param[out] buf Pointer to a temporary work buffer
+ * @param[in] buflen Length of the temporary work buffer
+ * @param[out] h_errnop Pointer to a location where the function can store an
+ *   h_errno value if an error occurs
+ * @return Pointer to the hostent structure or a NULL if an error occurs
+ **/
+
+hostent *gethostbyname_r(const char_t *name, hostent *result, char_t *buf,
+   size_t buflen, int_t *h_errnop)
 {
    error_t error;
    IpAddr ipAddr;
 
    //Check input parameters
-   if(name == NULL || info == NULL)
-      return ERROR_INVALID_PARAMETER;
+   if(name == NULL || result == NULL)
+   {
+      //Report an error
+      *h_errnop = NO_RECOVERY;
+      return NULL;
+   }
 
    //Resolve host address
    error = getHostByName(NULL, name, &ipAddr, 0);
    //Address resolution failed?
    if(error)
-      return error;
+   {
+      //Report an error
+      *h_errnop = HOST_NOT_FOUND;
+      return NULL;
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
    if(ipAddr.length == sizeof(Ipv4Addr))
    {
       //Set address family
-      info->h_addrtype = AF_INET;
+      result->h_addrtype = AF_INET;
+      result->h_length = sizeof(Ipv4Addr);
+
       //Copy IPv4 address
-      info->h_length = sizeof(Ipv4Addr);
-      ipv4CopyAddr(info->h_addr, &ipAddr.ipv4Addr);
+      ipv4CopyAddr(result->h_addr, &ipAddr.ipv4Addr);
    }
    else
 #endif
@@ -1952,21 +1984,26 @@ int_t gethostbyname(const char_t *name, hostent *info)
    if(ipAddr.length == sizeof(Ipv6Addr))
    {
       //Set address family
-      info->h_addrtype = AF_INET6;
+      result->h_addrtype = AF_INET6;
+      result->h_length = sizeof(Ipv6Addr);
+
       //Copy IPv6 address
-      info->h_length = sizeof(Ipv6Addr);
-      ipv6CopyAddr(info->h_addr, &ipAddr.ipv6Addr);
+      ipv6CopyAddr(result->h_addr, &ipAddr.ipv6Addr);
    }
    else
 #endif
    //Invalid address?
    {
       //Report an error
-      return ERROR_FAILURE;
+      *h_errnop = NO_ADDRESS;
+      return NULL;
    }
 
-   //Successful processing
-   return NO_ERROR;
+   //Successful host name resolution
+   *h_errnop = NETDB_SUCCESS;
+
+   //Return a pointer to the hostent structure
+   return result;
 }
 
 
@@ -2042,21 +2079,42 @@ int_t inet_aton(const char_t *cp, in_addr *inp)
 /**
  * @brief Convert a binary IPv4 address to dot-decimal notation
  * @param[in] in Binary representation of the IPv4 address
- * @param[out] cp Pointer to the buffer where to format the string
  * @return Pointer to the formatted string
  **/
 
-const char_t *inet_ntoa(in_addr in, char_t *cp)
+const char_t *inet_ntoa(in_addr in)
 {
-#if (IPV4_SUPPORT == ENABLED)
-   //Convert the binary IPv4 address to dot-decimal notation
-   return ipv4AddrToString(in.s_addr, cp);
-#else
+   static char_t buf[16];
+
+   //The string returned by the function resides in static memory area
+   return inet_ntoa_r(in, buf, sizeof(buf));
+}
+
+
+/**
+ * @brief Convert a binary IPv4 address to dot-decimal notation (reentrant version)
+ * @param[in] in Binary representation of the IPv4 address
+ * @param[out] buf Pointer to the buffer where to format the string
+ * @param[in] buflen Number of bytes available in the buffer
+ * @return Pointer to the formatted string
+ **/
+
+const char_t *inet_ntoa_r(in_addr in, char_t *buf, socklen_t buflen)
+{
    //Properly terminate the string
-   cp[0] = '\0';
-   //Return a pointer to the formatted string
-   return cp;
+   buf[0] = '\0';
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Check the length of the buffer
+   if(buflen >= 16)
+   {
+      //Convert the binary IPv4 address to dot-decimal notation
+      ipv4AddrToString(in.s_addr, buf);
+   }
 #endif
+
+   //Return a pointer to the formatted string
+   return buf;
 }
 
 
@@ -2145,7 +2203,7 @@ const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size)
 {
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
-   if(af == AF_INET)
+   if(af == AF_INET && size >= 16)
    {
       Ipv4Addr ipv4Addr;
 
@@ -2159,7 +2217,7 @@ const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size)
 #endif
 #if (IPV6_SUPPORT == ENABLED)
    //IPv6 address?
-   if(af == AF_INET6)
+   if(af == AF_INET6 && size >= 40)
    {
       Ipv6Addr ipv6Addr;
 

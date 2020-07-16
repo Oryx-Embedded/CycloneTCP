@@ -1,12 +1,12 @@
 /**
  * @file zynq7000_eth_driver.c
- * @brief Zynq-7000 Gigabit Ethernet MAC controller
+ * @brief Zynq-7000 Gigabit Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -51,19 +51,19 @@ extern XScuGic ZYNQ7000_ETH_GIC_INSTANCE;
 
 //TX buffer
 #pragma data_alignment = 8
-#pragma location = ".ram_no_cache"
+#pragma location = ZYNQ7000_ETH_RAM_SECTION
 static uint8_t txBuffer[ZYNQ7000_ETH_TX_BUFFER_COUNT][ZYNQ7000_ETH_TX_BUFFER_SIZE];
 //RX buffer
 #pragma data_alignment = 8
-#pragma location = ".ram_no_cache"
+#pragma location = ZYNQ7000_ETH_RAM_SECTION
 static uint8_t rxBuffer[ZYNQ7000_ETH_RX_BUFFER_COUNT][ZYNQ7000_ETH_RX_BUFFER_SIZE];
 //TX buffer descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = ZYNQ7000_ETH_RAM_SECTION
 static Zynq7000TxBufferDesc txBufferDesc[ZYNQ7000_ETH_TX_BUFFER_COUNT];
 //RX buffer descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = ZYNQ7000_ETH_RAM_SECTION
 static Zynq7000RxBufferDesc rxBufferDesc[ZYNQ7000_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
@@ -71,16 +71,16 @@ static Zynq7000RxBufferDesc rxBufferDesc[ZYNQ7000_ETH_RX_BUFFER_COUNT];
 
 //TX buffer
 static uint8_t txBuffer[ZYNQ7000_ETH_TX_BUFFER_COUNT][ZYNQ7000_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(8), __section__(".ram_no_cache")));
+   __attribute__((aligned(8), __section__(ZYNQ7000_ETH_RAM_SECTION)));
 //RX buffer
 static uint8_t rxBuffer[ZYNQ7000_ETH_RX_BUFFER_COUNT][ZYNQ7000_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(8), __section__(".ram_no_cache")));
+   __attribute__((aligned(8), __section__(ZYNQ7000_ETH_RAM_SECTION)));
 //TX buffer descriptors
 static Zynq7000TxBufferDesc txBufferDesc[ZYNQ7000_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(ZYNQ7000_ETH_RAM_SECTION)));
 //RX buffer descriptors
 static Zynq7000RxBufferDesc rxBufferDesc[ZYNQ7000_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(ZYNQ7000_ETH_RAM_SECTION)));
 
 #endif
 
@@ -157,11 +157,28 @@ error_t zynq7000EthInit(NetInterface *interface)
    //Enable management port (MDC and MDIO)
    XEMACPS_NWCTRL |= XEMACPS_NWCTRL_MDEN_MASK;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the MAC address of the station
    XEMACPS_LADDR1L = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
@@ -277,16 +294,29 @@ void zynq7000EthInitBufferDesc(NetInterface *interface)
 /**
  * @brief Zynq-7000 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void zynq7000EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -299,8 +329,22 @@ void zynq7000EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    XScuGic_Enable(&ZYNQ7000_ETH_GIC_INSTANCE, XPS_GEM0_INT_ID);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -313,8 +357,22 @@ void zynq7000EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    XScuGic_Disable(&ZYNQ7000_ETH_GIC_INSTANCE, XPS_GEM0_INT_ID);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -345,22 +403,23 @@ void zynq7000EthIrqHandler(NetInterface *interface)
    //Clear interrupt flags
    XEMACPS_ISR = isr;
 
-   //A packet has been transmitted?
-   if(tsr & (XEMACPS_TXSR_TXCOMPL_MASK | XEMACPS_TXSR_TXGO_MASK | XEMACPS_TXSR_ERROR_MASK))
+   //Packet transmitted?
+   if((tsr & (XEMACPS_TXSR_TXCOMPL_MASK | XEMACPS_TXSR_TXGO_MASK |
+      XEMACPS_TXSR_ERROR_MASK)) != 0)
    {
       //Only clear TSR flags that are currently set
       XEMACPS_TXSR = tsr;
 
       //Check whether the TX buffer is available for writing
-      if(txBufferDesc[txBufferIndex].status & XEMACPS_TX_USED)
+      if((txBufferDesc[txBufferIndex].status & XEMACPS_TX_USED) != 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(rsr & (XEMACPS_RXSR_FRAMERX_MASK | XEMACPS_RXSR_ERROR_MASK))
+   //Packet received?
+   if((rsr & (XEMACPS_RXSR_FRAMERX_MASK | XEMACPS_RXSR_ERROR_MASK)) != 0)
    {
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -369,8 +428,10 @@ void zynq7000EthIrqHandler(NetInterface *interface)
    }
 
    //Flush packet if the receive buffer not available
-   if (isr & XEMACPS_IXR_RXUSED_MASK)
+   if((isr & XEMACPS_IXR_RXUSED_MASK) != 0)
+   {
       XEMACPS_NWCTRL |= XEMACPS_NWCTRL_FLUSH_DPRAM_MASK;
+   }
 
    //Interrupt service routine epilogue
    osExitIsr(flag);
@@ -391,7 +452,7 @@ void zynq7000EthEventHandler(NetInterface *interface)
    rsr = XEMACPS_RXSR;
 
    //Packet received?
-   if(rsr & (XEMACPS_RXSR_FRAMERX_MASK | XEMACPS_RXSR_ERROR_MASK))
+   if((rsr & (XEMACPS_RXSR_FRAMERX_MASK | XEMACPS_RXSR_ERROR_MASK)) != 0)
    {
       //Only clear RSR flags that are currently set
       XEMACPS_RXSR = rsr;
@@ -413,11 +474,13 @@ void zynq7000EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t zynq7000EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    static uint8_t temp[ZYNQ7000_ETH_TX_BUFFER_SIZE];
    size_t length;
@@ -435,19 +498,21 @@ error_t zynq7000EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(!(txBufferDesc[txBufferIndex].status & XEMACPS_TX_USED))
+   if((txBufferDesc[txBufferIndex].status & XEMACPS_TX_USED) == 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(temp, buffer, offset, length);
-   memcpy(txBuffer[txBufferIndex], temp, length);
+   osMemcpy(txBuffer[txBufferIndex], temp, length);
 
    //Set the necessary flags in the descriptor entry
    if(txBufferIndex < (ZYNQ7000_ETH_TX_BUFFER_COUNT - 1))
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status =
-         XEMACPS_TX_LAST | (length & XEMACPS_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = XEMACPS_TX_LAST |
+         (length & XEMACPS_TX_LENGTH);
 
       //Point to the next buffer
       txBufferIndex++;
@@ -455,8 +520,8 @@ error_t zynq7000EthSendPacket(NetInterface *interface,
    else
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status = XEMACPS_TX_WRAP |
-         XEMACPS_TX_LAST | (length & XEMACPS_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = XEMACPS_TX_WRAP | XEMACPS_TX_LAST |
+         (length & XEMACPS_TX_LENGTH);
 
       //Wrap around
       txBufferIndex = 0;
@@ -466,7 +531,7 @@ error_t zynq7000EthSendPacket(NetInterface *interface,
    XEMACPS_NWCTRL |= XEMACPS_NWCTRL_STARTTX_MASK;
 
    //Check whether the next buffer is available for writing
-   if(txBufferDesc[txBufferIndex].status & XEMACPS_TX_USED)
+   if((txBufferDesc[txBufferIndex].status & XEMACPS_TX_USED) != 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -507,22 +572,26 @@ error_t zynq7000EthReceivePacket(NetInterface *interface)
 
       //Wrap around to the beginning of the buffer if necessary
       if(j >= ZYNQ7000_ETH_RX_BUFFER_COUNT)
+      {
          j -= ZYNQ7000_ETH_RX_BUFFER_COUNT;
+      }
 
       //No more entries to process?
-      if(!(rxBufferDesc[j].address & XEMACPS_RX_OWNERSHIP))
+      if((rxBufferDesc[j].address & XEMACPS_RX_OWNERSHIP) == 0)
       {
          //Stop processing
          break;
       }
+
       //A valid SOF has been found?
-      if(rxBufferDesc[j].status & XEMACPS_RX_SOF)
+      if((rxBufferDesc[j].status & XEMACPS_RX_SOF) != 0)
       {
          //Save the position of the SOF
          sofIndex = i;
       }
+
       //A valid EOF has been found?
-      if((rxBufferDesc[j].status & XEMACPS_RX_EOF) && sofIndex != UINT_MAX)
+      if((rxBufferDesc[j].status & XEMACPS_RX_EOF) != 0 && sofIndex != UINT_MAX)
       {
          //Save the position of the EOF
          eofIndex = i;
@@ -537,11 +606,17 @@ error_t zynq7000EthReceivePacket(NetInterface *interface)
 
    //Determine the number of entries to process
    if(eofIndex != UINT_MAX)
+   {
       j = eofIndex + 1;
+   }
    else if(sofIndex != UINT_MAX)
+   {
       j = sofIndex;
+   }
    else
+   {
       j = i;
+   }
 
    //Total number of bytes that have been copied from the receive buffer
    length = 0;
@@ -555,7 +630,7 @@ error_t zynq7000EthReceivePacket(NetInterface *interface)
          //Calculate the number of bytes to read at a time
          n = MIN(size, ZYNQ7000_ETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         memcpy(temp + length, rxBuffer[rxBufferIndex], n);
+         osMemcpy(temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;
@@ -569,14 +644,21 @@ error_t zynq7000EthReceivePacket(NetInterface *interface)
 
       //Wrap around to the beginning of the buffer if necessary
       if(rxBufferIndex >= ZYNQ7000_ETH_RX_BUFFER_COUNT)
+      {
          rxBufferIndex = 0;
+      }
    }
 
    //Any packet to process?
    if(length > 0)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length);
+      nicProcessPacket(interface, temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }
@@ -679,7 +761,7 @@ error_t zynq7000EthUpdateMacConfig(NetInterface *interface)
    //1000BASE-T operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_1GBPS)
    {
-     //Update network configuration
+      //Update network configuration
       config |= XEMACPS_NWCFG_1000_MASK;
       config &= ~XEMACPS_NWCFG_100_MASK;
 
@@ -712,9 +794,13 @@ error_t zynq7000EthUpdateMacConfig(NetInterface *interface)
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= XEMACPS_NWCFG_FDEN_MASK;
+   }
    else
+   {
       config &= ~XEMACPS_NWCFG_FDEN_MASK;
+   }
 
    //Write network configuration register
    XEMACPS_NWCFG = config;
@@ -759,7 +845,7 @@ void zynq7000EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       XEMACPS_PHYMNTNC = temp;
       //Wait for the write to complete
-      while(!(XEMACPS_NWSR & XEMACPS_NWSR_MDIOIDLE_MASK))
+      while((XEMACPS_NWSR & XEMACPS_NWSR_MDIOIDLE_MASK) == 0)
       {
       }
    }
@@ -797,7 +883,7 @@ uint16_t zynq7000EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       XEMACPS_PHYMNTNC = temp;
       //Wait for the read to complete
-      while(!(XEMACPS_NWSR & XEMACPS_NWSR_MDIOIDLE_MASK))
+      while((XEMACPS_NWSR & XEMACPS_NWSR_MDIOIDLE_MASK) == 0)
       {
       }
 

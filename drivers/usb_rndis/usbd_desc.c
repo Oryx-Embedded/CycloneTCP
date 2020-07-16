@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Dependencies
@@ -59,13 +59,13 @@ static uint8_t usbdStrDescriptor[USBD_MAX_STR_DESC_SIZ];
  **/
 
 USBD_DescriptorsTypeDef usbdRndisDescriptors = {
-  usbdGetDeviceDescriptor,
-  usbdGetLangIdStrDescriptor,
-  usbdGetManufacturerStrDescriptor,
-  usbdGetProductStrDescriptor,
-  usbdGetSerialStrDescriptor,
-  usbdGetConfigStrDescriptor,
-  usbdGetInterfaceStrDescriptor,
+   usbdGetDeviceDescriptor,
+   usbdGetLangIdStrDescriptor,
+   usbdGetManufacturerStrDescriptor,
+   usbdGetProductStrDescriptor,
+   usbdGetSerialStrDescriptor,
+   usbdGetConfigStrDescriptor,
+   usbdGetInterfaceStrDescriptor,
 };
 
 
@@ -164,7 +164,7 @@ const UsbConfigDescriptors usbdConfigDescriptors =
       sizeof(UsbEndpointDescriptor),            //bLength
       USB_DESC_TYPE_ENDPOINT,                   //bDescriptorType
       USB_DIR_IN | USB_EP1,                     //bEndpointAddress
-      USB_EP_TYPE_INTERRUPT,                    //bmAttributes
+      USB_ENDPOINT_TYPE_INTERRUPT,              //bmAttributes
       HTOLE16(USB_EP1_MAX_PACKET_SIZE),         //wMaxPacketSize
       1                                         //bInterval (1ms)
    },
@@ -185,7 +185,7 @@ const UsbConfigDescriptors usbdConfigDescriptors =
       sizeof(UsbEndpointDescriptor),            //bLength
       USB_DESC_TYPE_ENDPOINT,                   //bDescriptorType
       USB_DIR_IN | USB_EP2,                     //bEndpointAddress
-      USB_EP_TYPE_BULK,                         //bmAttributes
+      USB_ENDPOINT_TYPE_BULK,                   //bmAttributes
       HTOLE16(USB_EP2_MAX_PACKET_SIZE),         //wMaxPacketSize
       0                                         //bInterval
    },
@@ -194,7 +194,7 @@ const UsbConfigDescriptors usbdConfigDescriptors =
       sizeof(UsbEndpointDescriptor),            //bLength
       USB_DESC_TYPE_ENDPOINT,                   //bDescriptorType
       USB_DIR_OUT | USB_EP3,                    //bEndpointAddress
-      USB_EP_TYPE_BULK,                         //bmAttributes
+      USB_ENDPOINT_TYPE_BULK,                   //bmAttributes
       HTOLE16(USB_EP3_MAX_PACKET_SIZE),         //wMaxPacketSize
       0                                         //bInterval
    }

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 5227: IPv4 Address Conflict Detection
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -95,7 +95,7 @@ error_t autoIpInit(AutoIpContext *context, const AutoIpSettings *settings)
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //A valid pointer to the interface being configured is required
+   //The Auto-IP service must be bound to a valid interface
    if(settings->interface == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -103,7 +103,7 @@ error_t autoIpInit(AutoIpContext *context, const AutoIpSettings *settings)
    interface = settings->interface;
 
    //Clear the Auto-IP context
-   memset(context, 0, sizeof(AutoIpContext));
+   osMemset(context, 0, sizeof(AutoIpContext));
    //Save user settings
    context->settings = *settings;
 
@@ -136,7 +136,7 @@ error_t autoIpStart(AutoIpContext *context)
    uint_t i;
    NetInterface *interface;
 
-   //Check parameter
+   //Make sure the Auto-IP context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -181,7 +181,7 @@ error_t autoIpStart(AutoIpContext *context)
 
 error_t autoIpStop(AutoIpContext *context)
 {
-   //Check parameter
+   //Make sure the Auto-IP context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 

@@ -1,12 +1,12 @@
 /**
  * @file lpc175x_eth_driver.c
- * @brief LPC1758 Ethernet MAC controller
+ * @brief LPC1758 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -150,11 +150,28 @@ error_t lpc175xEthInit(NetInterface *interface)
    //Select RMII mode
    LPC_EMAC->Command = COMMAND_RMII;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Initialize TX and RX descriptor arrays
    lpc175xEthInitDesc(interface);
@@ -283,16 +300,29 @@ void lpc175xEthInitDesc(NetInterface *interface)
 /**
  * @brief LPC175x Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void lpc175xEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -305,8 +335,22 @@ void lpc175xEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ENET_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -319,8 +363,22 @@ void lpc175xEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ENET_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -343,8 +401,8 @@ void ENET_IRQHandler(void)
    //Read interrupt status register
    status = LPC_EMAC->IntStatus;
 
-   //A packet has been transmitted?
-   if(status & INT_TX_DONE)
+   //Packet transmitted?
+   if((status & INT_TX_DONE) != 0)
    {
       //Clear TxDone interrupt flag
       LPC_EMAC->IntClear = INT_TX_DONE;
@@ -354,7 +412,9 @@ void ENET_IRQHandler(void)
 
       //Wrap around if necessary
       if(i >= LPC175X_ETH_TX_BUFFER_COUNT)
+      {
          i = 0;
+      }
 
       //Check whether the TX buffer is available for writing
       if(i != LPC_EMAC->TxConsumeIndex)
@@ -364,8 +424,8 @@ void ENET_IRQHandler(void)
       }
    }
 
-   //A packet has been received?
-   if(status & INT_RX_DONE)
+   //Packet received?
+   if((status & INT_RX_DONE) != 0)
    {
       //Disable RxDone interrupts
       LPC_EMAC->IntEnable &= ~INT_RX_DONE;
@@ -391,7 +451,7 @@ void lpc175xEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(LPC_EMAC->IntStatus & INT_RX_DONE)
+   if((LPC_EMAC->IntStatus & INT_RX_DONE) != 0)
    {
       //Clear RxDone interrupt flag
       LPC_EMAC->IntClear = INT_RX_DONE;
@@ -416,11 +476,13 @@ void lpc175xEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t lpc175xEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    uint_t i;
    uint_t j;
@@ -452,11 +514,15 @@ error_t lpc175xEthSendPacket(NetInterface *interface,
 
    //Wrap around if necessary
    if(j >= LPC175X_ETH_TX_BUFFER_COUNT)
+   {
       j = 0;
+   }
 
    //Check whether the transmit descriptor array is full
    if(j == LPC_EMAC->TxConsumeIndex)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txDesc[i].packet, buffer, offset, length);
@@ -467,7 +533,9 @@ error_t lpc175xEthSendPacket(NetInterface *interface,
 
    //Increment index and wrap around if necessary
    if(++i >= LPC175X_ETH_TX_BUFFER_COUNT)
+   {
       i = 0;
+   }
 
    //Save the resulting value
    LPC_EMAC->TxProduceIndex = i;
@@ -477,7 +545,9 @@ error_t lpc175xEthSendPacket(NetInterface *interface,
 
    //Wrap around if necessary
    if(j >= LPC175X_ETH_TX_BUFFER_COUNT)
+   {
       j = 0;
+   }
 
    //Check whether the next buffer is available for writing
    if(j != LPC_EMAC->TxConsumeIndex)
@@ -502,6 +572,7 @@ error_t lpc175xEthReceivePacket(NetInterface *interface)
    error_t error;
    size_t n;
    uint_t i;
+   NetRxAncillary ancillary;
 
    //Point to the current descriptor
    i = LPC_EMAC->RxConsumeIndex;
@@ -514,12 +585,17 @@ error_t lpc175xEthReceivePacket(NetInterface *interface)
       //Limit the number of data to read
       n = MIN(n, LPC175X_ETH_RX_BUFFER_SIZE);
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, (uint8_t *) rxDesc[i].packet, n);
+      nicProcessPacket(interface, (uint8_t *) rxDesc[i].packet, n, &ancillary);
 
       //Increment index and wrap around if necessary
       if(++i >= LPC175X_ETH_RX_BUFFER_COUNT)
+      {
          i = 0;
+      }
 
       //Save the resulting value
       LPC_EMAC->RxConsumeIndex = i;
@@ -606,9 +682,13 @@ error_t lpc175xEthUpdateMacConfig(NetInterface *interface)
 {
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       LPC_EMAC->SUPP = SUPP_SPEED;
+   }
    else
+   {
       LPC_EMAC->SUPP = 0;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
@@ -716,10 +796,14 @@ void lpc175xEthWriteSmi(uint32_t data, uint_t length)
    while(length--)
    {
       //Write MDIO
-      if(data & 0x80000000)
+      if((data & 0x80000000) != 0)
+      {
          LPC175X_ETH_MDIO_GPIO->FIOSET = LPC175X_ETH_MDIO_MASK;
+      }
       else
+      {
          LPC175X_ETH_MDIO_GPIO->FIOCLR = LPC175X_ETH_MDIO_MASK;
+      }
 
       //Assert MDC
       usleep(1);
@@ -761,8 +845,10 @@ uint32_t lpc175xEthReadSmi(uint_t length)
       usleep(1);
 
       //Check MDIO state
-      if(LPC175X_ETH_MDIO_GPIO->FIOPIN & LPC175X_ETH_MDIO_MASK)
-         data |= 0x00000001;
+      if((LPC175X_ETH_MDIO_GPIO->FIOPIN & LPC175X_ETH_MDIO_MASK) != 0)
+      {
+         data |= 0x01;
+      }
    }
 
    //Return the received data
@@ -781,11 +867,13 @@ uint32_t lpc175xEthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -794,10 +882,14 @@ uint32_t lpc175xEthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

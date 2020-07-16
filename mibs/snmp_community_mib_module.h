@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * of an SNMP entity. Refer to RFC 3418 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _SNMP_COMMUNITY_MIB_MODULE_H
@@ -45,6 +45,13 @@
    #define SNMP_COMMUNITY_MIB_SUPPORT DISABLED
 #elif (SNMP_COMMUNITY_MIB_SUPPORT != ENABLED && SNMP_COMMUNITY_MIB_SUPPORT != DISABLED)
    #error SNMP_COMMUNITY_MIB_SUPPORT parameter is not valid
+#endif
+
+//Support for SET operations
+#ifndef SNMP_COMMUNITY_MIB_SET_SUPPORT
+   #define SNMP_COMMUNITY_MIB_SET_SUPPORT DISABLED
+#elif (SNMP_COMMUNITY_MIB_SET_SUPPORT != ENABLED && SNMP_COMMUNITY_MIB_SET_SUPPORT != DISABLED)
+   #error SNMP_COMMUNITY_MIB_SET_SUPPORT parameter is not valid
 #endif
 
 //C++ guard

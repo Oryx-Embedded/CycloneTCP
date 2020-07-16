@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -89,7 +89,7 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings 
       return ERROR_INVALID_ADDRESS;
 
    //Clear the DHCPv6 relay agent context
-   memset(context, 0, sizeof(Dhcpv6RelayContext));
+   osMemset(context, 0, sizeof(Dhcpv6RelayContext));
 
    //Save the network-facing interface
    context->serverInterface = settings->serverInterface;
@@ -248,12 +248,13 @@ error_t dhcpv6RelayStop(Dhcpv6RelayContext *context)
 {
    uint_t i;
 
+   //Make sure the DHCPv6 relay agent context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
    //Debug message
    TRACE_INFO("Stopping DHCPv6 relay agent...\r\n");
 
-   //Ensure the specified pointer is valid
-   if(context == NULL)
-      return ERROR_INVALID_PARAMETER;
    //Check DHCPv6 relay agent state
    if(!context->running)
       return ERROR_WRONG_STATE;
@@ -609,7 +610,7 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
       return ERROR_INVALID_MESSAGE;
 
    //Read the Interface ID option contents
-   memcpy(&interfaceId, option->value, sizeof(interfaceId));
+   osMemcpy(&interfaceId, option->value, sizeof(interfaceId));
    //Convert the 32-bit integer from network byte order
    interfaceId = ntohl(interfaceId);
 

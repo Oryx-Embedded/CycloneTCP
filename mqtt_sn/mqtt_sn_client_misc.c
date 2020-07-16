@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -243,14 +243,14 @@ error_t mqttSnClientAddTopic(MqttSnClientContext *context,
    uint_t i;
 
    //Make sure the name of the topic name is acceptable
-   if(strlen(topicName) > MQTT_SN_CLIENT_MAX_TOPIC_NAME_LEN)
+   if(osStrlen(topicName) > MQTT_SN_CLIENT_MAX_TOPIC_NAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Loop through the topic table
    for(i = 0; i < MQTT_SN_CLIENT_TOPIC_TABLE_SIZE; i++)
    {
       //Check whether the topic name has already been registered
-      if(!strcmp(context->topicTable[i].topicName, topicName))
+      if(!osStrcmp(context->topicTable[i].topicName, topicName))
       {
          //Update topic identifier
          context->topicTable[i].topicId = topicId;
@@ -267,7 +267,7 @@ error_t mqttSnClientAddTopic(MqttSnClientContext *context,
       if(context->topicTable[i].topicName[0] == '\0')
       {
          //Save mapping between topic name and topic ID
-         strcpy(context->topicTable[i].topicName, topicName);
+         osStrcpy(context->topicTable[i].topicName, topicName);
          context->topicTable[i].topicId = topicId;
 
          //A new entry has been successfully created
@@ -296,7 +296,7 @@ error_t mqttSnClientDeleteTopic(MqttSnClientContext *context,
    for(i = 0; i < MQTT_SN_CLIENT_TOPIC_TABLE_SIZE; i++)
    {
       //Matching topic name?
-      if(!strcmp(context->topicTable[i].topicName, topicName))
+      if(!osStrcmp(context->topicTable[i].topicName, topicName))
       {
          //Release current entry
          context->topicTable[i].topicName[0] = '\0';
@@ -371,7 +371,7 @@ uint16_t mqttSnClientFindTopicName(MqttSnClientContext *context,
       for(i = 0; i < MQTT_SN_CLIENT_TOPIC_TABLE_SIZE; i++)
       {
          //Matching topic name?
-         if(!strcmp(context->topicTable[i].topicName, topicName))
+         if(!osStrcmp(context->topicTable[i].topicName, topicName))
          {
             //Retrieve the corresponding topic identifier
             topicId = context->topicTable[i].topicId;
@@ -445,7 +445,7 @@ uint16_t mqttSnClientFindPredefTopicName(MqttSnClientContext *context,
       for(i = 0; i < context->predefinedTopicTableSize; i++)
       {
          //Matching topic name?
-         if(!strcmp(context->predefinedTopicTable[i].topicName, topicName))
+         if(!osStrcmp(context->predefinedTopicTable[i].topicName, topicName))
          {
             //Retrieve the corresponding topic identifier
             topicId = context->predefinedTopicTable[i].topicId;
@@ -603,7 +603,7 @@ bool_t mqttSnClientIsShortTopicName(const char_t *topicName)
    res = FALSE;
 
    //A short topic name is a topic name that has a fixed length of two octets
-   if(strlen(topicName) == 2)
+   if(osStrlen(topicName) == 2)
    {
       //Ensure the topic name does not contains wildcard characters
       if(strchr(topicName, '#') == NULL && strchr(topicName, '+') == NULL)

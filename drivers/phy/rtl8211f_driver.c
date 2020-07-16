@@ -1,12 +1,12 @@
 /**
  * @file rtl8211f_driver.c
- * @brief RTL8211F Gigabit Ethernet PHY transceiver
+ * @brief RTL8211F Gigabit Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver rtl8211fPhyDriver =
    rtl8211fTick,
    rtl8211fEnableIrq,
    rtl8211fDisableIrq,
-   rtl8211fEventHandler,
-   NULL,
-   NULL
+   rtl8211fEventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t rtl8211fInit(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = RTL8211F_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Initialize external interrupt line driver
@@ -183,7 +187,7 @@ void rtl8211fEventHandler(NetInterface *interface)
    status = rtl8211fReadPhyReg(interface, RTL8211F_INSR);
 
    //Link status change?
-   if(status & (RTL8211F_INSR_AN_COMPLETE | RTL8211F_INSR_LINK_STATUS))
+   if((status & (RTL8211F_INSR_AN_COMPLETE | RTL8211F_INSR_LINK_STATUS)) != 0)
    {
       //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
@@ -191,7 +195,7 @@ void rtl8211fEventHandler(NetInterface *interface)
       status = rtl8211fReadPhyReg(interface, RTL8211F_BMSR);
 
       //Link is up?
-      if(status & RTL8211F_BMSR_LINK_STATUS)
+      if((status & RTL8211F_BMSR_LINK_STATUS) != 0)
       {
          //Read PHY status register
          status = rtl8211fReadPhyReg(interface, RTL8211F_PHYSR);
@@ -219,10 +223,14 @@ void rtl8211fEventHandler(NetInterface *interface)
          }
 
          //Check current duplex mode
-         if(status & RTL8211F_PHYSR_DUPLEX)
+         if((status & RTL8211F_PHYSR_DUPLEX) != 0)
+         {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
          else
+         {
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
 
          //Update link state
          interface->linkState = TRUE;
@@ -253,8 +261,16 @@ void rtl8211fWritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -267,9 +283,22 @@ void rtl8211fWritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t rtl8211fReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

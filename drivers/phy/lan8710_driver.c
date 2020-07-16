@@ -1,12 +1,12 @@
 /**
  * @file lan8710_driver.c
- * @brief LAN8710 Ethernet PHY transceiver
+ * @brief LAN8710 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver lan8710PhyDriver =
    lan8710Tick,
    lan8710EnableIrq,
    lan8710DisableIrq,
-   lan8710EventHandler,
-   NULL,
-   NULL
+   lan8710EventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t lan8710Init(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = LAN8710_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Initialize external interrupt line driver
@@ -183,7 +187,7 @@ void lan8710EventHandler(NetInterface *interface)
    value = lan8710ReadPhyReg(interface, LAN8710_ISR);
 
    //Link status change?
-   if(value & (LAN8710_IMR_AN_COMPLETE | LAN8710_IMR_LINK_DOWN))
+   if((value & (LAN8710_IMR_AN_COMPLETE | LAN8710_IMR_LINK_DOWN)) != 0)
    {
       //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
@@ -191,7 +195,7 @@ void lan8710EventHandler(NetInterface *interface)
       value = lan8710ReadPhyReg(interface, LAN8710_BMSR);
 
       //Link is up?
-      if(value & LAN8710_BMSR_LINK_STATUS)
+      if((value & LAN8710_BMSR_LINK_STATUS) != 0)
       {
          //Read PHY special control/status register
          value = lan8710ReadPhyReg(interface, LAN8710_PSCSR);
@@ -255,8 +259,16 @@ void lan8710WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -269,9 +281,22 @@ void lan8710WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t lan8710ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

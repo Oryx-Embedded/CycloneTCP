@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -338,6 +338,49 @@ error_t ipv4SelectSourceAddr(NetInterface **interface,
 
    //Return status code
    return error;
+}
+
+
+/**
+ * @brief Default gateway selection
+ * @param[in] interface Underlying network interface
+ * @param[in] srcAddr Source IPv4 address
+ * @param[out] defaultGatewayAddr IPv4 address of the gateway
+ * @return Error code
+ **/
+
+error_t ipv4SelectDefaultGateway(NetInterface *interface, Ipv4Addr srcAddr,
+   Ipv4Addr *defaultGatewayAddr)
+{
+   uint_t i;
+   Ipv4AddrEntry *entry;
+
+   //Loop through the list of default gateways
+   for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
+   {
+      //Point to the current entry
+      entry = &interface->ipv4Context.addrList[i];
+
+      //Check whether the gateway address is valid
+      if(entry->state == IPV4_ADDR_STATE_VALID &&
+         entry->defaultGateway != IPV4_UNSPECIFIED_ADDR)
+      {
+         //Under the strong ES model, the source address is included as a
+         //parameter in order to select a gateway that is directly reachable
+         //on the corresponding physical interface (refer to RFC 1122,
+         //section 3.3.4.2)
+         if(entry->addr == srcAddr)
+         {
+            //Return the IPv4 address of the default gateway
+            *defaultGatewayAddr = entry->defaultGateway;
+            //Successful default gateway selection
+            return NO_ERROR;
+         }
+      }
+   }
+
+   //No default gateway found
+   return ERROR_NO_ROUTE;
 }
 
 

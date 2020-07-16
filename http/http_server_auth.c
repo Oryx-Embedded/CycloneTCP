@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -76,7 +76,7 @@ bool_t httpCheckPassword(HttpConnection *connection,
          if(auth->password != NULL)
          {
             //Check whether the password is valid
-            if(!strcmp(password, auth->password))
+            if(!osStrcmp(password, auth->password))
                status = TRUE;
          }
       }
@@ -111,11 +111,11 @@ bool_t httpCheckPassword(HttpConnection *connection,
             {
                //Compute HA1 = MD5(username : realm : password)
                md5Init(md5Context);
-               md5Update(md5Context, auth->user, strlen(auth->user));
+               md5Update(md5Context, auth->user, osStrlen(auth->user));
                md5Update(md5Context, ":", 1);
-               md5Update(md5Context, auth->realm, strlen(auth->realm));
+               md5Update(md5Context, auth->realm, osStrlen(auth->realm));
                md5Update(md5Context, ":", 1);
-               md5Update(md5Context, password, strlen(password));
+               md5Update(md5Context, password, osStrlen(password));
                md5Final(md5Context, NULL);
 
                //Convert MD5 hash to hex string
@@ -125,9 +125,9 @@ bool_t httpCheckPassword(HttpConnection *connection,
 
                //Compute HA2 = MD5(method : uri)
                md5Init(md5Context);
-               md5Update(md5Context, connection->request.method, strlen(connection->request.method));
+               md5Update(md5Context, connection->request.method, osStrlen(connection->request.method));
                md5Update(md5Context, ":", 1);
-               md5Update(md5Context, auth->uri, strlen(auth->uri));
+               md5Update(md5Context, auth->uri, osStrlen(auth->uri));
                md5Final(md5Context, NULL);
 
                //Convert MD5 hash to hex string
@@ -137,17 +137,17 @@ bool_t httpCheckPassword(HttpConnection *connection,
 
                //Compute MD5(HA1 : nonce : nc : cnonce : qop : HA2)
                md5Init(md5Context);
-               md5Update(md5Context, ha1, strlen(ha1));
+               md5Update(md5Context, ha1, osStrlen(ha1));
                md5Update(md5Context, ":", 1);
-               md5Update(md5Context, auth->nonce, strlen(auth->nonce));
+               md5Update(md5Context, auth->nonce, osStrlen(auth->nonce));
                md5Update(md5Context, ":", 1);
-               md5Update(md5Context, auth->nc, strlen(auth->nc));
+               md5Update(md5Context, auth->nc, osStrlen(auth->nc));
                md5Update(md5Context, ":", 1);
-               md5Update(md5Context, auth->cnonce, strlen(auth->cnonce));
+               md5Update(md5Context, auth->cnonce, osStrlen(auth->cnonce));
                md5Update(md5Context, ":", 1);
-               md5Update(md5Context, auth->qop, strlen(auth->qop));
+               md5Update(md5Context, auth->qop, osStrlen(auth->qop));
                md5Update(md5Context, ":", 1);
-               md5Update(md5Context, ha2, strlen(ha2));
+               md5Update(md5Context, ha2, osStrlen(ha2));
                md5Final(md5Context, NULL);
 
                //Convert MD5 hash to hex string
@@ -159,7 +159,7 @@ bool_t httpCheckPassword(HttpConnection *connection,
                osFreeMem(md5Context);
 
                //Check response
-               if(!strcasecmp(auth->response, ha1))
+               if(!osStrcasecmp(auth->response, ha1))
                {
                   //Perform nonce verification
                   error = httpVerifyNonce(connection->serverContext, auth->nonce, auth->nc);
@@ -201,7 +201,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
    char_t *token;
 
    //Retrieve the authentication scheme
-   token = strtok_r(value, " \t", &p);
+   token = osStrtok_r(value, " \t", &p);
 
    //Any parsing error?
    if(token == NULL)
@@ -211,7 +211,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
    }
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED)
    //Basic access authentication?
-   else if(!strcasecmp(token, "Basic"))
+   else if(!osStrcasecmp(token, "Basic"))
    {
       error_t error;
       size_t n;
@@ -220,13 +220,13 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
       //Use the relevant authentication scheme
       connection->request.auth.mode = HTTP_AUTH_MODE_BASIC;
       //Retrieve the credentials
-      token = strtok_r(NULL, " \t", &p);
+      token = osStrtok_r(NULL, " \t", &p);
 
       //Any parsing error?
       if(token != NULL)
       {
          //Decrypt the Base64-encoded string
-         error = base64Decode(token, strlen(token), token, &n);
+         error = base64Decode(token, osStrlen(token), token, &n);
 
          //Successful decoding?
          if(!error)
@@ -262,7 +262,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
 #endif
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    //Digest access authentication?
-   else if(!strcasecmp(token, "Digest"))
+   else if(!osStrcasecmp(token, "Digest"))
    {
       size_t n;
       char_t *separator;
@@ -271,7 +271,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
       //Use the relevant authentication scheme
       connection->request.auth.mode = HTTP_AUTH_MODE_DIGEST;
       //Get the first parameter
-      token = strtok_r(NULL, ",", &p);
+      token = osStrtok_r(NULL, ",", &p);
 
       //Parse the Authorization header field
       while(token != NULL)
@@ -290,7 +290,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
             value = strTrimWhitespace(separator + 1);
 
             //Retrieve the length of the value field
-            n = strlen(value);
+            n = osStrlen(value);
 
             //Discard the surrounding quotes
             if(n > 0 && value[n - 1] == '\"')
@@ -299,55 +299,55 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
                value++;
 
             //Check parameter name
-            if(!strcasecmp(name, "username"))
+            if(!osStrcasecmp(name, "username"))
             {
                //Save user name
                strSafeCopy(connection->request.auth.user,
                   value, HTTP_SERVER_USERNAME_MAX_LEN);
             }
-            else if(!strcasecmp(name, "realm"))
+            else if(!osStrcasecmp(name, "realm"))
             {
                //Save realm
                connection->request.auth.realm = value;
             }
-            else if(!strcasecmp(name, "nonce"))
+            else if(!osStrcasecmp(name, "nonce"))
             {
                //Save nonce parameter
                connection->request.auth.nonce = value;
             }
-            else if(!strcasecmp(name, "uri"))
+            else if(!osStrcasecmp(name, "uri"))
             {
                //Save uri parameter
                connection->request.auth.uri = value;
             }
-            else if(!strcasecmp(name, "qop"))
+            else if(!osStrcasecmp(name, "qop"))
             {
                //Save qop parameter
                connection->request.auth.qop = value;
             }
-            else if(!strcasecmp(name, "nc"))
+            else if(!osStrcasecmp(name, "nc"))
             {
                //Save nc parameter
                connection->request.auth.nc = value;
             }
-            else if(!strcasecmp(name, "cnonce"))
+            else if(!osStrcasecmp(name, "cnonce"))
             {
                //Save cnonce parameter
                connection->request.auth.cnonce = value;
             }
-            else if(!strcasecmp(name, "response"))
+            else if(!osStrcasecmp(name, "response"))
             {
                //Save response parameter
                connection->request.auth.response = value;
             }
-            else if(!strcasecmp(name, "opaque"))
+            else if(!osStrcasecmp(name, "opaque"))
             {
                //Save opaque parameter
                connection->request.auth.opaque = value;
             }
 
             //Get next parameter
-            token = strtok_r(NULL, ",", &p);
+            token = osStrtok_r(NULL, ",", &p);
          }
       }
 
@@ -406,7 +406,7 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
    if(connection->response.auth.mode == HTTP_AUTH_MODE_BASIC)
    {
       //Set WWW-Authenticate field
-      n = sprintf(output, "WWW-Authenticate: Basic realm=\"Protected Area\"\r\n");
+      n = osSprintf(output, "WWW-Authenticate: Basic realm=\"Protected Area\"\r\n");
    }
    else
 #endif
@@ -419,10 +419,10 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
       uint8_t opaque[16];
 
       //Set WWW-Authenticate field
-      n = sprintf(output, "WWW-Authenticate: Digest\r\n");
-      n += sprintf(output + n, "  realm=\"Protected Area\",\r\n");
-      n += sprintf(output + n, "  qop=\"auth\",\r\n");
-      n += sprintf(output + n, "  nonce=\"");
+      n = osSprintf(output, "WWW-Authenticate: Digest\r\n");
+      n += osSprintf(output + n, "  realm=\"Protected Area\",\r\n");
+      n += osSprintf(output + n, "  qop=\"auth\",\r\n");
+      n += osSprintf(output + n, "  nonce=\"");
 
       //The nonce is a server-specified data string which should be uniquely
       //generated each time a 401 response is made
@@ -434,10 +434,10 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
       //Advance pointer
       n += k;
       //Properly terminate the nonce string
-      n += sprintf(output + n, "\",\r\n");
+      n += osSprintf(output + n, "\",\r\n");
 
       //Format opaque parameter
-      n += sprintf(output + n, "  opaque=\"");
+      n += osSprintf(output + n, "  opaque=\"");
 
       //Generate a random value
       if(connection->settings->randCallback != NULL)
@@ -455,15 +455,15 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
       //Advance pointer
       n += 32;
       //Properly terminate the opaque string
-      n += sprintf(output + n, "\"");
+      n += osSprintf(output + n, "\"");
 
       //The STALE flag indicates that the previous request from the client
       //was rejected because the nonce value was stale
       if(connection->response.auth.stale)
-         n += sprintf(output + n, ",\r\n  stale=TRUE");
+         n += osSprintf(output + n, ",\r\n  stale=TRUE");
 
       //Properly terminate the WWW-Authenticate field
-      n += sprintf(output + n, "\r\n");
+      n += osSprintf(output + n, "\r\n");
    }
    else
 #endif
@@ -544,14 +544,14 @@ error_t httpGenerateNonce(HttpServerContext *context,
       entry->timestamp = osGetSystemTime();
 
       //Copy the nonce to the output buffer
-      strcpy(output, entry->nonce);
+      osStrcpy(output, entry->nonce);
       //Return the length of the nonce excluding the NULL character
       *length = HTTP_SERVER_NONCE_SIZE * 2;
    }
    else
    {
       //Random number generation failed
-      memset(entry, 0, sizeof(HttpNonceCacheEntry));
+      osMemset(entry, 0, sizeof(HttpNonceCacheEntry));
    }
 
    //Release exclusive access to the nonce cache
@@ -589,7 +589,7 @@ error_t httpVerifyNonce(HttpServerContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Convert the nonce count to integer
-   count = strtoul(nc, NULL, 16);
+   count = osStrtoul(nc, NULL, 16);
    //Get current time
    time = osGetSystemTime();
 
@@ -603,7 +603,7 @@ error_t httpVerifyNonce(HttpServerContext *context,
       entry = &context->nonceCache[i];
 
       //Check nonce value
-      if(!strcasecmp(entry->nonce, nonce))
+      if(!osStrcasecmp(entry->nonce, nonce))
       {
          //Make sure the nonce timestamp has not expired
          if((time - entry->timestamp) < HTTP_SERVER_NONCE_LIFETIME)

@@ -1,12 +1,12 @@
 /**
  * @file xmc4800_eth_driver.h
- * @brief Infineon XMC4800 Ethernet MAC controller
+ * @brief Infineon XMC4800 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _XMC4800_ETH_DRIVER_H
@@ -83,7 +83,12 @@
    #error XMC4800_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
-//ETH0_CON
+//Name of the section where to place DMA buffers
+#ifndef XMC4800_ETH_RAM_SECTION
+   #define XMC4800_ETH_RAM_SECTION "ETH_RAM"
+#endif
+
+//ETH0_CON register
 #define ETH_CON_MDIO_A     (0 << ETH_CON_MDIO_Pos)
 #define ETH_CON_MDIO_B     (1 << ETH_CON_MDIO_Pos)
 #define ETH_CON_MDIO_C     (2 << ETH_CON_MDIO_Pos)
@@ -276,7 +281,7 @@ void xmc4800EthDisableIrq(NetInterface *interface);
 void xmc4800EthEventHandler(NetInterface *interface);
 
 error_t xmc4800EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t xmc4800EthReceivePacket(NetInterface *interface);
 

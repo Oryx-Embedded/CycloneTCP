@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -166,7 +166,7 @@ TftpClientConnection *tftpServerOpenConnection(TftpServerContext *context,
       return NULL;
 
    //Clear the structure describing the connection
-   memset(connection, 0, sizeof(TftpClientConnection));
+   osMemset(connection, 0, sizeof(TftpClientConnection));
 
    //Open a UDP socket
    connection->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
@@ -399,14 +399,14 @@ void tftpServerProcessRrqPacket(TftpServerContext *context, const IpAddr *client
       return;
 
    //Compute the length of the mode string
-   length -= strlen(rrqPacket->filename) + 1;
+   length -= osStrlen(rrqPacket->filename) + 1;
 
    //Malformed RRQ packet?
    if(length == 0)
       return;
 
    //Point to the mode string
-   mode = rrqPacket->filename + strlen(rrqPacket->filename) + 1;
+   mode = rrqPacket->filename + osStrlen(rrqPacket->filename) + 1;
 
    //Debug message
    TRACE_DEBUG("  Opcode = %u\r\n", ntohs(rrqPacket->opcode));
@@ -490,14 +490,14 @@ void tftpServerProcessWrqPacket(TftpServerContext *context, const IpAddr *client
       return;
 
    //Compute the length of the mode string
-   length -= strlen(wrqPacket->filename) + 1;
+   length -= osStrlen(wrqPacket->filename) + 1;
 
    //Malformed WRQ packet?
    if(length == 0)
       return;
 
    //Point to the mode string
-   mode = wrqPacket->filename + strlen(wrqPacket->filename) + 1;
+   mode = wrqPacket->filename + osStrlen(wrqPacket->filename) + 1;
 
    //Debug message
    TRACE_DEBUG("  Opcode = %u\r\n", ntohs(wrqPacket->opcode));
@@ -899,7 +899,7 @@ error_t tftpServerSendErrorPacket(TftpClientConnection *connection,
    TftpErrorPacket *errorPacket;
 
    //Check the length of the error message
-   if(strlen(errorMsg) >= TFTP_SERVER_BLOCK_SIZE)
+   if(osStrlen(errorMsg) >= TFTP_SERVER_BLOCK_SIZE)
       return ERROR_INVALID_PARAMETER;
 
    //Point to the buffer where to format the packet
@@ -910,10 +910,10 @@ error_t tftpServerSendErrorPacket(TftpClientConnection *connection,
    errorPacket->errorCode = htons(errorCode);
 
    //Copy error message
-   strcpy(errorPacket->errorMsg, errorMsg);
+   osStrcpy(errorPacket->errorMsg, errorMsg);
 
    //Length of the ERROR packet
-   connection->packetLen = sizeof(TftpErrorPacket) + strlen(errorMsg) + 1;
+   connection->packetLen = sizeof(TftpErrorPacket) + osStrlen(errorMsg) + 1;
 
    //Debug message
    TRACE_DEBUG("TFTP Server: Sending ERROR packet (%" PRIuSIZE " bytes)...\r\n", connection->packetLen);

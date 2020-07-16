@@ -1,12 +1,12 @@
 /**
  * @file am335x_eth_driver.h
- * @brief Sitara AM335x Gigabit Ethernet MAC controller
+ * @brief Sitara AM335x Gigabit Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _AM335X_ETH_DRIVER_H
@@ -67,6 +67,16 @@
    #define AM335X_ETH_IRQ_PRIORITY 1
 #elif (AM335X_ETH_IRQ_PRIORITY < 0)
    #error AM335X_ETH_IRQ_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef AM335X_ETH_RAM_SECTION
+   #define AM335X_ETH_RAM_SECTION ".ram_no_cache"
+#endif
+
+//Name of the section where to place DMA descriptors
+#ifndef AM335X_ETH_RAM_CPPI_SECTION
+   #define AM335X_ETH_RAM_CPPI_SECTION ".ram_cppi"
 #endif
 
 //CPSW cores
@@ -252,7 +262,7 @@
 #define CPSW_WR_C_RX_EN_R(n)              HWREG(SOC_CPSW_WR_REGS + CPSW_WR_C_RX_EN(n))
 #define CPSW_WR_C_TX_EN_R(n)              HWREG(SOC_CPSW_WR_REGS + CPSW_WR_C_TX_EN(n))
 #define CPSW_WR_C_MISC_EN_R(n)            HWREG(SOC_CPSW_WR_REGS + CPSW_WR_C_MISC_EN(n))
-#define CPSW_WR_C_RX_THRESH_STAT_R(n)     HWREG(SOC_CPSW_WR_REGS +CPSW_WR_C_RX_THRESH_STAT(n))
+#define CPSW_WR_C_RX_THRESH_STAT_R(n)     HWREG(SOC_CPSW_WR_REGS + CPSW_WR_C_RX_THRESH_STAT(n))
 #define CPSW_WR_C_RX_STAT_R(n)            HWREG(SOC_CPSW_WR_REGS + CPSW_WR_C_RX_STAT(n))
 #define CPSW_WR_C_TX_STAT_R(n)            HWREG(SOC_CPSW_WR_REGS + CPSW_WR_C_TX_STAT(n))
 #define CPSW_WR_C_MISC_STAT_R(n)          HWREG(SOC_CPSW_WR_REGS + CPSW_WR_C_MISC_STAT(n))
@@ -442,10 +452,10 @@ void am335xEthRxIrqHandler(void);
 void am335xEthEventHandler(NetInterface *interface);
 
 error_t am335xEthSendPacketPort1(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t am335xEthSendPacketPort2(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t am335xEthUpdateMacAddrFilter(NetInterface *interface);
 error_t am335xEthUpdateMacConfig(NetInterface *interface);

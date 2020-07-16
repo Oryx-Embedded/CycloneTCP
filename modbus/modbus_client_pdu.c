@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -283,7 +283,7 @@ error_t modbusClientFormatWriteMultipleCoilsReq(ModbusClientContext *context,
    request->byteCount = (quantity + 7) / 8;
 
    //Copy coil values
-   memcpy(request->outputValue, value, request->byteCount);
+   osMemcpy(request->outputValue, value, request->byteCount);
 
    //Compute the length of the request PDU
    length = sizeof(ModbusWriteMultipleCoilsReq) + request->byteCount;
@@ -462,7 +462,7 @@ error_t modbusClientParseReadCoilsResp(ModbusClientContext *context,
       return ERROR_INVALID_LENGTH;
 
    //Copy coil values
-   memcpy(value, response->coilStatus, response->byteCount);
+   osMemcpy(value, response->coilStatus, response->byteCount);
 
    //Successful processing
    return NO_ERROR;
@@ -503,7 +503,7 @@ error_t modbusClientParseReadDiscreteInputsResp(ModbusClientContext *context,
       return ERROR_INVALID_LENGTH;
 
    //Copy discrete input values
-   memcpy(value, response->inputStatus, response->byteCount);
+   osMemcpy(value, response->inputStatus, response->byteCount);
 
    //Successful processing
    return NO_ERROR;

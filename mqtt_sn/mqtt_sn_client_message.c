@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -1555,7 +1555,7 @@ error_t mqttSnClientSendUnsubscribe(MqttSnClientContext *context,
    else
    {
       //Short topic name?
-      if(strlen(topicName) == 2 && strchr(topicName, '#') == NULL &&
+      if(osStrlen(topicName) == 2 && strchr(topicName, '#') == NULL &&
          strchr(topicName, '+') == NULL)
       {
          //The UNSUBSCRIBE message contains a short topic name

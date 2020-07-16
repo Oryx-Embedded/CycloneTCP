@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -313,7 +313,7 @@ void ftpServerAcceptControlChannel(FtpServerContext *context)
       if(connection != NULL)
       {
          //Clear the structure describing the connection
-         memset(connection, 0, sizeof(FtpClientConnection));
+         osMemset(connection, 0, sizeof(FtpClientConnection));
 
          //Attach FTP server context
          connection->context = context;
@@ -324,11 +324,11 @@ void ftpServerAcceptControlChannel(FtpServerContext *context)
          //Initialize time stamp
          connection->timestamp = osGetSystemTime();
          //Set home directory
-         strcpy(connection->homeDir, context->settings.rootDir);
+         osStrcpy(connection->homeDir, context->settings.rootDir);
          //Set current directory
-         strcpy(connection->currentDir, context->settings.rootDir);
+         osStrcpy(connection->currentDir, context->settings.rootDir);
          //Format greeting message
-         strcpy(connection->response, "220 Service ready for new user\r\n");
+         osStrcpy(connection->response, "220 Service ready for new user\r\n");
 
          //Any registered callback?
          if(context->settings.connectCallback != NULL)
@@ -354,7 +354,7 @@ void ftpServerAcceptControlChannel(FtpServerContext *context)
             TRACE_DEBUG("FTP server: %s", connection->response);
 
             //Number of bytes in the response buffer
-            connection->responseLen = strlen(connection->response);
+            connection->responseLen = osStrlen(connection->response);
             connection->responsePos = 0;
 
             //Implicit TLS mode supported by the server?
@@ -386,7 +386,7 @@ void ftpServerAcceptControlChannel(FtpServerContext *context)
          else
          {
             //The connection attempt has been refused
-            memset(connection, 0, sizeof(FtpClientConnection));
+            osMemset(connection, 0, sizeof(FtpClientConnection));
          }
       }
       else

@@ -1,12 +1,12 @@
 /**
  * @file upd60611_driver.c
- * @brief uPD60611 Ethernet PHY transceiver
+ * @brief uPD60611 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver upd60611PhyDriver =
    upd60611Tick,
    upd60611EnableIrq,
    upd60611DisableIrq,
-   upd60611EventHandler,
-   NULL,
-   NULL
+   upd60611EventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t upd60611Init(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = UPD60611_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Reset PHY transceiver
@@ -232,8 +236,16 @@ void upd60611WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -246,9 +258,22 @@ void upd60611WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t upd60611ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

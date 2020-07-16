@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _IP_H
@@ -34,6 +34,13 @@
 //Dependencies
 #include "ipv4/ipv4.h"
 #include "ipv6/ipv6.h"
+
+//DiffServ support
+#ifndef IP_DIFF_SERV_SUPPORT
+   #define IP_DIFF_SERV_SUPPORT DISABLED
+#elif (IP_DIFF_SERV_SUPPORT != ENABLED && IP_DIFF_SERV_SUPPORT != DISABLED)
+   #error IP_DIFF_SERV_SUPPORT parameter is not valid
+#endif
 
 //C++ guard
 #ifdef __cplusplus
@@ -109,7 +116,7 @@ extern const IpAddr IP_ADDR_UNSPECIFIED;
 
 //IP related functions
 error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint_t flags);
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t ipSelectSourceAddr(NetInterface **interface,
    const IpAddr *destAddr, IpAddr *srcAddr);

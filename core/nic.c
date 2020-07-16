@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -272,11 +272,13 @@ void nicTick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
-   size_t offset)
+   size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    bool_t status;
@@ -311,8 +313,9 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
          //Disable interrupts
          interface->nicDriver->disableIrq(interface);
 
-         //Send Ethernet frame
-         error = interface->nicDriver->sendPacket(interface, buffer, offset);
+         //Send the packet
+         error = interface->nicDriver->sendPacket(interface, buffer, offset,
+            ancillary);
 
          //Re-enable interrupts if necessary
          if(interface->configured)
@@ -322,8 +325,8 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
       }
       else
       {
-         //The transmitter is busy
-         error = ERROR_TRANSMITTER_BUSY;
+         //If the transmitter is busy, then drop the packet
+         error = NO_ERROR;
       }
    }
    else
@@ -378,9 +381,12 @@ error_t nicUpdateMacAddrFilter(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] packet Incoming packet to process
  * @param[in] length Total packet length
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
-void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length)
+void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
+   NetRxAncillary *ancillary)
 {
    NicType type;
 
@@ -402,7 +408,7 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length)
       if(type == NIC_TYPE_ETHERNET)
       {
          //Process incoming Ethernet frame
-         ethProcessFrame(interface, packet, length);
+         ethProcessFrame(interface, packet, length, ancillary);
       }
       else
 #endif
@@ -411,7 +417,7 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length)
       if(type == NIC_TYPE_PPP)
       {
          //Process incoming PPP frame
-         pppProcessFrame(interface, packet, length);
+         pppProcessFrame(interface, packet, length, ancillary);
       }
       else
 #endif
@@ -429,7 +435,7 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length)
          buffer.chunk[0].size = 0;
 
          //Process incoming IPv6 packet
-         ipv6ProcessPacket(interface, (NetBuffer *) &buffer, 0);
+         ipv6ProcessPacket(interface, (NetBuffer *) &buffer, 0, ancillary);
       }
       else
 #endif
@@ -459,7 +465,7 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length)
                {
                   //Process incoming IPv4 packet
                   ipv4ProcessPacket(&netInterface[i], (Ipv4Header *) packet,
-                     length);
+                     length, ancillary);
                }
             }
          }
@@ -494,7 +500,8 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length)
                   buffer.chunk[0].size = 0;
 
                   //Process incoming IPv6 packet
-                  ipv6ProcessPacket(&netInterface[i], (NetBuffer *) &buffer, 0);
+                  ipv6ProcessPacket(&netInterface[i], (NetBuffer *) &buffer, 0,
+                     ancillary);
                }
             }
          }

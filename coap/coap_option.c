@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -364,7 +364,7 @@ error_t coapFormatOption(uint8_t *p, uint16_t prevOptionNum,
    if(p != NULL)
    {
       //The Option Value is a sequence of exactly Option Length bytes
-      memmove(p + n, option->value, option->length);
+      osMemmove(p + n, option->value, option->length);
    }
 
    //Total number of bytes that have been written
@@ -463,7 +463,7 @@ error_t coapSetOption(CoapMessage *message, uint16_t optionNum,
    if(replace)
    {
       //Remove the current occurrence of the option
-      memmove(p, p + n, length - n);
+      osMemmove(p, p + n, length - n);
       //Number of bytes left to process
       length -= n;
       //Adjust the length of the CoAP message
@@ -488,7 +488,7 @@ error_t coapSetOption(CoapMessage *message, uint16_t optionNum,
       return ERROR_BUFFER_OVERFLOW;
 
    //Make room for the new option
-   memmove(p + n, p, length);
+   osMemmove(p + n, p, length);
 
    //The second pass formats the CoAP option
    error = coapFormatOption(p, prevOptionNum, &option, &n);
@@ -520,7 +520,7 @@ error_t coapSetOption(CoapMessage *message, uint16_t optionNum,
       if(m < n)
       {
          //Move the rest of the CoAP message
-         memmove(p + m, p + n, length - n);
+         osMemmove(p + m, p + n, length - n);
          //Fix the length of the message
          message->length -= n - m;
       }
@@ -763,7 +763,7 @@ error_t coapDeleteOption(CoapMessage *message, uint16_t optionNum,
    if(found)
    {
       //Remove the current occurrence of the option
-      memmove(p, p + n, length - n);
+      osMemmove(p, p + n, length - n);
       //Number of bytes left to process
       length -= n;
       //Adjust the length of the CoAP message
@@ -788,7 +788,7 @@ error_t coapDeleteOption(CoapMessage *message, uint16_t optionNum,
          if(m > n)
          {
             //Move the rest of the CoAP message
-            memmove(p + m - option.length, p + n - option.length,
+            osMemmove(p + m - option.length, p + n - option.length,
                length + option.length - n);
 
             //Fix the value of the option
@@ -914,7 +914,7 @@ error_t coapJoinRepeatableOption(const CoapMessage *message,
          if((i + n) <= maxLen)
          {
             //Copy option's value
-            memcpy(optionValue + i, p, n);
+            osMemcpy(optionValue + i, p, n);
             //Update the length of the absolute path
             i += n;
          }

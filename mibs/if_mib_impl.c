@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -58,7 +58,7 @@ error_t ifMibInit(void)
    TRACE_INFO("Initializing IF-MIB base...\r\n");
 
    //Clear Interfaces Group MIB base
-   memset(&ifMibBase, 0, sizeof(ifMibBase));
+   osMemset(&ifMibBase, 0, sizeof(ifMibBase));
 
    //ifNumber object
    ifMibBase.ifNumber = NET_INTERFACE_COUNT;
@@ -148,22 +148,22 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    physicalInterface = nicGetPhysicalInterface(interface);
 
    //ifIndex object?
-   if(!strcmp(object->name, "ifIndex"))
+   if(!osStrcmp(object->name, "ifIndex"))
    {
       //Get object value
       value->integer = index;
    }
    //ifDescr object?
-   else if(!strcmp(object->name, "ifDescr"))
+   else if(!osStrcmp(object->name, "ifDescr"))
    {
       //Retrieve the length of the interface name
-      n = strlen(interface->name);
+      n = osStrlen(interface->name);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, interface->name, n);
+         osMemcpy(value->octetString, interface->name, n);
          //Return object length
          *valueLen = n;
       }
@@ -174,7 +174,7 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifType object?
-   else if(!strcmp(object->name, "ifType"))
+   else if(!osStrcmp(object->name, "ifType"))
    {
 #if (ETH_VLAN_SUPPORT == ENABLED)
       //VLAN interface?
@@ -218,22 +218,26 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifMtu object?
-   else if(!strcmp(object->name, "ifMtu"))
+   else if(!osStrcmp(object->name, "ifMtu"))
    {
       //Get interface MTU
       if(physicalInterface->nicDriver != NULL)
+      {
          value->integer = physicalInterface->nicDriver->mtu;
+      }
       else
+      {
          value->integer = 0;
+      }
    }
    //ifSpeed object?
-   else if(!strcmp(object->name, "ifSpeed"))
+   else if(!osStrcmp(object->name, "ifSpeed"))
    {
       //Get interface's current bandwidth
       value->gauge32 = interface->linkSpeed;
    }
    //ifPhysAddress object?
-   else if(!strcmp(object->name, "ifPhysAddress"))
+   else if(!osStrcmp(object->name, "ifPhysAddress"))
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= sizeof(MacAddr))
@@ -250,79 +254,87 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifAdminStatus object?
-   else if(!strcmp(object->name, "ifAdminStatus"))
+   else if(!osStrcmp(object->name, "ifAdminStatus"))
    {
       //Check whether the interface is enabled for operation
       if(physicalInterface->nicDriver != NULL)
+      {
          value->integer = IF_MIB_IF_ADMIN_STATUS_UP;
+      }
       else
+      {
          value->integer = IF_MIB_IF_ADMIN_STATUS_DOWN;
+      }
    }
    //ifOperStatus object?
-   else if(!strcmp(object->name, "ifOperStatus"))
+   else if(!osStrcmp(object->name, "ifOperStatus"))
    {
       //Get the current operational state of the interface
       if(interface->linkState)
+      {
          value->integer = IF_MIB_IF_OPER_STATUS_UP;
+      }
       else
+      {
          value->integer = IF_MIB_IF_OPER_STATUS_DOWN;
+      }
    }
    //ifLastChange object?
-   else if(!strcmp(object->name, "ifLastChange"))
+   else if(!osStrcmp(object->name, "ifLastChange"))
    {
       //Get object value
       value->timeTicks = entry->ifLastChange;
    }
    //ifInOctets object?
-   else if(!strcmp(object->name, "ifInOctets"))
+   else if(!osStrcmp(object->name, "ifInOctets"))
    {
       //Get object value
       value->counter32 = entry->ifInOctets;
    }
    //ifInUcastPkts object?
-   else if(!strcmp(object->name, "ifInUcastPkts"))
+   else if(!osStrcmp(object->name, "ifInUcastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifInUcastPkts;
    }
    //ifInDiscards object?
-   else if(!strcmp(object->name, "ifInDiscards"))
+   else if(!osStrcmp(object->name, "ifInDiscards"))
    {
       //Get object value
       value->counter32 = entry->ifInDiscards;
    }
    //ifInErrors object?
-   else if(!strcmp(object->name, "ifInErrors"))
+   else if(!osStrcmp(object->name, "ifInErrors"))
    {
       //Get object value
       value->counter32 = entry->ifInErrors;
    }
    //ifInUnknownProtos object?
-   else if(!strcmp(object->name, "ifInUnknownProtos"))
+   else if(!osStrcmp(object->name, "ifInUnknownProtos"))
    {
       //Get object value
       value->counter32 = entry->ifInUnknownProtos;
    }
    //ifOutOctets object?
-   else if(!strcmp(object->name, "ifOutOctets"))
+   else if(!osStrcmp(object->name, "ifOutOctets"))
    {
       //Get object value
       value->counter32 = entry->ifOutOctets;
    }
    //ifOutUcastPkts object?
-   else if(!strcmp(object->name, "ifOutUcastPkts"))
+   else if(!osStrcmp(object->name, "ifOutUcastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifOutUcastPkts;
    }
    //ifOutDiscards object?
-   else if(!strcmp(object->name, "ifOutDiscards"))
+   else if(!osStrcmp(object->name, "ifOutDiscards"))
    {
       //Get object value
       value->counter32 = entry->ifOutDiscards;
    }
    //ifOutErrors object?
-   else if(!strcmp(object->name, "ifOutErrors"))
+   else if(!osStrcmp(object->name, "ifOutErrors"))
    {
       //Get object value
       value->counter32 = entry->ifOutErrors;
@@ -361,7 +373,7 @@ error_t ifMibGetNextIfEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
    for(index = 1; index <= NET_INTERFACE_COUNT; index++)
@@ -454,16 +466,16 @@ error_t ifMibGetIfXEntry(const MibObject *object, const uint8_t *oid,
    entry = &ifMibBase.ifXTable[index - 1];
 
    //ifName object?
-   if(!strcmp(object->name, "ifName"))
+   if(!osStrcmp(object->name, "ifName"))
    {
       //Retrieve the length of the interface name
-      n = strlen(interface->name);
+      n = osStrlen(interface->name);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, interface->name, n);
+         osMemcpy(value->octetString, interface->name, n);
          //Return object length
          *valueLen = n;
       }
@@ -474,110 +486,110 @@ error_t ifMibGetIfXEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifInMulticastPkts object?
-   else if(!strcmp(object->name, "ifInMulticastPkts"))
+   else if(!osStrcmp(object->name, "ifInMulticastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifInMulticastPkts;
    }
    //ifInBroadcastPkts object?
-   else if(!strcmp(object->name, "ifInBroadcastPkts"))
+   else if(!osStrcmp(object->name, "ifInBroadcastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifInBroadcastPkts;
    }
    //ifOutMulticastPkts object?
-   else if(!strcmp(object->name, "ifOutMulticastPkts"))
+   else if(!osStrcmp(object->name, "ifOutMulticastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifOutMulticastPkts;
    }
    //ifOutBroadcastPkts object?
-   else if(!strcmp(object->name, "ifOutBroadcastPkts"))
+   else if(!osStrcmp(object->name, "ifOutBroadcastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifOutBroadcastPkts;
    }
    //ifHCInOctets object?
-   else if(!strcmp(object->name, "ifHCInOctets"))
+   else if(!osStrcmp(object->name, "ifHCInOctets"))
    {
       //Get object value
       value->counter64 = entry->ifHCInOctets;
    }
    //ifHCInUcastPkts object?
-   else if(!strcmp(object->name, "ifHCInUcastPkts"))
+   else if(!osStrcmp(object->name, "ifHCInUcastPkts"))
    {
       //Get object value
       value->counter64 = entry->ifHCInUcastPkts;
    }
    //ifHCInMulticastPkts object?
-   else if(!strcmp(object->name, "ifHCInMulticastPkts"))
+   else if(!osStrcmp(object->name, "ifHCInMulticastPkts"))
    {
       //Get object value
       value->counter64 = entry->ifHCInMulticastPkts;
    }
    //ifHCInBroadcastPkts object?
-   else if(!strcmp(object->name, "ifHCInBroadcastPkts"))
+   else if(!osStrcmp(object->name, "ifHCInBroadcastPkts"))
    {
       //Get object value
       value->counter64 = entry->ifHCInBroadcastPkts;
    }
    //ifHCOutOctets object?
-   else if(!strcmp(object->name, "ifHCOutOctets"))
+   else if(!osStrcmp(object->name, "ifHCOutOctets"))
    {
       //Get object value
       value->counter64 = entry->ifHCOutOctets;
    }
    //ifHCOutUcastPkts object?
-   else if(!strcmp(object->name, "ifHCOutUcastPkts"))
+   else if(!osStrcmp(object->name, "ifHCOutUcastPkts"))
    {
       //Get object value
       value->counter64 = entry->ifHCOutUcastPkts;
    }
    //ifHCOutMulticastPkts object?
-   else if(!strcmp(object->name, "ifHCOutMulticastPkts"))
+   else if(!osStrcmp(object->name, "ifHCOutMulticastPkts"))
    {
       //Get object value
       value->counter64 = entry->ifHCOutMulticastPkts;
    }
    //ifHCOutBroadcastPkts object?
-   else if(!strcmp(object->name, "ifHCOutBroadcastPkts"))
+   else if(!osStrcmp(object->name, "ifHCOutBroadcastPkts"))
    {
       //Get object value
       value->counter64 = entry->ifHCOutBroadcastPkts;
    }
    //ifLinkUpDownTrapEnable object?
-   else if(!strcmp(object->name, "ifLinkUpDownTrapEnable"))
+   else if(!osStrcmp(object->name, "ifLinkUpDownTrapEnable"))
    {
       //Get object value
       value->integer = entry->ifLinkUpDownTrapEnable;
    }
    //ifHighSpeed object?
-   else if(!strcmp(object->name, "ifHighSpeed"))
+   else if(!osStrcmp(object->name, "ifHighSpeed"))
    {
       //Get interface's current bandwidth
       value->gauge32 = interface->linkSpeed / 1000000;
    }
    //ifPromiscuousMode object?
-   else if(!strcmp(object->name, "ifPromiscuousMode"))
+   else if(!osStrcmp(object->name, "ifPromiscuousMode"))
    {
       //Get object value
       value->integer = entry->ifPromiscuousMode;
    }
    //ifConnectorPresent object?
-   else if(!strcmp(object->name, "ifConnectorPresent"))
+   else if(!osStrcmp(object->name, "ifConnectorPresent"))
    {
       //Get object value
       value->integer = entry->ifConnectorPresent;
    }
    //ifAlias object?
-   else if(!strcmp(object->name, "ifAlias"))
+   else if(!osStrcmp(object->name, "ifAlias"))
    {
       //On the first instantiation of an interface, the value of ifAlias
       //associated with that interface is the zero-length string
       *valueLen = 0;
    }
    //ifCounterDiscontinuityTime object?
-   else if(!strcmp(object->name, "ifCounterDiscontinuityTime"))
+   else if(!osStrcmp(object->name, "ifCounterDiscontinuityTime"))
    {
       //Get object value
       value->timeTicks = 0;
@@ -616,7 +628,7 @@ error_t ifMibGetNextIfXEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
    for(index = 1; index <= NET_INTERFACE_COUNT; index++)
@@ -710,9 +722,13 @@ error_t ifMibGetIfStackEntry(const MibObject *object, const uint8_t *oid,
    {
       //Check higher and lower sub-layers
       if(higherLayer == 0 && lowerLayer == index)
+      {
          break;
+      }
       else if(higherLayer == index && lowerLayer == 0)
+      {
          break;
+      }
    }
 
    //No matching interface?
@@ -720,7 +736,7 @@ error_t ifMibGetIfStackEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ifStackStatus object?
-   if(!strcmp(object->name, "ifStackStatus"))
+   if(!osStrcmp(object->name, "ifStackStatus"))
    {
       //status of the relationship between the two sub-layers
       value->integer = MIB_ROW_STATUS_ACTIVE;
@@ -762,7 +778,7 @@ error_t ifMibGetNextIfStackEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //two rows exist even for an interface which has no others stacked
    //on top or below it
@@ -867,7 +883,7 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
       return error;
 
    //ifRcvAddressAddress is used as 2nd instance identifier
-   error = mibDecodeMacAddr(oid, oidLen, &n, &macAddr);
+   error = mibDecodePhysAddr(oid, oidLen, &n, &macAddr);
    //Invalid instance identifier?
    if(error)
       return error;
@@ -923,13 +939,13 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
    if(!error)
    {
       //ifRcvAddressStatus object?
-      if(!strcmp(object->name, "ifRcvAddressStatus"))
+      if(!osStrcmp(object->name, "ifRcvAddressStatus"))
       {
          //Get object value
          value->integer = MIB_ROW_STATUS_ACTIVE;
       }
       //ifRcvAddressType object?
-      else if(!strcmp(object->name, "ifRcvAddressType"))
+      else if(!osStrcmp(object->name, "ifRcvAddressType"))
       {
          //Get object value
          if(macCompAddr(&macAddr, &logicalInterface->macAddr) ||
@@ -990,7 +1006,7 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
    for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
@@ -1017,9 +1033,13 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
          {
             //Get multicast address
             if(interface->macAddrFilter[i].refCount > 0)
+            {
                curMacAddr = interface->macAddrFilter[i].addr;
+            }
             else
+            {
                curMacAddr = MAC_UNSPECIFIED_ADDR;
+            }
          }
 
          //Valid MAC address?
@@ -1035,7 +1055,7 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
                return error;
 
             //ifRcvAddressAddress is used as 2nd instance identifier
-            error = mibEncodeMacAddr(nextOid, *nextOidLen, &n, &curMacAddr);
+            error = mibEncodePhysAddr(nextOid, *nextOidLen, &n, &curMacAddr);
             //Invalid instance identifier?
             if(error)
                return error;
@@ -1046,15 +1066,25 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
             {
                //Perform lexicographic comparison
                if(index == 0)
+               {
                   acceptable = TRUE;
+               }
                else if(curIndex < index)
+               {
                   acceptable = TRUE;
+               }
                else if(curIndex > index)
+               {
                   acceptable = FALSE;
-               else if(memcmp(&curMacAddr, &macAddr, sizeof(MacAddr)) < 0)
+               }
+               else if(osMemcmp(&curMacAddr, &macAddr, sizeof(MacAddr)) < 0)
+               {
                   acceptable = TRUE;
+               }
                else
+               {
                   acceptable = FALSE;
+               }
 
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order
@@ -1083,7 +1113,7 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
       return error;
 
    //ifRcvAddressAddress is used as 2nd instance identifier
-   error = mibEncodeMacAddr(nextOid, *nextOidLen, &n, &macAddr);
+   error = mibEncodePhysAddr(nextOid, *nextOidLen, &n, &macAddr);
    //Invalid instance identifier?
    if(error)
       return error;

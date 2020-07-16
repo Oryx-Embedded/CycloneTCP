@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -82,7 +82,7 @@ error_t snmpUsmMibInit(void)
    TRACE_INFO("Initializing SNMP-USM-MIB base...\r\n");
 
    //Clear SNMP USM MIB base
-   memset(&snmpUsmMibBase, 0, sizeof(snmpUsmMibBase));
+   osMemset(&snmpUsmMibBase, 0, sizeof(snmpUsmMibBase));
 
    //usmUserSpinLock object
    snmpUsmMibBase.usmUserSpinLock = netGetRandRange(1, INT32_MAX);
@@ -127,7 +127,7 @@ void snmpUsmMibUnload(void *context)
 void snmpUsmMibLock(void)
 {
    //Clear temporary user
-   memset(&snmpUsmMibBase.tempUser, 0, sizeof(SnmpUserEntry));
+   osMemset(&snmpUsmMibBase.tempUser, 0, sizeof(SnmpUserEntry));
 }
 
 
@@ -138,7 +138,7 @@ void snmpUsmMibLock(void)
 void snmpUsmMibUnlock(void)
 {
    //Clear temporary user
-   memset(&snmpUsmMibBase.tempUser, 0, sizeof(SnmpUserEntry));
+   osMemset(&snmpUsmMibBase.tempUser, 0, sizeof(SnmpUserEntry));
 }
 
 
@@ -179,7 +179,7 @@ error_t snmpUsmMibGetUserSpinLock(const MibObject *object, const uint8_t *oid,
    //Get the current value of the spin lock
    value->integer = snmpUsmMibBase.usmUserSpinLock;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -199,6 +199,7 @@ error_t snmpUsmMibGetUserSpinLock(const MibObject *object, const uint8_t *oid,
 error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
+#if (SNMP_USM_MIB_SET_SUPPORT == ENABLED)
    error_t error;
    size_t n;
    uint8_t userEngineId[SNMP_MAX_CONTEXT_ENGINE_SIZE];
@@ -243,10 +244,10 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Retrieve the security profile of the specified user
-   user = snmpFindUserEntry(context, userName, strlen(userName));
+   user = snmpFindUserEntry(context, userName, osStrlen(userName));
 
    //usmUserCloneFrom object?
-   if(!strcmp(object->name, "usmUserCloneFrom"))
+   if(!osStrcmp(object->name, "usmUserCloneFrom"))
    {
       SnmpUserEntry *cloneFromUser;
 
@@ -255,7 +256,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          return ERROR_INCONSISTENT_VALUE;
 
       //The OID must point to another conceptual row in the usmUserTable
-      if(memcmp(value->oid, usmUserEntryOid, sizeof(usmUserEntryOid)))
+      if(osMemcmp(value->oid, usmUserEntryOid, sizeof(usmUserEntryOid)))
          return ERROR_INCONSISTENT_VALUE;
 
       //Point to the instance identifier
@@ -276,7 +277,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          return error;
 
       //Retrieve the security profile of the clone-from user
-      cloneFromUser = snmpFindUserEntry(context, userName, strlen(userName));
+      cloneFromUser = snmpFindUserEntry(context, userName, osStrlen(userName));
 
       //The cloning process fails with an inconsistentName error if the
       //conceptual row representing the clone-from user does not exist or
@@ -311,7 +312,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserAuthProtocol object?
-   else if(!strcmp(object->name, "usmUserAuthProtocol"))
+   else if(!osStrcmp(object->name, "usmUserAuthProtocol"))
    {
       //Check whether the user name exists
       if(user != NULL)
@@ -393,8 +394,8 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserAuthKeyChange or usmUserOwnAuthKeyChange object?
-   else if(!strcmp(object->name, "usmUserAuthKeyChange") ||
-      !strcmp(object->name, "usmUserOwnAuthKeyChange"))
+   else if(!osStrcmp(object->name, "usmUserAuthKeyChange") ||
+      !osStrcmp(object->name, "usmUserOwnAuthKeyChange"))
    {
       const HashAlgo *hashAlgo;
 
@@ -403,11 +404,11 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          return ERROR_INSTANCE_NOT_FOUND;
 
       //usmUserOwnAuthKeyChange object?
-      if(!strcmp(object->name, "usmUserOwnAuthKeyChange"))
+      if(!osStrcmp(object->name, "usmUserOwnAuthKeyChange"))
       {
          //When the user name of the requester is not the same as the umsUserName
          //that indexes the row, then a noAccess error must be returned
-         if(strcmp(user->name, context->user.name))
+         if(osStrcmp(user->name, context->user.name))
             return ERROR_ACCESS_DENIED;
 
          //When a set is received and the security model in use is not USM, then
@@ -437,11 +438,11 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
             value->octetString + hashAlgo->digestSize, &user->localizedAuthKey);
 
          //The raw authentication key (Ku) is no longer valid
-         memset(&user->rawAuthKey, 0, sizeof(SnmpKey));
+         osMemset(&user->rawAuthKey, 0, sizeof(SnmpKey));
       }
    }
    //usmUserPrivProtocol object?
-   else if(!strcmp(object->name, "usmUserPrivProtocol"))
+   else if(!osStrcmp(object->name, "usmUserPrivProtocol"))
    {
       //Check whether the user name exists
       if(user != NULL)
@@ -497,8 +498,8 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserPrivKeyChange or usmUserOwnPrivKeyChangeobject?
-   else if(!strcmp(object->name, "usmUserPrivKeyChange") ||
-      !strcmp(object->name, "usmUserOwnPrivKeyChange"))
+   else if(!osStrcmp(object->name, "usmUserPrivKeyChange") ||
+      !osStrcmp(object->name, "usmUserOwnPrivKeyChange"))
    {
       const HashAlgo *hashAlgo;
 
@@ -507,11 +508,11 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          return ERROR_INSTANCE_NOT_FOUND;
 
       //usmUserOwnPrivKeyChange object?
-      if(!strcmp(object->name, "usmUserOwnPrivKeyChange"))
+      if(!osStrcmp(object->name, "usmUserOwnPrivKeyChange"))
       {
          //When the user name of the requester is not the same as the umsUserName
          //that indexes the row, then a noAccess error must be returned
-         if(strcmp(user->name, context->user.name))
+         if(osStrcmp(user->name, context->user.name))
             return ERROR_ACCESS_DENIED;
 
          //When a set is received and the security model in use is not USM, then
@@ -541,11 +542,11 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
             value->octetString + hashAlgo->digestSize, &user->localizedPrivKey);
 
          //The raw privacy key (Ku) is no longer valid
-         memset(&user->rawPrivKey, 0, sizeof(SnmpKey));
+         osMemset(&user->rawPrivKey, 0, sizeof(SnmpKey));
       }
    }
    //usmUserPublic object?
-   else if(!strcmp(object->name, "usmUserPublic"))
+   else if(!osStrcmp(object->name, "usmUserPublic"))
    {
       //Check the length of the public value
       if(valueLen > SNMP_MAX_PUBLIC_VALUE_SIZE)
@@ -561,7 +562,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
             //changing a user's secret authentication and/or privacy key,
             //and later read to determine whether the change of the secret
             //was effected
-            memcpy(user->publicValue, value->octetString, valueLen);
+            osMemcpy(user->publicValue, value->octetString, valueLen);
 
             //Update the length of the public value
             user->publicValueLen = valueLen;
@@ -573,7 +574,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          if(!commit)
          {
             //Save the value of the public value for later use
-            memcpy(snmpUsmMibBase.tempUser.publicValue, value->octetString,
+            osMemcpy(snmpUsmMibBase.tempUser.publicValue, value->octetString,
                valueLen);
 
             //Save the length of the public value
@@ -582,7 +583,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserStorageType object?
-   else if(!strcmp(object->name, "usmUserStorageType"))
+   else if(!osStrcmp(object->name, "usmUserStorageType"))
    {
       //The usmUserStorageType object specifies the storage type for this
       //conceptual row
@@ -596,7 +597,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserStatus object?
-   else if(!strcmp(object->name, "usmUserStatus"))
+   else if(!osStrcmp(object->name, "usmUserStatus"))
    {
       MibRowStatus status;
 
@@ -655,15 +656,15 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
             if(snmpUsmMibBase.tempUser.mode != SNMP_ACCESS_NONE)
             {
                //Clear the security profile of the user
-               memset(user, 0, sizeof(SnmpUserEntry));
+               osMemset(user, 0, sizeof(SnmpUserEntry));
                //Save user name
-               strcpy(user->name, userName);
+               osStrcpy(user->name, userName);
 
                //Valid public value specified?
                if(snmpUsmMibBase.tempUser.publicValueLen > 0)
                {
                   //Copy the public value
-                  memcpy(user->publicValue, snmpUsmMibBase.tempUser.publicValue,
+                  osMemcpy(user->publicValue, snmpUsmMibBase.tempUser.publicValue,
                      snmpUsmMibBase.tempUser.publicValueLen);
 
                   //Set the length of the public value
@@ -699,15 +700,15 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          if(commit)
          {
             //Clear the security profile of the user
-            memset(user, 0, sizeof(SnmpUserEntry));
+            osMemset(user, 0, sizeof(SnmpUserEntry));
             //Save user name
-            strcpy(user->name, userName);
+            osStrcpy(user->name, userName);
 
             //Valid public value specified?
             if(snmpUsmMibBase.tempUser.publicValueLen > 0)
             {
                //Copy the public value
-               memcpy(user->publicValue, snmpUsmMibBase.tempUser.publicValue,
+               osMemcpy(user->publicValue, snmpUsmMibBase.tempUser.publicValue,
                   snmpUsmMibBase.tempUser.publicValueLen);
 
                //Set the length of the public value
@@ -745,7 +746,7 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
             if(commit)
             {
                //Clear the security profile of the user
-               memset(user, 0, sizeof(SnmpUserEntry));
+               osMemset(user, 0, sizeof(SnmpUserEntry));
 
                //Delete the conceptual row from the table
                user->status = MIB_ROW_STATUS_UNUSED;
@@ -765,8 +766,12 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_OBJECT_NOT_FOUND;
    }
 
-   //Successful set operation
+   //Successful processing
    return NO_ERROR;
+#else
+   //SET operation is not supported
+   return ERROR_WRITE_FAILED;
+#endif
 }
 
 
@@ -823,26 +828,26 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check SNMP engine ID
-   if(memcmp(userEngineId, context->contextEngine, userEngineIdLen))
+   if(osMemcmp(userEngineId, context->contextEngine, userEngineIdLen))
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Retrieve the security profile of the specified user
-   user = snmpFindUserEntry(context, userName, strlen(userName));
+   user = snmpFindUserEntry(context, userName, osStrlen(userName));
    //Unknown user name?
    if(user == NULL)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //usmUserSecurityName object?
-   if(!strcmp(object->name, "usmUserSecurityName"))
+   if(!osStrcmp(object->name, "usmUserSecurityName"))
    {
       //The security name is the same as the user name
-      n = strlen(user->name);
+      n = osStrlen(user->name);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, user->name, n);
+         osMemcpy(value->octetString, user->name, n);
          //Return object length
          *valueLen = n;
       }
@@ -853,7 +858,7 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserCloneFrom object?
-   else if(!strcmp(object->name, "usmUserCloneFrom"))
+   else if(!osStrcmp(object->name, "usmUserCloneFrom"))
    {
       //When this object is read, the ZeroDotZero OID is returned
       uint8_t zeroDotZeroOid[] = {0};
@@ -862,7 +867,7 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       if(*valueLen >= sizeof(zeroDotZeroOid))
       {
          //Copy object value
-         memcpy(value->octetString, zeroDotZeroOid, sizeof(zeroDotZeroOid));
+         osMemcpy(value->octetString, zeroDotZeroOid, sizeof(zeroDotZeroOid));
          //Return object length
          *valueLen = sizeof(zeroDotZeroOid);
       }
@@ -873,7 +878,7 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserAuthProtocol object?
-   else if(!strcmp(object->name, "usmUserAuthProtocol"))
+   else if(!osStrcmp(object->name, "usmUserAuthProtocol"))
    {
       size_t authProtocolLen;
       const uint8_t *authProtocol;
@@ -922,7 +927,7 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       if(*valueLen >= authProtocolLen)
       {
          //Copy object value
-         memcpy(value->octetString, authProtocol, authProtocolLen);
+         osMemcpy(value->octetString, authProtocol, authProtocolLen);
          //Return object length
          *valueLen = authProtocolLen;
       }
@@ -933,19 +938,19 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserAuthKeyChange object?
-   else if(!strcmp(object->name, "usmUserAuthKeyChange"))
+   else if(!osStrcmp(object->name, "usmUserAuthKeyChange"))
    {
       //When this object is read, the zero-length (empty) string is returned
       *valueLen = 0;
    }
    //usmUserOwnAuthKeyChange object?
-   else if(!strcmp(object->name, "usmUserOwnAuthKeyChange"))
+   else if(!osStrcmp(object->name, "usmUserOwnAuthKeyChange"))
    {
       //When this object is read, the zero-length (empty) string is returned
       *valueLen = 0;
    }
    //usmUserPrivProtocol object?
-   else if(!strcmp(object->name, "usmUserPrivProtocol"))
+   else if(!osStrcmp(object->name, "usmUserPrivProtocol"))
    {
       size_t privProtocolLen;
       const uint8_t *privProtocol;
@@ -974,7 +979,7 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       if(*valueLen >= privProtocolLen)
       {
          //Copy object value
-         memcpy(value->octetString, privProtocol, privProtocolLen);
+         osMemcpy(value->octetString, privProtocol, privProtocolLen);
          //Return object length
          *valueLen = privProtocolLen;
       }
@@ -985,26 +990,26 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserPrivKeyChange object?
-   else if(!strcmp(object->name, "usmUserPrivKeyChange"))
+   else if(!osStrcmp(object->name, "usmUserPrivKeyChange"))
    {
       //When this object is read, the zero-length (empty) string is returned
       *valueLen = 0;
    }
    //usmUserOwnPrivKeyChange object?
-   else if(!strcmp(object->name, "usmUserOwnPrivKeyChange"))
+   else if(!osStrcmp(object->name, "usmUserOwnPrivKeyChange"))
    {
       //When this object is read, the zero-length (empty) string is returned
       *valueLen = 0;
    }
    //usmUserPublic object?
-   else if(!strcmp(object->name, "usmUserPublic"))
+   else if(!osStrcmp(object->name, "usmUserPublic"))
    {
       //Make sure the buffer is large enough to hold the public value
       if(*valueLen >= user->publicValueLen)
       {
          //The public value can be read to determine whether the change of
          //the secret was effected
-         memcpy(value->octetString, user->publicValue, user->publicValueLen);
+         osMemcpy(value->octetString, user->publicValue, user->publicValueLen);
 
          //Return object length
          *valueLen = user->publicValueLen;
@@ -1016,13 +1021,13 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //usmUserStorageType object?
-   else if(!strcmp(object->name, "usmUserStorageType"))
+   else if(!osStrcmp(object->name, "usmUserStorageType"))
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //usmUserStatus object?
-   else if(!strcmp(object->name, "usmUserStatus"))
+   else if(!osStrcmp(object->name, "usmUserStatus"))
    {
       //Get the status of this conceptual row
       value->integer = user->status;
@@ -1074,7 +1079,7 @@ error_t snmpUsmMibGetNextUserEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through the list of users
    for(i = 0; i < SNMP_AGENT_MAX_USERS; i++)
@@ -1107,15 +1112,25 @@ error_t snmpUsmMibGetNextUserEntry(const MibObject *object, const uint8_t *oid,
          {
             //Perform lexicographic comparison
             if(nextEntry == NULL)
+            {
                acceptable = TRUE;
-            else if(strlen(entry->name) < strlen(nextEntry->name))
+            }
+            else if(osStrlen(entry->name) < osStrlen(nextEntry->name))
+            {
                acceptable = TRUE;
-            else if(strlen(entry->name) > strlen(nextEntry->name))
+            }
+            else if(osStrlen(entry->name) > osStrlen(nextEntry->name))
+            {
                acceptable = FALSE;
-            else if(strcmp(entry->name, nextEntry->name) < 0)
+            }
+            else if(osStrcmp(entry->name, nextEntry->name) < 0)
+            {
                acceptable = TRUE;
+            }
             else
+            {
                acceptable = FALSE;
+            }
 
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order

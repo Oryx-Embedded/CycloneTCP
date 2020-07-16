@@ -1,12 +1,12 @@
 /**
  * @file lan9303_driver.h
- * @brief LAN9303 3-port Ethernet switch
+ * @brief LAN9303 3-port Ethernet switch driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _LAN9303_DRIVER_H
@@ -34,9 +34,41 @@
 //Dependencies
 #include "core/nic.h"
 
-//LAN9303 ports
+//Port identifiers
+#define LAN9303_PORT0 3
 #define LAN9303_PORT1 1
 #define LAN9303_PORT2 2
+
+//Port masks
+#define LAN9303_PORT_MASK      0x07
+#define LAN9303_PORT0_MASK     0x04
+#define LAN9303_PORT1_MASK     0x01
+#define LAN9303_PORT2_MASK     0x02
+#define LAN9303_PORT0_1_MASK   0x05
+#define LAN9303_PORT0_2_MASK   0x06
+#define LAN9303_PORT1_2_MASK   0x03
+#define LAN9303_PORT0_1_2_MASK 0x07
+
+//Size of of the MAC address lookup table
+#define LAN9303_ALR_TABLE_SIZE 512
+
+//Special VLAN tag (host to LAN9303)
+#define LAN9303_VID_VLAN_RULES    0x0040
+#define LAN9303_VID_CALC_PRIORITY 0x0020
+#define LAN9303_VID_STP_OVERRIDE  0x0010
+#define LAN9303_VID_ALR_LOOKUP    0x0008
+#define LAN9303_VID_BROADCAST     0x0003
+#define LAN9303_VID_DEST_PORT2    0x0002
+#define LAN9303_VID_DEST_PORT1    0x0001
+#define LAN9303_VID_DEST_PORT0    0x0000
+
+//Special VLAN tag (LAN9303 to host)
+#define LAN9303_VID_PRIORITY      0x0380
+#define LAN9303_VID_PRIORITY_EN   0x0040
+#define LAN9303_VID_STATIC        0x0020
+#define LAN9303_VID_STP_OVERRIDE  0x0010
+#define LAN9303_VID_IGMP_PACKET   0x0008
+#define LAN9303_VID_SRC_PORT      0x0003
 
 //LAN9303 PHY registers
 #define LAN9303_BMCR                                 0x00
@@ -73,6 +105,13 @@
 #define LAN9303_MAC_VER_ID2                          0x0C00
 #define LAN9303_MAC_RX_CFG2                          0x0C01
 #define LAN9303_MAC_TX_CFG2                          0x0C40
+#define LAN9303_SWE_ALR_CMD                          0x1800
+#define LAN9303_SWE_ALR_WR_DAT0                      0x1801
+#define LAN9303_SWE_ALR_WR_DAT1                      0x1802
+#define LAN9303_SWE_ALR_RD_DAT0                      0x1805
+#define LAN9303_SWE_ALR_RD_DAT1                      0x1806
+#define LAN9303_SWE_ALR_CMD_STS                      0x1808
+#define LAN9303_SWE_ALR_CFG                          0x1809
 #define LAN9303_SWE_PORT_STATE                       0x1843
 #define LAN9303_SWE_PORT_MIRROR                      0x1846
 #define LAN9303_SWE_INGRSS_PORT_TYP                  0x1847
@@ -265,6 +304,60 @@
 #define LAN9303_MAC_TX_CFG_TX_PAD_EN                 0x00000002
 #define LAN9303_MAC_TX_CFG_TX_EN                     0x00000001
 
+//Switch Engine ALR Command register
+#define LAN9303_SWE_ALR_CMD_MAKE_ENTRY               0x00000004
+#define LAN9303_SWE_ALR_CMD_GET_FIRST_ENTRY          0x00000002
+#define LAN9303_SWE_ALR_CMD_GET_NEXT_ENTRY           0x00000001
+
+//Switch Engine ALR Write Data 0 register
+#define LAN9303_SWE_ALR_WR_DAT0_MAC_ADDR             0xFFFFFFFF
+
+//Switch Engine ALR Write Data 1 register
+#define LAN9303_SWE_ALR_WR_DAT1_VALID                0x04000000
+#define LAN9303_SWE_ALR_WR_DAT1_AGE_OVERRIDE         0x02000000
+#define LAN9303_SWE_ALR_WR_DAT1_STATIC               0x01000000
+#define LAN9303_SWE_ALR_WR_DAT1_FILTER               0x00800000
+#define LAN9303_SWE_ALR_WR_DAT1_PRIORITY_EN          0x00400000
+#define LAN9303_SWE_ALR_WR_DAT1_PRIORITY             0x00380000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT                 0x00070000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT_0               0x00000000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT_1               0x00010000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT_2               0x00020000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT_RESERVED        0x00030000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT_0_1             0x00040000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT_0_2             0x00050000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT_1_2             0x00060000
+#define LAN9303_SWE_ALR_WR_DAT1_PORT_0_1_2           0x00070000
+#define LAN9303_SWE_ALR_WR_DAT1_MAC_ADDR             0x0000FFFF
+
+//Switch Engine ALR Read Data 0 register
+#define LAN9303_SWE_ALR_RD_DAT0_MAC_ADDR             0xFFFFFFFF
+
+//Switch Engine ALR Read Data 1 register
+#define LAN9303_SWE_ALR_RD_DAT1_VALID                0x04000000
+#define LAN9303_SWE_ALR_RD_DAT1_END_OF_TABLE         0x02000000
+#define LAN9303_SWE_ALR_RD_DAT1_STATIC               0x01000000
+#define LAN9303_SWE_ALR_RD_DAT1_FILTER               0x00800000
+#define LAN9303_SWE_ALR_RD_DAT1_PRIORITY_EN          0x00400000
+#define LAN9303_SWE_ALR_RD_DAT1_PRIORITY             0x00380000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT                 0x00070000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT_0               0x00000000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT_1               0x00010000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT_2               0x00020000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT_RESERVED        0x00030000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT_0_1             0x00040000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT_0_2             0x00050000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT_1_2             0x00060000
+#define LAN9303_SWE_ALR_RD_DAT1_PORT_0_1_2           0x00070000
+#define LAN9303_SWE_ALR_RD_DAT1_MAC_ADDR             0x0000FFFF
+
+//Switch Engine ALR Command Status register
+#define LAN9303_SWE_ALR_CMD_STS_ALR_INIT_DONE        0x00000002
+#define LAN9303_SWE_ALR_CMD_STS_MAKE_PENDING         0x00000001
+
+//Switch Engine ALR Configuration register
+#define LAN9303_SWE_ALR_CFG_ALR_AGE_TEST             0x00000001
+
 //Switch Engine Port State register
 #define LAN9303_SWE_PORT_STATE_PORT2                 0x00000030
 #define LAN9303_SWE_PORT_STATE_PORT2_FORWARDING      0x00000000
@@ -338,23 +431,16 @@
 #define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_HYBRID      0x00000002
 #define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_CPU         0x00000003
 
-//VLAN tag encoding
-#define LAN9303_VLAN_ID_ENCODE(port) htons(0x10 | ((port) & 0x03))
-//VLAN tag decoding
-#define LAN9303_VLAN_ID_DECODE(tag) (ntohs(tag) & 0x03)
-
 //C++ guard
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 //LAN9303 Ethernet switch driver
-extern const PhyDriver lan9303PhyDriver;
+extern const SwitchDriver lan9303SwitchDriver;
 
 //LAN9303 related functions
 error_t lan9303Init(NetInterface *interface);
-
-bool_t lan9303GetLinkState(NetInterface *interface, uint8_t port);
 
 void lan9303Tick(NetInterface *interface);
 
@@ -364,10 +450,38 @@ void lan9303DisableIrq(NetInterface *interface);
 void lan9303EventHandler(NetInterface *interface);
 
 error_t lan9303TagFrame(NetInterface *interface, NetBuffer *buffer,
-   size_t *offset, uint8_t port, uint16_t *type);
+   size_t *offset, NetTxAncillary *ancillary);
 
 error_t lan9303UntagFrame(NetInterface *interface, uint8_t **frame,
-   size_t *length, uint8_t *port);
+   size_t *length, NetRxAncillary *ancillary);
+
+bool_t lan9303GetLinkState(NetInterface *interface, uint8_t port);
+uint32_t lan9303GetLinkSpeed(NetInterface *interface, uint8_t port);
+NicDuplexMode lan9303GetDuplexMode(NetInterface *interface, uint8_t port);
+
+void lan9303SetPortState(NetInterface *interface, uint8_t port,
+   SwitchPortState state);
+
+SwitchPortState lan9303GetPortState(NetInterface *interface, uint8_t port);
+
+void lan9303SetAgingTime(NetInterface *interface, uint32_t agingTime);
+void lan9303EnableRsvdMcastTable(NetInterface *interface, bool_t enable);
+
+error_t lan9303AddStaticFdbEntry(NetInterface *interface,
+   const SwitchFdbEntry *entry);
+
+error_t lan9303DeleteStaticFdbEntry(NetInterface *interface,
+   const SwitchFdbEntry *entry);
+
+error_t lan9303GetStaticFdbEntry(NetInterface *interface, uint_t index,
+   SwitchFdbEntry *entry);
+
+void lan9303FlushStaticFdbTable(NetInterface *interface);
+
+error_t lan9303GetDynamicFdbEntry(NetInterface *interface, uint_t index,
+   SwitchFdbEntry *entry);
+
+void lan9303FlushDynamicFdbTable(NetInterface *interface, uint8_t port);
 
 void lan9303WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data);

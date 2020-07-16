@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 815: IP datagram reassembly algorithms
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -64,13 +64,14 @@ systime_t ipv4FragTickCounter;
  * @param[in] id Fragment identification
  * @param[in] payload Multi-part buffer containing the payload
  * @param[in] payloadOffset Offset to the first payload byte
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ipv4FragmentDatagram(NetInterface *interface,
    Ipv4PseudoHeader *pseudoHeader, uint16_t id, const NetBuffer *payload,
-   size_t payloadOffset, uint_t flags)
+   size_t payloadOffset, NetTxAncillary *ancillary)
 {
    error_t error;
    size_t offset;
@@ -80,7 +81,8 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
    size_t maxFragmentSize;
    NetBuffer *fragment;
 
-   //Number of IP datagrams that would require fragmentation in order to be transmitted
+   //Number of IP datagrams that would require fragmentation in order to be
+   //transmitted
    IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutFragReqds, 1);
    IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutFragReqds, 1);
 
@@ -119,8 +121,8 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
          netBufferConcat(fragment, payload, payloadOffset + offset, length);
 
          //Do not set the MF flag for the last fragment
-         error = ipv4SendPacket(interface, pseudoHeader, id,
-            offset / 8, fragment, fragmentOffset, flags);
+         error = ipv4SendPacket(interface, pseudoHeader, id, offset / 8,
+            fragment, fragmentOffset, ancillary);
       }
       else
       {
@@ -130,8 +132,8 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
          netBufferConcat(fragment, payload, payloadOffset + offset, length);
 
          //Fragmented packets must have the MF flag set
-         error = ipv4SendPacket(interface, pseudoHeader, id,
-            IPV4_FLAG_MF | (offset / 8), fragment, fragmentOffset, flags);
+         error = ipv4SendPacket(interface, pseudoHeader, id, IPV4_FLAG_MF |
+            (offset / 8), fragment, fragmentOffset, ancillary);
       }
 
       //Failed to send current IP packet?
@@ -156,7 +158,8 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
    }
    else
    {
-      //Number of IP datagrams that have been successfully fragmented at this entity
+      //Number of IP datagrams that have been successfully fragmented at this
+      //entity
       MIB2_INC_COUNTER32(ipGroup.ipFragOKs, 1);
       IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutFragOKs, 1);
       IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutFragOKs, 1);
@@ -174,10 +177,12 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
  * @param[in] interface Underlying network interface
  * @param[in] packet Pointer to the IPv4 fragmented packet
  * @param[in] length Packet length including header and payload
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
-void ipv4ReassembleDatagram(NetInterface *interface,
-   const Ipv4Header *packet, size_t length)
+void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
+   size_t length, NetRxAncillary *ancillary)
 {
    error_t error;
    uint16_t offset;
@@ -320,13 +325,13 @@ void ipv4ReassembleDatagram(NetInterface *interface,
       uint16_t holeFirst = hole->first;
       uint16_t holeLast = hole->last;
 
-      //Check whether the newly arrived fragment interacts with this hole
-      //in some way
+      //Check whether the newly arrived fragment interacts with this hole in
+      //some way
       if(dataFirst < holeLast && dataLast > holeFirst)
       {
-         //The current descriptor is no longer valid. We will destroy it,
-         //and in the next two steps, we will determine whether or not it
-         //is necessary to create any new hole descriptors
+         //The current descriptor is no longer valid. We will destroy it, and
+         //in the next two steps, we will determine whether or not it is
+         //necessary to create any new hole descriptors
          if(prevHole != NULL)
             prevHole->next = hole->next;
          else
@@ -397,10 +402,12 @@ void ipv4ReassembleDatagram(NetInterface *interface,
    //Dump hole descriptor list
    ipv4DumpHoleList(frag);
 
-   //If the hole descriptor list is empty, the reassembly process is now complete
+   //If the hole descriptor list is empty, the reassembly process is now
+   //complete
    if(!ipv4FindHole(frag, frag->firstHole))
    {
-      //Discard the extra hole descriptor that follows the reconstructed datagram
+      //Discard the extra hole descriptor that follows the reconstructed
+      //datagram
       error = netBufferSetLength((NetBuffer *) &frag->buffer,
          frag->headerLength + frag->dataLen);
 
@@ -428,7 +435,7 @@ void ipv4ReassembleDatagram(NetInterface *interface,
          IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmOKs, 1);
 
          //Pass the original IPv4 datagram to the higher protocol layer
-         ipv4ProcessDatagram(interface, (NetBuffer *) &frag->buffer);
+         ipv4ProcessDatagram(interface, (NetBuffer *) &frag->buffer, ancillary);
       }
 
       //Release previously allocated memory
@@ -482,8 +489,8 @@ void ipv4FragTick(NetInterface *interface)
             //Point to the first hole descriptor
             hole = ipv4FindHole(frag, frag->firstHole);
 
-            //Make sure the fragment zero has been received
-            //before sending an ICMP message
+            //Make sure the fragment zero has been received before sending an
+            //ICMP message
             if(hole != NULL && hole->first > 0)
             {
                //Fix the size of the reconstructed datagram
@@ -551,8 +558,8 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
       }
    }
 
-   //If the current packet does not match an existing entry
-   //in the reassembly queue, then create a new entry
+   //If the current packet does not match an existing entry in the reassembly
+   //queue, then create a new entry
    for(i = 0; i < IPV4_MAX_FRAG_DATAGRAMS; i++)
    {
       //Point to the current entry in the reassembly queue
@@ -634,8 +641,8 @@ void ipv4FlushFragQueue(NetInterface *interface)
  * @brief Retrieve hole descriptor
  * @param[in] frag IPv4 fragment descriptor
  * @param[in] offset Offset of the hole
- * @return A pointer to the hole descriptor is returned if the
- *   specified offset is valid. Otherwise NULL is returned
+ * @return A pointer to the hole descriptor is returned if the specified
+ *   offset is valid. Otherwise NULL is returned
  **/
 
 Ipv4HoleDesc *ipv4FindHole(Ipv4FragDesc *frag, uint16_t offset)

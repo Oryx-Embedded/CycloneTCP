@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -196,7 +196,7 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
                *object->valueLen = n;
 
             //Set object value
-            memcpy(object->value, value, n);
+            osMemcpy(object->value, value, n);
          }
 
          //Successful write operation
@@ -331,7 +331,7 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
          n = *object->valueLen;
 
       //Retrieve object value
-      memcpy(value, object->value, n);
+      osMemcpy(value, object->value, n);
       //Successful read operation
       error = NO_ERROR;
    }
@@ -484,7 +484,7 @@ error_t snmpGetNextObject(SnmpAgentContext *context,
             //Copy the OID from the specified variable binding
             curOid = nextOid + nextOidLen;
             curOidLen = var->oidLen;
-            memcpy(curOid, var->oid, var->oidLen);
+            osMemcpy(curOid, var->oid, var->oidLen);
 
             //Loop through objects
             for(j = 0; j < numObjects; )
@@ -514,7 +514,7 @@ error_t snmpGetNextObject(SnmpAgentContext *context,
                         if((nextOidLen + curOidLen + tempOidLen) <= bufferLen)
                         {
                            //Copy object identifier
-                           memcpy(tempOid, object->oid, object->oidLen);
+                           osMemcpy(tempOid, object->oid, object->oidLen);
                            //Append instance sub-identifier
                            tempOid[tempOidLen - 1] = 0;
 
@@ -594,13 +594,13 @@ error_t snmpGetNextObject(SnmpAgentContext *context,
                      {
                         nextObject = object;
                         nextOidLen = tempOidLen;
-                        memmove(nextOid, tempOid, tempOidLen);
+                        osMemmove(nextOid, tempOid, tempOidLen);
                      }
                      else if(oidComp(tempOid, tempOidLen, nextOid, nextOidLen) < 0)
                      {
                         nextObject = object;
                         nextOidLen = tempOidLen;
-                        memmove(nextOid, tempOid, tempOidLen);
+                        osMemmove(nextOid, tempOid, tempOidLen);
                      }
 
                      //We are done
@@ -622,7 +622,7 @@ error_t snmpGetNextObject(SnmpAgentContext *context,
 
                      //Check the next instance of the same object
                      curOidLen = tempOidLen;
-                     memmove(curOid, tempOid, tempOidLen);
+                     osMemmove(curOid, tempOid, tempOidLen);
                   }
                   else
                   {
@@ -691,8 +691,10 @@ error_t snmpFindMibObject(SnmpAgentContext *context,
    size_t n;
    const MibObject *objects;
 
-   //Initialize comparison result
+   //Initialize variables
    res = -1;
+   mid = 0;
+   objects = NULL;
 
    //Loop through MIBs
    for(i = 0; i < SNMP_AGENT_MAX_MIBS && res != 0; i++)
@@ -730,9 +732,13 @@ error_t snmpFindMibObject(SnmpAgentContext *context,
 
                //Check the result of the comparison
                if(res > 0)
+               {
                   left = mid + 1;
+               }
                else if(res < 0)
+               {
                   right = mid - 1;
+               }
             }
          }
       }

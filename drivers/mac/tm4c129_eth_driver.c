@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -161,7 +161,7 @@ error_t tm4c129EthInit(NetInterface *interface)
    //Perform a software reset
    EMAC0_DMABUSMOD_R |= EMAC_DMABUSMOD_SWR;
    //Wait for the reset to complete
-   while(EMAC0_DMABUSMOD_R & EMAC_DMABUSMOD_SWR)
+   while((EMAC0_DMABUSMOD_R & EMAC_DMABUSMOD_SWR) != 0)
    {
    }
 
@@ -365,8 +365,8 @@ void tm4c129EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief TM4C129 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -419,7 +419,7 @@ void EMAC0_Handler(void)
    status = EMAC0_EPHYRIS_R;
 
    //PHY interrupt?
-   if(status & EMAC_EPHYRIS_INT)
+   if((status & EMAC_EPHYRIS_INT) != 0)
    {
       //Disable PHY interrupt
       EMAC0_EPHYIM_R &= ~EMAC_EPHYIM_INT;
@@ -433,22 +433,22 @@ void EMAC0_Handler(void)
    //Read DMA status register
    status = EMAC0_DMARIS_R;
 
-   //A packet has been transmitted?
-   if(status & EMAC_DMARIS_TI)
+   //Packet transmitted?
+   if((status & EMAC_DMARIS_TI) != 0)
    {
       //Clear TI interrupt flag
       EMAC0_DMARIS_R = EMAC_DMARIS_TI;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurDmaDesc->tdes0 & EMAC_TDES0_OWN))
+      if((txCurDmaDesc->tdes0 & EMAC_TDES0_OWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & EMAC_DMARIS_RI)
+   //Packet received?
+   if((status & EMAC_DMARIS_RI) != 0)
    {
       //Disable RIE interrupt
       EMAC0_DMAIM_R &= ~EMAC_DMAIM_RIE;
@@ -478,7 +478,7 @@ void tm4c129EthEventHandler(NetInterface *interface)
    uint32_t status;
 
    //PHY interrupt?
-   if(EMAC0_EPHYRIS_R & EMAC_EPHYRIS_INT)
+   if((EMAC0_EPHYRIS_R & EMAC_EPHYRIS_INT) != 0)
    {
       //Clear PHY interrupt flag
       EMAC0_EPHYMISC_R = EMAC_EPHYMISC_INT;
@@ -486,19 +486,19 @@ void tm4c129EthEventHandler(NetInterface *interface)
       status = tm4c129EthReadPhyReg(EPHY_MISR1);
 
       //Check whether the link state has changed?
-      if(status & EPHY_MISR1_LINKSTAT)
+      if((status & EPHY_MISR1_LINKSTAT) != 0)
       {
          //Read BMSR register
          status = tm4c129EthReadPhyReg(EPHY_BMSR);
 
          //Check whether the link is up
-         if(status & EPHY_BMSR_LINKSTAT)
+         if((status & EPHY_BMSR_LINKSTAT) != 0)
          {
             //Read PHY status register
             status = tm4c129EthReadPhyReg(EPHY_STS);
 
             //Check current speed
-            if(status & EPHY_STS_SPEED)
+            if((status & EPHY_STS_SPEED) != 0)
             {
                //10BASE-T operation
                interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
@@ -514,7 +514,7 @@ void tm4c129EthEventHandler(NetInterface *interface)
             }
 
             //Check current duplex mode
-            if(status & EPHY_STS_DUPLEX)
+            if((status & EPHY_STS_DUPLEX) != 0)
             {
                //Full-Duplex mode
                interface->duplexMode = NIC_FULL_DUPLEX_MODE;
@@ -544,7 +544,7 @@ void tm4c129EthEventHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if(EMAC0_DMARIS_R & EMAC_DMARIS_RI)
+   if((EMAC0_DMARIS_R & EMAC_DMARIS_RI) != 0)
    {
       //Clear interrupt flag
       EMAC0_DMARIS_R = EMAC_DMARIS_RI;
@@ -571,11 +571,13 @@ void tm4c129EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t tm4c129EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -592,8 +594,10 @@ error_t tm4c129EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurDmaDesc->tdes0 & EMAC_TDES0_OWN)
+   if((txCurDmaDesc->tdes0 & EMAC_TDES0_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txCurDmaDesc->tdes2, buffer, offset, length);
@@ -614,7 +618,7 @@ error_t tm4c129EthSendPacket(NetInterface *interface,
    txCurDmaDesc = (Tm4c129TxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurDmaDesc->tdes0 & EMAC_TDES0_OWN))
+   if((txCurDmaDesc->tdes0 & EMAC_TDES0_OWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -635,23 +639,29 @@ error_t tm4c129EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurDmaDesc->rdes0 & EMAC_RDES0_OWN))
+   if((rxCurDmaDesc->rdes0 & EMAC_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
-      if((rxCurDmaDesc->rdes0 & EMAC_RDES0_FS) && (rxCurDmaDesc->rdes0 & EMAC_RDES0_LS))
+      if((rxCurDmaDesc->rdes0 & EMAC_RDES0_FS) != 0 &&
+         (rxCurDmaDesc->rdes0 & EMAC_RDES0_LS) != 0)
       {
          //Make sure no error occurred
-         if(!(rxCurDmaDesc->rdes0 & EMAC_RDES0_ES))
+         if((rxCurDmaDesc->rdes0 & EMAC_RDES0_ES) == 0)
          {
             //Retrieve the length of the frame
             n = (rxCurDmaDesc->rdes0 & EMAC_RDES0_FL) >> 16;
             //Limit the number of data to read
             n = MIN(n, TM4C129_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n);
+            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n,
+               &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -836,7 +846,7 @@ void tm4c129EthWritePhyReg(uint8_t regAddr, uint16_t data)
    //Start a write operation
    EMAC0_MIIADDR_R = temp;
    //Wait for the write to complete
-   while(EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB)
+   while((EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB) != 0)
    {
    }
 }
@@ -864,7 +874,7 @@ uint16_t tm4c129EthReadPhyReg(uint8_t regAddr)
    //Start a read operation
    EMAC0_MIIADDR_R = temp;
    //Wait for the read to complete
-   while(EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB)
+   while((EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB) != 0)
    {
    }
 
@@ -905,11 +915,13 @@ uint32_t tm4c129EthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -918,10 +930,14 @@ uint32_t tm4c129EthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

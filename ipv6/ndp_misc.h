@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _NDP_MISC_H
@@ -54,7 +54,7 @@ bool_t ndpIsFirstHopRouter(NetInterface *interface,
    const Ipv6Addr *destAddr, const Ipv6Addr *nextHop);
 
 error_t ndpSelectNextHop(NetInterface *interface, const Ipv6Addr *destAddr,
-   const Ipv6Addr *unreachableNextHop, Ipv6Addr *nextHop, uint_t flags);
+   const Ipv6Addr *unreachableNextHop, Ipv6Addr *nextHop, bool_t dontRoute);
 
 void ndpUpdateNextHop(NetInterface *interface, const Ipv6Addr *nextHop);
 

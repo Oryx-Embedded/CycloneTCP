@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -82,7 +82,7 @@ void ftpServerGetDefaultSettings(FtpServerSettings *settings)
    settings->connections = NULL;
 
    //Set root directory
-   strcpy(settings->rootDir, "/");
+   osStrcpy(settings->rootDir, "/");
 
    //Connection callback function
    settings->connectCallback = NULL;
@@ -143,7 +143,7 @@ error_t ftpServerInit(FtpServerContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Clear the FTP server context
-   memset(context, 0, sizeof(FtpServerContext));
+   osMemset(context, 0, sizeof(FtpServerContext));
 
    //Save user settings
    context->settings = *settings;
@@ -158,7 +158,7 @@ error_t ftpServerInit(FtpServerContext *context,
    for(i = 0; i < context->settings.maxConnections; i++)
    {
       //Initialize the structure representing the client connection
-      memset(&context->connections[i], 0, sizeof(FtpClientConnection));
+      osMemset(&context->connections[i], 0, sizeof(FtpClientConnection));
    }
 
    //Create an event object to poll the state of sockets
@@ -253,12 +253,20 @@ error_t ftpServerStart(FtpServerContext *context)
 {
    OsTask *task;
 
-   //Debug message
-   TRACE_INFO("Starting FTP server...\r\n");
-
    //Make sure the FTP server context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Starting FTP server...\r\n");
+
+   //Make sure the FTP server is not already running
+   if(context->running)
+      return ERROR_ALREADY_RUNNING;
+
+   //Start the FTP server
+   context->stop = FALSE;
+   context->running = TRUE;
 
    //Create the FTP server task
    task = osCreateTask("FTP Server", (OsTaskCode) ftpServerTask,
@@ -266,7 +274,43 @@ error_t ftpServerStart(FtpServerContext *context)
 
    //Unable to create the task?
    if(task == OS_INVALID_HANDLE)
+   {
+      //Clean up side effects
+      context->running = FALSE;
+      //Report an error
       return ERROR_OUT_OF_RESOURCES;
+   }
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Stop FTP server
+ * @param[in] context Pointer to the FTP server context
+ * @return Error code
+ **/
+
+error_t ftpServerStop(FtpServerContext *context)
+{
+   //Make sure the FTP server context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Stopping FTP server...\r\n");
+
+   //Stop the FTP server
+   context->stop = TRUE;
+   //Send a signal to the task to abort any blocking operation
+   osSetEvent(&context->event);
+
+   //Wait for the task to terminate
+   while(context->running)
+   {
+      osDelayTask(1);
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -295,7 +339,7 @@ error_t ftpServerSetHomeDir(FtpClientConnection *connection,
    pathRemoveSlash(connection->homeDir);
 
    //Set current directory
-   strcpy(connection->currentDir, connection->homeDir);
+   osStrcpy(connection->currentDir, connection->homeDir);
 
    //Successful processing
    return NO_ERROR;
@@ -327,7 +371,7 @@ void ftpServerTask(FtpServerContext *context)
       timeout = FTP_SERVER_TICK_INTERVAL;
 
       //Clear event descriptor set
-      memset(context->eventDesc, 0, sizeof(context->eventDesc));
+      osMemset(context->eventDesc, 0, sizeof(context->eventDesc));
 
       //Specify the events the application is interested in
       for(i = 0; i < context->settings.maxConnections; i++)
@@ -380,6 +424,22 @@ void ftpServerTask(FtpServerContext *context)
       //Check status code
       if(error == NO_ERROR || error == ERROR_TIMEOUT)
       {
+         //Stop request?
+         if(context->stop)
+         {
+            //Loop through the connection table
+            for(i = 0; i < context->settings.maxConnections; i++)
+            {
+               //Close client connection
+               ftpServerCloseConnection(&context->connections[i]);
+            }
+
+            //Stop FTP server operation
+            context->running = FALSE;
+            //Kill ourselves
+            osDeleteTask(NULL);
+         }
+
          //Event-driven processing
          for(i = 0; i < context->settings.maxConnections; i++)
          {
@@ -465,7 +525,7 @@ void ftpServerDeinit(FtpServerContext *context)
       osDeleteEvent(&context->event);
 
       //Clear FTP server context
-      memset(context, 0, sizeof(FtpServerContext));
+      osMemset(context, 0, sizeof(FtpServerContext));
    }
 }
 

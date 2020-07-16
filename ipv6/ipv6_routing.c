@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -57,7 +57,7 @@ static Ipv6RoutingTableEntry ipv6RoutingTable[IPV6_ROUTING_TABLE_SIZE];
 error_t ipv6InitRouting(void)
 {
    //Clear the routing table
-   memset(ipv6RoutingTable, 0, sizeof(ipv6RoutingTable));
+   osMemset(ipv6RoutingTable, 0, sizeof(ipv6RoutingTable));
 
    //Successful initialization
    return NO_ERROR;
@@ -247,7 +247,7 @@ error_t ipv6DeleteAllRoutes(void)
    //Get exclusive access
    osAcquireMutex(&netMutex);
    //Clear the routing table
-   memset(ipv6RoutingTable, 0, sizeof(ipv6RoutingTable));
+   osMemset(ipv6RoutingTable, 0, sizeof(ipv6RoutingTable));
    //Release exclusive access
    osReleaseMutex(&netMutex);
 
@@ -264,8 +264,8 @@ error_t ipv6DeleteAllRoutes(void)
  * @return Error code
  **/
 
-error_t ipv6ForwardPacket(NetInterface *srcInterface,
-   NetBuffer *ipPacket, size_t ipPacketOffset)
+error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
+   size_t ipPacketOffset)
 {
    error_t error;
    uint_t i;
@@ -525,8 +525,8 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
    if(destBuffer != NULL)
    {
       //Copy IPv6 header
-      error = netBufferCopy(destBuffer, destOffset,
-         ipPacket, ipPacketOffset, length);
+      error = netBufferCopy(destBuffer, destOffset, ipPacket, ipPacketOffset,
+         length);
 
       //Check status code
       if(!error)
@@ -545,6 +545,10 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
             physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
          {
             MacAddr destMacAddr;
+            NetTxAncillary ancillary;
+
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_TX_ANCILLARY;
 
             //Destination IPv6 address
             if(ipv6CompAddr(&destIpAddr, &IPV6_UNSPECIFIED_ADDR))
@@ -572,8 +576,8 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
                ipv6DumpHeader(ipHeader);
 
                //Send Ethernet frame
-               error = ethSendFrame(destInterface, &destMacAddr,
-                  destBuffer, destOffset, ETH_TYPE_IPV6);
+               error = ethSendFrame(destInterface, NULL, &destMacAddr, ETH_TYPE_IPV6,
+                  destBuffer, destOffset, &ancillary);
             }
             //Address resolution is in progress?
             else if(error == ERROR_IN_PROGRESS)
@@ -584,8 +588,8 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
                ipv6DumpHeader(ipHeader);
 
                //Enqueue packets waiting for address resolution
-               error = ndpEnqueuePacket(srcInterface, destInterface,
-                  &destIpAddr, destBuffer, destOffset);
+               error = ndpEnqueuePacket(srcInterface, destInterface, &destIpAddr,
+                  destBuffer, destOffset, &ancillary);
             }
             //Address resolution failed?
             else
@@ -608,7 +612,8 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
             ipv6DumpHeader(ipHeader);
 
             //Send PPP frame
-            error = pppSendFrame(destInterface, destBuffer, destOffset, PPP_PROTOCOL_IPV6);
+            error = pppSendFrame(destInterface, destBuffer, destOffset,
+               PPP_PROTOCOL_IPV6);
          }
          else
 #endif
@@ -616,14 +621,20 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface,
          if(destInterface->nicDriver != NULL &&
             destInterface->nicDriver->type == NIC_TYPE_6LOWPAN)
          {
+            NetTxAncillary ancillary;
+
             //Debug message
             TRACE_INFO("Forwarding IPv6 packet to %s (%" PRIuSIZE " bytes)...\r\n",
                destInterface->name, length);
             //Dump IP header contents for debugging purpose
             ipv6DumpHeader(ipHeader);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_TX_ANCILLARY;
+
             //Send the packet over the specified link
-            error = nicSendPacket(destInterface, destBuffer, destOffset);
+            error = nicSendPacket(destInterface, destBuffer, destOffset,
+               &ancillary);
          }
          else
          //Unknown interface type?

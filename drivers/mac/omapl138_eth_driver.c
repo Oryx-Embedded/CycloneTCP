@@ -1,12 +1,12 @@
 /**
  * @file omapl138_eth_driver.c
- * @brief OMAP-L138 Ethernet MAC controller
+ * @brief OMAP-L138 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -58,19 +58,19 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = OMAPL138_ETH_RAM_SECTION
 static uint8_t txBuffer[OMAPL138_ETH_TX_BUFFER_COUNT][OMAPL138_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = OMAPL138_ETH_RAM_SECTION
 static uint8_t rxBuffer[OMAPL138_ETH_RX_BUFFER_COUNT][OMAPL138_ETH_RX_BUFFER_SIZE];
 //Transmit buffer descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_cppi"
+#pragma location = OMAPL138_ETH_RAM_CPPI_SECTION
 static Omapl138TxBufferDesc txBufferDesc[OMAPL138_ETH_TX_BUFFER_COUNT];
 //Receive buffer descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_cppi"
+#pragma location = OMAPL138_ETH_RAM_CPPI_SECTION
 static Omapl138RxBufferDesc rxBufferDesc[OMAPL138_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
@@ -78,16 +78,16 @@ static Omapl138RxBufferDesc rxBufferDesc[OMAPL138_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer
 static uint8_t txBuffer[OMAPL138_ETH_TX_BUFFER_COUNT][OMAPL138_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(OMAPL138_ETH_RAM_SECTION)));
 //Receive buffer
 static uint8_t rxBuffer[OMAPL138_ETH_RX_BUFFER_COUNT][OMAPL138_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(OMAPL138_ETH_RAM_SECTION)));
 //Transmit buffer descriptors
 static Omapl138TxBufferDesc txBufferDesc[OMAPL138_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_cppi")));
+   __attribute__((aligned(4), __section__(OMAPL138_ETH_RAM_CPPI_SECTION)));
 //Receive buffer descriptors
 static Omapl138RxBufferDesc rxBufferDesc[OMAPL138_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_cppi")));
+   __attribute__((aligned(4), __section__(OMAPL138_ETH_RAM_CPPI_SECTION)));
 
 #endif
 
@@ -150,14 +150,14 @@ error_t omapl138EthInit(NetInterface *interface)
    //Reset the EMAC control module
    EMAC_CTRL_SOFTRESET_R = EMAC_SOFTRESET_SOFTRESET;
    //Wait for the reset to complete
-   while(EMAC_CTRL_SOFTRESET_R & EMAC_SOFTRESET_SOFTRESET)
+   while((EMAC_CTRL_SOFTRESET_R & EMAC_SOFTRESET_SOFTRESET) != 0)
    {
    }
 
    //Reset the EMAC module
    EMAC_SOFTRESET_R = EMAC_SOFTRESET_SOFTRESET;
    //Wait for the reset to complete
-   while(EMAC_SOFTRESET_R & EMAC_SOFTRESET_SOFTRESET)
+   while((EMAC_SOFTRESET_R & EMAC_SOFTRESET_SOFTRESET) != 0)
    {
    }
 
@@ -168,11 +168,28 @@ error_t omapl138EthInit(NetInterface *interface)
    MDIO_CONTROL_R = MDIO_CONTROL_ENABLE |
       MDIO_CONTROL_FAULTENB | (temp & MDIO_CONTROL_CLKDIV);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Clear the control registers
    EMAC_MACCONTROL_R = 0;
@@ -217,7 +234,7 @@ error_t omapl138EthInit(NetInterface *interface)
 
    //Use the current MAC address to match incoming packet addresses
    EMAC_MACADDRLO_R = EMAC_MACADDRLO_VALID | EMAC_MACADDRLO_MATCHFILT |
-         (EMAC_CH0 << EMAC_MACADDRLO_CHANNEL_SHIFT) | temp;
+      (EMAC_CH0 << EMAC_MACADDRLO_CHANNEL_SHIFT) | temp;
 
    //Be sure to program all eight MAC address registers, whether the
    //receive channel is to be enabled or not
@@ -317,8 +334,8 @@ void omapl138EthInitGpio(NetInterface *interface)
       SYSCFG_PINMUX2_PINMUX2_19_16 | SYSCFG_PINMUX2_PINMUX2_15_12 |
       SYSCFG_PINMUX2_PINMUX2_11_8 | SYSCFG_PINMUX2_PINMUX2_7_4);
 
-    SYSCFG0_PINMUX_R(2) = temp |
-       (SYSCFG_PINMUX2_PINMUX2_31_28_MII_TXD0 << SYSCFG_PINMUX2_PINMUX2_31_28_SHIFT) |
+   SYSCFG0_PINMUX_R(2) = temp |
+      (SYSCFG_PINMUX2_PINMUX2_31_28_MII_TXD0 << SYSCFG_PINMUX2_PINMUX2_31_28_SHIFT) |
       (SYSCFG_PINMUX2_PINMUX2_27_24_MII_TXD1 << SYSCFG_PINMUX2_PINMUX2_27_24_SHIFT) |
       (SYSCFG_PINMUX2_PINMUX2_23_20_MII_TXD2 << SYSCFG_PINMUX2_PINMUX2_23_20_SHIFT) |
       (SYSCFG_PINMUX2_PINMUX2_19_16_MII_TXD3 << SYSCFG_PINMUX2_PINMUX2_19_16_SHIFT) |
@@ -343,13 +360,13 @@ void omapl138EthInitGpio(NetInterface *interface)
       (SYSCFG_PINMUX3_PINMUX3_7_4_MII_RXDV << SYSCFG_PINMUX3_PINMUX3_7_4_SHIFT) |
       (SYSCFG_PINMUX3_PINMUX3_3_0_MII_RXCLK << SYSCFG_PINMUX3_PINMUX3_3_0_SHIFT);
 
-    //Configure MDIO and MDCLK
-    temp = SYSCFG0_PINMUX_R(4) &  ~(SYSCFG_PINMUX4_PINMUX4_3_0 |
-       SYSCFG_PINMUX4_PINMUX4_7_4);
+   //Configure MDIO and MDCLK
+   temp = SYSCFG0_PINMUX_R(4) & ~(SYSCFG_PINMUX4_PINMUX4_3_0 |
+      SYSCFG_PINMUX4_PINMUX4_7_4);
 
-    SYSCFG0_PINMUX_R(4) = temp |
-       (SYSCFG_PINMUX4_PINMUX4_7_4_MDIO_D << SYSCFG_PINMUX4_PINMUX4_7_4_SHIFT) |
-       (SYSCFG_PINMUX4_PINMUX4_3_0_MDIO_CLK << SYSCFG_PINMUX4_PINMUX4_3_0_SHIFT);
+   SYSCFG0_PINMUX_R(4) = temp |
+      (SYSCFG_PINMUX4_PINMUX4_7_4_MDIO_D << SYSCFG_PINMUX4_PINMUX4_7_4_SHIFT) |
+      (SYSCFG_PINMUX4_PINMUX4_3_0_MDIO_CLK << SYSCFG_PINMUX4_PINMUX4_3_0_SHIFT);
 
    //Select MII interface mode
    SYSCFG0_CFGCHIP3_R &= ~SYSCFG_CFGCHIP3_RMII_SEL;
@@ -431,19 +448,32 @@ void omapl138EthInitBufferDesc(NetInterface *interface)
 /**
  * @brief OMAP-L138 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void omapl138EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 
    //Misqueued buffer condition?
-   if(rxCurBufferDesc->word3 & EMAC_RX_WORD3_OWNER)
+   if((rxCurBufferDesc->word3 & EMAC_RX_WORD3_OWNER) != 0)
    {
       if(EMAC_RXHDP_R(EMAC_CH0) == 0)
       {
@@ -467,8 +497,22 @@ void omapl138EthEnableIrq(NetInterface *interface)
    IntSystemEnable(SYS_INT_C0_TX);
    IntSystemEnable(SYS_INT_C0_RX);
 
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -483,8 +527,22 @@ void omapl138EthDisableIrq(NetInterface *interface)
    IntSystemDisable(SYS_INT_C0_TX);
    IntSystemDisable(SYS_INT_C0_RX);
 
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -538,7 +596,7 @@ void omapl138EthTxIrqHandler(void)
       EMAC_TXCP_R(EMAC_CH0) = (uint32_t) p;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurBufferDesc->word3 & EMAC_TX_WORD3_OWNER))
+      if((txCurBufferDesc->word3 & EMAC_TX_WORD3_OWNER) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -622,11 +680,13 @@ void omapl138EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t omapl138EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
    uint32_t temp;
@@ -644,8 +704,10 @@ error_t omapl138EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurBufferDesc->word3 & EMAC_TX_WORD3_OWNER)
+   if((txCurBufferDesc->word3 & EMAC_TX_WORD3_OWNER) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Mark the end of the queue with a NULL pointer
    txCurBufferDesc->word0 = (uint32_t) NULL;
@@ -683,7 +745,7 @@ error_t omapl138EthSendPacket(NetInterface *interface,
    txCurBufferDesc = txCurBufferDesc->next;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurBufferDesc->word3 & EMAC_TX_WORD3_OWNER))
+   if((txCurBufferDesc->word3 & EMAC_TX_WORD3_OWNER) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -708,14 +770,14 @@ error_t omapl138EthReceivePacket(NetInterface *interface)
    uint32_t temp;
 
    //The current buffer is available for reading?
-   if(!(rxCurBufferDesc->word3 & EMAC_RX_WORD3_OWNER))
+   if((rxCurBufferDesc->word3 & EMAC_RX_WORD3_OWNER) == 0)
    {
       //SOP and EOP flags should be set
-      if((rxCurBufferDesc->word3 & EMAC_RX_WORD3_SOP) &&
-         (rxCurBufferDesc->word3 & EMAC_RX_WORD3_EOP))
+      if((rxCurBufferDesc->word3 & EMAC_RX_WORD3_SOP) != 0 &&
+         (rxCurBufferDesc->word3 & EMAC_RX_WORD3_EOP) != 0)
       {
          //Make sure no error occurred
-         if(!(rxCurBufferDesc->word3 & EMAC_RX_WORD3_ERROR_MASK))
+         if((rxCurBufferDesc->word3 & EMAC_RX_WORD3_ERROR_MASK) == 0)
          {
             //Retrieve the length of the frame
             n = rxCurBufferDesc->word3 & EMAC_RX_WORD3_PACKET_LENGTH;
@@ -723,7 +785,7 @@ error_t omapl138EthReceivePacket(NetInterface *interface)
             n = MIN(n, OMAPL138_ETH_RX_BUFFER_SIZE);
 
             //Copy data from the receive buffer
-            memcpy(buffer, (uint8_t *) rxCurBufferDesc->word1, n);
+            osMemcpy(buffer, (uint8_t *) rxCurBufferDesc->word1, n);
 
             //Valid packet received
             error = NO_ERROR;
@@ -778,8 +840,13 @@ error_t omapl138EthReceivePacket(NetInterface *interface)
    //Check whether a valid packet has been received
    if(!error)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, buffer, n);
+      nicProcessPacket(interface, buffer, n, &ancillary);
    }
 
    //Return status code
@@ -865,15 +932,23 @@ error_t omapl138EthUpdateMacConfig(NetInterface *interface)
 
    //100BASE-TX or 10BASE-T operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= EMAC_MACCONTROL_RMIISPEED;
+   }
    else
+   {
       config &= ~EMAC_MACCONTROL_RMIISPEED;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= EMAC_MACCONTROL_FULLDUPLEX;
+   }
    else
+   {
       config &= ~EMAC_MACCONTROL_FULLDUPLEX;
+   }
 
    //Update MAC control register
    EMAC_MACCONTROL_R = config;
@@ -911,7 +986,7 @@ void omapl138EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       MDIO_USERACCESS0_R = temp;
       //Wait for the write to complete
-      while(MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO)
+      while((MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO) != 0)
       {
       }
    }
@@ -949,7 +1024,7 @@ uint16_t omapl138EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       MDIO_USERACCESS0_R = temp;
       //Wait for the read to complete
-      while(MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO)
+      while((MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO) != 0)
       {
       }
 

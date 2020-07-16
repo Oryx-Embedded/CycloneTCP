@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -94,7 +94,7 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
       entry = dnsCreateEntry();
 
       //Record the host name whose IP address is unknown
-      strcpy(entry->name, name);
+      osStrcpy(entry->name, name);
 
       //Initialize DNS cache entry
       entry->type = type;
@@ -223,6 +223,7 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
    DnsHeader *message;
    DnsQuestion *dnsQuestion;
    IpAddr destIpAddr;
+   NetTxAncillary ancillary;
 
 #if (IPV4_SUPPORT == ENABLED)
    //An IPv4 address is expected?
@@ -337,9 +338,12 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
    //Dump message
    dnsDumpMessage(message, length);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send DNS query message
-   error = udpSendDatagramEx(entry->interface, NULL, entry->port,
-      &destIpAddr, DNS_PORT, buffer, offset, 0);
+   error = udpSendBuffer(entry->interface, NULL, entry->port, &destIpAddr,
+      DNS_PORT, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -355,11 +359,15 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming DNS message
  * @param[in] offset Offset to the first byte of the DNS message
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @param[in] param Callback function parameter (not used)
  **/
 
-void dnsProcessResponse(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *param)
+void dnsProcessResponse(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
+   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
+   void *param)
 {
    uint_t i;
    uint_t j;

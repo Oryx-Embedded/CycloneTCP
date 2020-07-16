@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -93,7 +93,7 @@ error_t tftpServerInit(TftpServerContext *context, const TftpServerSettings *set
       return ERROR_INVALID_PARAMETER;
 
    //Clear the TFTP server context
-   memset(context, 0, sizeof(TftpServerContext));
+   osMemset(context, 0, sizeof(TftpServerContext));
 
    //Save user settings
    context->settings = *settings;
@@ -135,13 +135,11 @@ error_t tftpServerInit(TftpServerContext *context, const TftpServerSettings *set
       //End of exception handling block
    } while(0);
 
-   //Did we encounter an error?
+   //Check status code
    if(error)
    {
-      //Free previously allocated resources
-      osDeleteEvent(&context->event);
-      //Close socket
-      socketClose(context->socket);
+      //Clean up side effects
+      tftpServerDeinit(context);
    }
 
    //Return status code
@@ -159,12 +157,12 @@ error_t tftpServerStart(TftpServerContext *context)
 {
    OsTask *task;
 
-   //Debug message
-   TRACE_INFO("Starting TFTP server...\r\n");
-
    //Make sure the TFTP server context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Starting TFTP server...\r\n");
 
    //Create the TFTP server task
    task = osCreateTask("TFTP Server", (OsTaskCode) tftpServerTask,
@@ -199,7 +197,7 @@ void tftpServerTask(TftpServerContext *context)
    {
 #endif
       //Clear event descriptor set
-      memset(context->eventDesc, 0, sizeof(context->eventDesc));
+      osMemset(context->eventDesc, 0, sizeof(context->eventDesc));
 
       //Specify the events the application is interested in
       for(i = 0; i < TFTP_SERVER_MAX_CONNECTIONS; i++)
@@ -259,6 +257,37 @@ void tftpServerTask(TftpServerContext *context)
 #if (NET_RTOS_SUPPORT == ENABLED)
    }
 #endif
+}
+
+
+/**
+ * @brief Release TFTP server context
+ * @param[in] context Pointer to the TFTP server context
+ **/
+
+void tftpServerDeinit(TftpServerContext *context)
+{
+   uint_t i;
+
+   //Make sure the TFTP server context is valid
+   if(context != NULL)
+   {
+     //Loop through the connection table
+      for(i = 0; i < TFTP_SERVER_MAX_CONNECTIONS; i++)
+      {
+         //Close client connection
+         tftpServerCloseConnection(&context->connection[i]);
+      }
+
+      //Close listening socket
+      socketClose(context->socket);
+
+      //Free previously allocated resources
+      osDeleteEvent(&context->event);
+
+      //Clear TFTP server context
+      osMemset(context, 0, sizeof(TftpServerContext));
+   }
 }
 
 #endif

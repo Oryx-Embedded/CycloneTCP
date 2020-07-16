@@ -1,12 +1,12 @@
 /**
  * @file mv88e1512_driver.c
- * @brief 88E1512 Gigabit Ethernet PHY transceiver
+ * @brief 88E1512 Gigabit Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver mv88e1512PhyDriver =
    mv88e1512Tick,
    mv88e1512EnableIrq,
    mv88e1512DisableIrq,
-   mv88e1512EventHandler,
-   NULL,
-   NULL
+   mv88e1512EventHandler
 };
 
 
@@ -71,11 +69,19 @@ error_t mv88e1512Init(NetInterface *interface)
       interface->phyAddr = MV88E1512_PHY_ADDR;
    }
 
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
+   }
+
    //Reset PHY transceiver
-   mv88e1512WritePhyReg(interface, MV88E1512_BMCR, MV88E1512_BMCR_RESET);
+   mv88e1512WritePhyReg(interface, MV88E1512_COPPER_CTRL,
+      MV88E1512_COPPER_CTRL_RESET);
 
    //Wait for the reset to complete
-   while(mv88e1512ReadPhyReg(interface, MV88E1512_BMCR) & MV88E1512_BMCR_RESET)
+   while(mv88e1512ReadPhyReg(interface, MV88E1512_COPPER_CTRL) &
+      MV88E1512_COPPER_CTRL_RESET)
    {
    }
 
@@ -102,10 +108,10 @@ void mv88e1512Tick(NetInterface *interface)
    uint16_t value;
    bool_t linkState;
 
-   //Read basic status register
-   value = mv88e1512ReadPhyReg(interface, MV88E1512_BMSR);
+   //Read copper status register
+   value = mv88e1512ReadPhyReg(interface, MV88E1512_COPPER_STAT);
    //Retrieve current link state
-   linkState = (value & MV88E1512_BMSR_LINK_STATUS) ? TRUE : FALSE;
+   linkState = (value & MV88E1512_COPPER_STAT_LINK_STATUS) ? TRUE : FALSE;
 
    //Link up event?
    if(linkState && !interface->linkState)
@@ -155,25 +161,25 @@ void mv88e1512EventHandler(NetInterface *interface)
 {
    uint16_t status;
 
-   //Read status register
-   status = mv88e1512ReadPhyReg(interface, MV88E1512_SSR1);
+   //Read copper specific status 1 register
+   status = mv88e1512ReadPhyReg(interface, MV88E1512_COPPER_STAT1);
 
    //Link is up?
-   if(status & MV88E1512_SSR1_LINK)
+   if((status & MV88E1512_COPPER_STAT1_LINK) != 0)
    {
       //Check current speed
-      switch(status & MV88E1512_SSR1_SPEED)
+      switch(status & MV88E1512_COPPER_STAT1_SPEED)
       {
       //10BASE-T
-      case MV88E1512_SSR1_SPEED_10MBPS:
+      case MV88E1512_COPPER_STAT1_SPEED_10MBPS:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          break;
       //100BASE-TX
-      case MV88E1512_SSR1_SPEED_100MBPS:
+      case MV88E1512_COPPER_STAT1_SPEED_100MBPS:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          break;
       //1000BASE-T
-      case MV88E1512_SSR1_SPEED_1000MBPS:
+      case MV88E1512_COPPER_STAT1_SPEED_1000MBPS:
          interface->linkSpeed = NIC_LINK_SPEED_1GBPS;
          break;
       //Unknown speed
@@ -184,10 +190,14 @@ void mv88e1512EventHandler(NetInterface *interface)
       }
 
       //Check current duplex mode
-      if(status & MV88E1512_SSR1_DUPLEX)
+      if((status & MV88E1512_COPPER_STAT1_DUPLEX) != 0)
+      {
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+      }
       else
+      {
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+      }
 
       //Update link state
       interface->linkState = TRUE;
@@ -217,8 +227,16 @@ void mv88e1512WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -231,9 +249,22 @@ void mv88e1512WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t mv88e1512ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

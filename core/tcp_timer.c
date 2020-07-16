@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -235,7 +235,7 @@ void tcpTick(void)
          if(tcpTimerElapsed(&socket->finWait2Timer))
          {
             //Debug message
-            TRACE_WARNING("TCP FIN-WAIT-2 timer elapsed...\r\n");
+            TRACE_INFO("TCP FIN-WAIT-2 timer elapsed...\r\n");
             //Enter CLOSED state
             tcpChangeState(socket, TCP_STATE_CLOSED);
          }
@@ -248,7 +248,7 @@ void tcpTick(void)
          if(tcpTimerElapsed(&socket->timeWaitTimer))
          {
             //Debug message
-            TRACE_WARNING("TCP 2MSL timer elapsed (socket %u)...\r\n", i);
+            TRACE_INFO("TCP 2MSL timer elapsed (socket %u)...\r\n", i);
             //Enter CLOSED state
             tcpChangeState(socket, TCP_STATE_CLOSED);
 

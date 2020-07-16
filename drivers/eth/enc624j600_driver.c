@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -90,7 +90,9 @@ error_t enc624j600Init(NetInterface *interface)
    context->rxBuffer = memPoolAlloc(ETH_MAX_FRAME_SIZE);
    //Failed to allocate memory?
    if(context->rxBuffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Issue a system reset
    enc624j600SoftReset(interface);
@@ -225,7 +227,7 @@ bool_t enc624j600IrqHandler(NetInterface *interface)
    status = enc624j600ReadReg(interface, ENC624J600_REG_EIR);
 
    //Link status change?
-   if(status & EIR_LINKIF)
+   if((status & EIR_LINKIF) != 0)
    {
       //Disable LINKIE interrupt
       enc624j600ClearBit(interface, ENC624J600_REG_EIE, EIE_LINKIE);
@@ -237,7 +239,7 @@ bool_t enc624j600IrqHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if(status & EIR_PKTIF)
+   if((status & EIR_PKTIF) != 0)
    {
       //Disable PKTIE interrupt
       enc624j600ClearBit(interface, ENC624J600_REG_EIE, EIE_PKTIE);
@@ -249,7 +251,7 @@ bool_t enc624j600IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if(status & (EIR_TXIF | EIR_TXABTIF))
+   if((status & (EIR_TXIF | EIR_TXABTIF)) != 0)
    {
       //Clear interrupt flags
       enc624j600ClearBit(interface, ENC624J600_REG_EIR, EIR_TXIF | EIR_TXABTIF);
@@ -282,7 +284,7 @@ void enc624j600EventHandler(NetInterface *interface)
    status = enc624j600ReadReg(interface, ENC624J600_REG_EIR);
 
    //Check whether the link state has changed
-   if(status & EIR_LINKIF)
+   if((status & EIR_LINKIF) != 0)
    {
       //Clear interrupt flag
       enc624j600ClearBit(interface, ENC624J600_REG_EIR, EIR_LINKIF);
@@ -290,22 +292,30 @@ void enc624j600EventHandler(NetInterface *interface)
       value = enc624j600ReadReg(interface, ENC624J600_REG_ESTAT);
 
       //Check link state
-      if(value & ESTAT_PHYLNK)
+      if((value & ESTAT_PHYLNK) != 0)
       {
          //Read PHY status register 3
          value = enc624j600ReadPhyReg(interface, ENC624J600_PHY_REG_PHSTAT3);
 
          //Get current speed
-         if(value & PHSTAT3_SPDDPX1)
+         if((value & PHSTAT3_SPDDPX1) != 0)
+         {
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+         }
          else
+         {
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+         }
 
          //Determine the new duplex mode
-         if(value & PHSTAT3_SPDDPX2)
+         if((value & PHSTAT3_SPDDPX2) != 0)
+         {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
          else
+         {
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
 
          //Link is up
          interface->linkState = TRUE;
@@ -324,7 +334,7 @@ void enc624j600EventHandler(NetInterface *interface)
    }
 
    //Check whether a packet has been received?
-   if(status & EIR_PKTIF)
+   if((status & EIR_PKTIF) != 0)
    {
       //Clear interrupt flag
       enc624j600ClearBit(interface, ENC624J600_REG_EIR, EIR_PKTIF);
@@ -349,11 +359,13 @@ void enc624j600EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t enc624j600SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -380,7 +392,9 @@ error_t enc624j600SendPacket(NetInterface *interface,
 
    //Ensure that the transmitter is ready to send
    if(enc624j600ReadReg(interface, ENC624J600_REG_ECON1) & ECON1_TXRTS)
+   {
       return ERROR_FAILURE;
+   }
 
    //Point to the SRAM buffer
    enc624j600WriteReg(interface, ENC624J600_REG_EGPWRPT, ENC624J600_TX_BUFFER_START);
@@ -437,7 +451,7 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
          (uint8_t *) &status, sizeof(uint32_t));
 
       //Make sure no error occurred
-      if(status & RSV_RECEIVED_OK)
+      if((status & RSV_RECEIVED_OK) != 0)
       {
          //Limit the number of data to read
          n = MIN(n, ETH_MAX_FRAME_SIZE);
@@ -456,9 +470,13 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
       //has been processed, taking care to wrap back at the end of the
       //received memory buffer
       if(context->nextPacket == ENC624J600_RX_BUFFER_START)
+      {
          enc624j600WriteReg(interface, ENC624J600_REG_ERXTAIL, ENC624J600_RX_BUFFER_STOP);
+      }
       else
+      {
          enc624j600WriteReg(interface, ENC624J600_REG_ERXTAIL, context->nextPacket - 2);
+      }
 
       //Set PKTDEC to decrement the PKTCNT bits
       enc624j600SetBit(interface, ENC624J600_REG_ECON1, ECON1_PKTDEC);
@@ -472,8 +490,13 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
    //Check whether a valid packet has been received
    if(!error)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->rxBuffer, n);
+      nicProcessPacket(interface, context->rxBuffer, n, &ancillary);
    }
 
    //Return status code
@@ -499,7 +522,7 @@ error_t enc624j600UpdateMacAddrFilter(NetInterface *interface)
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
-   memset(hashTable, 0, sizeof(hashTable));
+   osMemset(hashTable, 0, sizeof(hashTable));
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
@@ -587,7 +610,9 @@ error_t enc624j600SoftReset(NetInterface *interface)
    } while(enc624j600ReadReg(interface, ENC624J600_REG_EUDAST) != 0x1234);
 
    //Poll CLKRDY and wait for it to become set
-   while(!(enc624j600ReadReg(interface, ENC624J600_REG_ESTAT) & ESTAT_CLKRDY));
+   while((enc624j600ReadReg(interface, ENC624J600_REG_ESTAT) & ESTAT_CLKRDY) == 0)
+   {
+   }
 
    //Issue a system reset command by setting ETHRST
    enc624j600SetBit(interface, ENC624J600_REG_ECON2, ECON2_ETHRST);
@@ -597,7 +622,9 @@ error_t enc624j600SoftReset(NetInterface *interface)
    //Read EUDAST to confirm that the system reset took place.
    //EUDAST should have reverted back to its reset default
    if(enc624j600ReadReg(interface, ENC624J600_REG_EUDAST) != 0x0000)
+   {
       return ERROR_FAILURE;
+   }
 
    //Wait at least 256us for the PHY registers and PHY
    //status bits to become available
@@ -681,7 +708,9 @@ void enc624j600WritePhyReg(NetInterface *interface, uint8_t address,
    enc624j600WriteReg(interface, ENC624J600_REG_MIWR, data);
 
    //Wait until the PHY register has been written
-   while(enc624j600ReadReg(interface, ENC624J600_REG_MISTAT) & MISTAT_BUSY);
+   while((enc624j600ReadReg(interface, ENC624J600_REG_MISTAT) & MISTAT_BUSY) != 0)
+   {
+   }
 }
 
 
@@ -702,7 +731,9 @@ uint16_t enc624j600ReadPhyReg(NetInterface *interface, uint8_t address)
    //Wait at least 25.6us before polling the BUSY bit
    usleep(100);
    //Wait for the read operation to complete
-   while(enc624j600ReadReg(interface, ENC624J600_REG_MISTAT) & MISTAT_BUSY);
+   while((enc624j600ReadReg(interface, ENC624J600_REG_MISTAT) & MISTAT_BUSY) != 0)
+   {
+   }
 
    //Clear command register
    enc624j600WriteReg(interface, ENC624J600_REG_MICMD, 0x00);
@@ -747,7 +778,9 @@ void enc624j600WriteBuffer(NetInterface *interface,
 
          //Copy data to SRAM buffer
          for(j = 0; j < n; j++)
+         {
             interface->spiDriver->transfer(p[j]);
+         }
 
          //Process the next block from the start
          offset = 0;
@@ -785,7 +818,9 @@ void enc624j600ReadBuffer(NetInterface *interface,
 
    //Copy data from SRAM buffer
    for(i = 0; i < length; i++)
+   {
       data[i] = interface->spiDriver->transfer(0x00);
+   }
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
@@ -855,11 +890,13 @@ uint32_t enc624j600CalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -868,10 +905,14 @@ uint32_t enc624j600CalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

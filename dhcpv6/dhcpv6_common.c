@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -130,7 +130,7 @@ Dhcpv6Option *dhcpv6AddOption(void *message, size_t *messageLen,
    option->code = htons(optionCode);
    option->length = htons(optionLen);
    //Copy option data
-   memcpy(option->value, optionValue, optionLen);
+   osMemcpy(option->value, optionValue, optionLen);
 
    //Update the length of the DHCPv6 message
    *messageLen += sizeof(Dhcpv6Option) + optionLen;
@@ -180,7 +180,7 @@ Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLen,
    option->code = htons(optionCode);
    option->length = htons(optionLen);
    //Copy option data
-   memcpy(option->value, optionValue, optionLen);
+   osMemcpy(option->value, optionValue, optionLen);
 
    //Update the length of the base option
    n += sizeof(Dhcpv6Option) + optionLen;

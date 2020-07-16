@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -87,7 +87,7 @@ error_t smtpClientLoginAuth(SmtpClientContext *context,
             if(SMTP_REPLY_CODE_3YZ(context->replyCode))
             {
                //Retrieve the length of the user name
-               n = strlen(username);
+               n = osStrlen(username);
 
                //Encode the user name with Base64 algorithm
                base64Encode(username, n, context->buffer, NULL);
@@ -95,7 +95,7 @@ error_t smtpClientLoginAuth(SmtpClientContext *context,
                strcat(context->buffer, "\r\n");
 
                //Calculate the length of the SMTP command
-               context->commandLen = strlen(context->buffer);
+               context->commandLen = osStrlen(context->buffer);
 
                //Debug message
                TRACE_DEBUG("SMTP client: %s", context->buffer);
@@ -128,7 +128,7 @@ error_t smtpClientLoginAuth(SmtpClientContext *context,
             if(SMTP_REPLY_CODE_3YZ(context->replyCode))
             {
                //Retrieve the length of the password
-               n = strlen(password);
+               n = osStrlen(password);
 
                //Encode the password with Base64 algorithm
                base64Encode(password, n, context->buffer, NULL);
@@ -136,7 +136,7 @@ error_t smtpClientLoginAuth(SmtpClientContext *context,
                strcat(context->buffer, "\r\n");
 
                //Calculate the length of the SMTP command
-               context->commandLen = strlen(context->buffer);
+               context->commandLen = osStrlen(context->buffer);
 
                //Debug message
                TRACE_DEBUG("SMTP client: %s", context->buffer);
@@ -235,14 +235,14 @@ error_t smtpClientPlainAuth(SmtpClientContext *context,
          p = context->buffer;
 
          //Format AUTH PLAIN command
-         m = sprintf(p, "AUTH PLAIN ");
+         m = osSprintf(p, "AUTH PLAIN ");
 
          //Authorization identity
-         n = sprintf(p + m, username) + 1;
+         n = osSprintf(p + m, username) + 1;
          //Authentication identity
-         n += sprintf(p + m + n, username) + 1;
+         n += osSprintf(p + m + n, username) + 1;
          //Password
-         n += sprintf(p + m + n, password);
+         n += osSprintf(p + m + n, password);
 
          //Base64 encoding
          base64Encode(p + m, n, p + m, NULL);
@@ -250,7 +250,7 @@ error_t smtpClientPlainAuth(SmtpClientContext *context,
          strcat(p, "\r\n");
 
          //Calculate the length of the SMTP command
-         context->commandLen = strlen(p);
+         context->commandLen = osStrlen(p);
 
          //Debug message
          TRACE_DEBUG("SMTP client: %s", context->buffer);
@@ -367,7 +367,7 @@ error_t smtpClientCramMd5Auth(SmtpClientContext *context,
                //Point to the buffer
                p = context->buffer;
                //Retrieve the length of the response
-               n = strlen(p);
+               n = osStrlen(p);
 
                //Unexpected response from the SMTP server?
                if(n <= 4)
@@ -387,7 +387,7 @@ error_t smtpClientCramMd5Auth(SmtpClientContext *context,
                if(!error)
                {
                   //Compute HMAC using MD5
-                  error = hmacCompute(MD5_HASH_ALGO, password, strlen(password),
+                  error = hmacCompute(MD5_HASH_ALGO, password, osStrlen(password),
                      p, n, p);
                }
 
@@ -407,21 +407,21 @@ error_t smtpClientCramMd5Auth(SmtpClientContext *context,
                   p[MD5_DIGEST_SIZE * 2] = '\0';
 
                   //Make room for the username
-                  n = strlen(username);
-                  memmove(p + n + 1, p, MD5_DIGEST_SIZE * 2 + 1);
+                  n = osStrlen(username);
+                  osMemmove(p + n + 1, p, MD5_DIGEST_SIZE * 2 + 1);
 
                   //Concatenate the user name and the text representation of
                   //the digest
-                  strcpy(p, username);
+                  osStrcpy(p, username);
                   p[n] = ' ';
 
                   //Encode the resulting string with Base64 algorithm
-                  base64Encode(p, strlen(p), p, NULL);
+                  base64Encode(p, osStrlen(p), p, NULL);
                   //Terminate the line with a CRLF sequence
                   strcat(p, "\r\n");
 
                   //Calculate the length of the SMTP command
-                  context->commandLen = strlen(p);
+                  context->commandLen = osStrlen(p);
 
                   //Debug message
                   TRACE_DEBUG("SMTP client: %s", context->buffer);

@@ -1,12 +1,12 @@
 /**
  * @file f28m35x_eth_driver.h
- * @brief F28M35x Ethernet MAC controller
+ * @brief F28M35x Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _F28M35X_ETH_DRIVER_H
@@ -87,7 +87,7 @@ void f28m35xEthIrqHandler(void);
 void f28m35xEthEventHandler(NetInterface *interface);
 
 error_t f28m35xEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t f28m35xEthReceivePacket(NetInterface *interface);
 

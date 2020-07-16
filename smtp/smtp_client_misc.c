@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -139,15 +139,15 @@ error_t smtpClientSendCommand(SmtpClientContext *context,
             TRACE_DEBUG("SMTP server: %s\r\n", reply);
 
             //All replies begin with a three digit numeric code
-            if(isdigit((uint8_t) reply[0]) &&
-               isdigit((uint8_t) reply[1]) &&
-               isdigit((uint8_t) reply[2]))
+            if(osIsdigit(reply[0]) &&
+               osIsdigit(reply[1]) &&
+               osIsdigit(reply[2]))
             {
                //A space character follows the response code for the last line
                if(reply[3] == ' ' || reply[3] == '\0')
                {
                   //Retrieve SMTP reply code
-                  context->replyCode = strtoul(reply, NULL, 10);
+                  context->replyCode = osStrtoul(reply, NULL, 10);
 
                   //A valid SMTP response has been received
                   break;
@@ -191,29 +191,29 @@ error_t smtpClientFormatCommand(SmtpClientContext *context,
    const char_t *command, const char_t *argument)
 {
    //Check SMTP command name
-   if(!strcasecmp(command, "MAIL FROM") ||
-      !strcasecmp(command, "RCPT TO"))
+   if(!osStrcasecmp(command, "MAIL FROM") ||
+      !osStrcasecmp(command, "RCPT TO"))
    {
       //Check whether the address is valid
       if(argument != NULL)
       {
          //Format MAIL FROM or RCPT TO command
-         sprintf(context->buffer, "%s: <%s>\r\n", command, argument);
+         osSprintf(context->buffer, "%s: <%s>\r\n", command, argument);
       }
       else
       {
          //A null return path is accepted
-         sprintf(context->buffer, "%s: <>\r\n", command);
+         osSprintf(context->buffer, "%s: <>\r\n", command);
       }
 
       //Debug message
       TRACE_DEBUG("SMTP client: %s", context->buffer);
    }
-   else if(!strcasecmp(command, "."))
+   else if(!osStrcasecmp(command, "."))
    {
       //SMTP indicates the end of the mail data by sending a line containing
       //only a "." (refer to RFC 5321, section 3.3)
-      sprintf(context->buffer, "\r\n.\r\n");
+      osSprintf(context->buffer, "\r\n.\r\n");
 
       //Debug message
       TRACE_DEBUG("%s", context->buffer);
@@ -224,12 +224,12 @@ error_t smtpClientFormatCommand(SmtpClientContext *context,
       if(argument != NULL)
       {
          //Format SMTP command
-         sprintf(context->buffer, "%s %s\r\n", command, argument);
+         osSprintf(context->buffer, "%s %s\r\n", command, argument);
       }
       else
       {
          //Format SMTP command
-         sprintf(context->buffer, "%s\r\n", command);
+         osSprintf(context->buffer, "%s\r\n", command);
       }
 
       //Debug message
@@ -237,7 +237,7 @@ error_t smtpClientFormatCommand(SmtpClientContext *context,
    }
 
    //Calculate the length of the SMTP command
-   context->commandLen = strlen(context->buffer);
+   context->commandLen = osStrlen(context->buffer);
 
    //Flush receive buffer
    context->bufferPos = 0;
@@ -262,47 +262,47 @@ error_t smtpClientParseEhloReply(SmtpClientContext *context,
    char_t *token;
 
    //The line must be at least 4 characters long
-   if(strlen(replyLine) < 4)
+   if(osStrlen(replyLine) < 4)
       return ERROR_INVALID_SYNTAX;
 
    //Skip the response code and the separator
    replyLine += 4;
 
    //Get the first keyword
-   token = strtok_r(replyLine, " ", &p);
+   token = osStrtok_r(replyLine, " ", &p);
    //Check whether the response line is empty
    if(token == NULL)
       return ERROR_INVALID_SYNTAX;
 
    //The response to EHLO is a multiline reply. Each line of the response
    //contains a keyword
-   if(!strcasecmp(token, "STARTTLS"))
+   if(!osStrcasecmp(token, "STARTTLS"))
    {
       //The STARTTLS keyword is used to tell the SMTP client that the
       //SMTP server allows use of TLS
       context->startTlsSupported = TRUE;
    }
-   else if(!strcasecmp(token, "AUTH"))
+   else if(!osStrcasecmp(token, "AUTH"))
    {
       //The AUTH keyword contains a space-separated list of names of
       //available authentication mechanisms
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
 
       //Parse the list of keywords
       while(token != NULL)
       {
          //Check the name of the authentication mechanism
-         if(!strcasecmp(token, "LOGIN"))
+         if(!osStrcasecmp(token, "LOGIN"))
          {
             //LOGIN authentication mechanism is supported
             context->authLoginSupported = TRUE;
          }
-         else if(!strcasecmp(token, "PLAIN"))
+         else if(!osStrcasecmp(token, "PLAIN"))
          {
             //PLAIN authentication mechanism is supported
             context->authPlainSupported = TRUE;
          }
-         else if(!strcasecmp(token, "CRAM-MD5"))
+         else if(!osStrcasecmp(token, "CRAM-MD5"))
          {
             //CRAM-MD5 authentication mechanism is supported
             context->authCramMd5Supported = TRUE;
@@ -313,7 +313,7 @@ error_t smtpClientParseEhloReply(SmtpClientContext *context,
          }
 
          //Get the next keyword
-         token = strtok_r(NULL, " ", &p);
+         token = osStrtok_r(NULL, " ", &p);
       }
    }
    else
@@ -332,7 +332,7 @@ error_t smtpClientParseEhloReply(SmtpClientContext *context,
  * @param[in] from Email address of the sender
  * @param[in] recipients Email addresses of the recipients
  * @param[in] numRecipients Number of email addresses in the list
- * @param[in] subject NULL-terminsated string containing the email subject
+ * @param[in] subject NULL-terminated string containing the email subject
  * @return Error code
  **/
 
@@ -355,12 +355,12 @@ error_t smtpClientFormatMailHeader(SmtpClientContext *context,
       if(from->name && from->name[0] != '\0')
       {
          //A friendly name may be associated with the sender address
-         p += sprintf(p, "From: \"%s\" <%s>\r\n", from->name, from->addr);
+         p += osSprintf(p, "From: \"%s\" <%s>\r\n", from->name, from->addr);
       }
       else
       {
          //Format sender address
-         p += sprintf(p, "From: %s\r\n", from->addr);
+         p += osSprintf(p, "From: %s\r\n", from->addr);
       }
    }
 
@@ -383,19 +383,19 @@ error_t smtpClientFormatMailHeader(SmtpClientContext *context,
                   if(type == SMTP_ADDR_TYPE_TO)
                   {
                      //List of recipients
-                     p += sprintf(p, "To: ");
+                     p += osSprintf(p, "To: ");
                   }
                   else if(type == SMTP_ADDR_TYPE_CC)
                   {
                      //List of recipients which should get a carbon copy (CC)
                      //of the message
-                     p += sprintf(p, "Cc: ");
+                     p += osSprintf(p, "Cc: ");
                   }
                   else if(type == SMTP_ADDR_TYPE_BCC)
                   {
                      //List of recipients which should get a blind carbon copy
                      //(BCC) of the message
-                     p += sprintf(p, "Bcc: ");
+                     p += osSprintf(p, "Bcc: ");
                   }
                   else
                   {
@@ -406,20 +406,20 @@ error_t smtpClientFormatMailHeader(SmtpClientContext *context,
                else
                {
                   //The addresses are comma-separated
-                  p += sprintf(p, ", ");
+                  p += osSprintf(p, ", ");
                }
 
                //Valid friendly name?
                if(recipients[i].name && recipients[i].name[0] != '\0')
                {
                   //A friendly name may be associated with the address
-                  p += sprintf(p, "\"%s\" <%s>", recipients[i].name,
+                  p += osSprintf(p, "\"%s\" <%s>", recipients[i].name,
                      recipients[i].addr);
                }
                else
                {
                   //Add the email address to the list of recipients
-                  p += sprintf(p, "%s", recipients[i].addr);
+                  p += osSprintf(p, "%s", recipients[i].addr);
                }
 
                //The current recipient is valid
@@ -432,7 +432,7 @@ error_t smtpClientFormatMailHeader(SmtpClientContext *context,
       if(!first)
       {
          //Terminate the line with a CRLF sequence
-         p += sprintf(p, "\r\n");
+         p += osSprintf(p, "\r\n");
       }
    }
 
@@ -440,7 +440,7 @@ error_t smtpClientFormatMailHeader(SmtpClientContext *context,
    if(subject != NULL && subject[0] != '\0')
    {
       //Format email subject
-      p += sprintf(p, "Subject: %s\r\n", subject);
+      p += osSprintf(p, "Subject: %s\r\n", subject);
    }
 
 #if (SMTP_CLIENT_MIME_SUPPORT == ENABLED)
@@ -449,32 +449,32 @@ error_t smtpClientFormatMailHeader(SmtpClientContext *context,
    {
       //The presence of this header field indicates the message is
       //MIME-formatted
-      p += sprintf(p, "MIME-Version: 1.0\r\n");
+      p += osSprintf(p, "MIME-Version: 1.0\r\n");
 
       //Check whether multipart encoding is being used
       if(!strncasecmp(context->contentType, "multipart/", 10))
       {
          //This Content-Type header field defines the boundary string
-         p += sprintf(p, "Content-Type: %s; boundary=%s\r\n",
+         p += osSprintf(p, "Content-Type: %s; boundary=%s\r\n",
             context->contentType, context->boundary);
       }
       else
       {
          //This Content-Type header field indicates the media type of the
          //message content, consisting of a type and subtype
-         p += sprintf(p, "Content-Type: %s\r\n", context->contentType);
+         p += osSprintf(p, "Content-Type: %s\r\n", context->contentType);
       }
    }
 #endif
 
    //The header and the body are separated by an empty line
-   sprintf(p, "\r\n");
+   osSprintf(p, "\r\n");
 
    //Debug message
    TRACE_DEBUG("%s", context->buffer);
 
    //Save the length of the header
-   context->bufferLen = strlen(context->buffer);
+   context->bufferLen = osStrlen(context->buffer);
    context->bufferPos = 0;
 
    //Successful processing
@@ -513,13 +513,13 @@ error_t smtpClientFormatMultipartHeader(SmtpClientContext *context,
       //of two hyphen characters followed by the boundary parameter value
       //from the Content-Type header field. The encapsulation boundary must
       //occur at the beginning of a line
-      p += sprintf(p, "\r\n--%s\r\n", context->boundary);
+      p += osSprintf(p, "\r\n--%s\r\n", context->boundary);
 
       //Valid file name?
       if(filename != NULL && filename[0] != '\0')
       {
          //The Content-Disposition header field specifies the presentation style
-         p += sprintf(p, "Content-Disposition: attachment; filename=\"%s\"\r\n",
+         p += osSprintf(p, "Content-Disposition: attachment; filename=\"%s\"\r\n",
             filename);
       }
 
@@ -528,7 +528,7 @@ error_t smtpClientFormatMultipartHeader(SmtpClientContext *context,
       {
          //This Content-Type header field indicates the media type of the
          //message content, consisting of a type and subtype
-         p += sprintf(p, "Content-Type: %s\r\n", contentType);
+         p += osSprintf(p, "Content-Type: %s\r\n", contentType);
       }
 
       //Valid content transfer encoding?
@@ -536,11 +536,11 @@ error_t smtpClientFormatMultipartHeader(SmtpClientContext *context,
       {
          //The Content-Transfer-Encoding header can be used for representing
          //binary data in formats other than ASCII text format
-         p += sprintf(p, "Content-Transfer-Encoding: %s\r\n",
+         p += osSprintf(p, "Content-Transfer-Encoding: %s\r\n",
             contentTransferEncoding);
 
          //Base64 encoding?
-         if(!strcasecmp(contentTransferEncoding, "base64"))
+         if(!osStrcasecmp(contentTransferEncoding, "base64"))
          {
             context->base64Encoding = TRUE;
          }
@@ -553,17 +553,17 @@ error_t smtpClientFormatMultipartHeader(SmtpClientContext *context,
       //will follow. Such a delimiter is identical to the previous
       //delimiters, with the addition of two more hyphens at the end of
       //the line
-      p += sprintf(p, "\r\n--%s--\r\n", context->boundary);
+      p += osSprintf(p, "\r\n--%s--\r\n", context->boundary);
    }
 
    //Terminate the multipart header with an empty line
-   sprintf(p, "\r\n");
+   osSprintf(p, "\r\n");
 
    //Debug message
    TRACE_DEBUG("%s", context->buffer);
 
    //Save the length of the header
-   context->bufferLen = strlen(context->buffer);
+   context->bufferLen = osStrlen(context->buffer);
    context->bufferPos = 0;
 
    //Successful processing

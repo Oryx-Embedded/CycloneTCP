@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -155,7 +155,7 @@ error_t ndpRouterAdvInit(NdpRouterAdvContext *context,
    interface = settings->interface;
 
    //Clear the RA service context
-   memset(context, 0, sizeof(NdpRouterAdvContext));
+   osMemset(context, 0, sizeof(NdpRouterAdvContext));
    //Save user settings
    context->settings = *settings;
 
@@ -183,7 +183,7 @@ error_t ndpRouterAdvStart(NdpRouterAdvContext *context)
    error_t error;
    NetInterface *interface;
 
-   //Check parameter
+   //Make sure the RA service context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -254,7 +254,7 @@ error_t ndpRouterAdvStop(NdpRouterAdvContext *context)
    error_t error;
    NetInterface *interface;
 
-   //Check parameter
+   //Make sure the RA service context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -600,6 +600,7 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    NdpRouterAdvMessage *message;
    NdpRouterAdvSettings *settings;
    Ipv6PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 #if (ETH_SUPPORT == ENABLED)
    NetInterface *logicalInterface;
 #endif
@@ -782,8 +783,17 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    //Dump message contents for debugging purpose
    ndpDumpRouterAdvMessage(message);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //By setting the Hop Limit to 255, Neighbor Discovery is immune to off-link
+   //senders that accidentally or intentionally send NDP messages (refer to
+   //RFC 4861, section 3.1)
+   ancillary.ttl = NDP_HOP_LIMIT;
+
    //Send Router Advertisement message
-   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset, NDP_HOP_LIMIT);
+   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);

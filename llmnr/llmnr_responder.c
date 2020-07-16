@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -87,11 +87,15 @@ error_t llmnrResponderInit(NetInterface *interface)
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming LLMNR message
  * @param[in] offset Offset to the first byte of the LLMNR message
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @param[in] param Callback function parameter (not used)
  **/
 
-void llmnrProcessQuery(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *param)
+void llmnrProcessQuery(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
+   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
+   void *param)
 {
    size_t n;
    size_t pos;
@@ -240,6 +244,7 @@ error_t llmnrSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
    LlmnrHeader *message;
    DnsQuestion *question;
    DnsResourceRecord *record;
+   NetTxAncillary ancillary;
 
    //Initialize status code
    error = NO_ERROR;
@@ -365,12 +370,22 @@ error_t llmnrSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
       //Dump message
       dnsDumpMessage((DnsHeader *) message, length);
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
+
       //For UDP responses, the Hop Limit field in the IPv6 header and the TTL
       //field in the IPV4 header MAY be set to any value. However, it is
       //recommended that the value 255 be used for compatibility with early
       //implementations (refer to RFC 4795, section 2.5)
-      error = udpSendDatagramEx(interface, NULL, LLMNR_PORT, destIpAddr,
-         destPort, buffer, offset, IP_FLAG_DONT_ROUTE | LLMNR_DEFAULT_IP_TTL);
+      ancillary.ttl = LLMNR_DEFAULT_IP_TTL;
+
+      //This flag tells the stack that the destination is on a locally attached
+      //network and not to perform a lookup of the routing table
+      ancillary.dontRoute = TRUE;
+
+      //Send LLMNR response
+      error = udpSendBuffer(interface, NULL, LLMNR_PORT, destIpAddr, destPort,
+         buffer, offset, &ancillary);
    }
 
    //Free previously allocated memory

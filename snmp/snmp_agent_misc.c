@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -223,10 +223,10 @@ SnmpUserEntry *snmpFindCommunityEntry(SnmpAgentContext *context,
          if(context->communityTable[i].status != MIB_ROW_STATUS_UNUSED)
          {
             //Check the length of the community string
-            if(strlen(context->communityTable[i].name) == length)
+            if(osStrlen(context->communityTable[i].name) == length)
             {
                //Compare community strings
-               if(!strncmp(context->communityTable[i].name, community, length))
+               if(!osStrncmp(context->communityTable[i].name, community, length))
                {
                   //A matching entry has been found
                   entry = &context->communityTable[i];
@@ -453,7 +453,7 @@ error_t snmpCopyVarBindingList(SnmpAgentContext *context)
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy the list of variable bindings to the response buffer
-   memcpy(context->response.varBindList, context->request.varBindList,
+   osMemcpy(context->response.varBindList, context->request.varBindList,
       context->request.varBindListLen);
 
    //Save the length of the list
@@ -522,7 +522,7 @@ error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
          //Retrieve the length of the snmpTraps OID
          n = sizeof(snmpTrapsObject);
          //Copy the OID
-         memcpy(message->buffer, snmpTrapsObject, n);
+         osMemcpy(message->buffer, snmpTrapsObject, n);
 
          //For generic traps, the SNMPv2 snmpTrapOID parameter shall be
          //the corresponding trap as defined in section 2 of RFC 3418
@@ -540,7 +540,7 @@ error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
          //be the concatenation of the SNMPv1 enterprise OID and two additional
          //sub-identifiers, '0' and the SNMPv1 specific trap parameter. Refer
          //to RFC 3584, section 3.1 and RFC 2578, section 8.5
-         memcpy(message->buffer, context->enterpriseOid, n);
+         osMemcpy(message->buffer, context->enterpriseOid, n);
 
          //Concatenate the '0' sub-identifier
          message->buffer[n++] = 0;
@@ -554,7 +554,7 @@ error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
             //Split the binary representation into 7 bit chunks
             specificTrapCode /= 128;
             //Make room for the new chunk
-            memmove(message->buffer + n + 1, message->buffer + n, i);
+            osMemmove(message->buffer + n + 1, message->buffer + n, i);
             //Set the most significant bit in the current chunk
             message->buffer[n] = OID_MORE_FLAG | (specificTrapCode % 128);
          }

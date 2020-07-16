@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -165,17 +165,21 @@ error_t esp8266WifiInit(NetInterface *interface)
 
    //Return status code
    if(ret)
+   {
       return NO_ERROR;
+   }
    else
+   {
       return ERROR_FAILURE;
+   }
 }
 
 
 /**
  * @brief ESP8266 Wi-Fi timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -220,11 +224,13 @@ void esp8266WifiEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t esp8266WifiSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    int_t ret;
    size_t length;
@@ -233,9 +239,13 @@ error_t esp8266WifiSendPacket(NetInterface *interface,
 
    //STA or AP mode?
    if(interface == esp8266WifiStaInterface)
+   {
       netif = sdk_system_get_netif(STATION_IF);
+   }
    else
+   {
       netif = sdk_system_get_netif(SOFTAP_IF);
+   }
 
    //Sanity check
    if(netif != NULL)
@@ -265,9 +275,13 @@ error_t esp8266WifiSendPacket(NetInterface *interface,
 
    //Return status code
    if(!ret)
+   {
       return NO_ERROR;
+   }
    else
+   {
       return ERROR_FAILURE;
+   }
 }
 
 
@@ -295,11 +309,17 @@ void netif_set_up(struct netif *netif)
 
    //Check the interface where the event is occurring
    if(netif == sdk_system_get_netif(STATION_IF))
+   {
       interface = esp8266WifiStaInterface;
+   }
    else if(netif == sdk_system_get_netif(SOFTAP_IF))
+   {
       interface = esp8266WifiApInterface;
+   }
    else
+   {
       interface = NULL;
+   }
 
    //Valid interface?
    if(interface != NULL)
@@ -328,11 +348,17 @@ void netif_set_down(struct netif *netif)
 
    //Check the interface where the event is occurring
    if(netif == sdk_system_get_netif(STATION_IF))
+   {
       interface = esp8266WifiStaInterface;
+   }
    else if(netif == sdk_system_get_netif(SOFTAP_IF))
+   {
       interface = esp8266WifiApInterface;
+   }
    else
+   {
       interface = NULL;
+   }
 
    //Valid interface?
    if(interface != NULL)
@@ -359,14 +385,21 @@ void netif_set_down(struct netif *netif)
 void ethernetif_input(struct netif *netif, struct pbuf *p)
 {
    NetInterface *interface;
+   NetRxAncillary ancillary;
 
    //Check the interface where the event is occurring
    if(netif == sdk_system_get_netif(STATION_IF))
+   {
       interface = esp8266WifiStaInterface;
+   }
    else if(netif == sdk_system_get_netif(SOFTAP_IF))
+   {
       interface = esp8266WifiApInterface;
+   }
    else
+   {
       interface = NULL;
+   }
 
    //Valid buffer?
    if(p != NULL)
@@ -376,8 +409,13 @@ void ethernetif_input(struct netif *netif, struct pbuf *p)
       {
          //Get exclusive access
          osAcquireMutex(&netMutex);
+
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_RX_ANCILLARY;
+
          //Pass the packet to the upper layer
-         nicProcessPacket(interface, p->payload, p->len);
+         nicProcessPacket(interface, p->payload, p->len, &ancillary);
+
          //Release exclusive access
          osReleaseMutex(&netMutex);
       }

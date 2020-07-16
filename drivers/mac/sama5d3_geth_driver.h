@@ -1,12 +1,12 @@
 /**
  * @file sama5d3_geth_driver.h
- * @brief SAMA5D3 Gigabit Ethernet MAC controller
+ * @brief SAMA5D3 Gigabit Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,45 +25,50 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _SAMA5D3_GETH_DRIVER_H
 #define _SAMA5D3_GETH_DRIVER_H
 
 //Number of TX buffers
-#ifndef SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT
-   #define SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT 2
-#elif (SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT != 2)
-   #error SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef SAMA5D3_GETH_TX_BUFFER_COUNT
+   #define SAMA5D3_GETH_TX_BUFFER_COUNT 2
+#elif (SAMA5D3_GETH_TX_BUFFER_COUNT != 2)
+   #error SAMA5D3_GETH_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef SAMA5D3_GIGABIT_ETH_TX_BUFFER_SIZE
-   #define SAMA5D3_GIGABIT_ETH_TX_BUFFER_SIZE 1536
-#elif (SAMA5D3_GIGABIT_ETH_TX_BUFFER_SIZE != 1536)
-   #error SAMA5D3_GIGABIT_ETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef SAMA5D3_GETH_TX_BUFFER_SIZE
+   #define SAMA5D3_GETH_TX_BUFFER_SIZE 1536
+#elif (SAMA5D3_GETH_TX_BUFFER_SIZE != 1536)
+   #error SAMA5D3_GETH_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT
-   #define SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT 96
-#elif (SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT < 12)
-   #error SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef SAMA5D3_GETH_RX_BUFFER_COUNT
+   #define SAMA5D3_GETH_RX_BUFFER_COUNT 96
+#elif (SAMA5D3_GETH_RX_BUFFER_COUNT < 12)
+   #error SAMA5D3_GETH_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef SAMA5D3_GIGABIT_ETH_RX_BUFFER_SIZE
-   #define SAMA5D3_GIGABIT_ETH_RX_BUFFER_SIZE 128
-#elif (SAMA5D3_GIGABIT_ETH_RX_BUFFER_SIZE != 128)
-   #error SAMA5D3_GIGABIT_ETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef SAMA5D3_GETH_RX_BUFFER_SIZE
+   #define SAMA5D3_GETH_RX_BUFFER_SIZE 128
+#elif (SAMA5D3_GETH_RX_BUFFER_SIZE != 128)
+   #error SAMA5D3_GETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Gigabit Ethernet interrupt priority
-#ifndef SAMA5D3_GIGABIT_ETH_IRQ_PRIORITY
-   #define SAMA5D3_GIGABIT_ETH_IRQ_PRIORITY 0
-#elif (SAMA5D3_GIGABIT_ETH_IRQ_PRIORITY < 0)
-   #error SAMA5D3_GIGABIT_ETH_IRQ_PRIORITY parameter is not valid
+#ifndef SAMA5D3_GETH_IRQ_PRIORITY
+   #define SAMA5D3_GETH_IRQ_PRIORITY 0
+#elif (SAMA5D3_GETH_IRQ_PRIORITY < 0)
+   #error SAMA5D3_GETH_IRQ_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef SAMA5D3_GETH_RAM_SECTION
+   #define SAMA5D3_GETH_RAM_SECTION ".ram_no_cache"
 #endif
 
 //RGMII signals
@@ -153,7 +158,7 @@ void sama5d3GigabitEthIrqHandler(void);
 void sama5d3GigabitEthEventHandler(NetInterface *interface);
 
 error_t sama5d3GigabitEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t sama5d3GigabitEthReceivePacket(NetInterface *interface);
 

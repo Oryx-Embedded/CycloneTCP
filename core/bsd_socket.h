@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -63,9 +63,16 @@
 #include "os_port.h"
 
 //Address families
+#define AF_UNSPEC        0
 #define AF_INET          2
 #define AF_INET6         10
 #define AF_PACKET        17
+
+//Protocol families
+#define PF_UNSPEC        AF_UNSPEC
+#define PF_INET          AF_INET
+#define PF_INET6         AF_INET6
+#define PF_PACKET        AF_PACKET
 
 //Socket types
 #define SOCK_STREAM      1
@@ -143,6 +150,7 @@
 #define SOCKET_ERROR (-1)
 
 //Error codes
+#define EINTR        4
 #define EAGAIN       11
 #define EWOULDBLOCK  11
 #define EFAULT       14
@@ -153,6 +161,13 @@
 #define ENOTCONN     107
 #define ESHUTDOWN    108
 #define ECONNREFUSED 111
+
+//Host error codes
+#define NETDB_SUCCESS  0
+#define HOST_NOT_FOUND 1
+#define TRY_AGAIN      2
+#define NO_RECOVERY    3
+#define NO_ADDRESS     4
 
 //Return codes
 #define INADDR_NONE ((in_addr_t) (-1))
@@ -317,12 +332,16 @@ void selectFdSet(fd_set *fds, int_t s);
 void selectFdClr(fd_set *fds, int_t s);
 int_t selectFdIsSet(fd_set *fds, int_t s);
 
-int_t gethostbyname(const char_t *name, hostent *info);
+hostent *gethostbyname(const char_t *name);
+
+hostent *gethostbyname_r(const char_t *name, hostent *result, char_t *buf,
+   size_t buflen, int_t *h_errnop);
 
 in_addr_t inet_addr(const char_t *cp);
 
 int_t inet_aton(const char_t *cp, in_addr *inp);
-const char_t *inet_ntoa(in_addr in, char_t *cp);
+const char_t *inet_ntoa(in_addr in);
+const char_t *inet_ntoa_r(in_addr in, char_t *buf, socklen_t buflen);
 
 int_t inet_pton(int_t af, const char_t *src, void *dst);
 const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size);

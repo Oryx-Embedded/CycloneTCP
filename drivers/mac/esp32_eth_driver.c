@@ -1,12 +1,12 @@
 /**
  * @file esp32_eth_driver.c
- * @brief ESP32 Ethernet MAC controller
+ * @brief ESP32 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -122,11 +122,28 @@ error_t esp32EthInit(NetInterface *interface)
    //Adjust MDC clock range
    REG_SET_FIELD(EMAC_GMIIADDR_REG, EMAC_MIICSRCLK, 1);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Use default MAC configuration
    REG_WRITE(EMAC_GMACCONFIG_REG, 0);
@@ -353,16 +370,29 @@ void esp32EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief ESP32 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void esp32EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -373,8 +403,22 @@ void esp32EthTick(NetInterface *interface)
 
 void esp32EthEnableIrq(NetInterface *interface)
 {
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -385,8 +429,22 @@ void esp32EthEnableIrq(NetInterface *interface)
 
 void esp32EthDisableIrq(NetInterface *interface)
 {
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -409,22 +467,22 @@ void IRAM_ATTR esp32EthIrqHandler(void *arg)
    //Read DMA status register
    status = REG_READ(EMAC_DMASTATUS_REG);
 
-   //A packet has been transmitted?
-   if(status & EMAC_TRANS_INT_M)
+   //Packet transmitted?
+   if((status & EMAC_TRANS_INT_M) != 0)
    {
       //Clear TI interrupt flag
       REG_WRITE(EMAC_DMASTATUS_REG, EMAC_TRANS_INT_M);
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurDmaDesc->tdes0 & EMAC_TDES0_OWN))
+      if((txCurDmaDesc->tdes0 & EMAC_TDES0_OWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & EMAC_RECV_INT_M)
+   //Packet received?
+   if((status & EMAC_RECV_INT_M) != 0)
    {
       //Disable RIE interrupt
       REG_CLR_BIT(EMAC_DMAIN_EN_REG, EMAC_DMAIN_RIE);
@@ -479,11 +537,13 @@ void esp32EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t esp32EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -500,8 +560,10 @@ error_t esp32EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurDmaDesc->tdes0 & EMAC_TDES0_OWN)
+   if((txCurDmaDesc->tdes0 & EMAC_TDES0_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txCurDmaDesc->tdes2, buffer, offset, length);
@@ -522,7 +584,7 @@ error_t esp32EthSendPacket(NetInterface *interface,
    txCurDmaDesc = (Esp32EthTxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurDmaDesc->tdes0 & EMAC_TDES0_OWN))
+   if((txCurDmaDesc->tdes0 & EMAC_TDES0_OWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -543,23 +605,29 @@ error_t esp32EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurDmaDesc->rdes0 & EMAC_RDES0_OWN))
+   if((rxCurDmaDesc->rdes0 & EMAC_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
-      if((rxCurDmaDesc->rdes0 & EMAC_RDES0_FS) && (rxCurDmaDesc->rdes0 & EMAC_RDES0_LS))
+      if((rxCurDmaDesc->rdes0 & EMAC_RDES0_FS) != 0 &&
+         (rxCurDmaDesc->rdes0 & EMAC_RDES0_LS) != 0)
       {
          //Make sure no error occurred
-         if(!(rxCurDmaDesc->rdes0 & EMAC_RDES0_ES))
+         if((rxCurDmaDesc->rdes0 & EMAC_RDES0_ES) == 0)
          {
             //Retrieve the length of the frame
             n = (rxCurDmaDesc->rdes0 & EMAC_RDES0_FL) >> 16;
             //Limit the number of data to read
             n = MIN(n, ESP32_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n);
+            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n,
+               &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -680,7 +748,7 @@ error_t esp32EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Configure the third unicast address filter
    if(j >= 3)
-    {
+   {
       REG_WRITE(EMAC_ADDR3HIGH_REG, unicastMacAddr[2].w[2] | EMAC_ADDRESS_ENABLE3_M);
       REG_WRITE(EMAC_ADDR3LOW_REG, unicastMacAddr[2].w[0] | (unicastMacAddr[0].w[2] << 16));
    }
@@ -720,15 +788,23 @@ error_t esp32EthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= EMAC_EMACFESPEED_M;
+   }
    else
+   {
       config &= ~EMAC_EMACFESPEED_M;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= EMAC_EMACDUPLEX_M;
+   }
    else
+   {
       config &= ~EMAC_EMACDUPLEX_M;
+   }
 
    //Update MAC configuration register
    REG_WRITE(EMAC_GMACCONFIG_REG, config);

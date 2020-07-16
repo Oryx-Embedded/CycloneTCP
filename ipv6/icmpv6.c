@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -416,6 +416,8 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
    //Check status code
    if(!error)
    {
+      NetTxAncillary ancillary;
+
       //Get the length of the resulting message
       replyLength = netBufferGetLength(reply) - replyOffset;
 
@@ -439,8 +441,12 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
       //Dump message contents for debugging purpose
       icmpv6DumpEchoMessage(replyHeader);
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
+
       //Send Echo Reply message
-      ipv6SendDatagram(interface, &replyPseudoHeader, reply, replyOffset, 0);
+      ipv6SendDatagram(interface, &replyPseudoHeader, reply, replyOffset,
+         &ancillary);
    }
 
    //Free previously allocated memory block
@@ -584,6 +590,8 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type, uint8_t co
       //Check status code
       if(!error)
       {
+         NetTxAncillary ancillary;
+
          //Message checksum calculation
          icmpHeader->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader,
             sizeof(Ipv6PseudoHeader), icmpMessage, offset, length);
@@ -598,8 +606,12 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type, uint8_t co
          //Dump message contents for debugging purpose
          icmpv6DumpErrorMessage(icmpHeader);
 
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_TX_ANCILLARY;
+
          //Send ICMPv6 Error message
-         error = ipv6SendDatagram(interface, &pseudoHeader, icmpMessage, offset, 0);
+         error = ipv6SendDatagram(interface, &pseudoHeader, icmpMessage, offset,
+            &ancillary);
       }
    }
 

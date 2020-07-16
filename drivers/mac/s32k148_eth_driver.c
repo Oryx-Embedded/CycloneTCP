@@ -1,12 +1,12 @@
 /**
  * @file s32k148_eth_driver.c
- * @brief NXP S32K148 Ethernet MAC controller
+ * @brief NXP S32K148 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -138,7 +138,7 @@ error_t s32k148EthInit(NetInterface *interface)
    //Reset ENET module
    ENET->ECR = ENET_ECR_RESET_MASK;
    //Wait for the reset to complete
-   while(ENET->ECR & ENET_ECR_RESET_MASK)
+   while((ENET->ECR & ENET_ECR_RESET_MASK) != 0)
    {
    }
 
@@ -151,11 +151,28 @@ error_t s32k148EthInit(NetInterface *interface)
    //Configure MDC clock frequency
    ENET->MSCR = ENET_MSCR_MII_SPEED(23);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the MAC address of the station (upper 16 bits)
    value = interface->macAddr.b[5];
@@ -287,8 +304,8 @@ void s32k148EthInitBufferDesc(NetInterface *interface)
    uint32_t address;
 
    //Clear TX and RX buffer descriptors
-   memset(txBufferDesc, 0, sizeof(txBufferDesc));
-   memset(rxBufferDesc, 0, sizeof(rxBufferDesc));
+   osMemset(txBufferDesc, 0, sizeof(txBufferDesc));
+   osMemset(rxBufferDesc, 0, sizeof(rxBufferDesc));
 
    //Initialize TX buffer descriptors
    for(i = 0; i < S32K148_ETH_TX_BUFFER_COUNT; i++)
@@ -336,16 +353,29 @@ void s32k148EthInitBufferDesc(NetInterface *interface)
 /**
  * @brief S32K148 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void s32k148EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -361,8 +391,22 @@ void s32k148EthEnableIrq(NetInterface *interface)
    NVIC_EnableIRQ(ENET_RX_IRQn);
    NVIC_EnableIRQ(ENET_ERR_IRQn);
 
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -378,8 +422,22 @@ void s32k148EthDisableIrq(NetInterface *interface)
    NVIC_DisableIRQ(ENET_RX_IRQn);
    NVIC_DisableIRQ(ENET_ERR_IRQn);
 
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -397,14 +455,14 @@ void ENET_TX_IRQHandler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //A packet has been transmitted?
-   if(ENET->EIR & ENET_EIR_TXF_MASK)
+   //Packet transmitted?
+   if((ENET->EIR & ENET_EIR_TXF_MASK) != 0)
    {
       //Clear TXF interrupt flag
       ENET->EIR = ENET_EIR_TXF_MASK;
 
       //Check whether the TX buffer is available for writing
-      if(!(txBufferDesc[txBufferIndex][0] & ENET_TBD0_R))
+      if((txBufferDesc[txBufferIndex][0] & ENET_TBD0_R) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag = osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -433,8 +491,8 @@ void ENET_RX_IRQHandler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //A packet has been received?
-   if(ENET->EIR & ENET_EIR_RXF_MASK)
+   //Packet received?
+   if((ENET->EIR & ENET_EIR_RXF_MASK) != 0)
    {
       //Disable RXF interrupt
       ENET->EIMR &= ~ENET_EIMR_RXF_MASK;
@@ -465,7 +523,7 @@ void ENET_ERR_IRQHandler(void)
    flag = FALSE;
 
    //System bus error?
-   if(ENET->EIR & ENET_EIR_EBERR_MASK)
+   if((ENET->EIR & ENET_EIR_EBERR_MASK) != 0)
    {
       //Disable EBERR interrupt
       ENET->EIMR &= ~ENET_EIMR_EBERR_MASK;
@@ -495,7 +553,7 @@ void s32k148EthEventHandler(NetInterface *interface)
    status = ENET->EIR;
 
    //Packet received?
-   if(status & ENET_EIR_RXF_MASK)
+   if((status & ENET_EIR_RXF_MASK) != 0)
    {
       //Clear RXF interrupt flag
       ENET->EIR = ENET_EIR_RXF_MASK;
@@ -511,7 +569,7 @@ void s32k148EthEventHandler(NetInterface *interface)
    }
 
    //System bus error?
-   if(status & ENET_EIR_EBERR_MASK)
+   if((status & ENET_EIR_EBERR_MASK) != 0)
    {
       //Clear EBERR interrupt flag
       ENET->EIR = ENET_EIR_EBERR_MASK;
@@ -536,11 +594,13 @@ void s32k148EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t s32k148EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -557,8 +617,10 @@ error_t s32k148EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txBufferDesc[txBufferIndex][0] & ENET_TBD0_R)
+   if((txBufferDesc[txBufferIndex][0] & ENET_TBD0_R) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer[txBufferIndex], buffer, offset, length);
@@ -590,7 +652,7 @@ error_t s32k148EthSendPacket(NetInterface *interface,
    ENET->TDAR = ENET_TDAR_TDAR_MASK;
 
    //Check whether the next buffer is available for writing
-   if(!(txBufferDesc[txBufferIndex][0] & ENET_TBD0_R))
+   if((txBufferDesc[txBufferIndex][0] & ENET_TBD0_R) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -611,12 +673,13 @@ error_t s32k148EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //Make sure the current buffer is available for reading
-   if(!(rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_E))
+   if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_E) == 0)
    {
       //The frame should not span multiple buffers
-      if(rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_L)
+      if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_L) != 0)
       {
          //Check whether an error occurred
          if(!(rxBufferDesc[rxBufferIndex][0] & (ENET_RBD0_LG |
@@ -627,8 +690,11 @@ error_t s32k148EthReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, S32K148_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, rxBuffer[rxBufferIndex], n);
+            nicProcessPacket(interface, rxBuffer[rxBufferIndex], n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -850,7 +916,7 @@ void s32k148EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       ENET->MMFR = temp;
 
       //Wait for the write to complete
-      while(!(ENET->EIR & ENET_EIR_MII_MASK))
+      while((ENET->EIR & ENET_EIR_MII_MASK) == 0)
       {
       }
    }
@@ -891,7 +957,7 @@ uint16_t s32k148EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       ENET->MMFR = temp;
 
       //Wait for the read to complete
-      while(!(ENET->EIR & ENET_EIR_MII_MASK))
+      while((ENET->EIR & ENET_EIR_MII_MASK) == 0)
       {
       }
 
@@ -920,11 +986,13 @@ uint32_t s32k148EthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -934,10 +1002,14 @@ uint32_t s32k148EthCalcCrc(const void *data, size_t length)
       //The message is processed bit by bit
       for(j = 0; j < 8; j++)
       {
-         if(crc & 0x00000001)
+         if((crc & 0x01) != 0)
+         {
             crc = (crc >> 1) ^ 0xEDB88320;
+         }
          else
+         {
             crc = crc >> 1;
+         }
       }
    }
 

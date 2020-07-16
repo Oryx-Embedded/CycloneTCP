@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -89,7 +89,7 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
 
       //Information about the user name is extracted from the local
       //configuration datastore
-      user = snmpFindUserEntry(context, userName, strlen(userName));
+      user = snmpFindUserEntry(context, userName, osStrlen(userName));
 
       //Invalid user name?
       if(user == NULL || user->status != MIB_ROW_STATUS_ACTIVE)
@@ -213,7 +213,7 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
    {
       //Community name
       message->community = userName;
-      message->communityLen = strlen(userName);
+      message->communityLen = osStrlen(userName);
    }
    else
 #endif
@@ -255,7 +255,7 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
       message->msgAuthEngineTime = context->informEngineTime;
       //User name
       message->msgUserName = userName;
-      message->msgUserNameLen = strlen(userName);
+      message->msgUserNameLen = osStrlen(userName);
       //Authentication parameters
       message->msgAuthParameters = NULL;
       //Length of the authentication parameters
@@ -276,7 +276,7 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
       message->contextEngineIdLen = context->contextEngineLen;
       //Context name
       message->contextName = context->contextName;
-      message->contextNameLen = strlen(context->contextName);
+      message->contextNameLen = osStrlen(context->contextName);
    }
    else
 #endif
@@ -331,7 +331,7 @@ error_t snmpFormatGetRequestMessage(SnmpAgentContext *context,
    error_t error;
 
    //Clear the security profile
-   memset(&context->user, 0, sizeof(SnmpUserEntry));
+   osMemset(&context->user, 0, sizeof(SnmpUserEntry));
 
    //Format GetRequest-PDU
    error = snmpFormatGetRequestPdu(context, version);
@@ -483,7 +483,7 @@ error_t snmpProcessReportPdu(SnmpAgentContext *context)
    if(message->msgAuthEngineIdLen <= SNMP_MAX_CONTEXT_ENGINE_SIZE)
    {
       //Save the authoritative engine identifier
-      memcpy(context->informContextEngine, message->msgAuthEngineId,
+      osMemcpy(context->informContextEngine, message->msgAuthEngineId,
          message->msgAuthEngineIdLen);
 
       //Save the length of the engine identifier

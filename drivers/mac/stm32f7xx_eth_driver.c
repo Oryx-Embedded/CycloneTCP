@@ -1,12 +1,12 @@
 /**
  * @file stm32f7xx_eth_driver.c
- * @brief STM32F7 Ethernet MAC controller
+ * @brief STM32F7 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -46,19 +46,19 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = STM32F7XX_ETH_RAM_SECTION
 static uint8_t txBuffer[STM32F7XX_ETH_TX_BUFFER_COUNT][STM32F7XX_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = STM32F7XX_ETH_RAM_SECTION
 static uint8_t rxBuffer[STM32F7XX_ETH_RX_BUFFER_COUNT][STM32F7XX_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = STM32F7XX_ETH_RAM_SECTION
 static Stm32f7xxTxDmaDesc txDmaDesc[STM32F7XX_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 4
-#pragma location = ".ram_no_cache"
+#pragma location = STM32F7XX_ETH_RAM_SECTION
 static Stm32f7xxRxDmaDesc rxDmaDesc[STM32F7XX_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
@@ -66,16 +66,16 @@ static Stm32f7xxRxDmaDesc rxDmaDesc[STM32F7XX_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer
 static uint8_t txBuffer[STM32F7XX_ETH_TX_BUFFER_COUNT][STM32F7XX_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(STM32F7XX_ETH_RAM_SECTION)));
 //Receive buffer
 static uint8_t rxBuffer[STM32F7XX_ETH_RX_BUFFER_COUNT][STM32F7XX_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(STM32F7XX_ETH_RAM_SECTION)));
 //Transmit DMA descriptors
 static Stm32f7xxTxDmaDesc txDmaDesc[STM32F7XX_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(STM32F7XX_ETH_RAM_SECTION)));
 //Receive DMA descriptors
 static Stm32f7xxRxDmaDesc rxDmaDesc[STM32F7XX_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(".ram_no_cache")));
+   __attribute__((aligned(4), __section__(STM32F7XX_ETH_RAM_SECTION)));
 
 #endif
 
@@ -141,21 +141,38 @@ error_t stm32f7xxEthInit(NetInterface *interface)
    //Perform a software reset
    ETH->DMABMR |= ETH_DMABMR_SR;
    //Wait for the reset to complete
-   while(ETH->DMABMR & ETH_DMABMR_SR)
+   while((ETH->DMABMR & ETH_DMABMR_SR) != 0)
    {
    }
 
    //Adjust MDC clock range depending on HCLK frequency
    ETH->MACMIIAR = ETH_MACMIIAR_CR_Div102;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Use default MAC configuration
-   ETH->MACCR = ETH_MACCR_ROD;
+   ETH->MACCR = ETH_MACCR_RESERVED15 | ETH_MACCR_ROD;
 
    //Set the MAC address of the station
    ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
@@ -224,7 +241,7 @@ error_t stm32f7xxEthInit(NetInterface *interface)
 //STM32F769I-Discovery, Nucleo-F746ZG or Nucleo-F767ZI evaluation board?
 #if defined(USE_STM32756G_EVAL) || defined(USE_STM32F769I_EVAL) || \
    defined(USE_STM32746G_DISCO) || defined(USE_STM32F7508_DISCO) || \
-   defined(USE_STM32F769I_DISCO) ||defined(USE_STM32F7XX_NUCLEO_144)
+   defined(USE_STM32F769I_DISCO) || defined(USE_STM32F7XX_NUCLEO_144)
 
 /**
  * @brief GPIO configuration
@@ -262,41 +279,25 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    //Select MII interface mode
    SYSCFG->PMC &= ~SYSCFG_PMC_MII_RMII_SEL;
 
-#if defined(STM32F7XX_ETH_MDIO_PIN) && defined(STM32F7XX_ETH_MDC_PIN)
-   //Configure ETH_MDIO as a GPIO
-   GPIO_InitStructure.Pin = STM32F7XX_ETH_MDIO_PIN;
-   GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
-   GPIO_InitStructure.Pull = GPIO_PULLUP;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
-   HAL_GPIO_Init(STM32F7XX_ETH_MDIO_GPIO, &GPIO_InitStructure);
+   //Configure MDIO/MDC pins
+   if(interface->smiDriver == NULL)
+   {
+      //Configure ETH_MDIO (PA2)
+      GPIO_InitStructure.Pin = GPIO_PIN_2;
+      GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+      GPIO_InitStructure.Pull = GPIO_PULLUP;
+      GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
+      GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+      HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-   //Configure ETH_MDC as a GPIO
-   GPIO_InitStructure.Pin = STM32F7XX_ETH_MDC_PIN;
-   GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
-   HAL_GPIO_Init(STM32F7XX_ETH_MDC_GPIO, &GPIO_InitStructure);
-
-   //Deassert MDC
-   HAL_GPIO_WritePin(STM32F7XX_ETH_MDC_GPIO,
-      STM32F7XX_ETH_MDC_PIN, GPIO_PIN_RESET);
-#else
-   //Configure ETH_MDIO (PA2)
-   GPIO_InitStructure.Pin = GPIO_PIN_2;
-   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-   GPIO_InitStructure.Pull = GPIO_PULLUP;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
-   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-   //Configure ETH_MDC (PC1)
-   GPIO_InitStructure.Pin = GPIO_PIN_1;
-   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
-   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
-#endif
+      //Configure ETH_MDC (PC1)
+      GPIO_InitStructure.Pin = GPIO_PIN_1;
+      GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+      GPIO_InitStructure.Pull = GPIO_NOPULL;
+      GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
+      GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+      HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+   }
 
    //Configure MII pins
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
@@ -514,16 +515,29 @@ void stm32f7xxEthInitDmaDesc(NetInterface *interface)
 /**
  * @brief STM32F7 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void stm32f7xxEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -536,8 +550,22 @@ void stm32f7xxEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ETH_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -550,8 +578,22 @@ void stm32f7xxEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ETH_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -573,22 +615,22 @@ void ETH_IRQHandler(void)
    //Read DMA status register
    status = ETH->DMASR;
 
-   //A packet has been transmitted?
-   if(status & ETH_DMASR_TS)
+   //Packet transmitted?
+   if((status & ETH_DMASR_TS) != 0)
    {
       //Clear TS interrupt flag
       ETH->DMASR = ETH_DMASR_TS;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurDmaDesc->tdes0 & ETH_TDES0_OWN))
+      if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & ETH_DMASR_RS)
+   //Packet received?
+   if((status & ETH_DMASR_RS) != 0)
    {
       //Disable RIE interrupt
       ETH->DMAIER &= ~ETH_DMAIER_RIE;
@@ -617,7 +659,7 @@ void stm32f7xxEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(ETH->DMASR & ETH_DMASR_RS)
+   if((ETH->DMASR & ETH_DMASR_RS) != 0)
    {
       //Clear interrupt flag
       ETH->DMASR = ETH_DMASR_RS;
@@ -642,11 +684,13 @@ void stm32f7xxEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t stm32f7xxEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    static uint8_t temp[STM32F7XX_ETH_TX_BUFFER_SIZE];
    size_t length;
@@ -664,12 +708,14 @@ error_t stm32f7xxEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurDmaDesc->tdes0 & ETH_TDES0_OWN)
+   if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(temp, buffer, offset, length);
-   memcpy((uint8_t *) txCurDmaDesc->tdes2, temp, (length + 3) & ~3UL);
+   osMemcpy((uint8_t *) txCurDmaDesc->tdes2, temp, (length + 3) & ~3UL);
 
    //Write the number of bytes to send
    txCurDmaDesc->tdes1 = length & ETH_TDES1_TBS1;
@@ -690,7 +736,7 @@ error_t stm32f7xxEthSendPacket(NetInterface *interface,
    txCurDmaDesc = (Stm32f7xxTxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurDmaDesc->tdes0 & ETH_TDES0_OWN))
+   if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -712,15 +758,17 @@ error_t stm32f7xxEthReceivePacket(NetInterface *interface)
    static uint8_t temp[STM32F7XX_ETH_RX_BUFFER_SIZE];
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurDmaDesc->rdes0 & ETH_RDES0_OWN))
+   if((rxCurDmaDesc->rdes0 & ETH_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
-      if((rxCurDmaDesc->rdes0 & ETH_RDES0_FS) && (rxCurDmaDesc->rdes0 & ETH_RDES0_LS))
+      if((rxCurDmaDesc->rdes0 & ETH_RDES0_FS) != 0 &&
+         (rxCurDmaDesc->rdes0 & ETH_RDES0_LS) != 0)
       {
          //Make sure no error occurred
-         if(!(rxCurDmaDesc->rdes0 & ETH_RDES0_ES))
+         if((rxCurDmaDesc->rdes0 & ETH_RDES0_ES) == 0)
          {
             //Retrieve the length of the frame
             n = (rxCurDmaDesc->rdes0 & ETH_RDES0_FL) >> 16;
@@ -728,10 +776,13 @@ error_t stm32f7xxEthReceivePacket(NetInterface *interface)
             n = MIN(n, STM32F7XX_ETH_RX_BUFFER_SIZE);
 
             //Copy data from the receive buffer
-            memcpy(temp, (uint8_t *) rxCurDmaDesc->rdes2, (n + 3) & ~3UL);
+            osMemcpy(temp, (uint8_t *) rxCurDmaDesc->rdes2, (n + 3) & ~3UL);
+
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, temp, n);
+            nicProcessPacket(interface, temp, n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -906,15 +957,23 @@ error_t stm32f7xxEthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= ETH_MACCR_FES;
+   }
    else
+   {
       config &= ~ETH_MACCR_FES;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= ETH_MACCR_DM;
+   }
    else
+   {
       config &= ~ETH_MACCR_DM;
+   }
 
    //Update MAC configuration register
    ETH->MACCR = config;
@@ -935,24 +994,6 @@ error_t stm32f7xxEthUpdateMacConfig(NetInterface *interface)
 void stm32f7xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
-#if defined(STM32F7XX_ETH_MDC_PIN) && defined(STM32F7XX_ETH_MDIO_PIN)
-   //Synchronization pattern
-   stm32f7xxEthWriteSmi(SMI_SYNC, 32);
-   //Start of frame
-   stm32f7xxEthWriteSmi(SMI_START, 2);
-   //Set up a write operation
-   stm32f7xxEthWriteSmi(opcode, 2);
-   //Write PHY address
-   stm32f7xxEthWriteSmi(phyAddr, 5);
-   //Write register address
-   stm32f7xxEthWriteSmi(regAddr, 5);
-   //Turnaround
-   stm32f7xxEthWriteSmi(SMI_TA, 2);
-   //Write register value
-   stm32f7xxEthWriteSmi(data, 16);
-   //Release MDIO
-   stm32f7xxEthReadSmi(1);
-#else
    //Valid opcode?
    if(opcode == SMI_OPCODE_WRITE)
    {
@@ -973,7 +1014,7 @@ void stm32f7xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       ETH->MACMIIAR = temp;
       //Wait for the write to complete
-      while(ETH->MACMIIAR & ETH_MACMIIAR_MB)
+      while((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
       {
       }
    }
@@ -981,7 +1022,6 @@ void stm32f7xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    {
       //The MAC peripheral only supports standard Clause 22 opcodes
    }
-#endif
 }
 
 
@@ -997,30 +1037,11 @@ uint16_t stm32f7xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr)
 {
    uint16_t data;
+   uint32_t temp;
 
-#if defined(STM32F7XX_ETH_MDC_PIN) && defined(STM32F7XX_ETH_MDIO_PIN)
-   //Synchronization pattern
-   stm32f7xxEthWriteSmi(SMI_SYNC, 32);
-   //Start of frame
-   stm32f7xxEthWriteSmi(SMI_START, 2);
-   //Set up a read operation
-   stm32f7xxEthWriteSmi(opcode, 2);
-   //Write PHY address
-   stm32f7xxEthWriteSmi(phyAddr, 5);
-   //Write register address
-   stm32f7xxEthWriteSmi(regAddr, 5);
-   //Turnaround to avoid contention
-   stm32f7xxEthReadSmi(1);
-   //Read register value
-   data = stm32f7xxEthReadSmi(16);
-   //Force the PHY to release the MDIO pin
-   stm32f7xxEthReadSmi(1);
-#else
    //Valid opcode?
    if(opcode == SMI_OPCODE_READ)
    {
-      uint32_t temp;
-
       //Take care not to alter MDC clock configuration
       temp = ETH->MACMIIAR & ETH_MACMIIAR_CR;
       //Set up a read operation
@@ -1033,7 +1054,7 @@ uint16_t stm32f7xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       ETH->MACMIIAR = temp;
       //Wait for the read to complete
-      while(ETH->MACMIIAR & ETH_MACMIIAR_MB)
+      while((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
       {
       }
 
@@ -1045,117 +1066,8 @@ uint16_t stm32f7xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //The MAC peripheral only supports standard Clause 22 opcodes
       data = 0;
    }
-#endif
 
    //Return the value of the PHY register
-   return data;
-}
-
-
-/**
- * @brief SMI write operation
- * @param[in] data Raw data to be written
- * @param[in] length Number of bits to be written
- **/
-
-void stm32f7xxEthWriteSmi(uint32_t data, uint_t length)
-{
-#if defined(STM32F7XX_ETH_MDC_PIN) && defined(STM32F7XX_ETH_MDIO_PIN)
-   GPIO_InitTypeDef GPIO_InitStructure;
-
-   //Skip the most significant bits since they are meaningless
-   data <<= 32 - length;
-
-   //Configure MDIO as an output
-   GPIO_InitStructure.Pin = STM32F7XX_ETH_MDIO_PIN;
-   GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
-   HAL_GPIO_Init(STM32F7XX_ETH_MDIO_GPIO, &GPIO_InitStructure);
-
-   //Write the specified number of bits
-   while(length--)
-   {
-      //Write MDIO
-      if(data & 0x80000000)
-      {
-         HAL_GPIO_WritePin(STM32F7XX_ETH_MDIO_GPIO,
-            STM32F7XX_ETH_MDIO_PIN, GPIO_PIN_SET);
-      }
-      else
-      {
-         HAL_GPIO_WritePin(STM32F7XX_ETH_MDIO_GPIO,
-            STM32F7XX_ETH_MDIO_PIN, GPIO_PIN_RESET);
-      }
-
-      //Delay
-      usleep(1);
-
-      //Assert MDC
-      HAL_GPIO_WritePin(STM32F7XX_ETH_MDC_GPIO,
-         STM32F7XX_ETH_MDC_PIN, GPIO_PIN_SET);
-
-      //Delay
-      usleep(1);
-
-      //Deassert MDC
-      HAL_GPIO_WritePin(STM32F7XX_ETH_MDC_GPIO,
-         STM32F7XX_ETH_MDC_PIN, GPIO_PIN_RESET);
-
-      //Rotate data
-      data <<= 1;
-   }
-#endif
-}
-
-
-/**
- * @brief SMI read operation
- * @param[in] length Number of bits to be read
- * @return Data resulting from the MDIO read operation
- **/
-
-uint32_t stm32f7xxEthReadSmi(uint_t length)
-{
-   uint32_t data = 0;
-
-#if defined(STM32F7XX_ETH_MDC_PIN) && defined(STM32F7XX_ETH_MDIO_PIN)
-   GPIO_InitTypeDef GPIO_InitStructure;
-
-   //Configure MDIO as an input
-   GPIO_InitStructure.Pin = STM32F7XX_ETH_MDIO_PIN;
-   GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
-   GPIO_InitStructure.Pull = GPIO_PULLUP;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
-   HAL_GPIO_Init(STM32F7XX_ETH_MDIO_GPIO, &GPIO_InitStructure);
-
-   //Read the specified number of bits
-   while(length--)
-   {
-      //Rotate data
-      data <<= 1;
-
-      //Assert MDC
-      HAL_GPIO_WritePin(STM32F7XX_ETH_MDC_GPIO,
-         STM32F7XX_ETH_MDC_PIN, GPIO_PIN_SET);
-
-      //Delay
-      usleep(1);
-
-      //Deassert MDC
-      HAL_GPIO_WritePin(STM32F7XX_ETH_MDC_GPIO,
-         STM32F7XX_ETH_MDC_PIN, GPIO_PIN_RESET);
-
-      //Delay
-      usleep(1);
-
-      //Check MDIO state
-      if(HAL_GPIO_ReadPin(STM32F7XX_ETH_MDIO_GPIO, STM32F7XX_ETH_MDIO_PIN))
-         data |= 0x00000001;
-   }
-#endif
-
-   //Return the received data
    return data;
 }
 
@@ -1171,11 +1083,13 @@ uint32_t stm32f7xxEthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -1184,10 +1098,14 @@ uint32_t stm32f7xxEthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

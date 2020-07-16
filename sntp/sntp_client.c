@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * in the Internet. Refer to RFC 4330 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,7 @@ error_t sntpClientInit(SntpClientContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Clear SNTP client context
-   memset(context, 0, sizeof(SntpClientContext));
+   osMemset(context, 0, sizeof(SntpClientContext));
 
    //Initialize SNTP client state
    context->state = SNTP_CLIENT_STATE_INIT;
@@ -265,7 +265,7 @@ void sntpClientDeinit(SntpClientContext *context)
       sntpClientCloseConnection(context);
 
       //Clear SNTP client context
-      memset(context, 0, sizeof(SntpClientContext));
+      osMemset(context, 0, sizeof(SntpClientContext));
    }
 }
 

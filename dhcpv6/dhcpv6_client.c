@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -111,7 +111,7 @@ error_t dhcpv6ClientInit(Dhcpv6ClientContext *context, const Dhcpv6ClientSetting
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //A valid pointer to the interface being configured is required
+   //The DHCPv6 client must be bound to a valid interface
    if(settings->interface == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -119,7 +119,7 @@ error_t dhcpv6ClientInit(Dhcpv6ClientContext *context, const Dhcpv6ClientSetting
    interface = settings->interface;
 
    //Clear the DHCPv6 client context
-   memset(context, 0, sizeof(Dhcpv6ClientContext));
+   osMemset(context, 0, sizeof(Dhcpv6ClientContext));
    //Save user settings
    context->settings = *settings;
 
@@ -165,7 +165,7 @@ error_t dhcpv6ClientStart(Dhcpv6ClientContext *context)
 {
    NetInterface *interface;
 
-   //Check parameter
+   //Make sure the DHCPv6 client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -217,7 +217,7 @@ error_t dhcpv6ClientStart(Dhcpv6ClientContext *context)
 
 error_t dhcpv6ClientStop(Dhcpv6ClientContext *context)
 {
-   //Check parameter
+   //Make sure the DHCPv6 client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -1258,6 +1258,7 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
    Dhcpv6ElapsedTimeOption elapsedTimeOption;
    Dhcpv6ClientAddrEntry *entry;
    IpAddr destIpAddr;
+   NetTxAncillary ancillary;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
@@ -1417,9 +1418,12 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
    //Dump the contents of the message for debugging purpose
    dhcpv6DumpMessage(message, length);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send DHCPv6 message
-   error = udpSendDatagramEx(interface, NULL, DHCPV6_CLIENT_PORT,
-      &destIpAddr, DHCPV6_SERVER_PORT, buffer, offset, 0);
+   error = udpSendBuffer(interface, NULL, DHCPV6_CLIENT_PORT, &destIpAddr,
+      DHCPV6_SERVER_PORT, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1435,12 +1439,15 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming DHCPv6 message
  * @param[in] offset Offset to the first byte of the DHCPv6 message
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @param[in] param Pointer to the DHCPv6 client context
  **/
 
 void dhcpv6ClientProcessMessage(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, void *param)
+   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
+   void *param)
 {
    size_t length;
    Dhcpv6ClientContext *context;
@@ -1530,7 +1537,7 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
    if(ntohs(option->length) != context->clientIdLength)
       return;
    //Check whether the Client Identifier matches our identifier
-   if(memcmp(option->value, context->clientId, context->clientIdLength))
+   if(osMemcmp(option->value, context->clientId, context->clientIdLength))
       return;
 
    //Search for the Server Identifier option
@@ -1575,7 +1582,7 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
       //Save the length of the DUID
       context->serverIdLength = ntohs(serverIdOption->length);
       //Record the server DUID
-      memcpy(context->serverId, serverIdOption->value, context->serverIdLength);
+      osMemcpy(context->serverId, serverIdOption->value, context->serverIdLength);
 
       //Flush the list of IPv6 addresses from the client's IA
       dhcpv6ClientFlushAddrList(context);
@@ -1688,7 +1695,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    if(ntohs(option->length) != context->clientIdLength)
       return;
    //Check whether the Client Identifier matches our identifier
-   if(memcmp(option->value, context->clientId, context->clientIdLength))
+   if(osMemcmp(option->value, context->clientId, context->clientIdLength))
       return;
 
    //Search for the Server Identifier option
@@ -1723,7 +1730,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    else if(context->state == DHCPV6_STATE_REQUEST)
    {
       //The client must discard the Reply message if the contents of the
-      //Server Identifier option do not match the server’s DUID
+      //Server Identifier option do not match the server's DUID
       if(!dhcpv6ClientCheckServerId(context, serverIdOption))
          return;
    }
@@ -1743,7 +1750,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    else if(context->state == DHCPV6_STATE_RENEW)
    {
       //The client must discard the Reply message if the contents of the
-      //Server Identifier option do not match the server’s DUID
+      //Server Identifier option do not match the server's DUID
       if(!dhcpv6ClientCheckServerId(context, serverIdOption))
          return;
    }
@@ -1755,7 +1762,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    else if(context->state == DHCPV6_STATE_RELEASE)
    {
       //The client must discard the Reply message if the contents of the
-      //Server Identifier option do not match the server’s DUID
+      //Server Identifier option do not match the server's DUID
       if(!dhcpv6ClientCheckServerId(context, serverIdOption))
          return;
 
@@ -1773,7 +1780,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    else if(context->state == DHCPV6_STATE_DECLINE)
    {
       //The client must discard the Reply message if the contents of the
-      //Server Identifier option do not match the server’s DUID
+      //Server Identifier option do not match the server's DUID
       if(!dhcpv6ClientCheckServerId(context, serverIdOption))
          return;
 
@@ -1923,7 +1930,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
       //Save the length of the DUID
       context->serverIdLength = ntohs(serverIdOption->length);
       //Record the server DUID
-      memcpy(context->serverId, serverIdOption->value, context->serverIdLength);
+      osMemcpy(context->serverId, serverIdOption->value, context->serverIdLength);
 
       //Save the time a which the lease was obtained
       context->leaseStartTime = osGetSystemTime();
@@ -2403,7 +2410,7 @@ error_t dhcpv6ClientGenerateLinkLocalAddr(Dhcpv6ClientContext *context)
  * @brief Check the Server Identifier option
  * @param[in] context Pointer to the DHCPv6 client context
  * @param[in] serverIdOption Pointer to the Server Identifier option
- * @return TRUE if the option matches the server’s DUID, else FALSE
+ * @return TRUE if the option matches the server's DUID, else FALSE
  **/
 
 bool_t dhcpv6ClientCheckServerId(Dhcpv6ClientContext *context,
@@ -2414,12 +2421,12 @@ bool_t dhcpv6ClientCheckServerId(Dhcpv6ClientContext *context,
    //Check the length of the Server Identifier option
    if(ntohs(serverIdOption->length) == context->serverIdLength)
    {
-      //Check whether the Server Identifier option matches the server’s DUID
-      if(!memcmp(serverIdOption->value, context->serverId, context->serverIdLength))
+      //Check whether the Server Identifier option matches the server's DUID
+      if(!osMemcmp(serverIdOption->value, context->serverId, context->serverIdLength))
          valid = TRUE;
    }
 
-   //Return TRUE if the option matches the server’s DUID
+   //Return TRUE if the option matches the server's DUID
    return valid;
 }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _IPV6_H
@@ -115,11 +115,11 @@ struct _Ipv6PseudoHeader;
 
 //Copy IPv6 address
 #define ipv6CopyAddr(destIpAddr, srcIpAddr) \
-   memcpy(destIpAddr, srcIpAddr, sizeof(Ipv6Addr))
+   osMemcpy(destIpAddr, srcIpAddr, sizeof(Ipv6Addr))
 
 //Compare IPv6 addresses
 #define ipv6CompAddr(ipAddr1, ipAddr2) \
-   (!memcmp(ipAddr1, ipAddr2, sizeof(Ipv6Addr)))
+   (!osMemcmp(ipAddr1, ipAddr2, sizeof(Ipv6Addr)))
 
 //Determine whether an IPv6 address is a link-local unicast address
 #define ipv6IsLinkLocalUnicastAddr(ipAddr) \
@@ -515,8 +515,8 @@ error_t ipv6GetDnsServer(NetInterface *interface, uint_t index, Ipv6Addr *addr);
 
 void ipv6LinkChangeEvent(NetInterface *interface);
 
-void ipv6ProcessPacket(NetInterface *interface,
-   NetBuffer *ipPacket, size_t ipPacketOffset);
+void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
+   size_t ipPacketOffset, NetRxAncillary *ancillary);
 
 error_t ipv6ParseHopByHopOptHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
@@ -537,11 +537,11 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t optionOffset, size_t optionLen);
 
 error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint_t flags);
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    uint32_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
-   uint_t flags);
+   NetTxAncillary *ancillary);
 
 error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
 error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);

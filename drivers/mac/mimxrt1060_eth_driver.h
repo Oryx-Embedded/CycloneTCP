@@ -1,12 +1,12 @@
 /**
  * @file mimxrt1060_eth_driver.h
- * @brief NXP i.MX RT1060 Ethernet MAC controller
+ * @brief NXP i.MX RT1060 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _MIMXRT1060_ETH_DRIVER_H
@@ -78,6 +78,11 @@
    #define MIMXRT1060_ETH_IRQ_SUB_PRIORITY 0
 #elif (MIMXRT1060_ETH_IRQ_SUB_PRIORITY < 0)
    #error MIMXRT1060_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef MIMXRT1060_ETH_RAM_SECTION
+   #define MIMXRT1060_ETH_RAM_SECTION ".ram_no_cache"
 #endif
 
 //Enhanced transmit buffer descriptor
@@ -156,7 +161,7 @@ void mimxrt1060EthDisableIrq(NetInterface *interface);
 void mimxrt1060EthEventHandler(NetInterface *interface);
 
 error_t mimxrt1060EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t mimxrt1060EthReceivePacket(NetInterface *interface);
 

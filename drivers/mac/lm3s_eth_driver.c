@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -196,8 +196,8 @@ void lm3sEthInitGpio(NetInterface *interface)
 /**
  * @brief Stellaris LM3S Ethernet timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -250,7 +250,7 @@ void ETH_IRQHandler(void)
    status = MAC_RIS_R;
 
    //PHY interrupt?
-   if(status & MAC_RIS_PHYINT)
+   if((status & MAC_RIS_PHYINT) != 0)
    {
       //Disable PHYINT interrupt
       MAC_IM_R &= ~MAC_IM_PHYINTM;
@@ -262,13 +262,13 @@ void ETH_IRQHandler(void)
    }
 
    //Transmit FIFO empty?
-   if(status & MAC_RIS_TXEMP)
+   if((status & MAC_RIS_TXEMP) != 0)
    {
       //Acknowledge TXEMP interrupt
       MAC_IACK_R = MAC_IACK_TXEMP;
 
       //Check whether the transmit FIFO is available for writing
-      if(!(MAC_TR_R & MAC_TR_NEWTX))
+      if((MAC_TR_R & MAC_TR_NEWTX) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -276,7 +276,7 @@ void ETH_IRQHandler(void)
    }
 
    //Packet received?
-   if(status & MAC_RIS_RXINT)
+   if((status & MAC_RIS_RXINT) != 0)
    {
       //Disable RXINT interrupt
       MAC_IM_R &= ~MAC_IM_RXINTM;
@@ -306,7 +306,7 @@ void lm3sEthEventHandler(NetInterface *interface)
    status = MAC_RIS_R;
 
    //PHY interrupt?
-   if(status & MAC_RIS_PHYINT)
+   if((status & MAC_RIS_PHYINT) != 0)
    {
       //Acknowledge PHYINT interrupt
       MAC_IACK_R = MAC_IACK_PHYINT;
@@ -314,19 +314,19 @@ void lm3sEthEventHandler(NetInterface *interface)
       value = lm3sEthReadPhyReg(PHY_MR17);
 
       //Check whether the link state has changed
-      if(value & PHY_MR17_LSCHG_IE)
+      if((value & PHY_MR17_LSCHG_IE) != 0)
       {
          //Read PHY status register
          value = lm3sEthReadPhyReg(PHY_MR1);
 
          //Check link state
-         if(value & PHY_MR1_LINK)
+         if((value & PHY_MR1_LINK) != 0)
          {
             //Read PHY diagnostic register
             value = lm3sEthReadPhyReg(PHY_MR18);
 
             //Get current speed
-            if(value & PHY_MR18_RATE)
+            if((value & PHY_MR18_RATE) != 0)
             {
                //100BASE-TX operation
                interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
@@ -338,7 +338,7 @@ void lm3sEthEventHandler(NetInterface *interface)
             }
 
             //Get current duplex mode
-            if(value & PHY_MR18_DPLX)
+            if((value & PHY_MR18_DPLX) != 0)
             {
                //Full-Duplex mode
                interface->duplexMode = NIC_FULL_DUPLEX_MODE;
@@ -368,13 +368,13 @@ void lm3sEthEventHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if(status & MAC_RIS_RXINT)
+   if((status & MAC_RIS_RXINT) != 0)
    {
       //Acknowledge RXINT interrupt
       MAC_IACK_R = MAC_IACK_RXINT;
 
       //Process all the pending packets
-      while(MAC_NP_R & MAC_NP_NPR_M)
+      while((MAC_NP_R & MAC_NP_NPR_M) != 0)
       {
          //Read incoming packet
          lm3sEthReceivePacket(interface);
@@ -391,11 +391,13 @@ void lm3sEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t lm3sEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t i;
    size_t length;
@@ -414,8 +416,10 @@ error_t lm3sEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the transmit FIFO is available for writing
-   if(MAC_TR_R & MAC_TR_NEWTX)
+   if((MAC_TR_R & MAC_TR_NEWTX) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data
    netBufferRead(txBuffer + 2, buffer, offset, length);
@@ -431,7 +435,9 @@ error_t lm3sEthSendPacket(NetInterface *interface,
 
    //Copy packet to transmit FIFO
    for(i = 0; i < length; i++)
+   {
       MAC_DATA_R = p[i];
+   }
 
    //Start transmitting
    MAC_TR_R = MAC_TR_NEWTX;
@@ -456,7 +462,7 @@ error_t lm3sEthReceivePacket(NetInterface *interface)
    uint16_t *p;
 
    //Make sure the FIFO is not empty
-   if(MAC_NP_R & MAC_NP_NPR_M)
+   if((MAC_NP_R & MAC_NP_NPR_M) != 0)
    {
       //Read the first word
       data = MAC_DATA_R;
@@ -476,7 +482,9 @@ error_t lm3sEthReceivePacket(NetInterface *interface)
 
          //Copy the first half word
          if(n > 0)
+         {
             *(p++) = (uint16_t) (data >> 16);
+         }
 
          //Copy data from receive FIFO
          for(i = 2; i < n; i += 4)
@@ -522,8 +530,13 @@ error_t lm3sEthReceivePacket(NetInterface *interface)
    //Check whether a valid packet has been received
    if(!error)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, rxBuffer, n);
+      nicProcessPacket(interface, rxBuffer, n, &ancillary);
    }
 
    //Return status code
@@ -568,9 +581,13 @@ error_t lm3sEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
+   {
       MAC_RCTL_R |= MAC_RCTL_AMUL;
+   }
    else
+   {
       MAC_RCTL_R &= ~MAC_RCTL_AMUL;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -591,7 +608,7 @@ void lm3sEthWritePhyReg(uint8_t address, uint16_t data)
    MAC_MCTL_R = (address << 3) | MAC_MCTL_WRITE | MAC_MCTL_START;
 
    //Wait for the write to complete
-   while(MAC_MCTL_R & MAC_MCTL_START)
+   while((MAC_MCTL_R & MAC_MCTL_START) != 0)
    {
    }
 }
@@ -609,7 +626,7 @@ uint16_t lm3sEthReadPhyReg(uint8_t address)
    MAC_MCTL_R = (address << 3) | MAC_MCTL_START;
 
    //Wait for the read to complete
-   while(MAC_MCTL_R & MAC_MCTL_START)
+   while((MAC_MCTL_R & MAC_MCTL_START) != 0)
    {
    }
 

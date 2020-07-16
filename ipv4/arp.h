@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _ARP_H
@@ -171,8 +171,9 @@ typedef __start_packed struct
 
 typedef struct
 {
-   NetBuffer *buffer; //Packet waiting for address resolution
-   size_t offset;         //Offset to the first byte of the packet
+   NetBuffer *buffer;        ///<Packet waiting for address resolution
+   size_t offset;            ///<Offset to the first byte of the packet
+   NetTxAncillary ancillary; ///<Additional options
 } ArpQueueItem;
 
 
@@ -182,14 +183,14 @@ typedef struct
 
 typedef struct
 {
-   ArpState state;                              //Reachability state
-   Ipv4Addr ipAddr;                             //Unicast IPv4 address
-   MacAddr macAddr;                             //Link layer address associated with the IPv4 address
-   systime_t timestamp;                         //Time stamp to manage entry lifetime
-   systime_t timeout;                           //Timeout value
-   uint_t retransmitCount;                      //Retransmission counter
-   ArpQueueItem queue[ARP_MAX_PENDING_PACKETS]; //Packets waiting for address resolution to complete
-   uint_t queueSize;                            //Number of queued packets
+   ArpState state;                              ///<Reachability state
+   Ipv4Addr ipAddr;                             ///<Unicast IPv4 address
+   MacAddr macAddr;                             ///<Link layer address associated with the IPv4 address
+   systime_t timestamp;                         ///<Time stamp to manage entry lifetime
+   systime_t timeout;                           ///<Timeout value
+   uint_t retransmitCount;                      ///<Retransmission counter
+   ArpQueueItem queue[ARP_MAX_PENDING_PACKETS]; ///<Packets waiting for address resolution to complete
+   uint_t queueSize;                            ///<Number of queued packets
 } ArpCacheEntry;
 
 
@@ -208,8 +209,8 @@ void arpFlushQueuedPackets(NetInterface *interface, ArpCacheEntry *entry);
 
 error_t arpResolve(NetInterface *interface, Ipv4Addr ipAddr, MacAddr *macAddr);
 
-error_t arpEnqueuePacket(NetInterface *interface,
-   Ipv4Addr ipAddr, NetBuffer *buffer, size_t offset);
+error_t arpEnqueuePacket(NetInterface *interface, Ipv4Addr ipAddr,
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 void arpTick(NetInterface *interface);
 

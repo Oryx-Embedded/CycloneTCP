@@ -1,12 +1,12 @@
 /**
  * @file zynq7000_eth_driver.h
- * @brief Zynq-7000 Gigabit Ethernet MAC controller
+ * @brief Zynq-7000 Gigabit Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _ZYNQ7000_ETH_DRIVER_H
@@ -64,6 +64,11 @@
    #define ZYNQ7000_ETH_IRQ_PRIORITY 160
 #elif (ZYNQ7000_ETH_IRQ_PRIORITY < 0)
    #error ZYNQ7000_ETH_IRQ_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef ZYNQ7000_ETH_RAM_SECTION
+   #define ZYNQ7000_ETH_RAM_SECTION ".ram_no_cache"
 #endif
 
 //Macro for hardware access
@@ -272,7 +277,7 @@ void zynq7000EthIrqHandler(NetInterface *interface);
 void zynq7000EthEventHandler(NetInterface *interface);
 
 error_t zynq7000EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t zynq7000EthReceivePacket(NetInterface *interface);
 

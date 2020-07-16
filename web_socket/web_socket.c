@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,7 @@ WebSocketRandCallback webSockRandCallback;
 error_t webSocketInit(void)
 {
    //Initialize WebSockets
-   memset(webSocketTable, 0, sizeof(webSocketTable));
+   osMemset(webSocketTable, 0, sizeof(webSocketTable));
 
    //Successful initialization
    return NO_ERROR;
@@ -114,7 +114,7 @@ WebSocket *webSocketOpen(void)
          webSocket = &webSocketTable[i];
 
          //Clear associated structure
-         memset(webSocket, 0, sizeof(WebSocket));
+         osMemset(webSocket, 0, sizeof(WebSocket));
 
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
          //Initialize TLS session state
@@ -567,7 +567,8 @@ error_t webSocketConnect(WebSocket *webSocket, const IpAddr *serverIpAddr,
       {
 #if (WEB_SOCKET_BASIC_AUTH_SUPPORT == ENABLED)
          //Basic authentication?
-         if(webSocket->authContext.requiredAuthMode == WS_AUTH_MODE_BASIC)
+         if(webSocket->authContext.requiredAuthMode == WS_AUTH_MODE_BASIC ||
+            webSocket->authContext.requiredAuthMode == WS_AUTH_MODE_NONE)
          {
             //Check whether the basic authentication scheme is allowed
             if(webSocket->authContext.allowedAuthModes & WS_AUTH_MODE_BASIC)
@@ -665,14 +666,14 @@ error_t webSocketSetClientKey(WebSocket *webSocket, const char_t *clientKey)
       return ERROR_INVALID_PARAMETER;
 
    //Get the length of the client's key
-   n = strlen(clientKey);
+   n = osStrlen(clientKey);
 
    //Check the length of the key
    if(n > WEB_SOCKET_CLIENT_KEY_SIZE)
       return ERROR_INVALID_LENGTH;
 
    //Copy client's key
-   strcpy(webSocket->handshakeContext.clientKey, clientKey);
+   osStrcpy(webSocket->handshakeContext.clientKey, clientKey);
 
    //a WebSocket server is a WebSocket endpoint that awaits
    //connections from peers
@@ -1072,7 +1073,7 @@ error_t webSocketSendEx(WebSocket *webSocket, const void *data, size_t length,
                n = MIN(n, WEB_SOCKET_BUFFER_SIZE);
 
                //Copy application data to the transmit buffer
-               memcpy(txContext->buffer, p, n);
+               osMemcpy(txContext->buffer, p + i, n);
 
                //All frames sent from the client to the server are masked
                if(webSocket->endpoint == WS_ENDPOINT_CLIENT)
@@ -1083,7 +1084,7 @@ error_t webSocketSendEx(WebSocket *webSocket, const void *data, size_t length,
                      //Index of the masking key to be applied
                      k = (txContext->payloadPos + j) % 4;
                      //Convert unmasked data into masked data
-                     txContext->buffer[j] = p[i + j] ^ txContext->maskingKey[k];
+                     txContext->buffer[j] ^= txContext->maskingKey[k];
                   }
                }
 
@@ -1344,7 +1345,7 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
             if(data != NULL)
             {
                //Copy application data
-               memcpy((uint8_t *) data + i, rxContext->buffer, n);
+               osMemcpy((uint8_t *) data + i, rxContext->buffer, n);
             }
 
             //Advance data pointer

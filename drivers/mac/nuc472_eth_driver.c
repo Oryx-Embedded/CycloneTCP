@@ -1,12 +1,12 @@
 /**
  * @file nuc472_eth_driver.c
- * @brief Nuvoton NUC472 Ethernet MAC controller
+ * @brief Nuvoton NUC472 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -129,18 +129,35 @@ error_t nuc472EthInit(NetInterface *interface)
    //Perform a software reset
    EMAC->CTL |= EMAC_CTL_RST_Msk;
    //Wait for the reset to complete
-   while(EMAC->CTL & EMAC_CTL_RST_Msk)
+   while((EMAC->CTL & EMAC_CTL_RST_Msk) != 0)
    {
    }
 
    //GPIO configuration
    nuc472EthInitGpio(interface);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the upper 32 bits of the MAC address
    EMAC->CAM0M = interface->macAddr.b[3] |
@@ -291,16 +308,29 @@ void nuc472EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief NUC472 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void nuc472EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -315,8 +345,22 @@ void nuc472EthEnableIrq(NetInterface *interface)
    NVIC_EnableIRQ(EMAC_TX_IRQn);
    NVIC_EnableIRQ(EMAC_RX_IRQn);
 
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -331,8 +375,22 @@ void nuc472EthDisableIrq(NetInterface *interface)
    NVIC_DisableIRQ(EMAC_TX_IRQn);
    NVIC_DisableIRQ(EMAC_RX_IRQn);
 
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -350,14 +408,14 @@ void EMAC_TX_IRQHandler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //A packet has been transmitted?
-   if(EMAC->INTSTS & EMAC_INTSTS_TXCPIF_Msk)
+   //Packet transmitted?
+   if((EMAC->INTSTS & EMAC_INTSTS_TXCPIF_Msk) != 0)
    {
       //Clear TXCPIF interrupt flag
       EMAC->INTSTS = EMAC_INTSTS_TXCPIF_Msk;
 
       //Check whether the TX buffer is available for writing
-      if(!(txDmaDesc[txIndex].txdes0 & EMAC_TXDES0_OWNER))
+      if((txDmaDesc[txIndex].txdes0 & EMAC_TXDES0_OWNER) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -383,8 +441,8 @@ void EMAC_RX_IRQHandler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //A packet has been received?
-   if(EMAC->INTSTS & EMAC_INTSTS_RXGDIF_Msk)
+   //Packet received?
+   if((EMAC->INTSTS & EMAC_INTSTS_RXGDIF_Msk) != 0)
    {
       //Disable receive interrupts
       EMAC->INTEN &= ~EMAC_INTEN_RXIEN_Msk;
@@ -410,7 +468,7 @@ void nuc472EthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(EMAC->INTSTS & EMAC_INTSTS_RXGDIF_Msk)
+   if((EMAC->INTSTS & EMAC_INTSTS_RXGDIF_Msk) != 0)
    {
       //Clear interrupt flag
       EMAC->INTSTS = EMAC_INTSTS_RXGDIF_Msk;
@@ -436,11 +494,13 @@ void nuc472EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t nuc472EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
    uint_t txNextIndex;
@@ -458,8 +518,10 @@ error_t nuc472EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txDmaDesc[txIndex].txdes0 & EMAC_TXDES0_OWNER)
+   if((txDmaDesc[txIndex].txdes0 & EMAC_TXDES0_OWNER) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txBuffer[txIndex], buffer, offset, length);
@@ -469,7 +531,9 @@ error_t nuc472EthSendPacket(NetInterface *interface,
 
    //Wrap around if necessary
    if(txNextIndex >= NUC472_ETH_TX_BUFFER_COUNT)
+   {
       txNextIndex = 0;
+   }
 
    //Set the start address of the buffer
    txDmaDesc[txIndex].txdes1 = (uint32_t) txBuffer[txIndex];
@@ -489,7 +553,7 @@ error_t nuc472EthSendPacket(NetInterface *interface,
    txIndex = txNextIndex;
 
    //Check whether the next buffer is available for writing
-   if(!(txDmaDesc[txIndex].txdes0 & EMAC_TXDES0_OWNER))
+   if((txDmaDesc[txIndex].txdes0 & EMAC_TXDES0_OWNER) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -511,20 +575,24 @@ error_t nuc472EthReceivePacket(NetInterface *interface)
    error_t error;
    size_t n;
    uint_t rxNextIndex;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxDmaDesc[rxIndex].rxdes0 & EMAC_RXDES0_OWNER))
+   if((rxDmaDesc[rxIndex].rxdes0 & EMAC_RXDES0_OWNER) == 0)
    {
       //Valid frame received?
-      if(rxDmaDesc[rxIndex].rxdes0 & EMAC_RXDES0_RXGDIF)
+      if((rxDmaDesc[rxIndex].rxdes0 & EMAC_RXDES0_RXGDIF) != 0)
       {
          //Retrieve the length of the frame
          n = rxDmaDesc[rxIndex].rxdes0 & EMAC_RXDES0_RBC;
          //Limit the number of data to read
          n = MIN(n, NUC472_ETH_RX_BUFFER_SIZE);
 
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_RX_ANCILLARY;
+
          //Pass the packet to the upper layer
-         nicProcessPacket(interface, rxBuffer[rxIndex], n);
+         nicProcessPacket(interface, rxBuffer[rxIndex], n, &ancillary);
 
          //Valid packet received
          error = NO_ERROR;
@@ -540,7 +608,9 @@ error_t nuc472EthReceivePacket(NetInterface *interface)
 
       //Wrap around if necessary
       if(rxNextIndex >= NUC472_ETH_RX_BUFFER_COUNT)
+      {
          rxNextIndex = 0;
+      }
 
       //Set the start address of the buffer
       rxDmaDesc[rxIndex].rxdes1 = (uint32_t) rxBuffer[rxIndex];
@@ -599,9 +669,13 @@ error_t nuc472EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
+   {
       EMAC->CAMCTL |= EMAC_CAMCTL_AMP_Msk;
+   }
    else
+   {
       EMAC->CAMCTL &= ~EMAC_CAMCTL_AMP_Msk;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -623,15 +697,23 @@ error_t nuc472EthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= EMAC_CTL_OPMODE_Msk;
+   }
    else
+   {
       config &= ~EMAC_CTL_OPMODE_Msk;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= EMAC_CTL_FUDUP_Msk;
+   }
    else
+   {
       config &= ~EMAC_CTL_FUDUP_Msk;
+   }
 
    //Update MAC control register
    EMAC->CTL = config;
@@ -670,7 +752,7 @@ void nuc472EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       EMAC->MIIMCTL = temp;
       //Wait for the write to complete
-      while(EMAC->MIIMCTL & EMAC_MIIMCTL_BUSY_Msk)
+      while((EMAC->MIIMCTL & EMAC_MIIMCTL_BUSY_Msk) != 0)
       {
       }
    }
@@ -708,7 +790,7 @@ uint16_t nuc472EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       EMAC->MIIMCTL = temp;
       //Wait for the read to complete
-      while(EMAC->MIIMCTL & EMAC_MIIMCTL_BUSY_Msk)
+      while((EMAC->MIIMCTL & EMAC_MIIMCTL_BUSY_Msk) != 0)
       {
       }
 

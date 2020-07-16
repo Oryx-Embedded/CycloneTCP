@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _NTP_COMMON_H
@@ -39,7 +39,7 @@
 //Maximum size of NTP messages
 #define NTP_MAX_MSG_SIZE 68
 //Difference between NTP and Unix time scales
-#define NTP_UNIX_EPOCH 2208988800
+#define NTP_UNIX_EPOCH 2208988800U
 
 //Kiss code definition
 #define NTP_KISS_CODE(a, b, c, d) (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -439,9 +439,9 @@ error_t tftpClientSendRrqPacket(TftpClientContext *context,
    TftpRrqPacket *rrqPacket;
 
    //Retrieve the length of the filename
-   m = strlen(filename);
+   m = osStrlen(filename);
    //Retrieve the length of the transfer mode
-   n = strlen(mode);
+   n = osStrlen(mode);
 
    //Check the length of the filename
    if((m + n) > TFTP_CLIENT_BLOCK_SIZE)
@@ -452,8 +452,8 @@ error_t tftpClientSendRrqPacket(TftpClientContext *context,
 
    //Format RRQ packet
    rrqPacket->opcode = HTONS(TFTP_OPCODE_RRQ);
-   strcpy(rrqPacket->filename, filename);
-   strcpy(rrqPacket->filename + m + 1, mode);
+   osStrcpy(rrqPacket->filename, filename);
+   osStrcpy(rrqPacket->filename + m + 1, mode);
 
    //Compute the length of the RRQ packet
    context->outPacketLen = sizeof(TftpRrqPacket) + n + m + 2;
@@ -495,9 +495,9 @@ error_t tftpClientSendWrqPacket(TftpClientContext *context,
    TftpWrqPacket *wrqPacket;
 
    //Retrieve the length of the filename
-   m = strlen(filename);
+   m = osStrlen(filename);
    //Retrieve the length of the transfer mode
-   n = strlen(mode);
+   n = osStrlen(mode);
 
    //Check the length of the filename
    if((m + n) > TFTP_CLIENT_BLOCK_SIZE)
@@ -508,8 +508,8 @@ error_t tftpClientSendWrqPacket(TftpClientContext *context,
 
    //Format WRQ packet
    wrqPacket->opcode = HTONS(TFTP_OPCODE_WRQ);
-   strcpy(wrqPacket->filename, filename);
-   strcpy(wrqPacket->filename + m + 1, mode);
+   osStrcpy(wrqPacket->filename, filename);
+   osStrcpy(wrqPacket->filename + m + 1, mode);
 
    //Compute the length of the WRQ packet
    context->outPacketLen = sizeof(TftpRrqPacket) + n + m + 2;
@@ -629,7 +629,7 @@ error_t tftpClientSendErrorPacket(TftpClientContext *context,
    TftpErrorPacket *errorPacket;
 
    //Check the length of the error message
-   if(strlen(errorMsg) >= TFTP_CLIENT_BLOCK_SIZE)
+   if(osStrlen(errorMsg) >= TFTP_CLIENT_BLOCK_SIZE)
       return ERROR_INVALID_PARAMETER;
 
    //Point to the buffer where to format the packet
@@ -640,10 +640,10 @@ error_t tftpClientSendErrorPacket(TftpClientContext *context,
    errorPacket->errorCode = htons(errorCode);
 
    //Copy error message
-   strcpy(errorPacket->errorMsg, errorMsg);
+   osStrcpy(errorPacket->errorMsg, errorMsg);
 
    //Compute the length of the ERROR packet
-   context->outPacketLen = sizeof(TftpErrorPacket) + strlen(errorMsg) + 1;
+   context->outPacketLen = sizeof(TftpErrorPacket) + osStrlen(errorMsg) + 1;
 
    //Debug message
    TRACE_DEBUG("TFTP Client: Sending ERROR packet (%" PRIuSIZE " bytes)...\r\n", context->outPacketLen);

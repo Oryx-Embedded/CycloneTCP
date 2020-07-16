@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -91,7 +91,9 @@ error_t ksz8851Init(NetInterface *interface)
 
    //Check device ID and revision ID
    if(ksz8851ReadReg(interface, KSZ8851_REG_CIDER) != KSZ8851_REV_A3_ID)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Dump registers for debugging purpose
    ksz8851DumpReg(interface);
@@ -229,7 +231,7 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
    isr = ksz8851ReadReg(interface, KSZ8851_REG_ISR);
 
    //Link status change?
-   if(isr & ISR_LCIS)
+   if((isr & ISR_LCIS) != 0)
    {
       //Disable LCIE interrupt
       ier &= ~IER_LCIE;
@@ -241,7 +243,7 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if(isr & ISR_TXIS)
+   if((isr & ISR_TXIS) != 0)
    {
       //Clear interrupt flag
       ksz8851WriteReg(interface, KSZ8851_REG_ISR, ISR_TXIS);
@@ -258,7 +260,7 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if(isr & ISR_RXIS)
+   if((isr & ISR_RXIS) != 0)
    {
       //Disable RXIE interrupt
       ier &= ~IER_RXIE;
@@ -291,7 +293,7 @@ void ksz8851EventHandler(NetInterface *interface)
    status = ksz8851ReadReg(interface, KSZ8851_REG_ISR);
 
    //Check whether the link status has changed?
-   if(status & ISR_LCIS)
+   if((status & ISR_LCIS) != 0)
    {
       //Clear interrupt flag
       ksz8851WriteReg(interface, KSZ8851_REG_ISR, ISR_LCIS);
@@ -299,19 +301,27 @@ void ksz8851EventHandler(NetInterface *interface)
       status = ksz8851ReadReg(interface, KSZ8851_REG_P1SR);
 
       //Check link state
-      if(status & P1SR_LINK_GOOD)
+      if((status & P1SR_LINK_GOOD) != 0)
       {
          //Get current speed
-         if(status & P1SR_OPERATION_SPEED)
+         if((status & P1SR_OPERATION_SPEED) != 0)
+         {
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+         }
          else
+         {
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+         }
 
          //Determine the new duplex mode
-         if(status & P1SR_OPERATION_DUPLEX)
+         if((status & P1SR_OPERATION_DUPLEX) != 0)
+         {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
          else
+         {
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
 
          //Link is up
          interface->linkState = TRUE;
@@ -327,7 +337,7 @@ void ksz8851EventHandler(NetInterface *interface)
    }
 
    //Check whether a packet has been received?
-   if(status & ISR_RXIS)
+   if((status & ISR_RXIS) != 0)
    {
       //Clear interrupt flag
       ksz8851WriteReg(interface, KSZ8851_REG_ISR, ISR_RXIS);
@@ -354,11 +364,13 @@ void ksz8851EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ksz8851SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t n;
    size_t length;
@@ -385,7 +397,9 @@ error_t ksz8851SendPacket(NetInterface *interface,
 
    //Make sure the TX FIFO is available for writing
    if(n < (length + 8))
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data
    netBufferRead(context->txBuffer, buffer, offset, length);
@@ -433,6 +447,7 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
    size_t n;
    uint16_t status;
    Ksz8851Context *context;
+   NetRxAncillary ancillary;
 
    //Point to the driver context
    context = (Ksz8851Context *) interface->nicContext;
@@ -441,7 +456,7 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
    status = ksz8851ReadReg(interface, KSZ8851_REG_RXFHSR);
 
    //Make sure the frame is valid
-   if(status & RXFHSR_RXFV)
+   if((status & RXFHSR_RXFV) != 0)
    {
       //Check error flags
       if(!(status & (RXFHSR_RXMR | RXFHSR_RXFTL | RXFHSR_RXRF | RXFHSR_RXCE)))
@@ -461,8 +476,11 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
             //End RXQ read access
             ksz8851ClearBit(interface, KSZ8851_REG_RXQCR, RXQCR_SDA);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, context->rxBuffer, n);
+            nicProcessPacket(interface, context->rxBuffer, n, &ancillary);
             //Valid packet received
             return NO_ERROR;
          }
@@ -494,7 +512,7 @@ error_t ksz8851UpdateMacAddrFilter(NetInterface *interface)
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
-   memset(hashTable, 0, sizeof(hashTable));
+   osMemset(hashTable, 0, sizeof(hashTable));
 
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
@@ -545,10 +563,14 @@ void ksz8851WriteReg(NetInterface *interface, uint8_t address, uint16_t data)
    uint8_t command;
 
    //Form the write command
-   if(address & 0x02)
+   if((address & 0x02) != 0)
+   {
       command = KSZ8851_CMD_WR_REG | KSZ8851_CMD_B3 | KSZ8851_CMD_B2;
+   }
    else
+   {
       command = KSZ8851_CMD_WR_REG | KSZ8851_CMD_B1 | KSZ8851_CMD_B0;
+   }
 
    //Pull the CS pin low
    interface->spiDriver->assertCs();
@@ -565,10 +587,14 @@ void ksz8851WriteReg(NetInterface *interface, uint8_t address, uint16_t data)
    interface->spiDriver->deassertCs();
 #else
    //Set register address
-   if(address & 0x02)
+   if((address & 0x02) != 0)
+   {
       KSZ8851_CMD_REG = KSZ8851_CMD_B3 | KSZ8851_CMD_B2 | address;
+   }
    else
+   {
       KSZ8851_CMD_REG = KSZ8851_CMD_B1 | KSZ8851_CMD_B0 | address;
+   }
 
    //Write register value
    KSZ8851_DATA_REG = data;
@@ -590,10 +616,14 @@ uint16_t ksz8851ReadReg(NetInterface *interface, uint8_t address)
    uint16_t data;
 
    //Form the read command
-   if(address & 0x02)
+   if((address & 0x02) != 0)
+   {
       command = KSZ8851_CMD_RD_REG | KSZ8851_CMD_B3 | KSZ8851_CMD_B2;
+   }
    else
+   {
       command = KSZ8851_CMD_RD_REG | KSZ8851_CMD_B1 | KSZ8851_CMD_B0;
+   }
 
    //Pull the CS pin low
    interface->spiDriver->assertCs();
@@ -614,10 +644,14 @@ uint16_t ksz8851ReadReg(NetInterface *interface, uint8_t address)
    return data;
 #else
    //Set register address
-   if(address & 0x02)
+   if((address & 0x02) != 0)
+   {
       KSZ8851_CMD_REG = KSZ8851_CMD_B3 | KSZ8851_CMD_B2 | address;
+   }
    else
+   {
       KSZ8851_CMD_REG = KSZ8851_CMD_B1 | KSZ8851_CMD_B0 | address;
+   }
 
    //Return register value
    return KSZ8851_DATA_REG;
@@ -646,11 +680,15 @@ void ksz8851WriteFifo(NetInterface *interface, const uint8_t *data,
 
    //Data phase
    for(i = 0; i < length; i++)
+   {
       interface->spiDriver->transfer(data[i]);
+   }
 
    //Maintain alignment to 4-byte boundaries
    for(; i % 4; i++)
+   {
       interface->spiDriver->transfer(0x00);
+   }
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
@@ -659,11 +697,15 @@ void ksz8851WriteFifo(NetInterface *interface, const uint8_t *data,
 
    //Data phase
    for(i = 0; i < length; i+=2)
-      KSZ8851_DATA_REG = data[i] | data[i+1]<<8;
+   {
+      KSZ8851_DATA_REG = data[i] | data[i + 1] << 8;
+   }
 
    //Maintain alignment to 4-byte boundaries
    for(; i % 4; i+=2)
+   {
       KSZ8851_DATA_REG = 0x0000;
+   }
 #endif
 }
 
@@ -688,19 +730,27 @@ void ksz8851ReadFifo(NetInterface *interface, uint8_t *data, size_t length)
 
    //The first 4 bytes are dummy data and must be discarded
    for(i = 0; i < 4; i++)
+   {
       interface->spiDriver->transfer(0x00);
+   }
 
    //Ignore RX packet header
    for(i = 0; i < 4; i++)
+   {
       interface->spiDriver->transfer(0x00);
+   }
 
    //Data phase
    for(i = 0; i < length; i++)
+   {
       data[i] = interface->spiDriver->transfer(0x00);
+   }
 
    //Maintain alignment to 4-byte boundaries
    for(; i % 4; i++)
+   {
       interface->spiDriver->transfer(0x00);
+   }
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
@@ -720,12 +770,14 @@ void ksz8851ReadFifo(NetInterface *interface, uint8_t *data, size_t length)
    {
       temp = KSZ8851_DATA_REG;
       data [i] = temp & 0xFF;
-      data [i+1] = (temp>>8) & 0xFF;
+      data [i + 1] = (temp >> 8) & 0xFF;
    }
 
    //Maintain alignment to 4-byte boundaries
    for(; i % 4; i+=2)
+   {
       temp = KSZ8851_DATA_REG;
+   }
 #endif
 }
 
@@ -777,11 +829,13 @@ uint32_t ksz8851CalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -790,10 +844,14 @@ uint32_t ksz8851CalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

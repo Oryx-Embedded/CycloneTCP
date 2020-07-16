@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -55,7 +55,7 @@
 void httpClientChangeState(HttpClientContext *context,
    HttpClientState newState)
 {
-   //Update HTTP connnection state
+   //Update HTTP connection state
    context->state = newState;
 
    //Save current time
@@ -127,14 +127,14 @@ error_t httpClientFormatRequestHeader(HttpClientContext *context)
    }
 
    //Set default HTTP request method
-   strcpy(context->method, "GET");
+   osStrcpy(context->method, "GET");
 
    //The Request-Line begins with a method token, followed by the Request-URI
    //and the protocol version, and ending with CRLF
-   n = sprintf(context->buffer, "GET / %s\r\n", version);
+   n = osSprintf(context->buffer, "GET / %s\r\n", version);
 
    //Terminate the HTTP request header with a CRLF sequence
-   n += sprintf(context->buffer + n, "\r\n");
+   n += osSprintf(context->buffer + n, "\r\n");
 
    //Set the length of the request header
    context->bufferLen = n;
@@ -165,19 +165,19 @@ error_t httpClientFormatChunkSize(HttpClientContext *context, size_t length)
    if(context->requestState == HTTP_REQ_STATE_SEND_CHUNK_DATA)
    {
       //Terminate the data of the previous chunk with a CRLF sequence
-      n += sprintf(context->buffer + n, "\r\n");
+      n += osSprintf(context->buffer + n, "\r\n");
    }
 
    //The chunk-size field is a string of hex digits indicating the size of the
    //chunk
-   n += sprintf(context->buffer + n, "%" PRIXSIZE "\r\n", length);
+   n += osSprintf(context->buffer + n, "%" PRIXSIZE "\r\n", length);
 
    //Check whether the chunk is the last one
    if(length == 0)
    {
       //The trailer allows the sender to include additional HTTP header fields
       //at the end of the message. The trailer is terminated with a CRLF
-      n += sprintf(context->buffer + n, "\r\n");
+      n += osSprintf(context->buffer + n, "\r\n");
    }
 
    //Set the length of the chunk-size field
@@ -229,19 +229,19 @@ error_t httpClientParseStatusLine(HttpClientContext *context, char_t *line,
       return error;
 
    //Parse HTTP-Version field
-   token = strtok_r(line, " ", &p);
+   token = osStrtok_r(line, " ", &p);
    //Any parsing error?
    if(token == NULL)
       return ERROR_INVALID_SYNTAX;
 
    //Check protocol version
-   if(!strcasecmp(token, "HTTP/1.0"))
+   if(!osStrcasecmp(token, "HTTP/1.0"))
    {
       //Under HTTP/1.0, connections are not considered persistent unless a
       //keepalive header is included
       context->keepAlive = FALSE;
    }
-   else if(!strcasecmp(token, "HTTP/1.1"))
+   else if(!osStrcasecmp(token, "HTTP/1.1"))
    {
       //In HTTP/1.1, all connections are considered persistent unless declared
       //otherwise
@@ -255,13 +255,13 @@ error_t httpClientParseStatusLine(HttpClientContext *context, char_t *line,
    }
 
    //Parse Status-Code field
-   token = strtok_r(NULL, " ", &p);
+   token = osStrtok_r(NULL, " ", &p);
    //Any parsing error?
    if(token == NULL)
       return ERROR_INVALID_SYNTAX;
 
    //The Status-Code element is a 3-digit integer
-   context->statusCode = strtoul(token, &p, 10);
+   context->statusCode = osStrtoul(token, &p, 10);
    //Any parsing error?
    if(*p != '\0')
       return ERROR_INVALID_SYNTAX;
@@ -326,7 +326,7 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
       //Remove optional leading and trailing whitespace
       value = strTrimWhitespace(line);
       //Retrieve the length of the resulting string
-      valueLen = strlen(value);
+      valueLen = osStrlen(value);
 
       //Sanity check
       if(valueLen > 0)
@@ -336,7 +336,7 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
          context->buffer[context->bufferPos - 1] = ' ';
 
          //Save field value
-         memmove(context->buffer + context->bufferPos, value, valueLen + 1);
+         osMemmove(context->buffer + context->bufferPos, value, valueLen + 1);
 
          //Update the size of the hash table
          context->bufferLen = context->bufferPos + valueLen + 1;
@@ -361,32 +361,32 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
       value = strTrimWhitespace(separator + 1);
 
       //Retrieve the length of the resulting strings
-      nameLen = strlen(name);
-      valueLen = strlen(value);
+      nameLen = osStrlen(name);
+      valueLen = osStrlen(value);
 
       //The field name cannot be empty
       if(nameLen == 0)
          return ERROR_INVALID_SYNTAX;
 
       //Check header field name
-      if(!strcasecmp(name, "Connection"))
+      if(!osStrcasecmp(name, "Connection"))
       {
          //Parse Connection header field
          httpClientParseConnectionField(context, value);
       }
-      else if(!strcasecmp(name, "Transfer-Encoding"))
+      else if(!osStrcasecmp(name, "Transfer-Encoding"))
       {
          //Parse Transfer-Encoding header field
          httpClientParseTransferEncodingField(context, value);
       }
-      else if(!strcasecmp(name, "Content-Length"))
+      else if(!osStrcasecmp(name, "Content-Length"))
       {
          //Parse Content-Length header field
          httpClientParseContentLengthField(context, value);
       }
 #if (HTTP_CLIENT_AUTH_SUPPORT == ENABLED)
       //WWW-Authenticate header field found?
-      else if(!strcasecmp(name, "WWW-Authenticate"))
+      else if(!osStrcasecmp(name, "WWW-Authenticate"))
       {
          //Parse WWW-Authenticate header field
          httpClientParseWwwAuthenticateField(context, value);
@@ -398,10 +398,10 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
       }
 
       //Save each header field into a hash table by field name
-      memmove(context->buffer + context->bufferPos, name, nameLen + 1);
+      osMemmove(context->buffer + context->bufferPos, name, nameLen + 1);
 
       //Save field value
-      memmove(context->buffer + context->bufferPos + nameLen + 1, value,
+      osMemmove(context->buffer + context->bufferPos + nameLen + 1, value,
          valueLen + 1);
 
       //Update the size of the hash table
@@ -478,7 +478,7 @@ error_t httpClientParseTransferEncodingField(HttpClientContext *context,
    const char_t *value)
 {
    //Check the value of the header field
-   if(!strcasecmp(value, "chunked"))
+   if(!osStrcasecmp(value, "chunked"))
    {
       //If a Transfer-Encoding header field is present and the chunked
       //transfer coding is the final encoding, the message body length
@@ -515,7 +515,7 @@ error_t httpClientParseContentLengthField(HttpClientContext *context,
    if(!context->chunkedEncoding)
    {
       //Retrieve the length of the body
-      context->bodyLen = strtoul(value, &p, 10);
+      context->bodyLen = osStrtoul(value, &p, 10);
 
       //Any parsing error?
       if(*p != '\0')
@@ -548,7 +548,7 @@ error_t httpClientParseChunkSize(HttpClientContext *context, char_t *line,
 
    //The chunk-size field is a string of hex digits indicating the size
    //of the chunk
-   context->bodyLen = strtoul(line, &p, 16);
+   context->bodyLen = osStrtoul(line, &p, 16);
 
    //Any parsing error?
    if(*p != '\0')

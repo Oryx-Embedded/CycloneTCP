@@ -1,12 +1,12 @@
 /**
  * @file m2sxxx_eth_driver.c
- * @brief SmartFusion2 (M2Sxxx) Ethernet MAC controller
+ * @brief SmartFusion2 (M2Sxxx) Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -148,11 +148,28 @@ error_t m2sxxxEthInit(NetInterface *interface)
    //Select the proper divider for the MDC clock
    MAC->MII_CONFIG = MII_CONFIG_CLKSEL_DIV28;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the upper 16 bits of the MAC address
    MAC->STATION_ADDRESS2 = (interface->macAddr.b[0] << 16) |
@@ -289,16 +306,29 @@ void m2sxxxEthInitDmaDesc(NetInterface *interface)
 /**
  * @brief M2Sxxx Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void m2sxxxEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -311,8 +341,22 @@ void m2sxxxEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(EthernetMAC_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -325,8 +369,22 @@ void m2sxxxEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(EthernetMAC_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -348,22 +406,22 @@ void EthernetMAC_IRQHandler(void)
    //Read interrupt status register
    status = MAC->DMA_IRQ;
 
-   //A packet has been transmitted?
-   if(status & DMA_IRQ_TX_PKT_SENT)
+   //Packet transmitted?
+   if((status & DMA_IRQ_TX_PKT_SENT) != 0)
    {
       //Clear TX interrupt flag
       MAC->DMA_TX_STATUS = DMA_TX_STATUS_TX_PKT_SENT;
 
       //Check whether the TX buffer is available for writing
-      if(txCurDmaDesc->size & DMA_DESC_EMPTY_FLAG)
+      if((txCurDmaDesc->size & DMA_DESC_EMPTY_FLAG) != 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & DMA_IRQ_RX_PKT_RECEIVED)
+   //Packet received?
+   if((status & DMA_IRQ_RX_PKT_RECEIVED) != 0)
    {
       //Disable RX interrupt
       MAC->DMA_IRQ_MASK &= ~DMA_IRQ_MASK_RX_PKT_RECEIVED;
@@ -387,10 +445,10 @@ void EthernetMAC_IRQHandler(void)
 void m2sxxxEthEventHandler(NetInterface *interface)
 {
    //Packet received?
-   if(MAC->DMA_RX_STATUS & DMA_RX_STATUS_RX_PKT_RECEIVED)
+   if((MAC->DMA_RX_STATUS & DMA_RX_STATUS_RX_PKT_RECEIVED) != 0)
    {
       //Process all the pending packets
-      while(MAC->DMA_RX_STATUS & DMA_RX_STATUS_RX_PKT_RECEIVED)
+      while((MAC->DMA_RX_STATUS & DMA_RX_STATUS_RX_PKT_RECEIVED) != 0)
       {
          //Clear RX interrupt flag
          MAC->DMA_RX_STATUS = DMA_RX_STATUS_RX_PKT_RECEIVED;
@@ -409,11 +467,13 @@ void m2sxxxEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t m2sxxxEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -430,8 +490,10 @@ error_t m2sxxxEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(!(txCurDmaDesc->size & DMA_DESC_EMPTY_FLAG))
+   if((txCurDmaDesc->size & DMA_DESC_EMPTY_FLAG) == 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txCurDmaDesc->addr, buffer, offset, length);
@@ -440,7 +502,7 @@ error_t m2sxxxEthSendPacket(NetInterface *interface,
    txCurDmaDesc->size = length & DMA_DESC_SIZE_MASK;
 
    //Check whether DMA transfers are suspended
-   if(!(MAC->DMA_TX_CTRL & DMA_TX_CTRL_TX_EN))
+   if((MAC->DMA_TX_CTRL & DMA_TX_CTRL_TX_EN) == 0)
    {
       //Set the start position in the ring buffer
       MAC->DMA_TX_DESC = (uint32_t) txCurDmaDesc;
@@ -453,7 +515,7 @@ error_t m2sxxxEthSendPacket(NetInterface *interface,
    txCurDmaDesc = (M2sxxxTxDmaDesc *) txCurDmaDesc->next;
 
    //Check whether the next buffer is available for writing
-   if(txCurDmaDesc->size & DMA_DESC_EMPTY_FLAG)
+   if((txCurDmaDesc->size & DMA_DESC_EMPTY_FLAG) != 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -474,23 +536,27 @@ error_t m2sxxxEthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurDmaDesc->size & DMA_DESC_EMPTY_FLAG))
+   if((rxCurDmaDesc->size & DMA_DESC_EMPTY_FLAG) == 0)
    {
       //Retrieve the length of the frame
       n = rxCurDmaDesc->size & DMA_DESC_SIZE_MASK;
       //Limit the number of data to read
       n = MIN(n, M2SXXX_ETH_RX_BUFFER_SIZE);
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->addr, n);
+      nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->addr, n, &ancillary);
 
       //Give the ownership of the descriptor back to the DMA
       rxCurDmaDesc->size = DMA_DESC_EMPTY_FLAG;
 
       //Check whether DMA transfers are suspended
-      if(!(MAC->DMA_RX_CTRL & DMA_RX_CTRL_RX_EN))
+      if((MAC->DMA_RX_CTRL & DMA_RX_CTRL_RX_EN) == 0)
       {
          //Set the start position in the ring buffer
          MAC->DMA_RX_DESC = (uint32_t) rxCurDmaDesc;
@@ -507,7 +573,7 @@ error_t m2sxxxEthReceivePacket(NetInterface *interface)
    else
    {
       //Check whether DMA transfers are suspended
-      if(!(MAC->DMA_RX_CTRL & DMA_RX_CTRL_RX_EN))
+      if((MAC->DMA_RX_CTRL & DMA_RX_CTRL_RX_EN) == 0)
       {
          //Set the start position in the ring buffer
          MAC->DMA_RX_DESC = (uint32_t) rxCurDmaDesc;
@@ -623,7 +689,7 @@ void m2sxxxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       MAC->MII_CTRL = data;
 
       //Wait for the write to complete
-      while(MAC->MII_INDICATORS & MII_INDICATORS_BUSY)
+      while((MAC->MII_INDICATORS & MII_INDICATORS_BUSY) != 0)
       {
       }
    }
@@ -656,7 +722,7 @@ uint16_t m2sxxxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       MAC->MII_COMMAND = MII_COMMAND_READ;
 
       //Wait for the read to complete
-      while(MAC->MII_INDICATORS & MII_INDICATORS_BUSY)
+      while((MAC->MII_INDICATORS & MII_INDICATORS_BUSY) != 0)
       {
       }
 

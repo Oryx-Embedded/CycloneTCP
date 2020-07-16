@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -75,9 +75,9 @@ void httpServerGetDefaultSettings(HttpServerSettings *settings)
    settings->connections = NULL;
 
    //Specify the server's root directory
-   strcpy(settings->rootDirectory, "/");
+   osStrcpy(settings->rootDirectory, "/");
    //Set default home page
-   strcpy(settings->defaultDocument, "index.htm");
+   osStrcpy(settings->defaultDocument, "index.htm");
 
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
    //TLS initialization callback function
@@ -125,7 +125,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
       return ERROR_INVALID_PARAMETER;
 
    //Clear the HTTP server context
-   memset(context, 0, sizeof(HttpServerContext));
+   osMemset(context, 0, sizeof(HttpServerContext));
 
    //Save user settings
    context->settings = *settings;
@@ -143,7 +143,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
       connection = &context->connections[i];
 
       //Initialize the structure
-      memset(connection, 0, sizeof(HttpConnection));
+      osMemset(connection, 0, sizeof(HttpConnection));
 
       //Create an event object to manage connection lifetime
       if(!osCreateEvent(&connection->startEvent))
@@ -209,12 +209,12 @@ error_t httpServerStart(HttpServerContext *context)
 {
    uint_t i;
 
-   //Debug message
-   TRACE_INFO("Starting HTTP server...\r\n");
-
    //Make sure the HTTP server context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Starting HTTP server...\r\n");
 
    //Loop through client connections
    for(i = 0; i < context->settings.maxConnections; i++)
@@ -420,9 +420,9 @@ void httpConnectionTask(void *param)
             TRACE_INFO("Waiting for request...\r\n");
 
             //Clear request header
-            memset(&connection->request, 0, sizeof(HttpRequest));
+            osMemset(&connection->request, 0, sizeof(HttpRequest));
             //Clear response header
-            memset(&connection->response, 0, sizeof(HttpResponse));
+            osMemset(&connection->response, 0, sizeof(HttpResponse));
 
             //Read the HTTP request header and parse its contents
             error = httpReadRequestHeader(connection);
@@ -639,7 +639,7 @@ error_t httpWriteHeader(HttpConnection *connection)
 
       //Send HTTP response header to the client
       error = httpSend(connection, connection->buffer,
-         strlen(connection->buffer), HTTP_FLAG_DELAY);
+         osStrlen(connection->buffer), HTTP_FLAG_DELAY);
    }
 
    //Return status code
@@ -779,7 +779,7 @@ error_t httpWriteStream(HttpConnection *connection,
 
          //The chunk-size field is a string of hex digits
          //indicating the size of the chunk
-         n = sprintf(s, "%X\r\n", length);
+         n = osSprintf(s, "%X\r\n", length);
 
          //Send the chunk-size field
          error = httpSend(connection, s, n, HTTP_FLAG_DELAY);
@@ -873,13 +873,13 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
    if(connection->request.acceptGzipEncoding)
    {
       //Calculate the length of the pathname
-      n = strlen(connection->buffer);
+      n = osStrlen(connection->buffer);
 
       //Sanity check
       if(n < (HTTP_SERVER_BUFFER_SIZE - 4))
       {
          //Append gzip extension
-         strcpy(connection->buffer + n, ".gz");
+         osStrcpy(connection->buffer + n, ".gz");
          //Retrieve the size of the compressed resource, if any
          error = fsGetFileSize(connection->buffer, &length);
       }
@@ -938,13 +938,13 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
       size_t n;
 
       //Calculate the length of the pathname
-      n = strlen(connection->buffer);
+      n = osStrlen(connection->buffer);
 
       //Sanity check
       if(n < (HTTP_SERVER_BUFFER_SIZE - 4))
       {
          //Append gzip extension
-         strcpy(connection->buffer + n, ".gz");
+         osStrcpy(connection->buffer + n, ".gz");
          //Get the compressed resource data associated with the URI, if any
          error = resGetData(connection->buffer, &data, &length);
       }
@@ -1079,12 +1079,12 @@ error_t httpSendErrorResponse(HttpConnection *connection,
       "</html>\r\n";
 
    //Compute the length of the response
-   length = strlen(template) + strlen(message) - 4;
+   length = osStrlen(template) + osStrlen(message) - 4;
 
    //Check whether the HTTP request has a body
-   if(strcasecmp(connection->request.method, "GET") &&
-      strcasecmp(connection->request.method, "HEAD") &&
-      strcasecmp(connection->request.method, "DELETE"))
+   if(osStrcasecmp(connection->request.method, "GET") &&
+      osStrcasecmp(connection->request.method, "HEAD") &&
+      osStrcasecmp(connection->request.method, "DELETE"))
    {
       //Drop the HTTP request body and close the connection after sending
       //the HTTP response
@@ -1104,7 +1104,7 @@ error_t httpSendErrorResponse(HttpConnection *connection,
       return error;
 
    //Format HTML response
-   sprintf(connection->buffer, template, statusCode, statusCode, message);
+   osSprintf(connection->buffer, template, statusCode, statusCode, message);
 
    //Send response body
    error = httpWriteStream(connection, connection->buffer, length);
@@ -1145,12 +1145,12 @@ error_t httpSendRedirectResponse(HttpConnection *connection,
       "</html>\r\n";
 
    //Compute the length of the response
-   length = strlen(template) + 2 * strlen(uri) - 4;
+   length = osStrlen(template) + 2 * osStrlen(uri) - 4;
 
    //Check whether the HTTP request has a body
-   if(strcasecmp(connection->request.method, "GET") &&
-      strcasecmp(connection->request.method, "HEAD") &&
-      strcasecmp(connection->request.method, "DELETE"))
+   if(osStrcasecmp(connection->request.method, "GET") &&
+      osStrcasecmp(connection->request.method, "HEAD") &&
+      osStrcasecmp(connection->request.method, "DELETE"))
    {
       //Drop the HTTP request body and close the connection after sending
       //the HTTP response
@@ -1171,7 +1171,7 @@ error_t httpSendRedirectResponse(HttpConnection *connection,
       return error;
 
    //Format HTML response
-   sprintf(connection->buffer, template, uri, uri);
+   osSprintf(connection->buffer, template, uri, uri);
 
    //Send response body
    error = httpWriteStream(connection, connection->buffer, length);
@@ -1209,7 +1209,7 @@ bool_t httpCheckWebSocketHandshake(HttpConnection *connection)
       return FALSE;
 
    //Retrieve the length of the client's key
-   n = strlen(connection->request.clientKey);
+   n = osStrlen(connection->request.clientKey);
 
    //The request must include a header field with the name Sec-WebSocket-Key
    if(n == 0)

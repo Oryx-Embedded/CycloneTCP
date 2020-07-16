@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 7860: HMAC-SHA-2 Authentication Protocols in the User-based Security Model
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -146,10 +146,10 @@ SnmpUserEntry *snmpFindUserEntry(SnmpAgentContext *context,
          if(context->userTable[i].status != MIB_ROW_STATUS_UNUSED)
          {
             //Check the length of the user name
-            if(strlen(context->userTable[i].name) == length)
+            if(osStrlen(context->userTable[i].name) == length)
             {
                //Compare user names
-               if(!strncmp(context->userTable[i].name, name, length))
+               if(!osStrncmp(context->userTable[i].name, name, length))
                {
                   //A matching entry has been found
                   entry = &context->userTable[i];
@@ -189,7 +189,7 @@ error_t snmpGenerateKey(SnmpAuthProtocol authProtocol, const char_t *password,
       return ERROR_INVALID_PARAMETER;
 
    //Clear SNMP key
-   memset(key, 0, sizeof(SnmpKey));
+   osMemset(key, 0, sizeof(SnmpKey));
 
    //Get the hash algorithm to be used to generate the key
    hashAlgo = snmpGetHashAlgo(authProtocol);
@@ -199,7 +199,7 @@ error_t snmpGenerateKey(SnmpAuthProtocol authProtocol, const char_t *password,
       return ERROR_INVALID_PARAMETER;
 
    //Retrieve the length of the password
-   passwordLen = strlen(password);
+   passwordLen = osStrlen(password);
 
    //SNMP implementations must ensure that passwords are at least 8 characters
    //in length (see RFC 3414 11.2)
@@ -335,7 +335,7 @@ error_t snmpCheckSecurityParameters(const SnmpUserEntry *user,
 
    //If the value of the msgAuthoritativeEngineID field is unknown, then an
    //error indication (unknownEngineID) is returned to the calling module
-   if(memcmp(message->msgAuthEngineId, engineId, engineIdLen))
+   if(osMemcmp(message->msgAuthEngineId, engineId, engineIdLen))
       return ERROR_UNKNOWN_ENGINE_ID;
 
    //If no information is available for the user, then an error indication
@@ -419,7 +419,7 @@ error_t snmpCheckEngineTime(SnmpAgentContext *context, SnmpMessage *message)
       //Compare engine IDs
       if(message->msgAuthEngineIdLen == context->informContextEngineLen)
       {
-         if(!memcmp(message->msgAuthEngineId, context->informContextEngine,
+         if(!osMemcmp(message->msgAuthEngineId, context->informContextEngine,
             context->informContextEngineLen))
          {
             //We are done
@@ -492,7 +492,7 @@ error_t snmpAuthOutgoingMessage(const SnmpUserEntry *user, SnmpMessage *message)
    hmacFinal(&hmacContext, NULL);
 
    //Replace the msgAuthenticationParameters field with the calculated MAC
-   memcpy(message->msgAuthParameters, hmacContext.digest, macLen);
+   osMemcpy(message->msgAuthParameters, hmacContext.digest, macLen);
 
    //Successful message authentication
    return NO_ERROR;
@@ -528,11 +528,11 @@ error_t snmpAuthIncomingMessage(const SnmpUserEntry *user, SnmpMessage *message)
       return ERROR_AUTHENTICATION_FAILED;
 
    //The MAC received in the msgAuthenticationParameters field is saved
-   memcpy(mac, message->msgAuthParameters, macLen);
+   osMemcpy(mac, message->msgAuthParameters, macLen);
 
    //The digest in the msgAuthenticationParameters field is replaced by
    //a null octet string
-   memset(message->msgAuthParameters, 0, macLen);
+   osMemset(message->msgAuthParameters, 0, macLen);
 
    //The MAC is calculated over the whole message
    hmacInit(&hmacContext, hashAlgo, user->localizedAuthKey.b, hashAlgo->digestSize);
@@ -540,11 +540,11 @@ error_t snmpAuthIncomingMessage(const SnmpUserEntry *user, SnmpMessage *message)
    hmacFinal(&hmacContext, NULL);
 
    //Restore the value of the msgAuthenticationParameters field
-   memcpy(message->msgAuthParameters, mac, macLen);
+   osMemcpy(message->msgAuthParameters, mac, macLen);
 
    //The newly calculated MAC is compared with the MAC value that was
    //saved in the first step
-   if(memcmp(hmacContext.digest, mac, macLen))
+   if(osMemcmp(hmacContext.digest, mac, macLen))
       return ERROR_AUTHENTICATION_FAILED;
 
    //Successful message authentication
@@ -589,7 +589,7 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
          //If it is not, the data is padded at the end as necessary
          n = 8 - (message->length % 8);
          //The actual pad value is irrelevant
-         memset(message->pos + message->length, n, n);
+         osMemset(message->pos + message->length, n, n);
          //Update the length of the data
          message->length += n;
       }
@@ -610,7 +610,7 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
 
       //The last 8 octets of the 16-octet secret (private privacy key) are
       //used as pre-IV
-      memcpy(iv, user->localizedPrivKey.b + DES_BLOCK_SIZE, DES_BLOCK_SIZE);
+      osMemcpy(iv, user->localizedPrivKey.b + DES_BLOCK_SIZE, DES_BLOCK_SIZE);
 
       //The msgPrivacyParameters field is XOR-ed with the pre-IV to obtain the IV
       for(i = 0; i < DES_BLOCK_SIZE; i++)
@@ -749,7 +749,7 @@ error_t snmpDecryptData(const SnmpUserEntry *user, SnmpMessage *message)
 
       //The last 8 octets of the 16-octet secret (private privacy key) are
       //used as pre-IV
-      memcpy(iv, user->localizedPrivKey.b + DES_BLOCK_SIZE, DES_BLOCK_SIZE);
+      osMemcpy(iv, user->localizedPrivKey.b + DES_BLOCK_SIZE, DES_BLOCK_SIZE);
 
       //The msgPrivacyParameters field is XOR-ed with the pre-IV to obtain the IV
       for(i = 0; i < DES_BLOCK_SIZE; i++)
@@ -782,7 +782,7 @@ error_t snmpDecryptData(const SnmpUserEntry *user, SnmpMessage *message)
       //The 32-bit snmpEngineTime is converted to the subsequent 4 octets
       STORE32BE(message->msgAuthEngineTime, iv + 4);
       //The 64-bit integer is then converted to the last 8 octets
-      memcpy(iv + 8, message->msgPrivParameters, 8);
+      osMemcpy(iv + 8, message->msgPrivParameters, 8);
 
       //Initialize AES context
       error = aesInit(&aesContext, user->localizedPrivKey.b, 16);

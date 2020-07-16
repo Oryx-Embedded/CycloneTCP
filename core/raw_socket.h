@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _RAW_SOCKET_H
@@ -57,22 +57,23 @@ extern "C" {
 
 //Raw socket related functions
 error_t rawSocketProcessIpPacket(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset);
+   IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   NetRxAncillary *ancillary);
 
 void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
-   const uint8_t *data, size_t length);
+   const uint8_t *data, size_t length, NetRxAncillary *ancillary);
 
-error_t rawSocketSendIpPacket(Socket *socket, const IpAddr *destIpAddr,
-   const void *data, size_t length, size_t *written, uint_t flags);
+error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
+   uint_t flags);
 
-error_t rawSocketSendEthPacket(Socket *socket, const void *data,
-   size_t length, size_t *written);
+error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
+   uint_t flags);
 
-error_t rawSocketReceiveIpPacket(Socket *socket, IpAddr *srcIpAddr,
-   IpAddr *destIpAddr, void *data, size_t size, size_t *received, uint_t flags);
+error_t rawSocketReceiveIpPacket(Socket *socket, SocketMsg *message,
+   uint_t flags);
 
-error_t rawSocketReceiveEthPacket(Socket *socket, void *data, size_t size,
-   size_t *received, uint_t flags);
+error_t rawSocketReceiveEthPacket(Socket *socket, SocketMsg *message,
+   uint_t flags);
 
 void rawSocketUpdateEvents(Socket *socket);
 

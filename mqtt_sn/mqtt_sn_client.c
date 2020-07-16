@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,7 @@ error_t mqttSnClientInit(MqttSnClientContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Clear MQTT-SN client context
-   memset(context, 0, sizeof(MqttSnClientContext));
+   osMemset(context, 0, sizeof(MqttSnClientContext));
 
 #if (MQTT_SN_CLIENT_DTLS_SUPPORT == ENABLED)
    //Initialize DTLS session state
@@ -244,11 +244,11 @@ error_t mqttSnClientSetIdentifier(MqttSnClientContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the length of the client identifier is acceptable
-   if(strlen(clientId) > MQTT_SN_CLIENT_MAX_ID_LEN)
+   if(osStrlen(clientId) > MQTT_SN_CLIENT_MAX_ID_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save client identifier
-   strcpy(context->clientId, clientId);
+   osStrcpy(context->clientId, clientId);
 
    //Successful processing
    return NO_ERROR;
@@ -275,11 +275,11 @@ error_t mqttSnClientSetWillMessage(MqttSnClientContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the length of the Will topic is acceptable
-   if(strlen(topic) > MQTT_SN_CLIENT_MAX_WILL_TOPIC_LEN)
+   if(osStrlen(topic) > MQTT_SN_CLIENT_MAX_WILL_TOPIC_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save Will topic
-   strcpy(context->willMessage.topic, topic);
+   osStrcpy(context->willMessage.topic, topic);
 
    //Any message payload
    if(length > 0)
@@ -289,11 +289,11 @@ error_t mqttSnClientSetWillMessage(MqttSnClientContext *context,
          return ERROR_INVALID_PARAMETER;
 
       //Make sure the length of the Will message payload is acceptable
-      if(strlen(message) > MQTT_SN_CLIENT_MAX_WILL_PAYLOAD_LEN)
+      if(osStrlen(message) > MQTT_SN_CLIENT_MAX_WILL_PAYLOAD_LEN)
          return ERROR_INVALID_LENGTH;
 
       //Save Will message payload
-      memcpy(context->willMessage.payload, message, length);
+      osMemcpy(context->willMessage.payload, message, length);
    }
 
    //Length of the Will message payload
@@ -521,8 +521,8 @@ error_t mqttSnClientConnect(MqttSnClientContext *context, bool_t cleanSession)
             if(cleanSession)
             {
                //Discard previous session state
-               memset(context->topicTable, 0, sizeof(context->topicTable));
-               memset(context->msgIdTable, 0, sizeof(context->msgIdTable));
+               osMemset(context->topicTable, 0, sizeof(context->topicTable));
+               osMemset(context->msgIdTable, 0, sizeof(context->msgIdTable));
             }
 
             //The CONNECT message is sent by a client to setup a connection
@@ -1473,7 +1473,7 @@ void mqttSnClientDeinit(MqttSnClientContext *context)
 #endif
 
       //Clear MQTT-SN client context
-      memset(context, 0, sizeof(MqttSnClientContext));
+      osMemset(context, 0, sizeof(MqttSnClientContext));
    }
 }
 

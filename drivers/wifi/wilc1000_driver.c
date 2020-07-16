@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -139,10 +139,12 @@ error_t wilc1000Init(NetInterface *interface)
          status = nm_bsp_init();
          //Check status code
          if(status != M2M_SUCCESS)
+         {
             break;
+         }
 
          //Set default parameters
-         memset(&param, 0, sizeof(param));
+         osMemset(&param, 0, sizeof(param));
 
          //Register callback functions
          param.pfAppWifiCb = wilc1000AppWifiEvent;
@@ -160,7 +162,9 @@ error_t wilc1000Init(NetInterface *interface)
          status = m2m_wifi_init(&param);
          //Check status code
          if(status != M2M_SUCCESS)
+         {
             break;
+         }
 
 #if (M2M_FIRMWARE_VERSION_MAJOR_NO == 3)
          //Optionally set the station MAC address
@@ -170,7 +174,9 @@ error_t wilc1000Init(NetInterface *interface)
             status = m2m_wifi_get_mac_address(interface->macAddr.b);
             //Check status code
             if(status != M2M_SUCCESS)
+            {
                break;
+            }
 
             //Generate the 64-bit interface identifier
             macAddrToEui64(&interface->macAddr, &interface->eui64);
@@ -181,7 +187,9 @@ error_t wilc1000Init(NetInterface *interface)
             status = m2m_wifi_set_mac_address(interface->macAddr.b);
             //Check status code
             if(status != M2M_SUCCESS)
+            {
                break;
+            }
          }
 #endif
       }
@@ -219,16 +227,22 @@ error_t wilc1000Init(NetInterface *interface)
       status = m2m_wifi_get_mac_address(apMacAddr.b, staMacAddr.b);
       //Check status code
       if(status != M2M_SUCCESS)
+      {
          break;
+      }
 
       //Optionally set the MAC address
       if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
       {
          //Use the factory preprogrammed MAC address
          if(interface == wilc1000StaInterface)
+         {
             interface->macAddr = staMacAddr;
+         }
          else
+         {
             interface->macAddr = apMacAddr;
+         }
 
          //Generate the 64-bit interface identifier
          macAddrToEui64(&interface->macAddr, &interface->eui64);
@@ -237,15 +251,21 @@ error_t wilc1000Init(NetInterface *interface)
       {
          //Override the factory preprogrammed address
          if(interface == wilc1000StaInterface)
+         {
             staMacAddr = interface->macAddr;
+         }
          else
+         {
             apMacAddr = interface->macAddr;
+         }
 
          //Assign MAC addresses
          status = m2m_wifi_set_mac_address(staMacAddr.b, apMacAddr.b);
          //Check status code
          if(status != M2M_SUCCESS)
+         {
             break;
+         }
       }
 #endif
 
@@ -257,17 +277,21 @@ error_t wilc1000Init(NetInterface *interface)
 
    //Return status code
    if(status == M2M_SUCCESS)
+   {
       return NO_ERROR;
+   }
    else
+   {
       return ERROR_FAILURE;
+   }
 }
 
 
 /**
  * @brief WILC1000 timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -311,9 +335,13 @@ bool_t wilc1000IrqHandler(void)
 
    //STA and/or AP mode?
    if(wilc1000StaInterface != NULL)
+   {
       wilc1000StaInterface->nicEvent = TRUE;
+   }
    else if(wilc1000ApInterface != NULL)
+   {
       wilc1000ApInterface->nicEvent = TRUE;
+   }
 
    //Notify the TCP/IP stack of the event
    flag = osSetEventFromIsr(&netEvent);
@@ -340,11 +368,13 @@ void wilc1000EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t wilc1000SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    int8_t status;
    size_t length;
@@ -404,9 +434,13 @@ error_t wilc1000SendPacket(NetInterface *interface,
 
    //Return status code
    if(status == M2M_SUCCESS)
+   {
       return NO_ERROR;
+   }
    else
+   {
       return ERROR_FAILURE;
+   }
 }
 
 
@@ -438,11 +472,15 @@ error_t wilc1000UpdateMacAddrFilter(NetInterface *interface)
          //Check whether the multicast MAC address has already been registered
          //on the alternate interface
          if(interface == wilc1000StaInterface)
+         {
             refCount = wilc1000GetAddrRefCount(wilc1000ApInterface, &entry->addr);
+         }
          else
+         {
             refCount = wilc1000GetAddrRefCount(wilc1000StaInterface, &entry->addr);
+         }
 
-         //Ensure that there are not duplicate address entries in the table
+         //Ensure that there are no duplicate address entries in the table
          if(refCount == 0)
          {
             //Update MAC filter table only if necessary
@@ -536,7 +574,7 @@ void wilc1000AppWifiEvent(uint8_t msgType, void *msg)
       TRACE_INFO("  M2M_WIFI_RESP_CON_STATE_CHANGED\r\n");
 
       //Connection state
-      stateChangedMsg = (tstrM2mWifiStateChanged*) msg;
+      stateChangedMsg = (tstrM2mWifiStateChanged *) msg;
 
       //Check interface identifier
 #if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
@@ -613,6 +651,7 @@ void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
 {
    size_t length;
    uint8_t *packet;
+   NetRxAncillary ancillary;
 #if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
    tstrM2MDataBufCtrl *ctrl;
 #else
@@ -660,11 +699,16 @@ void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
             if(wilc1000ApInterface != NULL)
             {
                if(macCompAddr(packet, wilc1000ApInterface->macAddr.b))
+               {
                   macCopyAddr(packet, wilc1000StaInterface->macAddr.b);
+               }
             }
 
-            //Pass the packet to the upper layer (STA mode)
-            nicProcessPacket(wilc1000StaInterface, packet, length);
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
+            //Pass the packet to the upper layer
+            nicProcessPacket(wilc1000StaInterface, packet, length, &ancillary);
          }
       }
 #if (M2M_FIRMWARE_VERSION_MAJOR_NO == 4 && M2M_FIRMWARE_VERSION_MINOR_NO >= 2)
@@ -680,11 +724,16 @@ void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
             if(wilc1000StaInterface != NULL)
             {
                if(macCompAddr(packet, wilc1000StaInterface->macAddr.b))
+               {
                   macCopyAddr(packet, wilc1000ApInterface->macAddr.b);
+               }
             }
 
-            //Pass the packet to the upper layer (AP mode)
-            nicProcessPacket(wilc1000ApInterface, packet, length);
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
+            //Pass the packet to the upper layer
+            nicProcessPacket(wilc1000ApInterface, packet, length, &ancillary);
          }
       }
    }

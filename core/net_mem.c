@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -79,7 +79,7 @@ error_t memPoolInit(void)
    }
 
    //Clear allocation table
-   memset(memPoolAllocTable, 0, sizeof(memPoolAllocTable));
+   osMemset(memPoolAllocTable, 0, sizeof(memPoolAllocTable));
 
    //Clear statistics
    memPoolCurrentUsage = 0;
@@ -551,7 +551,7 @@ error_t netBufferCopy(NetBuffer *dest, size_t destOffset,
       n = MIN(n, src->chunk[j].length - srcOffset);
 
       //Copy data
-      memcpy(p, q, n);
+      osMemcpy(p, q, n);
 
       destOffset += n;
       srcOffset += n;
@@ -639,7 +639,7 @@ size_t netBufferWrite(NetBuffer *dest,
          n = MIN(length - totalLength, dest->chunk[i].length - destOffset);
 
          //Copy data
-         memcpy(p, src, n);
+         osMemcpy(p, src, n);
 
          //Advance read pointer
          src = (uint8_t *) src + n;
@@ -692,7 +692,7 @@ size_t netBufferRead(void *dest, const NetBuffer *src,
          n = MIN(length - totalLength, src->chunk[i].length - srcOffset);
 
          //Copy data
-         memcpy(dest, p, n);
+         osMemcpy(dest, p, n);
 
          //Advance write pointer
          dest = (uint8_t *) dest + n;

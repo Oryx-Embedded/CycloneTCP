@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -66,20 +66,20 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
    authContext = &webSocket->authContext;
 
    //Retrieve the authentication scheme
-   token = strtok_r(value, " \t", &p);
+   token = osStrtok_r(value, " \t", &p);
 
    //Any parsing error?
    if(token == NULL)
       return ERROR_INVALID_SYNTAX;
 
    //Basic access authentication?
-   if(!strcasecmp(token, "Basic"))
+   if(!osStrcasecmp(token, "Basic"))
    {
       //Basic authentication is required by the WebSocket server
       authContext->requiredAuthMode = WS_AUTH_MODE_BASIC;
    }
    //Digest access authentication?
-   else if(!strcasecmp(token, "Digest"))
+   else if(!osStrcasecmp(token, "Digest"))
    {
       //Digest authentication is required by the WebSocket server
       authContext->requiredAuthMode = WS_AUTH_MODE_DIGEST;
@@ -92,7 +92,7 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
    }
 
    //Get the first parameter
-   token = strtok_r(NULL, ",", &p);
+   token = osStrtok_r(NULL, ",", &p);
 
    //Parse the WWW-Authenticate field
    while(token != NULL)
@@ -111,7 +111,7 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
          value = strTrimWhitespace(separator + 1);
 
          //Retrieve the length of the value field
-         n = strlen(value);
+         n = osStrlen(value);
 
          //Discard the surrounding quotes
          if(n > 0 && value[n - 1] == '\"')
@@ -120,26 +120,26 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
             value++;
 
          //Check parameter name
-         if(!strcasecmp(name, "realm"))
+         if(!osStrcasecmp(name, "realm"))
          {
             //Save realm
             strSafeCopy(authContext->realm, value, WEB_SOCKET_REALM_MAX_LEN);
          }
 #if (WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
-         else if(!strcasecmp(name, "nonce"))
+         else if(!osStrcasecmp(name, "nonce"))
          {
             //Save nonce
             strSafeCopy(authContext->nonce, value, WEB_SOCKET_NONCE_MAX_LEN + 1);
          }
-         else if(!strcasecmp(name, "opaque"))
+         else if(!osStrcasecmp(name, "opaque"))
          {
             //Save nonce
             strSafeCopy(authContext->opaque, value, WEB_SOCKET_OPAQUE_MAX_LEN + 1);
          }
-         else if(!strcasecmp(name, "stale"))
+         else if(!osStrcasecmp(name, "stale"))
          {
             //Save stale flag
-            if(!strcasecmp(value, "true"))
+            if(!osStrcasecmp(value, "true"))
                authContext->stale = TRUE;
             else
                authContext->stale = FALSE;
@@ -147,7 +147,7 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
 #endif
 
          //Get next parameter
-         token = strtok_r(NULL, ",", &p);
+         token = osStrtok_r(NULL, ",", &p);
       }
    }
 #endif
@@ -186,11 +186,11 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       temp = (char_t *) webSocket->rxContext.buffer;
 
       //Format Authorization header field
-      n = sprintf(output, "Authorization: Basic ");
+      n = osSprintf(output, "Authorization: Basic ");
 
       //The client sends the userid and password, separated by a single colon
       //character, within a Base64-encoded string in the credentials
-      k = sprintf(temp, "%s:%s", authContext->username,
+      k = osSprintf(temp, "%s:%s", authContext->username,
          authContext->password);
 
       //Encode the resulting string using Base64
@@ -199,7 +199,7 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       n += k;
 
       //Properly terminate the Authorization header field
-      n += sprintf(output + n, "\r\n");
+      n += osSprintf(output + n, "\r\n");
    }
    else
 #endif
@@ -217,15 +217,15 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       authContext->nc++;
 
       //Convert the value to hex string
-      sprintf(nc, "%08x", authContext->nc);
+      osSprintf(nc, "%08x", authContext->nc);
 
       //Compute HA1 = MD5(username : realm : password)
       md5Init(&md5Context);
-      md5Update(&md5Context, authContext->username, strlen(authContext->username));
+      md5Update(&md5Context, authContext->username, osStrlen(authContext->username));
       md5Update(&md5Context, ":", 1);
-      md5Update(&md5Context, authContext->realm, strlen(authContext->realm));
+      md5Update(&md5Context, authContext->realm, osStrlen(authContext->realm));
       md5Update(&md5Context, ":", 1);
-      md5Update(&md5Context, authContext->password, strlen(authContext->password));
+      md5Update(&md5Context, authContext->password, osStrlen(authContext->password));
       md5Final(&md5Context, NULL);
 
       //Convert MD5 hash to hex string
@@ -237,7 +237,7 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       md5Init(&md5Context);
       md5Update(&md5Context, "GET", 3);
       md5Update(&md5Context, ":", 1);
-      md5Update(&md5Context, webSocket->uri, strlen(webSocket->uri));
+      md5Update(&md5Context, webSocket->uri, osStrlen(webSocket->uri));
       md5Final(&md5Context, NULL);
 
       //Convert MD5 hash to hex string
@@ -247,17 +247,17 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
 
       //Compute MD5(HA1 : nonce : nc : cnonce : qop : HA2)
       md5Init(&md5Context);
-      md5Update(&md5Context, ha1, strlen(ha1));
+      md5Update(&md5Context, ha1, osStrlen(ha1));
       md5Update(&md5Context, ":", 1);
-      md5Update(&md5Context, authContext->nonce, strlen(authContext->nonce));
+      md5Update(&md5Context, authContext->nonce, osStrlen(authContext->nonce));
       md5Update(&md5Context, ":", 1);
-      md5Update(&md5Context, nc, strlen(nc));
+      md5Update(&md5Context, nc, osStrlen(nc));
       md5Update(&md5Context, ":", 1);
-      md5Update(&md5Context, authContext->cnonce, strlen(authContext->cnonce));
+      md5Update(&md5Context, authContext->cnonce, osStrlen(authContext->cnonce));
       md5Update(&md5Context, ":", 1);
       md5Update(&md5Context, "auth", 4);
       md5Update(&md5Context, ":", 1);
-      md5Update(&md5Context, ha2, strlen(ha2));
+      md5Update(&md5Context, ha2, osStrlen(ha2));
       md5Final(&md5Context, NULL);
 
       //Convert MD5 hash to hex string
@@ -266,26 +266,26 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       TRACE_DEBUG("  response: %s\r\n", ha1);
 
       //Format Authorization header field
-      n = sprintf(output, "Authorization: Digest\r\n");
+      n = osSprintf(output, "Authorization: Digest\r\n");
 
       //Username
-      n += sprintf(output + n, "  username=\"%s\",\r\n", authContext->username);
+      n += osSprintf(output + n, "  username=\"%s\",\r\n", authContext->username);
       //Realm
-      n += sprintf(output + n, "  realm=\"%s\",\r\n", authContext->realm);
+      n += osSprintf(output + n, "  realm=\"%s\",\r\n", authContext->realm);
       //Nonce value
-      n += sprintf(output + n, "  nonce=\"%s\",\r\n", authContext->nonce);
+      n += osSprintf(output + n, "  nonce=\"%s\",\r\n", authContext->nonce);
       //URI
-      n += sprintf(output + n, "  uri=\"%s\",\r\n", webSocket->uri);
+      n += osSprintf(output + n, "  uri=\"%s\",\r\n", webSocket->uri);
       //Quality of protection
-      n += sprintf(output + n, "  qop=\"auth\",\r\n");
+      n += osSprintf(output + n, "  qop=\"auth\",\r\n");
       //Nonce count
-      n += sprintf(output + n, "  nc=\"%08x\",\r\n", authContext->nc);
+      n += osSprintf(output + n, "  nc=\"%08x\",\r\n", authContext->nc);
       //Cnonce value
-      n += sprintf(output + n, "  cnonce=\"%s\",\r\n", authContext->cnonce);
+      n += osSprintf(output + n, "  cnonce=\"%s\",\r\n", authContext->cnonce);
       //Response
-      n += sprintf(output + n, "  response=\"%s\",\r\n", ha1);
+      n += osSprintf(output + n, "  response=\"%s\",\r\n", ha1);
       //Opaque parameter
-      n += sprintf(output + n, "  opaque=\"%s\",\r\n", authContext->opaque);
+      n += osSprintf(output + n, "  opaque=\"%s\",\r\n", authContext->opaque);
    }
    else
 #endif

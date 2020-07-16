@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -111,10 +111,15 @@ error_t dm9000Init(NetInterface *interface)
 
    //Check vendor ID and product ID
    if(vendorId != DM9000_VID || productId != DM9000_PID)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
+
    //Check chip revision
    if(chipRevision != DM9000A_CHIP_REV && chipRevision != DM9000B_CHIP_REV)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Power up the internal PHY by clearing PHYPD
    dm9000WriteReg(DM9000_REG_GPR, 0x00);
@@ -124,12 +129,16 @@ error_t dm9000Init(NetInterface *interface)
    //Software reset
    dm9000WriteReg(DM9000_REG_NCR, NCR_RST);
    //Wait for the reset to complete
-   while(dm9000ReadReg(DM9000_REG_NCR) & NCR_RST);
+   while((dm9000ReadReg(DM9000_REG_NCR) & NCR_RST) != 0)
+   {
+   }
 
    //PHY software reset
    dm9000WritePhyReg(DM9000_PHY_REG_BMCR, BMCR_RST);
    //Wait for the PHY reset to complete
-   while(dm9000ReadPhyReg(DM9000_PHY_REG_BMCR) & BMCR_RST);
+   while((dm9000ReadPhyReg(DM9000_PHY_REG_BMCR) & BMCR_RST) != 0)
+   {
+   }
 
    //Debug message
    TRACE_INFO("  VID = 0x%04" PRIX16 "\r\n", vendorId);
@@ -146,11 +155,15 @@ error_t dm9000Init(NetInterface *interface)
 
    //Set host MAC address
    for(i = 0; i < 6; i++)
+   {
       dm9000WriteReg(DM9000_REG_PAR0 + i, interface->macAddr.b[i]);
+   }
 
    //Initialize hash table
    for(i = 0; i < 8; i++)
+   {
       dm9000WriteReg(DM9000_REG_MAR0 + i, 0x00);
+   }
 
    //Always accept broadcast packets
    dm9000WriteReg(DM9000_REG_MAR7, 0x80);
@@ -236,7 +249,7 @@ bool_t dm9000IrqHandler(NetInterface *interface)
    status = dm9000ReadReg(DM9000_REG_ISR);
 
    //Link status change?
-   if(status & ISR_LNKCHG)
+   if((status & ISR_LNKCHG) != 0)
    {
       //Read interrupt mask register
       mask = dm9000ReadReg(DM9000_REG_IMR);
@@ -250,14 +263,16 @@ bool_t dm9000IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if(status & ISR_PT)
+   if((status & ISR_PT) != 0)
    {
       //Check TX complete status bits
       if(dm9000ReadReg(DM9000_REG_NSR) & (NSR_TX2END | NSR_TX1END))
       {
          //The transmission of the current packet is complete
          if(context->queuedPackets > 0)
+         {
             context->queuedPackets--;
+         }
 
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&interface->nicTxEvent);
@@ -268,7 +283,7 @@ bool_t dm9000IrqHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if(status & ISR_PR)
+   if((status & ISR_PR) != 0)
    {
       //Read interrupt mask register
       mask = dm9000ReadReg(DM9000_REG_IMR);
@@ -300,7 +315,7 @@ void dm9000EventHandler(NetInterface *interface)
    status = dm9000ReadReg(DM9000_REG_ISR);
 
    //Check whether the link status has changed?
-   if(status & ISR_LNKCHG)
+   if((status & ISR_LNKCHG) != 0)
    {
       //Clear interrupt flag
       dm9000WriteReg(DM9000_REG_ISR, ISR_LNKCHG);
@@ -308,22 +323,30 @@ void dm9000EventHandler(NetInterface *interface)
       status = dm9000ReadReg(DM9000_REG_NSR);
 
       //Check link state
-      if(status & NSR_LINKST)
+      if((status & NSR_LINKST) != 0)
       {
          //Get current speed
-         if(status & NSR_SPEED)
+         if((status & NSR_SPEED) != 0)
+         {
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+         }
          else
+         {
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+         }
 
          //Read network control register
          status = dm9000ReadReg(DM9000_REG_NCR);
 
          //Determine the new duplex mode
-         if(status & NCR_FDX)
+         if((status & NCR_FDX) != 0)
+         {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
          else
+         {
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
 
          //Link is up
          interface->linkState = TRUE;
@@ -339,7 +362,7 @@ void dm9000EventHandler(NetInterface *interface)
    }
 
    //Check whether a packet has been received?
-   if(status & ISR_PR)
+   if((status & ISR_PR) != 0)
    {
       //Clear interrupt flag
       dm9000WriteReg(DM9000_REG_ISR, ISR_PR);
@@ -360,15 +383,17 @@ void dm9000EventHandler(NetInterface *interface)
 
 
 /**
- * @brief Send a packet to DM9000
+ * @brief Send a packet
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t dm9000SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t i;
    size_t length;
@@ -403,11 +428,15 @@ error_t dm9000SendPacket(NetInterface *interface,
 
    //Write data to the FIFO using 16-bit mode
    for(i = length; i > 1; i -= 2)
+   {
       DM9000_DATA_REG = *(p++);
+   }
 
    //Odd number of bytes?
    if(i > 0)
+   {
       DM9000_DATA_REG = *((uint8_t *) p);
+   }
 
    //Write the number of bytes to send
    dm9000WriteReg(DM9000_REG_TXPLL, LSB(length));
@@ -513,8 +542,13 @@ error_t dm9000ReceivePacket(NetInterface *interface)
    //Check whether a valid packet has been received
    if(!error)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->rxBuffer, n);
+      nicProcessPacket(interface, context->rxBuffer, n, &ancillary);
    }
 
    //Return status code
@@ -540,7 +574,7 @@ error_t dm9000UpdateMacAddrFilter(NetInterface *interface)
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Clear hash table
-   memset(hashTable, 0, sizeof(hashTable));
+   osMemset(hashTable, 0, sizeof(hashTable));
    //Always accept broadcast packets regardless of the MAC filter table
    hashTable[7] = 0x80;
 
@@ -565,7 +599,9 @@ error_t dm9000UpdateMacAddrFilter(NetInterface *interface)
 
    //Write the hash table to the DM9000 controller
    for(i = 0; i < 8; i++)
+   {
       dm9000WriteReg(DM9000_REG_MAR0 + i, hashTable[i]);
+   }
 
    //Debug message
    TRACE_DEBUG("  MAR = %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " "
@@ -627,7 +663,9 @@ void dm9000WritePhyReg(uint8_t address, uint16_t data)
    //Start the write operation
    dm9000WriteReg(DM9000_REG_EPCR, EPCR_EPOS | EPCR_ERPRW);
    //PHY access is still in progress?
-   while(dm9000ReadReg(DM9000_REG_EPCR) & EPCR_ERRE);
+   while((dm9000ReadReg(DM9000_REG_EPCR) & EPCR_ERRE) != 0)
+   {
+   }
 
    //Wait 5us minimum
    usleep(5);
@@ -650,7 +688,9 @@ uint16_t dm9000ReadPhyReg(uint8_t address)
    //Start the read operation
    dm9000WriteReg(DM9000_REG_EPCR, EPCR_EPOS | EPCR_ERPRR);
    //PHY access is still in progress?
-   while(dm9000ReadReg(DM9000_REG_EPCR) & EPCR_ERRE);
+   while((dm9000ReadReg(DM9000_REG_EPCR) & EPCR_ERRE) != 0)
+   {
+   }
 
    //Clear command register
    dm9000WriteReg(DM9000_REG_EPCR, EPCR_EPOS);
@@ -673,11 +713,13 @@ uint32_t dm9000CalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -687,10 +729,14 @@ uint32_t dm9000CalcCrc(const void *data, size_t length)
       //The message is processed bit by bit
       for(j = 0; j < 8; j++)
       {
-         if(crc & 0x00000001)
+         if((crc & 0x01) != 0)
+         {
             crc = (crc >> 1) ^ 0xEDB88320;
+         }
          else
+         {
             crc = crc >> 1;
+         }
       }
    }
 

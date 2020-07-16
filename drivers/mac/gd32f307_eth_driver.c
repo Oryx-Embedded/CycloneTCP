@@ -1,12 +1,12 @@
 /**
  * @file gd32f307_eth_driver.c
- * @brief GD32F307 Ethernet MAC controller
+ * @brief GD32F307 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -136,18 +136,35 @@ error_t gd32f307EthInit(NetInterface *interface)
    //Perform a software reset
    ENET_DMA_BCTL |= ENET_DMA_BCTL_SWR;
    //Wait for the reset to complete
-   while(ENET_DMA_BCTL & ENET_DMA_BCTL_SWR)
+   while((ENET_DMA_BCTL & ENET_DMA_BCTL_SWR) != 0)
    {
    }
 
    //Adjust MDC clock range depending on HCLK frequency
    ENET_MAC_PHY_CTL = ENET_MDC_HCLK_DIV62;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Use default MAC configuration
    ENET_MAC_CFG = ENET_MAC_CFG_ROD;
@@ -340,16 +357,29 @@ void gd32f307EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief GD32F307 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void gd32f307EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -362,8 +392,22 @@ void gd32f307EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ENET_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -376,8 +420,22 @@ void gd32f307EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ENET_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -399,22 +457,22 @@ void ENET_IRQHandler(void)
    //Read DMA status register
    status = ENET_DMA_STAT;
 
-   //A packet has been transmitted?
-   if(status & ENET_DMA_STAT_TS)
+   //Packet transmitted?
+   if((status & ENET_DMA_STAT_TS) != 0)
    {
       //Clear TS interrupt flag
       ENET_DMA_STAT = ENET_DMA_STAT_TS;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurDmaDesc->tdes0 & ENET_TDES0_DAV))
+      if((txCurDmaDesc->tdes0 & ENET_TDES0_DAV) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & ENET_DMA_STAT_RS)
+   //Packet received?
+   if((status & ENET_DMA_STAT_RS) != 0)
    {
       //Disable RIE interrupt
       ENET_DMA_INTEN &= ~ENET_DMA_INTEN_RIE;
@@ -443,7 +501,7 @@ void gd32f307EthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(ENET_DMA_STAT & ENET_DMA_STAT_RS)
+   if((ENET_DMA_STAT & ENET_DMA_STAT_RS) != 0)
    {
       //Clear interrupt flag
       ENET_DMA_STAT = ENET_DMA_STAT_RS;
@@ -468,11 +526,13 @@ void gd32f307EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t gd32f307EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -489,8 +549,10 @@ error_t gd32f307EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurDmaDesc->tdes0 & ENET_TDES0_DAV)
+   if((txCurDmaDesc->tdes0 & ENET_TDES0_DAV) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txCurDmaDesc->tdes2, buffer, offset, length);
@@ -511,7 +573,7 @@ error_t gd32f307EthSendPacket(NetInterface *interface,
    txCurDmaDesc = (Stm32f2xxTxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurDmaDesc->tdes0 & ENET_TDES0_DAV))
+   if((txCurDmaDesc->tdes0 & ENET_TDES0_DAV) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -532,23 +594,29 @@ error_t gd32f307EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurDmaDesc->rdes0 & ENET_RDES0_DAV))
+   if((rxCurDmaDesc->rdes0 & ENET_RDES0_DAV) == 0)
    {
       //FS and LS flags should be set
-      if((rxCurDmaDesc->rdes0 & ENET_RDES0_FDES) && (rxCurDmaDesc->rdes0 & ENET_RDES0_LDES))
+      if((rxCurDmaDesc->rdes0 & ENET_RDES0_FDES) != 0 &&
+         (rxCurDmaDesc->rdes0 & ENET_RDES0_LDES) != 0)
       {
          //Make sure no error occurred
-         if(!(rxCurDmaDesc->rdes0 & ENET_RDES0_ERRS))
+         if((rxCurDmaDesc->rdes0 & ENET_RDES0_ERRS) == 0)
          {
             //Retrieve the length of the frame
             n = (rxCurDmaDesc->rdes0 & ENET_RDES0_FRML) >> 16;
             //Limit the number of data to read
             n = MIN(n, GD32F307_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n);
+            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n,
+               &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -723,15 +791,23 @@ error_t gd32f307EthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= ENET_MAC_CFG_SPD;
+   }
    else
+   {
       config &= ~ENET_MAC_CFG_SPD;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= ENET_MAC_CFG_DPM;
+   }
    else
+   {
       config &= ~ENET_MAC_CFG_DPM;
+   }
 
    //Update MAC configuration register
    ENET_MAC_CFG = config;
@@ -772,7 +848,7 @@ void gd32f307EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       ENET_MAC_PHY_CTL = temp;
       //Wait for the write to complete
-      while(ENET_MAC_PHY_CTL & ENET_MAC_PHY_CTL_PB)
+      while((ENET_MAC_PHY_CTL & ENET_MAC_PHY_CTL_PB) != 0)
       {
       }
    }
@@ -812,7 +888,7 @@ uint16_t gd32f307EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       ENET_MAC_PHY_CTL = temp;
       //Wait for the read to complete
-      while(ENET_MAC_PHY_CTL & ENET_MAC_PHY_CTL_PB)
+      while((ENET_MAC_PHY_CTL & ENET_MAC_PHY_CTL_PB) != 0)
       {
       }
 
@@ -841,11 +917,13 @@ uint32_t gd32f307EthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -854,10 +932,14 @@ uint32_t gd32f307EthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

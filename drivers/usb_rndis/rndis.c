@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -244,7 +244,7 @@ error_t rndisProcessQueryMsg(const RndisQueryMsg *message, size_t length)
       //Retrieve the length of the list
       n = sizeof(rndisSupportOidList);
       //Copy the list
-      memcpy(buffer, rndisSupportOidList, n);
+      osMemcpy(buffer, rndisSupportOidList, n);
       break;
    case OID_GEN_HARDWARE_STATUS:
       //Current hardware status of the underlying NIC
@@ -294,8 +294,8 @@ error_t rndisProcessQueryMsg(const RndisQueryMsg *message, size_t length)
       break;
    case OID_GEN_VENDOR_DESCRIPTION:
       //NULL-terminated string describing the NIC
-      strcpy((char_t *) buffer, RNDIS_VENDOR_DESCRIPTION);
-      n = strlen(RNDIS_VENDOR_DESCRIPTION) + 1;
+      osStrcpy((char_t *) buffer, RNDIS_VENDOR_DESCRIPTION);
+      n = osStrlen(RNDIS_VENDOR_DESCRIPTION) + 1;
       break;
    case OID_GEN_CURRENT_PACKET_FILTER:
       //Types of net packets for which a protocol receives indications

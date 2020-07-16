@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * Network Management Protocol (SNMP). Refer to RFC 3415 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -82,7 +82,7 @@ error_t snmpIsAccessAllowed(SnmpAgentContext *context,
       securityName = message->community;
       securityNameLen = message->communityLen;
       contextName = context->contextName;
-      contextNameLen = strlen(context->contextName);
+      contextNameLen = osStrlen(context->contextName);
    }
    else
 #endif
@@ -96,7 +96,7 @@ error_t snmpIsAccessAllowed(SnmpAgentContext *context,
       securityName = message->community;
       securityNameLen = message->communityLen;
       contextName = context->contextName;
-      contextNameLen = strlen(context->contextName);
+      contextNameLen = osStrlen(context->contextName);
    }
    else
 #endif
@@ -134,11 +134,11 @@ error_t snmpIsAccessAllowed(SnmpAgentContext *context,
    //context identified by the contextName. If information about this
    //SNMP context is absent from the table, then an errorIndication
    //(noSuchContext) is returned to the calling module
-   if(contextNameLen != strlen(context->contextName))
+   if(contextNameLen != osStrlen(context->contextName))
       return ERROR_UNKNOWN_CONTEXT;
 
    //Check context name
-   if(strncmp(contextName, context->contextName, contextNameLen))
+   if(osStrncmp(contextName, context->contextName, contextNameLen))
       return ERROR_UNKNOWN_CONTEXT;
 
    //The vacmSecurityToGroupTable is consulted for mapping the securityModel
@@ -287,10 +287,10 @@ SnmpGroupEntry *snmpFindGroupEntry(SnmpAgentContext *context,
          if(entry->securityModel == securityModel)
          {
             //Check the length of the security name
-            if(strlen(entry->securityName) == securityNameLen)
+            if(osStrlen(entry->securityName) == securityNameLen)
             {
                //Compare security name
-               if(!strncmp(entry->securityName, securityName, securityNameLen))
+               if(!osStrncmp(entry->securityName, securityName, securityNameLen))
                {
                   //A matching entry has been found
                   break;
@@ -384,10 +384,10 @@ SnmpAccessEntry *snmpFindAccessEntry(SnmpAgentContext *context,
       if(entry->status != MIB_ROW_STATUS_UNUSED)
       {
          //Compare group name
-         if(!strcmp(entry->groupName, groupName))
+         if(!osStrcmp(entry->groupName, groupName))
          {
             //Compare context name prefix
-            if(!strcmp(entry->contextPrefix, contextPrefix))
+            if(!osStrcmp(entry->contextPrefix, contextPrefix))
             {
                //Compare security model and security level
                if(entry->securityModel == securityModel &&
@@ -444,7 +444,7 @@ SnmpAccessEntry *snmpSelectAccessEntry(SnmpAgentContext *context,
          continue;
 
       //Compare group name
-      if(strcmp(entry->groupName, groupName))
+      if(osStrcmp(entry->groupName, groupName))
          continue;
 
       //Compare security model
@@ -459,14 +459,14 @@ SnmpAccessEntry *snmpSelectAccessEntry(SnmpAgentContext *context,
          continue;
 
       //Retrieve the length of the context name prefix
-      n = strlen(entry->contextPrefix);
+      n = osStrlen(entry->contextPrefix);
 
       //Check the length of the context name prefix
       if(n > contextNameLen)
          continue;
 
       //Compare context name prefix
-      if(strncmp(entry->contextPrefix, contextName, n))
+      if(osStrncmp(entry->contextPrefix, contextName, n))
          continue;
 
       //Exact match?
@@ -486,13 +486,13 @@ SnmpAccessEntry *snmpSelectAccessEntry(SnmpAgentContext *context,
          acceptable = FALSE;
       else if(selectedEntry->securityModel == SNMP_SECURITY_MODEL_ANY)
          acceptable = TRUE;
-      else if(strlen(selectedEntry->contextPrefix) == contextNameLen)
+      else if(osStrlen(selectedEntry->contextPrefix) == contextNameLen)
          acceptable = FALSE;
-      else if(strlen(entry->contextPrefix) == contextNameLen)
+      else if(osStrlen(entry->contextPrefix) == contextNameLen)
          acceptable = TRUE;
-      else if(strlen(selectedEntry->contextPrefix) > strlen(entry->contextPrefix))
+      else if(osStrlen(selectedEntry->contextPrefix) > osStrlen(entry->contextPrefix))
          acceptable = FALSE;
-      else if(strlen(entry->contextPrefix) > strlen(selectedEntry->contextPrefix))
+      else if(osStrlen(entry->contextPrefix) > osStrlen(selectedEntry->contextPrefix))
          acceptable = TRUE;
       else if(selectedEntry->securityLevel >= entry->securityLevel)
          acceptable = FALSE;
@@ -583,13 +583,13 @@ SnmpViewEntry *snmpFindViewEntry(SnmpAgentContext *context,
       if(entry->status != MIB_ROW_STATUS_UNUSED)
       {
          //Compare view name
-         if(!strcmp(entry->viewName, viewName))
+         if(!osStrcmp(entry->viewName, viewName))
          {
             //Check the length of the subtree
             if(entry->subtreeLen == subtreeLen)
             {
                //Compare subtree
-               if(!memcmp(entry->subtree, subtree, subtreeLen))
+               if(!osMemcmp(entry->subtree, subtree, subtreeLen))
                {
                   //A matching entry has been found
                   break;
@@ -640,7 +640,7 @@ SnmpViewEntry *snmpSelectViewEntry(SnmpAgentContext *context,
          continue;
 
       //Compare view name
-      if(strcmp(entry->viewName, viewName))
+      if(osStrcmp(entry->viewName, viewName))
          continue;
 
       //Check whether the OID matches the subtree (the mask allows for a

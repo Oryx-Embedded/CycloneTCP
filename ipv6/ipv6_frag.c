@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -54,13 +54,14 @@ systime_t ipv6FragTickCounter;
  * @param[in] payload Multi-part buffer containing the payload
  * @param[in] payloadOffset Offset to the first payload byte
  * @param[in] pathMtu PMTU value
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ipv6FragmentDatagram(NetInterface *interface,
    Ipv6PseudoHeader *pseudoHeader, const NetBuffer *payload,
-   size_t payloadOffset, size_t pathMtu, uint_t flags)
+   size_t payloadOffset, size_t pathMtu, NetTxAncillary *ancillary)
 {
    error_t error;
    uint32_t id;
@@ -116,8 +117,8 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
          netBufferConcat(fragment, payload, payloadOffset + offset, length);
 
          //Do not set the MF flag for the last fragment
-         error = ipv6SendPacket(interface, pseudoHeader, id,
-            offset, fragment, fragmentOffset, flags);
+         error = ipv6SendPacket(interface, pseudoHeader, id, offset, fragment,
+            fragmentOffset, ancillary);
       }
       else
       {
@@ -127,8 +128,8 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
          netBufferConcat(fragment, payload, payloadOffset + offset, length);
 
          //Fragmented packets must have the M flag set
-         error = ipv6SendPacket(interface, pseudoHeader, id,
-            offset | IPV6_FLAG_M, fragment, fragmentOffset, flags);
+         error = ipv6SendPacket(interface, pseudoHeader, id, IPV6_FLAG_M |
+            offset, fragment, fragmentOffset, ancillary);
       }
 
       //Failed to send current IP fragment?
@@ -151,7 +152,8 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
    }
    else
    {
-      //Number of IP datagrams that have been successfully fragmented at this entity
+      //Number of IP datagrams that have been successfully fragmented at this
+      //entity
       IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutFragOKs, 1);
       IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutFragOKs, 1);
    }
@@ -170,10 +172,13 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
  * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
  * @param[in] fragHeaderOffset Offset to the Fragment header
  * @param[in] nextHeaderOffset Offset to the Next Header field of the previous header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
 void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t fragHeaderOffset, size_t nextHeaderOffset)
+   size_t ipPacketOffset, size_t fragHeaderOffset, size_t nextHeaderOffset,
+   NetRxAncillary *ancillary)
 {
    error_t error;
    size_t n;
@@ -506,7 +511,7 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
          IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmOKs, 1);
 
          //Pass the original IPv6 datagram to the higher protocol layer
-         ipv6ProcessPacket(interface, (NetBuffer *) &frag->buffer, 0);
+         ipv6ProcessPacket(interface, (NetBuffer *) &frag->buffer, 0, ancillary);
       }
 
       //Release previously allocated memory

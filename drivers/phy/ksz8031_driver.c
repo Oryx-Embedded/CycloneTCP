@@ -1,12 +1,12 @@
 /**
  * @file ksz8031_driver.c
- * @brief KSZ8031 Ethernet PHY transceiver
+ * @brief KSZ8031 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver ksz8031PhyDriver =
    ksz8031Tick,
    ksz8031EnableIrq,
    ksz8031DisableIrq,
-   ksz8031EventHandler,
-   NULL,
-   NULL
+   ksz8031EventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t ksz8031Init(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = KSZ8031_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Initialize external interrupt line driver
@@ -183,7 +187,7 @@ void ksz8031EventHandler(NetInterface *interface)
    value = ksz8031ReadPhyReg(interface, KSZ8031_ICSR);
 
    //Link status change?
-   if(value & (KSZ8031_ICSR_LINK_DOWN_IF | KSZ8031_ICSR_LINK_UP_IF))
+   if((value & (KSZ8031_ICSR_LINK_DOWN_IF | KSZ8031_ICSR_LINK_UP_IF)) != 0)
    {
       //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
@@ -191,7 +195,7 @@ void ksz8031EventHandler(NetInterface *interface)
       value = ksz8031ReadPhyReg(interface, KSZ8031_BMSR);
 
       //Link is up?
-      if(value & KSZ8031_BMSR_LINK_STATUS)
+      if((value & KSZ8031_BMSR_LINK_STATUS) != 0)
       {
          //Read PHY control register
          value = ksz8031ReadPhyReg(interface, KSZ8031_PHYCON1);
@@ -255,8 +259,16 @@ void ksz8031WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -269,9 +281,22 @@ void ksz8031WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t ksz8031ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Dependencies
@@ -58,20 +58,21 @@ error_t mib2Init(void)
 #if (TCP_SUPPORT == ENABLED)
    Mib2TcpGroup *tcpGroup;
 #endif
+   Mib2SnmpGroup *snmpGroup;
 
    //Debug message
    TRACE_INFO("Initializing MIB-II base...\r\n");
 
    //Clear MIB-II base
-   memset(&mib2Base, 0, sizeof(mib2Base));
+   osMemset(&mib2Base, 0, sizeof(mib2Base));
 
    //Point to the system group
    sysGroup = &mib2Base.sysGroup;
 
 #if (MIB2_SYS_DESCR_SIZE > 0)
    //sysDescr object
-   strcpy(sysGroup->sysDescr, "Description");
-   sysGroup->sysDescrLen = strlen(sysGroup->sysDescr);
+   osStrcpy(sysGroup->sysDescr, "Description");
+   sysGroup->sysDescrLen = osStrlen(sysGroup->sysDescr);
 #endif
 
 #if (MIB2_SYS_OBJECT_ID_SIZE > 0)
@@ -82,20 +83,20 @@ error_t mib2Init(void)
 
 #if (MIB2_SYS_CONTACT_SIZE > 0)
    //sysContact object
-   strcpy(sysGroup->sysContact, "Contact");
-   sysGroup->sysContactLen = strlen(sysGroup->sysContact);
+   osStrcpy(sysGroup->sysContact, "Contact");
+   sysGroup->sysContactLen = osStrlen(sysGroup->sysContact);
 #endif
 
 #if (MIB2_SYS_NAME_SIZE > 0)
    //sysName object
-   strcpy(sysGroup->sysName, "Name");
-   sysGroup->sysNameLen = strlen(sysGroup->sysName);
+   osStrcpy(sysGroup->sysName, "Name");
+   sysGroup->sysNameLen = osStrlen(sysGroup->sysName);
 #endif
 
 #if (MIB2_SYS_LOCATION_SIZE > 0)
    //sysLocation object
-   strcpy(sysGroup->sysLocation, "Location");
-   sysGroup->sysLocationLen = strlen(sysGroup->sysLocation);
+   osStrcpy(sysGroup->sysLocation, "Location");
+   sysGroup->sysLocationLen = osStrlen(sysGroup->sysLocation);
 #endif
 
    //sysServices object
@@ -103,7 +104,6 @@ error_t mib2Init(void)
 
    //Point to the interfaces group
    ifGroup = &mib2Base.ifGroup;
-
    //ifNumber object
    ifGroup->ifNumber = NET_INTERFACE_COUNT;
 
@@ -118,7 +118,6 @@ error_t mib2Init(void)
 #if (IPV4_SUPPORT == ENABLED)
    //Point to the IP group
    ipGroup = &mib2Base.ipGroup;
-
    //ipForwarding object
    ipGroup->ipForwarding = MIB2_IP_FORWARDING_DISABLED;
    //ipDefaultTTL object
@@ -130,7 +129,6 @@ error_t mib2Init(void)
 #if (TCP_SUPPORT == ENABLED)
    //Point to the TCP group
    tcpGroup = &mib2Base.tcpGroup;
-
    //tcpRtoAlgorithm object
    tcpGroup->tcpRtoAlgorithm = MIB2_TCP_RTO_ALGORITHM_VANJ;
    //tcpRtoMin object
@@ -140,6 +138,11 @@ error_t mib2Init(void)
    //tcpMaxConn object
    tcpGroup->tcpMaxConn = SOCKET_MAX_COUNT;
 #endif
+
+   //Point to the SNMP group
+   snmpGroup = &mib2Base.snmpGroup;
+   //snmpEnableAuthenTraps object
+   snmpGroup->snmpEnableAuthenTraps = MIB2_AUTHEN_TRAPS_DISABLED;
 
    //Successful processing
    return NO_ERROR;
@@ -240,22 +243,22 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    physicalInterface = nicGetPhysicalInterface(interface);
 
    //ifIndex object?
-   if(!strcmp(object->name, "ifIndex"))
+   if(!osStrcmp(object->name, "ifIndex"))
    {
       //Get object value
       value->integer = index;
    }
    //ifDescr object?
-   else if(!strcmp(object->name, "ifDescr"))
+   else if(!osStrcmp(object->name, "ifDescr"))
    {
       //Retrieve the length of the interface name
-      n = strlen(interface->name);
+      n = osStrlen(interface->name);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, interface->name, n);
+         osMemcpy(value->octetString, interface->name, n);
          //Return object length
          *valueLen = n;
       }
@@ -266,7 +269,7 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifType object?
-   else if(!strcmp(object->name, "ifType"))
+   else if(!osStrcmp(object->name, "ifType"))
    {
 #if (ETH_VLAN_SUPPORT == ENABLED)
       //VLAN interface?
@@ -310,22 +313,26 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifMtu object?
-   else if(!strcmp(object->name, "ifMtu"))
+   else if(!osStrcmp(object->name, "ifMtu"))
    {
       //Get interface MTU
       if(physicalInterface->nicDriver != NULL)
+      {
          value->integer = physicalInterface->nicDriver->mtu;
+      }
       else
+      {
          value->integer = 0;
+      }
    }
    //ifSpeed object?
-   else if(!strcmp(object->name, "ifSpeed"))
+   else if(!osStrcmp(object->name, "ifSpeed"))
    {
       //Get interface's current bandwidth
       value->gauge32 = interface->linkSpeed;
    }
    //ifPhysAddress object?
-   else if(!strcmp(object->name, "ifPhysAddress"))
+   else if(!osStrcmp(object->name, "ifPhysAddress"))
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= MIB2_PHYS_ADDRESS_SIZE)
@@ -342,109 +349,117 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifAdminStatus object?
-   else if(!strcmp(object->name, "ifAdminStatus"))
+   else if(!osStrcmp(object->name, "ifAdminStatus"))
    {
       //Check whether the interface is enabled for operation
       if(physicalInterface->nicDriver != NULL)
+      {
          value->integer = MIB2_IF_ADMIN_STATUS_UP;
+      }
       else
+      {
          value->integer = MIB2_IF_ADMIN_STATUS_DOWN;
+      }
    }
    //ifOperStatus object?
-   else if(!strcmp(object->name, "ifOperStatus"))
+   else if(!osStrcmp(object->name, "ifOperStatus"))
    {
       //Get the current operational state of the interface
       if(interface->linkState)
+      {
          value->integer = MIB2_IF_OPER_STATUS_UP;
+      }
       else
+      {
          value->integer = MIB2_IF_OPER_STATUS_DOWN;
+      }
    }
    //ifLastChange object?
-   else if(!strcmp(object->name, "ifLastChange"))
+   else if(!osStrcmp(object->name, "ifLastChange"))
    {
       //Get object value
       value->timeTicks = entry->ifLastChange;
    }
    //ifInOctets object?
-   else if(!strcmp(object->name, "ifInOctets"))
+   else if(!osStrcmp(object->name, "ifInOctets"))
    {
       //Get object value
       value->counter32 = entry->ifInOctets;
    }
    //ifInUcastPkts object?
-   else if(!strcmp(object->name, "ifInUcastPkts"))
+   else if(!osStrcmp(object->name, "ifInUcastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifInUcastPkts;
    }
    //ifInNUcastPkts object?
-   else if(!strcmp(object->name, "ifInNUcastPkts"))
+   else if(!osStrcmp(object->name, "ifInNUcastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifInNUcastPkts;
    }
    //ifInDiscards object?
-   else if(!strcmp(object->name, "ifInDiscards"))
+   else if(!osStrcmp(object->name, "ifInDiscards"))
    {
       //Get object value
       value->counter32 = entry->ifInDiscards;
    }
    //ifInErrors object?
-   else if(!strcmp(object->name, "ifInErrors"))
+   else if(!osStrcmp(object->name, "ifInErrors"))
    {
       //Get object value
       value->counter32 = entry->ifInErrors;
    }
    //ifInUnknownProtos object?
-   else if(!strcmp(object->name, "ifInUnknownProtos"))
+   else if(!osStrcmp(object->name, "ifInUnknownProtos"))
    {
       //Get object value
       value->counter32 = entry->ifInUnknownProtos;
    }
    //ifOutOctets object?
-   else if(!strcmp(object->name, "ifOutOctets"))
+   else if(!osStrcmp(object->name, "ifOutOctets"))
    {
       //Get object value
       value->counter32 = entry->ifOutOctets;
    }
    //ifOutUcastPkts object?
-   else if(!strcmp(object->name, "ifOutUcastPkts"))
+   else if(!osStrcmp(object->name, "ifOutUcastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifOutUcastPkts;
    }
    //ifOutNUcastPkts object?
-   else if(!strcmp(object->name, "ifOutNUcastPkts"))
+   else if(!osStrcmp(object->name, "ifOutNUcastPkts"))
    {
       //Get object value
       value->counter32 = entry->ifOutNUcastPkts;
    }
    //ifOutDiscards object?
-   else if(!strcmp(object->name, "ifOutDiscards"))
+   else if(!osStrcmp(object->name, "ifOutDiscards"))
    {
       //Get object value
       value->counter32 = entry->ifOutDiscards;
    }
    //ifOutErrors object?
-   else if(!strcmp(object->name, "ifOutErrors"))
+   else if(!osStrcmp(object->name, "ifOutErrors"))
    {
       //Get object value
       value->counter32 = entry->ifOutErrors;
    }
    //ifOutQLen object?
-   else if(!strcmp(object->name, "ifOutQLen"))
+   else if(!osStrcmp(object->name, "ifOutQLen"))
    {
       //Get object value
       value->gauge32 = entry->ifOutQLen;
    }
    //ifSpecific object?
-   else if(!strcmp(object->name, "ifSpecific"))
+   else if(!osStrcmp(object->name, "ifSpecific"))
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= entry->ifSpecificLen)
       {
          //Copy object value
-         memcpy(value->oid, entry->ifSpecific, entry->ifSpecificLen);
+         osMemcpy(value->oid, entry->ifSpecific, entry->ifSpecificLen);
          //Return object length
          *valueLen = entry->ifSpecificLen;
       }
@@ -488,7 +503,7 @@ error_t mib2GetNextIfEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
    for(index = 1; index <= NET_INTERFACE_COUNT; index++)
@@ -586,31 +601,31 @@ error_t mib2GetIpAddrEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ipAdEntAddr object?
-   if(!strcmp(object->name, "ipAdEntAddr"))
+   if(!osStrcmp(object->name, "ipAdEntAddr"))
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &entry->addr);
    }
    //ipAdEntIfIndex object?
-   else if(!strcmp(object->name, "ipAdEntIfIndex"))
+   else if(!osStrcmp(object->name, "ipAdEntIfIndex"))
    {
       //Get object value
       value->integer = index;
    }
    //ipAdEntNetMask object?
-   else if(!strcmp(object->name, "ipAdEntNetMask"))
+   else if(!osStrcmp(object->name, "ipAdEntNetMask"))
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &entry->subnetMask);
    }
    //ipAdEntBcastAddr object?
-   else if(!strcmp(object->name, "ipAdEntBcastAddr"))
+   else if(!osStrcmp(object->name, "ipAdEntBcastAddr"))
    {
       //Get object value
       value->integer = 1;
    }
    //ipAdEntReasmMaxSize object?
-   else if(!strcmp(object->name, "ipAdEntReasmMaxSize"))
+   else if(!osStrcmp(object->name, "ipAdEntReasmMaxSize"))
    {
       //Get object value
       value->integer = IPV4_MAX_FRAG_DATAGRAM_SIZE;
@@ -657,7 +672,7 @@ error_t mib2GetNextIpAddrEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
    for(index = 1; index <= NET_INTERFACE_COUNT; index++)
@@ -689,11 +704,17 @@ error_t mib2GetNextIpAddrEntry(const MibObject *object, const uint8_t *oid,
             {
                //Perform lexicographic comparison
                if(ipAddr == IPV4_UNSPECIFIED_ADDR)
+               {
                   acceptable = TRUE;
+               }
                else if(ntohl(entry->addr) < ntohl(ipAddr))
+               {
                   acceptable = TRUE;
+               }
                else
+               {
                   acceptable = FALSE;
+               }
 
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order
@@ -799,13 +820,13 @@ error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ipNetToMediaIfIndex object?
-   if(!strcmp(object->name, "ipNetToMediaIfIndex"))
+   if(!osStrcmp(object->name, "ipNetToMediaIfIndex"))
    {
       //Get object value
       value->integer = index;
    }
    //ipNetToMediaPhysAddress object?
-   else if(!strcmp(object->name, "ipNetToMediaPhysAddress"))
+   else if(!osStrcmp(object->name, "ipNetToMediaPhysAddress"))
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= MIB2_PHYS_ADDRESS_SIZE)
@@ -822,13 +843,13 @@ error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ipNetToMediaNetAddress object?
-   else if(!strcmp(object->name, "ipNetToMediaNetAddress"))
+   else if(!osStrcmp(object->name, "ipNetToMediaNetAddress"))
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &entry->ipAddr);
    }
    //ipNetToMediaType object?
-   else if(!strcmp(object->name, "ipNetToMediaType"))
+   else if(!osStrcmp(object->name, "ipNetToMediaType"))
    {
       //Get object value
       value->integer = MIB2_IP_NET_TO_MEDIA_TYPE_DYNAMIC;
@@ -877,7 +898,7 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
    for(i = 1; i <= NET_INTERFACE_COUNT; i++)
@@ -915,15 +936,25 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
             {
                //Perform lexicographic comparison
                if(index == 0)
+               {
                   acceptable = TRUE;
+               }
                else if(i < index)
+               {
                   acceptable = TRUE;
+               }
                else if(i > index)
+               {
                   acceptable = FALSE;
+               }
                else if(ntohl(entry->ipAddr) < ntohl(ipAddr))
+               {
                   acceptable = TRUE;
+               }
                else
+               {
                   acceptable = FALSE;
+               }
 
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order
@@ -1010,7 +1041,7 @@ error_t mib2GetTcpCurrEstab(const MibObject *object, const uint8_t *oid,
       }
    }
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -1124,7 +1155,7 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //tcpConnState object?
-   if(!strcmp(object->name, "tcpConnState"))
+   if(!osStrcmp(object->name, "tcpConnState"))
    {
       //Get object value
       switch(socket->state)
@@ -1168,25 +1199,25 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //tcpConnLocalAddress object?
-   else if(!strcmp(object->name, "tcpConnLocalAddress"))
+   else if(!osStrcmp(object->name, "tcpConnLocalAddress"))
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &socket->localIpAddr.ipv4Addr);
    }
    //tcpConnLocalPort object?
-   else if(!strcmp(object->name, "tcpConnLocalPort"))
+   else if(!osStrcmp(object->name, "tcpConnLocalPort"))
    {
       //Get object value
       value->integer = socket->localPort;
    }
    //tcpConnRemAddress object?
-   else if(!strcmp(object->name, "tcpConnRemAddress"))
+   else if(!osStrcmp(object->name, "tcpConnRemAddress"))
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &socket->remoteIpAddr.ipv4Addr);
    }
    //tcpConnRemPort object?
-   else if(!strcmp(object->name, "tcpConnRemPort"))
+   else if(!osStrcmp(object->name, "tcpConnRemPort"))
    {
       //Get object value
       value->integer = socket->remotePort;
@@ -1237,7 +1268,7 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
@@ -1285,23 +1316,41 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
             {
                //Perform lexicographic comparison
                if(localPort == 0 && remotePort == 0)
+               {
                   acceptable = TRUE;
+               }
                else if(ntohl(socket->localIpAddr.ipv4Addr) < ntohl(localIpAddr))
+               {
                   acceptable = TRUE;
+               }
                else if(ntohl(socket->localIpAddr.ipv4Addr) > ntohl(localIpAddr))
+               {
                   acceptable = FALSE;
+               }
                else if(socket->localPort < localPort)
+               {
                   acceptable = TRUE;
+               }
                else if(socket->localPort > localPort)
+               {
                   acceptable = FALSE;
+               }
                else if(ntohl(socket->remoteIpAddr.ipv4Addr) < ntohl(remoteIpAddr))
+               {
                   acceptable = TRUE;
+               }
                else if(ntohl(socket->remoteIpAddr.ipv4Addr) > ntohl(remoteIpAddr))
+               {
                   acceptable = FALSE;
+               }
                else if(socket->remotePort < remotePort)
+               {
                   acceptable = TRUE;
+               }
                else
+               {
                   acceptable = FALSE;
+               }
 
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order
@@ -1426,7 +1475,7 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
       for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
       {
          //Point to the current entry
-         UdpRxCallbackDesc *entry = &udpCallbackTable[i];
+         UdpRxCallbackEntry *entry = &udpCallbackTable[i];
 
          //Check whether the entry is currently in used
          if(entry->callback != NULL)
@@ -1443,13 +1492,13 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
    }
 
    //udpLocalAddress object?
-   if(!strcmp(object->name, "udpLocalAddress"))
+   if(!osStrcmp(object->name, "udpLocalAddress"))
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &localIpAddr);
    }
    //udpLocalPort object?
-   else if(!strcmp(object->name, "udpLocalPort"))
+   else if(!osStrcmp(object->name, "udpLocalPort"))
    {
       //Get object value
       value->integer = localPort;
@@ -1495,7 +1544,7 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
@@ -1531,15 +1580,25 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
             {
                //Perform lexicographic comparison
                if(localPort == 0)
+               {
                   acceptable = TRUE;
+               }
                else if(ntohl(socket->localIpAddr.ipv4Addr) < ntohl(localIpAddr))
+               {
                   acceptable = TRUE;
+               }
                else if(ntohl(socket->localIpAddr.ipv4Addr) > ntohl(localIpAddr))
+               {
                   acceptable = FALSE;
+               }
                else if(socket->localPort < localPort)
+               {
                   acceptable = TRUE;
+               }
                else
+               {
                   acceptable = FALSE;
+               }
 
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order
@@ -1557,7 +1616,7 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      UdpRxCallbackDesc *entry = &udpCallbackTable[i];
+      UdpRxCallbackEntry *entry = &udpCallbackTable[i];
 
       //Check whether the entry is currently in used
       if(entry->callback != NULL)
@@ -1583,15 +1642,25 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
          {
             //Perform lexicographic comparison
             if(localPort == 0)
+            {
                acceptable = TRUE;
+            }
             else if(ntohl(IPV4_UNSPECIFIED_ADDR) < ntohl(localIpAddr))
+            {
                acceptable = TRUE;
+            }
             else if(ntohl(IPV4_UNSPECIFIED_ADDR) > ntohl(localIpAddr))
+            {
                acceptable = FALSE;
+            }
             else if(entry->port < localPort)
+            {
                acceptable = TRUE;
+            }
             else
+            {
                acceptable = FALSE;
+            }
 
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order

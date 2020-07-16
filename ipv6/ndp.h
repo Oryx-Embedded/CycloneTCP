@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _NDP_H
@@ -531,9 +531,10 @@ typedef __start_packed struct
 
 typedef struct
 {
-   NetInterface *srcInterface; //<Interface from which the packet has been received
+   NetInterface *srcInterface; ///<Interface from which the packet has been received
    NetBuffer *buffer;          ///<Packet waiting for address resolution
    size_t offset;              ///<Offset to the first byte of the packet
+   NetTxAncillary ancillary;   ///<Additional options
 } NdpQueueItem;
 
 
@@ -596,10 +597,12 @@ extern systime_t ndpTickCounter;
 //NDP related functions
 error_t ndpInit(NetInterface *interface);
 
-error_t ndpResolve(NetInterface *interface, const Ipv6Addr *ipAddr, MacAddr *macAddr);
+error_t ndpResolve(NetInterface *interface, const Ipv6Addr *ipAddr,
+   MacAddr *macAddr);
 
-error_t ndpEnqueuePacket(NetInterface *srcInterface, NetInterface *destInterface,
-   const Ipv6Addr *ipAddr, NetBuffer *buffer, size_t offset);
+error_t ndpEnqueuePacket(NetInterface *srcInterface,
+   NetInterface *destInterface, const Ipv6Addr *ipAddr, NetBuffer *buffer,
+      size_t offset, NetTxAncillary *ancillary);
 
 void ndpTick(NetInterface *interface);
 void ndpLinkChangeEvent(NetInterface *interface);

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 6106: IPv6 Router Advertisement Options for DNS Configuration
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -90,7 +90,7 @@ error_t slaacInit(SlaacContext *context, const SlaacSettings *settings)
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //A valid pointer to the interface being configured is required
+   //The SLAAC service must be bound to a valid interface
    if(settings->interface == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -98,7 +98,7 @@ error_t slaacInit(SlaacContext *context, const SlaacSettings *settings)
    interface = settings->interface;
 
    //Clear the SLAAC context
-   memset(context, 0, sizeof(SlaacContext));
+   osMemset(context, 0, sizeof(SlaacContext));
    //Save user settings
    context->settings = *settings;
 
@@ -123,7 +123,7 @@ error_t slaacStart(SlaacContext *context)
 {
    NetInterface *interface;
 
-   //Check parameter
+   //Make sure the SLAAC context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -173,7 +173,7 @@ error_t slaacStart(SlaacContext *context)
 
 error_t slaacStop(SlaacContext *context)
 {
-   //Check parameter
+   //Make sure the SLAAC context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 

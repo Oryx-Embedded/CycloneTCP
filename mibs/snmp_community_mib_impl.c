@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * of an SNMP entity. Refer to RFC 3418 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -63,7 +63,7 @@ error_t snmpCommunityMibInit(void)
    TRACE_INFO("Initializing SNMP COMMUNITY MIB base...\r\n");
 
    //Clear SNMP COMMUNITY MIB base
-   memset(&snmpCommunityMibBase, 0, sizeof(snmpCommunityMibBase));
+   osMemset(&snmpCommunityMibBase, 0, sizeof(snmpCommunityMibBase));
 
    //Successful processing
    return NO_ERROR;
@@ -105,7 +105,7 @@ void snmpCommunityMibUnload(void *context)
 void snmpCommunityMibLock(void)
 {
    //Clear temporary community
-   memset(&snmpCommunityMibBase.tempCommunity, 0, sizeof(SnmpUserEntry));
+   osMemset(&snmpCommunityMibBase.tempCommunity, 0, sizeof(SnmpUserEntry));
 }
 
 
@@ -116,7 +116,7 @@ void snmpCommunityMibLock(void)
 void snmpCommunityMibUnlock(void)
 {
    //Clear temporary user
-   memset(&snmpCommunityMibBase.tempCommunity, 0, sizeof(SnmpUserEntry));
+   osMemset(&snmpCommunityMibBase.tempCommunity, 0, sizeof(SnmpUserEntry));
 }
 
 
@@ -135,6 +135,7 @@ void snmpCommunityMibUnlock(void)
 error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
+#if (SNMP_COMMUNITY_MIB_SET_SUPPORT == ENABLED)
    error_t error;
    size_t n;
    char_t index[SNMP_MAX_USER_NAME_LEN + 1];
@@ -162,14 +163,14 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Search the community table for the specified community string
-   community = snmpFindCommunityEntry(context, index, strlen(index));
+   community = snmpFindCommunityEntry(context, index, osStrlen(index));
 
    //snmpCommunityName object?
-   if(!strcmp(object->name, "snmpCommunityName"))
+   if(!osStrcmp(object->name, "snmpCommunityName"))
    {
       //Ensure the length of the community string is valid
       if(valueLen > SNMP_MAX_USER_NAME_LEN)
-         return ERROR_INVALID_LENGTH;
+         return ERROR_WRONG_LENGTH;
 
       //Test if the conceptual row exists in the agent
       if(community != NULL)
@@ -178,7 +179,7 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
          if(commit)
          {
             //Set community string
-            memcpy(community->name, value->octetString, valueLen);
+            osMemcpy(community->name, value->octetString, valueLen);
             //Properly terminate the string with a NULL character
             community->name[valueLen] = '\0';
          }
@@ -189,7 +190,7 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
          if(!commit)
          {
             //Save the community string for later use
-            memcpy(snmpCommunityMibBase.tempCommunity.name,
+            osMemcpy(snmpCommunityMibBase.tempCommunity.name,
                value->octetString, valueLen);
 
             //Properly terminate the string with a NULL character
@@ -198,27 +199,27 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunitySecurityName object?
-   else if(!strcmp(object->name, "snmpCommunitySecurityName"))
+   else if(!osStrcmp(object->name, "snmpCommunitySecurityName"))
    {
       //Write access is not required
    }
    //snmpCommunityContextEngineID object?
-   else if(!strcmp(object->name, "snmpCommunityContextEngineID"))
+   else if(!osStrcmp(object->name, "snmpCommunityContextEngineID"))
    {
       //Write access is not required
    }
    //snmpCommunityContextName object?
-   else if(!strcmp(object->name, "snmpCommunityContextName"))
+   else if(!osStrcmp(object->name, "snmpCommunityContextName"))
    {
       //Write access is not required
    }
    //snmpCommunityTransportTag object?
-   else if(!strcmp(object->name, "snmpCommunityTransportTag"))
+   else if(!osStrcmp(object->name, "snmpCommunityTransportTag"))
    {
       //Write access is not required
    }
    //snmpCommunityStorageType object?
-   else if(!strcmp(object->name, "snmpCommunityStorageType"))
+   else if(!osStrcmp(object->name, "snmpCommunityStorageType"))
    {
       //The snmpCommunityStorageType object specifies the storage type
       //for this conceptual row
@@ -232,7 +233,7 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunityStatus object?
-   else if(!strcmp(object->name, "snmpCommunityStatus"))
+   else if(!osStrcmp(object->name, "snmpCommunityStatus"))
    {
       MibRowStatus status;
 
@@ -252,7 +253,7 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
          {
             //Valid community string specified?
             if(snmpCommunityMibBase.tempCommunity.name[0] != '\0')
-               strcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
+               osStrcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
 
             //A newly created row cannot be made active until a value has been
             //set for snmpCommunityName
@@ -282,7 +283,7 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
             if(snmpCommunityMibBase.tempCommunity.name[0] != '\0')
             {
                //Save community string
-               strcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
+               osStrcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
                //Set default access rights
                community->mode = SNMP_ACCESS_READ_WRITE;
 
@@ -316,7 +317,7 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
                return ERROR_INCONSISTENT_VALUE;
 
             //Copy the community string
-            strcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
+            osStrcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
             //Set default access rights
             community->mode = SNMP_ACCESS_READ_WRITE;
 
@@ -352,6 +353,10 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
 
    //Return status code
    return error;
+#else
+   //SET operation is not supported
+   return ERROR_WRITE_FAILED;
+#endif
 }
 
 
@@ -395,22 +400,22 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Search the community table for the specified community string
-   community = snmpFindCommunityEntry(context, index, strlen(index));
+   community = snmpFindCommunityEntry(context, index, osStrlen(index));
    //Unknown community string?
    if(community == NULL)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //snmpCommunityName object?
-   if(!strcmp(object->name, "snmpCommunityName"))
+   if(!osStrcmp(object->name, "snmpCommunityName"))
    {
       //Retrieve the length of the community string
-      n = strlen(community->name);
+      n = osStrlen(community->name);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, community->name, n);
+         osMemcpy(value->octetString, community->name, n);
          //Return object length
          *valueLen = n;
       }
@@ -421,16 +426,16 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunitySecurityName object?
-   else if(!strcmp(object->name, "snmpCommunitySecurityName"))
+   else if(!osStrcmp(object->name, "snmpCommunitySecurityName"))
    {
       //Retrieve the length of the community string
-      n = strlen(community->name);
+      n = osStrlen(community->name);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, community->name, n);
+         osMemcpy(value->octetString, community->name, n);
          //Return object length
          *valueLen = n;
       }
@@ -441,7 +446,7 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunityContextEngineID object?
-   else if(!strcmp(object->name, "snmpCommunityContextEngineID"))
+   else if(!osStrcmp(object->name, "snmpCommunityContextEngineID"))
    {
       //Retrieve the length of the context engine identifier
       n = context->contextEngineLen;
@@ -450,7 +455,7 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, context->contextEngine, n);
+         osMemcpy(value->octetString, context->contextEngine, n);
          //Return object length
          *valueLen = n;
       }
@@ -461,16 +466,16 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunityContextName object?
-   else if(!strcmp(object->name, "snmpCommunityContextName"))
+   else if(!osStrcmp(object->name, "snmpCommunityContextName"))
    {
       //Retrieve the length of the context name
-      n = strlen(context->contextName);
+      n = osStrlen(context->contextName);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, context->contextName, n);
+         osMemcpy(value->octetString, context->contextName, n);
          //Return object length
          *valueLen = n;
       }
@@ -481,19 +486,19 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunityTransportTag object?
-   else if(!strcmp(object->name, "snmpCommunityTransportTag"))
+   else if(!osStrcmp(object->name, "snmpCommunityTransportTag"))
    {
       //The default value is the empty string
       *valueLen = 0;
    }
    //snmpCommunityStorageType object?
-   else if(!strcmp(object->name, "snmpCommunityStorageType"))
+   else if(!osStrcmp(object->name, "snmpCommunityStorageType"))
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //snmpCommunityStatus object?
-   else if(!strcmp(object->name, "snmpCommunityStatus"))
+   else if(!osStrcmp(object->name, "snmpCommunityStatus"))
    {
       //Get the status of this conceptual row
       value->integer = community->status;
@@ -545,7 +550,7 @@ error_t snmpCommunityMibGetNextCommunityEntry(const MibObject *object, const uin
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through the list of community strings
    for(i = 0; i < SNMP_AGENT_MAX_COMMUNITIES; i++)
@@ -571,11 +576,17 @@ error_t snmpCommunityMibGetNextCommunityEntry(const MibObject *object, const uin
          {
             //Perform lexicographic comparison
             if(nextEntry == NULL)
+            {
                acceptable = TRUE;
-            else if(strcmp(entry->name, nextEntry->name) < 0)
+            }
+            else if(osStrcmp(entry->name, nextEntry->name) < 0)
+            {
                acceptable = TRUE;
+            }
             else
+            {
                acceptable = FALSE;
+            }
 
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order

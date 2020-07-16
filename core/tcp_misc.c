@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -72,6 +72,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    TcpHeader *segment;
    TcpQueueItem *queueItem;
    IpPseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 
    //Maximum segment size
    uint16_t mss = HTONS(socket->rmss);
@@ -212,7 +213,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
       queueItem->length = length;
       queueItem->sacked = FALSE;
       //Save TCP header
-      memcpy(queueItem->header, segment, segment->dataOffset * 4);
+      osMemcpy(queueItem->header, segment, segment->dataOffset * 4);
       //Save pseudo header
       queueItem->pseudoHeader = pseudoHeader;
 
@@ -263,11 +264,30 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    //Dump TCP header contents for debugging purpose
    tcpDumpHeader(segment, length, socket->iss, socket->irs);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+   //Set the TTL value to be used
+   ancillary.ttl = socket->ttl;
+
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Set VLAN PCP and DEI fields
+   ancillary.vlanPcp = socket->vlanPcp;
+   ancillary.vlanDei = socket->vlanDei;
+#endif
+
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Set VMAN PCP and DEI fields
+   ancillary.vmanPcp = socket->vmanPcp;
+   ancillary.vmanDei = socket->vmanDei;
+#endif
+
    //Send TCP segment
-   error = ipSendDatagram(socket->interface, &pseudoHeader, buffer, offset, 0);
+   error = ipSendDatagram(socket->interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return error code
    return error;
 }
@@ -293,6 +313,7 @@ error_t tcpSendResetSegment(NetInterface *interface,
    NetBuffer *buffer;
    TcpHeader *segment2;
    IpPseudoHeader pseudoHeader2;
+   NetTxAncillary ancillary;
 
    //Check whether the ACK bit is set
    if(segment->flags & TCP_FLAG_ACK)
@@ -399,11 +420,16 @@ error_t tcpSendResetSegment(NetInterface *interface,
    //Dump TCP header contents for debugging purpose
    tcpDumpHeader(segment2, length, 0, 0);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send TCP segment
-   error = ipSendDatagram(interface, &pseudoHeader2, buffer, offset, 0);
+   error = ipSendDatagram(interface, &pseudoHeader2, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return error code
    return error;
 }
@@ -446,7 +472,7 @@ error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
    //Write specified option
    option->kind = kind;
    option->length = length;
-   memcpy(option->value, value, length - sizeof(TcpOption));
+   osMemcpy(option->value, value, length - sizeof(TcpOption));
    //Adjust index value
    i += length;
 
@@ -1297,7 +1323,7 @@ void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge
          *rightEdge = MAX(*rightEdge, socket->sackBlock[i].rightEdge);
 
          //Delete current block
-         memmove(socket->sackBlock + i, socket->sackBlock + i + 1,
+         osMemmove(socket->sackBlock + i, socket->sackBlock + i + 1,
             (TCP_MAX_SACK_BLOCKS - i - 1) * sizeof(TcpSackBlock));
 
          //Decrement the number of non-contiguous blocks
@@ -1314,7 +1340,7 @@ void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge
    if(TCP_CMP_SEQ(*leftEdge, socket->rcvNxt) > 0)
    {
       //Make room for the new non-contiguous block
-      memmove(socket->sackBlock + 1, socket->sackBlock,
+      osMemmove(socket->sackBlock + 1, socket->sackBlock,
          (TCP_MAX_SACK_BLOCKS - 1) * sizeof(TcpSackBlock));
 
       //Insert the element in the list
@@ -1498,6 +1524,7 @@ error_t tcpRetransmitSegment(Socket *socket)
    NetBuffer *buffer;
    TcpQueueItem *queueItem;
    TcpHeader *header;
+   NetTxAncillary ancillary;
 
    //Initialize error code
    error = NO_ERROR;
@@ -1559,10 +1586,26 @@ error_t tcpRetransmitSegment(Socket *socket)
          //Dump TCP header contents for debugging purpose
          tcpDumpHeader(header, queueItem->length, socket->iss, socket->irs);
 
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_TX_ANCILLARY;
+         //Set the TTL value to be used
+         ancillary.ttl = socket->ttl;
+
+#if (ETH_VLAN_SUPPORT == ENABLED)
+         //Set VLAN PCP and DEI fields
+         ancillary.vlanPcp = socket->vlanPcp;
+         ancillary.vlanDei = socket->vlanDei;
+#endif
+
+#if (ETH_VMAN_SUPPORT == ENABLED)
+         //Set VMAN PCP and DEI fields
+         ancillary.vmanPcp = socket->vmanPcp;
+         ancillary.vmanDei = socket->vmanDei;
+#endif
          //Retransmit the lost segment without waiting for the retransmission
          //timer to expire
          error = ipSendDatagram(socket->interface, &queueItem->pseudoHeader,
-            buffer, offset, 0);
+            buffer, offset, &ancillary);
 
          //End of exception handling block
       } while(0);

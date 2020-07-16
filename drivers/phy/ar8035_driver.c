@@ -1,12 +1,12 @@
 /**
  * @file ar8035_driver.c
- * @brief AR8035 Gigabit Ethernet PHY transceiver
+ * @brief AR8035 Gigabit Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver ar8035PhyDriver =
    ar8035Tick,
    ar8035EnableIrq,
    ar8035DisableIrq,
-   ar8035EventHandler,
-   NULL,
-   NULL
+   ar8035EventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t ar8035Init(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = AR8035_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Initialize external interrupt line driver
@@ -201,13 +205,13 @@ void ar8035EventHandler(NetInterface *interface)
    status = ar8035ReadPhyReg(interface, AR8035_INT_STATUS);
 
    //Link status change?
-   if(status & (AR8035_INT_STATUS_LINK_FAIL | AR8035_INT_STATUS_LINK_SUCCESS))
+   if((status & (AR8035_INT_STATUS_LINK_FAIL | AR8035_INT_STATUS_LINK_SUCCESS)) != 0)
    {
       //Read PHY status register
       status = ar8035ReadPhyReg(interface, AR8035_PHY_STATUS);
 
       //Link is up?
-      if(status & AR8035_PHY_STATUS_LINK)
+      if((status & AR8035_PHY_STATUS_LINK) != 0)
       {
          //Check current speed
          switch(status & AR8035_PHY_STATUS_SPEED)
@@ -232,10 +236,14 @@ void ar8035EventHandler(NetInterface *interface)
          }
 
          //Check current duplex mode
-         if(status & AR8035_PHY_STATUS_DUPLEX)
+         if((status & AR8035_PHY_STATUS_DUPLEX) != 0)
+         {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
          else
+         {
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
 
          //Update link state
          interface->linkState = TRUE;
@@ -266,8 +274,16 @@ void ar8035WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -280,9 +296,22 @@ void ar8035WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t ar8035ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

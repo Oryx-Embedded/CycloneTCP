@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -81,7 +81,7 @@ void dhcpClientGetDefaultSettings(DhcpClientSettings *settings)
 
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    //Use default host name
-   strcpy(settings->hostname, "");
+   osStrcpy(settings->hostname, "");
 #endif
 
 #if (DHCP_CLIENT_ID_OPTION_SUPPORT == ENABLED)
@@ -124,7 +124,7 @@ error_t dhcpClientInit(DhcpClientContext *context, const DhcpClientSettings *set
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //A valid pointer to the interface being configured is required
+   //The DHCP client must be bound to a valid interface
    if(settings->interface == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -132,7 +132,7 @@ error_t dhcpClientInit(DhcpClientContext *context, const DhcpClientSettings *set
    interface = settings->interface;
 
    //Clear the DHCP client context
-   memset(context, 0, sizeof(DhcpClientContext));
+   osMemset(context, 0, sizeof(DhcpClientContext));
    //Save user settings
    context->settings = *settings;
 
@@ -141,12 +141,12 @@ error_t dhcpClientInit(DhcpClientContext *context, const DhcpClientSettings *set
    if(settings->hostname[0] == '\0')
    {
       //Use default host name
-      n = strlen(interface->hostname);
+      n = osStrlen(interface->hostname);
       //Limit the length of the string
       n = MIN(n, DHCP_CLIENT_MAX_HOSTNAME_LEN);
 
       //Copy host name
-      strncpy(context->settings.hostname, interface->hostname, n);
+      osStrncpy(context->settings.hostname, interface->hostname, n);
       //Properly terminate the string with a NULL character
       context->settings.hostname[n] = '\0';
    }
@@ -183,7 +183,7 @@ error_t dhcpClientStart(DhcpClientContext *context)
    uint_t i;
    NetInterface *interface;
 
-   //Check parameter
+   //Make sure the DHCP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -226,7 +226,7 @@ error_t dhcpClientStart(DhcpClientContext *context)
 
 error_t dhcpClientStop(DhcpClientContext *context)
 {
-   //Check parameter
+   //Make sure the DHCP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -989,6 +989,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    DhcpMessage *message;
    IpAddr srcIpAddr;
    IpAddr destIpAddr;
+   NetTxAncillary ancillary;
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    size_t length;
 #endif
@@ -1010,7 +1011,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset);
    //Clear memory buffer contents
-   memset(message, 0, DHCP_MIN_MSG_SIZE);
+   osMemset(message, 0, DHCP_MIN_MSG_SIZE);
 
    //Format DHCPDISCOVER message
    message->op = DHCP_OPCODE_BOOTREQUEST;
@@ -1033,7 +1034,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
 
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    //Retrieve the length of the host name
-   length = strlen(context->settings.hostname);
+   length = osStrlen(context->settings.hostname);
 
    //Any host name defined?
    if(length > 0)
@@ -1079,9 +1080,12 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    //Dump the contents of the message for debugging purpose
    dhcpDumpMessage(message, DHCP_MIN_MSG_SIZE);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Broadcast DHCPDISCOVER message
-   error = udpSendDatagramEx(interface, &srcIpAddr, DHCP_CLIENT_PORT,
-      &destIpAddr, DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
+   error = udpSendBuffer(interface, &srcIpAddr, DHCP_CLIENT_PORT, &destIpAddr,
+      DHCP_SERVER_PORT, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1107,6 +1111,7 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    DhcpMessage *message;
    IpAddr srcIpAddr;
    IpAddr destIpAddr;
+   NetTxAncillary ancillary;
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    size_t length;
 #endif
@@ -1131,7 +1136,7 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset);
    //Clear memory buffer contents
-   memset(message, 0, DHCP_MIN_MSG_SIZE);
+   osMemset(message, 0, DHCP_MIN_MSG_SIZE);
 
    //Format DHCPREQUEST message
    message->op = DHCP_OPCODE_BOOTREQUEST;
@@ -1167,7 +1172,7 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
 
 #if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
    //Retrieve the length of the host name
-   length = strlen(context->settings.hostname);
+   length = osStrlen(context->settings.hostname);
 
    //Any host name defined?
    if(length > 0)
@@ -1239,9 +1244,12 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    //Dump the contents of the message for debugging purpose
    dhcpDumpMessage(message, DHCP_MIN_MSG_SIZE);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send DHCPREQUEST message
-   error = udpSendDatagramEx(interface, &srcIpAddr, DHCP_CLIENT_PORT,
-      &destIpAddr, DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
+   error = udpSendBuffer(interface, &srcIpAddr, DHCP_CLIENT_PORT, &destIpAddr,
+      DHCP_SERVER_PORT, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1266,6 +1274,7 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    DhcpMessage *message;
    IpAddr srcIpAddr;
    IpAddr destIpAddr;
+   NetTxAncillary ancillary;
 
    //DHCP message type
    const uint8_t messageType = DHCP_MESSAGE_TYPE_DECLINE;
@@ -1284,7 +1293,7 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset);
    //Clear memory buffer contents
-   memset(message, 0, DHCP_MIN_MSG_SIZE);
+   osMemset(message, 0, DHCP_MIN_MSG_SIZE);
 
    //Format DHCPDECLINE message
    message->op = DHCP_OPCODE_BOOTREQUEST;
@@ -1326,9 +1335,12 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    //Dump the contents of the message for debugging purpose
    dhcpDumpMessage(message, DHCP_MIN_MSG_SIZE);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Broadcast DHCPDECLINE message
-   error = udpSendDatagramEx(interface, &srcIpAddr, DHCP_CLIENT_PORT,
-      &destIpAddr, DHCP_SERVER_PORT, buffer, offset, IPV4_DEFAULT_TTL);
+   error = udpSendBuffer(interface, &srcIpAddr, DHCP_CLIENT_PORT, &destIpAddr,
+      DHCP_SERVER_PORT, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1344,12 +1356,15 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming DHCP message
  * @param[in] offset Offset to the first byte of the DHCP message
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @param[in] param Pointer to the DHCP client context
  **/
 
 void dhcpClientProcessMessage(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, void *param)
+   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
+   void *param)
 {
    size_t length;
    DhcpClientContext *context;

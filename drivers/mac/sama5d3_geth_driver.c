@@ -1,12 +1,12 @@
 /**
  * @file sama5d3_geth_driver.c
- * @brief SAMA5D3 Gigabit Ethernet MAC controller
+ * @brief SAMA5D3 Gigabit Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -46,36 +46,36 @@ static NetInterface *nicDriverInterface;
 
 //TX buffer
 #pragma data_alignment = 8
-#pragma location = ".ram_no_cache"
-static uint8_t txBuffer[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT][SAMA5D3_GIGABIT_ETH_TX_BUFFER_SIZE];
+#pragma location = SAMA5D3_GETH_RAM_SECTION
+static uint8_t txBuffer[SAMA5D3_GETH_TX_BUFFER_COUNT][SAMA5D3_GETH_TX_BUFFER_SIZE];
 //RX buffer
 #pragma data_alignment = 8
-#pragma location = ".ram_no_cache"
-static uint8_t rxBuffer[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT][SAMA5D3_GIGABIT_ETH_RX_BUFFER_SIZE];
+#pragma location = SAMA5D3_GETH_RAM_SECTION
+static uint8_t rxBuffer[SAMA5D3_GETH_RX_BUFFER_COUNT][SAMA5D3_GETH_RX_BUFFER_SIZE];
 //TX buffer descriptors
 #pragma data_alignment = 8
-#pragma location = ".ram_no_cache"
-static Sama5d3GethTxBufferDesc txBufferDesc[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT];
+#pragma location = SAMA5D3_GETH_RAM_SECTION
+static Sama5d3GethTxBufferDesc txBufferDesc[SAMA5D3_GETH_TX_BUFFER_COUNT];
 //RX buffer descriptors
 #pragma data_alignment = 8
-#pragma location = ".ram_no_cache"
-static Sama5d3GethRxBufferDesc rxBufferDesc[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT];
+#pragma location = SAMA5D3_GETH_RAM_SECTION
+static Sama5d3GethRxBufferDesc rxBufferDesc[SAMA5D3_GETH_RX_BUFFER_COUNT];
 
 //GCC compiler?
 #else
 
 //TX buffer
-static uint8_t txBuffer[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT][SAMA5D3_GIGABIT_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(8), __section__(".ram_no_cache")));
+static uint8_t txBuffer[SAMA5D3_GETH_TX_BUFFER_COUNT][SAMA5D3_GETH_TX_BUFFER_SIZE]
+   __attribute__((aligned(8), __section__(SAMA5D3_GETH_RAM_SECTION)));
 //RX buffer
-static uint8_t rxBuffer[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT][SAMA5D3_GIGABIT_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(8), __section__(".ram_no_cache")));
+static uint8_t rxBuffer[SAMA5D3_GETH_RX_BUFFER_COUNT][SAMA5D3_GETH_RX_BUFFER_SIZE]
+   __attribute__((aligned(8), __section__(SAMA5D3_GETH_RAM_SECTION)));
 //TX buffer descriptors
-static Sama5d3GethTxBufferDesc txBufferDesc[SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(8), __section__(".ram_no_cache")));
+static Sama5d3GethTxBufferDesc txBufferDesc[SAMA5D3_GETH_TX_BUFFER_COUNT]
+   __attribute__((aligned(8), __section__(SAMA5D3_GETH_RAM_SECTION)));
 //RX buffer descriptors
-static Sama5d3GethRxBufferDesc rxBufferDesc[SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(8), __section__(".ram_no_cache")));
+static Sama5d3GethRxBufferDesc rxBufferDesc[SAMA5D3_GETH_RX_BUFFER_COUNT]
+   __attribute__((aligned(8), __section__(SAMA5D3_GETH_RAM_SECTION)));
 
 #endif
 
@@ -143,11 +143,28 @@ error_t sama5d3GigabitEthInit(NetInterface *interface)
    //Enable management port (MDC and MDIO)
    GMAC->GMAC_NCR |= GMAC_NCR_MPE;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the MAC address of the station
    GMAC->GMAC_SA[0].GMAC_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
@@ -185,7 +202,7 @@ error_t sama5d3GigabitEthInit(NetInterface *interface)
 
    //Configure interrupt controller
    AIC->AIC_SSR = ID_GMAC;
-   AIC->AIC_SMR = AIC_SMR_SRCTYPE_INT_LEVEL_SENSITIVE | AIC_SMR_PRIOR(SAMA5D3_GIGABIT_ETH_IRQ_PRIORITY);
+   AIC->AIC_SMR = AIC_SMR_SRCTYPE_INT_LEVEL_SENSITIVE | AIC_SMR_PRIOR(SAMA5D3_GETH_IRQ_PRIORITY);
    AIC->AIC_SVR = (uint32_t) sama5d3GigabitEthIrqHandler;
 
    //Enable the GMAC to transmit and receive data
@@ -240,7 +257,7 @@ void sama5d3GigabitEthInitBufferDesc(NetInterface *interface)
    uint32_t address;
 
    //Initialize TX buffer descriptors
-   for(i = 0; i < SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT; i++)
+   for(i = 0; i < SAMA5D3_GETH_TX_BUFFER_COUNT; i++)
    {
       //Calculate the address of the current TX buffer
       address = (uint32_t) txBuffer[i];
@@ -256,7 +273,7 @@ void sama5d3GigabitEthInitBufferDesc(NetInterface *interface)
    txBufferIndex = 0;
 
    //Initialize RX buffer descriptors
-   for(i = 0; i < SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < SAMA5D3_GETH_RX_BUFFER_COUNT; i++)
    {
       //Calculate the address of the current RX buffer
       address = (uint32_t) rxBuffer[i];
@@ -281,16 +298,29 @@ void sama5d3GigabitEthInitBufferDesc(NetInterface *interface)
 /**
  * @brief SAMA5D3 Gigabit Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void sama5d3GigabitEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -305,8 +335,22 @@ void sama5d3GigabitEthEnableIrq(NetInterface *interface)
    AIC->AIC_SSR = ID_GMAC;
    AIC->AIC_IECR = AIC_IECR_INTEN;
 
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -321,8 +365,22 @@ void sama5d3GigabitEthDisableIrq(NetInterface *interface)
    AIC->AIC_SSR = ID_GMAC;
    AIC->AIC_IDCR = AIC_IDCR_INTD;
 
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -349,24 +407,24 @@ void sama5d3GigabitEthIrqHandler(void)
    tsr = GMAC->GMAC_TSR;
    rsr = GMAC->GMAC_RSR;
 
-   //A packet has been transmitted?
-   if(tsr & (GMAC_TSR_HRESP | GMAC_TSR_UND | GMAC_TSR_TXCOMP | GMAC_TSR_TFC |
-      GMAC_TSR_TXGO | GMAC_TSR_RLE | GMAC_TSR_COL | GMAC_TSR_UBR))
+   //Packet transmitted?
+   if((tsr & (GMAC_TSR_HRESP | GMAC_TSR_UND | GMAC_TSR_TXCOMP | GMAC_TSR_TFC |
+      GMAC_TSR_TXGO | GMAC_TSR_RLE | GMAC_TSR_COL | GMAC_TSR_UBR)) != 0)
    {
       //Only clear TSR flags that are currently set
       GMAC->GMAC_TSR = tsr;
 
       //Avoid DMA lockup by sending only one frame at a time (see errata 57.5.1)
-      if((txBufferDesc[0].status & GMAC_TX_USED) &&
-         (txBufferDesc[1].status & GMAC_TX_USED))
+      if((txBufferDesc[0].status & GMAC_TX_USED) != 0 &&
+         (txBufferDesc[1].status & GMAC_TX_USED) != 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA))
+   //Packet received?
+   if((rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA)) != 0)
    {
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -396,7 +454,7 @@ void sama5d3GigabitEthEventHandler(NetInterface *interface)
    rsr = GMAC->GMAC_RSR;
 
    //Packet received?
-   if(rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA))
+   if((rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA)) != 0)
    {
       //Only clear RSR flags that are currently set
       GMAC->GMAC_RSR = rsr;
@@ -418,11 +476,13 @@ void sama5d3GigabitEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t sama5d3GigabitEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -430,7 +490,7 @@ error_t sama5d3GigabitEthSendPacket(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > SAMA5D3_GIGABIT_ETH_TX_BUFFER_SIZE)
+   if(length > SAMA5D3_GETH_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -439,18 +499,20 @@ error_t sama5d3GigabitEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(!(txBufferDesc[txBufferIndex].status & GMAC_TX_USED))
+   if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) == 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer[txBufferIndex], buffer, offset, length);
 
    //Set the necessary flags in the descriptor entry
-   if(txBufferIndex < (SAMA5D3_GIGABIT_ETH_TX_BUFFER_COUNT - 1))
+   if(txBufferIndex < (SAMA5D3_GETH_TX_BUFFER_COUNT - 1))
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status =
-         GMAC_TX_LAST | (length & GMAC_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = GMAC_TX_LAST |
+         (length & GMAC_TX_LENGTH);
 
       //Point to the next buffer
       txBufferIndex++;
@@ -458,8 +520,8 @@ error_t sama5d3GigabitEthSendPacket(NetInterface *interface,
    else
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status = GMAC_TX_WRAP |
-         GMAC_TX_LAST | (length & GMAC_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = GMAC_TX_WRAP | GMAC_TX_LAST |
+         (length & GMAC_TX_LENGTH);
 
       //Wrap around
       txBufferIndex = 0;
@@ -469,7 +531,7 @@ error_t sama5d3GigabitEthSendPacket(NetInterface *interface,
    GMAC->GMAC_NCR |= GMAC_NCR_TSTART;
 
    //Check whether the next buffer is available for writing
-   if(txBufferDesc[txBufferIndex].status & GMAC_TX_USED)
+   if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) != 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -503,29 +565,33 @@ error_t sama5d3GigabitEthReceivePacket(NetInterface *interface)
    eofIndex = UINT_MAX;
 
    //Search for SOF and EOF flags
-   for(i = 0; i < SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < SAMA5D3_GETH_RX_BUFFER_COUNT; i++)
    {
       //Point to the current entry
       j = rxBufferIndex + i;
 
       //Wrap around to the beginning of the buffer if necessary
-      if(j >= SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT)
-         j -= SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT;
+      if(j >= SAMA5D3_GETH_RX_BUFFER_COUNT)
+      {
+         j -= SAMA5D3_GETH_RX_BUFFER_COUNT;
+      }
 
       //No more entries to process?
-      if(!(rxBufferDesc[j].address & GMAC_RX_OWNERSHIP))
+      if((rxBufferDesc[j].address & GMAC_RX_OWNERSHIP) == 0)
       {
          //Stop processing
          break;
       }
+
       //A valid SOF has been found?
-      if(rxBufferDesc[j].status & GMAC_RX_SOF)
+      if((rxBufferDesc[j].status & GMAC_RX_SOF) != 0)
       {
          //Save the position of the SOF
          sofIndex = i;
       }
+
       //A valid EOF has been found?
-      if((rxBufferDesc[j].status & GMAC_RX_EOF) && sofIndex != UINT_MAX)
+      if((rxBufferDesc[j].status & GMAC_RX_EOF) != 0 && sofIndex != UINT_MAX)
       {
          //Save the position of the EOF
          eofIndex = i;
@@ -540,11 +606,17 @@ error_t sama5d3GigabitEthReceivePacket(NetInterface *interface)
 
    //Determine the number of entries to process
    if(eofIndex != UINT_MAX)
+   {
       j = eofIndex + 1;
+   }
    else if(sofIndex != UINT_MAX)
+   {
       j = sofIndex;
+   }
    else
+   {
       j = i;
+   }
 
    //Total number of bytes that have been copied from the receive buffer
    length = 0;
@@ -556,9 +628,9 @@ error_t sama5d3GigabitEthReceivePacket(NetInterface *interface)
       if(eofIndex != UINT_MAX && i >= sofIndex && i <= eofIndex)
       {
          //Calculate the number of bytes to read at a time
-         n = MIN(size, SAMA5D3_GIGABIT_ETH_RX_BUFFER_SIZE);
+         n = MIN(size, SAMA5D3_GETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         memcpy(temp + length, rxBuffer[rxBufferIndex], n);
+         osMemcpy(temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;
@@ -571,15 +643,22 @@ error_t sama5d3GigabitEthReceivePacket(NetInterface *interface)
       rxBufferIndex++;
 
       //Wrap around to the beginning of the buffer if necessary
-      if(rxBufferIndex >= SAMA5D3_GIGABIT_ETH_RX_BUFFER_COUNT)
+      if(rxBufferIndex >= SAMA5D3_GETH_RX_BUFFER_COUNT)
+      {
          rxBufferIndex = 0;
+      }
    }
 
    //Any packet to process?
    if(length > 0)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length);
+      nicProcessPacket(interface, temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }
@@ -731,9 +810,13 @@ error_t sama5d3GigabitEthUpdateMacAddrFilter(NetInterface *interface)
 
    //The perfect MAC filter supports only 3 unicast addresses
    if(j >= 4)
+   {
       GMAC->GMAC_NCFGR |= GMAC_NCFGR_UNIHEN;
+   }
    else
+   {
       GMAC->GMAC_NCFGR &= ~GMAC_NCFGR_UNIHEN;
+   }
 
    //Configure the multicast address filter
    GMAC->GMAC_HRB = hashTable[0];
@@ -782,9 +865,13 @@ error_t sama5d3GigabitEthUpdateMacConfig(NetInterface *interface)
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= GMAC_NCFGR_FD;
+   }
    else
+   {
       config &= ~GMAC_NCFGR_FD;
+   }
 
    //Write configuration value back to NCFGR register
    GMAC->GMAC_NCFGR = config;
@@ -822,7 +909,7 @@ void sama5d3GigabitEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       GMAC->GMAC_MAN = temp;
       //Wait for the write to complete
-      while(!(GMAC->GMAC_NSR & GMAC_NSR_IDLE))
+      while((GMAC->GMAC_NSR & GMAC_NSR_IDLE) == 0)
       {
       }
    }
@@ -860,7 +947,7 @@ uint16_t sama5d3GigabitEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       GMAC->GMAC_MAN = temp;
       //Wait for the read to complete
-      while(!(GMAC->GMAC_NSR & GMAC_NSR_IDLE))
+      while((GMAC->GMAC_NSR & GMAC_NSR_IDLE) == 0)
       {
       }
 

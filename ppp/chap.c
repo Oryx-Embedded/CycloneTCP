@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -240,7 +240,7 @@ error_t chapProcessChallenge(PppContext *context,
    context->chapFsm.peerIdentifier = challengePacket->identifier;
 
    //Retrieve the length of the password
-   n = strlen(context->password);
+   n = osStrlen(context->password);
 
    //The response value is the one-way hash calculated over a stream
    //of octets consisting of the identifier, followed by the secret,
@@ -311,7 +311,7 @@ error_t chapProcessResponse(PppContext *context,
    //Limit the length of the string
    length = MIN(length, PPP_MAX_USERNAME_LEN);
    //Copy the name of the peer to be identified
-   memcpy(context->peerName, p, length);
+   osMemcpy(context->peerName, p, length);
    //Properly terminate the string with a NULL character
    context->peerName[length] = '\0';
 
@@ -487,7 +487,7 @@ error_t chapSendChallenge(PppContext *context)
    ChapChallengePacket *challengePacket;
 
    //Retrieve the length of the username
-   n = strlen(context->username);
+   n = osStrlen(context->username);
    //Calculate the length of the Challenge packet
    length = sizeof(ChapChallengePacket) + MD5_DIGEST_SIZE + n;
 
@@ -523,11 +523,11 @@ error_t chapSendChallenge(PppContext *context)
    if(!error)
    {
       //Copy the challenge value
-      memcpy(challengePacket->value, context->chapFsm.challenge, MD5_DIGEST_SIZE);
+      osMemcpy(challengePacket->value, context->chapFsm.challenge, MD5_DIGEST_SIZE);
 
       //The Name field is one or more octets representing the
       //identification of the system transmitting the packet
-      memcpy(challengePacket->value + MD5_DIGEST_SIZE, context->username, n);
+      osMemcpy(challengePacket->value + MD5_DIGEST_SIZE, context->username, n);
 
       //Debug message
       TRACE_INFO("Sending CHAP Challenge packet (%" PRIuSIZE " bytes)...\r\n", length);
@@ -569,7 +569,7 @@ error_t chapSendResponse(PppContext *context, const uint8_t *value)
    ChapResponsePacket *responsePacket;
 
    //Retrieve the length of the username
-   n = strlen(context->username);
+   n = osStrlen(context->username);
    //Calculate the length of the Response packet
    length = sizeof(ChapResponsePacket) + MD5_DIGEST_SIZE + n;
 
@@ -589,11 +589,11 @@ error_t chapSendResponse(PppContext *context, const uint8_t *value)
    responsePacket->valueSize = MD5_DIGEST_SIZE;
 
    //Copy the Response value
-   memcpy(responsePacket->value, value, MD5_DIGEST_SIZE);
+   osMemcpy(responsePacket->value, value, MD5_DIGEST_SIZE);
 
    //The Name field is one or more octets representing the
    //identification of the system transmitting the packet
-   memcpy(responsePacket->value + MD5_DIGEST_SIZE, context->username, n);
+   osMemcpy(responsePacket->value + MD5_DIGEST_SIZE, context->username, n);
 
    //Debug message
    TRACE_INFO("Sending CHAP Response packet (%" PRIuSIZE " bytes)...\r\n", length);
@@ -715,7 +715,7 @@ bool_t chapCheckPassword(PppContext *context, const char_t *password)
    Md5Context md5Context;
 
    //Retrieve the length of the password
-   n = strlen(password);
+   n = osStrlen(password);
 
    //The response value is the one-way hash calculated over a stream
    //of octets consisting of the identifier, followed by the secret,
@@ -727,7 +727,7 @@ bool_t chapCheckPassword(PppContext *context, const char_t *password)
    md5Final(&md5Context, NULL);
 
    //Check the resulting digest value
-   if(!memcmp(md5Context.digest, context->chapFsm.response, MD5_DIGEST_SIZE))
+   if(!osMemcmp(md5Context.digest, context->chapFsm.response, MD5_DIGEST_SIZE))
       return TRUE;
    else
       return FALSE;

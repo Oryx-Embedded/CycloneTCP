@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _SOCKET_H
@@ -37,6 +37,7 @@ struct _Socket;
 
 //Dependencies
 #include "core/net.h"
+#include "core/ethernet.h"
 #include "core/ip.h"
 #include "core/tcp.h"
 
@@ -191,6 +192,34 @@ typedef enum
 
 
 /**
+ * @brief Message and ancillary data
+ **/
+
+typedef struct
+{
+   void *data;             ///<Pointer to the payload
+   size_t size;            ///<Size of the payload, in bytes
+   size_t length;          ///<Actual length of the payload, in bytes
+   uint8_t ttl;            ///<Time-to-live value
+   IpAddr srcIpAddr;       ///<Source IP address
+   uint16_t srcPort;       ///<Source port
+   IpAddr destIpAddr;      ///<Destination IP address
+   uint16_t destPort;      ///<Destination port
+#if (ETH_SUPPORT == ENABLED)
+   MacAddr srcMacAddr;     ///<Source MAC address
+   MacAddr destMacAddr;    ///<Destination MAC address
+#endif
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   uint8_t switchPort;     ///<Switch port identifier
+#endif
+#if (ETH_TIMESTAMP_SUPPORT == ENABLED)
+   int32_t timestampId;    ///<Unique identifier for hardware time stamping
+   NetTimestamp timestamp; ///<Captured time stamp
+#endif
+} SocketMsg;
+
+
+/**
  * @brief Receive queue item
  **/
 
@@ -202,6 +231,7 @@ typedef struct _SocketQueueItem
    IpAddr destIpAddr;
    NetBuffer *buffer;
    size_t offset;
+   NetRxAncillary ancillary;
 } SocketQueueItem;
 
 
@@ -220,8 +250,19 @@ struct _Socket
    IpAddr remoteIpAddr;
    uint16_t remotePort;
    systime_t timeout;
-   uint8_t ttl;
-   uint8_t multicastTtl;
+   uint8_t ttl;                   ///<Time-to-live value for unicast datagrams
+   uint8_t multicastTtl;          ///<Time-to-live value for multicast datagrams
+#if (IP_DIFF_SERV_SUPPORT == ENABLED)
+   uint8_t dscp;                  ///<Differentiated services codepoint
+#endif
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   int8_t vlanPcp;                ///<VLAN priority (802.1Q)
+   int8_t vlanDei;                ///<Drop eligible indicator
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   int8_t vmanPcp;                ///<VMAN priority (802.1ad)
+   int8_t vmanDei;                ///<Drop eligible indicator
+#endif
    int_t errnoCode;
    OsEvent event;
    uint_t eventMask;
@@ -312,6 +353,9 @@ typedef struct
 } SocketEventDesc;
 
 
+//Global constants
+extern const SocketMsg SOCKET_DEFAULT_MSG;
+
 //Global variables
 extern Socket socketTable[SOCKET_MAX_COUNT];
 
@@ -321,6 +365,17 @@ error_t socketInit(void);
 Socket *socketOpen(uint_t type, uint_t protocol);
 
 error_t socketSetTimeout(Socket *socket, systime_t timeout);
+
+error_t socketSetTtl(Socket *socket, uint8_t ttl);
+error_t socketSetMulticastTtl(Socket *socket, uint8_t ttl);
+
+error_t socketSetDscp(Socket *socket, uint8_t dscp);
+
+error_t socketSetVlanPcp(Socket *socket, uint8_t pcp);
+error_t socketSetVlanDei(Socket *socket, bool_t dei);
+error_t socketSetVmanPcp(Socket *socket, uint8_t pcp);
+error_t socketSetVmanDei(Socket *socket, bool_t dei);
+
 error_t socketSetTxBufferSize(Socket *socket, size_t size);
 error_t socketSetRxBufferSize(Socket *socket, size_t size);
 
@@ -332,11 +387,13 @@ error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remot
 error_t socketListen(Socket *socket, uint_t backlog);
 Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort);
 
-error_t socketSend(Socket *socket, const void *data,
-   size_t length, size_t *written, uint_t flags);
+error_t socketSend(Socket *socket, const void *data, size_t length,
+   size_t *written, uint_t flags);
 
 error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort,
    const void *data, size_t length, size_t *written, uint_t flags);
+
+error_t socketSendMsg(Socket *socket, const SocketMsg *message, uint_t flags);
 
 error_t socketReceive(Socket *socket, void *data,
    size_t size, size_t *received, uint_t flags);
@@ -346,6 +403,8 @@ error_t socketReceiveFrom(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
 
 error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
    IpAddr *destIpAddr, void *data, size_t size, size_t *received, uint_t flags);
+
+error_t socketReceiveMsg(Socket *socket, SocketMsg *message, uint_t flags);
 
 error_t socketGetLocalAddr(Socket *socket, IpAddr *localIpAddr, uint16_t *localPort);
 error_t socketGetRemoteAddr(Socket *socket, IpAddr *remoteIpAddr, uint16_t *remotePort);

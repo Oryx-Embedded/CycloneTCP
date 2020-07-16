@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _IPV4_FRAG_H
@@ -136,10 +136,10 @@ extern systime_t ipv4FragTickCounter;
 //IPv4 datagram fragmentation and reassembly
 error_t ipv4FragmentDatagram(NetInterface *interface,
    Ipv4PseudoHeader *pseudoHeader, uint16_t id, const NetBuffer *payload,
-   size_t payloadOffset, uint_t flags);
+   size_t payloadOffset, NetTxAncillary *ancillary);
 
-void ipv4ReassembleDatagram(NetInterface *interface,
-   const Ipv4Header *packet, size_t length);
+void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
+   size_t length, NetRxAncillary *ancillary);
 
 void ipv4FragTick(NetInterface *interface);
 

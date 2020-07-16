@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -73,7 +73,7 @@ error_t ndpInit(NetInterface *interface)
    context = &interface->ndpContext;
 
    //Clear the NDP context
-   memset(context, 0, sizeof(NdpContext));
+   osMemset(context, 0, sizeof(NdpContext));
 
    //Initialize interface specific variables
    context->reachableTime = NDP_REACHABLE_TIME;
@@ -97,7 +97,8 @@ error_t ndpInit(NetInterface *interface)
  * @return Error code
  **/
 
-error_t ndpResolve(NetInterface *interface, const Ipv6Addr *ipAddr, MacAddr *macAddr)
+error_t ndpResolve(NetInterface *interface, const Ipv6Addr *ipAddr,
+   MacAddr *macAddr)
 {
    error_t error;
    NdpNeighborCacheEntry *entry;
@@ -186,11 +187,14 @@ error_t ndpResolve(NetInterface *interface, const Ipv6Addr *ipAddr, MacAddr *mac
  * @param[in] ipAddr IPv6 address of the destination host
  * @param[in] buffer Multi-part buffer containing the packet to be enqueued
  * @param[in] offset Offset to the first byte of the packet
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
-error_t ndpEnqueuePacket(NetInterface *srcInterface, NetInterface *destInterface,
-   const Ipv6Addr *ipAddr, NetBuffer *buffer, size_t offset)
+error_t ndpEnqueuePacket(NetInterface *srcInterface,
+   NetInterface *destInterface, const Ipv6Addr *ipAddr, NetBuffer *buffer,
+      size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    uint_t i;
@@ -217,7 +221,9 @@ error_t ndpEnqueuePacket(NetInterface *srcInterface, NetInterface *destInterface
 
             //Make room for the new packet
             for(i = 1; i < NDP_MAX_PENDING_PACKETS; i++)
+            {
                entry->queue[i - 1] = entry->queue[i];
+            }
 
             //Adjust the number of pending packets
             entry->queueSize--;
@@ -239,6 +245,8 @@ error_t ndpEnqueuePacket(NetInterface *srcInterface, NetInterface *destInterface
             netBufferCopy(entry->queue[i].buffer, 0, buffer, 0, length);
             //Offset to the first byte of the IPv6 header
             entry->queue[i].offset = offset;
+            //Additional options passed to the stack along with the packet
+            entry->queue[i].ancillary = *ancillary;
 
             //Increment the number of queued packets
             entry->queueSize++;
@@ -1371,6 +1379,7 @@ error_t ndpSendRouterSol(NetInterface *interface)
    NetBuffer *buffer;
    NdpRouterSolMessage *message;
    Ipv6PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 
    //The destination address is typically the all-routers multicast address
    pseudoHeader.destAddr = IPV6_LINK_LOCAL_ALL_ROUTERS_ADDR;
@@ -1452,8 +1461,17 @@ error_t ndpSendRouterSol(NetInterface *interface)
    //Dump message contents for debugging purpose
    ndpDumpRouterSolMessage(message);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //By setting the Hop Limit to 255, Neighbor Discovery is immune to off-link
+   //senders that accidentally or intentionally send NDP messages (refer to
+   //RFC 4861, section 3.1)
+   ancillary.ttl = NDP_HOP_LIMIT;
+
    //Send Router Solicitation message
-   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset, NDP_HOP_LIMIT);
+   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1479,6 +1497,7 @@ error_t ndpSendNeighborSol(NetInterface *interface,
    NetBuffer *buffer;
    NdpNeighborSolMessage *message;
    Ipv6PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 
    //Multicast Neighbor Solicitation message?
    if(multicast)
@@ -1572,8 +1591,17 @@ error_t ndpSendNeighborSol(NetInterface *interface,
    //Dump message contents for debugging purpose
    ndpDumpNeighborSolMessage(message);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //By setting the Hop Limit to 255, Neighbor Discovery is immune to off-link
+   //senders that accidentally or intentionally send NDP messages (refer to
+   //RFC 4861, section 3.1)
+   ancillary.ttl = NDP_HOP_LIMIT;
+
    //Send Neighbor Solicitation message
-   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset, NDP_HOP_LIMIT);
+   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1599,6 +1627,7 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    NetBuffer *buffer;
    NdpNeighborAdvMessage *message;
    Ipv6PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 #if (ETH_SUPPORT == ENABLED)
    NetInterface *logicalInterface;
 #endif
@@ -1711,8 +1740,17 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    //Dump message contents for debugging purpose
    ndpDumpNeighborAdvMessage(message);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //By setting the Hop Limit to 255, Neighbor Discovery is immune to off-link
+   //senders that accidentally or intentionally send NDP messages (refer to
+   //RFC 4861, section 3.1)
+   ancillary.ttl = NDP_HOP_LIMIT;
+
    //Send Neighbor Advertisement message
-   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset, NDP_HOP_LIMIT);
+   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -1747,6 +1785,7 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
    NdpNeighborCacheEntry *entry;
    Ipv6Header *ipHeader;
    Ipv6PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
    uint8_t padding[8];
 
    //Retrieve the length of the forwarded IPv6 packet
@@ -1802,8 +1841,8 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
    //of the Redirect
    ipPacketLen = netBufferGetLength(ipPacket) - ipPacketOffset;
 
-   //Return as much of the forwarded IPv6 packet as can fit without
-   //the redirect packet exceeding the minimum IPv6 MTU
+   //Return as much of the forwarded IPv6 packet as can fit without the
+   //redirect packet exceeding the minimum IPv6 MTU
    ipPacketLen = MIN(ipPacketLen, IPV6_DEFAULT_MTU -
       sizeof(NdpRedirectedHeaderOption) - length);
 
@@ -1841,7 +1880,7 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
             sizeof(NdpRedirectedHeaderOption);
 
          //Prepare padding data
-         memset(padding, 0, paddingLen);
+         osMemset(padding, 0, paddingLen);
          //Append padding bytes
          error = netBufferAppend(buffer, padding, paddingLen);
       }
@@ -1874,8 +1913,17 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
       //Dump message contents for debugging purpose
       ndpDumpRedirectMessage(message);
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+      //By setting the Hop Limit to 255, Neighbor Discovery is immune to off-link
+      //senders that accidentally or intentionally send NDP messages (refer to
+      //RFC 4861, section 3.1)
+      ancillary.ttl = NDP_HOP_LIMIT;
+
       //Send Redirect message
-      error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset, NDP_HOP_LIMIT);
+      error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset,
+         &ancillary);
    }
 
    //Free previously allocated memory

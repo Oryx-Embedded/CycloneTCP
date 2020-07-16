@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 3376: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -480,6 +480,7 @@ error_t igmpSendReportMessage(NetInterface *interface, Ipv4Addr ipAddr)
    IgmpMessage *message;
    NetBuffer *buffer;
    Ipv4PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 
    //Make sure the specified address is a valid multicast address
    if(!ipv4IsMulticastAddr(ipAddr))
@@ -525,8 +526,14 @@ error_t igmpSendReportMessage(NetInterface *interface, Ipv4Addr ipAddr)
    //Dump message contents for debugging purpose
    igmpDumpMessage(message);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+   //All IGMP messages are sent with IP TTL 1 (refer to RFC 2236, section 2)
+   ancillary.ttl = IGMP_TTL;
+
    //The Membership Report message is sent to the group being reported
-   error = ipv4SendDatagram(interface, &pseudoHeader, buffer, offset, IGMP_TTL);
+   error = ipv4SendDatagram(interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -549,6 +556,7 @@ error_t igmpSendLeaveGroupMessage(NetInterface *interface, Ipv4Addr ipAddr)
    NetBuffer *buffer;
    IgmpMessage *message;
    Ipv4PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 
    //Make sure the specified address is a valid multicast address
    if(!ipv4IsMulticastAddr(ipAddr))
@@ -594,8 +602,14 @@ error_t igmpSendLeaveGroupMessage(NetInterface *interface, Ipv4Addr ipAddr)
    //Dump message contents for debugging purpose
    igmpDumpMessage(message);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+   //All IGMP messages are sent with IP TTL 1 (refer to RFC 2236, section 2)
+   ancillary.ttl = IGMP_TTL;
+
    //The Leave Group message is sent to the all-routers multicast group
-   error = ipv4SendDatagram(interface, &pseudoHeader, buffer, offset, IGMP_TTL);
+   error = ipv4SendDatagram(interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -363,7 +363,7 @@ error_t mqttClientProcessPublish(MqttClientContext *context,
    messageLen = context->packetLen - context->packetPos;
 
    //Make room for the NULL character at the end of the Topic Name
-   memmove(topic - 1, topic, topicLen);
+   osMemmove(topic - 1, topic, topicLen);
    //Properly terminate the string with a NULL character
    topic[topicLen - 1] = '\0';
    //Point to the first character of the Topic Name
@@ -772,14 +772,14 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
       //The Protocol Name is a UTF-8 encoded string that represents the
       //protocol name "MQIsdp"
       error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-         &n, MQTT_PROTOCOL_NAME_3_1, strlen(MQTT_PROTOCOL_NAME_3_1));
+         &n, MQTT_PROTOCOL_NAME_3_1, osStrlen(MQTT_PROTOCOL_NAME_3_1));
    }
    else if(context->settings.version == MQTT_VERSION_3_1_1)
    {
       //The Protocol Name is a UTF-8 encoded string that represents the
       //protocol name "MQTT"
       error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-         &n, MQTT_PROTOCOL_NAME_3_1_1, strlen(MQTT_PROTOCOL_NAME_3_1_1));
+         &n, MQTT_PROTOCOL_NAME_3_1_1, osStrlen(MQTT_PROTOCOL_NAME_3_1_1));
    }
    else
    {
@@ -866,7 +866,7 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
    //Identifier must be present and must be the first field in the CONNECT
    //packet payload
    error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-      &n, context->settings.clientId, strlen(context->settings.clientId));
+      &n, context->settings.clientId, osStrlen(context->settings.clientId));
 
    //Failed to serialize data?
    if(error)
@@ -878,7 +878,7 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
    {
       //Write the Will Topic to the output buffer
       error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-         &n, willMessage->topic, strlen(willMessage->topic));
+         &n, willMessage->topic, osStrlen(willMessage->topic));
 
       //Failed to serialize data?
       if(error)
@@ -898,7 +898,7 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
    {
       //Write the User Name to the output buffer
       error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-         &n, context->settings.username, strlen(context->settings.username));
+         &n, context->settings.username, osStrlen(context->settings.username));
 
       //Failed to serialize data?
       if(error)
@@ -910,7 +910,7 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
    {
       //Write the Password to the output buffer
       error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-         &n, context->settings.password, strlen(context->settings.password));
+         &n, context->settings.password, osStrlen(context->settings.password));
 
       //Failed to serialize data?
       if(error)
@@ -964,7 +964,7 @@ error_t mqttClientFormatPublish(MqttClientContext *context, const char_t *topic,
    //The Topic Name must be present as the first field in the PUBLISH
    //packet variable header
    error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-      &n, topic, strlen(topic));
+      &n, topic, osStrlen(topic));
 
    //Failed to serialize Topic Name?
    if(error)
@@ -1243,7 +1243,7 @@ error_t mqttClientFormatSubscribe(MqttClientContext *context,
 
    //Write the Topic Filter to the output buffer
    error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-      &n, topic, strlen(topic));
+      &n, topic, osStrlen(topic));
 
    //Failed to serialize data?
    if(error)
@@ -1311,7 +1311,7 @@ error_t mqttClientFormatUnsubscribe(MqttClientContext *context,
 
    //Write the Topic Filter to the output buffer
    error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
-      &n, topic, strlen(topic));
+      &n, topic, osStrlen(topic));
 
    //Failed to serialize data?
    if(error)

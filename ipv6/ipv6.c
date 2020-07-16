@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -106,7 +106,7 @@ error_t ipv6Init(NetInterface *interface)
    context = &interface->ipv6Context;
 
    //Clear the IPv6 context
-   memset(context, 0, sizeof(Ipv6Context));
+   osMemset(context, 0, sizeof(Ipv6Context));
 
    //Initialize interface specific variables
    context->linkMtu = physicalInterface->nicDriver->mtu;
@@ -117,21 +117,21 @@ error_t ipv6Init(NetInterface *interface)
    context->enableMulticastEchoReq = TRUE;
 
    //Initialize the list of IPv6 addresses assigned to the interface
-   memset(context->addrList, 0, sizeof(context->addrList));
+   osMemset(context->addrList, 0, sizeof(context->addrList));
    //Initialize the Prefix List
-   memset(context->prefixList, 0, sizeof(context->prefixList));
+   osMemset(context->prefixList, 0, sizeof(context->prefixList));
    //Initialize the Default Router List
-   memset(context->routerList, 0, sizeof(context->routerList));
+   osMemset(context->routerList, 0, sizeof(context->routerList));
    //Initialize the list of DNS servers
-   memset(context->dnsServerList, 0, sizeof(context->dnsServerList));
+   osMemset(context->dnsServerList, 0, sizeof(context->dnsServerList));
    //Initialize the multicast filter table
-   memset(context->multicastFilter, 0, sizeof(context->multicastFilter));
+   osMemset(context->multicastFilter, 0, sizeof(context->multicastFilter));
 
 #if (IPV6_FRAG_SUPPORT == ENABLED)
    //Identification field is used to identify fragments of an original IP datagram
    context->identification = 0;
    //Initialize the reassembly queue
-   memset(context->fragQueue, 0, sizeof(context->fragQueue));
+   osMemset(context->fragQueue, 0, sizeof(context->fragQueue));
 #endif
 
    //Successful initialization
@@ -882,10 +882,12 @@ void ipv6LinkChangeEvent(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] ipPacket Multi-part buffer that holds the incoming IPv6 packet
  * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
-void ipv6ProcessPacket(NetInterface *interface,
-   NetBuffer *ipPacket, size_t ipPacketOffset)
+void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
+   size_t ipPacketOffset, NetRxAncillary *ancillary)
 {
    error_t error;
    size_t i;
@@ -1003,6 +1005,9 @@ void ipv6ProcessPacket(NetInterface *interface,
    pseudoHeader.ipv6Data.destAddr = ipHeader->destAddr;
    pseudoHeader.ipv6Data.reserved = 0;
 
+   //Save Hop Limit value
+   ancillary->ttl = ipHeader->hopLimit;
+
    //Keep track of Next Header field
    nextHeaderOffset = ipPacketOffset + &ipHeader->nextHeader -
       (uint8_t *) ipHeader;
@@ -1023,31 +1028,31 @@ void ipv6ProcessPacket(NetInterface *interface,
       pseudoHeader.ipv6Data.length = htonl(length - i);
       pseudoHeader.ipv6Data.nextHeader = *type;
 
-      //Each extension header is identified by the Next Header field of
-      //the preceding header
+      //Each extension header is identified by the Next Header field of the
+      //preceding header
       switch(*type)
       {
       //Hop-by-Hop Options header?
       case IPV6_HOP_BY_HOP_OPT_HEADER:
          //Parse current extension header
-         error = ipv6ParseHopByHopOptHeader(interface,
-            ipPacket, ipPacketOffset, &i, &nextHeaderOffset);
+         error = ipv6ParseHopByHopOptHeader(interface, ipPacket, ipPacketOffset,
+            &i, &nextHeaderOffset);
          //Continue processing
          break;
 
       //Destination Options header?
       case IPV6_DEST_OPT_HEADER:
          //Parse current extension header
-         error = ipv6ParseDestOptHeader(interface,
-            ipPacket, ipPacketOffset, &i, &nextHeaderOffset);
+         error = ipv6ParseDestOptHeader(interface, ipPacket, ipPacketOffset,
+            &i, &nextHeaderOffset);
          //Continue processing
          break;
 
       //Routing header?
       case IPV6_ROUTING_HEADER:
          //Parse current extension header
-         error = ipv6ParseRoutingHeader(interface,
-            ipPacket, ipPacketOffset, &i, &nextHeaderOffset);
+         error = ipv6ParseRoutingHeader(interface, ipPacket, ipPacketOffset,
+            &i, &nextHeaderOffset);
          //Continue processing
          break;
 
@@ -1055,8 +1060,8 @@ void ipv6ProcessPacket(NetInterface *interface,
       case IPV6_FRAGMENT_HEADER:
 #if (IPV6_FRAG_SUPPORT == ENABLED)
          //Parse current extension header
-         ipv6ParseFragmentHeader(interface,
-            ipPacket, ipPacketOffset, i, nextHeaderOffset);
+         ipv6ParseFragmentHeader(interface, ipPacket, ipPacketOffset,
+            i, nextHeaderOffset, ancillary);
 #endif
          //Exit immediately
          return;
@@ -1064,31 +1069,32 @@ void ipv6ProcessPacket(NetInterface *interface,
       //Authentication header?
       case IPV6_AH_HEADER:
          //Parse current extension header
-         error = ipv6ParseAuthHeader(interface,
-            ipPacket, ipPacketOffset, &i, &nextHeaderOffset);
+         error = ipv6ParseAuthHeader(interface, ipPacket, ipPacketOffset,
+            &i, &nextHeaderOffset);
          //Continue processing
          break;
 
       //Encapsulating Security Payload header?
       case IPV6_ESP_HEADER:
          //Parse current extension header
-         error = ipv6ParseEspHeader(interface,
-            ipPacket, ipPacketOffset, &i, &nextHeaderOffset);
+         error = ipv6ParseEspHeader(interface, ipPacket, ipPacketOffset,
+            &i, &nextHeaderOffset);
          //Continue processing
          break;
 
       //ICMPv6 header?
       case IPV6_ICMPV6_HEADER:
          //Process incoming ICMPv6 message
-         icmpv6ProcessMessage(interface, &pseudoHeader.ipv6Data,
-            ipPacket, i, ipHeader->hopLimit);
+         icmpv6ProcessMessage(interface, &pseudoHeader.ipv6Data, ipPacket,
+            i, ipHeader->hopLimit);
 
 #if (RAW_SOCKET_SUPPORT == ENABLED)
          //Packets addressed to the tentative address should be silently discarded
          if(!ipv6IsTentativeAddr(interface, &ipHeader->destAddr))
          {
             //Allow raw sockets to process ICMPv6 messages
-            rawSocketProcessIpPacket(interface, &pseudoHeader, ipPacket, i);
+            rawSocketProcessIpPacket(interface, &pseudoHeader, ipPacket, i,
+               ancillary);
          }
 #endif
          //Exit immediately
@@ -1101,7 +1107,7 @@ void ipv6ProcessPacket(NetInterface *interface,
          if(!ipv6IsTentativeAddr(interface, &ipHeader->destAddr))
          {
             //Process incoming TCP segment
-            tcpProcessSegment(interface, &pseudoHeader, ipPacket, i);
+            tcpProcessSegment(interface, &pseudoHeader, ipPacket, i, ancillary);
          }
          else
          {
@@ -1122,7 +1128,8 @@ void ipv6ProcessPacket(NetInterface *interface,
          if(!ipv6IsTentativeAddr(interface, &ipHeader->destAddr))
          {
             //Process incoming UDP datagram
-            error = udpProcessDatagram(interface, &pseudoHeader, ipPacket, i);
+            error = udpProcessDatagram(interface, &pseudoHeader, ipPacket, i,
+               ancillary);
 
             //Unreachable port?
             if(error == ERROR_PORT_UNREACHABLE)
@@ -1569,12 +1576,13 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
  * @param[in] pseudoHeader IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint_t flags)
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    size_t length;
@@ -1590,13 +1598,6 @@ error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    //Retrieve the length of payload
    length = netBufferGetLength(buffer) - offset;
 
-   //Check whether the Hop Limit value is zero
-   if((flags & IP_FLAG_HOP_LIMIT) == 0)
-   {
-      //Use default Hop Limit value
-      flags |= interface->ipv6Context.curHopLimit;
-   }
-
 #if (IPV6_PMTU_SUPPORT == ENABLED)
    //Retrieve the PMTU for the specified destination address
    pathMtu = ipv6GetPathMtu(interface, &pseudoHeader->destAddr);
@@ -1609,20 +1610,22 @@ error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
    pathMtu = interface->ipv6Context.linkMtu;
 #endif
 
-   //If the payload is smaller than the PMTU then no fragmentation is needed
+   //If the payload length is smaller than the PMTU then no fragmentation is
+   //needed
    if((length + sizeof(Ipv6Header)) <= pathMtu)
    {
       //Send data as is
       error = ipv6SendPacket(interface, pseudoHeader, 0, 0, buffer, offset,
-         flags);
+         ancillary);
    }
-   //If the payload length exceeds the PMTU then the device must fragment the data
+   //If the payload length exceeds the PMTU then the device must fragment the
+   //data
    else
    {
 #if (IPV6_FRAG_SUPPORT == ENABLED)
       //Fragment IP datagram into smaller packets
       error = ipv6FragmentDatagram(interface, pseudoHeader, buffer, offset,
-         pathMtu, flags);
+         pathMtu, ancillary);
 #else
       //Fragmentation is not supported
       error = ERROR_MESSAGE_TOO_LONG;
@@ -1642,13 +1645,14 @@ error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
  * @param[in] fragOffset Fragment offset field
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    uint32_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
-   uint_t flags)
+   NetTxAncillary *ancillary)
 {
    error_t error;
    size_t length;
@@ -1713,9 +1717,22 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    packet->flowLabelH = 0;
    packet->flowLabelL = 0;
    packet->payloadLen = htons(length - sizeof(Ipv6Header));
-   packet->hopLimit = flags & IP_FLAG_HOP_LIMIT;
+   packet->hopLimit = ancillary->ttl;
    packet->srcAddr = pseudoHeader->srcAddr;
    packet->destAddr = pseudoHeader->destAddr;
+
+   //Check whether the Hop Limit value is zero
+   if(packet->hopLimit == 0)
+   {
+      //Use default Hop Limit value
+      packet->hopLimit = interface->ipv6Context.curHopLimit;
+   }
+
+#if (IP_DIFF_SERV_SUPPORT == ENABLED)
+   //Set DSCP field
+   packet->trafficClassH = (ancillary->dscp >> 2) & 0x0F;
+   packet->trafficClassL = (ancillary->dscp << 2) & 0x0C;
+#endif
 
    //Ensure the source address is valid
    error = ipv6CheckSourceAddr(interface, &pseudoHeader->srcAddr);
@@ -1748,7 +1765,7 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
             interface->nicDriver->type == NIC_TYPE_LOOPBACK)
          {
             //Forward the packet to the loopback interface
-            error = nicSendPacket(interface, buffer, offset);
+            error = nicSendPacket(interface, buffer, offset, ancillary);
             break;
          }
       }
@@ -1768,7 +1785,6 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
          physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
       {
          Ipv6Addr destIpAddr;
-         MacAddr destMacAddr;
          NdpDestCacheEntry *entry;
 
          //When the sending node has a packet to send, it first examines
@@ -1789,7 +1805,7 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
          {
             //Perform next-hop determination
             error = ndpSelectNextHop(interface, &pseudoHeader->destAddr, NULL,
-               &destIpAddr, flags);
+               &destIpAddr, ancillary->dontRoute);
 
             //Check status code
             if(error == NO_ERROR)
@@ -1824,16 +1840,22 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
          //Successful next-hop determination?
          if(error == NO_ERROR)
          {
-            //Destination IPv6 address is a multicast address?
-            if(ipv6IsMulticastAddr(&destIpAddr))
+            //Perform address resolution
+            if(!macCompAddr(&ancillary->destMacAddr, &MAC_UNSPECIFIED_ADDR))
+            {
+               //The destination address is already resolved
+               error = NO_ERROR;
+            }
+            else if(ipv6IsMulticastAddr(&destIpAddr))
             {
                //Map IPv6 multicast address to MAC-layer multicast address
-               error = ipv6MapMulticastAddrToMac(&destIpAddr, &destMacAddr);
+               error = ipv6MapMulticastAddrToMac(&destIpAddr,
+                  &ancillary->destMacAddr);
             }
             else
             {
                //Resolve host address using Neighbor Discovery protocol
-               error = ndpResolve(interface, &destIpAddr, &destMacAddr);
+               error = ndpResolve(interface, &destIpAddr, &ancillary->destMacAddr);
             }
 
             //Successful address resolution?
@@ -1848,10 +1870,9 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
                ipv6DumpHeader(packet);
 
                //Send Ethernet frame
-               error = ethSendFrame(interface, &destMacAddr, buffer, offset,
-                  ETH_TYPE_IPV6);
+               error = ethSendFrame(interface, &ancillary->destMacAddr,
+                  ETH_TYPE_IPV6, buffer, offset, ancillary);
             }
-            //Address resolution is in progress?
             else if(error == ERROR_IN_PROGRESS)
             {
                //Debug message
@@ -1860,9 +1881,9 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
                ipv6DumpHeader(packet);
 
                //Enqueue packets waiting for address resolution
-               error = ndpEnqueuePacket(NULL, interface, &destIpAddr, buffer, offset);
+               error = ndpEnqueuePacket(NULL, interface, &destIpAddr, buffer,
+                  offset, ancillary);
             }
-            //Address resolution failed?
             else
             {
                //Debug message
@@ -1903,7 +1924,7 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
          ipv6DumpHeader(packet);
 
          //Send the packet over the specified link
-         error = nicSendPacket(interface, buffer, offset);
+         error = nicSendPacket(interface, buffer, offset, ancillary);
       }
       else
       //Unknown interface type?
@@ -2130,12 +2151,18 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
             value = 0;
 
          //Update the value of the current 16-bit word
-         if(isdigit((uint8_t) *str))
+         if(osIsdigit(*str))
+         {
             value = (value * 16) + (*str - '0');
-         else if(isupper((uint8_t) *str))
+         }
+         else if(osIsupper(*str))
+         {
             value = (value * 16) + (*str - 'A' + 10);
+         }
          else
+         {
             value = (value * 16) + (*str - 'a' + 10);
+         }
 
          //Check resulting value
          if(value > 0xFFFF)
@@ -2146,7 +2173,7 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
          }
       }
       //"::" symbol found?
-      else if(!strncmp(str, "::", 2))
+      else if(!osStrncmp(str, "::", 2))
       {
          //The "::" can only appear once in an IPv6 address
          if(j >= 0)
@@ -2299,7 +2326,7 @@ char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str)
             *(p++) = ':';
 
          //Convert the current 16-bit word to string
-         p += sprintf(p, "%" PRIx16, ntohs(ipAddr->w[i]));
+         p += osSprintf(p, "%" PRIx16, ntohs(ipAddr->w[i]));
       }
    }
 

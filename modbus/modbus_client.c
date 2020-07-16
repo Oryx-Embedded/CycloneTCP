@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,7 @@ error_t modbusClientInit(ModbusClientContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Clear Modbus/TCP client context
-   memset(context, 0, sizeof(ModbusClientContext));
+   osMemset(context, 0, sizeof(ModbusClientContext));
 
 #if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
    //Initialize TLS session state
@@ -233,7 +233,7 @@ error_t modbusClientConnect(ModbusClientContext *context,
          }
          else
          {
-            //A communication error has occured
+            //A communication error has occurred
          }
       }
       else if(context->state == MODBUS_CLIENT_STATE_CONNECTED)
@@ -1003,7 +1003,7 @@ error_t modbusClientDisconnect(ModbusClientContext *context)
          }
          else
          {
-            //A communication error has occured
+            //A communication error has occurred
          }
       }
       else if(context->state == MODBUS_CLIENT_STATE_DISCONNECTED)
@@ -1073,7 +1073,7 @@ void modbusClientDeinit(ModbusClientContext *context)
 #endif
 
       //Clear Modbus/TCP client context
-      memset(context, 0, sizeof(ModbusClientContext));
+      osMemset(context, 0, sizeof(ModbusClientContext));
    }
 }
 

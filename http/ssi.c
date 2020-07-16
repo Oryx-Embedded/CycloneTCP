@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -158,7 +158,7 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
          //Maintain proper alignment
          if(n != 4)
          {
-            memmove(buffer + pos + n, buffer + pos, length);
+            osMemmove(buffer + pos + n, buffer + pos, length);
             pos += n;
          }
 
@@ -223,7 +223,7 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
             if(pos > 0)
             {
                //Move the remaining bytes to the start of the buffer
-               memmove(buffer, buffer + pos, length);
+               osMemmove(buffer, buffer + pos, length);
                //Rewind to the beginning of the buffer
                pos = 0;
                //More data are needed
@@ -259,7 +259,7 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
          length -= n;
 
          //Move the remaining bytes to the start of the buffer
-         memmove(buffer, buffer + pos, length);
+         osMemmove(buffer, buffer + pos, length);
          //Rewind to the beginning of the buffer
          pos = 0;
          //More data are needed
@@ -434,7 +434,7 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
       return ERROR_INVALID_TAG;
 
    //Skip the SSI include command (7 bytes)
-   memcpy(connection->buffer, tag + 7, length - 7);
+   osMemcpy(connection->buffer, tag + 7, length - 7);
    //Ensure the resulting string is NULL-terminated
    connection->buffer[length - 7] = '\0';
 
@@ -456,7 +456,7 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
       value++;
 
    //Get the length of the attribute value
-   length = strlen(value);
+   length = osStrlen(value);
 
    //Remove trailing simple or double quote
    if(length > 0)
@@ -466,31 +466,31 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
    }
 
    //Check the length of the filename
-   if(strlen(value) > HTTP_SERVER_URI_MAX_LEN)
+   if(osStrlen(value) > HTTP_SERVER_URI_MAX_LEN)
       return ERROR_INVALID_TAG;
 
    //The file parameter defines the included file as relative to the document path
-   if(!strcasecmp(attribute, "file"))
+   if(!osStrcasecmp(attribute, "file"))
    {
       //Allocate a buffer to hold the path to the file to be included
-      path = osAllocMem(strlen(uri) + strlen(value) + 1);
+      path = osAllocMem(osStrlen(uri) + osStrlen(value) + 1);
       //Failed to allocate memory?
       if(path == NULL)
          return ERROR_OUT_OF_MEMORY;
 
       //Copy the path identifying the script file being processed
-      strcpy(path, uri);
+      osStrcpy(path, uri);
       //Search for the last slash character
       p = strrchr(path, '/');
 
       //Remove the filename from the path if applicable
       if(p)
-         strcpy(p + 1, value);
+         osStrcpy(p + 1, value);
       else
-         strcpy(path, value);
+         osStrcpy(path, value);
    }
    //The virtual parameter defines the included file as relative to the document root
-   else if(!strcasecmp(attribute, "virtual"))
+   else if(!osStrcasecmp(attribute, "virtual"))
    {
       //Copy the absolute path
       path = strDuplicate(value);
@@ -607,7 +607,7 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, siz
       return ERROR_INVALID_TAG;
 
    //Skip the SSI echo command (4 bytes)
-   memcpy(connection->buffer, tag + 4, length - 4);
+   osMemcpy(connection->buffer, tag + 4, length - 4);
    //Ensure the resulting string is NULL-terminated
    connection->buffer[length - 4] = '\0';
 
@@ -629,7 +629,7 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, siz
       value++;
 
    //Get the length of the attribute value
-   length = strlen(value);
+   length = osStrlen(value);
 
    //Remove trailing simple or double quote
    if(length > 0)
@@ -639,83 +639,83 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, siz
    }
 
    //Enforce attribute name
-   if(strcasecmp(attribute, "var"))
+   if(osStrcasecmp(attribute, "var"))
       return ERROR_INVALID_TAG;
 
    //Remote address?
-   if(!strcasecmp(value, "REMOTE_ADDR"))
+   if(!osStrcasecmp(value, "REMOTE_ADDR"))
    {
       //The IP address of the host making this request
       ipAddrToString(&connection->socket->remoteIpAddr, connection->buffer);
    }
    //Remote port?
-   else if(!strcasecmp(value, "REMOTE_PORT"))
+   else if(!osStrcasecmp(value, "REMOTE_PORT"))
    {
       //The port number used by the remote host when making this request
-      sprintf(connection->buffer, "%" PRIu16, connection->socket->remotePort);
+      osSprintf(connection->buffer, "%" PRIu16, connection->socket->remotePort);
    }
    //Server address?
-   else if(!strcasecmp(value, "SERVER_ADDR"))
+   else if(!osStrcasecmp(value, "SERVER_ADDR"))
    {
       //The IP address of the server for this URL
       ipAddrToString(&connection->socket->localIpAddr, connection->buffer);
    }
    //Server port?
-   else if(!strcasecmp(value, "SERVER_PORT"))
+   else if(!osStrcasecmp(value, "SERVER_PORT"))
    {
       //The port number on this server to which this request was directed
-      sprintf(connection->buffer, "%" PRIu16, connection->socket->localPort);
+      osSprintf(connection->buffer, "%" PRIu16, connection->socket->localPort);
    }
    //Request method?
-   else if(!strcasecmp(value, "REQUEST_METHOD"))
+   else if(!osStrcasecmp(value, "REQUEST_METHOD"))
    {
       //The method used for this HTTP request
-      strcpy(connection->buffer, connection->request.method);
+      osStrcpy(connection->buffer, connection->request.method);
    }
    //Document root?
-   else if(!strcasecmp(value, "DOCUMENT_ROOT"))
+   else if(!osStrcasecmp(value, "DOCUMENT_ROOT"))
    {
       //The root directory
-      strcpy(connection->buffer, connection->settings->rootDirectory);
+      osStrcpy(connection->buffer, connection->settings->rootDirectory);
    }
    //Document URI?
-   else if(!strcasecmp(value, "DOCUMENT_URI"))
+   else if(!osStrcasecmp(value, "DOCUMENT_URI"))
    {
       //The URI for this request relative to the root directory
-      strcpy(connection->buffer, connection->request.uri);
+      osStrcpy(connection->buffer, connection->request.uri);
    }
    //Document name?
-   else if(!strcasecmp(value, "DOCUMENT_NAME"))
+   else if(!osStrcasecmp(value, "DOCUMENT_NAME"))
    {
       //The full physical path and filename of the document requested
       httpGetAbsolutePath(connection, connection->request.uri,
          connection->buffer, HTTP_SERVER_BUFFER_SIZE);
    }
    //Query string?
-   else if(!strcasecmp(value, "QUERY_STRING"))
+   else if(!osStrcasecmp(value, "QUERY_STRING"))
    {
       //The information following the "?" in the URL for this request
-      strcpy(connection->buffer, connection->request.queryString);
+      osStrcpy(connection->buffer, connection->request.queryString);
    }
    //User name?
-   else if(!strcasecmp(value, "AUTH_USER"))
+   else if(!osStrcasecmp(value, "AUTH_USER"))
    {
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
       //The username provided by the user to the server
-      strcpy(connection->buffer, connection->request.auth.user);
+      osStrcpy(connection->buffer, connection->request.auth.user);
 #else
       //Basic access authentication is not supported
       connection->buffer[0] = '\0';
 #endif
    }
    //GMT time?
-   else if(!strcasecmp(value, "DATE_GMT"))
+   else if(!osStrcasecmp(value, "DATE_GMT"))
    {
       //The current date and time in Greenwich Mean Time
       connection->buffer[0] = '\0';
    }
    //Local time?
-   else if(!strcasecmp(value, "DATE_LOCAL"))
+   else if(!osStrcasecmp(value, "DATE_LOCAL"))
    {
       //The current date and time in the local timezone
       connection->buffer[0] = '\0';
@@ -728,7 +728,7 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, siz
    }
 
    //Get the length of the resulting string
-   length = strlen(connection->buffer);
+   length = osStrlen(connection->buffer);
 
    //Send the contents of the specified environment variable
    error = httpWriteStream(connection, connection->buffer, length);
@@ -769,7 +769,7 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, siz
       return ERROR_INVALID_TAG;
 
    //Skip the SSI exec command (4 bytes)
-   memcpy(connection->buffer, tag + 4, length - 4);
+   osMemcpy(connection->buffer, tag + 4, length - 4);
    //Ensure the resulting string is NULL-terminated
    connection->buffer[length - 4] = '\0';
 
@@ -791,7 +791,7 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, siz
       value++;
 
    //Get the length of the attribute value
-   length = strlen(value);
+   length = osStrlen(value);
 
    //Remove trailing simple or double quote
    if(length > 0)
@@ -801,15 +801,15 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, siz
    }
 
    //Enforce attribute name
-   if(strcasecmp(attribute, "cgi") && strcasecmp(attribute, "cmd") && strcasecmp(attribute, "cmd_argument"))
+   if(osStrcasecmp(attribute, "cgi") && osStrcasecmp(attribute, "cmd") && osStrcasecmp(attribute, "cmd_argument"))
       return ERROR_INVALID_TAG;
    //Check the length of the CGI parameter
-   if(strlen(value) > HTTP_SERVER_CGI_PARAM_MAX_LEN)
+   if(osStrlen(value) > HTTP_SERVER_CGI_PARAM_MAX_LEN)
       return ERROR_INVALID_TAG;
 
    //The scratch buffer may be altered by the user-defined callback.
    //So the CGI parameter must be copied prior to function invocation
-   strcpy(connection->cgiParam, value);
+   osStrcpy(connection->cgiParam, value);
 
    //Invoke user-defined callback
    return connection->settings->cgiCallback(connection, connection->cgiParam);

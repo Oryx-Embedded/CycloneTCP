@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -123,7 +123,7 @@ error_t httpReadRequestHeader(HttpConnection *connection)
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
    connection->request.upgradeWebSocket = FALSE;
    connection->request.connectionUpgrade = FALSE;
-   strcpy(connection->request.clientKey, "");
+   osStrcpy(connection->request.clientKey, "");
 #endif
 
    //HTTP 0.9 does not support Full-Request
@@ -152,7 +152,7 @@ error_t httpReadRequestHeader(HttpConnection *connection)
          TRACE_DEBUG("%s", connection->buffer);
 
          //An empty line indicates the end of the header fields
-         if(!strcmp(connection->buffer, "\r\n"))
+         if(!osStrcmp(connection->buffer, "\r\n"))
             break;
 
          //Check whether a separator is present
@@ -206,7 +206,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
    char_t *s;
 
    //The Request-Line begins with a method token
-   token = strtok_r(requestLine, " \r\n", &p);
+   token = osStrtok_r(requestLine, " \r\n", &p);
    //Unable to retrieve the method?
    if(token == NULL)
       return ERROR_INVALID_REQUEST;
@@ -219,7 +219,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
       return ERROR_INVALID_REQUEST;
 
    //The Request-URI is following the method token
-   token = strtok_r(NULL, " \r\n", &p);
+   token = osStrtok_r(NULL, " \r\n", &p);
    //Unable to retrieve the Request-URI?
    if(token == NULL)
       return ERROR_INVALID_REQUEST;
@@ -241,11 +241,11 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
          return ERROR_INVALID_REQUEST;
 
       //Check the length of the query string
-      if(strlen(s + 1) > HTTP_SERVER_QUERY_STRING_MAX_LEN)
+      if(osStrlen(s + 1) > HTTP_SERVER_QUERY_STRING_MAX_LEN)
          return ERROR_INVALID_REQUEST;
 
       //Save the query string
-      strcpy(connection->request.queryString, s + 1);
+      osStrcpy(connection->request.queryString, s + 1);
    }
    else
    {
@@ -261,14 +261,14 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
    }
 
    //Redirect to the default home page if necessary
-   if(!strcasecmp(connection->request.uri, "/"))
-      strcpy(connection->request.uri, connection->settings->defaultDocument);
+   if(!osStrcasecmp(connection->request.uri, "/"))
+      osStrcpy(connection->request.uri, connection->settings->defaultDocument);
 
    //Clean the resulting path
    pathCanonicalize(connection->request.uri);
 
    //The protocol version is following the Request-URI
-   token = strtok_r(NULL, " \r\n", &p);
+   token = osStrtok_r(NULL, " \r\n", &p);
 
    //HTTP version 0.9?
    if(token == NULL)
@@ -279,7 +279,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
       connection->request.keepAlive = FALSE;
    }
    //HTTP version 1.0?
-   else if(!strcasecmp(token, "HTTP/1.0"))
+   else if(!osStrcasecmp(token, "HTTP/1.0"))
    {
       //Save version number
       connection->request.version = HTTP_VERSION_1_0;
@@ -287,7 +287,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
       connection->request.keepAlive = FALSE;
    }
    //HTTP version 1.1?
-   else if(!strcasecmp(token, "HTTP/1.1"))
+   else if(!osStrcasecmp(token, "HTTP/1.1"))
    {
       //Save version number
       connection->request.version = HTTP_VERSION_1_1;
@@ -375,7 +375,7 @@ error_t httpReadHeaderField(HttpConnection *connection,
       buffer[length] = '\0';
 
       //An empty line indicates the end of the header fields
-      if(!strcmp(buffer, "\r\n"))
+      if(!osStrcmp(buffer, "\r\n"))
          break;
 
       //Read the next character to detect if the CRLF is immediately
@@ -422,59 +422,59 @@ void httpParseHeaderField(HttpConnection *connection,
    const char_t *name, char_t *value)
 {
    //Host header field?
-   if(!strcasecmp(name, "Host"))
+   if(!osStrcasecmp(name, "Host"))
    {
       //Save host name
       strSafeCopy(connection->request.host, value,
          HTTP_SERVER_HOST_MAX_LEN);
    }
    //Connection header field?
-   else if(!strcasecmp(name, "Connection"))
+   else if(!osStrcasecmp(name, "Connection"))
    {
       //Parse Connection header field
       httpParseConnectionField(connection, value);
    }
    //Transfer-Encoding header field?
-   else if(!strcasecmp(name, "Transfer-Encoding"))
+   else if(!osStrcasecmp(name, "Transfer-Encoding"))
    {
       //Check whether chunked encoding is used
-      if(!strcasecmp(value, "chunked"))
+      if(!osStrcasecmp(value, "chunked"))
          connection->request.chunkedEncoding = TRUE;
    }
    //Content-Type field header?
-   else if(!strcasecmp(name, "Content-Type"))
+   else if(!osStrcasecmp(name, "Content-Type"))
    {
       //Parse Content-Type header field
       httpParseContentTypeField(connection, value);
    }
    //Content-Length header field?
-   else if(!strcasecmp(name, "Content-Length"))
+   else if(!osStrcasecmp(name, "Content-Length"))
    {
       //Get the length of the body data
       connection->request.contentLength = atoi(value);
    }
    //Accept-Encoding field header?
-   else if(!strcasecmp(name, "Accept-Encoding"))
+   else if(!osStrcasecmp(name, "Accept-Encoding"))
    {
       //Parse Content-Type header field
       httpParseAcceptEncodingField(connection, value);
    }
    //Authorization header field?
-   else if(!strcasecmp(name, "Authorization"))
+   else if(!osStrcasecmp(name, "Authorization"))
    {
       //Parse Authorization header field
       httpParseAuthorizationField(connection, value);
    }
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
    //Upgrade header field?
-   else if(!strcasecmp(name, "Upgrade"))
+   else if(!osStrcasecmp(name, "Upgrade"))
    {
       //WebSocket support?
-      if(!strcasecmp(value, "websocket"))
+      if(!osStrcasecmp(value, "websocket"))
          connection->request.upgradeWebSocket = TRUE;
    }
    //Sec-WebSocket-Key header field?
-   else if(!strcasecmp(name, "Sec-WebSocket-Key"))
+   else if(!osStrcasecmp(name, "Sec-WebSocket-Key"))
    {
       //Save the contents of the Sec-WebSocket-Key header field
       strSafeCopy(connection->request.clientKey, value,
@@ -483,7 +483,7 @@ void httpParseHeaderField(HttpConnection *connection,
 #endif
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    //Cookie header field?
-   else if(!strcasecmp(name, "Cookie"))
+   else if(!osStrcasecmp(name, "Cookie"))
    {
       //Parse Cookie header field
       httpParseCookieField(connection, value);
@@ -505,7 +505,7 @@ void httpParseConnectionField(HttpConnection *connection,
    char_t *token;
 
    //Get the first value of the list
-   token = strtok_r(value, ",", &p);
+   token = osStrtok_r(value, ",", &p);
 
    //Parse the comma-separated list
    while(token != NULL)
@@ -514,18 +514,18 @@ void httpParseConnectionField(HttpConnection *connection,
       value = strTrimWhitespace(token);
 
       //Check current value
-      if(!strcasecmp(value, "keep-alive"))
+      if(!osStrcasecmp(value, "keep-alive"))
       {
          //The connection is persistent
          connection->request.keepAlive = TRUE;
       }
-      else if(!strcasecmp(value, "close"))
+      else if(!osStrcasecmp(value, "close"))
       {
          //The connection will be closed after completion of the response
          connection->request.keepAlive = FALSE;
       }
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
-      else if(!strcasecmp(value, "upgrade"))
+      else if(!osStrcasecmp(value, "upgrade"))
       {
          //Upgrade the connection
          connection->request.connectionUpgrade = TRUE;
@@ -533,7 +533,7 @@ void httpParseConnectionField(HttpConnection *connection,
 #endif
 
       //Get next value
-      token = strtok_r(NULL, ",", &p);
+      token = osStrtok_r(NULL, ",", &p);
    }
 }
 
@@ -553,22 +553,22 @@ void httpParseContentTypeField(HttpConnection *connection,
    char_t *token;
 
    //Retrieve type
-   token = strtok_r(value, "/", &p);
+   token = osStrtok_r(value, "/", &p);
    //Any parsing error?
    if(token == NULL)
       return;
 
    //The boundary parameter makes sense only for the multipart content-type
-   if(!strcasecmp(token, "multipart"))
+   if(!osStrcasecmp(token, "multipart"))
    {
       //Skip subtype
-      token = strtok_r(NULL, ";", &p);
+      token = osStrtok_r(NULL, ";", &p);
       //Any parsing error?
       if(token == NULL)
          return;
 
       //Retrieve parameter name
-      token = strtok_r(NULL, "=", &p);
+      token = osStrtok_r(NULL, "=", &p);
       //Any parsing error?
       if(token == NULL)
          return;
@@ -577,10 +577,10 @@ void httpParseContentTypeField(HttpConnection *connection,
       token = strTrimWhitespace(token);
 
       //Check parameter name
-      if(!strcasecmp(token, "boundary"))
+      if(!osStrcasecmp(token, "boundary"))
       {
          //Retrieve parameter value
-         token = strtok_r(NULL, ";", &p);
+         token = osStrtok_r(NULL, ";", &p);
          //Any parsing error?
          if(token == NULL)
             return;
@@ -588,13 +588,13 @@ void httpParseContentTypeField(HttpConnection *connection,
          //Trim whitespace characters
          token = strTrimWhitespace(token);
          //Get the length of the boundary string
-         n = strlen(token);
+         n = osStrlen(token);
 
          //Check the length of the boundary string
          if(n < HTTP_SERVER_BOUNDARY_MAX_LEN)
          {
             //Copy the boundary string
-            strncpy(connection->request.boundary, token, n);
+            osStrncpy(connection->request.boundary, token, n);
             //Properly terminate the string
             connection->request.boundary[n] = '\0';
 
@@ -621,7 +621,7 @@ void httpParseAcceptEncodingField(HttpConnection *connection,
    char_t *token;
 
    //Get the first value of the list
-   token = strtok_r(value, ",", &p);
+   token = osStrtok_r(value, ",", &p);
 
    //Parse the comma-separated list
    while(token != NULL)
@@ -630,14 +630,14 @@ void httpParseAcceptEncodingField(HttpConnection *connection,
       value = strTrimWhitespace(token);
 
       //Check current value
-      if(!strcasecmp(value, "gzip"))
+      if(!osStrcasecmp(value, "gzip"))
       {
          //gzip compression is supported
          connection->request.acceptGzipEncoding = TRUE;
       }
 
       //Get next value
-      token = strtok_r(NULL, ",", &p);
+      token = osStrtok_r(NULL, ",", &p);
    }
 #endif
 }
@@ -688,7 +688,7 @@ error_t httpReadChunkSize(HttpConnection *connection)
       s[n] = '\0';
 
       //The chunk data must be terminated by CRLF
-      if(strcmp(s, "\r\n"))
+      if(osStrcmp(s, "\r\n"))
          return ERROR_WRONG_ENCODING;
    }
 
@@ -704,7 +704,7 @@ error_t httpReadChunkSize(HttpConnection *connection)
    strRemoveTrailingSpace(s);
 
    //Retrieve the size of the chunk
-   connection->request.byteCount = strtoul(s, &end, 16);
+   connection->request.byteCount = osStrtoul(s, &end, 16);
 
    //No valid conversion could be performed?
    if(end == s || *end != '\0')
@@ -729,7 +729,7 @@ error_t httpReadChunkSize(HttpConnection *connection)
          s[n] = '\0';
 
          //The trailer is terminated by an empty line
-         if(!strcmp(s, "\r\n"))
+         if(!osStrcmp(s, "\r\n"))
             break;
       }
    }
@@ -817,7 +817,7 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    //The first line of a response message is the Status-Line, consisting
    //of the protocol version followed by a numeric status code and its
    //associated textual phrase
-   p += sprintf(p, "HTTP/%u.%u %u ", MSB(connection->response.version),
+   p += osSprintf(p, "HTTP/%u.%u %u ", MSB(connection->response.version),
       LSB(connection->response.version), connection->response.statusCode);
 
    //Retrieve the Reason-Phrase that corresponds to the Status-Code
@@ -827,52 +827,61 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       if(statusCodeList[i].value == connection->response.statusCode)
       {
          //Append the textual phrase to the Status-Line
-         p += sprintf(p, statusCodeList[i].message);
+         p += osSprintf(p, "%s", statusCodeList[i].message);
          //Break the loop and continue processing
          break;
       }
    }
 
    //Properly terminate the Status-Line
-   p += sprintf(p, "\r\n");
+   p += osSprintf(p, "\r\n");
 
    //Valid location?
    if(connection->response.location != NULL)
    {
       //Set Location field
-      p += sprintf(p, "Location: %s\r\n", connection->response.location);
+      p += osSprintf(p, "Location: %s\r\n", connection->response.location);
    }
 
    //Persistent connection?
    if(connection->response.keepAlive)
    {
       //Set Connection field
-      p += sprintf(p, "Connection: keep-alive\r\n");
+      p += osSprintf(p, "Connection: keep-alive\r\n");
 
       //Set Keep-Alive field
-      p += sprintf(p, "Keep-Alive: timeout=%u, max=%u\r\n",
+      p += osSprintf(p, "Keep-Alive: timeout=%u, max=%u\r\n",
          HTTP_SERVER_IDLE_TIMEOUT / 1000, HTTP_SERVER_MAX_REQUESTS);
    }
    else
    {
       //Set Connection field
-      p += sprintf(p, "Connection: close\r\n");
+      p += osSprintf(p, "Connection: close\r\n");
    }
 
    //Specify the caching policy
    if(connection->response.noCache)
    {
       //Set Pragma field
-      p += sprintf(p, "Pragma: no-cache\r\n");
+      p += osSprintf(p, "Pragma: no-cache\r\n");
       //Set Cache-Control field
-      p += sprintf(p, "Cache-Control: no-store, no-cache, must-revalidate\r\n");
-      p += sprintf(p, "Cache-Control: max-age=0, post-check=0, pre-check=0\r\n");
+      p += osSprintf(p, "Cache-Control: no-store, no-cache, must-revalidate\r\n");
+      p += osSprintf(p, "Cache-Control: max-age=0, post-check=0, pre-check=0\r\n");
    }
    else if(connection->response.maxAge != 0)
    {
       //Set Cache-Control field
-      p += sprintf(p, "Cache-Control: max-age=%u\r\n", connection->response.maxAge);
+      p += osSprintf(p, "Cache-Control: max-age=%u\r\n", connection->response.maxAge);
    }
+
+#if (HTTP_SERVER_TLS_SUPPORT == ENABLED && HTTP_SERVER_HSTS_SUPPORT == ENABLED)
+   //TLS-secured connection?
+   if(connection->serverContext->settings.tlsInitCallback != NULL)
+   {
+      //Set Strict-Transport-Security field
+      p += osSprintf(p, "Strict-Transport-Security: max-age=31536000\r\n");
+   }
+#endif
 
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    //Check whether authentication is required
@@ -888,7 +897,7 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    if(connection->response.setCookie[0] != '\0')
    {
       //Add Set-Cookie header field
-      p += sprintf(p, "Set-Cookie: %s\r\n", connection->response.setCookie);
+      p += osSprintf(p, "Set-Cookie: %s\r\n", connection->response.setCookie);
    }
 #endif
 
@@ -896,7 +905,7 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    if(connection->response.contentType != NULL)
    {
       //Content type
-      p += sprintf(p, "Content-Type: %s\r\n", connection->response.contentType);
+      p += osSprintf(p, "Content-Type: %s\r\n", connection->response.contentType);
    }
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
@@ -904,7 +913,7 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    if(connection->response.gzipEncoding)
    {
       //Set Transfer-Encoding field
-      p += sprintf(p, "Content-Encoding: gzip\r\n");
+      p += osSprintf(p, "Content-Encoding: gzip\r\n");
    }
 #endif
 
@@ -912,17 +921,17 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    if(connection->response.chunkedEncoding)
    {
       //Set Transfer-Encoding field
-      p += sprintf(p, "Transfer-Encoding: chunked\r\n");
+      p += osSprintf(p, "Transfer-Encoding: chunked\r\n");
    }
    //Persistent connection?
    else if(connection->response.keepAlive)
    {
       //Set Content-Length field
-      p += sprintf(p, "Content-Length: %" PRIuSIZE "\r\n", connection->response.contentLength);
+      p += osSprintf(p, "Content-Length: %" PRIuSIZE "\r\n", connection->response.contentLength);
    }
 
    //Terminate the header with an empty line
-   p += sprintf(p, "\r\n");
+   p += osSprintf(p, "\r\n");
 
    //Successful processing
    return NO_ERROR;
@@ -965,7 +974,7 @@ error_t httpSend(HttpConnection *connection,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy user data
-   memcpy(connection->buffer + connection->bufferLen, data, length);
+   osMemcpy(connection->buffer + connection->bufferLen, data, length);
    //Adjust the length of the buffer
    connection->bufferLen += length;
 
@@ -1037,7 +1046,7 @@ error_t httpReceive(HttpConnection *connection,
       }
 
       //Copy data to user buffer
-      memcpy(data, connection->buffer + connection->bufferPos, n);
+      osMemcpy(data, connection->buffer + connection->bufferPos, n);
 
       //Advance current position
       connection->bufferPos += n;
@@ -1071,7 +1080,7 @@ void httpGetAbsolutePath(HttpConnection *connection,
    const char_t *relative, char_t *absolute, size_t maxLen)
 {
    //Copy the root directory
-   strcpy(absolute, connection->settings->rootDirectory);
+   osStrcpy(absolute, connection->settings->rootDirectory);
 
    //Append the specified path
    pathCombine(absolute, relative, maxLen);
@@ -1094,9 +1103,9 @@ bool_t httpCompExtension(const char_t *filename, const char_t *extension)
    uint_t m;
 
    //Get the length of the specified filename
-   n = strlen(filename);
+   n = osStrlen(filename);
    //Get the length of the extension
-   m = strlen(extension);
+   m = osStrlen(extension);
 
    //Check the length of the filename
    if(n < m)
@@ -1146,7 +1155,7 @@ error_t httpDecodePercentEncodedString(const char_t *input,
          buffer[1] = input[2];
          buffer[2] = '\0';
          //String to integer conversion
-         output[i] = (uint8_t) strtoul(buffer, NULL, 16);
+         output[i] = (uint8_t) osStrtoul(buffer, NULL, 16);
          //Advance data pointer
          input += 3;
       }

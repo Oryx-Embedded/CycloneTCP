@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -131,7 +131,7 @@ error_t pppInit(PppContext *context, const PppSettings *settings)
    interface = settings->interface;
 
    //Initialize PPP context
-   memset(context, 0, sizeof(PppContext));
+   osMemset(context, 0, sizeof(PppContext));
 
    //Save user settings
    context->settings = *settings;
@@ -884,9 +884,12 @@ void pppTick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] frame Incoming PPP frame to process
  * @param[in] length Total frame length
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
-void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
+void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
+   NetRxAncillary *ancillary)
 {
    size_t n;
    uint16_t protocol;
@@ -942,10 +945,11 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       //Process incoming IPCP packet
       ipcpProcessPacket(context, (PppPacket *) frame, length);
       break;
+
    //IP protocol?
    case PPP_PROTOCOL_IP:
       //Process incoming IPv4 packet
-      ipv4ProcessPacket(interface, (Ipv4Header *) frame, length);
+      ipv4ProcessPacket(interface, (Ipv4Header *) frame, length, ancillary);
       break;
 #endif
 
@@ -955,6 +959,7 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       //Process incoming IPV6CP packet
       ipv6cpProcessPacket(context, (PppPacket *) frame, length);
       break;
+
    //IPv6 protocol?
    case PPP_PROTOCOL_IPV6:
       //The incoming PPP frame fits in a single chunk
@@ -965,7 +970,7 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       buffer.chunk[0].size = 0;
 
       //Process incoming IPv6 packet
-      ipv6ProcessPacket(interface, (NetBuffer *) &buffer, 0);
+      ipv6ProcessPacket(interface, (NetBuffer *) &buffer, 0, ancillary);
       break;
 #endif
 
@@ -1011,6 +1016,7 @@ error_t pppSendFrame(NetInterface *interface,
    uint16_t fcs;
    uint8_t *p;
    PppContext *context;
+   NetTxAncillary ancillary;
 
    //Point to the PPP context
    context = interface->pppContext;
@@ -1089,8 +1095,12 @@ error_t pppSendFrame(NetInterface *interface,
    TRACE_DEBUG("Sending PPP frame (%" PRIuSIZE " bytes)...\r\n", length);
    TRACE_DEBUG("  Protocol = 0x%04" PRIX16 "\r\n", protocol);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send the resulting frame over the specified link
-   error = nicSendPacket(interface, buffer, offset);
+   error = nicSendPacket(interface, buffer, offset, &ancillary);
+
    //Return status code
    return error;
 }

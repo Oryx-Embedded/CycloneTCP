@@ -1,12 +1,12 @@
 /**
  * @file dp83tc811_driver.h
- * @brief DP83TC811 Ethernet PHY transceiver
+ * @brief DP83TC811 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _DP83TC811_DRIVER_H
@@ -63,93 +63,91 @@
 #define DP83TC811_PHYRCR                                   0x1F
 
 //DP83TC811 MMD registers
-#define DP83TC811_LSR                                      0x0133
-#define DP83TC811_TDRR                                     0x016B
-#define DP83TC811_TDRLR1                                   0x0180
-#define DP83TC811_TDRLR2                                   0x0181
-#define DP83TC811_TDRPT                                    0x018A
-#define DP83TC811_AUTO_PHY                                 0x018B
-#define DP83TC811_PWRM                                     0x018C
-#define DP83TC811_SNR                                      0x0197
-#define DP83TC811_SQI                                      0x0198
-#define DP83TC811_LD_CTRL                                  0x0400
-#define DP83TC811_LDG_CTRL1                                0x0401
-#define DP83TC811_DLL_CTRL                                 0x0446
-#define DP83TC811_ESDS                                     0x0448
-#define DP83TC811_LED_CFG1                                 0x0460
-#define DP83TC811_XMII_IMP_CTRL                            0x0461
-#define DP83TC811_IO_CTRL1                                 0x0462
-#define DP83TC811_IO_CTRL2                                 0x0463
-#define DP83TC811_STRAP                                    0x0467
-#define DP83TC811_LED_CFG2                                 0x0469
-#define DP83TC811_PLR_CFG                                  0x0475
-#define DP83TC811_MON_CFG1                                 0x0480
-#define DP83TC811_MON_CFG2                                 0x0481
-#define DP83TC811_MON_CFG3                                 0x0482
-#define DP83TC811_MON_STAT1                                0x0483
-#define DP83TC811_MON_STAT2                                0x0484
-#define DP83TC811_PCS_CTRL1                                0x0485
-#define DP83TC811_PCS_CTRL2                                0x0486
-#define DP83TC811_LPS_CTRL2                                0x0487
-#define DP83TC811_INTER_CFG                                0x0489
-#define DP83TC811_LPS_CTRL3                                0x0493
-#define DP83TC811_LPS_CTRL3                                0x0493
-#define DP83TC811_JAB_CFG                                  0x0496
-#define DP83TC811_TEST_MODE_CTRL                           0x0497
-#define DP83TC811_WOL_CFG                                  0x04A0
-#define DP83TC811_WOL_STAT                                 0x04A1
-#define DP83TC811_WOL_DA1                                  0x04A2
-#define DP83TC811_WOL_DA2                                  0x04A3
-#define DP83TC811_WOL_DA3                                  0x04A4
-#define DP83TC811_RXSOP1                                   0x04A5
-#define DP83TC811_RXSOP2                                   0x04A6
-#define DP83TC811_RXSOP3                                   0x04A7
-#define DP83TC811_RXPAT1                                   0x04A8
-#define DP83TC811_RXPAT2                                   0x04A9
-#define DP83TC811_RXPAT3                                   0x04AA
-#define DP83TC811_RXPAT4                                   0x04AB
-#define DP83TC811_RXPAT5                                   0x04AC
-#define DP83TC811_RXPAT6                                   0x04AD
-#define DP83TC811_RXPAT7                                   0x04AE
-#define DP83TC811_RXPAT8                                   0x04AF
-#define DP83TC811_RXPAT9                                   0x04B0
-#define DP83TC811_RXPAT10                                  0x04B1
-#define DP83TC811_RXPAT11                                  0x04B2
-#define DP83TC811_RXPAT12                                  0x04B3
-#define DP83TC811_RXPAT13                                  0x04B4
-#define DP83TC811_RXPAT14                                  0x04B5
-#define DP83TC811_RXPAT15                                  0x04B6
-#define DP83TC811_RXPAT16                                  0x04B7
-#define DP83TC811_RXPAT17                                  0x04B8
-#define DP83TC811_RXPAT18                                  0x04B9
-#define DP83TC811_RXPAT19                                  0x04BA
-#define DP83TC811_RXPAT20                                  0x04BB
-#define DP83TC811_RXPAT21                                  0x04BC
-#define DP83TC811_RXPAT22                                  0x04BD
-#define DP83TC811_RXPAT23                                  0x04BE
-#define DP83TC811_RXPAT24                                  0x04BF
-#define DP83TC811_RXPAT25                                  0x04C0
-#define DP83TC811_RXPAT26                                  0x04C1
-#define DP83TC811_RXPAT27                                  0x04C2
-#define DP83TC811_RXPAT28                                  0x04C3
-#define DP83TC811_RXPAT29                                  0x04C4
-#define DP83TC811_RXPAT30                                  0x04C5
-#define DP83TC811_RXPAT31                                  0x04C6
-#define DP83TC811_RXPAT32                                  0x04C7
-#define DP83TC811_RXPBM1                                   0x04C8
-#define DP83TC811_RXPBM2                                   0x04C9
-#define DP83TC811_RXPBM3                                   0x04CA
-#define DP83TC811_RXPBM4                                   0x04CB
-#define DP83TC811_RXPATC                                   0x04CC
-#define DP83TC811_RXD3CLK                                  0x04E0
-#define DP83TC811_LPS_CFG                                  0x04E5
-
-//DP83TC811 MMD1 registers
-#define DP83TC811_PMA_CTRL1                                0x0007
-#define DP83TC811_PMA_EXT1                                 0x000B
-#define DP83TC811_PMA_EXT2                                 0x0012
-#define DP83TC811_PMA_CTRL2                                0x0834
-#define DP83TC811_TEST_CTRL                                0x0836
+#define DP83TC811_PMA_CTRL1                                0x01, 0x0007
+#define DP83TC811_PMA_EXT1                                 0x01, 0x000B
+#define DP83TC811_PMA_EXT2                                 0x01, 0x0012
+#define DP83TC811_PMA_CTRL2                                0x01, 0x0834
+#define DP83TC811_TEST_CTRL                                0x01, 0x0836
+#define DP83TC811_LSR                                      0x1F, 0x0133
+#define DP83TC811_TDRR                                     0x1F, 0x016B
+#define DP83TC811_TDRLR1                                   0x1F, 0x0180
+#define DP83TC811_TDRLR2                                   0x1F, 0x0181
+#define DP83TC811_TDRPT                                    0x1F, 0x018A
+#define DP83TC811_AUTO_PHY                                 0x1F, 0x018B
+#define DP83TC811_PWRM                                     0x1F, 0x018C
+#define DP83TC811_SNR                                      0x1F, 0x0197
+#define DP83TC811_SQI                                      0x1F, 0x0198
+#define DP83TC811_LD_CTRL                                  0x1F, 0x0400
+#define DP83TC811_LDG_CTRL1                                0x1F, 0x0401
+#define DP83TC811_DLL_CTRL                                 0x1F, 0x0446
+#define DP83TC811_ESDS                                     0x1F, 0x0448
+#define DP83TC811_LED_CFG1                                 0x1F, 0x0460
+#define DP83TC811_XMII_IMP_CTRL                            0x1F, 0x0461
+#define DP83TC811_IO_CTRL1                                 0x1F, 0x0462
+#define DP83TC811_IO_CTRL2                                 0x1F, 0x0463
+#define DP83TC811_STRAP                                    0x1F, 0x0467
+#define DP83TC811_LED_CFG2                                 0x1F, 0x0469
+#define DP83TC811_PLR_CFG                                  0x1F, 0x0475
+#define DP83TC811_MON_CFG1                                 0x1F, 0x0480
+#define DP83TC811_MON_CFG2                                 0x1F, 0x0481
+#define DP83TC811_MON_CFG3                                 0x1F, 0x0482
+#define DP83TC811_MON_STAT1                                0x1F, 0x0483
+#define DP83TC811_MON_STAT2                                0x1F, 0x0484
+#define DP83TC811_PCS_CTRL1                                0x1F, 0x0485
+#define DP83TC811_PCS_CTRL2                                0x1F, 0x0486
+#define DP83TC811_LPS_CTRL2                                0x1F, 0x0487
+#define DP83TC811_INTER_CFG                                0x1F, 0x0489
+#define DP83TC811_LPS_CTRL3                                0x1F, 0x0493
+#define DP83TC811_LPS_CTRL3                                0x1F, 0x0493
+#define DP83TC811_JAB_CFG                                  0x1F, 0x0496
+#define DP83TC811_TEST_MODE_CTRL                           0x1F, 0x0497
+#define DP83TC811_WOL_CFG                                  0x1F, 0x04A0
+#define DP83TC811_WOL_STAT                                 0x1F, 0x04A1
+#define DP83TC811_WOL_DA1                                  0x1F, 0x04A2
+#define DP83TC811_WOL_DA2                                  0x1F, 0x04A3
+#define DP83TC811_WOL_DA3                                  0x1F, 0x04A4
+#define DP83TC811_RXSOP1                                   0x1F, 0x04A5
+#define DP83TC811_RXSOP2                                   0x1F, 0x04A6
+#define DP83TC811_RXSOP3                                   0x1F, 0x04A7
+#define DP83TC811_RXPAT1                                   0x1F, 0x04A8
+#define DP83TC811_RXPAT2                                   0x1F, 0x04A9
+#define DP83TC811_RXPAT3                                   0x1F, 0x04AA
+#define DP83TC811_RXPAT4                                   0x1F, 0x04AB
+#define DP83TC811_RXPAT5                                   0x1F, 0x04AC
+#define DP83TC811_RXPAT6                                   0x1F, 0x04AD
+#define DP83TC811_RXPAT7                                   0x1F, 0x04AE
+#define DP83TC811_RXPAT8                                   0x1F, 0x04AF
+#define DP83TC811_RXPAT9                                   0x1F, 0x04B0
+#define DP83TC811_RXPAT10                                  0x1F, 0x04B1
+#define DP83TC811_RXPAT11                                  0x1F, 0x04B2
+#define DP83TC811_RXPAT12                                  0x1F, 0x04B3
+#define DP83TC811_RXPAT13                                  0x1F, 0x04B4
+#define DP83TC811_RXPAT14                                  0x1F, 0x04B5
+#define DP83TC811_RXPAT15                                  0x1F, 0x04B6
+#define DP83TC811_RXPAT16                                  0x1F, 0x04B7
+#define DP83TC811_RXPAT17                                  0x1F, 0x04B8
+#define DP83TC811_RXPAT18                                  0x1F, 0x04B9
+#define DP83TC811_RXPAT19                                  0x1F, 0x04BA
+#define DP83TC811_RXPAT20                                  0x1F, 0x04BB
+#define DP83TC811_RXPAT21                                  0x1F, 0x04BC
+#define DP83TC811_RXPAT22                                  0x1F, 0x04BD
+#define DP83TC811_RXPAT23                                  0x1F, 0x04BE
+#define DP83TC811_RXPAT24                                  0x1F, 0x04BF
+#define DP83TC811_RXPAT25                                  0x1F, 0x04C0
+#define DP83TC811_RXPAT26                                  0x1F, 0x04C1
+#define DP83TC811_RXPAT27                                  0x1F, 0x04C2
+#define DP83TC811_RXPAT28                                  0x1F, 0x04C3
+#define DP83TC811_RXPAT29                                  0x1F, 0x04C4
+#define DP83TC811_RXPAT30                                  0x1F, 0x04C5
+#define DP83TC811_RXPAT31                                  0x1F, 0x04C6
+#define DP83TC811_RXPAT32                                  0x1F, 0x04C7
+#define DP83TC811_RXPBM1                                   0x1F, 0x04C8
+#define DP83TC811_RXPBM2                                   0x1F, 0x04C9
+#define DP83TC811_RXPBM3                                   0x1F, 0x04CA
+#define DP83TC811_RXPBM4                                   0x1F, 0x04CB
+#define DP83TC811_RXPATC                                   0x1F, 0x04CC
+#define DP83TC811_RXD3CLK                                  0x1F, 0x04E0
+#define DP83TC811_LPS_CFG                                  0x1F, 0x04E5
 
 //Basic Mode Control register
 #define DP83TC811_BMCR_RESET                               0x8000
@@ -194,8 +192,6 @@
 #define DP83TC811_REGCR_COMMAND_DATA_POST_INC_RW           0x8000
 #define DP83TC811_REGCR_COMMAND_DATA_POST_INC_W            0xC000
 #define DP83TC811_REGCR_DEVAD                              0x001F
-#define DP83TC811_REGCR_DEVAD_1                            0x0001
-#define DP83TC811_REGCR_DEVAD_31                           0x001F
 
 //Interrupt Test register
 #define DP83TC811_INT_TEST_INTERRUPT_POLARITY              0x0008
@@ -514,15 +510,11 @@ uint16_t dp83tc811ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void dp83tc811DumpPhyReg(NetInterface *interface);
 
-void dp83tc811WriteMmdReg(NetInterface *interface, uint16_t address,
-   uint16_t data);
+void dp83tc811WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data);
 
-uint16_t dp83tc811ReadMmdReg(NetInterface *interface, uint16_t address);
-
-void dp83tc811WriteMmd1Reg(NetInterface *interface, uint16_t address,
-   uint16_t data);
-
-uint16_t dp83tc811ReadMmd1Reg(NetInterface *interface, uint16_t address);
+uint16_t dp83tc811ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

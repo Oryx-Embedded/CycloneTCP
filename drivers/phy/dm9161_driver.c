@@ -1,12 +1,12 @@
 /**
  * @file dm9161_driver.c
- * @brief DM9161 Ethernet PHY transceiver
+ * @brief DM9161 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver dm9161PhyDriver =
    dm9161Tick,
    dm9161EnableIrq,
    dm9161DisableIrq,
-   dm9161EventHandler,
-   NULL,
-   NULL
+   dm9161EventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t dm9161Init(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = DM9161_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Initialize external interrupt line driver
@@ -184,7 +188,7 @@ void dm9161EventHandler(NetInterface *interface)
    value = dm9161ReadPhyReg(interface, DM9161_MDINTR);
 
    //Link status change?
-   if(value & DM9161_MDINTR_LINK_CHANGE)
+   if((value & DM9161_MDINTR_LINK_CHANGE) != 0)
    {
       //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
@@ -192,7 +196,7 @@ void dm9161EventHandler(NetInterface *interface)
       value = dm9161ReadPhyReg(interface, DM9161_BMSR);
 
       //Link is up?
-      if(value & DM9161_BMSR_LINK_STATUS)
+      if((value & DM9161_BMSR_LINK_STATUS) != 0)
       {
          //Wait for the auto-negotiation to complete
          do
@@ -223,25 +227,25 @@ void dm9161EventHandler(NetInterface *interface)
          value = dm9161ReadPhyReg(interface, DM9161_DSCSR);
 
          //Check current operation mode
-         if(value & DM9161_DSCSR_10HDX)
+         if((value & DM9161_DSCSR_10HDX) != 0)
          {
             //10BASE-T half-duplex
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          }
-         else if(value & DM9161_DSCSR_10FDX)
+         else if((value & DM9161_DSCSR_10FDX) != 0)
          {
             //10BASE-T full-duplex
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          }
-         else if(value & DM9161_DSCSR_100HDX)
+         else if((value & DM9161_DSCSR_100HDX) != 0)
          {
             //100BASE-TX half-duplex
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          }
-         else if(value & DM9161_DSCSR_100FDX)
+         else if((value & DM9161_DSCSR_100FDX) != 0)
          {
             //100BASE-TX full-duplex
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
@@ -282,8 +286,16 @@ void dm9161WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -296,9 +308,22 @@ void dm9161WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t dm9161ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

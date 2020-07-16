@@ -1,12 +1,12 @@
 /**
  * @file ksz8794_driver.c
- * @brief KSZ8794 4-port Ethernet switch
+ * @brief KSZ8794 4-port Ethernet switch driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -42,7 +42,7 @@
  * @brief KSZ8794 Ethernet switch driver
  **/
 
-const PhyDriver ksz8794PhyDriver =
+const SwitchDriver ksz8794SwitchDriver =
 {
    ksz8794Init,
    ksz8794Tick,
@@ -50,7 +50,20 @@ const PhyDriver ksz8794PhyDriver =
    ksz8794DisableIrq,
    ksz8794EventHandler,
    ksz8794TagFrame,
-   ksz8794UntagFrame
+   ksz8794UntagFrame,
+   ksz8794GetLinkState,
+   ksz8794GetLinkSpeed,
+   ksz8794GetDuplexMode,
+   ksz8794SetPortState,
+   ksz8794GetPortState,
+   ksz8794SetAgingTime,
+   ksz8794EnableRsvdMcastTable,
+   ksz8794AddStaticFdbEntry,
+   ksz8794DeleteStaticFdbEntry,
+   ksz8794GetStaticFdbEntry,
+   ksz8794FlushStaticFdbTable,
+   ksz8794GetDynamicFdbEntry,
+   ksz8794FlushDynamicFdbTable
 };
 
 
@@ -60,10 +73,10 @@ const PhyDriver ksz8794PhyDriver =
 
 const uint8_t ksz8794IngressTailTag[4] =
 {
-   0,
-   KSZ8794_TAIL_TAG_ENCODE(1),
-   KSZ8794_TAIL_TAG_ENCODE(2),
-   KSZ8794_TAIL_TAG_ENCODE(3)
+   KSZ8794_TAIL_TAG_NORMAL_ADDR_LOOKUP,
+   KSZ8794_TAIL_TAG_PORT_SEL | KSZ8794_TAIL_TAG_DEST_PORT1,
+   KSZ8794_TAIL_TAG_PORT_SEL | KSZ8794_TAIL_TAG_DEST_PORT2,
+   KSZ8794_TAIL_TAG_PORT_SEL | KSZ8794_TAIL_TAG_DEST_PORT3
 };
 
 
@@ -84,7 +97,7 @@ error_t ksz8794Init(NetInterface *interface)
    //SPI slave mode?
    if(interface->spiDriver != NULL)
    {
-      //Initialize SPI
+      //Initialize SPI interface
       interface->spiDriver->init();
 
       //Wait for the serial interface to be ready
@@ -97,51 +110,62 @@ error_t ksz8794Init(NetInterface *interface)
       } while(temp != KSZ8794_CHIP_ID0_FAMILY_ID_DEFAULT);
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-      //Tail tagging mode?
-      if(interface->port != 0)
-      {
-         //Enable tail tag feature
-         temp = ksz8794ReadSwitchReg(interface, KSZ8794_GLOBAL_CTRL10);
-         temp |= KSZ8794_GLOBAL_CTRL10_TAIL_TAG_EN;
-         ksz8794WriteSwitchReg(interface, KSZ8794_GLOBAL_CTRL10, temp);
-
-         //Loop through ports
-         for(port = KSZ8794_PORT1; port <= KSZ8794_PORT3; port++)
-         {
-            //Disable packet transmission and switch address learning
-            temp = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_CTRL2(port));
-            temp &= ~KSZ8794_PORTn_CTRL2_TRANSMIT_EN;
-            temp |= KSZ8794_PORTn_CTRL2_RECEIVE_EN;
-            temp |= KSZ8794_PORTn_CTRL2_LEARNING_DIS;
-            ksz8794WriteSwitchReg(interface, KSZ8794_PORTn_CTRL2(port), temp);
-         }
-      }
-      else
+      //Enable tail tag feature
+      temp = ksz8794ReadSwitchReg(interface, KSZ8794_GLOBAL_CTRL10);
+      temp |= KSZ8794_GLOBAL_CTRL10_TAIL_TAG_EN;
+      ksz8794WriteSwitchReg(interface, KSZ8794_GLOBAL_CTRL10, temp);
+#else
+      //Disable tail tag feature
+      temp = ksz8794ReadSwitchReg(interface, KSZ8794_GLOBAL_CTRL10);
+      temp &= ~KSZ8794_GLOBAL_CTRL10_TAIL_TAG_EN;
+      ksz8794WriteSwitchReg(interface, KSZ8794_GLOBAL_CTRL10, temp);
 #endif
-      {
-         //Disable tail tag feature
-         temp = ksz8794ReadSwitchReg(interface, KSZ8794_GLOBAL_CTRL10);
-         temp &= ~KSZ8794_GLOBAL_CTRL10_TAIL_TAG_EN;
-         ksz8794WriteSwitchReg(interface, KSZ8794_GLOBAL_CTRL10, temp);
 
-         //Loop through ports
-         for(port = KSZ8794_PORT1; port <= KSZ8794_PORT3; port++)
+      //Loop through the ports
+      for(port = KSZ8794_PORT1; port <= KSZ8794_PORT3; port++)
+      {
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+         //Port separation mode?
+         if(interface->port != 0)
          {
-            //Enable transmission, reception and switch address learning
-            temp = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_CTRL2(port));
-            temp |= KSZ8794_PORTn_CTRL2_TRANSMIT_EN;
-            temp |= KSZ8794_PORTn_CTRL2_RECEIVE_EN;
-            temp &= ~KSZ8794_PORTn_CTRL2_LEARNING_DIS;
-            ksz8794WriteSwitchReg(interface, KSZ8794_PORTn_CTRL2(port), temp);
+            //Disable packet transmission and address learning
+            ksz8794SetPortState(interface, port, SWITCH_PORT_STATE_LISTENING);
+         }
+         else
+#endif
+         {
+            //Enable transmission, reception and address learning
+            ksz8794SetPortState(interface, port, SWITCH_PORT_STATE_FORWARDING);
          }
       }
+
+      //Silicon errata workaround #2
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0, 0x20);
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL1, 0x35);
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_BYTE, 0x00);
+
+      //Silicon errata workaround #3
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0, 0xA0);
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL1, 0x3C);
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_BYTE, 0x15);
+
+      //Silicon errata workaround #4
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0, 0xA0);
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL1, 0x4E);
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_BYTE, 0x40);
 
       //Dump switch registers for debugging purpose
       ksz8794DumpSwitchReg(interface);
    }
    else
    {
-      //Loop through ports
+      //Initialize serial management interface
+      if(interface->smiDriver != NULL)
+      {
+         interface->smiDriver->init();
+      }
+
+      //Loop through the ports
       for(port = KSZ8794_PORT1; port <= KSZ8794_PORT3; port++)
       {
          //Debug message
@@ -162,56 +186,6 @@ error_t ksz8794Init(NetInterface *interface)
 
 
 /**
- * @brief Get link state
- * @param[in] interface Underlying network interface
- * @param[in] port Port number
- * @return Link state
- **/
-
-bool_t ksz8794GetLinkState(NetInterface *interface, uint8_t port)
-{
-   uint16_t status;
-   bool_t linkState;
-
-   //Check port number
-   if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
-   {
-      //Get exclusive access
-      osAcquireMutex(&netMutex);
-
-      //SPI slave mode?
-      if(interface->spiDriver != NULL)
-      {
-         //Read port status 2 register
-         status = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_STAT2(port));
-
-         //Retrieve current link state
-         linkState = (status & KSZ8794_PORTn_STAT2_LINK_GOOD) ? TRUE : FALSE;
-      }
-      else
-      {
-         //Read status register
-         status = ksz8794ReadPhyReg(interface, port, KSZ8794_BMSR);
-
-         //Retrieve current link state
-         linkState = (status & KSZ8794_BMSR_LINK_STATUS) ? TRUE : FALSE;
-      }
-
-      //Release exclusive access
-      osReleaseMutex(&netMutex);
-   }
-   else
-   {
-      //The specified port number is not valid
-      linkState = FALSE;
-   }
-
-   //Return link status
-   return linkState;
-}
-
-
-/**
  * @brief KSZ8794 timer handler
  * @param[in] interface Underlying network interface
  **/
@@ -219,51 +193,36 @@ bool_t ksz8794GetLinkState(NetInterface *interface, uint8_t port)
 void ksz8794Tick(NetInterface *interface)
 {
    uint_t port;
-   uint16_t status;
    bool_t linkState;
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Tail tagging mode?
+   //Port separation mode?
    if(interface->port != 0)
    {
       uint_t i;
       NetInterface *virtualInterface;
 
-      //SPI slave mode?
-      if(interface->spiDriver != NULL)
+      //Loop through network interfaces
+      for(i = 0; i < NET_INTERFACE_COUNT; i++)
       {
-         //Loop through network interfaces
-         for(i = 0; i < NET_INTERFACE_COUNT; i++)
+         //Point to the current interface
+         virtualInterface = &netInterface[i];
+
+         //Check whether the current virtual interface is attached to the
+         //physical interface
+         if(virtualInterface == interface ||
+            virtualInterface->parent == interface)
          {
-            //Point to the current interface
-            virtualInterface = &netInterface[i];
+            //Retrieve current link state
+            linkState = ksz8794GetLinkState(interface, virtualInterface->port);
 
-            //Check whether the current virtual interface is attached to the
-            //physical interface
-            if(virtualInterface == interface || virtualInterface->parent == interface)
+            //Link up or link down event?
+            if(linkState != virtualInterface->linkState)
             {
-               //The tail tag is used to indicate the source/destination port
-               port = virtualInterface->port;
-
-               //Valid port?
-               if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
-               {
-                  //Read port status 2 register
-                  status = ksz8794ReadSwitchReg(interface,
-                     KSZ8794_PORTn_STAT2(port));
-
-                  //Retrieve current link state
-                  linkState = (status & KSZ8794_PORTn_STAT2_LINK_GOOD) ? TRUE : FALSE;
-
-                  //Link up or link down event?
-                  if(linkState != virtualInterface->linkState)
-                  {
-                     //Set event flag
-                     interface->phyEvent = TRUE;
-                     //Notify the TCP/IP stack of the event
-                     osSetEvent(&netEvent);
-                  }
-               }
+               //Set event flag
+               interface->phyEvent = TRUE;
+               //Notify the TCP/IP stack of the event
+               osSetEvent(&netEvent);
             }
          }
       }
@@ -274,27 +233,13 @@ void ksz8794Tick(NetInterface *interface)
       //Initialize link state
       linkState = FALSE;
 
-      //Loop through ports
+      //Loop through the ports
       for(port = KSZ8794_PORT1; port <= KSZ8794_PORT3; port++)
       {
-         //SPI slave mode?
-         if(interface->spiDriver != NULL)
+         //Retrieve current link state
+         if(ksz8794GetLinkState(interface, port))
          {
-            //Read port status 2 register
-            status = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_STAT2(port));
-
-            //Retrieve current link state
-            if(status & KSZ8794_PORTn_STAT2_LINK_GOOD)
-               linkState = TRUE;
-         }
-         else
-         {
-            //Read status register
-            status = ksz8794ReadPhyReg(interface, port, KSZ8794_BMSR);
-
-            //Retrieve current link state
-            if(status & KSZ8794_BMSR_LINK_STATUS)
-               linkState = TRUE;
+            linkState = TRUE;
          }
       }
 
@@ -338,100 +283,71 @@ void ksz8794DisableIrq(NetInterface *interface)
 void ksz8794EventHandler(NetInterface *interface)
 {
    uint_t port;
-   uint16_t status;
    bool_t linkState;
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Tail tagging mode?
+   //Port separation mode?
    if(interface->port != 0)
    {
       uint_t i;
       NetInterface *virtualInterface;
 
-      //SPI slave mode?
-      if(interface->spiDriver != NULL)
+      //Loop through network interfaces
+      for(i = 0; i < NET_INTERFACE_COUNT; i++)
       {
-         //Loop through network interfaces
-         for(i = 0; i < NET_INTERFACE_COUNT; i++)
+         //Point to the current interface
+         virtualInterface = &netInterface[i];
+
+         //Check whether the current virtual interface is attached to the
+         //physical interface
+         if(virtualInterface == interface ||
+            virtualInterface->parent == interface)
          {
-            //Point to the current interface
-            virtualInterface = &netInterface[i];
+            //Get the port number associated with the current interface
+            port = virtualInterface->port;
 
-            //Check whether the current virtual interface is attached to the
-            //physical interface
-            if(virtualInterface == interface ||
-               virtualInterface->parent == interface)
+            //Valid port?
+            if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
             {
-               //The tail tag is used to indicate the source/destination port
-               port = virtualInterface->port;
+               //Retrieve current link state
+               linkState = ksz8794GetLinkState(interface, port);
 
-               //Valid port?
-               if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
+               //Link up event?
+               if(linkState && !virtualInterface->linkState)
                {
-                  //Read port status 2 register
-                  status = ksz8794ReadSwitchReg(interface,
-                     KSZ8794_PORTn_STAT2(port));
+                  //Retrieve host interface speed
+                  interface->linkSpeed = ksz8794GetLinkSpeed(interface,
+                     KSZ8794_PORT4);
 
-                  //Retrieve current link state
-                  linkState = (status & KSZ8794_PORTn_STAT2_LINK_GOOD) ? TRUE : FALSE;
+                  //Retrieve host interface duplex mode
+                  interface->duplexMode = ksz8794GetDuplexMode(interface,
+                     KSZ8794_PORT4);
 
-                  //Link up event?
-                  if(linkState && !virtualInterface->linkState)
-                  {
-                     //Adjust MAC configuration parameters for proper operation
-                     interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                     interface->duplexMode = NIC_FULL_DUPLEX_MODE;
-                     interface->nicDriver->updateMacConfig(interface);
+                  //Adjust MAC configuration parameters for proper operation
+                  interface->nicDriver->updateMacConfig(interface);
 
-                     //Read port status 3 register
-                     status = ksz8794ReadSwitchReg(interface,
-                        KSZ8794_PORTn_CTRL11_STAT3(port));
+                  //Check current speed
+                  virtualInterface->linkSpeed = ksz8794GetLinkSpeed(interface,
+                     port);
 
-                     //Check current operation mode
-                     switch(status & KSZ8794_PORTn_CTRL11_STAT3_OP_MODE)
-                     {
-                     //10BASE-T half-duplex
-                     case KSZ8794_PORTn_CTRL11_STAT3_OP_MODE_10BT_HD:
-                        virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
-                        virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
-                        break;
-                     //10BASE-T full-duplex
-                     case KSZ8794_PORTn_CTRL11_STAT3_OP_MODE_10BT_FD:
-                        virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
-                        virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
-                        break;
-                     //100BASE-TX half-duplex
-                     case KSZ8794_PORTn_CTRL11_STAT3_OP_MODE_100BTX_HD:
-                        virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                        virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
-                        break;
-                     //100BASE-TX full-duplex
-                     case KSZ8794_PORTn_CTRL11_STAT3_OP_MODE_100BTX_FD:
-                        virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                        virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
-                        break;
-                     //Unknown operation mode
-                     default:
-                        //Debug message
-                        TRACE_WARNING("Invalid operation mode!\r\n");
-                        break;
-                     }
+                  //Check current duplex mode
+                  virtualInterface->duplexMode = ksz8794GetDuplexMode(interface,
+                     port);
 
-                     //Update link state
-                     virtualInterface->linkState = TRUE;
+                  //Update link state
+                  virtualInterface->linkState = TRUE;
 
-                     //Process link state change event
-                     nicNotifyLinkChange(virtualInterface);
-                  }
-                  //Link down event
-                  else if(!linkState && virtualInterface->linkState)
-                  {
-                     //Update link state
-                     virtualInterface->linkState = FALSE;
+                  //Process link state change event
+                  nicNotifyLinkChange(virtualInterface);
+               }
+               //Link down event
+               else if(!linkState && virtualInterface->linkState)
+               {
+                  //Update link state
+                  virtualInterface->linkState = FALSE;
 
-                     //Process link state change event
-                     nicNotifyLinkChange(virtualInterface);
-                  }
+                  //Process link state change event
+                  nicNotifyLinkChange(virtualInterface);
                }
             }
          }
@@ -443,36 +359,25 @@ void ksz8794EventHandler(NetInterface *interface)
       //Initialize link state
       linkState = FALSE;
 
-      //Loop through ports
+      //Loop through the ports
       for(port = KSZ8794_PORT1; port <= KSZ8794_PORT3; port++)
       {
-         //SPI slave mode?
-         if(interface->spiDriver != NULL)
+         //Retrieve current link state
+         if(ksz8794GetLinkState(interface, port))
          {
-            //Read port status 2 register
-            status = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_STAT2(port));
-
-            //Retrieve current link state
-            if(status & KSZ8794_PORTn_STAT2_LINK_GOOD)
-               linkState = TRUE;
-         }
-         else
-         {
-            //Read status register
-            status = ksz8794ReadPhyReg(interface, port, KSZ8794_BMSR);
-
-            //Retrieve current link state
-            if(status & KSZ8794_BMSR_LINK_STATUS)
-               linkState = TRUE;
+            linkState = TRUE;
          }
       }
 
       //Link up event?
       if(linkState)
       {
+         //Retrieve host interface speed
+         interface->linkSpeed = ksz8794GetLinkSpeed(interface, KSZ8794_PORT4);
+         //Retrieve host interface duplex mode
+         interface->duplexMode = ksz8794GetDuplexMode(interface, KSZ8794_PORT4);
+
          //Adjust MAC configuration parameters for proper operation
-         interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-         interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          interface->nicDriver->updateMacConfig(interface);
 
          //Update link state
@@ -495,51 +400,57 @@ void ksz8794EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in,out] offset Offset to the first payload byte
- * @param[in] port Switch port identifier
- * @param[in,out] type Ethernet type
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ksz8794TagFrame(NetInterface *interface, NetBuffer *buffer,
-   size_t *offset, uint8_t port, uint16_t *type)
+   size_t *offset, NetTxAncillary *ancillary)
 {
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    error_t error;
-   size_t length;
-   const uint8_t *tailTag;
 
-   //Valid port?
-   if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
+   //Initialize status code
+   error = NO_ERROR;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
    {
-      //The one byte tail tagging is used to indicate the destination port
-      tailTag = &ksz8794IngressTailTag[port];
-
-      //Retrieve the length of the frame
-      length = netBufferGetLength(buffer) - *offset;
-
-      //The host controller should manually add padding to the packet before
-      //inserting the tail tag
-      error = ethPadFrame(buffer, &length);
-
-      //Check status code
-      if(!error)
+      //Valid port?
+      if(ancillary->port <= KSZ8794_PORT3)
       {
-         //The tail tag is inserted at the end of the packet, just before the CRC
-         error = netBufferAppend(buffer, tailTag, sizeof(uint8_t));
+         size_t length;
+         const uint8_t *tailTag;
+
+         //The one byte tail tagging is used to indicate the destination port
+         tailTag = &ksz8794IngressTailTag[ancillary->port];
+
+         //Retrieve the length of the Ethernet frame
+         length = netBufferGetLength(buffer) - *offset;
+
+         //The host controller should manually add padding to the packet before
+         //inserting the tail tag
+         error = ethPadFrame(buffer, &length);
+
+         //Check status code
+         if(!error)
+         {
+            //The tail tag is inserted at the end of the packet, just before
+            //the CRC
+            error = netBufferAppend(buffer, tailTag, sizeof(uint8_t));
+         }
+      }
+      else
+      {
+         //The port number is not valid
+         error = ERROR_INVALID_PORT;
       }
    }
-   else
-   {
-      //Invalid port identifier
-      error = ERROR_WRONG_IDENTIFIER;
-   }
+#endif
 
    //Return status code
    return error;
-#else
-   //Tail tagging mode is not implemented
-   return NO_ERROR;
-#endif
 }
 
 
@@ -548,44 +459,840 @@ error_t ksz8794TagFrame(NetInterface *interface, NetBuffer *buffer,
  * @param[in] interface Underlying network interface
  * @param[in,out] frame Pointer to the received Ethernet frame
  * @param[in,out] length Length of the frame, in bytes
- * @param[out] port Switch port identifier
+ * @param[in,out] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ksz8794UntagFrame(NetInterface *interface, uint8_t **frame,
-   size_t *length, uint8_t *port)
+   size_t *length, NetRxAncillary *ancillary)
 {
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    error_t error;
-   uint8_t *tailTag;
 
-   //Valid Ethernet frame received?
-   if(*length >= (sizeof(EthHeader) + sizeof(uint8_t)))
+   //Initialize status code
+   error = NO_ERROR;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
    {
-      //The tail tag is inserted at the end of the packet, just before the CRC
-      tailTag = *frame + *length - sizeof(uint8_t);
+      //Valid Ethernet frame received?
+      if(*length >= (sizeof(EthHeader) + sizeof(uint8_t)))
+      {
+         uint8_t *tailTag;
 
-      //The one byte tail tagging is used to indicate the source port
-      *port = KSZ8794_TAIL_TAG_DECODE(*tailTag);
+         //The tail tag is inserted at the end of the packet, just before
+         //the CRC
+         tailTag = *frame + *length - sizeof(uint8_t);
 
-      //Strip tail tag from Ethernet frame
-      *length -= sizeof(uint8_t);
+         //The one byte tail tagging is used to indicate the source port
+         ancillary->port = (*tailTag & KSZ8794_TAIL_TAG_SRC_PORT) + 1;
+
+         //Strip tail tag from Ethernet frame
+         *length -= sizeof(uint8_t);
+      }
+      else
+      {
+         //Drop the received frame
+         error = ERROR_INVALID_LENGTH;
+      }
+   }
+   else
+   {
+      //Tail tagging mode cannot be enabled through MDC/MDIO interface
+      ancillary->port = 0;
+   }
+#endif
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Get link state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Link state
+ **/
+
+bool_t ksz8794GetLinkState(NetInterface *interface, uint8_t port)
+{
+   uint16_t status;
+   bool_t linkState;
+
+   //Check port number
+   if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
+   {
+      //SPI slave mode?
+      if(interface->spiDriver != NULL)
+      {
+         //Read port status 2 register
+         status = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_STAT2(port));
+
+         //Retrieve current link state
+         linkState = (status & KSZ8794_PORTn_STAT2_LINK_GOOD) ? TRUE : FALSE;
+      }
+      else
+      {
+         //Read status register
+         status = ksz8794ReadPhyReg(interface, port, KSZ8794_BMSR);
+
+         //Retrieve current link state
+         linkState = (status & KSZ8794_BMSR_LINK_STATUS) ? TRUE : FALSE;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+      linkState = FALSE;
+   }
+
+   //Return link status
+   return linkState;
+}
+
+
+/**
+ * @brief Get link speed
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Link speed
+ **/
+
+uint32_t ksz8794GetLinkSpeed(NetInterface *interface, uint8_t port)
+{
+   uint8_t type;
+   uint8_t value;
+   uint32_t linkSpeed;
+
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
+   {
+      //Check port number
+      if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
+      {
+         //Read port status 1 register
+         value = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_STAT1(port));
+
+         //Retrieve current link speed
+         if((value & KSZ8794_PORTn_STAT1_OP_SPEED) != 0)
+         {
+            linkSpeed = NIC_LINK_SPEED_100MBPS;
+         }
+         else
+         {
+            linkSpeed = NIC_LINK_SPEED_10MBPS;
+         }
+      }
+      else if(port == KSZ8794_PORT4)
+      {
+         //Read port 4 interface control 6 register
+         value = ksz8794ReadSwitchReg(interface, KSZ8794_PORT4_IF_CTRL6);
+
+         //Retrieve host interface type
+         type = value & KSZ8794_PORT4_IF_CTRL6_IF_MODE_SEL;
+
+         //Gigabit interface?
+         if(type == KSZ8794_PORT4_IF_CTRL6_IF_MODE_SEL_RGMII &&
+            (value & KSZ8794_PORT4_IF_CTRL6_IS_1GBPS) != 0)
+         {
+            //1000 Mb/s mode
+            linkSpeed = NIC_LINK_SPEED_1GBPS;
+         }
+         else
+         {
+            //Read global control 4 register
+            value = ksz8794ReadSwitchReg(interface, KSZ8794_GLOBAL_CTRL4);
+
+            //Retrieve host interface speed
+            if((value & KSZ8794_GLOBAL_CTRL4_SW4_SPEED) != 0)
+            {
+               //10 Mb/s mode
+               linkSpeed = NIC_LINK_SPEED_10MBPS;
+            }
+            else
+            {
+               //100 Mb/s mode
+               linkSpeed = NIC_LINK_SPEED_100MBPS;
+            }
+         }
+      }
+      else
+      {
+         //The specified port number is not valid
+         linkSpeed = NIC_LINK_SPEED_UNKNOWN;
+      }
+   }
+   else
+   {
+      //The MDC/MDIO interface does not have access to all the configuration
+      //registers. It can only access the standard MIIM registers
+      linkSpeed = NIC_LINK_SPEED_100MBPS;
+   }
+
+   //Return link status
+   return linkSpeed;
+}
+
+
+/**
+ * @brief Get duplex mode
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Duplex mode
+ **/
+
+NicDuplexMode ksz8794GetDuplexMode(NetInterface *interface, uint8_t port)
+{
+   uint8_t value;
+   NicDuplexMode duplexMode;
+
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
+   {
+      //Check port number
+      if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
+      {
+         //Read port status 1 register
+         value = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_STAT1(port));
+
+         //Retrieve current duplex mode
+         if((value & KSZ8794_PORTn_STAT1_OP_DUPLEX) != 0)
+         {
+            duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
+         else
+         {
+            duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
+      }
+      else if(port == KSZ8794_PORT4)
+      {
+         //Read global control 4 register
+         value = ksz8794ReadSwitchReg(interface, KSZ8794_GLOBAL_CTRL4);
+
+         //Retrieve host interface duplex mode
+         if((value & KSZ8794_GLOBAL_CTRL4_SW4_HALF_DUPLEX_MODE) != 0)
+         {
+            duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
+         else
+         {
+            duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
+      }
+      else
+      {
+         //The specified port number is not valid
+         duplexMode = NIC_UNKNOWN_DUPLEX_MODE;
+      }
+   }
+   else
+   {
+      //The MDC/MDIO interface does not have access to all the configuration
+      //registers. It can only access the standard MIIM registers
+      duplexMode = NIC_FULL_DUPLEX_MODE;
+   }
+
+   //Return duplex mode
+   return duplexMode;
+}
+
+
+/**
+ * @brief Set port state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @param[in] state Port state
+ * @return Duplex mode
+ **/
+
+void ksz8794SetPortState(NetInterface *interface, uint8_t port,
+   SwitchPortState state)
+{
+   uint16_t temp;
+
+   //Check port number
+   if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
+   {
+      //Read port control 2 register
+      temp = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_CTRL2(port));
+
+      //Update port state
+      switch(state)
+      {
+      //Listening state
+      case SWITCH_PORT_STATE_LISTENING:
+         temp &= ~KSZ8794_PORTn_CTRL2_TRANSMIT_EN;
+         temp |= KSZ8794_PORTn_CTRL2_RECEIVE_EN;
+         temp |= KSZ8794_PORTn_CTRL2_LEARNING_DIS;
+         break;
+
+      //Learning state
+      case SWITCH_PORT_STATE_LEARNING:
+         temp &= ~KSZ8794_PORTn_CTRL2_TRANSMIT_EN;
+         temp &= ~KSZ8794_PORTn_CTRL2_RECEIVE_EN;
+         temp &= ~KSZ8794_PORTn_CTRL2_LEARNING_DIS;
+         break;
+
+      //Forwarding state
+      case SWITCH_PORT_STATE_FORWARDING:
+         temp |= KSZ8794_PORTn_CTRL2_TRANSMIT_EN;
+         temp |= KSZ8794_PORTn_CTRL2_RECEIVE_EN;
+         temp &= ~KSZ8794_PORTn_CTRL2_LEARNING_DIS;
+         break;
+
+      //Disabled state
+      default:
+         temp &= ~KSZ8794_PORTn_CTRL2_TRANSMIT_EN;
+         temp &= ~KSZ8794_PORTn_CTRL2_RECEIVE_EN;
+         temp |= KSZ8794_PORTn_CTRL2_LEARNING_DIS;
+         break;
+      }
+
+      //Write the value back to port control 2 register
+      ksz8794WriteSwitchReg(interface, KSZ8794_PORTn_CTRL2(port), temp);
+   }
+}
+
+
+/**
+ * @brief Get port state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Port state
+ **/
+
+SwitchPortState ksz8794GetPortState(NetInterface *interface, uint8_t port)
+{
+   uint16_t temp;
+   SwitchPortState state;
+
+   //Check port number
+   if(port >= KSZ8794_PORT1 && port <= KSZ8794_PORT3)
+   {
+      //Read port control 2 register
+      temp = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_CTRL2(port));
+
+      //Check port state
+      if((temp & KSZ8794_PORTn_CTRL2_TRANSMIT_EN) == 0 &&
+         (temp & KSZ8794_PORTn_CTRL2_RECEIVE_EN) == 0 &&
+         (temp & KSZ8794_PORTn_CTRL2_LEARNING_DIS) != 0)
+      {
+         //Disabled state
+         state = SWITCH_PORT_STATE_DISABLED;
+      }
+      else if((temp & KSZ8794_PORTn_CTRL2_TRANSMIT_EN) == 0 &&
+         (temp & KSZ8794_PORTn_CTRL2_RECEIVE_EN) != 0 &&
+         (temp & KSZ8794_PORTn_CTRL2_LEARNING_DIS) != 0)
+      {
+         //Listening state
+         state = SWITCH_PORT_STATE_LISTENING;
+      }
+      else if((temp & KSZ8794_PORTn_CTRL2_TRANSMIT_EN) == 0 &&
+         (temp & KSZ8794_PORTn_CTRL2_RECEIVE_EN) == 0 &&
+         (temp & KSZ8794_PORTn_CTRL2_LEARNING_DIS) == 0)
+      {
+         //Learning state
+         state = SWITCH_PORT_STATE_LEARNING;
+      }
+      else if((temp & KSZ8794_PORTn_CTRL2_TRANSMIT_EN) != 0 &&
+         (temp & KSZ8794_PORTn_CTRL2_RECEIVE_EN) != 0 &&
+         (temp & KSZ8794_PORTn_CTRL2_LEARNING_DIS) == 0)
+      {
+         //Forwarding state
+         state = SWITCH_PORT_STATE_FORWARDING;
+      }
+      else
+      {
+         //Unknown state
+         state = SWITCH_PORT_STATE_UNKNOWN;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+      state = SWITCH_PORT_STATE_DISABLED;
+   }
+
+   //Return port state
+   return state;
+}
+
+
+/**
+ * @brief Set aging time for dynamic filtering entries
+ * @param[in] interface Underlying network interface
+ * @param[in] agingTime Aging time, in seconds
+ **/
+
+void ksz8794SetAgingTime(NetInterface *interface, uint32_t agingTime)
+{
+   //The aging period is fixed to 300 seconds
+}
+
+
+/**
+ * @brief Enable reserved multicast table
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable reserved group addresses
+ **/
+
+void ksz8794EnableRsvdMcastTable(NetInterface *interface, bool_t enable)
+{
+   uint_t i;
+   SwitchFdbEntry entry;
+
+   //The reserved group addresses are in the range of 01-80-C2-00-00-00 to
+   //01-80-C2-00-00-0F
+   for(i = 0; i <= 15; i++)
+   {
+      //Specify the reserved group address to be added or removed
+      entry.macAddr.b[0] = 0x01;
+      entry.macAddr.b[1] = 0x80;
+      entry.macAddr.b[2] = 0xC2;
+      entry.macAddr.b[3] = 0x00;
+      entry.macAddr.b[4] = 0x00;
+      entry.macAddr.b[5] = i;
+
+      //Format forwarding database entry
+      entry.srcPort = 0;
+      entry.destPorts = SWITCH_CPU_PORT_MASK;
+      entry.override = TRUE;
+
+      //Update the static MAC table
+      if(enable)
+      {
+         ksz8794AddStaticFdbEntry(interface, &entry);
+      }
+      else
+      {
+         ksz8794DeleteStaticFdbEntry(interface, &entry);
+      }
+   }
+}
+
+
+/**
+ * @brief Add a new entry to the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t ksz8794AddStaticFdbEntry(NetInterface *interface,
+   const SwitchFdbEntry *entry)
+{
+   error_t error;
+   uint_t i;
+   uint_t j;
+   uint8_t *p;
+   SwitchFdbEntry currentEntry;
+   Ksz8794StaticMacEntryW newEntry;
+
+   //Keep track of the first free entry
+   j = KSZ8794_STATIC_MAC_TABLE_SIZE;
+
+   //Loop through the static MAC table
+   for(i = 0; i < KSZ8794_STATIC_MAC_TABLE_SIZE; i++)
+   {
+      //Read current entry
+      error = ksz8794GetStaticFdbEntry(interface, i, &currentEntry);
+
+      //Valid entry?
+      if(!error)
+      {
+         //Check whether the table already contains the specified MAC address
+         if(macCompAddr(&currentEntry.macAddr, &entry->macAddr))
+         {
+            j = i;
+            break;
+         }
+      }
+      else
+      {
+         //Keep track of the first free entry
+         if(j == KSZ8794_STATIC_MAC_TABLE_SIZE)
+         {
+            j = i;
+         }
+      }
+   }
+
+   //Any entry available?
+   if(j < KSZ8794_STATIC_MAC_TABLE_SIZE)
+   {
+      //Format MAC entry
+      newEntry.fid = 0;
+      newEntry.useFid = 0;
+      newEntry.override = entry->override;
+      newEntry.valid = TRUE;
+      newEntry.macAddr = entry->macAddr;
+
+      //Set the relevant forward ports
+      if(entry->destPorts == SWITCH_CPU_PORT_MASK)
+      {
+         newEntry.forwardPorts = KSZ8794_PORT4_MASK;
+      }
+      else
+      {
+         newEntry.forwardPorts = entry->destPorts & KSZ8794_PORT_MASK;
+      }
+
+      //Select the static MAC address table
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0,
+         KSZ8794_INDIRECT_CTRL0_READ |
+         KSZ8794_INDIRECT_CTRL0_TABLE_SEL_STATIC_MAC);
+
+      //Point to the MAC entry
+      p = (uint8_t *) &newEntry;
+
+      //Write indirect data registers
+      for(i = 0; i < sizeof(Ksz8794StaticMacEntryW); i++)
+      {
+         ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_DATA7 + i, p[i]);
+      }
+
+      //Setup a write operation
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0,
+         KSZ8794_INDIRECT_CTRL0_WRITE |
+         KSZ8794_INDIRECT_CTRL0_TABLE_SEL_STATIC_MAC);
+
+      //Trigger the write operation
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL1, j);
 
       //Successful processing
       error = NO_ERROR;
    }
    else
    {
-      //Drop the received frame
-      error = ERROR_INVALID_LENGTH;
+      //The static MAC table is full
+      error = ERROR_TABLE_FULL;
    }
 
    //Return status code
    return error;
-#else
-   //Tail tagging mode is not implemented
-   return NO_ERROR;
-#endif
+}
+
+
+/**
+ * @brief Remove an entry from the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] entry Forwarding database entry to remove from the table
+ * @return Error code
+ **/
+
+error_t ksz8794DeleteStaticFdbEntry(NetInterface *interface,
+   const SwitchFdbEntry *entry)
+{
+   error_t error;
+   uint_t i;
+   uint_t j;
+   SwitchFdbEntry currentEntry;
+
+   //Loop through the static MAC table
+   for(j = 0; j < KSZ8794_STATIC_MAC_TABLE_SIZE; j++)
+   {
+      //Read current entry
+      error = ksz8794GetStaticFdbEntry(interface, j, &currentEntry);
+
+      //Valid entry?
+      if(!error)
+      {
+         //Check whether the table contains the specified MAC address
+         if(macCompAddr(&currentEntry.macAddr, &entry->macAddr))
+         {
+            break;
+         }
+      }
+   }
+
+   //Any matching entry?
+   if(j < KSZ8794_STATIC_MAC_TABLE_SIZE)
+   {
+      //Select the static MAC address table
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0,
+         KSZ8794_INDIRECT_CTRL0_READ |
+         KSZ8794_INDIRECT_CTRL0_TABLE_SEL_STATIC_MAC);
+
+      //Clear indirect data registers
+      for(i = 0; i < sizeof(Ksz8794StaticMacEntryW); i++)
+      {
+         ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_DATA7 + i, 0);
+      }
+
+      //Setup a write operation
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0,
+         KSZ8794_INDIRECT_CTRL0_WRITE |
+         KSZ8794_INDIRECT_CTRL0_TABLE_SEL_STATIC_MAC);
+
+      //Trigger the write operation
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL1, j);
+
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //The static MAC table does not contain the specified address
+      error = ERROR_NOT_FOUND;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Read an entry from the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] index Zero-based index of the entry to read
+ * @param[out] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t ksz8794GetStaticFdbEntry(NetInterface *interface, uint_t index,
+   SwitchFdbEntry *entry)
+{
+   error_t error;
+   uint_t i;
+   uint8_t *p;
+   Ksz8794StaticMacEntryR currentEntry;
+
+   //Check index parameter
+   if(index < KSZ8794_STATIC_MAC_TABLE_SIZE)
+   {
+      //Select the static MAC address table
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0,
+         KSZ8794_INDIRECT_CTRL0_READ |
+         KSZ8794_INDIRECT_CTRL0_TABLE_SEL_STATIC_MAC);
+
+      //Trigger the read operation
+      ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL1, index);
+
+      //Point to the MAC entry
+      p = (uint8_t *) &currentEntry;
+
+      //Read indirect data registers
+      for(i = 0; i < sizeof(Ksz8794StaticMacEntryR); i++)
+      {
+         p[i] = ksz8794ReadSwitchReg(interface, KSZ8794_INDIRECT_DATA7 + i);
+      }
+
+      //Valid entry?
+      if(currentEntry.valid)
+      {
+         //Copy MAC entry
+         entry->macAddr = currentEntry.macAddr;
+         entry->srcPort = 0;
+         entry->destPorts = currentEntry.forwardPorts & KSZ8794_PORT_MASK;
+         entry->override = currentEntry.override;
+
+         //Successful processing
+         error = NO_ERROR;
+      }
+      else
+      {
+         //The entry is not valid
+         error = ERROR_INVALID_ENTRY;
+      }
+   }
+   else
+   {
+      //The end of the table has been reached
+      error = ERROR_END_OF_TABLE;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Flush static MAC table
+ * @param[in] interface Underlying network interface
+ **/
+
+void ksz8794FlushStaticFdbTable(NetInterface *interface)
+{
+   uint_t i;
+   uint_t temp;
+   uint8_t state[5];
+
+   //Loop through the ports
+   for(i = KSZ8794_PORT1; i <= KSZ8794_PORT4; i++)
+   {
+      //Valid port?
+      if(i != KSZ8794_PORT_RESERVED)
+      {
+         //Save the current state of the port
+         state[i - 1] = ksz8794ReadSwitchReg(interface, KSZ8794_PORTn_CTRL2(i));
+
+         //Turn off learning capability
+         ksz8794WriteSwitchReg(interface, KSZ8794_PORTn_CTRL2(i),
+            state[i - 1] | KSZ8794_PORTn_CTRL2_LEARNING_DIS);
+      }
+   }
+
+   //All the entries associated with a port that has its learning capability
+   //being turned off will be flushed
+   temp = ksz8794ReadSwitchReg(interface, KSZ8794_GLOBAL_CTRL0);
+   temp |= KSZ8794_GLOBAL_CTRL0_FLUSH_STATIC_MAC_TABLE;
+   ksz8794WriteSwitchReg(interface, KSZ8794_GLOBAL_CTRL0, temp);
+
+   //Loop through the ports
+   for(i = KSZ8794_PORT1; i <= KSZ8794_PORT4; i++)
+   {
+      //Valid port?
+      if(i != KSZ8794_PORT_RESERVED)
+      {
+         //Restore the original state of the port
+         ksz8794WriteSwitchReg(interface, KSZ8794_PORTn_CTRL2(i), state[i - 1]);
+      }
+   }
+}
+
+
+/**
+ * @brief Read an entry from the dynamic MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] index Zero-based index of the entry to read
+ * @param[out] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t ksz8794GetDynamicFdbEntry(NetInterface *interface, uint_t index,
+   SwitchFdbEntry *entry)
+{
+   error_t error;
+   uint_t i;
+   uint_t n;
+   uint8_t *p;
+   Ksz8794DynamicMacEntry currentEntry;
+
+   //Check index parameter
+   if(index < KSZ8794_DYNAMIC_MAC_TABLE_SIZE)
+   {
+      //Read the MAC entry at the specified index
+      do
+      {
+         //Select the dynamic MAC address table
+         ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL0,
+            KSZ8794_INDIRECT_CTRL0_READ |
+            KSZ8794_INDIRECT_CTRL0_TABLE_SEL_DYNAMIC_MAC |
+            (MSB(index) & KSZ8794_INDIRECT_CTRL0_ADDR_9_8));
+
+         //Trigger the read operation
+         ksz8794WriteSwitchReg(interface, KSZ8794_INDIRECT_CTRL1, LSB(index));
+
+         //Point to the MAC entry
+         p = (uint8_t *) &currentEntry;
+
+         //Read indirect data registers
+         for(i = 0; i < sizeof(Ksz8794DynamicMacEntry); i++)
+         {
+            p[i] = ksz8794ReadSwitchReg(interface, KSZ8794_INDIRECT_DATA8 + i);
+         }
+
+         //Retry until the entry is ready
+      } while(currentEntry.dataNotReady);
+
+      //Check whether there are valid entries in the table
+      if(!currentEntry.macEmpty)
+      {
+         //Retrieve the number of valid entries
+         n = ((currentEntry.numValidEntriesH << 3) |
+            currentEntry.numValidEntriesL) + 1;
+      }
+      else
+      {
+         //The table is empty
+         n = 0;
+      }
+
+      //Valid entry?
+      if(index < n)
+      {
+         //Copy MAC entry
+         entry->macAddr = currentEntry.macAddr;
+         entry->srcPort = currentEntry.sourcePort + 1;
+         entry->destPorts = 0;
+         entry->override = FALSE;
+
+         //Successful processing
+         error = NO_ERROR;
+      }
+      else
+      {
+         //The end of the table has been reached
+         error = ERROR_END_OF_TABLE;
+      }
+   }
+   else
+   {
+      //The end of the table has been reached
+      error = ERROR_END_OF_TABLE;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Flush dynamic MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ **/
+
+void ksz8794FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
+{
+   uint_t i;
+   uint_t temp;
+   uint8_t state[5];
+
+   //Loop through the ports
+   for(i = KSZ8794_PORT1; i <= KSZ8794_PORT4; i++)
+   {
+      //Valid port?
+      if(i != KSZ8794_PORT_RESERVED)
+      {
+         //Matching port number?
+         if(i == port || port == 0)
+         {
+            //Save the current state of the port
+            state[i - 1] = ksz8794ReadSwitchReg(interface,
+               KSZ8794_PORTn_CTRL2(i));
+
+            //Turn off learning capability
+            ksz8794WriteSwitchReg(interface, KSZ8794_PORTn_CTRL2(i),
+               state[i - 1] | KSZ8794_PORTn_CTRL2_LEARNING_DIS);
+         }
+      }
+   }
+
+   //All the entries associated with a port that has its learning capability
+   //being turned off will be flushed
+   temp = ksz8794ReadSwitchReg(interface, KSZ8794_GLOBAL_CTRL0);
+   temp |= KSZ8794_GLOBAL_CTRL0_FLUSH_DYNAMIC_MAC_TABLE;
+   ksz8794WriteSwitchReg(interface, KSZ8794_GLOBAL_CTRL0, temp);
+
+   //Loop through the ports
+   for(i = KSZ8794_PORT1; i <= KSZ8794_PORT4; i++)
+   {
+      //Valid port?
+      if(i != KSZ8794_PORT_RESERVED)
+      {
+         //Matching port number?
+         if(i == port || port == 0)
+         {
+            //Restore the original state of the port
+            ksz8794WriteSwitchReg(interface, KSZ8794_PORTn_CTRL2(i),
+               state[i - 1]);
+         }
+      }
+   }
 }
 
 
@@ -601,7 +1308,14 @@ void ksz8794WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
+   }
 }
 
 
@@ -616,8 +1330,20 @@ void ksz8794WritePhyReg(NetInterface *interface, uint8_t port,
 uint16_t ksz8794ReadPhyReg(NetInterface *interface, uint8_t port,
    uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ, port, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ, port, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ, port, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

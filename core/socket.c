@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -48,6 +48,30 @@
 //Socket table
 Socket socketTable[SOCKET_MAX_COUNT];
 
+//Default socket message
+const SocketMsg SOCKET_DEFAULT_MSG =
+{
+   NULL, //Pointer to the payload
+   0,    //Size of the payload, in bytes
+   0,    //Actual length of the payload, in bytes
+   0,    //Time-to-live value
+   {0},  //Source IP address
+   0,    //Source port
+   {0},  //Destination IP address
+   0,    //Destination port
+#if (ETH_SUPPORT == ENABLED)
+   {0},  //Source MAC address
+   {0},  //Destination MAC address
+#endif
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   0,    //Switch port identifier
+#endif
+#if (ETH_TIMESTAMP_SUPPORT == ENABLED)
+   -1,   //Unique identifier for hardware time stamping
+   {0},  //Captured time stamp
+#endif
+};
+
 
 /**
  * @brief Socket related initialization
@@ -60,7 +84,7 @@ error_t socketInit(void)
    uint_t j;
 
    //Initialize socket descriptors
-   memset(socketTable, 0, sizeof(socketTable));
+   osMemset(socketTable, 0, sizeof(socketTable));
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
@@ -180,12 +204,12 @@ Socket *socketOpen(uint_t type, uint_t protocol)
          //Save socket descriptor
          i = socket->descriptor;
          //Save event object instance
-         memcpy(&event, &socket->event, sizeof(OsEvent));
+         osMemcpy(&event, &socket->event, sizeof(OsEvent));
 
          //Clear associated structure
-         memset(socket, 0, sizeof(Socket));
+         osMemset(socket, 0, sizeof(Socket));
          //Reuse event objects and avoid recreating them whenever possible
-         memcpy(&socket->event, &event, sizeof(OsEvent));
+         osMemcpy(&socket->event, &event, sizeof(OsEvent));
 
          //Save socket characteristics
          socket->descriptor = i;
@@ -194,7 +218,20 @@ Socket *socketOpen(uint_t type, uint_t protocol)
          socket->localPort = port;
          socket->timeout = INFINITE_DELAY;
 
+#if (ETH_VLAN_SUPPORT == ENABLED)
+         //Default VLAN PCP and DEI fields
+         socket->vlanPcp = -1;
+         socket->vlanDei = -1;
+#endif
+
+#if (ETH_VMAN_SUPPORT == ENABLED)
+         //Default VMAN PCP and DEI fields
+         socket->vmanPcp = -1;
+         socket->vmanDei = -1;
+#endif
+
 #if (TCP_SUPPORT == ENABLED)
+         //Default TX and RX buffer size
          socket->txBufferSize = MIN(TCP_DEFAULT_TX_BUFFER_SIZE, TCP_MAX_TX_BUFFER_SIZE);
          socket->rxBufferSize = MIN(TCP_DEFAULT_RX_BUFFER_SIZE, TCP_MAX_RX_BUFFER_SIZE);
 #endif
@@ -231,6 +268,230 @@ error_t socketSetTimeout(Socket *socket, systime_t timeout)
 
    //No error to report
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Set TTL value for unicast datagrams
+ * @param[in] socket Handle to a socket
+ * @param[in] ttl Time-to-live value
+ * @return Error code
+ **/
+
+error_t socketSetTtl(Socket *socket, uint8_t ttl)
+{
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Set TTL value
+   socket->ttl = ttl;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //No error to report
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Set TTL value for multicast datagrams
+ * @param[in] socket Handle to a socket
+ * @param[in] ttl Time-to-live value
+ * @return Error code
+ **/
+
+error_t socketSetMulticastTtl(Socket *socket, uint8_t ttl)
+{
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Set TTL value
+   socket->multicastTtl = ttl;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //No error to report
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Set DSCP field
+ * @param[in] socket Handle to a socket
+ * @param[in] dscp Differentiated services codepoint
+ * @return Error code
+ **/
+
+error_t socketSetDscp(Socket *socket, uint8_t dscp)
+{
+#if (IP_DIFF_SERV_SUPPORT == ENABLED)
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //The DSCP field is 6 bits wide
+   if(dscp >= 64)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Set differentiated services codepoint
+   socket->dscp = dscp;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //No error to report
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Set VLAN priority
+ * @param[in] socket Handle to a socket
+ * @param[in] pcp VLAN priority value
+ * @return Error code
+ **/
+
+error_t socketSetVlanPcp(Socket *socket, uint8_t pcp)
+{
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //The PCP field is 3 bits wide
+   if(pcp >= 8)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //The PCP field specifies the frame priority level. Different PCP values
+   //can be used to prioritize different classes of traffic
+   socket->vlanPcp = pcp;
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //No error to report
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Set VLAN DEI flag
+ * @param[in] socket Handle to a socket
+ * @param[in] dei Drop eligible indicator
+ * @return Error code
+ **/
+
+error_t socketSetVlanDei(Socket *socket, bool_t dei)
+{
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //The DEI flag may be used to indicate frames eligible to be dropped in
+   //the presence of congestion
+   socket->vlanDei = dei;
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //No error to report
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Set VMAN priority
+ * @param[in] socket Handle to a socket
+ * @param[in] pcp VLAN priority value
+ * @return Error code
+ **/
+
+error_t socketSetVmanPcp(Socket *socket, uint8_t pcp)
+{
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //The PCP field is 3 bits wide
+   if(pcp >= 8)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //The PCP field specifies the frame priority level. Different PCP values
+   //can be used to prioritize different classes of traffic
+   socket->vmanPcp = pcp;
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //No error to report
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Set VMAN DEI flag
+ * @param[in] socket Handle to a socket
+ * @param[in] dei Drop eligible indicator
+ * @return Error code
+ **/
+
+error_t socketSetVmanDei(Socket *socket, bool_t dei)
+{
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //The DEI flag may be used to indicate frames eligible to be dropped in
+   //the presence of congestion
+   socket->vmanDei = dei;
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //No error to report
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -418,10 +679,10 @@ error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remot
       //No error to report
       error = NO_ERROR;
    }
-   //Socket type not supported...
+   //Invalid socket type?
    else
    {
-      //Invalid socket type
+      //Report an error
       error = ERROR_INVALID_SOCKET;
    }
 
@@ -511,12 +772,12 @@ Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
  * @return Error code
  **/
 
-error_t socketSend(Socket *socket, const void *data,
-   size_t length, size_t *written, uint_t flags)
+error_t socketSend(Socket *socket, const void *data, size_t length,
+   size_t *written, uint_t flags)
 {
    //Use default remote IP address for connectionless or raw sockets
-   return socketSendTo(socket, &socket->remoteIpAddr,
-      socket->remotePort, data, length, written, flags);
+   return socketSendTo(socket, &socket->remoteIpAddr, socket->remotePort,
+      data, length, written, flags);
 }
 
 
@@ -538,7 +799,7 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
    error_t error;
 
    //No data has been transmitted yet
-   if(written)
+   if(written != NULL)
       *written = 0;
 
    //Make sure the socket handle is valid
@@ -557,13 +818,94 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
    }
    else
 #endif
+   {
+      SocketMsg message;
+
+      //Initialize structure
+      message = SOCKET_DEFAULT_MSG;
+
+      //Copy data payload
+      message.data = (void *) data;
+      message.length = length;
+
+      //Set destination IP address
+      if(destIpAddr != NULL)
+         message.destIpAddr = *destIpAddr;
+
+      //Set destination port
+      message.destPort = destPort;
+
+#if (UDP_SUPPORT == ENABLED)
+      //Connectionless socket?
+      if(socket->type == SOCKET_TYPE_DGRAM)
+      {
+         //Send UDP datagram
+         error = udpSendDatagram(socket, &message, flags);
+      }
+      else
+#endif
+#if (RAW_SOCKET_SUPPORT == ENABLED)
+      //Raw socket?
+      if(socket->type == SOCKET_TYPE_RAW_IP)
+      {
+         //Send a raw IP packet
+         error = rawSocketSendIpPacket(socket, &message, flags);
+      }
+      else if(socket->type == SOCKET_TYPE_RAW_ETH)
+      {
+         //Send a raw Ethernet packet
+         error = rawSocketSendEthPacket(socket, &message, flags);
+      }
+      else
+#endif
+      //Invalid socket type?
+      {
+         //Report an error
+         error = ERROR_INVALID_SOCKET;
+      }
+
+      //Check status code
+      if(!error)
+      {
+         //Total number of data bytes successfully transmitted
+         if(written != NULL)
+            *written = message.length;
+      }
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Send a message to a connectionless socket
+ * @param[in] socket Handle that identifies a socket
+ * @param[in] message Pointer to the structure describing the message
+ * @param[in] flags Set of flags that influences the behavior of this function
+ * @return Error code
+ **/
+
+error_t socketSendMsg(Socket *socket, const SocketMsg *message, uint_t flags)
+{
+   error_t error;
+
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
 #if (UDP_SUPPORT == ENABLED)
    //Connectionless socket?
    if(socket->type == SOCKET_TYPE_DGRAM)
    {
       //Send UDP datagram
-      error = udpSendDatagram(socket, destIpAddr, destPort, data, length,
-         written, flags);
+      error = udpSendDatagram(socket, message, flags);
    }
    else
 #endif
@@ -572,19 +914,18 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
    if(socket->type == SOCKET_TYPE_RAW_IP)
    {
       //Send a raw IP packet
-      error = rawSocketSendIpPacket(socket, destIpAddr, data, length,
-         written, flags);
+      error = rawSocketSendIpPacket(socket, message, flags);
    }
    else if(socket->type == SOCKET_TYPE_RAW_ETH)
    {
       //Send a raw Ethernet packet
-      error = rawSocketSendEthPacket(socket, data, length, written);
+      error = rawSocketSendEthPacket(socket, message, flags);
    }
    else
 #endif
-   //Socket type not supported...
+   //Invalid socket type?
    {
-      //Invalid socket type
+      //Report an error
       error = ERROR_INVALID_SOCKET;
    }
 
@@ -609,8 +950,10 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
 error_t socketReceive(Socket *socket, void *data,
    size_t size, size_t *received, uint_t flags)
 {
-   //For connection-oriented sockets, source and destination addresses are no use
-   return socketReceiveEx(socket, NULL, NULL, NULL, data, size, received, flags);
+   //For connection-oriented sockets, source and destination addresses are
+   //no use
+   return socketReceiveEx(socket, NULL, NULL, NULL, data, size, received,
+      flags);
 }
 
 
@@ -630,7 +973,8 @@ error_t socketReceiveFrom(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
    void *data, size_t size, size_t *received, uint_t flags)
 {
    //Destination address is no use
-   return socketReceiveEx(socket, srcIpAddr, srcPort, NULL, data, size, received, flags);
+   return socketReceiveEx(socket, srcIpAddr, srcPort, NULL, data, size,
+      received, flags);
 }
 
 
@@ -652,6 +996,10 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
 {
    error_t error;
 
+   //No data has been received yet
+   if(received != NULL)
+      *received = 0;
+
    //Make sure the socket handle is valid
    if(socket == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -666,23 +1014,115 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
       //Receive data
       error = tcpReceive(socket, data, size, received, flags);
 
-      //Output parameters
-      if(srcIpAddr)
+      //Save the source IP address
+      if(srcIpAddr != NULL)
          *srcIpAddr = socket->remoteIpAddr;
-      if(srcPort)
+
+      //Save the source port number
+      if(srcPort != NULL)
          *srcPort = socket->remotePort;
-      if(destIpAddr)
+
+      //Save the destination IP address
+      if(destIpAddr != NULL)
          *destIpAddr = socket->localIpAddr;
    }
    else
 #endif
+   {
+      SocketMsg message;
+
+      //Initialize structure
+      message = SOCKET_DEFAULT_MSG;
+
+      //Set data buffer
+      message.data = (void *) data;
+      message.size = size;
+
+#if (UDP_SUPPORT == ENABLED)
+      //Connectionless socket?
+      if(socket->type == SOCKET_TYPE_DGRAM)
+      {
+         //Receive UDP datagram
+         error = udpReceiveDatagram(socket, &message, flags);
+      }
+      else
+#endif
+#if (RAW_SOCKET_SUPPORT == ENABLED)
+      //Raw socket?
+      if(socket->type == SOCKET_TYPE_RAW_IP)
+      {
+         //Receive a raw IP packet
+         error = rawSocketReceiveIpPacket(socket, &message, flags);
+      }
+      else if(socket->type == SOCKET_TYPE_RAW_ETH)
+      {
+         //Receive a raw Ethernet packet
+         error = rawSocketReceiveEthPacket(socket, &message, flags);
+      }
+      else
+#endif
+      //Invalid socket type?
+      {
+         //Report an error
+         error = ERROR_INVALID_SOCKET;
+      }
+
+      //Check status code
+      if(!error)
+      {
+         //Save the source IP address
+         if(srcIpAddr != NULL)
+            *srcIpAddr = message.srcIpAddr;
+
+         //Save the source port number
+         if(srcPort != NULL)
+            *srcPort = message.srcPort;
+
+         //Save the destination IP address
+         if(destIpAddr != NULL)
+            *destIpAddr = message.destIpAddr;
+
+         //Total number of data that have been received
+         *received = message.length;
+      }
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Receive a message from a connectionless socket
+ * @param[in] socket Handle that identifies a socket
+ * @param[in,out] message Pointer to the structure describing the message
+ * @param[in] flags Set of flags that influences the behavior of this function
+ * @return Error code
+ **/
+
+error_t socketReceiveMsg(Socket *socket, SocketMsg *message, uint_t flags)
+{
+   error_t error;
+
+   //No data has been received yet
+   message->length = 0;
+
+   //Make sure the socket handle is valid
+   if(socket == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
 #if (UDP_SUPPORT == ENABLED)
    //Connectionless socket?
    if(socket->type == SOCKET_TYPE_DGRAM)
    {
       //Receive UDP datagram
-      error = udpReceiveDatagram(socket, srcIpAddr,
-         srcPort, destIpAddr, data, size, received, flags);
+      error = udpReceiveDatagram(socket, message, flags);
    }
    else
 #endif
@@ -691,21 +1131,18 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
    if(socket->type == SOCKET_TYPE_RAW_IP)
    {
       //Receive a raw IP packet
-      error = rawSocketReceiveIpPacket(socket,
-         srcIpAddr, destIpAddr, data, size, received, flags);
+      error = rawSocketReceiveIpPacket(socket, message, flags);
    }
    else if(socket->type == SOCKET_TYPE_RAW_ETH)
    {
       //Receive a raw Ethernet packet
-      error = rawSocketReceiveEthPacket(socket, data, size, received, flags);
+      error = rawSocketReceiveEthPacket(socket, message, flags);
    }
    else
 #endif
-   //Socket type not supported...
+   //Invalid socket type?
    {
-      //No data can be read
-      *received = 0;
-      //Invalid socket type
+      //Report an error
       error = ERROR_INVALID_SOCKET;
    }
 
@@ -1148,10 +1585,10 @@ error_t getHostByName(NetInterface *interface,
       else
       {
          //Retrieve the length of the host name to be resolved
-         size_t n = strlen(name);
+         size_t n = osStrlen(name);
 
          //Select the most suitable protocol
-         if(n >= 6 && !strcasecmp(name + n - 6, ".local"))
+         if(n >= 6 && !osStrcasecmp(name + n - 6, ".local"))
          {
 #if (MDNS_CLIENT_SUPPORT == ENABLED)
             //Use mDNS to resolve the specified host name

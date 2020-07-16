@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _COAP_DEBUG_H
@@ -42,14 +42,14 @@ extern "C" {
 
 
 /**
- * @brief CoAP value/string binding
+ * @brief Parameter value/name binding
  **/
 
 typedef struct
 {
    uint8_t value;
    const char_t *name;
-} CoapParamDesc;
+} CoapParamName;
 
 
 //CoAP related functions
@@ -59,7 +59,7 @@ error_t coapDumpOptions(const uint8_t *p, size_t length, size_t *consumed);
 error_t coapDumpOption(const CoapOption *option);
 
 const char_t *coapGetParamName(uint_t value,
-   const CoapParamDesc *paramList, size_t paramListLen);
+   const CoapParamName *paramList, size_t paramListLen);
 
 //C++ guard
 #ifdef __cplusplus

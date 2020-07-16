@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -63,7 +63,7 @@ error_t tftpClientInit(TftpClientContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Initialize context
-   memset(context, 0, sizeof(TftpClientContext));
+   osMemset(context, 0, sizeof(TftpClientContext));
 
    //Initialize TFTP client state
    context->state = TFTP_CLIENT_STATE_CLOSED;
@@ -300,7 +300,7 @@ error_t tftpClientWriteFile(TftpClientContext *context,
             n = MIN(n, length - totalLength);
 
             //Copy data to the send buffer
-            memcpy(context->outPacket + sizeof(TftpDataPacket) +
+            osMemcpy(context->outPacket + sizeof(TftpDataPacket) +
                context->outDataLen, data, n);
 
             //Advance data pointer
@@ -442,7 +442,7 @@ error_t tftpClientReadFile(TftpClientContext *context,
             n = MIN(n, size - *received);
 
             //Copy data from the receive buffer
-            memcpy(data, context->inPacket + sizeof(TftpDataPacket) +
+            osMemcpy(data, context->inPacket + sizeof(TftpDataPacket) +
                context->inDataPos, n);
 
             //Advance data pointer
@@ -544,7 +544,7 @@ void tftpClientDeinit(TftpClientContext *context)
       tftpClientCloseConnection(context);
 
       //Clear TFTP client context
-      memset(context, 0, sizeof(TftpClientContext));
+      osMemset(context, 0, sizeof(TftpClientContext));
    }
 }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -708,7 +708,7 @@ error_t coapClientSendAck(CoapClientContext *context, uint16_t mid)
    message.code = COAP_CODE_EMPTY;
 
    //The Acknowledgment message message must echo the message ID of the
-   //confirmable message and must be empty
+   //confirmable message and must be empty (refer to RFC 7252, section 4.2)
    message.mid = htons(mid);
 
    //Debug message
@@ -741,7 +741,7 @@ error_t coapClientSendReset(CoapClientContext *context, uint16_t mid)
    message.code = COAP_CODE_EMPTY;
 
    //The Reset message message must echo the message ID of the confirmable
-   //message and must be empty
+   //message and must be empty (refer to RFC 7252, section 4.2)
    message.mid = htons(mid);
 
    //Debug message

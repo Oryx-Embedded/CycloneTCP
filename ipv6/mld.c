@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 3810: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -442,6 +442,7 @@ error_t mldSendListenerReport(NetInterface *interface, Ipv6Addr *ipAddr)
    MldMessage *message;
    NetBuffer *buffer;
    Ipv6PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 
    //Make sure the specified address is a valid multicast address
    if(!ipv6IsMulticastAddr(ipAddr))
@@ -492,8 +493,17 @@ error_t mldSendListenerReport(NetInterface *interface, Ipv6Addr *ipAddr)
    //Dump message contents for debugging purpose
    mldDumpMessage(message);
 
-   //The Multicast Listener Report message is sent to the multicast address being reported
-   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset, MLD_HOP_LIMIT);
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //All MLD messages must be sent with an IPv6 Hop Limit of 1 (refer to
+   //RFC 3810, section 5)
+   ancillary.ttl = MLD_HOP_LIMIT;
+
+   //The Multicast Listener Report message is sent to the multicast address
+   //being reported
+   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -516,6 +526,7 @@ error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr)
    MldMessage *message;
    NetBuffer *buffer;
    Ipv6PseudoHeader pseudoHeader;
+   NetTxAncillary ancillary;
 
    //Make sure the specified address is a valid multicast address
    if(!ipv6IsMulticastAddr(ipAddr))
@@ -566,8 +577,17 @@ error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr)
    //Dump message contents for debugging purpose
    mldDumpMessage(message);
 
-   //The Multicast Listener Done message is sent to the all-routers multicast address
-   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset, MLD_HOP_LIMIT);
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //All MLD messages must be sent with an IPv6 Hop Limit of 1 (refer to
+   //RFC 3810, section 5)
+   ancillary.ttl = MLD_HOP_LIMIT;
+
+   //The Multicast Listener Done message is sent to the all-routers multicast
+   //address
+   error = ipv6SendDatagram(interface, &pseudoHeader, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);

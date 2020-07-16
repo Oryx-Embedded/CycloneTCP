@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -49,7 +49,8 @@
  * @param[in] newState New state to switch to
  **/
 
-void mqttClientChangeState(MqttClientContext *context, MqttClientState newState)
+void mqttClientChangeState(MqttClientContext *context,
+   MqttClientState newState)
 {
    //Switch to the new state
    context->state = newState;
@@ -370,7 +371,7 @@ error_t mqttSerializeString(uint8_t *buffer, size_t bufferLen,
    buffer[n++] = LSB(stringLen);
 
    //Write the string to the output buffer
-   memcpy(buffer + n, string, stringLen);
+   osMemcpy(buffer + n, string, stringLen);
 
    //Advance current position
    *pos = n + stringLen;
@@ -403,7 +404,7 @@ error_t mqttSerializeData(uint8_t *buffer, size_t bufferLen,
       return ERROR_BUFFER_OVERFLOW;
 
    //Write the data to the output buffer
-   memcpy(buffer + n, data, dataLen);
+   osMemcpy(buffer + n, data, dataLen);
 
    //Advance current position
    *pos = n + dataLen;
@@ -596,6 +597,42 @@ error_t mqttDeserializeString(uint8_t *buffer, size_t bufferLen,
 
    //Successful processing
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Determine whether a timeout error has occurred
+ * @param[in] context Pointer to the MQTT client context
+ * @return Error code
+ **/
+
+error_t mqttClientCheckTimeout(MqttClientContext *context)
+{
+#if (NET_RTOS_SUPPORT == DISABLED)
+   error_t error;
+   systime_t time;
+
+   //Get current time
+   time = osGetSystemTime();
+
+   //Check whether the timeout has elapsed
+   if(timeCompare(time, context->startTime + context->settings.timeout) >= 0)
+   {
+      //Report a timeout error
+      error = ERROR_TIMEOUT;
+   }
+   else
+   {
+      //The operation would block
+      error = ERROR_WOULD_BLOCK;
+   }
+
+   //Return status code
+   return error;
+#else
+   //Report a timeout error
+   return ERROR_TIMEOUT;
+#endif
 }
 
 #endif

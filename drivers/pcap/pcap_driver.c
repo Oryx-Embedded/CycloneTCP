@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -140,7 +140,7 @@ error_t pcapDriverInit(NetInterface *interface)
    //Attach the PCAP driver context to the network interface
    *((PcapDriverContext **) interface->nicContext) = context;
    //Clear PCAP driver context
-   memset(context, 0, sizeof(PcapDriverContext));
+   osMemset(context, 0, sizeof(PcapDriverContext));
 
    //Find all the devices
    ret = pcap_findalldevs(&deviceList, errorBuffer);
@@ -190,13 +190,19 @@ error_t pcapDriverInit(NetInterface *interface)
 #if !defined(_WIN32)
          //Display the name of the device
          if(device->name != NULL)
+         {
             printf(" %-8s", device->name);
+         }
 #endif
          //Description of the device
          if(device->description != NULL)
+         {
             printf(" %s\r\n", device->description);
+         }
          else
+         {
             printf(" -\r\n");
+         }
 
          //Next device
          device = device->next;
@@ -210,7 +216,9 @@ error_t pcapDriverInit(NetInterface *interface)
 
       //Valid selection?
       if(j >= 1 && j <= i)
+      {
          break;
+      }
    }
 
    //Point to the first device
@@ -218,7 +226,9 @@ error_t pcapDriverInit(NetInterface *interface)
 
    //Point to the desired network adapter
    for(i = 1; i < j; i++)
+   {
       device = device->next;
+   }
 
    //Open the device
    context->handle = pcap_open_live(device->name, 65535,
@@ -242,7 +252,7 @@ error_t pcapDriverInit(NetInterface *interface)
    pcap_freealldevs(deviceList);
 
    //Filter expression
-   sprintf(filterExpr, "!(ether src %02x:%02x:%02x:%02x:%02x:%02x) && "
+   osSprintf(filterExpr, "!(ether src %02x:%02x:%02x:%02x:%02x:%02x) && "
       "((ether dst %02x:%02x:%02x:%02x:%02x:%02x) || (ether broadcast) || (ether multicast))",
       interface->macAddr.b[0], interface->macAddr.b[1], interface->macAddr.b[2],
       interface->macAddr.b[3], interface->macAddr.b[4], interface->macAddr.b[5],
@@ -313,8 +323,8 @@ error_t pcapDriverInit(NetInterface *interface)
 /**
  * @brief PCAP timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -356,6 +366,7 @@ void pcapDriverEventHandler(NetInterface *interface)
 {
    uint_t n;
    PcapDriverContext *context;
+   NetRxAncillary ancillary;
 
    //Point to the PCAP driver context
    context = *((PcapDriverContext **) interface->nicContext);
@@ -363,9 +374,12 @@ void pcapDriverEventHandler(NetInterface *interface)
    //Process all pending packets
    while(context->queue[context->readIndex].length > 0)
    {
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
       nicProcessPacket(interface, context->queue[context->readIndex].data,
-         context->queue[context->readIndex].length);
+         context->queue[context->readIndex].length, &ancillary);
 
       //Compute the index of the next packet descriptor
       n = (context->readIndex + 1) % PCAP_DRIVER_QUEUE_SIZE;
@@ -383,11 +397,13 @@ void pcapDriverEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t pcapDriverSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    int_t ret;
    size_t length;
@@ -420,9 +436,13 @@ error_t pcapDriverSendPacket(NetInterface *interface,
 
    //Return status code
    if(ret < 0)
+   {
       return ERROR_FAILURE;
+   }
    else
-     return NO_ERROR;
+   {
+      return NO_ERROR;
+   }
 }
 
 
@@ -481,7 +501,7 @@ void pcapDriverTask(NetInterface *interface)
                if(n != context->readIndex)
                {
                   //Copy the incoming packet
-                  memcpy(context->queue[context->writeIndex].data, data, length);
+                  osMemcpy(context->queue[context->writeIndex].data, data, length);
                   //Save the length of the packet
                   context->queue[context->writeIndex].length = length;
 

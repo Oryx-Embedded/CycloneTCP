@@ -1,12 +1,12 @@
 /**
  * @file dp83848_driver.h
- * @brief DP83848 Ethernet PHY transceiver
+ * @brief DP83848 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _DP83848_DRIVER_H
@@ -44,12 +44,12 @@
 //DP83848 PHY registers
 #define DP83848_BMCR                       0x00
 #define DP83848_BMSR                       0x01
-#define DP83848_PHYID1                     0x02
-#define DP83848_PHYID2                     0x03
+#define DP83848_PHYIDR1                    0x02
+#define DP83848_PHYIDR2                    0x03
 #define DP83848_ANAR                       0x04
 #define DP83848_ANLPAR                     0x05
 #define DP83848_ANER                       0x06
-#define DP83848_ANNPR                      0x07
+#define DP83848_ANNPTR                     0x07
 #define DP83848_PHYSTS                     0x10
 #define DP83848_MICR                       0x11
 #define DP83848_MISR                       0x12
@@ -89,15 +89,15 @@
 #define DP83848_BMSR_EXTENDED_CAPABLE      0x0001
 
 //PHY Identifier 1 register
-#define DP83848_PHYID1_OUI_MSB             0xFFFF
-#define DP83848_PHYID1_OUI_MSB_DEFAULT     0x2000
+#define DP83848_PHYIDR1_OUI_MSB            0xFFFF
+#define DP83848_PHYIDR1_OUI_MSB_DEFAULT    0x2000
 
 //PHY Identifier 2 register
-#define DP83848_PHYID2_OUI_LSB             0xFC00
-#define DP83848_PHYID2_OUI_LSB_DEFAULT     0x5C00
-#define DP83848_PHYID2_VNDR_MDL            0x03F0
-#define DP83848_PHYID2_VNDR_MDL_DEFAULT    0x0090
-#define DP83848_PHYID2_MDL_REV             0x000F
+#define DP83848_PHYIDR2_OUI_LSB            0xFC00
+#define DP83848_PHYIDR2_OUI_LSB_DEFAULT    0x5C00
+#define DP83848_PHYIDR2_VNDR_MDL           0x03F0
+#define DP83848_PHYIDR2_VNDR_MDL_DEFAULT   0x0090
+#define DP83848_PHYIDR2_MDL_REV            0x000F
 
 //Auto-Negotiation Advertisement register
 #define DP83848_ANAR_NEXT_PAGE             0x8000
@@ -134,11 +134,11 @@
 #define DP83848_ANER_LP_AN_ABLE            0x0001
 
 //Auto-Negotiation Next Page TX register
-#define DP83848_ANNPR_NEXT_PAGE            0x8000
-#define DP83848_ANNPR_MSG_PAGE             0x2000
-#define DP83848_ANNPR_ACK2                 0x1000
-#define DP83848_ANNPR_TOGGLE               0x0800
-#define DP83848_ANNPR_CODE                 0x07FF
+#define DP83848_ANNPTR_NEXT_PAGE           0x8000
+#define DP83848_ANNPTR_MSG_PAGE            0x2000
+#define DP83848_ANNPTR_ACK2                0x1000
+#define DP83848_ANNPTR_TOGGLE              0x0800
+#define DP83848_ANNPTR_CODE                0x07FF
 
 //PHY Status register
 #define DP83848_PHYSTS_MDIX_MODE           0x4000

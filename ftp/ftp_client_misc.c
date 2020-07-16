@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -133,9 +133,9 @@ error_t ftpClientSendCommand(FtpClientContext *context)
             strRemoveTrailingSpace(reply);
 
             //All replies begin with a three digit numeric code
-            if(isdigit((uint8_t) reply[0]) &&
-               isdigit((uint8_t) reply[1]) &&
-               isdigit((uint8_t) reply[2]))
+            if(osIsdigit(reply[0]) &&
+               osIsdigit(reply[1]) &&
+               osIsdigit(reply[2]))
             {
                //A space character follows the response code for the last line
                if(reply[3] == ' ' || reply[3] == '\0')
@@ -144,7 +144,7 @@ error_t ftpClientSendCommand(FtpClientContext *context)
                   TRACE_DEBUG("FTP server: %s\r\n", reply);
 
                   //Retrieve FTP reply code
-                  context->replyCode = strtoul(reply, NULL, 10);
+                  context->replyCode = osStrtoul(reply, NULL, 10);
 
                   //A valid FTP response has been received
                   break;
@@ -184,16 +184,16 @@ error_t ftpClientFormatCommand(FtpClientContext *context,
    if(argument != NULL)
    {
       //Format FTP command
-      sprintf(context->buffer, "%s %s\r\n", command, argument);
+      osSprintf(context->buffer, "%s %s\r\n", command, argument);
    }
    else
    {
       //Format FTP command
-      sprintf(context->buffer, "%s\r\n", command);
+      osSprintf(context->buffer, "%s\r\n", command);
    }
 
    //Calculate the length of the FTP command
-   context->commandLen = strlen(context->buffer);
+   context->commandLen = osStrlen(context->buffer);
 
    //Debug message
    TRACE_DEBUG("FTP client: %s", context->buffer);
@@ -231,7 +231,7 @@ error_t ftpClientFormatPortCommand(FtpClientContext *context,
    if(ipAddr->length == sizeof(Ipv4Addr))
    {
       //Format the PORT command
-      n = sprintf(context->buffer, "PORT ");
+      n = osSprintf(context->buffer, "PORT ");
 
       //Append host address
       ipv4AddrToString(ipAddr->ipv4Addr, context->buffer + n);
@@ -239,9 +239,9 @@ error_t ftpClientFormatPortCommand(FtpClientContext *context,
       strReplaceChar(context->buffer, '.', ',');
 
       //Point to the end of the resulting string
-      p = context->buffer + strlen(context->buffer);
+      p = context->buffer + osStrlen(context->buffer);
       //Append port number
-      sprintf(p, ",%" PRIu8 ",%" PRIu8 "\r\n", MSB(port), LSB(port));
+      osSprintf(p, ",%" PRIu8 ",%" PRIu8 "\r\n", MSB(port), LSB(port));
    }
    else
 #endif
@@ -250,15 +250,15 @@ error_t ftpClientFormatPortCommand(FtpClientContext *context,
    if(ipAddr->length == sizeof(Ipv6Addr))
    {
       //Format the EPRT command
-      n = sprintf(context->buffer, "EPRT |2|");
+      n = osSprintf(context->buffer, "EPRT |2|");
 
       //Append host address
       ipv6AddrToString(&ipAddr->ipv6Addr, context->buffer + n);
 
       //Point to the end of the resulting string
-      p = context->buffer + strlen(context->buffer);
+      p = context->buffer + osStrlen(context->buffer);
       //Append port number
-      sprintf(p, "|%" PRIu16 "|\r\n", port);
+      osSprintf(p, "|%" PRIu16 "|\r\n", port);
    }
    else
 #endif
@@ -272,7 +272,7 @@ error_t ftpClientFormatPortCommand(FtpClientContext *context,
    if(!error)
    {
       //Calculate the length of the FTP command
-      context->commandLen = strlen(context->buffer);
+      context->commandLen = osStrlen(context->buffer);
 
       //Debug message
       TRACE_DEBUG("FTP client: %s", context->buffer);
@@ -305,7 +305,7 @@ error_t ftpClientFormatPasvCommand(FtpClientContext *context)
    if(context->serverIpAddr.length == sizeof(Ipv4Addr))
    {
       //Format PASV command
-      strcpy(context->buffer, "PASV\r\n");
+      osStrcpy(context->buffer, "PASV\r\n");
    }
    else
 #endif
@@ -314,7 +314,7 @@ error_t ftpClientFormatPasvCommand(FtpClientContext *context)
    if(context->serverIpAddr.length == sizeof(Ipv6Addr))
    {
       //Format EPSV command
-      strcpy(context->buffer, "EPSV\r\n");
+      osStrcpy(context->buffer, "EPSV\r\n");
    }
    else
 #endif
@@ -328,7 +328,7 @@ error_t ftpClientFormatPasvCommand(FtpClientContext *context)
    if(!error)
    {
       //Calculate the length of the FTP command
-      context->commandLen = strlen(context->buffer);
+      context->commandLen = osStrlen(context->buffer);
 
       //Debug message
       TRACE_DEBUG("FTP client: %s", context->buffer);
@@ -369,7 +369,7 @@ error_t ftpClientParsePasvReply(FtpClientContext *context, uint16_t *port)
          return ERROR_INVALID_SYNTAX;
 
       //Convert the resulting string
-      *port = (uint16_t) strtoul(p + 1, NULL, 10);
+      *port = (uint16_t) osStrtoul(p + 1, NULL, 10);
       //Split the string
       *p = '\0';
 
@@ -380,7 +380,7 @@ error_t ftpClientParsePasvReply(FtpClientContext *context, uint16_t *port)
          return ERROR_INVALID_SYNTAX;
 
       //Convert the resulting string
-      *port |= (uint16_t) strtoul(p + 1, NULL, 10) << 8;
+      *port |= (uint16_t) osStrtoul(p + 1, NULL, 10) << 8;
    }
    else
 #endif
@@ -413,7 +413,7 @@ error_t ftpClientParsePasvReply(FtpClientContext *context, uint16_t *port)
          return ERROR_INVALID_SYNTAX;
 
       //Convert the resulting string
-      *port = (uint16_t) strtoul(p + 1, NULL, 10);
+      *port = (uint16_t) osStrtoul(p + 1, NULL, 10);
    }
    else
 #endif
@@ -458,12 +458,12 @@ error_t ftpClientParsePwdReply(FtpClientContext *context, char_t *path,
       return ERROR_INVALID_SYNTAX;
 
    //Retrieve the length of the working directory
-   length = strlen(p + 1);
+   length = osStrlen(p + 1);
    //Limit the number of characters to copy
    length = MIN(length, maxLen);
 
    //Copy the string
-   strncpy(path, p + 1, length);
+   osStrncpy(path, p + 1, length);
    //Properly terminate the string with a NULL character
    path[length] = '\0';
 
@@ -505,28 +505,28 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
    };
 
    //Read first field
-   token = strtok_r(line, " \t", &p);
+   token = osStrtok_r(line, " \t", &p);
    //Invalid directory entry?
    if(token == NULL)
       return ERROR_INVALID_SYNTAX;
 
    //MS-DOS listing format?
-   if(isdigit((uint8_t) token[0]))
+   if(osIsdigit(token[0]))
    {
       //Check modification date format
-      if(strlen(token) == 8 && token[2] == '-' && token[5] == '-')
+      if(osStrlen(token) == 8 && token[2] == '-' && token[5] == '-')
       {
          //The format of the date is mm-dd-yy
-         dirEntry->modified.month = (uint8_t) strtoul(token, NULL, 10);
-         dirEntry->modified.day = (uint8_t) strtoul(token + 3, NULL, 10);
-         dirEntry->modified.year = (uint16_t) strtoul(token + 6, NULL, 10) + 2000;
+         dirEntry->modified.month = (uint8_t) osStrtoul(token, NULL, 10);
+         dirEntry->modified.day = (uint8_t) osStrtoul(token + 3, NULL, 10);
+         dirEntry->modified.year = (uint16_t) osStrtoul(token + 6, NULL, 10) + 2000;
       }
-      else if(strlen(token) == 10 && token[2] == '/' && token[5] == '/')
+      else if(osStrlen(token) == 10 && token[2] == '/' && token[5] == '/')
       {
          //The format of the date is mm/dd/yyyy
-         dirEntry->modified.month = (uint8_t) strtoul(token, NULL, 10);
-         dirEntry->modified.day = (uint8_t) strtoul(token + 3, NULL, 10);
-         dirEntry->modified.year = (uint16_t) strtoul(token + 6, NULL, 10);
+         dirEntry->modified.month = (uint8_t) osStrtoul(token, NULL, 10);
+         dirEntry->modified.day = (uint8_t) osStrtoul(token + 3, NULL, 10);
+         dirEntry->modified.year = (uint16_t) osStrtoul(token + 6, NULL, 10);
       }
       else
       {
@@ -535,17 +535,17 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       }
 
       //Read modification time
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Check modification time format
-      if(strlen(token) >= 5 && token[2] == ':')
+      if(osStrlen(token) >= 5 && token[2] == ':')
       {
          //The format of the time hh:mm
-         dirEntry->modified.hours = (uint8_t) strtoul(token, NULL, 10);
-         dirEntry->modified.minutes = (uint8_t) strtoul(token + 3, NULL, 10);
+         dirEntry->modified.hours = (uint8_t) osStrtoul(token, NULL, 10);
+         dirEntry->modified.minutes = (uint8_t) osStrtoul(token + 3, NULL, 10);
 
          //The PM period covers the 12 hours from noon to midnight
          if(strstr(token, "PM") != NULL)
@@ -558,13 +558,13 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       }
 
       //Read next field
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Check whether the current entry is a directory
-      if(!strcmp(token, "<DIR>"))
+      if(!osStrcmp(token, "<DIR>"))
       {
          //Update attributes
          dirEntry->attributes |= FTP_FILE_ATTR_DIRECTORY;
@@ -572,22 +572,22 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       else
       {
          //Save the size of the file
-         dirEntry->size = strtoul(token, NULL, 10);
+         dirEntry->size = osStrtoul(token, NULL, 10);
       }
 
       //Read filename field
-      token = strtok_r(NULL, " \r\n", &p);
+      token = osStrtok_r(NULL, " \r\n", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Retrieve the length of the filename
-      n = strlen(token);
+      n = osStrlen(token);
       //Limit the number of characters to copy
       n = MIN(n, FTP_CLIENT_MAX_FILENAME_LEN);
 
       //Copy the filename
-      strncpy(dirEntry->name, token, n);
+      osStrncpy(dirEntry->name, token, n);
       //Properly terminate the string with a NULL character
       dirEntry->name[n] = '\0';
    }
@@ -601,34 +601,34 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
          dirEntry->attributes |= FTP_FILE_ATTR_READ_ONLY;
 
       //Read next field
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Discard owner field
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Discard group field
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Read size field
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Save the size of the file
-      dirEntry->size = strtoul(token, NULL, 10);
+      dirEntry->size = osStrtoul(token, NULL, 10);
 
       //Read modification time (month)
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
@@ -637,7 +637,7 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       for(i = 1; i <= 12; i++)
       {
          //Compare month name
-         if(!strcmp(token, months[i]))
+         if(!osStrcmp(token, months[i]))
          {
             //Save month number
             dirEntry->modified.month = i;
@@ -646,33 +646,33 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       }
 
       //Read modification time (day)
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Save day number
-      dirEntry->modified.day = (uint8_t) strtoul(token, NULL, 10);
+      dirEntry->modified.day = (uint8_t) osStrtoul(token, NULL, 10);
 
       //Read next field
-      token = strtok_r(NULL, " ", &p);
+      token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Check modification time format
-      if(strlen(token) == 4)
+      if(osStrlen(token) == 4)
       {
          //The format of the year is yyyy
-         dirEntry->modified.year = (uint16_t) strtoul(token, NULL, 10);
+         dirEntry->modified.year = (uint16_t) osStrtoul(token, NULL, 10);
 
       }
-      else if(strlen(token) == 5)
+      else if(osStrlen(token) == 5)
       {
          //The format of the time hh:mm
          token[2] = '\0';
-         dirEntry->modified.hours = (uint8_t) strtoul(token, NULL, 10);
-         dirEntry->modified.minutes = (uint8_t) strtoul(token + 3, NULL, 10);
+         dirEntry->modified.hours = (uint8_t) osStrtoul(token, NULL, 10);
+         dirEntry->modified.minutes = (uint8_t) osStrtoul(token + 3, NULL, 10);
       }
       else
       {
@@ -681,18 +681,18 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       }
 
       //Read filename field
-      token = strtok_r(NULL, " \r\n", &p);
+      token = osStrtok_r(NULL, " \r\n", &p);
       //Invalid directory entry?
       if(token == NULL)
          return ERROR_INVALID_SYNTAX;
 
       //Retrieve the length of the filename
-      n = strlen(token);
+      n = osStrlen(token);
       //Limit the number of characters to copy
       n = MIN(n, FTP_CLIENT_MAX_FILENAME_LEN);
 
       //Copy the filename
-      strncpy(dirEntry->name, token, n);
+      osStrncpy(dirEntry->name, token, n);
       //Properly terminate the string with a NULL character
       dirEntry->name[n] = '\0';
    }

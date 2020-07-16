@@ -1,12 +1,12 @@
 /**
  * @file same54_eth_driver.c
- * @brief SAME54 Ethernet MAC controller
+ * @brief SAME54 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -138,11 +138,28 @@ error_t same54EthInit(NetInterface *interface)
    //Enable management port (MDC and MDIO)
    GMAC->NCR.reg |= GMAC_NCR_MPE;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the MAC address of the station
    GMAC->Sa[0].SAB.reg = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
@@ -383,16 +400,29 @@ void same54EthInitBufferDesc(NetInterface *interface)
 /**
  * @brief SAME54 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void same54EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -405,8 +435,22 @@ void same54EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(GMAC_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -419,8 +463,22 @@ void same54EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(GMAC_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -447,23 +505,23 @@ void GMAC_Handler(void)
    tsr = GMAC->TSR.reg;
    rsr = GMAC->RSR.reg;
 
-   //A packet has been transmitted?
-   if(tsr & (GMAC_TSR_HRESP | GMAC_TSR_UND | GMAC_TSR_TXCOMP | GMAC_TSR_TFC |
-      GMAC_TSR_TXGO | GMAC_TSR_RLE | GMAC_TSR_COL | GMAC_TSR_UBR))
+   //Packet transmitted?
+   if((tsr & (GMAC_TSR_HRESP | GMAC_TSR_UND | GMAC_TSR_TXCOMP | GMAC_TSR_TFC |
+      GMAC_TSR_TXGO | GMAC_TSR_RLE | GMAC_TSR_COL | GMAC_TSR_UBR)) != 0)
    {
       //Only clear TSR flags that are currently set
       GMAC->TSR.reg = tsr;
 
       //Check whether the TX buffer is available for writing
-      if(txBufferDesc[txBufferIndex].status & GMAC_TX_USED)
+      if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) != 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA))
+   //Packet received?
+   if((rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA)) != 0)
    {
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -490,7 +548,7 @@ void same54EthEventHandler(NetInterface *interface)
    rsr = GMAC->RSR.reg;
 
    //Packet received?
-   if(rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA))
+   if((rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA)) != 0)
    {
       //Only clear RSR flags that are currently set
       GMAC->RSR.reg = rsr;
@@ -512,11 +570,13 @@ void same54EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t same54EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -533,8 +593,10 @@ error_t same54EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(!(txBufferDesc[txBufferIndex].status & GMAC_TX_USED))
+   if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) == 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer[txBufferIndex], buffer, offset, length);
@@ -543,8 +605,8 @@ error_t same54EthSendPacket(NetInterface *interface,
    if(txBufferIndex < (SAME54_ETH_TX_BUFFER_COUNT - 1))
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status =
-         GMAC_TX_LAST | (length & GMAC_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = GMAC_TX_LAST |
+         (length & GMAC_TX_LENGTH);
 
       //Point to the next buffer
       txBufferIndex++;
@@ -552,8 +614,8 @@ error_t same54EthSendPacket(NetInterface *interface,
    else
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status = GMAC_TX_WRAP |
-         GMAC_TX_LAST | (length & GMAC_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = GMAC_TX_WRAP | GMAC_TX_LAST |
+         (length & GMAC_TX_LENGTH);
 
       //Wrap around
       txBufferIndex = 0;
@@ -566,7 +628,7 @@ error_t same54EthSendPacket(NetInterface *interface,
    GMAC->NCR.reg |= GMAC_NCR_TSTART;
 
    //Check whether the next buffer is available for writing
-   if(txBufferDesc[txBufferIndex].status & GMAC_TX_USED)
+   if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) != 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -607,22 +669,26 @@ error_t same54EthReceivePacket(NetInterface *interface)
 
       //Wrap around to the beginning of the buffer if necessary
       if(j >= SAME54_ETH_RX_BUFFER_COUNT)
+      {
          j -= SAME54_ETH_RX_BUFFER_COUNT;
+      }
 
       //No more entries to process?
-      if(!(rxBufferDesc[j].address & GMAC_RX_OWNERSHIP))
+      if((rxBufferDesc[j].address & GMAC_RX_OWNERSHIP) == 0)
       {
          //Stop processing
          break;
       }
+
       //A valid SOF has been found?
-      if(rxBufferDesc[j].status & GMAC_RX_SOF)
+      if((rxBufferDesc[j].status & GMAC_RX_SOF) != 0)
       {
          //Save the position of the SOF
          sofIndex = i;
       }
+
       //A valid EOF has been found?
-      if((rxBufferDesc[j].status & GMAC_RX_EOF) && sofIndex != UINT_MAX)
+      if((rxBufferDesc[j].status & GMAC_RX_EOF) != 0 && sofIndex != UINT_MAX)
       {
          //Save the position of the EOF
          eofIndex = i;
@@ -637,11 +703,17 @@ error_t same54EthReceivePacket(NetInterface *interface)
 
    //Determine the number of entries to process
    if(eofIndex != UINT_MAX)
+   {
       j = eofIndex + 1;
+   }
    else if(sofIndex != UINT_MAX)
+   {
       j = sofIndex;
+   }
    else
+   {
       j = i;
+   }
 
    //Total number of bytes that have been copied from the receive buffer
    length = 0;
@@ -655,7 +727,7 @@ error_t same54EthReceivePacket(NetInterface *interface)
          //Calculate the number of bytes to read at a time
          n = MIN(size, SAME54_ETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         memcpy(temp + length, rxBuffer[rxBufferIndex], n);
+         osMemcpy(temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;
@@ -669,14 +741,21 @@ error_t same54EthReceivePacket(NetInterface *interface)
 
       //Wrap around to the beginning of the buffer if necessary
       if(rxBufferIndex >= SAME54_ETH_RX_BUFFER_COUNT)
+      {
          rxBufferIndex = 0;
+      }
    }
 
    //Any packet to process?
    if(length > 0)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length);
+      nicProcessPacket(interface, temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }
@@ -832,15 +911,23 @@ error_t same54EthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= GMAC_NCFGR_SPD;
+   }
    else
+   {
       config &= ~GMAC_NCFGR_SPD;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= GMAC_NCFGR_FD;
+   }
    else
+   {
       config &= ~GMAC_NCFGR_FD;
+   }
 
    //Write configuration value back to NCFGR register
    GMAC->NCFGR.reg = config;
@@ -878,7 +965,7 @@ void same54EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       GMAC->MAN.reg = temp;
       //Wait for the write to complete
-      while(!(GMAC->NSR.reg & GMAC_NSR_IDLE))
+      while((GMAC->NSR.reg & GMAC_NSR_IDLE) == 0)
       {
       }
    }
@@ -916,7 +1003,7 @@ uint16_t same54EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       GMAC->MAN.reg = temp;
       //Wait for the read to complete
-      while(!(GMAC->NSR.reg & GMAC_NSR_IDLE))
+      while((GMAC->NSR.reg & GMAC_NSR_IDLE) == 0)
       {
       }
 

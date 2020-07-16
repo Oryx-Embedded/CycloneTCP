@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -177,11 +177,13 @@ void pppHdlcDriverEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t pppHdlcDriverSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    uint_t i;
    size_t j;
@@ -352,12 +354,17 @@ error_t pppHdlcDriverReceivePacket(NetInterface *interface)
    //Check whether a valid PPP frame has been received
    if(n > 0)
    {
+      NetRxAncillary ancillary;
+
       //Debug message
       TRACE_DEBUG("PPP frame received (%" PRIuSIZE " bytes)...\r\n", n);
       TRACE_DEBUG_ARRAY("  ", context->frame, n);
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->frame, n);
+      nicProcessPacket(interface, context->frame, n, &ancillary);
    }
 
    //Successful read operation
@@ -420,7 +427,8 @@ error_t pppHdlcDriverSendAtCommand(NetInterface *interface, const char_t *data)
  * @return Error code
  **/
 
-error_t pppHdlcDriverReceiveAtCommand(NetInterface *interface, char_t *data, size_t size)
+error_t pppHdlcDriverReceiveAtCommand(NetInterface *interface, char_t *data,
+   size_t size)
 {
    uint_t i;
    uint_t k;
@@ -449,12 +457,12 @@ error_t pppHdlcDriverReceiveAtCommand(NetInterface *interface, char_t *data, siz
          valid = TRUE;
       }
       //Special processing of null-modem connections
-      else if(i >= 5 && !memcmp(data + i - 5, "CLIENT", 6))
+      else if(i >= 5 && !osMemcmp(data + i - 5, "CLIENT", 6))
       {
          data[i + 1] = '\0';
          valid = TRUE;
       }
-      else if(i >= 5 && !memcmp(data + i - 5, "SERVER", 6))
+      else if(i >= 5 && !osMemcmp(data + i - 5, "SERVER", 6))
       {
          data[i + 1] = '\0';
          valid = TRUE;

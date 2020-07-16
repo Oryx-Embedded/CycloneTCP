@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _NET_LEGACY_H
@@ -35,11 +35,6 @@
 #if !defined(_WIN32)
 
 //Deprecated properties
-#ifdef TCP_IP_CALLBACK_TABLE_SIZE
-   #warning TCP_IP_CALLBACK_TABLE_SIZE property is deprecated. NET_CALLBACK_TABLE_SIZE should be used instead.
-   #define NET_CALLBACK_TABLE_SIZE TCP_IP_CALLBACK_TABLE_SIZE
-#endif
-
 #ifdef TCP_IP_MAX_IF_NAME_LEN
    #warning TCP_IP_MAX_IF_NAME_LEN property is deprecated. NET_MAX_IF_NAME_LEN should be used instead.
    #define NET_MAX_IF_NAME_LEN TCP_IP_MAX_IF_NAME_LEN
@@ -153,7 +148,6 @@
 #define tcpIpStackSetUartDriver netSetUartDriver
 #define tcpIpStackSetExtIntDriver netSetExtIntDriver
 #define tcpIpStackSetMacAddr netSetMacAddr
-#define tcpIpStackSetProxy netSetProxy
 #define tcpIpStackGetLinkState netGetLinkState
 #define tcpIpStackConfigInterface netConfigInterface
 #define tcpIpStackTickTask netTickTask
@@ -268,5 +262,14 @@
 #define mqttClientSetProtocolLevel mqttClientSetVersion
 
 #define socketBindToInterface socketSetInterface
+
+#define netMutex (netContext.mutex)
+#define netEvent (netContext.event)
+#define netTaskRunning (netContext.running)
+#define netTaskHandle (netContext.taskHandle)
+#define netTaskInstance (netContext.taskInstance)
+#define netTaskStack (netContext.taskStack)
+#define netTimestamp (netContext.timestamp)
+#define netInterface (netContext.interfaces)
 
 #endif

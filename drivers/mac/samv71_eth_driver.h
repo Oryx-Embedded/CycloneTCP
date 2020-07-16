@@ -1,12 +1,12 @@
 /**
  * @file samv71_eth_driver.h
- * @brief SAMV71 Ethernet MAC controller
+ * @brief SAMV71 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _SAMV71_ETH_DRIVER_H
@@ -92,6 +92,11 @@
    #define SAMV71_ETH_IRQ_SUB_PRIORITY 0
 #elif (SAMV71_ETH_IRQ_SUB_PRIORITY < 0)
    #error SAMV71_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef SAMV71_ETH_RAM_SECTION
+   #define SAMV71_ETH_RAM_SECTION ".ram_no_cache"
 #endif
 
 //Backward compatibility
@@ -192,7 +197,7 @@ void samv71EthDisableIrq(NetInterface *interface);
 void samv71EthEventHandler(NetInterface *interface);
 
 error_t samv71EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t samv71EthReceivePacket(NetInterface *interface);
 

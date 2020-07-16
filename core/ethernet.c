@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -67,7 +67,7 @@ const MacAddr MAC_BROADCAST_ADDR = {{{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}}};
 error_t ethInit(NetInterface *interface)
 {
    //Clear the MAC filter table contents
-   memset(interface->macAddrFilter, 0,
+   osMemset(interface->macAddrFilter, 0,
       sizeof(interface->macAddrFilter));
 
    //Successful initialization
@@ -80,9 +80,12 @@ error_t ethInit(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] frame Incoming Ethernet frame to process
  * @param[in] length Total frame length
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
-void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
+void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
+   NetRxAncillary *ancillary)
 {
    error_t error;
    uint_t i;
@@ -129,14 +132,13 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       }
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-      //Ethernet port multiplication using VLAN or tail tagging?
-      if(interface->port != 0 &&
-         interface->phyDriver != NULL &&
-         interface->phyDriver->untagFrame != NULL)
+      //Check whether port tagging is supported by the switch
+      if(interface->switchDriver != NULL &&
+         interface->switchDriver->untagFrame != NULL)
       {
          //Decode VLAN tag (SMSC switches) or tail tag (Micrel switches)
-         error = interface->phyDriver->untagFrame(interface, &frame,
-            &length, &port);
+         error = interface->switchDriver->untagFrame(interface, &frame,
+            &length, ancillary);
          //Any error to report?
          if(error)
             break;
@@ -236,13 +238,13 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    //Dump switch port identifier
-   if(port != 0)
+   if(ancillary->port != 0)
    {
-      TRACE_DEBUG("  Switch Port = %" PRIu8 "\r\n", port);
+      TRACE_DEBUG("  Switch Port = %" PRIu8 "\r\n", ancillary->port);
    }
 #endif
 
-   //802.1q allows a single physical interface to be bound to multiple
+   //802.1Q allows a single physical interface to be bound to multiple
    //virtual interfaces
    for(i = 0; i < NET_INTERFACE_COUNT; i++)
    {
@@ -255,8 +257,11 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
          continue;
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+      //Retrieve switch port identifier
+      port = nicGetSwitchPort(virtualInterface);
+
       //Check switch port identifier
-      if(nicGetSwitchPort(virtualInterface) != port)
+      if(port != 0 && port != ancillary->port)
          continue;
 #endif
 #if (ETH_VLAN_SUPPORT == ENABLED)
@@ -278,12 +283,32 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
       //Valid destination address?
       if(!error)
       {
+         //Save source and destination MAC addresses
+         ancillary->srcMacAddr = header->srcAddr;
+         ancillary->destMacAddr = header->destAddr;
+
          //Update Ethernet statistics
          ethUpdateInStats(virtualInterface, &header->destAddr);
 
+#if (ETH_LLC_SUPPORT == ENABLED)
+         //Values of 1500 and below mean that it is used to indicate the size
+         //of the payload in octets
+         if(type <= ETH_MTU && type <= length)
+         {
+            //Any registered callback?
+            if(virtualInterface->llcRxCallback != NULL)
+            {
+               //Process incoming LLC frame
+               virtualInterface->llcRxCallback(virtualInterface, header, data,
+                  type, ancillary, virtualInterface->llcRxParam);
+            }
+         }
+#endif
+
 #if (RAW_SOCKET_SUPPORT == ENABLED)
          //Allow raw sockets to process Ethernet packets
-         rawSocketProcessEthPacket(virtualInterface, header, data, length);
+         rawSocketProcessEthPacket(virtualInterface, header, data, length,
+            ancillary);
 #endif
          //Check Ethernet type field
          switch(type)
@@ -293,11 +318,15 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
          case ETH_TYPE_ARP:
             //Process incoming ARP packet
             arpProcessPacket(virtualInterface, (ArpPacket *) data, length);
+            //Continue processing
             break;
+
          //IPv4 packet received?
          case ETH_TYPE_IPV4:
             //Process incoming IPv4 packet
-            ipv4ProcessPacket(virtualInterface, (Ipv4Header *) data, length);
+            ipv4ProcessPacket(virtualInterface, (Ipv4Header *) data, length,
+               ancillary);
+            //Continue processing
             break;
 #endif
 #if (IPV6_SUPPORT == ENABLED)
@@ -311,7 +340,9 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
             buffer.chunk[0].size = 0;
 
             //Process incoming IPv6 packet
-            ipv6ProcessPacket(virtualInterface, (NetBuffer *) &buffer, 0);
+            ipv6ProcessPacket(virtualInterface, (NetBuffer *) &buffer, 0,
+               ancillary);
+            //Continue processing
             break;
 #endif
          //Unknown packet received?
@@ -336,42 +367,54 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length)
  * @brief Send an Ethernet frame
  * @param[in] interface Underlying network interface
  * @param[in] destAddr MAC address of the destination host
+ * @param[in] type Ethernet type
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first payload byte
- * @param[in] type Ethernet type
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
-   NetBuffer *buffer, size_t offset, uint16_t type)
+   uint16_t type, NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    uint32_t crc;
    size_t length;
-   MacAddr *srcAddr;
    EthHeader *header;
-   NetInterface *logicalInterface;
    NetInterface *physicalInterface;
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   uint8_t port;
+#endif
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   uint16_t vlanId;
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   uint16_t vmanId;
+#endif
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    //Get the switch port identifier assigned to the interface
-   uint8_t port = nicGetSwitchPort(interface);
-#endif
-#if (ETH_VLAN_SUPPORT == ENABLED)
-   //Get the VLAN identifier assigned to the interface
-   uint16_t vlanId = nicGetVlanId(interface);
-#endif
-#if (ETH_VMAN_SUPPORT == ENABLED)
-   //Get the VMAN identifier assigned to the interface
-   uint16_t vmanId = nicGetVmanId(interface);
+   port = nicGetSwitchPort(interface);
+
+   //Port separation mode?
+   if(port != 0)
+   {
+      //Force the destination port
+      ancillary->port = port;
+   }
 #endif
 
 #if (ETH_VLAN_SUPPORT == ENABLED)
+   //Get the VLAN identifier assigned to the interface
+   vlanId = nicGetVlanId(interface);
+
    //Valid VLAN identifier?
    if(vlanId != 0)
    {
       //The VLAN tag is inserted in the Ethernet frame
-      error = ethEncodeVlanTag(buffer, &offset, vlanId, type);
+      error = ethEncodeVlanTag(buffer, &offset, vlanId, ancillary->vlanPcp,
+         ancillary->vlanDei, type);
       //Any error to report?
       if(error)
          return error;
@@ -382,11 +425,15 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
 #endif
 
 #if (ETH_VMAN_SUPPORT == ENABLED)
+   //Get the VMAN identifier assigned to the interface
+   vmanId = nicGetVmanId(interface);
+
    //Valid VMAN identifier?
    if(vmanId != 0)
    {
       //The VMAN tag is inserted in the Ethernet frame
-      error = ethEncodeVlanTag(buffer, &offset, vmanId, type);
+      error = ethEncodeVlanTag(buffer, &offset, vmanId, ancillary->vmanPcp,
+         ancillary->vmanDei, type);
       //Any error to report?
       if(error)
          return error;
@@ -396,28 +443,17 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
    }
 #endif
 
-   //Point to the logical interface
-   logicalInterface = nicGetLogicalInterface(interface);
-   //Get the appropriate MAC address to be used as source address
-   srcAddr = &logicalInterface->macAddr;
-
-   //Forward the frame to the physical interface
-   physicalInterface = nicGetPhysicalInterface(interface);
-
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Ethernet port multiplication using VLAN or tail tagging?
-   if(physicalInterface->port != 0 &&
-      physicalInterface->phyDriver != NULL &&
-      physicalInterface->phyDriver->tagFrame != NULL)
+   //If the source address is not specified, then use the MAC address of the
+   //interface as source address
+   if(macCompAddr(&ancillary->srcMacAddr, &MAC_UNSPECIFIED_ADDR))
    {
-      //Add VLAN tag (SMSC switches) or tail tag (Micrel switches)
-      error = physicalInterface->phyDriver->tagFrame(physicalInterface,
-         buffer, &offset, port, &type);
-      //Any error to report?
-      if(error)
-         return error;
+      NetInterface *logicalInterface;
+
+      //Point to the logical interface
+      logicalInterface = nicGetLogicalInterface(interface);
+      //Get the MAC address of the interface
+      ancillary->srcMacAddr = logicalInterface->macAddr;
    }
-#endif
 
    //Sanity check
    if(offset < sizeof(EthHeader))
@@ -425,16 +461,66 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
 
    //Make room for the Ethernet header
    offset -= sizeof(EthHeader);
-   //Retrieve the length of the frame
+   //Calculate the length of the frame
    length = netBufferGetLength(buffer) - offset;
 
-   //Position to the beginning of the frame
+   //Point to the beginning of the frame
    header = netBufferAt(buffer, offset);
 
    //Format Ethernet header
    header->destAddr = *destAddr;
-   header->srcAddr = *srcAddr;
+   header->srcAddr = ancillary->srcMacAddr;
    header->type = htons(type);
+
+   //Update Ethernet statistics
+   ethUpdateOutStats(interface, &header->destAddr, length);
+
+   //Debug message
+   TRACE_DEBUG("Sending Ethernet frame (%" PRIuSIZE " bytes)...\r\n", length);
+   //Dump Ethernet header contents for debugging purpose
+   ethDumpHeader(header);
+
+#if (ETH_VLAN_SUPPORT == ENABLED)
+   //Dump VLAN identifier
+   if(vlanId != 0)
+   {
+      TRACE_DEBUG("  VLAN Id = %" PRIu16 "\r\n", vlanId);
+   }
+#endif
+#if (ETH_VMAN_SUPPORT == ENABLED)
+   //Dump VMAN identifier
+   if(vmanId != 0)
+   {
+      TRACE_DEBUG("  VMAN Id = %" PRIu16 "\r\n", vmanId);
+   }
+#endif
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Dump switch port identifier
+   if(ancillary->port != 0)
+   {
+      TRACE_DEBUG("  Switch Port = %" PRIu8 "\r\n", ancillary->port);
+   }
+#endif
+
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Check whether port tagging is supported by the switch
+   if(physicalInterface->switchDriver != NULL &&
+      physicalInterface->switchDriver->tagFrame != NULL)
+   {
+      //Add VLAN tag (SMSC switches) or tail tag (Micrel switches)
+      error = physicalInterface->switchDriver->tagFrame(physicalInterface,
+         buffer, &offset, ancillary);
+      //Any error to report?
+      if(error)
+         return error;
+
+      //Recalculate the length of the frame
+      length = netBufferGetLength(buffer) - offset;
+   }
+#endif
 
    //Valid NIC driver?
    if(physicalInterface->nicDriver != NULL)
@@ -464,43 +550,14 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
          if(error)
             return error;
 
-         //Adjust frame length
+         //Adjust the length of the frame
          length += sizeof(crc);
       }
    }
 
-   //Update Ethernet statistics
-   ethUpdateOutStats(interface, &header->destAddr, length);
-
-   //Debug message
-   TRACE_DEBUG("Sending Ethernet frame (%" PRIuSIZE " bytes)...\r\n", length);
-   //Dump Ethernet header contents for debugging purpose
-   ethDumpHeader(header);
-
-#if (ETH_VLAN_SUPPORT == ENABLED)
-   //Dump VLAN identifier
-   if(vlanId != 0)
-   {
-      TRACE_DEBUG("  VLAN Id = %" PRIu16 "\r\n", vlanId);
-   }
-#endif
-#if (ETH_VMAN_SUPPORT == ENABLED)
-   //Dump VMAN identifier
-   if(vmanId != 0)
-   {
-      TRACE_DEBUG("  VMAN Id = %" PRIu16 "\r\n", vmanId);
-   }
-#endif
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Dump switch port identifier
-   if(port != 0)
-   {
-      TRACE_DEBUG("  Switch Port = %" PRIu8 "\r\n", port);
-   }
-#endif
-
    //Forward the frame to the physical interface
-   error = nicSendPacket(physicalInterface, buffer, offset);
+   error = nicSendPacket(physicalInterface, buffer, offset, ancillary);
+
    //Return status code
    return error;
 }
@@ -631,6 +688,62 @@ error_t ethDropMacAddr(NetInterface *interface, const MacAddr *macAddr)
 
 
 /**
+ * @brief Register LLC frame received callback
+ * @param[in] interface Underlying network interface
+ * @param[in] callback Callback function to be called when a LLC frame is received
+ * @param[in] param Callback function parameter (optional)
+ * @return Error code
+ **/
+
+error_t ethAttachLlcRxCalback(NetInterface *interface, LlcRxCallback callback,
+   void *param)
+{
+#if (ETH_LLC_SUPPORT == ENABLED)
+   //Check parameters
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Register LLC frame received callback
+   interface->llcRxCallback = callback;
+   //This opaque pointer will be directly passed to the callback function
+   interface->llcRxParam = param;
+
+   //Successful processing
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Unregister LLC frame received callback
+ * @param[in] interface Underlying network interface
+ * @return Error code
+ **/
+
+error_t ethDetachLlcRxCalback(NetInterface *interface)
+{
+#if (ETH_LLC_SUPPORT == ENABLED)
+   //Check parameters
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Unregister LLC frame received callback
+   interface->llcRxCallback = NULL;
+   interface->llcRxParam = 0;
+
+   //Successful processing
+   return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
  * @brief Allocate a buffer to hold an Ethernet frame
  * @param[in] length Desired payload length
  * @param[out] offset Offset to the first byte of the payload
@@ -647,7 +760,7 @@ NetBuffer *ethAllocBuffer(size_t length, size_t *offset)
    n = sizeof(EthHeader);
 
 #if (ETH_VLAN_SUPPORT == ENABLED)
-   //VLAN tagging overhead (802.1q)
+   //VLAN tagging overhead (802.1Q)
    n += sizeof(VlanTag);
 #endif
 
@@ -699,12 +812,18 @@ error_t macStringToAddr(const char_t *str, MacAddr *macAddr)
             value = 0;
 
          //Update the value of the current byte
-         if(isdigit((uint8_t) *str))
+         if(osIsdigit(*str))
+         {
             value = (value * 16) + (*str - '0');
-         else if(isupper((uint8_t) *str))
+         }
+         else if(osIsupper(*str))
+         {
             value = (value * 16) + (*str - 'A' + 10);
+         }
          else
+         {
             value = (value * 16) + (*str - 'a' + 10);
+         }
 
          //Check resulting value
          if(value > 0xFF)
@@ -783,7 +902,7 @@ char_t *macAddrToString(const MacAddr *macAddr, char_t *str)
       str = buffer;
 
    //Format MAC address
-   sprintf(str, "%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8,
+   osSprintf(str, "%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8,
       macAddr->b[0], macAddr->b[1], macAddr->b[2], macAddr->b[3], macAddr->b[4], macAddr->b[5]);
 
    //Return a pointer to the formatted string
@@ -863,12 +982,18 @@ error_t eui64StringToAddr(const char_t *str, Eui64 *eui64)
             value = 0;
 
          //Update the value of the current byte
-         if(isdigit((uint8_t) *str))
+         if(osIsdigit(*str))
+         {
             value = (value * 16) + (*str - '0');
-         else if(isupper((uint8_t) *str))
+         }
+         else if(osIsupper(*str))
+         {
             value = (value * 16) + (*str - 'A' + 10);
+         }
          else
+         {
             value = (value * 16) + (*str - 'a' + 10);
+         }
 
          //Check resulting value
          if(value > 0xFF)
@@ -947,7 +1072,7 @@ char_t *eui64AddrToString(const Eui64 *eui64, char_t *str)
       str = buffer;
 
    //Format EUI-64 identifier
-   sprintf(str, "%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8
+   osSprintf(str, "%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8
       "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8,
       eui64->b[0], eui64->b[1], eui64->b[2], eui64->b[3],
       eui64->b[4], eui64->b[5], eui64->b[6], eui64->b[7]);

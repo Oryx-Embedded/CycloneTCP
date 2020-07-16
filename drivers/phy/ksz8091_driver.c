@@ -1,12 +1,12 @@
 /**
  * @file ksz8091_driver.c
- * @brief KSZ8091 Ethernet PHY transceiver
+ * @brief KSZ8091 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver ksz8091PhyDriver =
    ksz8091Tick,
    ksz8091EnableIrq,
    ksz8091DisableIrq,
-   ksz8091EventHandler,
-   NULL,
-   NULL
+   ksz8091EventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t ksz8091Init(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = KSZ8091_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Initialize external interrupt line driver
@@ -183,7 +187,7 @@ void ksz8091EventHandler(NetInterface *interface)
    value = ksz8091ReadPhyReg(interface, KSZ8091_ICSR);
 
    //Link status change?
-   if(value & (KSZ8091_ICSR_LINK_DOWN_IF | KSZ8091_ICSR_LINK_UP_IF))
+   if((value & (KSZ8091_ICSR_LINK_DOWN_IF | KSZ8091_ICSR_LINK_UP_IF)) != 0)
    {
       //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
@@ -191,7 +195,7 @@ void ksz8091EventHandler(NetInterface *interface)
       value = ksz8091ReadPhyReg(interface, KSZ8091_BMSR);
 
       //Link is up?
-      if(value & KSZ8091_BMSR_LINK_STATUS)
+      if((value & KSZ8091_BMSR_LINK_STATUS) != 0)
       {
          //Read PHY control register
          value = ksz8091ReadPhyReg(interface, KSZ8091_PHYCON1);
@@ -255,8 +259,16 @@ void ksz8091WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -269,9 +281,22 @@ void ksz8091WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t ksz8091ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 
@@ -294,4 +319,58 @@ void ksz8091DumpPhyReg(NetInterface *interface)
 
    //Terminate with a line feed
    TRACE_DEBUG("\r\n");
+}
+
+
+/**
+ * @brief Write MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @param[in] data MMD register value
+ **/
+
+void ksz8091WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data)
+{
+   //Select register operation
+   ksz8091WritePhyReg(interface, KSZ8091_MMDACR,
+      KSZ8091_MMDACR_FUNC_ADDR | (devAddr & KSZ8091_MMDACR_DEVAD));
+
+   //Write MMD register address
+   ksz8091WritePhyReg(interface, KSZ8091_MMDAADR, regAddr);
+
+   //Select data operation
+   ksz8091WritePhyReg(interface, KSZ8091_MMDACR,
+      KSZ8091_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & KSZ8091_MMDACR_DEVAD));
+
+   //Write the content of the MMD register
+   ksz8091WritePhyReg(interface, KSZ8091_MMDAADR, data);
+}
+
+
+/**
+ * @brief Read MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @return MMD register value
+ **/
+
+uint16_t ksz8091ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr)
+{
+   //Select register operation
+   ksz8091WritePhyReg(interface, KSZ8091_MMDACR,
+      KSZ8091_MMDACR_FUNC_ADDR | (devAddr & KSZ8091_MMDACR_DEVAD));
+
+   //Write MMD register address
+   ksz8091WritePhyReg(interface, KSZ8091_MMDAADR, regAddr);
+
+   //Select data operation
+   ksz8091WritePhyReg(interface, KSZ8091_MMDACR,
+      KSZ8091_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & KSZ8091_MMDACR_DEVAD));
+
+   //Read the content of the MMD register
+   return ksz8091ReadPhyReg(interface, KSZ8091_MMDAADR);
 }

@@ -1,12 +1,12 @@
 /**
  * @file avr32_eth_driver.c
- * @brief AVR32 Ethernet MAC controller
+ * @brief AVR32 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -136,11 +136,28 @@ error_t avr32EthInit(NetInterface *interface)
    //Enable management port (MDC and MDIO)
    AVR32_MACB.ncr |= AVR32_MACB_NCR_MPE_MASK;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the MAC address of the station
    AVR32_MACB.sa1b = interface->macAddr.b[0] |
@@ -267,16 +284,29 @@ void avr32EthInitBufferDesc(NetInterface *interface)
 /**
  * @brief AVR32 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void avr32EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -289,8 +319,22 @@ void avr32EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    Enable_global_interrupt();
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -303,8 +347,22 @@ void avr32EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    Disable_global_interrupt();
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -312,7 +370,7 @@ void avr32EthDisableIrq(NetInterface *interface)
  * @brief AVR32 Ethernet MAC interrupt wrapper
  **/
 
-__attribute__((naked)) void avr32EthIrqWrapper(void)
+   __attribute__((naked)) void avr32EthIrqWrapper(void)
 {
    //Interrupt service routine prologue
    osEnterIsr();
@@ -346,23 +404,25 @@ bool_t avr32EthIrqHandler(void)
    tsr = AVR32_MACB.tsr;
    rsr = AVR32_MACB.rsr;
 
-   //A packet has been transmitted?
-   if(tsr & (AVR32_MACB_TSR_UND_MASK | AVR32_MACB_TSR_COMP_MASK | AVR32_MACB_TSR_BEX_MASK |
-      AVR32_MACB_TSR_TGO_MASK | AVR32_MACB_TSR_RLE_MASK | AVR32_MACB_TSR_COL_MASK | AVR32_MACB_TSR_UBR_MASK))
+   //Packet transmitted?
+   if((tsr & (AVR32_MACB_TSR_UND_MASK | AVR32_MACB_TSR_COMP_MASK |
+      AVR32_MACB_TSR_BEX_MASK | AVR32_MACB_TSR_TGO_MASK | AVR32_MACB_TSR_RLE_MASK |
+      AVR32_MACB_TSR_COL_MASK | AVR32_MACB_TSR_UBR_MASK)) != 0)
    {
       //Only clear TSR flags that are currently set
       AVR32_MACB.tsr = tsr;
 
       //Check whether the TX buffer is available for writing
-      if(txBufferDesc[txBufferIndex].status & MACB_TX_USED)
+      if((txBufferDesc[txBufferIndex].status & MACB_TX_USED) != 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(rsr & (AVR32_MACB_RSR_OVR_MASK | AVR32_MACB_RSR_REC_MASK | AVR32_MACB_RSR_BNA_MASK))
+   //Packet received?
+   if((rsr & (AVR32_MACB_RSR_OVR_MASK | AVR32_MACB_RSR_REC_MASK |
+      AVR32_MACB_RSR_BNA_MASK)) != 0)
    {
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -389,7 +449,7 @@ void avr32EthEventHandler(NetInterface *interface)
    rsr = AVR32_MACB.rsr;
 
    //Packet received?
-   if(rsr & (AVR32_MACB_RSR_OVR_MASK | AVR32_MACB_RSR_REC_MASK | AVR32_MACB_RSR_BNA_MASK))
+   if((rsr & (AVR32_MACB_RSR_OVR_MASK | AVR32_MACB_RSR_REC_MASK | AVR32_MACB_RSR_BNA_MASK)) != 0)
    {
       //Only clear RSR flags that are currently set
       AVR32_MACB.rsr = rsr;
@@ -411,11 +471,13 @@ void avr32EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t avr32EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -432,8 +494,10 @@ error_t avr32EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(!(txBufferDesc[txBufferIndex].status & MACB_TX_USED))
+   if((txBufferDesc[txBufferIndex].status & MACB_TX_USED) == 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer[txBufferIndex], buffer, offset, length);
@@ -442,8 +506,8 @@ error_t avr32EthSendPacket(NetInterface *interface,
    if(txBufferIndex < (AVR32_ETH_TX_BUFFER_COUNT - 1))
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status =
-         MACB_TX_LAST | (length & MACB_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = MACB_TX_LAST |
+         (length & MACB_TX_LENGTH);
 
       //Point to the next buffer
       txBufferIndex++;
@@ -451,8 +515,8 @@ error_t avr32EthSendPacket(NetInterface *interface,
    else
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status = MACB_TX_WRAP |
-         MACB_TX_LAST | (length & MACB_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = MACB_TX_WRAP | MACB_TX_LAST |
+         (length & MACB_TX_LENGTH);
 
       //Wrap around
       txBufferIndex = 0;
@@ -462,7 +526,7 @@ error_t avr32EthSendPacket(NetInterface *interface,
    AVR32_MACB.ncr |= AVR32_MACB_NCR_TSTART_MASK;
 
    //Check whether the next buffer is available for writing
-   if(txBufferDesc[txBufferIndex].status & MACB_TX_USED)
+   if((txBufferDesc[txBufferIndex].status & MACB_TX_USED) != 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -503,22 +567,26 @@ uint_t avr32EthReceivePacket(NetInterface *interface)
 
       //Wrap around to the beginning of the buffer if necessary
       if(j >= AVR32_ETH_RX_BUFFER_COUNT)
+      {
          j -= AVR32_ETH_RX_BUFFER_COUNT;
+      }
 
       //No more entries to process?
-      if(!(rxBufferDesc[j].address & MACB_RX_OWNERSHIP))
+      if((rxBufferDesc[j].address & MACB_RX_OWNERSHIP) == 0)
       {
          //Stop processing
          break;
       }
+
       //A valid SOF has been found?
-      if(rxBufferDesc[j].status & MACB_RX_SOF)
+      if((rxBufferDesc[j].status & MACB_RX_SOF) != 0)
       {
          //Save the position of the SOF
          sofIndex = i;
       }
+
       //A valid EOF has been found?
-      if((rxBufferDesc[j].status & MACB_RX_EOF) && sofIndex != UINT_MAX)
+      if((rxBufferDesc[j].status & MACB_RX_EOF) != 0 && sofIndex != UINT_MAX)
       {
          //Save the position of the EOF
          eofIndex = i;
@@ -533,11 +601,17 @@ uint_t avr32EthReceivePacket(NetInterface *interface)
 
    //Determine the number of entries to process
    if(eofIndex != UINT_MAX)
+   {
       j = eofIndex + 1;
+   }
    else if(sofIndex != UINT_MAX)
+   {
       j = sofIndex;
+   }
    else
+   {
       j = i;
+   }
 
    //Total number of bytes that have been copied from the receive buffer
    length = 0;
@@ -551,7 +625,7 @@ uint_t avr32EthReceivePacket(NetInterface *interface)
          //Calculate the number of bytes to read at a time
          n = MIN(size, AVR32_ETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         memcpy(temp + length, rxBuffer[rxBufferIndex], n);
+         osMemcpy(temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;
@@ -565,14 +639,21 @@ uint_t avr32EthReceivePacket(NetInterface *interface)
 
       //Wrap around to the beginning of the buffer if necessary
       if(rxBufferIndex >= AVR32_ETH_RX_BUFFER_COUNT)
+      {
          rxBufferIndex = 0;
+      }
    }
 
    //Any packet to process?
    if(length > 0)
    {
+      NetRxAncillary ancillary;
+
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length);
+      nicProcessPacket(interface, temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }
@@ -674,15 +755,23 @@ error_t avr32EthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= AVR32_MACB_NCFGR_SPD_MASK;
+   }
    else
+   {
       config &= ~AVR32_MACB_NCFGR_SPD_MASK;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= AVR32_MACB_NCFGR_FD_MASK;
+   }
    else
+   {
       config &= ~AVR32_MACB_NCFGR_FD_MASK;
+   }
 
    //Write configuration value back to NCFGR register
    AVR32_MACB.ncfgr = config;
@@ -720,7 +809,7 @@ void avr32EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       AVR32_MACB.man = temp;
       //Wait for the write to complete
-      while(!(AVR32_MACB.nsr & AVR32_MACB_NSR_IDLE_MASK))
+      while((AVR32_MACB.nsr & AVR32_MACB_NSR_IDLE_MASK) == 0)
       {
       }
    }
@@ -758,7 +847,7 @@ uint16_t avr32EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       AVR32_MACB.man = temp;
       //Wait for the read to complete
-      while(!(AVR32_MACB.nsr & AVR32_MACB_NSR_IDLE_MASK))
+      while((AVR32_MACB.nsr & AVR32_MACB_NSR_IDLE_MASK) == 0)
       {
       }
 

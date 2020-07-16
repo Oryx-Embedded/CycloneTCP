@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -104,7 +104,7 @@ error_t modbusServerInit(ModbusServerContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Clear Modbus/TCP server context
-   memset(context, 0, sizeof(ModbusServerContext));
+   osMemset(context, 0, sizeof(ModbusServerContext));
 
    //Save user settings
    context->settings = *settings;
@@ -187,12 +187,12 @@ error_t modbusServerStart(ModbusServerContext *context)
 {
    OsTask *task;
 
-   //Debug message
-   TRACE_INFO("Starting Modbus/TCP server...\r\n");
-
    //Make sure the Modbus/TCP server context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Starting Modbus/TCP server...\r\n");
 
    //Create the Modbus/TCP server task
    task = osCreateTask("Modbus/TCP Server", (OsTaskCode) modbusServerTask,
@@ -232,7 +232,7 @@ void modbusServerTask(ModbusServerContext *context)
       timeout = MODBUS_SERVER_TICK_INTERVAL;
 
       //Clear event descriptor set
-      memset(eventDesc, 0, sizeof(eventDesc));
+      osMemset(eventDesc, 0, sizeof(eventDesc));
 
       //Specify the events the application is interested in
       for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
@@ -380,7 +380,7 @@ void modbusServerDeinit(ModbusServerContext *context)
       osDeleteEvent(&context->event);
 
       //Clear Modbus/TCP server context
-      memset(context, 0, sizeof(ModbusServerContext));
+      osMemset(context, 0, sizeof(ModbusServerContext));
    }
 }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _FTP_SERVER_H
@@ -418,6 +418,8 @@ struct _FtpClientConnection
 struct _FtpServerContext
 {
    FtpServerSettings settings;                                    ///<User settings
+   bool_t running;                                                ///<This flag tells whether the FTP server is running or not
+   bool_t stop;                                                   ///<Stop request
    OsEvent event;                                                 ///<Event object used to poll the sockets
    Socket *socket;                                                ///<Listening socket
    uint16_t passivePort;                                          ///<Current passive port number
@@ -436,6 +438,7 @@ error_t ftpServerInit(FtpServerContext *context,
    const FtpServerSettings *settings);
 
 error_t ftpServerStart(FtpServerContext *context);
+error_t ftpServerStop(FtpServerContext *context);
 
 error_t ftpServerSetHomeDir(FtpClientConnection *connection,
    const char_t *homeDir);

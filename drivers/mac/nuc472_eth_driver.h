@@ -1,12 +1,12 @@
 /**
  * @file nuc472_eth_driver.h
- * @brief Nuvoton NUC472 Ethernet MAC controller
+ * @brief Nuvoton NUC472 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _NUC472_ETH_DRIVER_H
@@ -165,7 +165,7 @@ void nuc472EthDisableIrq(NetInterface *interface);
 void nuc472EthEventHandler(NetInterface *interface);
 
 error_t nuc472EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t nuc472EthReceivePacket(NetInterface *interface);
 

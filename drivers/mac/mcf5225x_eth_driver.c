@@ -1,12 +1,12 @@
 /**
  * @file mcf5225x_eth_driver.c
- * @brief Coldfire V2 MCF5225x Ethernet MAC controller
+ * @brief Coldfire V2 MCF5225x Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -104,7 +104,7 @@ error_t mcf5225xEthInit(NetInterface *interface)
    //Reset FEC module
    MCF_FEC_ECR = MCF_FEC_ECR_RESET;
    //Wait for the reset to complete
-   while(MCF_FEC_ECR & MCF_FEC_ECR_RESET)
+   while((MCF_FEC_ECR & MCF_FEC_ECR_RESET) != 0)
    {
    }
 
@@ -117,11 +117,28 @@ error_t mcf5225xEthInit(NetInterface *interface)
    //Configure MDC clock frequency
    MCF_FEC_MSCR = MCF_FEC_MSCR_MII_SPEED(19);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the MAC address of the station (upper 16 bits)
    value = interface->macAddr.b[5];
@@ -269,16 +286,29 @@ void mcf5225xEthInitBufferDesc(NetInterface *interface)
 /**
  * @brief MCF5225x Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void mcf5225xEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -297,10 +327,24 @@ void mcf5225xEthEnableIrq(NetInterface *interface)
       MCF_INTC_IMRL_INT_MASK30 | MCF_INTC_IMRL_INT_MASK31);
 
    MCF_INTC0_IMRH &= ~(MCF_INTC_IMRH_INT_MASK33 |
-      MCF_INTC_IMRH_INT_MASK34| MCF_INTC_IMRH_INT_MASK35);
+      MCF_INTC_IMRH_INT_MASK34 | MCF_INTC_IMRH_INT_MASK35);
 
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -319,10 +363,24 @@ void mcf5225xEthDisableIrq(NetInterface *interface)
       MCF_INTC_IMRL_INT_MASK30 | MCF_INTC_IMRL_INT_MASK31;
 
    MCF_INTC0_IMRH |= MCF_INTC_IMRH_INT_MASK33 |
-      MCF_INTC_IMRH_INT_MASK34| MCF_INTC_IMRH_INT_MASK35;
+      MCF_INTC_IMRH_INT_MASK34 | MCF_INTC_IMRH_INT_MASK35;
 
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -343,14 +401,14 @@ __declspec(interrupt) void mcf5225xEthIrqHandler(void)
    //Read interrupt event register
    events = MCF_FEC_EIR;
 
-   //A packet has been transmitted?
-   if(events & (MCF_FEC_EIR_TXF | MCF_FEC_EIR_TXB))
+   //Packet transmitted?
+   if((events & (MCF_FEC_EIR_TXF | MCF_FEC_EIR_TXB)) != 0)
    {
       //Clear TXF and TXB interrupt flags
       MCF_FEC_EIR = MCF_FEC_EIR_TXF | MCF_FEC_EIR_TXB;
 
       //Check whether the TX buffer is available for writing
-      if(!(txBufferDesc[txBufferIndex].status & FEC_TX_BD_R))
+      if((txBufferDesc[txBufferIndex].status & FEC_TX_BD_R) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -360,8 +418,8 @@ __declspec(interrupt) void mcf5225xEthIrqHandler(void)
       MCF_FEC_TDAR = MCF_FEC_TDAR_X_DES_ACTIVE;
    }
 
-   //A packet has been received?
-   if(events & (MCF_FEC_EIR_RXF | MCF_FEC_EIR_RXB))
+   //Packet received?
+   if((events & (MCF_FEC_EIR_RXF | MCF_FEC_EIR_RXB)) != 0)
    {
       //Disable RXF and RXB interrupts
       MCF_FEC_EIMR &= ~(MCF_FEC_EIMR_RXF | MCF_FEC_EIMR_RXB);
@@ -373,7 +431,7 @@ __declspec(interrupt) void mcf5225xEthIrqHandler(void)
    }
 
    //System bus error?
-   if(events & MCF_FEC_EIR_EBERR)
+   if((events & MCF_FEC_EIR_EBERR) != 0)
    {
       //Disable EBERR interrupt
       MCF_FEC_EIMR &= ~MCF_FEC_EIMR_EBERR;
@@ -385,12 +443,14 @@ __declspec(interrupt) void mcf5225xEthIrqHandler(void)
    }
 
    //Any other event?
-   if(events & (MCF_FEC_EIR_HBERR | MCF_FEC_EIR_BABR | MCF_FEC_EIR_BABT | MCF_FEC_EIR_GRA |
-      MCF_FEC_EIR_MII | MCF_FEC_EIR_LC | MCF_FEC_EIR_RL | MCF_FEC_EIR_UN))
+   if((events & (MCF_FEC_EIR_HBERR | MCF_FEC_EIR_BABR | MCF_FEC_EIR_BABT |
+      MCF_FEC_EIR_GRA | MCF_FEC_EIR_MII | MCF_FEC_EIR_LC | MCF_FEC_EIR_RL |
+      MCF_FEC_EIR_UN)) != 0)
    {
       //Clear interrupt flags
-      MCF_FEC_EIR = MCF_FEC_EIR_HBERR | MCF_FEC_EIR_BABR | MCF_FEC_EIR_BABT | MCF_FEC_EIR_GRA |
-         MCF_FEC_EIR_MII | MCF_FEC_EIR_LC | MCF_FEC_EIR_RL | MCF_FEC_EIR_UN;
+      MCF_FEC_EIR = MCF_FEC_EIR_HBERR | MCF_FEC_EIR_BABR | MCF_FEC_EIR_BABT |
+         MCF_FEC_EIR_GRA | MCF_FEC_EIR_MII | MCF_FEC_EIR_LC | MCF_FEC_EIR_RL |
+         MCF_FEC_EIR_UN;
    }
 
    //Interrupt service routine epilogue
@@ -412,7 +472,7 @@ void mcf5225xEthEventHandler(NetInterface *interface)
    status = MCF_FEC_EIR;
 
    //Packet received?
-   if(status & (MCF_FEC_EIR_RXF | MCF_FEC_EIR_RXB))
+   if((status & (MCF_FEC_EIR_RXF | MCF_FEC_EIR_RXB)) != 0)
    {
       //Clear RXF and RXB interrupt flag
       MCF_FEC_EIR = MCF_FEC_EIR_RXF | MCF_FEC_EIR_RXB;
@@ -428,7 +488,7 @@ void mcf5225xEthEventHandler(NetInterface *interface)
    }
 
    //System bus error?
-   if(status & MCF_FEC_EIR_EBERR)
+   if((status & MCF_FEC_EIR_EBERR) != 0)
    {
       //Clear EBERR interrupt flag
       MCF_FEC_EIR = MCF_FEC_EIR_EBERR;
@@ -454,11 +514,13 @@ void mcf5225xEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t mcf5225xEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -475,8 +537,10 @@ error_t mcf5225xEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txBufferDesc[txBufferIndex].status & FEC_TX_BD_R)
+   if((txBufferDesc[txBufferIndex].status & FEC_TX_BD_R) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(FEC_ALIGN16(txBuffer[txBufferIndex]), buffer, offset, length);
@@ -508,7 +572,7 @@ error_t mcf5225xEthSendPacket(NetInterface *interface,
    MCF_FEC_TDAR = MCF_FEC_TDAR_X_DES_ACTIVE;
 
    //Check whether the next buffer is available for writing
-   if(!(txBufferDesc[txBufferIndex].status & FEC_TX_BD_R))
+   if((txBufferDesc[txBufferIndex].status & FEC_TX_BD_R) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -529,12 +593,13 @@ error_t mcf5225xEthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //Make sure the current buffer is available for reading
-   if(!(rxBufferDesc[rxBufferIndex].status & FEC_RX_BD_E))
+   if((rxBufferDesc[rxBufferIndex].status & FEC_RX_BD_E) == 0)
    {
       //The frame should not span multiple buffers
-      if(rxBufferDesc[rxBufferIndex].status & FEC_RX_BD_L)
+      if((rxBufferDesc[rxBufferIndex].status & FEC_RX_BD_L) != 0)
       {
          //Check whether an error occurred
          if(!(rxBufferDesc[rxBufferIndex].status & (FEC_RX_BD_LG |
@@ -545,8 +610,12 @@ error_t mcf5225xEthReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, MCF5225X_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, FEC_ALIGN16(rxBuffer[rxBufferIndex]), n);
+            nicProcessPacket(interface, FEC_ALIGN16(rxBuffer[rxBufferIndex]), n,
+               &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -753,7 +822,7 @@ void mcf5225xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       MCF_FEC_MMFR = temp;
 
       //Wait for the write to complete
-      while(!(MCF_FEC_EIR & MCF_FEC_EIR_MII))
+      while((MCF_FEC_EIR & MCF_FEC_EIR_MII) == 0)
       {
       }
    }
@@ -794,7 +863,7 @@ uint16_t mcf5225xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       MCF_FEC_MMFR = temp;
 
       //Wait for the read to complete
-      while(!(MCF_FEC_EIR & MCF_FEC_EIR_MII))
+      while((MCF_FEC_EIR & MCF_FEC_EIR_MII) == 0)
       {
       }
 
@@ -823,11 +892,13 @@ uint32_t mcf5225xEthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -837,10 +908,14 @@ uint32_t mcf5225xEthCalcCrc(const void *data, size_t length)
       //The message is processed bit by bit
       for(j = 0; j < 8; j++)
       {
-         if(crc & 0x00000001)
+         if((crc & 0x01) != 0)
+         {
             crc = (crc >> 1) ^ 0xEDB88320;
+         }
          else
+         {
             crc = crc >> 1;
+         }
       }
    }
 

@@ -1,12 +1,12 @@
 /**
  * @file lpc546xx_eth_driver.c
- * @brief LPC54608/LPC54618/LPC54628 Ethernet MAC controller
+ * @brief LPC54608/LPC54618/LPC54628 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -137,18 +137,35 @@ error_t lpc546xxEthInit(NetInterface *interface)
    //Perform a software reset
    ENET->DMA_MODE |= ENET_DMA_MODE_SWR_MASK;
    //Wait for the reset to complete
-   while(ENET->DMA_MODE & ENET_DMA_MODE_SWR_MASK)
+   while((ENET->DMA_MODE & ENET_DMA_MODE_SWR_MASK) != 0)
    {
    }
 
    //Adjust MDC clock range depending on CSR frequency
    ENET->MAC_MDIO_ADDR = ENET_MAC_MDIO_ADDR_CR(4);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Use default MAC configuration
    ENET->MAC_CONFIG = ENET_MAC_CONFIG_PS_MASK | ENET_MAC_CONFIG_DO_MASK;
@@ -345,16 +362,29 @@ void lpc546xxEthInitDmaDesc(NetInterface *interface)
 /**
  * @brief LPC546xx Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void lpc546xxEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -367,8 +397,22 @@ void lpc546xxEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ETHERNET_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -381,8 +425,22 @@ void lpc546xxEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ETHERNET_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -404,22 +462,22 @@ void ETHERNET_IRQHandler(void)
    //Read DMA status register
    status = ENET->DMA_CH[0].DMA_CHX_STAT;
 
-   //A packet has been transmitted?
-   if(status & ENET_DMA_CH_DMA_CHX_STAT_TI_MASK)
+   //Packet transmitted?
+   if((status & ENET_DMA_CH_DMA_CHX_STAT_TI_MASK) != 0)
    {
       //Clear TI interrupt flag
       ENET->DMA_CH[0].DMA_CHX_STAT = ENET_DMA_CH_DMA_CHX_STAT_TI_MASK;
 
       //Check whether the TX buffer is available for writing
-      if(!(txDmaDesc[txIndex].tdes3 & ENET_TDES3_OWN))
+      if((txDmaDesc[txIndex].tdes3 & ENET_TDES3_OWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & ENET_DMA_CH_DMA_CHX_STAT_RI_MASK)
+   //Packet received?
+   if((status & ENET_DMA_CH_DMA_CHX_STAT_RI_MASK) != 0)
    {
       //Disable RIE interrupt
       ENET->DMA_CH[0].DMA_CHX_INT_EN &= ~ENET_DMA_CH_DMA_CHX_INT_EN_RIE_MASK;
@@ -448,7 +506,7 @@ void lpc546xxEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(ENET->DMA_CH[0].DMA_CHX_STAT & ENET_DMA_CH_DMA_CHX_STAT_RI_MASK)
+   if((ENET->DMA_CH[0].DMA_CHX_STAT & ENET_DMA_CH_DMA_CHX_STAT_RI_MASK) != 0)
    {
       //Clear interrupt flag
       ENET->DMA_CH[0].DMA_CHX_STAT = ENET_DMA_CH_DMA_CHX_STAT_RI_MASK;
@@ -474,11 +532,13 @@ void lpc546xxEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t lpc546xxEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -495,8 +555,10 @@ error_t lpc546xxEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txDmaDesc[txIndex].tdes3 & ENET_TDES3_OWN)
+   if((txDmaDesc[txIndex].tdes3 & ENET_TDES3_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer[txIndex], buffer, offset, length);
@@ -515,10 +577,12 @@ error_t lpc546xxEthSendPacket(NetInterface *interface,
 
    //Increment index and wrap around if necessary
    if(++txIndex >= LPC546XX_ETH_TX_BUFFER_COUNT)
+   {
       txIndex = 0;
+   }
 
    //Check whether the next buffer is available for writing
-   if(!(txDmaDesc[txIndex].tdes3 & ENET_TDES3_OWN))
+   if((txDmaDesc[txIndex].tdes3 & ENET_TDES3_OWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -539,24 +603,28 @@ error_t lpc546xxEthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_OWN))
+   if((rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_OWN) == 0)
    {
       //FD and LD flags should be set
-      if((rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_FD) &&
-         (rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_LD))
+      if((rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_FD) != 0 &&
+         (rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_LD) != 0)
       {
          //Make sure no error occurred
-         if(!(rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_ES))
+         if((rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_ES) == 0)
          {
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_PL;
             //Limit the number of data to read
             n = MIN(n, LPC546XX_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, rxBuffer[rxIndex], n);
+            nicProcessPacket(interface, rxBuffer[rxIndex], n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -580,7 +648,9 @@ error_t lpc546xxEthReceivePacket(NetInterface *interface)
 
       //Increment index and wrap around if necessary
       if(++rxIndex >= LPC546XX_ETH_RX_BUFFER_COUNT)
+      {
          rxIndex = 0;
+      }
    }
    else
    {
@@ -635,9 +705,13 @@ error_t lpc546xxEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
+   {
       ENET->MAC_FRAME_FILTER |= ENET_MAC_FRAME_FILTER_PM_MASK;
+   }
    else
+   {
       ENET->MAC_FRAME_FILTER &= ~ENET_MAC_FRAME_FILTER_PM_MASK;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -659,15 +733,23 @@ error_t lpc546xxEthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= ENET_MAC_CONFIG_FES_MASK;
+   }
    else
+   {
       config &= ~ENET_MAC_CONFIG_FES_MASK;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= ENET_MAC_CONFIG_DM_MASK;
+   }
    else
+   {
       config &= ~ENET_MAC_CONFIG_DM_MASK;
+   }
 
    //Update MAC configuration register
    ENET->MAC_CONFIG = config;
@@ -708,7 +790,7 @@ void lpc546xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       ENET->MAC_MDIO_ADDR = temp;
       //Wait for the write to complete
-      while(ENET->MAC_MDIO_ADDR & ENET_MAC_MDIO_ADDR_MB_MASK)
+      while((ENET->MAC_MDIO_ADDR & ENET_MAC_MDIO_ADDR_MB_MASK) != 0)
       {
       }
    }
@@ -748,7 +830,7 @@ uint16_t lpc546xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       ENET->MAC_MDIO_ADDR = temp;
       //Wait for the read to complete
-      while(ENET->MAC_MDIO_ADDR & ENET_MAC_MDIO_ADDR_MB_MASK)
+      while((ENET->MAC_MDIO_ADDR & ENET_MAC_MDIO_ADDR_MB_MASK) != 0)
       {
       }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -120,7 +120,7 @@ error_t dhcpServerInit(DhcpServerContext *context,
    interface = settings->interface;
 
    //Clear the DHCP server context
-   memset(context, 0, sizeof(DhcpServerContext));
+   osMemset(context, 0, sizeof(DhcpServerContext));
    //Save user settings
    context->settings = *settings;
 
@@ -177,7 +177,7 @@ void dhcpServerDeinit(DhcpServerContext *context)
       }
 
       //Clear the DHCP server context
-      memset(context, 0, sizeof(DhcpServerContext));
+      osMemset(context, 0, sizeof(DhcpServerContext));
 
       //Release exclusive access
       osReleaseMutex(&netMutex);
@@ -193,7 +193,7 @@ void dhcpServerDeinit(DhcpServerContext *context)
 
 error_t dhcpServerStart(DhcpServerContext *context)
 {
-   //Check parameter
+   //Make sure the DHCP server context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -220,7 +220,7 @@ error_t dhcpServerStart(DhcpServerContext *context)
 
 error_t dhcpServerStop(DhcpServerContext *context)
 {
-   //Check parameter
+   //Make sure the DHCP server context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -299,12 +299,15 @@ void dhcpServerTick(DhcpServerContext *context)
  * @param[in] udpHeader UDP header
  * @param[in] buffer Multi-part buffer containing the incoming DHCP message
  * @param[in] offset Offset to the first byte of the DHCP message
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @param[in] param Pointer to the DHCP server context
  **/
 
 void dhcpServerProcessMessage(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, void *param)
+   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
+   void *param)
 {
    size_t length;
    DhcpServerContext *context;
@@ -669,7 +672,7 @@ void dhcpServerParseDecline(DhcpServerContext *context,
          if(binding->ipAddr == requestedIpAddr)
          {
             //Remote the binding from the list
-            memset(binding, 0, sizeof(DhcpServerBinding));
+            osMemset(binding, 0, sizeof(DhcpServerBinding));
          }
       }
    }
@@ -749,6 +752,7 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    IpAddr srcIpAddr;
    IpAddr destIpAddr;
    uint16_t destPort;
+   NetTxAncillary ancillary;
 
    //Point to the underlying network interface
    interface = context->settings.interface;
@@ -764,7 +768,7 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    //Point to the beginning of the DHCP message
    reply = netBufferAt(buffer, offset);
    //Clear memory buffer contents
-   memset(reply, 0, DHCP_MIN_MSG_SIZE);
+   osMemset(reply, 0, DHCP_MIN_MSG_SIZE);
 
    //Format DHCP reply message
    reply->op = DHCP_OPCODE_BOOTREPLY;
@@ -910,9 +914,12 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    //Dump the contents of the message for debugging purpose
    dhcpDumpMessage(reply, DHCP_MIN_MSG_SIZE);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send DHCP reply
-   error = udpSendDatagramEx(interface, &srcIpAddr, DHCP_SERVER_PORT,
-      &destIpAddr, destPort, buffer, offset, IPV4_DEFAULT_TTL);
+   error = udpSendBuffer(interface, &srcIpAddr, DHCP_SERVER_PORT, &destIpAddr,
+      destPort, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -950,7 +957,7 @@ DhcpServerBinding *dhcpServerCreateBinding(DhcpServerContext *context)
       if(macCompAddr(&binding->macAddr, &MAC_UNSPECIFIED_ADDR))
       {
          //Erase contents
-         memset(binding, 0, sizeof(DhcpServerBinding));
+         osMemset(binding, 0, sizeof(DhcpServerBinding));
          //Return a pointer to the newly created binding
          return binding;
       }
@@ -976,7 +983,7 @@ DhcpServerBinding *dhcpServerCreateBinding(DhcpServerContext *context)
    if(oldestBinding != NULL)
    {
       //Erase contents
-      memset(oldestBinding, 0, sizeof(DhcpServerBinding));
+      osMemset(oldestBinding, 0, sizeof(DhcpServerBinding));
    }
 
    //Return a pointer to the oldest binding

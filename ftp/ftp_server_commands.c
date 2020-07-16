@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -80,7 +80,7 @@ void ftpServerProcessCommand(FtpClientConnection *connection)
          //Switch to idle state
          connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
          //Format response message
-         strcpy(connection->response, "500 Command line too long\r\n");
+         osStrcpy(connection->response, "500 Command line too long\r\n");
       }
       else
       {
@@ -104,159 +104,159 @@ void ftpServerProcessCommand(FtpClientConnection *connection)
          }
 
          //NOOP command received?
-         if(!strcasecmp(connection->command, "NOOP"))
+         if(!osStrcasecmp(connection->command, "NOOP"))
          {
             ftpServerProcessNoop(connection, p);
          }
          //SYST command received?
-         else if(!strcasecmp(connection->command, "SYST"))
+         else if(!osStrcasecmp(connection->command, "SYST"))
          {
             ftpServerProcessSyst(connection, p);
          }
          //FEAT command received?
-         else if(!strcasecmp(connection->command, "FEAT"))
+         else if(!osStrcasecmp(connection->command, "FEAT"))
          {
             ftpServerProcessFeat(connection, p);
          }
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED)
          //AUTH command received?
-         else if(!strcasecmp(connection->command, "AUTH"))
+         else if(!osStrcasecmp(connection->command, "AUTH"))
          {
             ftpServerProcessAuth(connection, p);
          }
          //PBSZ command received?
-         else if(!strcasecmp(connection->command, "PBSZ"))
+         else if(!osStrcasecmp(connection->command, "PBSZ"))
          {
             ftpServerProcessPbsz(connection, p);
          }
          //PROT command received?
-         else if(!strcasecmp(connection->command, "PROT"))
+         else if(!osStrcasecmp(connection->command, "PROT"))
          {
             ftpServerProcessProt(connection, p);
          }
 #endif
          //TYPE command received?
-         else if(!strcasecmp(connection->command, "TYPE"))
+         else if(!osStrcasecmp(connection->command, "TYPE"))
          {
             ftpServerProcessType(connection, p);
          }
          //STRU command received?
-         else if(!strcasecmp(connection->command, "STRU"))
+         else if(!osStrcasecmp(connection->command, "STRU"))
          {
             ftpServerProcessStru(connection, p);
          }
          //MODE command received?
-         else if(!strcasecmp(connection->command, "MODE"))
+         else if(!osStrcasecmp(connection->command, "MODE"))
          {
             ftpServerProcessMode(connection, p);
          }
          //USER command received?
-         else if(!strcasecmp(connection->command, "USER"))
+         else if(!osStrcasecmp(connection->command, "USER"))
          {
             ftpServerProcessUser(connection, p);
          }
          //PASS command received?
-         else if(!strcasecmp(connection->command, "PASS"))
+         else if(!osStrcasecmp(connection->command, "PASS"))
          {
             ftpServerProcessPass(connection, p);
          }
          //REIN command received?
-         else if(!strcasecmp(connection->command, "REIN"))
+         else if(!osStrcasecmp(connection->command, "REIN"))
          {
             ftpServerProcessRein(connection, p);
          }
          //QUIT command received?
-         else if(!strcasecmp(connection->command, "QUIT"))
+         else if(!osStrcasecmp(connection->command, "QUIT"))
          {
             ftpServerProcessQuit(connection, p);
          }
          //PORT command received?
-         else if(!strcasecmp(connection->command, "PORT"))
+         else if(!osStrcasecmp(connection->command, "PORT"))
          {
             ftpServerProcessPort(connection, p);
          }
          //EPRT command received?
-         else if(!strcasecmp(connection->command, "EPRT"))
+         else if(!osStrcasecmp(connection->command, "EPRT"))
          {
             ftpServerProcessEprt(connection, p);
          }
          //PASV command received?
-         else if(!strcasecmp(connection->command, "PASV"))
+         else if(!osStrcasecmp(connection->command, "PASV"))
          {
             ftpServerProcessPasv(connection, p);
          }
          //EPSV command received?
-         else if(!strcasecmp(connection->command, "EPSV"))
+         else if(!osStrcasecmp(connection->command, "EPSV"))
          {
             ftpServerProcessEpsv(connection, p);
          }
          //ABOR command received?
-         else if(!strcasecmp(connection->command, "ABOR"))
+         else if(!osStrcasecmp(connection->command, "ABOR"))
          {
             ftpServerProcessAbor(connection, p);
          }
          //PWD command received?
-         else if(!strcasecmp(connection->command, "PWD"))
+         else if(!osStrcasecmp(connection->command, "PWD"))
          {
             ftpServerProcessPwd(connection, p);
          }
          //LIST command received?
-         else if(!strcasecmp(connection->command, "LIST"))
+         else if(!osStrcasecmp(connection->command, "LIST"))
          {
             ftpServerProcessList(connection, p);
          }
          //CWD command received?
-         else if(!strcasecmp(connection->command, "CWD"))
+         else if(!osStrcasecmp(connection->command, "CWD"))
          {
             ftpServerProcessCwd(connection, p);
          }
          //CDUP command received?
-         else if(!strcasecmp(connection->command, "CDUP"))
+         else if(!osStrcasecmp(connection->command, "CDUP"))
          {
             ftpServerProcessCdup(connection, p);
          }
          //MKD command received?
-         else if(!strcasecmp(connection->command, "MKD"))
+         else if(!osStrcasecmp(connection->command, "MKD"))
          {
             ftpServerProcessMkd(connection, p);
          }
          //RMD command received?
-         else if(!strcasecmp(connection->command, "RMD"))
+         else if(!osStrcasecmp(connection->command, "RMD"))
          {
             ftpServerProcessRmd(connection, p);
          }
          //SIZE command received?
-         else if(!strcasecmp(connection->command, "SIZE"))
+         else if(!osStrcasecmp(connection->command, "SIZE"))
          {
             ftpServerProcessSize(connection, p);
          }
          //RETR command received?
-         else if(!strcasecmp(connection->command, "RETR"))
+         else if(!osStrcasecmp(connection->command, "RETR"))
          {
             ftpServerProcessRetr(connection, p);
          }
          //STOR command received?
-         else if(!strcasecmp(connection->command, "STOR"))
+         else if(!osStrcasecmp(connection->command, "STOR"))
          {
             ftpServerProcessStor(connection, p);
          }
          //APPE command received?
-         else if(!strcasecmp(connection->command, "APPE"))
+         else if(!osStrcasecmp(connection->command, "APPE"))
          {
             ftpServerProcessAppe(connection, p);
          }
          //RNFR command received?
-         else if(!strcasecmp(connection->command, "RNFR"))
+         else if(!osStrcasecmp(connection->command, "RNFR"))
          {
             ftpServerProcessRnfr(connection, p);
          }
          //RNTO command received?
-         else if(!strcasecmp(connection->command, "RNTO"))
+         else if(!osStrcasecmp(connection->command, "RNTO"))
          {
             ftpServerProcessRnto(connection, p);
          }
          //DELE command received?
-         else if(!strcasecmp(connection->command, "DELE"))
+         else if(!osStrcasecmp(connection->command, "DELE"))
          {
             ftpServerProcessDele(connection, p);
          }
@@ -271,7 +271,7 @@ void ftpServerProcessCommand(FtpClientConnection *connection)
       TRACE_DEBUG("FTP server: %s", connection->response);
 
       //Number of bytes in the response buffer
-      connection->responseLen = strlen(connection->response);
+      connection->responseLen = osStrlen(connection->response);
       connection->responsePos = 0;
    }
    else if(connection->commandLen >= FTP_SERVER_MAX_LINE_LEN)
@@ -298,7 +298,7 @@ void ftpServerProcessCommand(FtpClientConnection *connection)
 void ftpServerProcessNoop(FtpClientConnection *connection, char_t *param)
 {
    //Send an OK reply
-   strcpy(connection->response, "200 Command okay\r\n");
+   osStrcpy(connection->response, "200 Command okay\r\n");
 }
 
 
@@ -315,7 +315,7 @@ void ftpServerProcessNoop(FtpClientConnection *connection, char_t *param)
 void ftpServerProcessSyst(FtpClientConnection *connection, char_t *param)
 {
    //Format the response to the SYST command
-   strcpy(connection->response, "215 UNIX Type: L8\r\n");
+   osStrcpy(connection->response, "215 UNIX Type: L8\r\n");
 }
 
 
@@ -339,7 +339,7 @@ void ftpServerProcessFeat(FtpClientConnection *connection, char_t *param)
 #endif
 
    //Format the response to the FEAT command
-   strcpy(connection->response, "211-Extensions supported:\r\n");
+   osStrcpy(connection->response, "211-Extensions supported:\r\n");
 
    //Each extension supported must be listed on a separate line
    strcat(connection->response, " SIZE\r\n");
@@ -387,7 +387,7 @@ void ftpServerProcessAuth(FtpClientConnection *connection, char_t *param)
    {
       //When using implicit FTPS, a TLS connection is immediately established
       //via port 990 before any command is exchanged
-      strcpy(connection->response, "534 Secure connection already negotiated\r\n");
+      osStrcpy(connection->response, "534 Secure connection already negotiated\r\n");
    }
    else if((context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
    {
@@ -395,12 +395,12 @@ void ftpServerProcessAuth(FtpClientConnection *connection, char_t *param)
       if(*param != '\0')
       {
          //TLS security mechanism?
-         if(!strcasecmp(param, "TLS"))
+         if(!osStrcasecmp(param, "TLS"))
          {
             //If the server is willing to accept the named security mechanism,
             //and does not require any security data, it must respond with reply
             //code 234
-            strcpy(connection->response, "234 AUTH TLS OK\r\n");
+            osStrcpy(connection->response, "234 AUTH TLS OK\r\n");
 
             //Establish a protected session
             connection->controlChannel.state = FTP_CHANNEL_STATE_AUTH_TLS_1;
@@ -408,20 +408,20 @@ void ftpServerProcessAuth(FtpClientConnection *connection, char_t *param)
          else
          {
             //The security mechanism is unknown
-            strcpy(connection->response, "504 Unknown security scheme\r\n");
+            osStrcpy(connection->response, "504 Unknown security scheme\r\n");
          }
       }
       else
       {
          //The argument is missing
-         strcpy(connection->response, "501 Missing parameter\r\n");
+         osStrcpy(connection->response, "501 Missing parameter\r\n");
       }
    }
    else
 #endif
    {
       //TLS security mode is not supported
-      strcpy(connection->response, "502 Command not implemented\r\n");
+      osStrcpy(connection->response, "502 Command not implemented\r\n");
    }
 }
 
@@ -452,19 +452,19 @@ void ftpServerProcessPbsz(FtpClientConnection *connection, char_t *param)
       if(*param != '\0')
       {
          //Format the response to the PBSZ command
-         strcpy(connection->response, "200 PBSZ=0\r\n");
+         osStrcpy(connection->response, "200 PBSZ=0\r\n");
       }
       else
       {
          //The argument is missing
-         strcpy(connection->response, "501 Missing parameter\r\n");
+         osStrcpy(connection->response, "501 Missing parameter\r\n");
       }
    }
    else
 #endif
    {
       //TLS security mode is not supported
-      strcpy(connection->response, "502 Command not implemented\r\n");
+      osStrcpy(connection->response, "502 Command not implemented\r\n");
    }
 }
 
@@ -494,31 +494,31 @@ void ftpServerProcessProt(FtpClientConnection *connection, char_t *param)
       if(*param != '\0')
       {
          //Private protection level?
-         if(!strcasecmp(param, "P"))
+         if(!osStrcasecmp(param, "P"))
          {
             //The server must reply with a 200 reply code to indicate that the
             //specified protection level is accepted
-            strcpy(connection->response, "200 Data protection level set to P\r\n");
+            osStrcpy(connection->response, "200 Data protection level set to P\r\n");
          }
          //Unknown security mechanism?
          else
          {
             //If the server does not understand the specified protection level,
             //it should respond with reply code 504
-            strcpy(connection->response, "504 Unknown protection level\r\n");
+            osStrcpy(connection->response, "504 Unknown protection level\r\n");
          }
       }
       else
       {
          //The argument is missing
-         strcpy(connection->response, "501 Missing parameter\r\n");
+         osStrcpy(connection->response, "501 Missing parameter\r\n");
       }
    }
    else
 #endif
    {
       //TLS security mode is not supported
-      strcpy(connection->response, "502 Command not implemented\r\n");
+      osStrcpy(connection->response, "502 Command not implemented\r\n");
    }
 }
 
@@ -538,28 +538,28 @@ void ftpServerProcessType(FtpClientConnection *connection, char_t *param)
    if(*param != '\0')
    {
       //ASCII type?
-      if(!strcasecmp(param, "A"))
+      if(!osStrcasecmp(param, "A"))
       {
          //Format the response to the TYPE command
-         strcpy(connection->response, "200 Type set to A\r\n");
+         osStrcpy(connection->response, "200 Type set to A\r\n");
       }
       //Image type?
-      else if(!strcasecmp(param, "I"))
+      else if(!osStrcasecmp(param, "I"))
       {
          //Format the response to the TYPE command
-         strcpy(connection->response, "200 Type set to I\r\n");
+         osStrcpy(connection->response, "200 Type set to I\r\n");
       }
       //Unknown type?
       else
       {
          //Report an error
-         strcpy(connection->response, "504 Unknown type\r\n");
+         osStrcpy(connection->response, "504 Unknown type\r\n");
       }
    }
    else
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
    }
 }
 
@@ -579,22 +579,22 @@ void ftpServerProcessStru(FtpClientConnection *connection, char_t *param)
    if(*param != '\0')
    {
       //No record structure?
-      if(!strcasecmp(param, "F"))
+      if(!osStrcasecmp(param, "F"))
       {
          //Format the response to the STRU command
-         strcpy(connection->response, "200 Structure set to F\r\n");
+         osStrcpy(connection->response, "200 Structure set to F\r\n");
       }
       //Unknown file structure?
       else
       {
          //Report an error
-         strcpy(connection->response, "504 Unknown structure\r\n");
+         osStrcpy(connection->response, "504 Unknown structure\r\n");
       }
    }
    else
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
    }
 }
 
@@ -614,22 +614,22 @@ void ftpServerProcessMode(FtpClientConnection *connection, char_t *param)
    if(*param != '\0')
    {
       //Stream mode?
-      if(!strcasecmp(param, "S"))
+      if(!osStrcasecmp(param, "S"))
       {
          //Format the response to the MODE command
-         strcpy(connection->response, "200 Mode set to S\r\n");
+         osStrcpy(connection->response, "200 Mode set to S\r\n");
       }
       //Unknown data transfer mode?
       else
       {
          //Report an error
-         strcpy(connection->response, "504 Unknown mode\r\n");
+         osStrcpy(connection->response, "504 Unknown mode\r\n");
       }
    }
    else
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
    }
 }
 
@@ -655,16 +655,16 @@ void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
 
    //Check the length of the user name
-   if(strlen(param) > FTP_SERVER_MAX_USERNAME_LEN)
+   if(osStrlen(param) > FTP_SERVER_MAX_USERNAME_LEN)
    {
       //The specified user name is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -679,7 +679,7 @@ void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
       if((context->settings.mode & FTP_SERVER_MODE_PLAINTEXT) == 0)
       {
          //Format response message
-         strcpy(connection->response, "421 Cleartext sessions are not accepted\r\n");
+         osStrcpy(connection->response, "421 Cleartext sessions are not accepted\r\n");
          //Exit immediately
          return;
       }
@@ -687,13 +687,13 @@ void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
 #endif
 
    //Save user name
-   strcpy(connection->user, param);
+   osStrcpy(connection->user, param);
    //Log out the user
    connection->userLoggedIn = FALSE;
    //Set home directory
-   strcpy(connection->homeDir, context->settings.rootDir);
+   osStrcpy(connection->homeDir, context->settings.rootDir);
    //Set current directory
-   strcpy(connection->currentDir, context->settings.rootDir);
+   osStrcpy(connection->currentDir, context->settings.rootDir);
 
    //Invoke user-defined callback, if any
    if(context->settings.checkUserCallback != NULL)
@@ -711,7 +711,7 @@ void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
       //The user is now logged in
       connection->userLoggedIn = TRUE;
       //Format response message
-      strcpy(connection->response, "230 User logged in, proceed\r\n");
+      osStrcpy(connection->response, "230 User logged in, proceed\r\n");
    }
    //Password required?
    else if(status == FTP_PASSWORD_REQUIRED)
@@ -719,13 +719,13 @@ void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
       //This command must be immediately followed by a PASS command
       connection->controlChannel.state = FTP_CHANNEL_STATE_USER;
       //Format response message
-      strcpy(connection->response, "331 User name okay, need password\r\n");
+      osStrcpy(connection->response, "331 User name okay, need password\r\n");
    }
    //Access denied?
    else
    {
       //Format response message
-      strcpy(connection->response, "530 Login authentication failed\r\n");
+      osStrcpy(connection->response, "530 Login authentication failed\r\n");
    }
 }
 
@@ -753,7 +753,7 @@ void ftpServerProcessPass(FtpClientConnection *connection, char_t *param)
       //Switch to idle state
       connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
       //Report an error
-      strcpy(connection->response, "503 Bad sequence of commands\r\n");
+      osStrcpy(connection->response, "503 Bad sequence of commands\r\n");
       //Exit immediately
       return;
    }
@@ -765,7 +765,7 @@ void ftpServerProcessPass(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -787,13 +787,13 @@ void ftpServerProcessPass(FtpClientConnection *connection, char_t *param)
       //The user is now logged in
       connection->userLoggedIn = TRUE;
       //Format response message
-      strcpy(connection->response, "230 User logged in, proceed\r\n");
+      osStrcpy(connection->response, "230 User logged in, proceed\r\n");
    }
    //Access denied?
    else
    {
       //Format response message
-      strcpy(connection->response, "530 Login authentication failed\r\n");
+      osStrcpy(connection->response, "530 Login authentication failed\r\n");
    }
 }
 
@@ -829,7 +829,7 @@ void ftpServerProcessRein(FtpClientConnection *connection, char_t *param)
    connection->userLoggedIn = FALSE;
 
    //Format response message
-   strcpy(connection->response, "220 Service ready for new user\r\n");
+   osStrcpy(connection->response, "220 Service ready for new user\r\n");
 }
 
 
@@ -852,7 +852,7 @@ void ftpServerProcessQuit(FtpClientConnection *connection, char_t *param)
       ftpServerCloseDataChannel(connection);
 
       //...and responds with a 221 reply
-      strcpy(connection->response, "221 Service closing control connection\r\n");
+      osStrcpy(connection->response, "221 Service closing control connection\r\n");
    }
    else
    {
@@ -862,7 +862,7 @@ void ftpServerProcessQuit(FtpClientConnection *connection, char_t *param)
 
       //...returning a 426 reply to indicate that the service request
       //terminated abnormally
-      strcpy(connection->response, "426 Connection closed; transfer aborted\r\n");
+      osStrcpy(connection->response, "426 Connection closed; transfer aborted\r\n");
 
       //The server then sends a 221 reply
       strcat(connection->response, "221 Service closing control connection\r\n");
@@ -910,7 +910,7 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -920,7 +920,7 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -946,7 +946,7 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
       }
 
       //Get the IP address to be used
-      token = strtok_r(param, ",", &p);
+      token = osStrtok_r(param, ",", &p);
       //Syntax error?
       if(token == NULL)
          break;
@@ -961,25 +961,25 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
       error = ERROR_INVALID_SYNTAX;
 
       //Get the most significant byte of the port number
-      token = strtok_r(NULL, ",", &p);
+      token = osStrtok_r(NULL, ",", &p);
       //Syntax error?
       if(token == NULL)
          break;
 
       //Convert the string representation to integer
-      connection->remotePort = (uint16_t) strtoul(token, &end, 10) << 8;
+      connection->remotePort = (uint16_t) osStrtoul(token, &end, 10) << 8;
       //Syntax error?
       if(*end != '\0')
          break;
 
       //Get the least significant byte of the port number
-      token = strtok_r(NULL, ",", &p);
+      token = osStrtok_r(NULL, ",", &p);
       //Syntax error?
       if(token == NULL)
          break;
 
       //Convert the string representation to integer
-      connection->remotePort |= strtoul(token, &end, 10) & 0xFF;
+      connection->remotePort |= osStrtoul(token, &end, 10) & 0xFF;
       //Syntax error?
       if(*end != '\0')
          break;
@@ -998,13 +998,13 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
       connection->remotePort = 0;
 
       //Format response message
-      strcpy(connection->response, "501 Syntax error in parameters or arguments\r\n");
+      osStrcpy(connection->response, "501 Syntax error in parameters or arguments\r\n");
       //Exit immediately
       return;
    }
 
    //Successful processing
-   strcpy(connection->response, "200 Command okay\r\n");
+   osStrcpy(connection->response, "200 Command okay\r\n");
 }
 
 
@@ -1031,7 +1031,7 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -1041,7 +1041,7 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1062,19 +1062,19 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
       error = ERROR_INVALID_SYNTAX;
 
       //Retrieve the network protocol to be used
-      token = strtok_r(param, delimiter, &p);
+      token = osStrtok_r(param, delimiter, &p);
       //Syntax error?
       if(token == NULL)
          break;
 
       //Convert the string representation to integer
-      protocol = strtoul(token, &end, 10);
+      protocol = osStrtoul(token, &end, 10);
       //Syntax error?
       if(*end != '\0')
          break;
 
       //Get the IP address to be used
-      token = strtok_r(NULL, delimiter, &p);
+      token = osStrtok_r(NULL, delimiter, &p);
       //Syntax error?
       if(token == NULL)
          break;
@@ -1119,13 +1119,13 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
       error = ERROR_INVALID_SYNTAX;
 
       //Get the port number to be used
-      token = strtok_r(NULL, delimiter, &p);
+      token = osStrtok_r(NULL, delimiter, &p);
       //Syntax error?
       if(token == NULL)
          break;
 
       //Convert the string representation to integer
-      connection->remotePort = (uint16_t) strtoul(token, &end, 10);
+      connection->remotePort = (uint16_t) osStrtoul(token, &end, 10);
       //Syntax error?
       if(*end != '\0')
          break;
@@ -1144,13 +1144,13 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
       connection->remotePort = 0;
 
       //Format response message
-      strcpy(connection->response, "501 Syntax error in parameters or arguments\r\n");
+      osStrcpy(connection->response, "501 Syntax error in parameters or arguments\r\n");
       //Exit immediately
       return;
    }
 
    //Successful processing
-   strcpy(connection->response, "200 Command okay\r\n");
+   osStrcpy(connection->response, "200 Command okay\r\n");
 }
 
 
@@ -1181,7 +1181,7 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -1299,7 +1299,7 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
       connection->dataChannel.state = FTP_CHANNEL_STATE_LISTEN;
 
       //Format response message
-      n = sprintf(connection->response, "227 Entering passive mode (");
+      n = osSprintf(connection->response, "227 Entering passive mode (");
 
       //Append host address
       ipv4AddrToString(ipAddr.ipv4Addr, connection->response + n);
@@ -1307,9 +1307,9 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
       strReplaceChar(connection->response, '.', ',');
 
       //Point to the end of the resulting string
-      p = connection->response + strlen(connection->response);
+      p = connection->response + osStrlen(connection->response);
       //Append port number
-      sprintf(p, ",%" PRIu8 ",%" PRIu8 ")\r\n", MSB(port), LSB(port));
+      osSprintf(p, ",%" PRIu8 ",%" PRIu8 ")\r\n", MSB(port), LSB(port));
    }
    else
    {
@@ -1317,7 +1317,7 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
       ftpServerCloseDataChannel(connection);
 
       //Format response message
-      strcpy(connection->response, "425 Can't enter passive mode\r\n");
+      osStrcpy(connection->response, "425 Can't enter passive mode\r\n");
    }
 }
 
@@ -1345,7 +1345,7 @@ void ftpServerProcessEpsv(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -1423,7 +1423,7 @@ void ftpServerProcessEpsv(FtpClientConnection *connection, char_t *param)
 
       //The response code for entering passive mode using an extended address
       //must be 229
-      sprintf(connection->response, "229 Entering extended passive mode (|||"
+      osSprintf(connection->response, "229 Entering extended passive mode (|||"
          "%" PRIu16 "|)\r\n", port);
    }
    else
@@ -1432,7 +1432,7 @@ void ftpServerProcessEpsv(FtpClientConnection *connection, char_t *param)
       ftpServerCloseDataChannel(connection);
 
       //Format response message
-      strcpy(connection->response, "425 Can't enter passive mode\r\n");
+      osStrcpy(connection->response, "425 Can't enter passive mode\r\n");
    }
 }
 
@@ -1458,7 +1458,7 @@ void ftpServerProcessAbor(FtpClientConnection *connection, char_t *param)
 
       //...and responds with a 226 reply, indicating that the abort command
       //was successfully processed
-      strcpy(connection->response, "226 Abort command successful\r\n");
+      osStrcpy(connection->response, "226 Abort command successful\r\n");
    }
    else
    {
@@ -1468,7 +1468,7 @@ void ftpServerProcessAbor(FtpClientConnection *connection, char_t *param)
 
       //...returning a 426 reply to indicate that the service request
       //terminated abnormally
-      strcpy(connection->response, "426 Connection closed; transfer aborted\r\n");
+      osStrcpy(connection->response, "426 Connection closed; transfer aborted\r\n");
 
       //The server then sends a 226 reply, indicating that the abort command
       //was successfully processed
@@ -1506,13 +1506,13 @@ void ftpServerProcessPwd(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
 
    //A successful PWD command uses the 257 reply code
-   sprintf(connection->response, "257 \"%s\" is current directory\r\n",
+   osSprintf(connection->response, "257 \"%s\" is current directory\r\n",
       ftpServerStripHomeDir(connection, connection->currentDir));
 }
 
@@ -1536,7 +1536,7 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -1545,7 +1545,7 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1558,7 +1558,7 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //Report an error
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1570,7 +1570,7 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_READ))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -1579,16 +1579,16 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    if(!fsDirExists(connection->path))
    {
       //Report an error
-      strcpy(connection->response, "550 Directory not found\r\n");
+      osStrcpy(connection->response, "550 Directory not found\r\n");
       //Exit immediately
       return;
    }
 
    //Change current working directory
-   strcpy(connection->currentDir, connection->path);
+   osStrcpy(connection->currentDir, connection->path);
 
    //A successful PWD command uses the 250 reply code
-   sprintf(connection->response, "250 Directory changed to %s\r\n",
+   osSprintf(connection->response, "250 Directory changed to %s\r\n",
       ftpServerStripHomeDir(connection, connection->currentDir));
 }
 
@@ -1610,13 +1610,13 @@ void ftpServerProcessCdup(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
 
    //Get current directory
-   strcpy(connection->path, connection->currentDir);
+   osStrcpy(connection->path, connection->currentDir);
 
    //Change to the parent directory
    pathCombine(connection->path, "..", FTP_SERVER_MAX_PATH_LEN);
@@ -1629,11 +1629,11 @@ void ftpServerProcessCdup(FtpClientConnection *connection, char_t *param)
    if(perm & FTP_FILE_PERM_READ)
    {
       //Update current directory
-      strcpy(connection->currentDir, connection->path);
+      osStrcpy(connection->currentDir, connection->path);
    }
 
    //A successful PWD command uses the 250 reply code
-   sprintf(connection->response, "250 Directory changed to %s\r\n",
+   osSprintf(connection->response, "250 Directory changed to %s\r\n",
       ftpServerStripHomeDir(connection, connection->currentDir));
 }
 
@@ -1656,7 +1656,7 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -1676,7 +1676,7 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //Use current directory if no pathname is specified
-      strcpy(connection->path, connection->currentDir);
+      osStrcpy(connection->path, connection->currentDir);
    }
    else
    {
@@ -1688,7 +1688,7 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
       if(error)
       {
          //The specified pathname is not valid...
-         strcpy(connection->response, "501 Invalid parameter\r\n");
+         osStrcpy(connection->response, "501 Invalid parameter\r\n");
          //Exit immediately
          return;
       }
@@ -1701,7 +1701,7 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_READ))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -1713,7 +1713,7 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
    if(!connection->dir)
    {
       //Report an error
-      strcpy(connection->response, "550 Directory not found\r\n");
+      osStrcpy(connection->response, "550 Directory not found\r\n");
       //Exit immediately
       return;
    }
@@ -1736,7 +1736,7 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
          //Clean up side effects
          fsCloseDir(connection->dir);
          //Format response
-         strcpy(connection->response, "450 Can't open data connection\r\n");
+         osStrcpy(connection->response, "450 Can't open data connection\r\n");
          //Exit immediately
          return;
       }
@@ -1753,7 +1753,7 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
    connection->controlChannel.state = FTP_CHANNEL_STATE_LIST;
 
    //Format response message
-   strcpy(connection->response, "150 Opening data connection\r\n");
+   osStrcpy(connection->response, "150 Opening data connection\r\n");
 }
 
 
@@ -1776,7 +1776,7 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -1785,7 +1785,7 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1798,7 +1798,7 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1810,7 +1810,7 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_WRITE))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -1822,13 +1822,13 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "550 Can't create directory\r\n");
+      osStrcpy(connection->response, "550 Can't create directory\r\n");
       //Exit immediately
       return;
    }
 
    //The specified directory was successfully created
-   sprintf(connection->response, "257 \"%s\" created\r\n",
+   osSprintf(connection->response, "257 \"%s\" created\r\n",
       ftpServerStripHomeDir(connection, connection->path));
 }
 
@@ -1852,7 +1852,7 @@ void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -1861,7 +1861,7 @@ void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1874,7 +1874,7 @@ void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1886,7 +1886,7 @@ void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_WRITE))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -1898,13 +1898,13 @@ void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified directory cannot be deleted...
-      strcpy(connection->response, "550 Can't remove directory\r\n");
+      osStrcpy(connection->response, "550 Can't remove directory\r\n");
       //Exit immediately
       return;
    }
 
    //The specified directory was successfully removed
-   strcpy(connection->response, "250 Directory removed\r\n");
+   osStrcpy(connection->response, "250 Directory removed\r\n");
 }
 
 
@@ -1927,7 +1927,7 @@ void ftpServerProcessSize(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -1936,7 +1936,7 @@ void ftpServerProcessSize(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1949,7 +1949,7 @@ void ftpServerProcessSize(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -1961,7 +1961,7 @@ void ftpServerProcessSize(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_LIST) && !(perm & FTP_FILE_PERM_READ))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -1973,13 +1973,13 @@ void ftpServerProcessSize(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //Report an error
-      strcpy(connection->response, "550 File not found\r\n");
+      osStrcpy(connection->response, "550 File not found\r\n");
       //Exit immediately
       return;
    }
 
    //Format response message
-   sprintf(connection->response, "213 %" PRIu32 "\r\n", size);
+   osSprintf(connection->response, "213 %" PRIu32 "\r\n", size);
 }
 
 
@@ -2001,7 +2001,7 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -2010,7 +2010,7 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2023,7 +2023,7 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2035,7 +2035,7 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_READ))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -2047,7 +2047,7 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    if(!connection->file)
    {
       //Report an error
-      strcpy(connection->response, "550 File not found\r\n");
+      osStrcpy(connection->response, "550 File not found\r\n");
       //Exit immediately
       return;
    }
@@ -2070,7 +2070,7 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
          //Clean up side effects
          fsCloseFile(connection->file);
          //Format response
-         strcpy(connection->response, "450 Can't open data connection\r\n");
+         osStrcpy(connection->response, "450 Can't open data connection\r\n");
          //Exit immediately
          return;
       }
@@ -2087,7 +2087,7 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    connection->controlChannel.state = FTP_CHANNEL_STATE_RETR;
 
    //Format response message
-   strcpy(connection->response, "150 Opening data connection\r\n");
+   osStrcpy(connection->response, "150 Opening data connection\r\n");
 }
 
 
@@ -2109,7 +2109,7 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -2118,7 +2118,7 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2131,7 +2131,7 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2143,7 +2143,7 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_WRITE))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -2156,7 +2156,7 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    if(!connection->file)
    {
       //Report an error
-      strcpy(connection->response, "550 File not found\r\n");
+      osStrcpy(connection->response, "550 File not found\r\n");
       //Exit immediately
       return;
    }
@@ -2179,7 +2179,7 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
          //Clean up side effects
          fsCloseFile(connection->file);
          //Format response
-         strcpy(connection->response, "450 Can't open data connection\r\n");
+         osStrcpy(connection->response, "450 Can't open data connection\r\n");
          //Exit immediately
          return;
       }
@@ -2196,7 +2196,7 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    connection->controlChannel.state = FTP_CHANNEL_STATE_STOR;
 
    //Format response message
-   strcpy(connection->response, "150 Opening data connection\r\n");
+   osStrcpy(connection->response, "150 Opening data connection\r\n");
 }
 
 
@@ -2218,7 +2218,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -2227,7 +2227,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2240,7 +2240,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2252,7 +2252,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_WRITE))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -2265,7 +2265,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    if(!connection->file)
    {
       //Report an error
-      strcpy(connection->response, "550 File not found\r\n");
+      osStrcpy(connection->response, "550 File not found\r\n");
       //Exit immediately
       return;
    }
@@ -2279,7 +2279,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
       //Clean up side effects
       fsCloseFile(connection->file);
       //Format response
-      strcpy(connection->response, "550 File unavailable\r\n");
+      osStrcpy(connection->response, "550 File unavailable\r\n");
    }
 
    //Check current data transfer mode
@@ -2300,7 +2300,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
          //Clean up side effects
          fsCloseFile(connection->file);
          //Format response
-         strcpy(connection->response, "450 Can't open data connection\r\n");
+         osStrcpy(connection->response, "450 Can't open data connection\r\n");
          //Exit immediately
          return;
       }
@@ -2317,7 +2317,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    connection->controlChannel.state = FTP_CHANNEL_STATE_APPE;
 
    //Format response message
-   strcpy(connection->response, "150 Opening data connection\r\n");
+   osStrcpy(connection->response, "150 Opening data connection\r\n");
 }
 
 
@@ -2340,7 +2340,7 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -2349,7 +2349,7 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2362,7 +2362,7 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2374,7 +2374,7 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_WRITE))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -2383,7 +2383,7 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
    if(!fsFileExists(connection->path) && !fsDirExists(connection->path))
    {
       //No such file or directory...
-      strcpy(connection->response, "550 File not found\r\n");
+      osStrcpy(connection->response, "550 File not found\r\n");
       //Exit immediately
       return;
    }
@@ -2391,7 +2391,7 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
    //This command must be immediately followed by a RNTO command
    connection->controlChannel.state = FTP_CHANNEL_STATE_RNFR;
    //Format the response message
-   strcpy(connection->response, "350 File exists, ready for destination name\r\n");
+   osStrcpy(connection->response, "350 File exists, ready for destination name\r\n");
 }
 
 
@@ -2415,7 +2415,7 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -2426,7 +2426,7 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
       //Switch to idle state
       connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
       //Report an error
-      strcpy(connection->response, "503 Bad sequence of commands\r\n");
+      osStrcpy(connection->response, "503 Bad sequence of commands\r\n");
       //Exit immediately
       return;
    }
@@ -2438,7 +2438,7 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2451,7 +2451,7 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2463,7 +2463,7 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_WRITE))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -2472,7 +2472,7 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
    if(fsFileExists(newPath) || fsDirExists(newPath))
    {
       //Report an error
-      strcpy(connection->response, "550 File already exists\r\n");
+      osStrcpy(connection->response, "550 File already exists\r\n");
       //Exit immediately
       return;
    }
@@ -2484,13 +2484,13 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified file cannot be renamed
-      strcpy(connection->response, "550 Can't rename file\r\n");
+      osStrcpy(connection->response, "550 Can't rename file\r\n");
       //Exit immediately
       return;
    }
 
    //The specified file was successfully deleted
-   strcpy(connection->response, "250 File renamed\r\n");
+   osStrcpy(connection->response, "250 File renamed\r\n");
 }
 
 
@@ -2513,7 +2513,7 @@ void ftpServerProcessDele(FtpClientConnection *connection, char_t *param)
    if(!connection->userLoggedIn)
    {
       //Format response message
-      strcpy(connection->response, "530 Not logged in\r\n");
+      osStrcpy(connection->response, "530 Not logged in\r\n");
       //Exit immediately
       return;
    }
@@ -2522,7 +2522,7 @@ void ftpServerProcessDele(FtpClientConnection *connection, char_t *param)
    if(*param == '\0')
    {
       //The argument is missing
-      strcpy(connection->response, "501 Missing parameter\r\n");
+      osStrcpy(connection->response, "501 Missing parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2535,7 +2535,7 @@ void ftpServerProcessDele(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified pathname is not valid...
-      strcpy(connection->response, "501 Invalid parameter\r\n");
+      osStrcpy(connection->response, "501 Invalid parameter\r\n");
       //Exit immediately
       return;
    }
@@ -2547,7 +2547,7 @@ void ftpServerProcessDele(FtpClientConnection *connection, char_t *param)
    if(!(perm & FTP_FILE_PERM_WRITE))
    {
       //Report an error
-      strcpy(connection->response, "550 Access denied\r\n");
+      osStrcpy(connection->response, "550 Access denied\r\n");
       //Exit immediately
       return;
    }
@@ -2559,13 +2559,13 @@ void ftpServerProcessDele(FtpClientConnection *connection, char_t *param)
    if(error)
    {
       //The specified file cannot be deleted...
-      strcpy(connection->response, "550 Can't delete file\r\n");
+      osStrcpy(connection->response, "550 Can't delete file\r\n");
       //Exit immediately
       return;
    }
 
    //The specified file was successfully deleted
-   strcpy(connection->response, "250 File deleted\r\n");
+   osStrcpy(connection->response, "250 File deleted\r\n");
 }
 
 
@@ -2600,7 +2600,7 @@ void ftpServerProcessUnknownCmd(FtpClientConnection *connection, char_t *param)
    if(error == ERROR_INVALID_COMMAND)
    {
       //Format response message
-      strcpy(connection->response, "500 Command unrecognized\r\n");
+      osStrcpy(connection->response, "500 Command unrecognized\r\n");
    }
 }
 

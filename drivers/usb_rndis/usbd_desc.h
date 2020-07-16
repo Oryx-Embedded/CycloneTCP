@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _USBD_DESC_H
@@ -58,11 +58,11 @@
 #define USB_NO_REMOTE_WAKEUP    0x80
 
 //Endpoint types
-#define USB_EP_TYPE_MASK        0x03
-#define USB_EP_TYPE_CONTROL     0x00
-#define USB_EP_TYPE_ISOCHRONOUS 0x01
-#define USB_EP_TYPE_BULK        0x02
-#define USB_EP_TYPE_INTERRUPT   0x03
+#define USB_ENDPOINT_TYPE_MASK        0x03
+#define USB_ENDPOINT_TYPE_CONTROL     0x00
+#define USB_ENDPOINT_TYPE_ISOCHRONOUS 0x01
+#define USB_ENDPOINT_TYPE_BULK        0x02
+#define USB_ENDPOINT_TYPE_INTERRUPT   0x03
 
 //Device class
 #define USB_DEVICE_CLASS_CDC    0x02

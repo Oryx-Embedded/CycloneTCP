@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _IPV6_ROUTING_H
@@ -80,8 +80,8 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
 error_t ipv6DeleteRoute(const Ipv6Addr *prefix, uint_t prefixLen);
 error_t ipv6DeleteAllRoutes(void);
 
-error_t ipv6ForwardPacket(NetInterface *srcInterface,
-   NetBuffer *ipPacket, size_t ipPacketOffset);
+error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
+   size_t ipPacketOffset);
 
 //C++ guard
 #ifdef __cplusplus

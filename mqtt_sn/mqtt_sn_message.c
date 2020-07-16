@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -58,7 +58,7 @@ error_t mqttSnFormatHeader(MqttSnMessage *message, MqttSnMsgType type,
       MqttSnHeader *header;
 
       //Make room for the message header (2 bytes)
-      memmove(message->buffer + sizeof(MqttSnHeader), message->buffer,
+      osMemmove(message->buffer + sizeof(MqttSnHeader), message->buffer,
          length);
 
       //The Length field specifies the total number of octets contained in
@@ -78,7 +78,7 @@ error_t mqttSnFormatHeader(MqttSnMessage *message, MqttSnMsgType type,
       MqttSnExtHeader *header;
 
       //Make room for the message header (4 bytes)
-      memmove(message->buffer + sizeof(MqttSnExtHeader), message->buffer,
+      osMemmove(message->buffer + sizeof(MqttSnExtHeader), message->buffer,
          length);
 
       //The Length field specifies the total number of octets contained in
@@ -157,10 +157,10 @@ error_t mqttSnFormatConnect(MqttSnMessage *message, MqttSnFlags flags,
    connect->duration = htons(duration);
 
    //Copy client identifier
-   strcpy(connect->clientId, clientId);
+   osStrcpy(connect->clientId, clientId);
 
    //Compute the length of the message
-   length = sizeof(MqttSnConnect) + strlen(clientId);
+   length = sizeof(MqttSnConnect) + osStrlen(clientId);
 
    //Format MQTT-SN message header
    return mqttSnFormatHeader(message, MQTT_SN_MSG_TYPE_CONNECT, length);
@@ -189,10 +189,10 @@ error_t mqttSnFormatWillTopic(MqttSnMessage *message, MqttSnFlags flags,
    {
       //Format WILLTOPICUPD message
       willTopic->flags = flags;
-      strcpy(willTopic->willTopic, topicName);
+      osStrcpy(willTopic->willTopic, topicName);
 
       //Compute the length of the message
-      length = sizeof(MqttSnWillTopic) + strlen(topicName);
+      length = sizeof(MqttSnWillTopic) + osStrlen(topicName);
    }
    else
    {
@@ -224,7 +224,7 @@ error_t mqttSnFormatWillMsg(MqttSnMessage *message, const void *data,
    willMsg = (MqttSnWillMsg *) message->buffer;
 
    //Copy Will message
-   memcpy(willMsg, data, dataLen);
+   osMemcpy(willMsg, data, dataLen);
 
    //Format MQTT-SN message header
    return mqttSnFormatHeader(message, MQTT_SN_MSG_TYPE_WILLMSG, dataLen);
@@ -254,10 +254,10 @@ error_t mqttSnFormatRegister(MqttSnMessage *message,
    reg->msgId = htons(msgId);
 
    //Copy topic name
-   strcpy(reg->topicName, topicName);
+   osStrcpy(reg->topicName, topicName);
 
    //Compute the length of the message
-   length = sizeof(MqttSnRegister) + strlen(topicName);
+   length = sizeof(MqttSnRegister) + osStrlen(topicName);
 
    //Format MQTT-SN message header
    return mqttSnFormatHeader(message, MQTT_SN_MSG_TYPE_REGISTER, length);
@@ -335,7 +335,7 @@ error_t mqttSnFormatPublish(MqttSnMessage *message, MqttSnFlags flags,
    else if(flags.topicIdType == MQTT_SN_SHORT_TOPIC_NAME)
    {
       //Make sure the short topic name is valid
-      if(topicName != NULL && strlen(topicName) == 2)
+      if(topicName != NULL && osStrlen(topicName) == 2)
       {
          //Short topic names are topic names that have a fixed length of two
          //octets. They are short enough for being carried together with the
@@ -358,7 +358,7 @@ error_t mqttSnFormatPublish(MqttSnMessage *message, MqttSnFlags flags,
    if(!error)
    {
       //Copy message payload
-      memcpy(publish->data, data, dataLen);
+      osMemcpy(publish->data, data, dataLen);
 
       //Compute the length of the message
       length = sizeof(MqttSnPublish) + dataLen;
@@ -515,9 +515,9 @@ error_t mqttSnFormatSubscribe(MqttSnMessage *message, MqttSnFlags flags,
       if(topicName != NULL)
       {
          //Copy topic name
-         strcpy(subscribe->topicName, topicName);
+         osStrcpy(subscribe->topicName, topicName);
          //Compute the length of the message
-         length = sizeof(MqttSnSubscribe) + strlen(topicName);
+         length = sizeof(MqttSnSubscribe) + osStrlen(topicName);
       }
       else
       {
@@ -528,12 +528,12 @@ error_t mqttSnFormatSubscribe(MqttSnMessage *message, MqttSnFlags flags,
    else if(flags.topicIdType == MQTT_SN_SHORT_TOPIC_NAME)
    {
       //Make sure the short topic name is valid
-      if(topicName != NULL && strlen(topicName) == 2)
+      if(topicName != NULL && osStrlen(topicName) == 2)
       {
          //Copy topic name
-         strcpy(subscribe->topicName, topicName);
+         osStrcpy(subscribe->topicName, topicName);
          //Compute the length of the message
-         length = sizeof(MqttSnSubscribe) + strlen(topicName);
+         length = sizeof(MqttSnSubscribe) + osStrlen(topicName);
       }
       else
       {
@@ -600,9 +600,9 @@ error_t mqttSnFormatUnsubscribe(MqttSnMessage *message, MqttSnFlags flags,
       if(topicName != NULL)
       {
          //Copy topic name
-         strcpy(unsubscribe->topicName, topicName);
+         osStrcpy(unsubscribe->topicName, topicName);
          //Compute the length of the message
-         length = sizeof(MqttSnSubscribe) + strlen(topicName);
+         length = sizeof(MqttSnSubscribe) + osStrlen(topicName);
       }
       else
       {
@@ -613,12 +613,12 @@ error_t mqttSnFormatUnsubscribe(MqttSnMessage *message, MqttSnFlags flags,
    else if(flags.topicIdType == MQTT_SN_SHORT_TOPIC_NAME)
    {
       //Make sure the short topic name is valid
-      if(topicName != NULL && strlen(topicName) == 2)
+      if(topicName != NULL && osStrlen(topicName) == 2)
       {
          //Copy topic name
-         strcpy(unsubscribe->topicName, topicName);
+         osStrcpy(unsubscribe->topicName, topicName);
          //Compute the length of the message
-         length = sizeof(MqttSnSubscribe) + strlen(topicName);
+         length = sizeof(MqttSnSubscribe) + osStrlen(topicName);
       }
       else
       {
@@ -667,10 +667,10 @@ error_t mqttSnFormatPingReq(MqttSnMessage *message, const char_t *clientId)
    pingReq = (MqttSnPingReq *) message->buffer;
 
    //Copy client identifier
-   strcpy(pingReq, clientId);
+   osStrcpy(pingReq, clientId);
 
    //Compute the length of the message
-   length = strlen(clientId);
+   length = osStrlen(clientId);
 
    //Format MQTT-SN message header
    return mqttSnFormatHeader(message, MQTT_SN_MSG_TYPE_PINGREQ, length);
@@ -755,10 +755,10 @@ error_t mqttSnFormatWillTopicUpd(MqttSnMessage *message, MqttSnFlags flags,
    {
       //Format WILLTOPICUPD message
       willTopicUpd->flags = flags;
-      strcpy(willTopicUpd->willTopic, topicName);
+      osStrcpy(willTopicUpd->willTopic, topicName);
 
       //Compute the length of the message
-      length = sizeof(MqttSnWillTopicUpd) + strlen(topicName);
+      length = sizeof(MqttSnWillTopicUpd) + osStrlen(topicName);
    }
    else
    {
@@ -790,7 +790,7 @@ error_t mqttSnFormatWillMsgUpd(MqttSnMessage *message, const void *data,
    willMsgUpd = (MqttSnWillMsgUpd *) message->buffer;
 
    //Copy Will message
-   memcpy(willMsgUpd, data, dataLen);
+   osMemcpy(willMsgUpd, data, dataLen);
 
    //Format MQTT-SN message header
    return mqttSnFormatHeader(message, MQTT_SN_MSG_TYPE_WILLMSGUPD, dataLen);

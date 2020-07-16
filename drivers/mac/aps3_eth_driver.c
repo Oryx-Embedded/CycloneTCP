@@ -1,12 +1,12 @@
 /**
  * @file aps3_eth_driver.c
- * @brief Cortus APS3 Ethernet MAC controller
+ * @brief Cortus APS3 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -102,11 +102,28 @@ error_t aps3EthInit(NetInterface *interface)
    //Adjust MDC clock range
    eth_miim->miim_clock_divider = 32;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Reset Ethernet MAC peripheral
    eth_mac->sw_reset = 1;
@@ -227,16 +244,29 @@ void aps3EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief Cortus APS3 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void aps3EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -251,8 +281,22 @@ void aps3EthEnableIrq(NetInterface *interface)
    irq[IRQ_ETH_TX].ien = 1;
    irq[IRQ_ETH_RX].ien = 1;
 
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -267,8 +311,22 @@ void aps3EthDisableIrq(NetInterface *interface)
    irq[IRQ_ETH_TX].ien = 0;
    irq[IRQ_ETH_RX].ien = 0;
 
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -287,7 +345,7 @@ void aps3EthTxIrqHandler(void)
    flag = FALSE;
 
    //Check interrupt flag
-   if(eth_tx->tx_status & TX_IRQ_MASK_MEMORY_AVAILABLE)
+   if((eth_tx->tx_status & TX_IRQ_MASK_MEMORY_AVAILABLE) != 0)
    {
       //Disable TX interrupts
       eth_tx->tx_irq_mask = 0;
@@ -341,8 +399,8 @@ void aps3EthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //A packet has been received?
-   if(eth_rx->rx_status & RX_IRQ_MASK_FRAME_READY)
+   //Packet received?
+   if((eth_rx->rx_status & RX_IRQ_MASK_FRAME_READY) != 0)
    {
       //Process all pending packets
       do
@@ -364,11 +422,13 @@ void aps3EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t aps3EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    uint_t i;
    size_t length;
@@ -433,6 +493,7 @@ error_t aps3EthReceivePacket(NetInterface *interface)
    error_t error;
    uint_t i;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
    if(!(eth_rx->rx_desc_status))
@@ -441,15 +502,19 @@ error_t aps3EthReceivePacket(NetInterface *interface)
       i = eth_rx->rx_desc_consume;
 
       //Make sure no error occurred
-      if(!(rxDmaDesc[i].status & RX_DESC_RECEIVE_ERROR))
+      if((rxDmaDesc[i].status & RX_DESC_RECEIVE_ERROR) == 0)
       {
          //Retrieve the length of the frame
          n = rxDmaDesc[i].size;
          //Limit the number of data to read
          n = MIN(n, APS3_ETH_RX_BUFFER_SIZE);
 
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_RX_ANCILLARY;
+
          //Pass the packet to the upper layer
-         nicProcessPacket(interface, (uint8_t *) rxDmaDesc[i].addr, n);
+         nicProcessPacket(interface, (uint8_t *) rxDmaDesc[i].addr, n,
+            &ancillary);
 
          //Valid packet received
          error = NO_ERROR;
@@ -554,9 +619,13 @@ error_t aps3EthUpdateMacConfig(NetInterface *interface)
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       eth_mac->full_duplex = 1;
+   }
    else
+   {
       eth_mac->full_duplex = 0;
+   }
 
    //Re-enable transmission and reception
    eth_tx->tx_enable = 1;
@@ -665,11 +734,13 @@ uint32_t aps3EthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -681,10 +752,14 @@ uint32_t aps3EthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(crc & 0x00000001)
+         if((crc & 0x01) != 0)
+         {
             crc = (crc >> 1) ^ 0xEDB88320;
+         }
          else
+         {
             crc = crc >> 1;
+         }
       }
    }
 

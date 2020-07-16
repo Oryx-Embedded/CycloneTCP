@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -183,18 +183,38 @@ error_t ethPadFrame(NetBuffer *buffer, size_t *length)
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in,out] offset Offset to the first payload byte
  * @param[in] vlanId VLAN identifier
+ * @param[in] vlanPcp VLAN priority
+ * @param[in] vlanDei Drop eligible indicator
  * @param[in] type Ethernet type
  * @return Error code
  **/
 
 error_t ethEncodeVlanTag(NetBuffer *buffer, size_t *offset, uint16_t vlanId,
-   uint16_t type)
+   int8_t vlanPcp, int8_t vlanDei, uint16_t type)
 {
    VlanTag *vlanTag;
 
    //Sanity check
    if(*offset < sizeof(VlanTag))
       return ERROR_INVALID_PARAMETER;
+
+   //Valid PCP value?
+   if(vlanPcp >= 0)
+   {
+      //The PCP field specifies the frame priority level. Different PCP values
+      //can be used to prioritize different classes of traffic
+      vlanId = (((uint16_t) vlanPcp << VLAN_PCP_POS) & VLAN_PCP_MASK) |
+         (vlanId & ~VLAN_PCP_MASK);
+   }
+
+   //Valid DEI value?
+   if(vlanDei >= 0)
+   {
+      //The DEI flag may be used to indicate frames eligible to be dropped in
+      //the presence of congestion
+      vlanId = (((uint16_t) vlanDei << VLAN_DEI_POS) & VLAN_DEI_MASK) |
+         (vlanId & ~VLAN_DEI_MASK);
+   }
 
    //Make room for the VLAN tag
    *offset -= sizeof(VlanTag);
@@ -214,7 +234,7 @@ error_t ethEncodeVlanTag(NetBuffer *buffer, size_t *offset, uint16_t vlanId,
 
 
 /**
- * @brief VLAN tag deccoding
+ * @brief VLAN tag decoding
  * @param[in] frame Pointer to the received Ethernet frame
  * @param[in] length Length of the frame, in bytes
  * @param[out] vlanId VLAN identifier
@@ -238,7 +258,7 @@ error_t ethDecodeVlanTag(const uint8_t *frame, size_t length, uint16_t *vlanId,
    vlanTag = (VlanTag *) frame;
 
    //The VID is encoded in a 12-bit field. The null VID indicates that the
-   //tag header contains only priority information (refer to IEEE 802.1q,
+   //tag header contains only priority information (refer to IEEE 802.1Q,
    //section 9.6)
    *vlanId = ntohs(vlanTag->tci) & VLAN_VID_MASK;
 

@@ -1,12 +1,12 @@
 /**
  * @file ksz9563_driver.c
- * @brief KSZ9563 3-port Gigabit Ethernet switch
+ * @brief KSZ9563 3-port Gigabit Ethernet switch driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -42,7 +42,7 @@
  * @brief KSZ9563 Ethernet switch driver
  **/
 
-const PhyDriver ksz9563PhyDriver =
+const SwitchDriver ksz9563SwitchDriver =
 {
    ksz9563Init,
    ksz9563Tick,
@@ -50,7 +50,20 @@ const PhyDriver ksz9563PhyDriver =
    ksz9563DisableIrq,
    ksz9563EventHandler,
    ksz9563TagFrame,
-   ksz9563UntagFrame
+   ksz9563UntagFrame,
+   ksz9563GetLinkState,
+   ksz9563GetLinkSpeed,
+   ksz9563GetDuplexMode,
+   ksz9563SetPortState,
+   ksz9563GetPortState,
+   ksz9563SetAgingTime,
+   ksz9563EnableRsvdMcastTable,
+   ksz9563AddStaticFdbEntry,
+   ksz9563DeleteStaticFdbEntry,
+   ksz9563GetStaticFdbEntry,
+   ksz9563FlushStaticFdbTable,
+   ksz9563GetDynamicFdbEntry,
+   ksz9563FlushDynamicFdbTable
 };
 
 
@@ -60,9 +73,9 @@ const PhyDriver ksz9563PhyDriver =
 
 const uint8_t ksz9563IngressTailTag[3] =
 {
-   0,
-   KSZ9563_TAIL_TAG_ENCODE(1),
-   KSZ9563_TAIL_TAG_ENCODE(2)
+   KSZ9563_TAIL_TAG_NORMAL_ADDR_LOOKUP,
+   KSZ9563_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9563_TAIL_TAG_DEST_PORT1,
+   KSZ9563_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9563_TAIL_TAG_DEST_PORT2
 };
 
 
@@ -83,85 +96,108 @@ error_t ksz9563Init(NetInterface *interface)
    //SPI slave mode?
    if(interface->spiDriver != NULL)
    {
-      //Initialize SPI
+      //Initialize SPI interface
       interface->spiDriver->init();
 
       //Wait for the serial interface to be ready
       do
       {
          //Read CHIP_ID1 register
-         temp = ksz9563ReadSwitchReg(interface, KSZ9563_CHIP_ID1);
+         temp = ksz9563ReadSwitchReg8(interface, KSZ9563_CHIP_ID1);
 
          //The returned data is invalid until the serial interface is ready
       } while(temp != KSZ9563_CHIP_ID1_DEFAULT);
 
       //Reset switch
-      ksz9563WriteSwitchReg(interface, KSZ9563_SWITCH_OP,
+      ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_OP,
          KSZ9563_SWITCH_OP_SOFT_HARD_RESET);
 
       //Wait for the reset to complete
       do
       {
          //Read switch operation register
-         temp = ksz9563ReadSwitchReg(interface, KSZ9563_SWITCH_OP);
+         temp = ksz9563ReadSwitchReg8(interface, KSZ9563_SWITCH_OP);
 
          //The reset bit is self-clearing
       } while((temp & KSZ9563_SWITCH_OP_SOFT_HARD_RESET) != 0);
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-      //Tail tagging mode?
-      if(interface->port != 0)
-      {
-         //Enable tail tag feature
-         temp = ksz9563ReadSwitchReg(interface, KSZ9563_PORT3_OP_CTRL0);
-         temp |= KSZ9563_PORTn_OP_CTRL0_TAIL_TAG_EN;
-         ksz9563WriteSwitchReg(interface, KSZ9563_PORT3_OP_CTRL0, temp);
+      //Enable tail tag feature
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_PORT3_OP_CTRL0);
+      temp |= KSZ9563_PORTn_OP_CTRL0_TAIL_TAG_EN;
+      ksz9563WriteSwitchReg8(interface, KSZ9563_PORT3_OP_CTRL0, temp);
 
-         //Loop through ports
-         for(port = KSZ9563_PORT1; port <= KSZ9563_PORT2; port++)
-         {
-            //Disable packet transmission and switch address learning
-            temp = ksz9563ReadSwitchReg(interface, KSZ9563_PORTn_MSTP_STATE(port));
-            temp &= ~KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN;
-            temp |= KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN;
-            temp |= KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS;
-            ksz9563WriteSwitchReg(interface, KSZ9563_PORTn_MSTP_STATE(port), temp);
-         }
-      }
-      else
+      //Disable frame length check (silicon errata workaround)
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_SWITCH_MAC_CTRL0);
+      temp &= ~KSZ9563_SWITCH_MAC_CTRL0_FRAME_LEN_CHECK_EN;
+      ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_MAC_CTRL0, temp);
+#else
+      //Disable tail tag feature
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_PORT3_OP_CTRL0);
+      temp &= ~KSZ9563_PORTn_OP_CTRL0_TAIL_TAG_EN;
+      ksz9563WriteSwitchReg8(interface, KSZ9563_PORT3_OP_CTRL0, temp);
+
+      //Enable frame length check
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_SWITCH_MAC_CTRL0);
+      temp |= KSZ9563_SWITCH_MAC_CTRL0_FRAME_LEN_CHECK_EN;
+      ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_MAC_CTRL0, temp);
 #endif
-      {
-         //Disable tail tag feature
-         temp = ksz9563ReadSwitchReg(interface, KSZ9563_PORT3_OP_CTRL0);
-         temp &= ~KSZ9563_PORTn_OP_CTRL0_TAIL_TAG_EN;
-         ksz9563WriteSwitchReg(interface, KSZ9563_PORT3_OP_CTRL0, temp);
 
-         //Loop through ports
-         for(port = KSZ9563_PORT1; port <= KSZ9563_PORT2; port++)
+      //Loop through the ports
+      for(port = KSZ9563_PORT1; port <= KSZ9563_PORT2; port++)
+      {
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+         //Port separation mode?
+         if(interface->port != 0)
          {
-            //Enable transmission, reception and switch address learning
-            temp = ksz9563ReadSwitchReg(interface, KSZ9563_PORTn_MSTP_STATE(port));
-            temp |= KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN;
-            temp |= KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN;
-            temp &= ~KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS;
-            ksz9563WriteSwitchReg(interface, KSZ9563_PORTn_MSTP_STATE(port), temp);
+            //Disable packet transmission and address learning
+            ksz9563SetPortState(interface, port, SWITCH_PORT_STATE_LISTENING);
+         }
+         else
+#endif
+         {
+            //Enable transmission, reception and address learning
+            ksz9563SetPortState(interface, port, SWITCH_PORT_STATE_FORWARDING);
          }
       }
+
+      //Restore default age count
+      ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL0,
+         KSZ9563_SWITCH_LUE_CTRL0_AGE_COUNT_DEFAULT |
+         KSZ9563_SWITCH_LUE_CTRL0_HASH_OPTION_CRC);
+
+      //Restore default age period
+      ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL3,
+         KSZ9563_SWITCH_LUE_CTRL3_AGE_PERIOD_DEFAULT);
 
       //Add internal delay to ingress and egress RGMII clocks
-      temp = ksz9563ReadSwitchReg(interface, KSZ9563_PORT3_XMII_CTRL1);
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_PORT3_XMII_CTRL1);
       temp |= KSZ9563_PORTn_XMII_CTRL1_RGMII_ID_IG;
       temp |= KSZ9563_PORTn_XMII_CTRL1_RGMII_ID_EG;
-      ksz9563WriteSwitchReg(interface, KSZ9563_PORT3_XMII_CTRL1, temp);
+      ksz9563WriteSwitchReg8(interface, KSZ9563_PORT3_XMII_CTRL1, temp);
 
       //Start switch operation
-      ksz9563WriteSwitchReg(interface, KSZ9563_SWITCH_OP,
+      ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_OP,
          KSZ9563_SWITCH_OP_START_SWITCH);
    }
+   else if(interface->smiDriver != NULL)
+   {
+      //Initialize serial management interface
+      interface->smiDriver->init();
+   }
+   else
+   {
+      //Just for sanity
+   }
 
-   //Loop through ports
+   //Loop through the ports
    for(port = KSZ9563_PORT1; port <= KSZ9563_PORT2; port++)
    {
+      //Select tri-color dual-LED mode (silicon errata workaround)
+      ksz9563WriteMmdReg(interface, port, KSZ9563_MMD_LED_MODE,
+         KSZ9563_MMD_LED_MODE_LED_MODE_TRI_COLOR_DUAL |
+         KSZ9563_MMD_LED_MODE_RESERVED_DEFAULT);
+
       //Debug message
       TRACE_DEBUG("Port %u:\r\n", port);
       //Dump PHY registers for debugging purpose
@@ -179,46 +215,6 @@ error_t ksz9563Init(NetInterface *interface)
 
 
 /**
- * @brief Get link state
- * @param[in] interface Underlying network interface
- * @param[in] port Port number
- * @return Link state
- **/
-
-bool_t ksz9563GetLinkState(NetInterface *interface, uint8_t port)
-{
-   uint16_t value;
-   bool_t linkState;
-
-   //Check port number
-   if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
-   {
-      //Get exclusive access
-      osAcquireMutex(&netMutex);
-
-      //Any link failure condition is latched in the BMSR register. Reading
-      //the register twice will always return the actual link status
-      value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
-      value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
-
-      //Retrieve current link state
-      linkState = (value & KSZ9563_BMSR_LINK_STATUS) ? TRUE : FALSE;
-
-      //Release exclusive access
-      osReleaseMutex(&netMutex);
-   }
-   else
-   {
-      //The specified port number is not valid
-      linkState = FALSE;
-   }
-
-   //Return link status
-   return linkState;
-}
-
-
-/**
  * @brief KSZ9563 timer handler
  * @param[in] interface Underlying network interface
  **/
@@ -226,11 +222,10 @@ bool_t ksz9563GetLinkState(NetInterface *interface, uint8_t port)
 void ksz9563Tick(NetInterface *interface)
 {
    uint_t port;
-   uint16_t value;
    bool_t linkState;
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Tail tagging mode?
+   //Port separation mode?
    if(interface->port != 0)
    {
       uint_t i;
@@ -244,28 +239,19 @@ void ksz9563Tick(NetInterface *interface)
 
          //Check whether the current virtual interface is attached to the
          //physical interface
-         if(virtualInterface == interface || virtualInterface->parent == interface)
+         if(virtualInterface == interface ||
+            virtualInterface->parent == interface)
          {
-            //The tail tag is used to indicate the source/destination port
-            port = virtualInterface->port;
+            //Retrieve current link state
+            linkState = ksz9563GetLinkState(interface, virtualInterface->port);
 
-            //Valid port?
-            if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
+            //Link up or link down event?
+            if(linkState != virtualInterface->linkState)
             {
-               //Read status register
-               value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
-
-               //Retrieve current link state
-               linkState = (value & KSZ9563_BMSR_LINK_STATUS) ? TRUE : FALSE;
-
-               //Link up or link down event?
-               if(linkState != virtualInterface->linkState)
-               {
-                  //Set event flag
-                  interface->phyEvent = TRUE;
-                  //Notify the TCP/IP stack of the event
-                  osSetEvent(&netEvent);
-               }
+               //Set event flag
+               interface->phyEvent = TRUE;
+               //Notify the TCP/IP stack of the event
+               osSetEvent(&netEvent);
             }
          }
       }
@@ -276,15 +262,14 @@ void ksz9563Tick(NetInterface *interface)
       //Initialize link state
       linkState = FALSE;
 
-      //Loop through ports
+      //Loop through the ports
       for(port = KSZ9563_PORT1; port <= KSZ9563_PORT2; port++)
       {
-         //Read status register
-         value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
-
          //Retrieve current link state
-         if(value & KSZ9563_BMSR_LINK_STATUS)
+         if(ksz9563GetLinkState(interface, port))
+         {
             linkState = TRUE;
+         }
       }
 
       //Link up or link down event?
@@ -327,11 +312,10 @@ void ksz9563DisableIrq(NetInterface *interface)
 void ksz9563EventHandler(NetInterface *interface)
 {
    uint_t port;
-   uint16_t value;
    bool_t linkState;
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Tail tagging mode?
+   //Port separation mode?
    if(interface->port != 0)
    {
       uint_t i;
@@ -348,58 +332,36 @@ void ksz9563EventHandler(NetInterface *interface)
          if(virtualInterface == interface ||
             virtualInterface->parent == interface)
          {
-            //The tail tag is used to indicate the source/destination port
+            //Get the port number associated with the current interface
             port = virtualInterface->port;
 
             //Valid port?
             if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
             {
-               //Any link failure condition is latched in the BMSR register. Reading
-               //the register twice will always return the actual link status
-               value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
-               value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
-
                //Retrieve current link state
-               linkState = (value & KSZ9563_BMSR_LINK_STATUS) ? TRUE : FALSE;
+               linkState = ksz9563GetLinkState(interface, port);
 
                //Link up event?
                if(linkState && !virtualInterface->linkState)
                {
+                  //Retrieve host interface speed
+                  interface->linkSpeed = ksz9563GetLinkSpeed(interface,
+                     KSZ9563_PORT3);
+
+                  //Retrieve host interface duplex mode
+                  interface->duplexMode = ksz9563GetDuplexMode(interface,
+                     KSZ9563_PORT3);
+
                   //Adjust MAC configuration parameters for proper operation
-                  interface->linkSpeed = NIC_LINK_SPEED_1GBPS;
-                  interface->duplexMode = NIC_FULL_DUPLEX_MODE;
                   interface->nicDriver->updateMacConfig(interface);
 
-                  //Read PHY control register
-                  value = ksz9563ReadPhyReg(interface, port, KSZ9563_PHYCON);
-
                   //Check current speed
-                  if(value & KSZ9563_PHYCON_SPEED_1000BT)
-                  {
-                     //1000BASE-T
-                     virtualInterface->linkSpeed = NIC_LINK_SPEED_1GBPS;
-                  }
-                  else if(value & KSZ9563_PHYCON_SPEED_100BTX)
-                  {
-                     //100BASE-TX
-                     virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                  }
-                  else if(value & KSZ9563_PHYCON_SPEED_10BT)
-                  {
-                     //10BASE-T
-                     virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
-                  }
-                  else
-                  {
-                     //Debug message
-                     TRACE_WARNING("Invalid speed!\r\n");
-                  }
+                  virtualInterface->linkSpeed = ksz9563GetLinkSpeed(interface,
+                     port);
 
                   //Check current duplex mode
-                  if(value & KSZ9563_PHYCON_DUPLEX_STATUS)
-                     virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
-                  else
-                     virtualInterface->duplexMode = NIC_HALF_DUPLEX_MODE;
+                  virtualInterface->duplexMode = ksz9563GetDuplexMode(interface,
+                     port);
 
                   //Update link state
                   virtualInterface->linkState = TRUE;
@@ -426,25 +388,25 @@ void ksz9563EventHandler(NetInterface *interface)
       //Initialize link state
       linkState = FALSE;
 
-      //Loop through ports
+      //Loop through the ports
       for(port = KSZ9563_PORT1; port <= KSZ9563_PORT2; port++)
       {
-         //Any link failure condition is latched in the BMSR register. Reading
-         //the register twice will always return the actual link status
-         value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
-         value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
-
          //Retrieve current link state
-         if(value & KSZ9563_BMSR_LINK_STATUS)
+         if(ksz9563GetLinkState(interface, port))
+         {
             linkState = TRUE;
+         }
       }
 
       //Link up event?
       if(linkState)
       {
+         //Retrieve host interface speed
+         interface->linkSpeed = ksz9563GetLinkSpeed(interface, KSZ9563_PORT3);
+         //Retrieve host interface duplex mode
+         interface->duplexMode = ksz9563GetDuplexMode(interface, KSZ9563_PORT3);
+
          //Adjust MAC configuration parameters for proper operation
-         interface->linkSpeed = NIC_LINK_SPEED_1GBPS;
-         interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          interface->nicDriver->updateMacConfig(interface);
 
          //Update link state
@@ -467,51 +429,57 @@ void ksz9563EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in,out] offset Offset to the first payload byte
- * @param[in] port Switch port identifier
- * @param[in,out] type Ethernet type
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ksz9563TagFrame(NetInterface *interface, NetBuffer *buffer,
-   size_t *offset, uint8_t port, uint16_t *type)
+   size_t *offset, NetTxAncillary *ancillary)
 {
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    error_t error;
-   size_t length;
-   const uint8_t *tailTag;
 
-   //Valid port?
-   if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
+   //Initialize status code
+   error = NO_ERROR;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
    {
-      //The one byte tail tagging is used to indicate the destination port
-      tailTag = &ksz9563IngressTailTag[port];
-
-      //Retrieve the length of the frame
-      length = netBufferGetLength(buffer) - *offset;
-
-      //The host controller should manually add padding to the packet before
-      //inserting the tail tag
-      error = ethPadFrame(buffer, &length);
-
-      //Check status code
-      if(!error)
+      //Valid port?
+      if(ancillary->port <= KSZ9563_PORT2)
       {
-         //The tail tag is inserted at the end of the packet, just before the CRC
-         error = netBufferAppend(buffer, tailTag, sizeof(uint8_t));
+         size_t length;
+         const uint8_t *tailTag;
+
+         //The one byte tail tagging is used to indicate the destination port
+         tailTag = &ksz9563IngressTailTag[ancillary->port];
+
+         //Retrieve the length of the Ethernet frame
+         length = netBufferGetLength(buffer) - *offset;
+
+         //The host controller should manually add padding to the packet before
+         //inserting the tail tag
+         error = ethPadFrame(buffer, &length);
+
+         //Check status code
+         if(!error)
+         {
+            //The tail tag is inserted at the end of the packet, just before
+            //the CRC
+            error = netBufferAppend(buffer, tailTag, sizeof(uint8_t));
+         }
+      }
+      else
+      {
+         //The port number is not valid
+         error = ERROR_INVALID_PORT;
       }
    }
-   else
-   {
-      //Invalid port identifier
-      error = ERROR_WRONG_IDENTIFIER;
-   }
+#endif
 
    //Return status code
    return error;
-#else
-   //Tail tagging mode is not implemented
-   return NO_ERROR;
-#endif
 }
 
 
@@ -520,44 +488,929 @@ error_t ksz9563TagFrame(NetInterface *interface, NetBuffer *buffer,
  * @param[in] interface Underlying network interface
  * @param[in,out] frame Pointer to the received Ethernet frame
  * @param[in,out] length Length of the frame, in bytes
- * @param[out] port Switch port identifier
+ * @param[in,out] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ksz9563UntagFrame(NetInterface *interface, uint8_t **frame,
-   size_t *length, uint8_t *port)
+   size_t *length, NetRxAncillary *ancillary)
 {
-#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    error_t error;
-   uint8_t *tailTag;
 
-   //Valid Ethernet frame received?
-   if(*length >= (sizeof(EthHeader) + sizeof(uint8_t)))
+   //Initialize status code
+   error = NO_ERROR;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
    {
-      //The tail tag is inserted at the end of the packet, just before the CRC
-      tailTag = *frame + *length - sizeof(uint8_t);
+      //Valid Ethernet frame received?
+      if(*length >= (sizeof(EthHeader) + sizeof(uint8_t)))
+      {
+         uint8_t *tailTag;
 
-      //The one byte tail tagging is used to indicate the source port
-      *port = KSZ9563_TAIL_TAG_DECODE(*tailTag);
+         //The tail tag is inserted at the end of the packet, just before
+         //the CRC
+         tailTag = *frame + *length - sizeof(uint8_t);
 
-      //Strip tail tag from Ethernet frame
-      *length -= sizeof(uint8_t);
+         //The one byte tail tagging is used to indicate the source port
+         ancillary->port = (*tailTag & KSZ9563_TAIL_TAG_SRC_PORT) + 1;
+
+         //Strip tail tag from Ethernet frame
+         *length -= sizeof(uint8_t);
+      }
+      else
+      {
+         //Drop the received frame
+         error = ERROR_INVALID_LENGTH;
+      }
+   }
+   else
+   {
+      //Tail tagging mode cannot be enabled through MDC/MDIO interface
+      ancillary->port = 0;
+   }
+#endif
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Get link state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Link state
+ **/
+
+bool_t ksz9563GetLinkState(NetInterface *interface, uint8_t port)
+{
+   uint16_t value;
+   bool_t linkState;
+
+   //Check port number
+   if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
+   {
+      //Any link failure condition is latched in the BMSR register. Reading
+      //the register twice will always return the actual link status
+      value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
+      value = ksz9563ReadPhyReg(interface, port, KSZ9563_BMSR);
+
+      //Retrieve current link state
+      linkState = (value & KSZ9563_BMSR_LINK_STATUS) ? TRUE : FALSE;
+   }
+   else
+   {
+      //The specified port number is not valid
+      linkState = FALSE;
+   }
+
+   //Return link status
+   return linkState;
+}
+
+
+/**
+ * @brief Get link speed
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Link speed
+ **/
+
+uint32_t ksz9563GetLinkSpeed(NetInterface *interface, uint8_t port)
+{
+   uint8_t type;
+   uint16_t value;
+   uint32_t linkSpeed;
+
+   //Check port number
+   if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
+   {
+      //Read PHY control register
+      value = ksz9563ReadPhyReg(interface, port, KSZ9563_PHYCON);
+
+      //Retrieve current link speed
+      if((value & KSZ9563_PHYCON_SPEED_1000BT) != 0)
+      {
+         //1000BASE-T
+         linkSpeed = NIC_LINK_SPEED_1GBPS;
+      }
+      else if((value & KSZ9563_PHYCON_SPEED_100BTX) != 0)
+      {
+         //100BASE-TX
+         linkSpeed = NIC_LINK_SPEED_100MBPS;
+      }
+      else if((value & KSZ9563_PHYCON_SPEED_10BT) != 0)
+      {
+         //10BASE-T
+         linkSpeed = NIC_LINK_SPEED_10MBPS;
+      }
+      else
+      {
+         //The link speed is not valid
+         linkSpeed = NIC_LINK_SPEED_UNKNOWN;
+      }
+   }
+   else if(port == KSZ9563_PORT3)
+   {
+      //SPI slave mode?
+      if(interface->spiDriver != NULL)
+      {
+         //Read port 3 XMII control 1 register
+         value = ksz9563ReadSwitchReg8(interface, KSZ9563_PORT3_XMII_CTRL1);
+
+         //Retrieve host interface type
+         type = value & KSZ9563_PORTn_XMII_CTRL1_IF_TYPE;
+
+         //Gigabit interface?
+         if(type == KSZ9563_PORTn_XMII_CTRL1_IF_TYPE_RGMII &&
+            (value & KSZ9563_PORTn_XMII_CTRL1_SPEED_1000) != 0)
+         {
+            //1000 Mb/s mode
+            linkSpeed = NIC_LINK_SPEED_1GBPS;
+         }
+         else
+         {
+            //Read port 3 XMII control 0 register
+            value = ksz9563ReadSwitchReg8(interface, KSZ9563_PORT3_XMII_CTRL0);
+
+            //Retrieve host interface speed
+            if((value & KSZ9563_PORTn_XMII_CTRL0_SPEED_10_100) != 0)
+            {
+               //100 Mb/s mode
+               linkSpeed = NIC_LINK_SPEED_100MBPS;
+            }
+            else
+            {
+               //10 Mb/s mode
+               linkSpeed = NIC_LINK_SPEED_10MBPS;
+            }
+         }
+      }
+      else
+      {
+         //The MDC/MDIO interface does not have access to all the configuration
+         //registers. It can only access the standard MIIM registers
+         linkSpeed = NIC_LINK_SPEED_100MBPS;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+      linkSpeed = NIC_LINK_SPEED_UNKNOWN;
+   }
+
+   //Return link status
+   return linkSpeed;
+}
+
+
+/**
+ * @brief Get duplex mode
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Duplex mode
+ **/
+
+NicDuplexMode ksz9563GetDuplexMode(NetInterface *interface, uint8_t port)
+{
+   uint16_t value;
+   NicDuplexMode duplexMode;
+
+   //Check port number
+   if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
+   {
+      //Read PHY control register
+      value = ksz9563ReadPhyReg(interface, port, KSZ9563_PHYCON);
+
+      //Retrieve current duplex mode
+      if((value & KSZ9563_PHYCON_DUPLEX_STATUS) != 0)
+      {
+         duplexMode = NIC_FULL_DUPLEX_MODE;
+      }
+      else
+      {
+         duplexMode = NIC_HALF_DUPLEX_MODE;
+      }
+   }
+   else if(port == KSZ9563_PORT3)
+   {
+      //SPI slave mode?
+      if(interface->spiDriver != NULL)
+      {
+         //Read port 3 XMII control 0 register
+         value = ksz9563ReadSwitchReg8(interface, KSZ9563_PORT3_XMII_CTRL0);
+
+         //Retrieve host interface duplex mode
+         if((value & KSZ9563_PORTn_XMII_CTRL0_DUPLEX) != 0)
+         {
+            duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
+         else
+         {
+            duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
+      }
+      else
+      {
+         //The MDC/MDIO interface does not have access to all the configuration
+         //registers. It can only access the standard MIIM registers
+         duplexMode = NIC_FULL_DUPLEX_MODE;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+      duplexMode = NIC_UNKNOWN_DUPLEX_MODE;
+   }
+
+   //Return duplex mode
+   return duplexMode;
+}
+
+
+/**
+ * @brief Set port state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @param[in] state Port state
+ * @return Duplex mode
+ **/
+
+void ksz9563SetPortState(NetInterface *interface, uint8_t port,
+   SwitchPortState state)
+{
+   uint16_t temp;
+
+   //Check port number
+   if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
+   {
+      //Read MSTP state register
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_PORTn_MSTP_STATE(port));
+
+      //Update port state
+      switch(state)
+      {
+      //Listening state
+      case SWITCH_PORT_STATE_LISTENING:
+         temp &= ~KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN;
+         temp |= KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN;
+         temp |= KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS;
+         break;
+
+      //Learning state
+      case SWITCH_PORT_STATE_LEARNING:
+         temp &= ~KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN;
+         temp &= ~KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN;
+         temp &= ~KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS;
+         break;
+
+      //Forwarding state
+      case SWITCH_PORT_STATE_FORWARDING:
+         temp |= KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN;
+         temp |= KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN;
+         temp &= ~KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS;
+         break;
+
+      //Disabled state
+      default:
+         temp &= ~KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN;
+         temp &= ~KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN;
+         temp |= KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS;
+         break;
+      }
+
+      //Write the value back to MSTP state register
+      ksz9563WriteSwitchReg8(interface, KSZ9563_PORTn_MSTP_STATE(port), temp);
+   }
+}
+
+
+/**
+ * @brief Get port state
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Port state
+ **/
+
+SwitchPortState ksz9563GetPortState(NetInterface *interface, uint8_t port)
+{
+   uint16_t temp;
+   SwitchPortState state;
+
+   //Check port number
+   if(port >= KSZ9563_PORT1 && port <= KSZ9563_PORT2)
+   {
+      //Read MSTP state register
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_PORTn_MSTP_STATE(port));
+
+      //Check port state
+      if((temp & KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN) == 0 &&
+         (temp & KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN) == 0 &&
+         (temp & KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS) != 0)
+      {
+         //Disabled state
+         state = SWITCH_PORT_STATE_DISABLED;
+      }
+      else if((temp & KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN) == 0 &&
+         (temp & KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN) != 0 &&
+         (temp & KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS) != 0)
+      {
+         //Listening state
+         state = SWITCH_PORT_STATE_LISTENING;
+      }
+      else if((temp & KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN) == 0 &&
+         (temp & KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN) == 0 &&
+         (temp & KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS) == 0)
+      {
+         //Learning state
+         state = SWITCH_PORT_STATE_LEARNING;
+      }
+      else if((temp & KSZ9563_PORTn_MSTP_STATE_TRANSMIT_EN) != 0 &&
+         (temp & KSZ9563_PORTn_MSTP_STATE_RECEIVE_EN) != 0 &&
+         (temp & KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS) == 0)
+      {
+         //Forwarding state
+         state = SWITCH_PORT_STATE_FORWARDING;
+      }
+      else
+      {
+         //Unknown state
+         state = SWITCH_PORT_STATE_UNKNOWN;
+      }
+   }
+   else
+   {
+      //The specified port number is not valid
+      state = SWITCH_PORT_STATE_DISABLED;
+   }
+
+   //Return port state
+   return state;
+}
+
+
+/**
+ * @brief Set aging time for dynamic filtering entries
+ * @param[in] interface Underlying network interface
+ * @param[in] agingTime Aging time, in seconds
+ **/
+
+void ksz9563SetAgingTime(NetInterface *interface, uint32_t agingTime)
+{
+   uint16_t temp;
+
+   //Read the Switch Lookup Engine Control 3 register
+   temp = ksz9563ReadSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL3);
+
+   //The Age Period in combination with the Age Count field determines the
+   //aging time of dynamic entries in the address lookup table
+   agingTime = (agingTime + 3) / 4;
+
+   //Limit the range of the parameter
+   agingTime = MIN(agingTime, 255);
+
+   //Write the value back to Switch Lookup Engine Control 3 register
+   ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL3, temp);
+}
+
+
+/**
+ * @brief Enable reserved multicast table
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable reserved group addresses
+ **/
+
+void ksz9563EnableRsvdMcastTable(NetInterface *interface, bool_t enable)
+{
+   uint16_t temp;
+
+   //Read the Switch Lookup Engine Control 0 register
+   temp = ksz9563ReadSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL0);
+
+   //Enable or disable the reserved multicast table
+   if(enable)
+   {
+      temp |= KSZ9563_SWITCH_LUE_CTRL0_RESERVED_MCAST_LOOKUP_EN;
+   }
+   else
+   {
+      temp &= ~KSZ9563_SWITCH_LUE_CTRL0_RESERVED_MCAST_LOOKUP_EN;
+   }
+
+   //Write the value back to Switch Lookup Engine Control 0 register
+   ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL0, temp);
+}
+
+
+/**
+ * @brief Add a new entry to the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t ksz9563AddStaticFdbEntry(NetInterface *interface,
+   const SwitchFdbEntry *entry)
+{
+   error_t error;
+   uint_t i;
+   uint_t j;
+   uint32_t value;
+   SwitchFdbEntry currentEntry;
+
+   //Keep track of the first free entry
+   j = KSZ9563_STATIC_MAC_TABLE_SIZE;
+
+   //Loop through the static MAC table
+   for(i = 0; i < KSZ9563_STATIC_MAC_TABLE_SIZE; i++)
+   {
+      //Read current entry
+      error = ksz9563GetStaticFdbEntry(interface, i, &currentEntry);
+
+      //Valid entry?
+      if(!error)
+      {
+         //Check whether the table already contains the specified MAC address
+         if(macCompAddr(&currentEntry.macAddr, &entry->macAddr))
+         {
+            j = i;
+            break;
+         }
+      }
+      else
+      {
+         //Keep track of the first free entry
+         if(j == KSZ9563_STATIC_MAC_TABLE_SIZE)
+         {
+            j = i;
+         }
+      }
+   }
+
+   //Any entry available?
+   if(j < KSZ9563_STATIC_MAC_TABLE_SIZE)
+   {
+      //Write the Static Address Table Entry 1 register
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY1,
+         KSZ9563_STATIC_TABLE_ENTRY1_VALID);
+
+      //Set the relevant forward ports
+      if(entry->destPorts == SWITCH_CPU_PORT_MASK)
+      {
+         value = KSZ9563_PORT3_MASK;
+      }
+      else
+      {
+         value = entry->destPorts & KSZ9563_PORT_MASK;
+      }
+
+      //Enable overriding of port state
+      if(entry->override)
+      {
+         value |= KSZ9563_STATIC_TABLE_ENTRY2_OVERRIDE;
+      }
+
+      //Write the Static Address Table Entry 2 register
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY2, value);
+
+      //Copy MAC address (first 16 bits)
+      value = (entry->macAddr.b[0] << 8) | entry->macAddr.b[1];
+
+      //Write the Static Address Table Entry 3 register
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY3, value);
+
+      //Copy MAC address (last 32 bits)
+      value = (entry->macAddr.b[2] << 24) | (entry->macAddr.b[3] << 16) |
+         (entry->macAddr.b[4] << 8) | entry->macAddr.b[5];
+
+      //Write the Static Address Table Entry 4 register
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY4, value);
+
+      //Write the TABLE_INDEX field with the 4-bit index value
+      value = (j << 16) & KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX;
+      //Set the TABLE_SELECT bit to 0 to select the static address table
+      value &= ~KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT;
+      //Set the ACTION bit to 0 to indicate a write operation
+      value &= ~KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_ACTION;
+      //Set the START_FINISH bit to 1 to initiate the operation
+      value |= KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH;
+
+      //Start the write operation
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_RES_MCAST_TABLE_CTRL,
+         value);
+
+      //When the operation is complete, the START_FINISH bit will be cleared
+      //automatically
+      do
+      {
+         //Read the Static Address and Reserved Multicast Table Control register
+         value = ksz9563ReadSwitchReg32(interface,
+            KSZ9563_STATIC_RES_MCAST_TABLE_CTRL);
+
+         //Poll the START_FINISH bit
+      } while((value & KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH) != 0);
 
       //Successful processing
       error = NO_ERROR;
    }
    else
    {
-      //Drop the received frame
-      error = ERROR_INVALID_LENGTH;
+      //The static MAC table is full
+      error = ERROR_TABLE_FULL;
    }
 
    //Return status code
    return error;
-#else
-   //Tail tagging mode is not implemented
-   return NO_ERROR;
-#endif
+}
+
+
+/**
+ * @brief Remove an entry from the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] entry Forwarding database entry to remove from the table
+ * @return Error code
+ **/
+
+error_t ksz9563DeleteStaticFdbEntry(NetInterface *interface,
+   const SwitchFdbEntry *entry)
+{
+   error_t error;
+   uint_t j;
+   uint32_t value;
+   SwitchFdbEntry currentEntry;
+
+   //Loop through the static MAC table
+   for(j = 0; j < KSZ9563_STATIC_MAC_TABLE_SIZE; j++)
+   {
+      //Read current entry
+      error = ksz9563GetStaticFdbEntry(interface, j, &currentEntry);
+
+      //Valid entry?
+      if(!error)
+      {
+         //Check whether the table contains the specified MAC address
+         if(macCompAddr(&currentEntry.macAddr, &entry->macAddr))
+         {
+            break;
+         }
+      }
+   }
+
+   //Any matching entry?
+   if(j < KSZ9563_STATIC_MAC_TABLE_SIZE)
+   {
+      //Clear Static Address Table Entry registers
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY1, 0);
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY2, 0);
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY3, 0);
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY4, 0);
+
+      //Write the TABLE_INDEX field with the 4-bit index value
+      value = (j << 16) & KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX;
+      //Set the TABLE_SELECT bit to 0 to select the static address table
+      value &= ~KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT;
+      //Set the ACTION bit to 0 to indicate a write operation
+      value &= ~KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_ACTION;
+      //Set the START_FINISH bit to 1 to initiate the operation
+      value |= KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH;
+
+      //Start the write operation
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_RES_MCAST_TABLE_CTRL,
+         value);
+
+      //When the operation is complete, the START_FINISH bit will be cleared
+      //automatically
+      do
+      {
+         //Read the Static Address and Reserved Multicast Table Control register
+         value = ksz9563ReadSwitchReg32(interface,
+            KSZ9563_STATIC_RES_MCAST_TABLE_CTRL);
+
+         //Poll the START_FINISH bit
+      } while((value & KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH) != 0);
+
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //The static MAC table does not contain the specified address
+      error = ERROR_NOT_FOUND;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Read an entry from the static MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] index Zero-based index of the entry to read
+ * @param[out] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t ksz9563GetStaticFdbEntry(NetInterface *interface, uint_t index,
+   SwitchFdbEntry *entry)
+{
+   error_t error;
+   uint32_t value;
+
+   //Check index parameter
+   if(index < KSZ9563_STATIC_MAC_TABLE_SIZE)
+   {
+      //Write the TABLE_INDEX field with the 4-bit index value
+      value = (index << 16) & KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX;
+      //Set the TABLE_SELECT bit to 0 to select the static address table
+      value &= ~KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT;
+      //Set the ACTION bit to 1 to indicate a read operation
+      value |= KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_ACTION;
+      //Set the START_FINISH bit to 1 to initiate the operation
+      value |= KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH;
+
+      //Start the read operation
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_RES_MCAST_TABLE_CTRL,
+         value);
+
+      //When the operation is complete, the START_FINISH bit will be cleared
+      //automatically
+      do
+      {
+         //Read the Static Address and Reserved Multicast Table Control register
+         value = ksz9563ReadSwitchReg32(interface,
+            KSZ9563_STATIC_RES_MCAST_TABLE_CTRL);
+
+         //Poll the START_FINISH bit
+      } while((value & KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH) != 0);
+
+      //Read the Static Address Table Entry 1 register
+      value = ksz9563ReadSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY1);
+
+      //Valid entry?
+      if((value & KSZ9563_STATIC_TABLE_ENTRY1_VALID) != 0)
+      {
+         //Read the Static Address Table Entry 2 register
+         value = ksz9563ReadSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY2);
+
+         //Retrieve the ports associated with this MAC address
+         entry->srcPort = 0;
+         entry->destPorts = value & KSZ9563_STATIC_TABLE_ENTRY2_PORT_FORWARD;
+
+         //Check the value of the OVERRIDE bit
+         if((value & KSZ9563_STATIC_TABLE_ENTRY2_OVERRIDE) != 0)
+         {
+            entry->override = TRUE;
+         }
+         else
+         {
+            entry->override = FALSE;
+         }
+
+         //Read the Static Address Table Entry 3 register
+         value = ksz9563ReadSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY3);
+
+         //Copy MAC address (first 16 bits)
+         entry->macAddr.b[0] = (value >> 8) & 0xFF;
+         entry->macAddr.b[1] = value & 0xFF;
+
+         //Read the Static Address Table Entry 4 register
+         value = ksz9563ReadSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY4);
+
+         //Copy MAC address (last 32 bits)
+         entry->macAddr.b[2] = (value >> 24) & 0xFF;
+         entry->macAddr.b[3] = (value >> 16) & 0xFF;
+         entry->macAddr.b[4] = (value >> 8) & 0xFF;
+         entry->macAddr.b[5] = value & 0xFF;
+
+         //Successful processing
+         error = NO_ERROR;
+      }
+      else
+      {
+         //The entry is not valid
+         error = ERROR_INVALID_ENTRY;
+      }
+   }
+   else
+   {
+      //The end of the table has been reached
+      error = ERROR_END_OF_TABLE;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Flush static MAC table
+ * @param[in] interface Underlying network interface
+ **/
+
+void ksz9563FlushStaticFdbTable(NetInterface *interface)
+{
+   uint_t i;
+   uint32_t value;
+
+   //Loop through the static MAC table
+   for(i = 0; i < KSZ9563_STATIC_MAC_TABLE_SIZE; i++)
+   {
+      //Clear Static Address Table Entry registers
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY1, 0);
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY2, 0);
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY3, 0);
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_TABLE_ENTRY4, 0);
+
+      //Write the TABLE_INDEX field with the 4-bit index value
+      value = (i << 16) & KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX;
+      //Set the TABLE_SELECT bit to 0 to select the static address table
+      value &= ~KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT;
+      //Set the ACTION bit to 0 to indicate a write operation
+      value &= ~KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_ACTION;
+      //Set the START_FINISH bit to 1 to initiate the operation
+      value |= KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH;
+
+      //Start the write operation
+      ksz9563WriteSwitchReg32(interface, KSZ9563_STATIC_RES_MCAST_TABLE_CTRL,
+         value);
+
+      //When the operation is complete, the START_FINISH bit will be cleared
+      //automatically
+      do
+      {
+         //Read the Static Address and Reserved Multicast Table Control register
+         value = ksz9563ReadSwitchReg32(interface,
+            KSZ9563_STATIC_RES_MCAST_TABLE_CTRL);
+
+         //Poll the START_FINISH bit
+      } while((value & KSZ9563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH) != 0);
+   }
+}
+
+
+/**
+ * @brief Read an entry from the dynamic MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] index Zero-based index of the entry to read
+ * @param[out] entry Pointer to the forwarding database entry
+ * @return Error code
+ **/
+
+error_t ksz9563GetDynamicFdbEntry(NetInterface *interface, uint_t index,
+   SwitchFdbEntry *entry)
+{
+   error_t error;
+   uint32_t value;
+
+   //First entry?
+   if(index == 0)
+   {
+      //Clear the ALU Table Access Control register to stop any operation
+      ksz9563WriteSwitchReg32(interface, KSZ9563_ALU_TABLE_CTRL, 0);
+
+      //Start the search operation
+      ksz9563WriteSwitchReg32(interface, KSZ9563_ALU_TABLE_CTRL,
+         KSZ9563_ALU_TABLE_CTRL_START_FINISH |
+         KSZ9563_ALU_TABLE_CTRL_ACTION_SEARCH);
+   }
+
+   //Poll the VALID_ENTRY_OR_SEARCH_END bit until it is set
+   do
+   {
+      //Read the ALU Table Access Control register
+      value = ksz9563ReadSwitchReg32(interface, KSZ9563_ALU_TABLE_CTRL);
+
+      //This bit goes high to indicate either a new valid entry is returned or
+      //the search is complete
+   } while((value & KSZ9563_ALU_TABLE_CTRL_VALID_ENTRY_OR_SEARCH_END) == 0);
+
+   //Check whether the next valid entry is ready
+   if((value & KSZ9563_ALU_TABLE_CTRL_VALID) != 0)
+   {
+      //Store the data from the ALU table entry
+      entry->destPorts = 0;
+      entry->override = FALSE;
+
+      //Read the ALU Table Entry 1 and 2 registers
+      value = ksz9563ReadSwitchReg32(interface, KSZ9563_ALU_TABLE_ENTRY1);
+      value = ksz9563ReadSwitchReg32(interface, KSZ9563_ALU_TABLE_ENTRY2);
+
+      //Retrieve the port associated with this MAC address
+      switch(value & KSZ9563_ALU_TABLE_ENTRY2_PORT_FORWARD)
+      {
+      case KSZ9563_ALU_TABLE_ENTRY2_PORT1_FORWARD:
+         entry->srcPort = KSZ9563_PORT1;
+         break;
+      case KSZ9563_ALU_TABLE_ENTRY2_PORT2_FORWARD:
+         entry->srcPort = KSZ9563_PORT2;
+         break;
+      case KSZ9563_ALU_TABLE_ENTRY2_PORT3_FORWARD:
+         entry->srcPort = KSZ9563_PORT3;
+         break;
+      default:
+         entry->srcPort = 0;
+         break;
+      }
+
+      //Read the ALU Table Entry 3 register
+      value = ksz9563ReadSwitchReg32(interface, KSZ9563_ALU_TABLE_ENTRY3);
+
+      //Copy MAC address (first 16 bits)
+      entry->macAddr.b[0] = (value >> 8) & 0xFF;
+      entry->macAddr.b[1] = value & 0xFF;
+
+      //Read the ALU Table Entry 4 register
+      value = ksz9563ReadSwitchReg32(interface, KSZ9563_ALU_TABLE_ENTRY4);
+
+      //Copy MAC address (last 32 bits)
+      entry->macAddr.b[2] = (value >> 24) & 0xFF;
+      entry->macAddr.b[3] = (value >> 16) & 0xFF;
+      entry->macAddr.b[4] = (value >> 8) & 0xFF;
+      entry->macAddr.b[5] = value & 0xFF;
+
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //The search can be stopped any time by setting the START_FINISH bit to 0
+      ksz9563WriteSwitchReg32(interface, KSZ9563_ALU_TABLE_CTRL, 0);
+
+      //The end of the table has been reached
+      error = ERROR_END_OF_TABLE;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Flush dynamic MAC table
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ **/
+
+void ksz9563FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
+{
+   uint_t i;
+   uint_t temp;
+   uint8_t state[3];
+
+   //Flush only dynamic table entries
+   temp = ksz9563ReadSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL2);
+   temp &= ~KSZ9563_SWITCH_LUE_CTRL2_FLUSH_OPTION;
+   temp |= KSZ9563_SWITCH_LUE_CTRL2_FLUSH_OPTION_DYNAMIC;
+   ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL2, temp);
+
+   //Valid port number?
+   if(port > 0)
+   {
+      //Loop through the ports
+      for(i = KSZ9563_PORT1; i <= KSZ9563_PORT3; i++)
+      {
+         //Matching port number?
+         if(i == port || port == 0)
+         {
+            //Save the current state of the port
+            state[i - 1] = ksz9563ReadSwitchReg8(interface,
+               KSZ9563_PORTn_MSTP_STATE(i));
+
+            //Turn off learning capability
+            ksz9563WriteSwitchReg8(interface, KSZ9563_PORTn_MSTP_STATE(port),
+               state[i - 1] | KSZ9563_PORTn_MSTP_STATE_LEARNING_DIS);
+         }
+      }
+
+      //All the entries associated with a port that has its learning capability
+      //being turned off will be flushed
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL1);
+      temp |= KSZ9563_SWITCH_LUE_CTRL1_FLUSH_MSTP_ENTRIES;
+      ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL1, temp);
+
+      //Loop through the ports
+      for(i = KSZ9563_PORT1; i <= KSZ9563_PORT3; i++)
+      {
+         //Matching port number?
+         if(i == port || port == 0)
+         {
+            //Restore the original state of the port
+            ksz9563WriteSwitchReg8(interface, KSZ9563_PORTn_MSTP_STATE(i),
+               state[i - 1]);
+         }
+      }
+   }
+   else
+   {
+      //Trigger a flush of the entire address lookup table
+      temp = ksz9563ReadSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL1);
+      temp |= KSZ9563_SWITCH_LUE_CTRL1_FLUSH_ALU_TABLE;
+      ksz9563WriteSwitchReg8(interface, KSZ9563_SWITCH_LUE_CTRL1, temp);
+   }
 }
 
 
@@ -572,31 +1425,20 @@ error_t ksz9563UntagFrame(NetInterface *interface, uint8_t **frame,
 void ksz9563WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data)
 {
-   uint32_t command;
+   uint16_t n;
 
    //SPI slave mode?
    if(interface->spiDriver != NULL)
    {
-      //Set up a write operation
-      command = KSZ9563_SPI_CMD_WRITE;
-      //Set register address
-      command |= KSZ9563_PORTn_ETH_PHY_REG(port, address) << 5;
-
-      //Pull the CS pin low
-      interface->spiDriver->assertCs();
-
-      //Write 32-bit command
-      interface->spiDriver->transfer((command >> 24) & 0xFF);
-      interface->spiDriver->transfer((command >> 16) & 0xFF);
-      interface->spiDriver->transfer((command >> 8) & 0xFF);
-      interface->spiDriver->transfer(command & 0xFF);
-
-      //Write 16-bit data
-      interface->spiDriver->transfer(MSB(data));
-      interface->spiDriver->transfer(LSB(data));
-
-      //Terminate the operation by raising the CS pin
-      interface->spiDriver->deassertCs();
+      //The SPI interface provides access to all PHY registers
+      n = KSZ9563_PORTn_ETH_PHY_REG(port, address);
+      //Write the 16-bit value
+      ksz9563WriteSwitchReg16(interface, n, data);
+   }
+   else if(interface->smiDriver != NULL)
+   {
+      //Write the specified PHY register
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE, port, address, data);
    }
    else
    {
@@ -617,32 +1459,21 @@ void ksz9563WritePhyReg(NetInterface *interface, uint8_t port,
 uint16_t ksz9563ReadPhyReg(NetInterface *interface, uint8_t port,
    uint8_t address)
 {
+   uint16_t n;
    uint16_t data;
-   uint32_t command;
 
    //SPI slave mode?
    if(interface->spiDriver != NULL)
    {
-      //Set up a read operation
-      command = KSZ9563_SPI_CMD_READ;
-      //Set register address
-      command |= KSZ9563_PORTn_ETH_PHY_REG(port, address) << 5;
-
-      //Pull the CS pin low
-      interface->spiDriver->assertCs();
-
-      //Write 32-bit command
-      interface->spiDriver->transfer((command >> 24) & 0xFF);
-      interface->spiDriver->transfer((command >> 16) & 0xFF);
-      interface->spiDriver->transfer((command >> 8) & 0xFF);
-      interface->spiDriver->transfer(command & 0xFF);
-
-      //Read 16-bit data
-      data = interface->spiDriver->transfer(0xFF) << 8;
-      data |= interface->spiDriver->transfer(0xFF);
-
-      //Terminate the operation by raising the CS pin
-      interface->spiDriver->deassertCs();
+      //The SPI interface provides access to all PHY registers
+      n = KSZ9563_PORTn_ETH_PHY_REG(port, address);
+      //Read the 16-bit value
+      data = ksz9563ReadSwitchReg16(interface, n);
+   }
+   else if(interface->smiDriver != NULL)
+   {
+      //Read the specified PHY register
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ, port, address);
    }
    else
    {
@@ -679,13 +1510,69 @@ void ksz9563DumpPhyReg(NetInterface *interface, uint8_t port)
 
 
 /**
- * @brief Write switch register
+ * @brief Write MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @param[in] data Register value
+ **/
+
+void ksz9563WriteMmdReg(NetInterface *interface, uint8_t port,
+   uint8_t devAddr, uint16_t regAddr, uint16_t data)
+{
+   //Select register operation
+   ksz9563WritePhyReg(interface, port, KSZ9563_MMDACR,
+      KSZ9563_MMDACR_FUNC_ADDR | (devAddr & KSZ9563_MMDACR_DEVAD));
+
+   //Write MMD register address
+   ksz9563WritePhyReg(interface, port, KSZ9563_MMDAADR, regAddr);
+
+   //Select data operation
+   ksz9563WritePhyReg(interface, port, KSZ9563_MMDACR,
+      KSZ9563_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & KSZ9563_MMDACR_DEVAD));
+
+   //Write the content of the MMD register
+   ksz9563WritePhyReg(interface, port, KSZ9563_MMDAADR, data);
+}
+
+
+/**
+ * @brief Read MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @return Register value
+ **/
+
+uint16_t ksz9563ReadMmdReg(NetInterface *interface, uint8_t port,
+   uint8_t devAddr, uint16_t regAddr)
+{
+   //Select register operation
+   ksz9563WritePhyReg(interface, port, KSZ9563_MMDACR,
+      KSZ9563_MMDACR_FUNC_ADDR | (devAddr & KSZ9563_MMDACR_DEVAD));
+
+   //Write MMD register address
+   ksz9563WritePhyReg(interface, port, KSZ9563_MMDAADR, regAddr);
+
+   //Select data operation
+   ksz9563WritePhyReg(interface, port, KSZ9563_MMDACR,
+      KSZ9563_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & KSZ9563_MMDACR_DEVAD));
+
+   //Read the content of the MMD register
+   return ksz9563ReadPhyReg(interface, port, KSZ9563_MMDAADR);
+}
+
+
+/**
+ * @brief Write switch register (8 bits)
  * @param[in] interface Underlying network interface
  * @param[in] address Switch register address
  * @param[in] data Register value
  **/
 
-void ksz9563WriteSwitchReg(NetInterface *interface, uint16_t address,
+void ksz9563WriteSwitchReg8(NetInterface *interface, uint16_t address,
    uint8_t data)
 {
    uint32_t command;
@@ -707,7 +1594,7 @@ void ksz9563WriteSwitchReg(NetInterface *interface, uint16_t address,
       interface->spiDriver->transfer((command >> 8) & 0xFF);
       interface->spiDriver->transfer(command & 0xFF);
 
-      //Write data
+      //Write 8-bit data
       interface->spiDriver->transfer(data);
 
       //Terminate the operation by raising the CS pin
@@ -722,13 +1609,13 @@ void ksz9563WriteSwitchReg(NetInterface *interface, uint16_t address,
 
 
 /**
- * @brief Read switch register
+ * @brief Read switch register (8 bits)
  * @param[in] interface Underlying network interface
  * @param[in] address Switch register address
  * @return Register value
  **/
 
-uint8_t ksz9563ReadSwitchReg(NetInterface *interface, uint16_t address)
+uint8_t ksz9563ReadSwitchReg8(NetInterface *interface, uint16_t address)
 {
    uint8_t data;
    uint32_t command;
@@ -750,7 +1637,7 @@ uint8_t ksz9563ReadSwitchReg(NetInterface *interface, uint16_t address)
       interface->spiDriver->transfer((command >> 8) & 0xFF);
       interface->spiDriver->transfer(command & 0xFF);
 
-      //Read data
+      //Read 8-bit data
       data = interface->spiDriver->transfer(0xFF);
 
       //Terminate the operation by raising the CS pin
@@ -769,22 +1656,188 @@ uint8_t ksz9563ReadSwitchReg(NetInterface *interface, uint16_t address)
 
 
 /**
- * @brief Dump switch registers for debugging purpose
+ * @brief Write switch register (16 bits)
  * @param[in] interface Underlying network interface
+ * @param[in] address Switch register address
+ * @param[in] data Register value
  **/
 
-void ksz9563DumpSwitchReg(NetInterface *interface)
+void ksz9563WriteSwitchReg16(NetInterface *interface, uint16_t address,
+   uint16_t data)
 {
-   uint16_t i;
+   uint32_t command;
 
-   //Loop through switch registers
-   for(i = 0; i < 256; i++)
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
    {
-      //Display current switch register
-      TRACE_DEBUG("0x%02" PRIX16 " (%02" PRIu16 ") : 0x%02" PRIX8 "\r\n",
-         i, i, ksz9563ReadSwitchReg(interface, i));
+      //Set up a write operation
+      command = KSZ9563_SPI_CMD_WRITE;
+      //Set register address
+      command |= (address << 5) & KSZ9563_SPI_CMD_ADDR;
+
+      //Pull the CS pin low
+      interface->spiDriver->assertCs();
+
+      //Write 32-bit command
+      interface->spiDriver->transfer((command >> 24) & 0xFF);
+      interface->spiDriver->transfer((command >> 16) & 0xFF);
+      interface->spiDriver->transfer((command >> 8) & 0xFF);
+      interface->spiDriver->transfer(command & 0xFF);
+
+      //Write 16-bit data
+      interface->spiDriver->transfer((data >> 8) & 0xFF);
+      interface->spiDriver->transfer(data & 0xFF);
+
+      //Terminate the operation by raising the CS pin
+      interface->spiDriver->deassertCs();
+   }
+   else
+   {
+      //The MDC/MDIO interface does not have access to all the configuration
+      //registers. It can only access the standard MIIM registers
+   }
+}
+
+
+/**
+ * @brief Read switch register (16 bits)
+ * @param[in] interface Underlying network interface
+ * @param[in] address Switch register address
+ * @return Register value
+ **/
+
+uint16_t ksz9563ReadSwitchReg16(NetInterface *interface, uint16_t address)
+{
+   uint16_t data;
+   uint32_t command;
+
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
+   {
+      //Set up a read operation
+      command = KSZ9563_SPI_CMD_READ;
+      //Set register address
+      command |= (address << 5) & KSZ9563_SPI_CMD_ADDR;
+
+      //Pull the CS pin low
+      interface->spiDriver->assertCs();
+
+      //Write 32-bit command
+      interface->spiDriver->transfer((command >> 24) & 0xFF);
+      interface->spiDriver->transfer((command >> 16) & 0xFF);
+      interface->spiDriver->transfer((command >> 8) & 0xFF);
+      interface->spiDriver->transfer(command & 0xFF);
+
+      //Read 16-bit data
+      data = interface->spiDriver->transfer(0xFF) << 8;
+      data |= interface->spiDriver->transfer(0xFF);
+
+      //Terminate the operation by raising the CS pin
+      interface->spiDriver->deassertCs();
+   }
+   else
+   {
+      //The MDC/MDIO interface does not have access to all the configuration
+      //registers. It can only access the standard MIIM registers
+      data = 0;
    }
 
-   //Terminate with a line feed
-   TRACE_DEBUG("\r\n");
+   //Return register value
+   return data;
+}
+
+
+/**
+ * @brief Write switch register (32 bits)
+ * @param[in] interface Underlying network interface
+ * @param[in] address Switch register address
+ * @param[in] data Register value
+ **/
+
+void ksz9563WriteSwitchReg32(NetInterface *interface, uint16_t address,
+   uint32_t data)
+{
+   uint32_t command;
+
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
+   {
+      //Set up a write operation
+      command = KSZ9563_SPI_CMD_WRITE;
+      //Set register address
+      command |= (address << 5) & KSZ9563_SPI_CMD_ADDR;
+
+      //Pull the CS pin low
+      interface->spiDriver->assertCs();
+
+      //Write 32-bit command
+      interface->spiDriver->transfer((command >> 24) & 0xFF);
+      interface->spiDriver->transfer((command >> 16) & 0xFF);
+      interface->spiDriver->transfer((command >> 8) & 0xFF);
+      interface->spiDriver->transfer(command & 0xFF);
+
+      //Write 32-bit data
+      interface->spiDriver->transfer((data >> 24) & 0xFF);
+      interface->spiDriver->transfer((data >> 16) & 0xFF);
+      interface->spiDriver->transfer((data >> 8) & 0xFF);
+      interface->spiDriver->transfer(data & 0xFF);
+
+      //Terminate the operation by raising the CS pin
+      interface->spiDriver->deassertCs();
+   }
+   else
+   {
+      //The MDC/MDIO interface does not have access to all the configuration
+      //registers. It can only access the standard MIIM registers
+   }
+}
+
+
+/**
+ * @brief Read switch register (32 bits)
+ * @param[in] interface Underlying network interface
+ * @param[in] address Switch register address
+ * @return Register value
+ **/
+
+uint32_t ksz9563ReadSwitchReg32(NetInterface *interface, uint16_t address)
+{
+   uint32_t data;
+   uint32_t command;
+
+   //SPI slave mode?
+   if(interface->spiDriver != NULL)
+   {
+      //Set up a read operation
+      command = KSZ9563_SPI_CMD_READ;
+      //Set register address
+      command |= (address << 5) & KSZ9563_SPI_CMD_ADDR;
+
+      //Pull the CS pin low
+      interface->spiDriver->assertCs();
+
+      //Write 32-bit command
+      interface->spiDriver->transfer((command >> 24) & 0xFF);
+      interface->spiDriver->transfer((command >> 16) & 0xFF);
+      interface->spiDriver->transfer((command >> 8) & 0xFF);
+      interface->spiDriver->transfer(command & 0xFF);
+
+      //Read 32-bit data
+      data = interface->spiDriver->transfer(0xFF) << 24;
+      data |= interface->spiDriver->transfer(0xFF) << 16;
+      data |= interface->spiDriver->transfer(0xFF) << 8;
+      data |= interface->spiDriver->transfer(0xFF);
+
+      //Terminate the operation by raising the CS pin
+      interface->spiDriver->deassertCs();
+   }
+   else
+   {
+      //The MDC/MDIO interface does not have access to all the configuration
+      //registers. It can only access the standard MIIM registers
+      data = 0;
+   }
+
+   //Return register value
+   return data;
 }

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,7 @@ systime_t arpTickCounter;
 error_t arpInit(NetInterface *interface)
 {
    //Initialize the ARP cache
-   memset(interface->arpCache, 0, sizeof(interface->arpCache));
+   osMemset(interface->arpCache, 0, sizeof(interface->arpCache));
 
    //Successful initialization
    return NO_ERROR;
@@ -120,7 +120,7 @@ ArpCacheEntry *arpCreateEntry(NetInterface *interface)
       if(entry->state == ARP_STATE_NONE)
       {
          //Erase contents
-         memset(entry, 0, sizeof(ArpCacheEntry));
+         osMemset(entry, 0, sizeof(ArpCacheEntry));
          //Return a pointer to the ARP entry
          return entry;
       }
@@ -135,7 +135,7 @@ ArpCacheEntry *arpCreateEntry(NetInterface *interface)
    //Drop any pending packets
    arpFlushQueuedPackets(interface, oldestEntry);
    //The oldest entry is removed whenever the table runs out of space
-   memset(oldestEntry, 0, sizeof(ArpCacheEntry));
+   osMemset(oldestEntry, 0, sizeof(ArpCacheEntry));
    //Return a pointer to the ARP entry
    return oldestEntry;
 }
@@ -201,8 +201,8 @@ void arpSendQueuedPackets(NetInterface *interface, ArpCacheEntry *entry)
          ipv4UpdateOutStats(interface, entry->ipAddr, length);
 
          //Send the IPv4 packet
-         ethSendFrame(interface, &entry->macAddr,
-            item->buffer, item->offset, ETH_TYPE_IPV4);
+         ethSendFrame(interface, &entry->macAddr, ETH_TYPE_IPV4, item->buffer,
+            item->offset, &item->ancillary);
 
          //Release memory buffer
          netBufferFree(item->buffer);
@@ -336,11 +336,13 @@ error_t arpResolve(NetInterface *interface, Ipv4Addr ipAddr, MacAddr *macAddr)
  * @param[in] ipAddr IPv4 address of the destination host
  * @param[in] buffer Multi-part buffer containing the packet to be enqueued
  * @param[in] offset Offset to the first byte of the packet
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
-error_t arpEnqueuePacket(NetInterface *interface,
-   Ipv4Addr ipAddr, NetBuffer *buffer, size_t offset)
+error_t arpEnqueuePacket(NetInterface *interface, Ipv4Addr ipAddr,
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    uint_t i;
@@ -367,7 +369,9 @@ error_t arpEnqueuePacket(NetInterface *interface,
 
             //Make room for the new packet
             for(i = 1; i < ARP_MAX_PENDING_PACKETS; i++)
+            {
                entry->queue[i - 1] = entry->queue[i];
+            }
 
             //Adjust the number of pending packets
             entry->queueSize--;
@@ -385,6 +389,8 @@ error_t arpEnqueuePacket(NetInterface *interface,
             netBufferCopy(entry->queue[i].buffer, 0, buffer, 0, length);
             //Offset to the first byte of the IPv4 header
             entry->queue[i].offset = offset;
+            //Additional options passed to the stack along with the packet
+            entry->queue[i].ancillary = *ancillary;
 
             //Increment the number of queued packets
             entry->queueSize++;
@@ -629,11 +635,13 @@ void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket,
          //Process incoming ARP request
          arpProcessRequest(interface, arpPacket);
          break;
+
       //ARP reply?
       case ARP_OPCODE_ARP_REPLY:
          //Process incoming ARP reply
          arpProcessReply(interface, arpPacket);
          break;
+
       //Unknown operation code?
       default:
          //Debug message
@@ -810,6 +818,7 @@ error_t arpSendProbe(NetInterface *interface, Ipv4Addr targetIpAddr)
    NetBuffer *buffer;
    ArpPacket *arpRequest;
    NetInterface *logicalInterface;
+   NetTxAncillary ancillary;
 
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
@@ -839,12 +848,16 @@ error_t arpSendProbe(NetInterface *interface, Ipv4Addr targetIpAddr)
    //Dump ARP packet contents for debugging purpose
    arpDumpPacket(arpRequest);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send ARP request
-   error = ethSendFrame(interface, &MAC_BROADCAST_ADDR,
-      buffer, offset, ETH_TYPE_ARP);
+   error = ethSendFrame(interface, &MAC_BROADCAST_ADDR, ETH_TYPE_ARP, buffer,
+      offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -867,6 +880,7 @@ error_t arpSendRequest(NetInterface *interface, Ipv4Addr targetIpAddr,
    ArpPacket *arpRequest;
    Ipv4Addr senderIpAddr;
    NetInterface *logicalInterface;
+   NetTxAncillary ancillary;
 
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
@@ -902,11 +916,16 @@ error_t arpSendRequest(NetInterface *interface, Ipv4Addr targetIpAddr,
    //Dump ARP packet contents for debugging purpose
    arpDumpPacket(arpRequest);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send ARP request
-   error = ethSendFrame(interface, destMacAddr, buffer, offset, ETH_TYPE_ARP);
+   error = ethSendFrame(interface, destMacAddr, ETH_TYPE_ARP, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -929,6 +948,7 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr senderIpAddr,
    NetBuffer *buffer;
    ArpPacket *arpReply;
    NetInterface *logicalInterface;
+   NetTxAncillary ancillary;
 
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
@@ -958,11 +978,16 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr senderIpAddr,
    //Dump ARP packet contents for debugging purpose
    arpDumpPacket(arpReply);
 
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
    //Send ARP reply
-   error = ethSendFrame(interface, targetMacAddr, buffer, offset, ETH_TYPE_ARP);
+   error = ethSendFrame(interface, targetMacAddr, ETH_TYPE_ARP, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }

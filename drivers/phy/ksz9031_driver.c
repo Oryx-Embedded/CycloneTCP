@@ -1,12 +1,12 @@
 /**
  * @file ksz9031_driver.c
- * @brief KSZ9031 Gigabit Ethernet PHY transceiver
+ * @brief KSZ9031 Gigabit Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,7 @@ const PhyDriver ksz9031PhyDriver =
    ksz9031Tick,
    ksz9031EnableIrq,
    ksz9031DisableIrq,
-   ksz9031EventHandler,
-   NULL,
-   NULL
+   ksz9031EventHandler
 };
 
 
@@ -69,6 +67,12 @@ error_t ksz9031Init(NetInterface *interface)
    {
       //Use the default address
       interface->phyAddr = KSZ9031_PHY_ADDR;
+   }
+
+   //Initialize serial management interface
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->init();
    }
 
    //Initialize external interrupt line driver
@@ -183,7 +187,7 @@ void ksz9031EventHandler(NetInterface *interface)
    value = ksz9031ReadPhyReg(interface, KSZ9031_ICSR);
 
    //Link status change?
-   if(value & (KSZ9031_ICSR_LINK_DOWN_IF | KSZ9031_ICSR_LINK_UP_IF))
+   if((value & (KSZ9031_ICSR_LINK_DOWN_IF | KSZ9031_ICSR_LINK_UP_IF)) != 0)
    {
       //Any link failure condition is latched in the BMSR register. Reading
       //the register twice will always return the actual link status
@@ -191,23 +195,23 @@ void ksz9031EventHandler(NetInterface *interface)
       value = ksz9031ReadPhyReg(interface, KSZ9031_BMSR);
 
       //Link is up?
-      if(value & KSZ9031_BMSR_LINK_STATUS)
+      if((value & KSZ9031_BMSR_LINK_STATUS) != 0)
       {
          //Read PHY control register
          value = ksz9031ReadPhyReg(interface, KSZ9031_PHYCON);
 
          //Check current speed
-         if(value & KSZ9031_PHYCON_SPEED_1000BT)
+         if((value & KSZ9031_PHYCON_SPEED_1000BT) != 0)
          {
             //1000BASE-T
             interface->linkSpeed = NIC_LINK_SPEED_1GBPS;
          }
-         else if(value & KSZ9031_PHYCON_SPEED_100BTX)
+         else if((value & KSZ9031_PHYCON_SPEED_100BTX) != 0)
          {
             //100BASE-TX
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          }
-         else if(value & KSZ9031_PHYCON_SPEED_10BT)
+         else if((value & KSZ9031_PHYCON_SPEED_10BT) != 0)
          {
             //10BASE-T
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
@@ -219,10 +223,14 @@ void ksz9031EventHandler(NetInterface *interface)
          }
 
          //Check current duplex mode
-         if(value & KSZ9031_PHYCON_DUPLEX_STATUS)
+         if((value & KSZ9031_PHYCON_DUPLEX_STATUS) != 0)
+         {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+         }
          else
+         {
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+         }
 
          //Update link state
          interface->linkState = TRUE;
@@ -253,8 +261,16 @@ void ksz9031WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
    //Write the specified PHY register
-   interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
-      interface->phyAddr, address, data);
+   if(interface->smiDriver != NULL)
+   {
+      interface->smiDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
+   else
+   {
+      interface->nicDriver->writePhyReg(SMI_OPCODE_WRITE,
+         interface->phyAddr, address, data);
+   }
 }
 
 
@@ -267,9 +283,22 @@ void ksz9031WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t ksz9031ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t data;
+
    //Read the specified PHY register
-   return interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
-      interface->phyAddr, address);
+   if(interface->smiDriver != NULL)
+   {
+      data = interface->smiDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+   else
+   {
+      data = interface->nicDriver->readPhyReg(SMI_OPCODE_READ,
+         interface->phyAddr, address);
+   }
+
+   //Return the value of the PHY register
+   return data;
 }
 
 

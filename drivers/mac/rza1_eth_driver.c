@@ -1,12 +1,12 @@
 /**
  * @file rza1_eth_driver.c
- * @brief Renesas RZ/A1 Ethernet MAC controller
+ * @brief Renesas RZ/A1 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -145,11 +145,28 @@ error_t rza1EthInit(NetInterface *interface)
    {
    }
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Initialize DMA descriptor lists
    rza1EthInitDmaDesc(interface);
@@ -700,16 +717,29 @@ void rza1EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief RZ/A1 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void rza1EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -722,8 +752,22 @@ void rza1EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    R_INTC_Enable(INTC_ID_ETHERI);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -736,8 +780,22 @@ void rza1EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    R_INTC_Disable(INTC_ID_ETHERI);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -760,22 +818,22 @@ void rza1EthIrqHandler(uint32_t intSense)
    //Read interrupt status register
    status = ETHER.EESR0;
 
-   //A packet has been transmitted?
-   if(status & ETHER_EESR0_TWB)
+   //Packet transmitted?
+   if((status & ETHER_EESR0_TWB) != 0)
    {
       //Clear TWB interrupt flag
       ETHER.EESR0 = ETHER_EESR0_TWB;
 
       //Check whether the TX buffer is available for writing
-      if(!(txDmaDesc[txIndex].td0 & ETHER_TD0_TACT))
+      if((txDmaDesc[txIndex].td0 & ETHER_TD0_TACT) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & ETHER_EESR0_FR)
+   //Packet received?
+   if((status & ETHER_EESR0_FR) != 0)
    {
       //Disable FR interrupts
       ETHER.EESIPR0 &= ~ETHER_EESIPR0_FRIP;
@@ -801,7 +859,7 @@ void rza1EthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(ETHER.EESR0 & ETHER_EESR0_FR)
+   if((ETHER.EESR0 & ETHER_EESR0_FR) != 0)
    {
       //Clear FR interrupt flag
       ETHER.EESR0 = ETHER_EESR0_FR;
@@ -826,11 +884,13 @@ void rza1EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t rza1EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    //Retrieve the length of the packet
    size_t length = netBufferGetLength(buffer) - offset;
@@ -845,8 +905,10 @@ error_t rza1EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txDmaDesc[txIndex].td0 & ETHER_TD0_TACT)
+   if((txDmaDesc[txIndex].td0 & ETHER_TD0_TACT) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer[txIndex], buffer, offset, length);
@@ -878,7 +940,7 @@ error_t rza1EthSendPacket(NetInterface *interface,
    ETHER.EDTRR0 = ETHER_EDTRR0_TR;
 
    //Check whether the next buffer is available for writing
-   if(!(txDmaDesc[txIndex].td0 & ETHER_TD0_TACT))
+   if((txDmaDesc[txIndex].td0 & ETHER_TD0_TACT) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -899,13 +961,14 @@ error_t rza1EthReceivePacket(NetInterface *interface)
    static uint8_t temp[RZA1_ETH_RX_BUFFER_SIZE];
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxDmaDesc[rxIndex].rd0 & ETHER_RD0_RACT))
+   if((rxDmaDesc[rxIndex].rd0 & ETHER_RD0_RACT) == 0)
    {
       //SOF and EOF flags should be set
-      if((rxDmaDesc[rxIndex].rd0 & ETHER_RD0_RFP_SOF) &&
-         (rxDmaDesc[rxIndex].rd0 & ETHER_RD0_RFP_EOF))
+      if((rxDmaDesc[rxIndex].rd0 & ETHER_RD0_RFP_SOF) != 0 &&
+         (rxDmaDesc[rxIndex].rd0 & ETHER_RD0_RFP_EOF) != 0)
       {
          //Make sure no error occurred
          if(!(rxDmaDesc[rxIndex].rd0 & (ETHER_RD0_RFS_MASK & ~ETHER_RD0_RFS_RMAF)))
@@ -916,10 +979,13 @@ error_t rza1EthReceivePacket(NetInterface *interface)
             n = MIN(n, RZA1_ETH_RX_BUFFER_SIZE);
 
             //Copy data from the receive buffer
-            memcpy(temp, rxBuffer[rxIndex], n);
+            osMemcpy(temp, rxBuffer[rxIndex], n);
+
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, temp, n);
+            nicProcessPacket(interface, temp, n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -1008,16 +1074,16 @@ error_t rza1EthUpdateMacAddrFilter(NetInterface *interface)
 
          //The contents of the CAM entry table registers cannot be
          //modified while the ADSBSY flag is set
-         while(ETHER.TSU_ADSBSY & ETHER_TSU_ADSBSY_ADSBSY)
+         while((ETHER.TSU_ADSBSY & ETHER_TSU_ADSBSY_ADSBSY) != 0)
          {
          }
 
          //Set the upper 32 bits of the MAC address
          *addrHigh = (entry->addr.b[0] << 24) | (entry->addr.b[1] << 16) |
-            (entry->addr.b[2] << 8) |entry->addr.b[3];
+            (entry->addr.b[2] << 8) | entry->addr.b[3];
 
          //Wait for the ADSBSY flag to be cleared
-         while(ETHER.TSU_ADSBSY & ETHER_TSU_ADSBSY_ADSBSY)
+         while((ETHER.TSU_ADSBSY & ETHER_TSU_ADSBSY_ADSBSY) != 0)
          {
          }
 
@@ -1049,9 +1115,13 @@ error_t rza1EthUpdateMacConfig(NetInterface *interface)
 {
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       ETHER.ECMR0 |= ETH_ECMR0_DM;
+   }
    else
+   {
       ETHER.ECMR0 &= ~ETH_ECMR0_DM;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -1141,10 +1211,14 @@ void rza1EthWriteSmi(uint32_t data, uint_t length)
    while(length--)
    {
       //Write MDIO
-      if(data & 0x80000000)
+      if((data & 0x80000000) != 0)
+      {
          ETHER.PIR0 |= ETHER_PIR0_MDO;
+      }
       else
+      {
          ETHER.PIR0 &= ~ETHER_PIR0_MDO;
+      }
 
       //Assert MDC
       usleep(1);
@@ -1186,8 +1260,10 @@ uint32_t rza1EthReadSmi(uint_t length)
       usleep(1);
 
       //Check MDIO state
-      if(ETHER.PIR0 & ETHER_PIR0_MDI)
-         data |= 0x00000001;
+      if((ETHER.PIR0 & ETHER_PIR0_MDI) != 0)
+      {
+         data |= 0x01;
+      }
    }
 
    //Return the received data

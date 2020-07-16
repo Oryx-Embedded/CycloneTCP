@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -189,12 +189,12 @@ void ftpServerProcessDataChannelEvents(FtpClientConnection *connection,
          connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
 
          //Transfer status
-         strcpy(connection->response, "451 Transfer aborted\r\n");
+         osStrcpy(connection->response, "451 Transfer aborted\r\n");
          //Debug message
          TRACE_DEBUG("FTP server: %s", connection->response);
 
          //Number of bytes in the response buffer
-         connection->responseLen = strlen(connection->response);
+         connection->responseLen = osStrlen(connection->response);
          connection->responsePos = 0;
       }
    }
@@ -248,12 +248,12 @@ void ftpServerProcessDataChannelEvents(FtpClientConnection *connection,
       connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
 
       //Transfer status
-      strcpy(connection->response, "226 Transfer complete\r\n");
+      osStrcpy(connection->response, "226 Transfer complete\r\n");
       //Debug message
       TRACE_DEBUG("FTP server: %s", connection->response);
 
       //Number of bytes in the response buffer
-      connection->responseLen = strlen(connection->response);
+      connection->responseLen = osStrlen(connection->response);
       connection->responsePos = 0;
    }
 }
@@ -484,12 +484,12 @@ void ftpServerWriteDataChannel(FtpClientConnection *connection)
          connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
 
          //Transfer status
-         strcpy(connection->response, "451 Transfer aborted\r\n");
+         osStrcpy(connection->response, "451 Transfer aborted\r\n");
          //Debug message
          TRACE_DEBUG("FTP server: %s", connection->response);
 
          //Number of bytes in the response buffer
-         connection->responseLen = strlen(connection->response);
+         connection->responseLen = osStrlen(connection->response);
          connection->responsePos = 0;
 
          //Exit immediately
@@ -576,7 +576,7 @@ void ftpServerWriteDataChannel(FtpClientConnection *connection)
          path = connection->buffer;
 
          //Get the pathname of the directory being listed
-         strcpy(path, connection->path);
+         osStrcpy(path, connection->path);
          //Retrieve the full pathname
          pathCombine(path, dirEntry.name, FTP_SERVER_MAX_PATH_LEN);
          pathCanonicalize(path);
@@ -675,12 +675,12 @@ void ftpServerReadDataChannel(FtpClientConnection *connection)
                connection->controlChannel.state = FTP_CHANNEL_STATE_IDLE;
 
                //Transfer status
-               strcpy(connection->response, "451 Transfer aborted\r\n");
+               osStrcpy(connection->response, "451 Transfer aborted\r\n");
                //Debug message
                TRACE_DEBUG("FTP server: %s", connection->response);
 
                //Number of bytes in the response buffer
-               connection->responseLen = strlen(connection->response);
+               connection->responseLen = osStrlen(connection->response);
                connection->responsePos = 0;
 
                //Exit immediately

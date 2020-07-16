@@ -1,12 +1,12 @@
 /**
  * @file sam4e_eth_driver.h
- * @brief SAM4E Ethernet MAC controller
+ * @brief SAM4E Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _SAM4E_ETH_DRIVER_H
@@ -170,7 +170,7 @@ void sam4eEthDisableIrq(NetInterface *interface);
 void sam4eEthEventHandler(NetInterface *interface);
 
 error_t sam4eEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t sam4eEthReceivePacket(NetInterface *interface);
 

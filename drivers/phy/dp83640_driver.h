@@ -1,12 +1,12 @@
 /**
  * @file dp83640_driver.h
- * @brief DP83640 Ethernet PHY transceiver
+ * @brief DP83640 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _DP83640_DRIVER_H
@@ -44,12 +44,12 @@
 //DP83640 PHY registers (page 0)
 #define DP83640_BMCR                        0x00
 #define DP83640_BMSR                        0x01
-#define DP83640_PHYID1                      0x02
-#define DP83640_PHYID2                      0x03
+#define DP83640_PHYIDR1                     0x02
+#define DP83640_PHYIDR2                     0x03
 #define DP83640_ANAR                        0x04
 #define DP83640_ANLPAR                      0x05
 #define DP83640_ANER                        0x06
-#define DP83640_ANNPR                       0x07
+#define DP83640_ANNPTR                      0x07
 #define DP83640_PHYSTS                      0x10
 #define DP83640_MICR                        0x11
 #define DP83640_MISR                        0x12
@@ -64,7 +64,7 @@
 #define DP83640_CDCTRL1                     0x1B
 #define DP83640_PHYCR2                      0x1C
 #define DP83640_EDCR                        0x1D
-#define DP83640_PCFCR                       0x1E
+#define DP83640_PCFCR                       0x1F
 
 //DP83640 PHY registers (page 1)
 #define DP83640_SD_CNFG                     0x1E
@@ -152,15 +152,15 @@
 #define DP83640_BMSR_EXTENDED_CAPABLE       0x0001
 
 //PHY Identifier 1 register
-#define DP83640_PHYID1_OUI_MSB              0xFFFF
-#define DP83640_PHYID1_OUI_MSB_DEFAULT      0x2000
+#define DP83640_PHYIDR1_OUI_MSB             0xFFFF
+#define DP83640_PHYIDR1_OUI_MSB_DEFAULT     0x2000
 
 //PHY Identifier 2 register
-#define DP83640_PHYID2_OUI_LSB              0xFC00
-#define DP83640_PHYID2_OUI_LSB_DEFAULT      0x5C00
-#define DP83640_PHYID2_VNDR_MDL             0x03F0
-#define DP83640_PHYID2_VNDR_MDL_DEFAULT     0x00E0
-#define DP83640_PHYID2_MDL_REV              0x000F
+#define DP83640_PHYIDR2_OUI_LSB             0xFC00
+#define DP83640_PHYIDR2_OUI_LSB_DEFAULT     0x5C00
+#define DP83640_PHYIDR2_VNDR_MDL            0x03F0
+#define DP83640_PHYIDR2_VNDR_MDL_DEFAULT    0x00E0
+#define DP83640_PHYIDR2_MDL_REV             0x000F
 
 //Auto-Negotiation Advertisement register
 #define DP83640_ANAR_NEXT_PAGE              0x8000
@@ -197,11 +197,11 @@
 #define DP83640_ANER_LP_AN_ABLE             0x0001
 
 //Auto-Negotiation Next Page TX register
-#define DP83640_ANNPR_NEXT_PAGE             0x8000
-#define DP83640_ANNPR_MSG_PAGE              0x2000
-#define DP83640_ANNPR_ACK2                  0x1000
-#define DP83640_ANNPR_TOGGLE                0x0800
-#define DP83640_ANNPR_CODE                  0x07FF
+#define DP83640_ANNPTR_NEXT_PAGE            0x8000
+#define DP83640_ANNPTR_MSG_PAGE             0x2000
+#define DP83640_ANNPTR_ACK2                 0x1000
+#define DP83640_ANNPTR_TOGGLE               0x0800
+#define DP83640_ANNPTR_CODE                 0x07FF
 
 //PHY Status register
 #define DP83640_PHYSTS_MDIX_MODE            0x4000

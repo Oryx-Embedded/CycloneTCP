@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -67,15 +67,15 @@ void httpClientInitAuthParams(HttpClientAuthParams *authParams)
    authParams->mode = HTTP_AUTH_MODE_NONE;
 
    //Clear realm
-   strcpy(authParams->realm, "");
+   osStrcpy(authParams->realm, "");
 
 #if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED)
    //Reset authentication parameters
    authParams->qop = HTTP_AUTH_QOP_NONE;
    authParams->algorithm = NULL;
-   strcpy(authParams->nonce, "");
-   strcpy(authParams->cnonce, "");
-   strcpy(authParams->opaque, "");
+   osStrcpy(authParams->nonce, "");
+   osStrcpy(authParams->cnonce, "");
+   osStrcpy(authParams->opaque, "");
 
    //Reset stale flag
    authParams->stale = FALSE;
@@ -110,7 +110,7 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
       size_t m;
 
       //Calculate the length of the username and password
-      n = strlen(authParams->username) + strlen(authParams->password);
+      n = osStrlen(authParams->username) + osStrlen(authParams->password);
 
       //Make sure the buffer is large enough
       if((context->bufferLen + n + 22) > HTTP_CLIENT_BUFFER_SIZE)
@@ -120,11 +120,11 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
       p = context->buffer + context->bufferLen - 2;
 
       //Format Authorization header field
-      n = sprintf(p, "Authorization: Basic ");
+      n = osSprintf(p, "Authorization: Basic ");
 
       //The client sends the username and password, separated by a single
       //colon character, within a Base64-encoded string in the credentials
-      m = sprintf(p + n, "%s:%s", authParams->username, authParams->password);
+      m = osSprintf(p + n, "%s:%s", authParams->username, authParams->password);
 
       //The first pass calculates the length of the Base64-encoded string
       base64Encode(p + n, m, NULL, &k);
@@ -143,7 +143,7 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
          return ERROR_BUFFER_OVERFLOW;
 
       //Terminate the header field with a CRLF sequence
-      sprintf(p + n, "\r\n\r\n");
+      osSprintf(p + n, "\r\n\r\n");
 
       //Adjust the length of the request header
       context->bufferLen = context->bufferLen + n + 2;
@@ -207,15 +207,15 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 
       //Perform digest operation
       error = httpClientComputeDigest(authParams, context->method,
-         strlen(context->method), uri, uriLen, response);
+         osStrlen(context->method), uri, uriLen, response);
       //Any error to report?
       if(error)
          return error;
 
       //Determine the length of the header field
-      n = strlen(authParams->username) + strlen(authParams->realm) +
-         uriLen + strlen(authParams->nonce) + strlen(authParams->cnonce) +
-         strlen(response) + strlen(authParams->opaque);
+      n = osStrlen(authParams->username) + osStrlen(authParams->realm) +
+         uriLen + osStrlen(authParams->nonce) + osStrlen(authParams->cnonce) +
+         osStrlen(response) + osStrlen(authParams->opaque);
 
       //Make sure the buffer is large enough
       if((context->bufferLen + n + 121) > HTTP_CLIENT_BUFFER_SIZE)
@@ -225,43 +225,43 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
       p = context->buffer + context->bufferLen - 2;
 
       //Format Authorization header field
-      n = sprintf(p, "Authorization: Digest ");
+      n = osSprintf(p, "Authorization: Digest ");
 
       //Format username and realm parameter
-      n += sprintf(p + n, "username=\"%s\", ", authParams->username);
-      n += sprintf(p + n, "realm=\"%s\", ", authParams->realm);
+      n += osSprintf(p + n, "username=\"%s\", ", authParams->username);
+      n += osSprintf(p + n, "realm=\"%s\", ", authParams->realm);
 
       //Format uri parameter
-      n += sprintf(p + n, "uri=\"");
-      strncpy(p + n, uri, uriLen);
+      n += osSprintf(p + n, "uri=\"");
+      osStrncpy(p + n, uri, uriLen);
       n += uriLen;
-      n += sprintf(p + n, "\", ");
+      n += osSprintf(p + n, "\", ");
 
       //Format nonce parameter
-      n += sprintf(p + n, "nonce=\"%s\", ", authParams->nonce);
+      n += osSprintf(p + n, "nonce=\"%s\", ", authParams->nonce);
 
       //Check quality of protection
       if(authParams->qop == HTTP_AUTH_QOP_AUTH)
       {
          //Format qop, nc, cnonce parameters
-         n += sprintf(p + n, "qop=auth, ");
-         n += sprintf(p + n, "nc=%08x, ", authParams->nc);
-         n += sprintf(p + n, "cnonce=\"%s\", ", authParams->cnonce);
+         n += osSprintf(p + n, "qop=auth, ");
+         n += osSprintf(p + n, "nc=%08x, ", authParams->nc);
+         n += osSprintf(p + n, "cnonce=\"%s\", ", authParams->cnonce);
       }
 
       //Format response parameter
-      n += sprintf(p + n, "response=\"%s\"", response);
+      n += osSprintf(p + n, "response=\"%s\"", response);
 
       //The opaque parameter should be returned by the client unchanged in
       //the Authorization header field of subsequent requests
       if(authParams->opaque[0] != '\0')
       {
          //Format opaque parameter
-         n += sprintf(p + n, ", opaque=\"%s\"", authParams->opaque);
+         n += osSprintf(p + n, ", opaque=\"%s\"", authParams->opaque);
       }
 
       //Terminate the header field with a CRLF sequence
-      sprintf(p + n, "\r\n\r\n");
+      osSprintf(p + n, "\r\n\r\n");
 
       //Adjust the length of the request header
       context->bufferLen = context->bufferLen + n + 2;
@@ -308,7 +308,7 @@ error_t httpClientParseWwwAuthenticateField(HttpClientContext *context,
       if(param.value == NULL && (*p == ' ' || *p == '\t'))
       {
          //Clear authentication parameters
-         memset(&authHeader, 0, sizeof(HttpWwwAuthenticateHeader));
+         osMemset(&authHeader, 0, sizeof(HttpWwwAuthenticateHeader));
 
 #if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED && HTTP_CLIENT_MD5_SUPPORT == ENABLED)
          //If the algorithm parameter is not present, it is assumed to be
@@ -424,7 +424,7 @@ error_t httpClientParseWwwAuthenticateField(HttpClientContext *context,
             context->authParams.mode = authHeader.mode;
 
             //Save realm
-            strncpy(context->authParams.realm, authHeader.realm, authHeader.realmLen);
+            osStrncpy(context->authParams.realm, authHeader.realm, authHeader.realmLen);
             context->authParams.realm[authHeader.realmLen] = '\0';
          }
          else
@@ -447,15 +447,15 @@ error_t httpClientParseWwwAuthenticateField(HttpClientContext *context,
             context->authParams.algorithm = authHeader.algorithm;
 
             //Save realm
-            strncpy(context->authParams.realm, authHeader.realm, authHeader.realmLen);
+            osStrncpy(context->authParams.realm, authHeader.realm, authHeader.realmLen);
             context->authParams.realm[authHeader.realmLen] = '\0';
 
             //Save nonce value
-            strncpy(context->authParams.nonce, authHeader.nonce, authHeader.nonceLen);
+            osStrncpy(context->authParams.nonce, authHeader.nonce, authHeader.nonceLen);
             context->authParams.nonce[authHeader.nonceLen] = '\0';
 
             //Save opaque parameter
-            strncpy(context->authParams.opaque, authHeader.opaque, authHeader.opaqueLen);
+            osStrncpy(context->authParams.opaque, authHeader.opaque, authHeader.opaqueLen);
             context->authParams.opaque[authHeader.opaqueLen] = '\0';
 
             //Save stale flag
@@ -604,11 +604,11 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
 
    //Compute H(A1) = H(username : realm : password)
    hash->init(hashContext);
-   hash->update(hashContext, authParams->username, strlen(authParams->username));
+   hash->update(hashContext, authParams->username, osStrlen(authParams->username));
    hash->update(hashContext, ":", 1);
-   hash->update(hashContext, authParams->realm, strlen(authParams->realm));
+   hash->update(hashContext, authParams->realm, osStrlen(authParams->realm));
    hash->update(hashContext, ":", 1);
-   hash->update(hashContext, authParams->password, strlen(authParams->password));
+   hash->update(hashContext, authParams->password, osStrlen(authParams->password));
    hash->final(hashContext, ha1);
 
    //Compute H(A2) = H(method : uri)
@@ -625,18 +625,18 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
    for(i = 0; i < hash->digestSize; i++)
    {
       //Convert the current byte to hex representation
-      sprintf(buffer, "%02" PRIx8, ha1[i]);
+      osSprintf(buffer, "%02" PRIx8, ha1[i]);
       //Digest the resulting value
       hash->update(hashContext, buffer, 2);
    }
 
    //Digest nonce parameter
    hash->update(hashContext, ":", 1);
-   hash->update(hashContext, authParams->nonce, strlen(authParams->nonce));
+   hash->update(hashContext, authParams->nonce, osStrlen(authParams->nonce));
    hash->update(hashContext, ":", 1);
 
    //Convert the nonce count to hex string
-   sprintf(buffer, "%08x", authParams->nc);
+   osSprintf(buffer, "%08x", authParams->nc);
 
    //Check quality of protection
    if(authParams->qop == HTTP_AUTH_QOP_AUTH ||
@@ -645,7 +645,7 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
       //Digest nc, cnonce and qop parameters
       hash->update(hashContext, buffer, 8);
       hash->update(hashContext, ":", 1);
-      hash->update(hashContext, authParams->cnonce, strlen(authParams->cnonce));
+      hash->update(hashContext, authParams->cnonce, osStrlen(authParams->cnonce));
       hash->update(hashContext, ":", 1);
       hash->update(hashContext, "auth", 4);
       hash->update(hashContext, ":", 1);
@@ -655,7 +655,7 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
    for(i = 0; i < hash->digestSize; i++)
    {
       //Convert the current byte to hex representation
-      sprintf(buffer, "%02" PRIx8, ha2[i]);
+      osSprintf(buffer, "%02" PRIx8, ha2[i]);
       //Digest the resulting value
       hash->update(hashContext, buffer, 2);
    }

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _IPV4_H
@@ -140,11 +140,11 @@ struct _Ipv4PseudoHeader;
 
 //Copy IPv4 address
 #define ipv4CopyAddr(destIpAddr, srcIpAddr) \
-   memcpy(destIpAddr, srcIpAddr, sizeof(Ipv4Addr))
+   osMemcpy(destIpAddr, srcIpAddr, sizeof(Ipv4Addr))
 
 //Compare IPv4 addresses
 #define ipv4CompAddr(ipAddr1, ipAddr2) \
-   (!memcmp(ipAddr1, ipAddr2, sizeof(Ipv4Addr)))
+   (!osMemcmp(ipAddr1, ipAddr2, sizeof(Ipv4Addr)))
 
 //Determine whether an IPv4 address belongs to the subnet
 #define ipv4IsOnSubnet(entry, ipAddr) \
@@ -378,15 +378,18 @@ error_t ipv4GetDnsServer(NetInterface *interface, uint_t index, Ipv4Addr *addr);
 
 void ipv4LinkChangeEvent(NetInterface *interface);
 
-void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t length);
-void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer);
+void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
+   size_t length, NetRxAncillary *ancillary);
+
+void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
+   NetRxAncillary *ancillary);
 
 error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint_t flags);
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
-   uint_t flags);
+   NetTxAncillary *ancillary);
 
 error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
 error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);

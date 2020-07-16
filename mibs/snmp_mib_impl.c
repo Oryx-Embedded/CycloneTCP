@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -54,21 +54,22 @@
 error_t snmpMibInit(void)
 {
    SnmpMibSysGroup *sysGroup;
+   SnmpMibSnmpGroup *snmpGroup;
    SnmpMibSetGroup *setGroup;
 
    //Debug message
    TRACE_INFO("Initializing SNMP-MIB base...\r\n");
 
    //Clear SNMP MIB base
-   memset(&snmpMibBase, 0, sizeof(snmpMibBase));
+   osMemset(&snmpMibBase, 0, sizeof(snmpMibBase));
 
    //Point to the system group
    sysGroup = &snmpMibBase.sysGroup;
 
 #if (SNMP_MIB_SYS_DESCR_SIZE > 0)
    //sysDescr object
-   strcpy(sysGroup->sysDescr, "Description");
-   sysGroup->sysDescrLen = strlen(sysGroup->sysDescr);
+   osStrcpy(sysGroup->sysDescr, "Description");
+   sysGroup->sysDescrLen = osStrlen(sysGroup->sysDescr);
 #endif
 
 #if (SNMP_MIB_SYS_OBJECT_ID_SIZE > 0)
@@ -79,28 +80,32 @@ error_t snmpMibInit(void)
 
 #if (SNMP_MIB_SYS_CONTACT_SIZE > 0)
    //sysContact object
-   strcpy(sysGroup->sysContact, "Contact");
-   sysGroup->sysContactLen = strlen(sysGroup->sysContact);
+   osStrcpy(sysGroup->sysContact, "Contact");
+   sysGroup->sysContactLen = osStrlen(sysGroup->sysContact);
 #endif
 
 #if (SNMP_MIB_SYS_NAME_SIZE > 0)
    //sysName object
-   strcpy(sysGroup->sysName, "Name");
-   sysGroup->sysNameLen = strlen(sysGroup->sysName);
+   osStrcpy(sysGroup->sysName, "Name");
+   sysGroup->sysNameLen = osStrlen(sysGroup->sysName);
 #endif
 
 #if (SNMP_MIB_SYS_LOCATION_SIZE > 0)
    //sysLocation object
-   strcpy(sysGroup->sysLocation, "Location");
-   sysGroup->sysLocationLen = strlen(sysGroup->sysLocation);
+   osStrcpy(sysGroup->sysLocation, "Location");
+   sysGroup->sysLocationLen = osStrlen(sysGroup->sysLocation);
 #endif
 
    //sysServices object
    sysGroup->sysServices = SNMP_MIB_SYS_SERVICE_INTERNET;
 
+   //Point to the SNMP group
+   snmpGroup = &snmpMibBase.snmpGroup;
+   //snmpEnableAuthenTraps object
+   snmpGroup->snmpEnableAuthenTraps = SNMP_MIB_AUTHEN_TRAPS_DISABLED;
+
    //Point to the set group
    setGroup = &snmpMibBase.setGroup;
-
    //snmpSetSerialNo object
    setGroup->snmpSetSerialNo = netGetRandRange(1, INT32_MAX);
 
@@ -225,13 +230,13 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //sysORID object?
-   if(!strcmp(object->name, "sysORID"))
+   if(!osStrcmp(object->name, "sysORID"))
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= mibModule->oidLen)
       {
          //Copy object value
-         memcpy(value->octetString, mibModule->oid, mibModule->oidLen);
+         osMemcpy(value->octetString, mibModule->oid, mibModule->oidLen);
          //Return object length
          *valueLen = mibModule->oidLen;
       }
@@ -242,16 +247,16 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //sysORDescr object?
-   else if(!strcmp(object->name, "sysORDescr"))
+   else if(!osStrcmp(object->name, "sysORDescr"))
    {
       //Retrieve the length of the MIB name
-      n = strlen(mibModule->name);
+      n = osStrlen(mibModule->name);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, mibModule->name, n);
+         osMemcpy(value->octetString, mibModule->name, n);
          //Return object length
          *valueLen = n;
       }
@@ -262,7 +267,7 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //sysORUpTime object?
-   else if(!strcmp(object->name, "sysORUpTime"))
+   else if(!osStrcmp(object->name, "sysORUpTime"))
    {
       //Get object value
       value->timeTicks = 0;
@@ -308,7 +313,7 @@ error_t snmpMibGetNextSysOREntry(const MibObject *object, const uint8_t *oid,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through existing MIBs
    for(index = 1; index <= SNMP_AGENT_MAX_MIBS; index++)
@@ -359,7 +364,7 @@ error_t snmpv2MibGetSnmpTrapOID(const MibObject *object, const uint8_t *oid,
    //Not implemented
    *valueLen = 0;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -390,13 +395,13 @@ error_t snmpv2MibGetSnmpTrapEnterprise(const MibObject *object, const uint8_t *o
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy enterprise OID
-   memcpy(value->octetString, context->enterpriseOid,
+   osMemcpy(value->octetString, context->enterpriseOid,
       context->enterpriseOidLen);
 
    //Return object length
    *valueLen = context->enterpriseOidLen;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -438,7 +443,7 @@ error_t snmpMibGetSnmpSetSerialNo(const MibObject *object, const uint8_t *oid,
    //Get the current value of the spin lock
    value->integer = snmpMibBase.setGroup.snmpSetSerialNo;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 

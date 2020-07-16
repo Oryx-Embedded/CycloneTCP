@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -34,16 +34,15 @@
 //Dependencies
 #include "core/net.h"
 #include "coap/coap_client.h"
-//#include "coap/coap_server.h"
+#include "coap/coap_server.h"
 #include "coap/coap_debug.h"
 #include "debug.h"
-#include "error.h"
 
 //Check TCP/IP stack configuration
 #if (COAP_CLIENT_SUPPORT == ENABLED || COAP_SERVER_SUPPORT == ENABLED)
 
 //CoAP message types
-const CoapParamDesc coapTypeList[] =
+const CoapParamName coapTypeList[] =
 {
    {COAP_TYPE_CON, "CON"},
    {COAP_TYPE_NON, "NON"},
@@ -52,7 +51,7 @@ const CoapParamDesc coapTypeList[] =
 };
 
 //CoAP method and response codes
-const CoapParamDesc coapCodeList[] =
+const CoapParamName coapCodeList[] =
 {
    {COAP_CODE_EMPTY,                      "Empty"},
    {COAP_CODE_GET,                        "GET"},
@@ -95,14 +94,14 @@ const CoapParamDesc coapCodeList[] =
 };
 
 //Observe option values
-const CoapParamDesc coapObserveList[] =
+const CoapParamName coapObserveList[] =
 {
    {COAP_OBSERVE_REGISTER,   "Register"},
    {COAP_OBSERVE_DEREGISTER, "Deregister"}
 };
 
 //Content-Format option values
-const CoapParamDesc coapContentFormatList[] =
+const CoapParamName coapContentFormatList[] =
 {
    {COAP_CONTENT_FORMAT_TEXT_PLAIN,       "text/plain"},
    {COAP_CONTENT_FORMAT_APP_LINK_FORMAT,  "application/link-format"},
@@ -324,7 +323,7 @@ error_t coapDumpOption(const CoapOption *option)
                arraysize(coapObserveList));
 
             //Dump the value of the option
-            if(strcmp(name, "Unknown"))
+            if(osStrcmp(name, "Unknown"))
             {
                TRACE_DEBUG("    %" PRIu32 " (%s)\r\n", value, name);
             }
@@ -399,7 +398,7 @@ error_t coapDumpOption(const CoapOption *option)
  **/
 
 const char_t *coapGetParamName(uint_t value,
-   const CoapParamDesc *paramList, size_t paramListLen)
+   const CoapParamName *paramList, size_t paramListLen)
 {
    uint_t i;
 

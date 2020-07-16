@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -68,10 +68,12 @@
  * @param[in] pseudoHeader TCP pseudo header
  * @param[in] buffer Multi-part buffer that holds the incoming TCP segment
  * @param[in] offset Offset to the first byte of the TCP header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
-void tcpProcessSegment(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset)
+void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
+   const NetBuffer *buffer, size_t offset, NetRxAncillary *ancillary)
 {
    uint_t i;
    size_t length;
@@ -84,9 +86,9 @@ void tcpProcessSegment(NetInterface *interface,
    TCP_MIB_INC_COUNTER32(tcpInSegs, 1);
    TCP_MIB_INC_COUNTER64(tcpHCInSegs, 1);
 
-   //A TCP implementation must silently discard an incoming segment that
-   //is addressed to a broadcast or multicast address (refer to RFC 1122,
-   //section 4.2.3.10)
+   //A TCP implementation must silently discard an incoming segment that is
+   //addressed to a broadcast or multicast address (refer to RFC 1122, section
+   //4.2.3.10)
 #if (IPV4_SUPPORT == ENABLED)
    if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
    {
@@ -181,7 +183,7 @@ void tcpProcessSegment(NetInterface *interface,
       if(socket->interface && socket->interface != interface)
          continue;
       //Check destination port number
-      if(socket->localPort != ntohs(segment->destPort))
+      if(socket->localPort == 0 || socket->localPort != ntohs(segment->destPort))
          continue;
 
 #if (IPV4_SUPPORT == ENABLED)
@@ -258,8 +260,8 @@ void tcpProcessSegment(NetInterface *interface,
       break;
    }
 
-   //If no matching socket has been found then try to
-   //use the first matching socket in the LISTEN state
+   //If no matching socket has been found then try to use the first matching
+   //socket in the LISTEN state
    if(i >= SOCKET_MAX_COUNT)
       socket = passiveSocket;
 
@@ -274,9 +276,13 @@ void tcpProcessSegment(NetInterface *interface,
 
    //Dump TCP header contents for debugging purpose
    if(socket == NULL)
+   {
       tcpDumpHeader(segment, length, 0, 0);
+   }
    else
+   {
       tcpDumpHeader(segment, length, socket->irs, socket->iss);
+   }
 
    //Convert from network byte order to host byte order
    segment->srcPort = ntohs(segment->srcPort);
@@ -286,13 +292,15 @@ void tcpProcessSegment(NetInterface *interface,
    segment->window = ntohs(segment->window);
    segment->urgentPointer = ntohs(segment->urgentPointer);
 
-   //Specified port is unreachable?
+   //Specified port unreachable?
    if(socket == NULL)
    {
-      //An incoming segment not containing a RST causes
-      //a reset to be sent in response
+      //An incoming segment not containing a RST causes a reset to be sent in
+      //response
       if(!(segment->flags & TCP_FLAG_RST))
+      {
          tcpSendResetSegment(interface, pseudoHeader, segment, length);
+      }
 
       //Return immediately
       return;
@@ -303,34 +311,39 @@ void tcpProcessSegment(NetInterface *interface,
    {
    //Process CLOSED state
    case TCP_STATE_CLOSED:
-      //This is the default state that each connection starts in before
-      //the process of establishing it begins
+      //This is the default state that each connection starts in before the
+      //process of establishing it begins
       tcpStateClosed(interface, pseudoHeader, segment, length);
       break;
+
    //Process LISTEN state
    case TCP_STATE_LISTEN:
       //A device (normally a server) is waiting to receive a synchronize (SYN)
       //message from a client. It has not yet sent its own SYN message
       tcpStateListen(socket, interface, pseudoHeader, segment, length);
       break;
+
    //Process SYN_SENT state
    case TCP_STATE_SYN_SENT:
       //The device (normally a client) has sent a synchronize (SYN) message and
       //is waiting for a matching SYN from the other device (usually a server)
       tcpStateSynSent(socket, segment, length);
       break;
+
    //Process SYN_RECEIVED state
    case TCP_STATE_SYN_RECEIVED:
-      //The device has both received a SYN from its partner and sent its own SYN.
-      //It is now waiting for an ACK to its SYN to finish connection setup
+      //The device has both received a SYN from its partner and sent its own
+      //SYN. It is now waiting for an ACK to its SYN to finish connection setup
       tcpStateSynReceived(socket, segment, buffer, offset, length);
       break;
+
    //Process ESTABLISHED state
    case TCP_STATE_ESTABLISHED:
       //Data can be exchanged freely once both devices in the connection enter
       //this state. This will continue until the connection is closed
       tcpStateEstablished(socket, segment, buffer, offset, length);
       break;
+
    //Process CLOSE_WAIT state
    case TCP_STATE_CLOSE_WAIT:
       //The device has received a close request (FIN) from the other device. It
@@ -338,30 +351,36 @@ void tcpProcessSegment(NetInterface *interface,
       //generate a matching request
       tcpStateCloseWait(socket, segment, length);
       break;
+
    //Process LAST_ACK state
    case TCP_STATE_LAST_ACK:
       //A device that has already received a close request and acknowledged it,
       //has sent its own FIN and is waiting for an ACK to this request
       tcpStateLastAck(socket, segment, length);
       break;
+
    //Process FIN_WAIT_1 state
    case TCP_STATE_FIN_WAIT_1:
       //A device in this state is waiting for an ACK for a FIN it has sent, or
       //is waiting for a connection termination request from the other device
       tcpStateFinWait1(socket, segment, buffer, offset, length);
       break;
+
    //Process FIN_WAIT_2 state
    case TCP_STATE_FIN_WAIT_2:
-      //A device in this state has received an ACK for its request to terminate the
-      //connection and is now waiting for a matching FIN from the other device
+      //A device in this state has received an ACK for its request to terminate
+      //the connection and is now waiting for a matching FIN from the other
+      //device
       tcpStateFinWait2(socket, segment, buffer, offset, length);
       break;
+
    //Process CLOSING state
    case TCP_STATE_CLOSING:
       //The device has received a FIN from the other device and sent an ACK for
       //it, but not yet received an ACK for its own FIN message
       tcpStateClosing(socket, segment, length);
       break;
+
    //Process TIME_WAIT state
    case TCP_STATE_TIME_WAIT:
       //The device has now received a FIN from the other device and acknowledged
@@ -370,6 +389,7 @@ void tcpProcessSegment(NetInterface *interface,
       //with new connections
       tcpStateTimeWait(socket, segment, length);
       break;
+
    //Invalid state...
    default:
       //Back to the CLOSED state
@@ -424,6 +444,7 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
    uint_t i;
    TcpOption *option;
    TcpSynQueueItem *queueItem;
+   TcpSynQueueItem *firstQueueItem;
 
    //Debug message
    TRACE_DEBUG("TCP FSM: LISTEN state\r\n");
@@ -432,8 +453,8 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
    if(segment->flags & TCP_FLAG_RST)
       return;
 
-   //Any acknowledgment is bad if it arrives on a connection
-   //still in the LISTEN state
+   //Any acknowledgment is bad if it arrives on a connection still in the
+   //LISTEN state
    if(segment->flags & TCP_FLAG_ACK)
    {
       //A reset segment should be formed for any arriving ACK-bearing segment
@@ -461,14 +482,22 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
       {
          //Point to the very first item
          queueItem = socket->synQueue;
+         firstQueueItem = socket->synQueue;
 
          //Reach the last item in the SYN queue
          for(i = 1; queueItem->next != NULL; i++)
+         {
             queueItem = queueItem->next;
+         }
 
-         //Make sure the SYN queue is not full
+         //Check whether the SYN queue is full
          if(i >= socket->synQueueSize)
-            return;
+         {
+            //Remove the first item if the SYN queue runs out of space
+            socket->synQueue = firstQueueItem->next;
+            //Deallocate memory buffer
+            memPoolFree(firstQueueItem);
+         }
 
          //Allocate memory to save incoming data
          queueItem->next = memPoolAlloc(sizeof(TcpSynQueueItem));
@@ -487,6 +516,7 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
          //Save the source IPv4 address
          queueItem->srcAddr.length = sizeof(Ipv4Addr);
          queueItem->srcAddr.ipv4Addr = pseudoHeader->ipv4Data.srcAddr;
+
          //Save the destination IPv4 address
          queueItem->destAddr.length = sizeof(Ipv4Addr);
          queueItem->destAddr.ipv4Addr = pseudoHeader->ipv4Data.destAddr;
@@ -500,6 +530,7 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
          //Save the source IPv6 address
          queueItem->srcAddr.length = sizeof(Ipv6Addr);
          queueItem->srcAddr.ipv6Addr = pseudoHeader->ipv6Data.srcAddr;
+
          //Save the destination IPv6 address
          queueItem->destAddr.length = sizeof(Ipv6Addr);
          queueItem->destAddr.ipv6Addr = pseudoHeader->ipv6Data.destAddr;
@@ -530,7 +561,7 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
       if(option != NULL && option->length == 4)
       {
          //Retrieve MSS value
-         memcpy(&queueItem->mss, option->value, 2);
+         osMemcpy(&queueItem->mss, option->value, 2);
          //Convert from network byte order to host byte order
          queueItem->mss = ntohs(queueItem->mss);
 
@@ -629,7 +660,7 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
       if(option != NULL && option->length == 4)
       {
          //Retrieve MSS value
-         memcpy(&socket->smss, option->value, 2);
+         osMemcpy(&socket->smss, option->value, 2);
          //Convert from network byte order to host byte order
          socket->smss = ntohs(socket->smss);
 

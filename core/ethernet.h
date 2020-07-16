@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _ETHERNET_H
@@ -48,7 +48,7 @@
    #error ETH_VIRTUAL_IF_SUPPORT parameter is not valid
 #endif
 
-//VLAN support (IEEE 802.1q)
+//VLAN support (IEEE 802.1Q)
 #ifndef ETH_VLAN_SUPPORT
    #define ETH_VLAN_SUPPORT DISABLED
 #elif (ETH_VLAN_SUPPORT != ENABLED && ETH_VLAN_SUPPORT != DISABLED)
@@ -62,11 +62,25 @@
    #error ETH_VMAN_SUPPORT parameter is not valid
 #endif
 
-//Ethernet port multiplication using VLAN or tail tagging
+//LLC support (IEEE 802.2)
+#ifndef ETH_LLC_SUPPORT
+   #define ETH_LLC_SUPPORT DISABLED
+#elif (ETH_LLC_SUPPORT != ENABLED && ETH_LLC_SUPPORT != DISABLED)
+   #error ETH_LLC_SUPPORT parameter is not valid
+#endif
+
+//Switch port tagging
 #ifndef ETH_PORT_TAGGING_SUPPORT
    #define ETH_PORT_TAGGING_SUPPORT DISABLED
 #elif (ETH_PORT_TAGGING_SUPPORT != ENABLED && ETH_PORT_TAGGING_SUPPORT != DISABLED)
    #error ETH_PORT_TAGGING_SUPPORT parameter is not valid
+#endif
+
+//Hardware time stamping support
+#ifndef ETH_TIMESTAMP_SUPPORT
+   #define ETH_TIMESTAMP_SUPPORT DISABLED
+#elif (ETH_TIMESTAMP_SUPPORT != ENABLED && ETH_TIMESTAMP_SUPPORT != DISABLED)
+   #error ETH_TIMESTAMP_SUPPORT parameter is not valid
 #endif
 
 //Size of the MAC address filter
@@ -101,19 +115,19 @@
 #define VLAN_VID_MASK 0x0FFF
 
 //Copy MAC address
-#define macCopyAddr(destMacAddr, srcMacAddr) memcpy(destMacAddr, srcMacAddr, sizeof(MacAddr))
+#define macCopyAddr(destMacAddr, srcMacAddr) osMemcpy(destMacAddr, srcMacAddr, sizeof(MacAddr))
 
 //Compare MAC addresses
-#define macCompAddr(macAddr1, macAddr2) (!memcmp(macAddr1, macAddr2, sizeof(MacAddr)))
+#define macCompAddr(macAddr1, macAddr2) (!osMemcmp(macAddr1, macAddr2, sizeof(MacAddr)))
 
 //Determine whether a MAC address is a group address
 #define macIsMulticastAddr(macAddr) ((macAddr)->b[0] & 0x01)
 
 //Copy EUI-64 address
-#define eui64CopyAddr(destEui64Addr, srcEui64Addr) memcpy(destEui64Addr, srcEui64Addr, sizeof(Eui64))
+#define eui64CopyAddr(destEui64Addr, srcEui64Addr) osMemcpy(destEui64Addr, srcEui64Addr, sizeof(Eui64))
 
 //Compare EUI-64 addresses
-#define eui64CompAddr(eui64Addr1, eui64Addr2) (!memcmp(eui64Addr1, eui64Addr2, sizeof(Eui64)))
+#define eui64CompAddr(eui64Addr1, eui64Addr2) (!osMemcmp(eui64Addr1, eui64Addr2, sizeof(Eui64)))
 
 //C++ guard
 #ifdef __cplusplus
@@ -197,6 +211,18 @@ typedef __start_packed struct
 
 
 /**
+ * @brief LLC header
+ **/
+
+typedef __start_packed struct
+{
+   uint8_t dsap;    //0
+   uint8_t ssap;    //1
+   uint8_t control; //2
+} __end_packed LlcHeader;
+
+
+/**
  * @brief VLAN tag
  **/
 
@@ -226,6 +252,14 @@ typedef struct
 } MacFilterEntry;
 
 
+/**
+ * @brief LLC frame received callback
+ **/
+
+typedef void (*LlcRxCallback)(NetInterface *interface, EthHeader *header,
+   const uint8_t *data, size_t length, NetRxAncillary *ancillary, void *param);
+
+
 //Ethernet related constants
 extern const MacAddr MAC_UNSPECIFIED_ADDR;
 extern const MacAddr MAC_BROADCAST_ADDR;
@@ -234,13 +268,19 @@ extern const Eui64 EUI64_UNSPECIFIED_ADDR;
 //Ethernet related functions
 error_t ethInit(NetInterface *interface);
 
-void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length);
+void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
+   NetRxAncillary *ancillary);
 
 error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
-   NetBuffer *buffer, size_t offset, uint16_t type);
+   uint16_t type, NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t ethAcceptMacAddr(NetInterface *interface, const MacAddr *macAddr);
 error_t ethDropMacAddr(NetInterface *interface, const MacAddr *macAddr);
+
+error_t ethAttachLlcRxCalback(NetInterface *interface, LlcRxCallback callback,
+   void *param);
+
+error_t ethDetachLlcRxCalback(NetInterface *interface);
 
 NetBuffer *ethAllocBuffer(size_t length, size_t *offset);
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -73,7 +73,7 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
       if(entry->state == NDP_STATE_NONE)
       {
          //Erase contents
-         memset(entry, 0, sizeof(NdpNeighborCacheEntry));
+         osMemset(entry, 0, sizeof(NdpNeighborCacheEntry));
          //Return a pointer to the Neighbor cache entry
          return entry;
       }
@@ -88,7 +88,7 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
    //Drop any pending packets
    ndpFlushQueuedPackets(interface, oldestEntry);
    //The oldest entry is removed whenever the table runs out of space
-   memset(oldestEntry, 0, sizeof(NdpNeighborCacheEntry));
+   osMemset(oldestEntry, 0, sizeof(NdpNeighborCacheEntry));
 
    //Return a pointer to the Neighbor cache entry
    return oldestEntry;
@@ -326,8 +326,8 @@ uint_t ndpSendQueuedPackets(NetInterface *interface, NdpNeighborCacheEntry *entr
             ipv6UpdateOutStats(interface, &entry->ipAddr, length);
 
             //Send the IPv6 packet
-            ethSendFrame(interface, &entry->macAddr,
-               item->buffer, item->offset, ETH_TYPE_IPV6);
+            ethSendFrame(interface, &entry->macAddr, ETH_TYPE_IPV6,
+               item->buffer, item->offset, &item->ancillary);
          }
 #endif
          //Release memory buffer
@@ -415,7 +415,7 @@ NdpDestCacheEntry *ndpCreateDestCacheEntry(NetInterface *interface)
       if(ipv6CompAddr(&entry->destAddr, &IPV6_UNSPECIFIED_ADDR))
       {
          //Erase contents
-         memset(entry, 0, sizeof(NdpDestCacheEntry));
+         osMemset(entry, 0, sizeof(NdpDestCacheEntry));
          //Return a pointer to the Destination cache entry
          return entry;
       }
@@ -428,7 +428,7 @@ NdpDestCacheEntry *ndpCreateDestCacheEntry(NetInterface *interface)
    }
 
    //The oldest entry is removed whenever the table runs out of space
-   memset(oldestEntry, 0, sizeof(NdpDestCacheEntry));
+   osMemset(oldestEntry, 0, sizeof(NdpDestCacheEntry));
 
    //Return a pointer to the Destination cache entry
    return oldestEntry;
@@ -472,7 +472,7 @@ NdpDestCacheEntry *ndpFindDestCacheEntry(NetInterface *interface, const Ipv6Addr
 void ndpFlushDestCache(NetInterface *interface)
 {
    //Clear the Destination Cache
-   memset(interface->ndpContext.destCache, 0,
+   osMemset(interface->ndpContext.destCache, 0,
       sizeof(interface->ndpContext.destCache));
 }
 

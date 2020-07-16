@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -221,8 +221,8 @@ error_t bcm43362Init(NetInterface *interface)
 /**
  * @brief BCM43362 timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -266,9 +266,13 @@ bool_t bcm43362IrqHandler(void)
 
    //STA and/or AP mode?
    if(bcm43362StaInterface != NULL)
+   {
       bcm43362StaInterface->nicEvent = TRUE;
+   }
    else if(bcm43362ApInterface != NULL)
+   {
       bcm43362ApInterface->nicEvent = TRUE;
+   }
 
    //Notify the TCP/IP stack of the event
    flag = osSetEventFromIsr(&netEvent);
@@ -293,11 +297,13 @@ void bcm43362EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t bcm43362SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    wwd_result_t ret;
    wiced_buffer_t packet;
@@ -347,9 +353,13 @@ error_t bcm43362SendPacket(NetInterface *interface,
 
    //Return status code
    if(ret == WWD_SUCCESS)
+   {
       return NO_ERROR;
+   }
    else
+   {
       return ERROR_FAILURE;
+   }
 }
 
 
@@ -438,10 +448,14 @@ void *app_wifi_event_handler(const wwd_event_header_t *event_header, const uint8
          if(bcm43362StaInterface != NULL)
          {
             //Check link state
-            if(event_header->flags & 0x01)
+            if((event_header->flags & 0x01) != 0)
+            {
                bcm43362StaInterface->linkState = TRUE;
+            }
             else
+            {
                bcm43362StaInterface->linkState = FALSE;
+            }
 
             //Get exclusive access
             osAcquireMutex(&netMutex);
@@ -457,10 +471,14 @@ void *app_wifi_event_handler(const wwd_event_header_t *event_header, const uint8
          if(bcm43362ApInterface != NULL)
          {
             //Check link state
-            if(event_header->flags & 0x01)
+            if((event_header->flags & 0x01) != 0)
+            {
                bcm43362ApInterface->linkState = TRUE;
+            }
             else
+            {
                bcm43362ApInterface->linkState = FALSE;
+            }
 
             //Get exclusive access
             osAcquireMutex(&netMutex);
@@ -491,6 +509,7 @@ void host_network_process_ethernet_data(wiced_buffer_t buffer, wwd_interface_t i
 {
    size_t n;
    uint8_t *p;
+   NetRxAncillary ancillary;
 
    //Point to the incoming packet
    p = host_buffer_get_current_piece_data_pointer(buffer);
@@ -506,8 +525,13 @@ void host_network_process_ethernet_data(wiced_buffer_t buffer, wwd_interface_t i
          {
             //Get exclusive access
             osAcquireMutex(&netMutex);
+
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Process link state change event
-            nicProcessPacket(bcm43362StaInterface, p, n);
+            nicProcessPacket(bcm43362StaInterface, p, n, &ancillary);
+
             //Release exclusive access
             osReleaseMutex(&netMutex);
          }
@@ -518,8 +542,13 @@ void host_network_process_ethernet_data(wiced_buffer_t buffer, wwd_interface_t i
          {
             //Get exclusive access
             osAcquireMutex(&netMutex);
+
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Process link state change event
-            nicProcessPacket(bcm43362ApInterface, p, n);
+            nicProcessPacket(bcm43362ApInterface, p, n, &ancillary);
+
             //Release exclusive access
             osReleaseMutex(&netMutex);
          }

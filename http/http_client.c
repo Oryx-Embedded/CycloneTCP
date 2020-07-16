@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -74,7 +74,7 @@ error_t httpClientInit(HttpClientContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Clear HTTP client context
-   memset(context, 0, sizeof(HttpClientContext));
+   osMemset(context, 0, sizeof(HttpClientContext));
 
 #if (HTTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Initialize TLS session state
@@ -215,18 +215,18 @@ error_t httpClientSetAuthInfo(HttpClientContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the length of the user name is acceptable
-   if(strlen(username) > HTTP_CLIENT_MAX_USERNAME_LEN)
+   if(osStrlen(username) > HTTP_CLIENT_MAX_USERNAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save user name
-   strcpy(context->authParams.username, username);
+   osStrcpy(context->authParams.username, username);
 
    //Make sure the length of the password is acceptable
-   if(strlen(password) > HTTP_CLIENT_MAX_PASSWORD_LEN)
+   if(osStrlen(password) > HTTP_CLIENT_MAX_PASSWORD_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save password
-   strcpy(context->authParams.password, password);
+   osStrcpy(context->authParams.password, password);
 
    //Successful processing
    return NO_ERROR;
@@ -328,7 +328,7 @@ error_t httpClientConnect(HttpClientContext *context,
          }
          else
          {
-            //A communication error has occured
+            //A communication error has occurred
          }
       }
       else if(context->state == HTTP_CLIENT_STATE_CONNECTED)
@@ -411,7 +411,7 @@ error_t httpClientSetMethod(HttpClientContext *context, const char_t *method)
       return ERROR_INVALID_PARAMETER;
 
    //Compute the length of the HTTP method
-   n = strlen(method);
+   n = osStrlen(method);
 
    //Make sure the length of the user name is acceptable
    if(n == 0 || n > HTTP_CLIENT_MAX_METHOD_LEN)
@@ -438,15 +438,15 @@ error_t httpClientSetMethod(HttpClientContext *context, const char_t *method)
       return ERROR_BUFFER_OVERFLOW;
 
    //Make room for the new method token
-   memmove(context->buffer + n, p, context->bufferLen + 1 - m);
+   osMemmove(context->buffer + n, p, context->bufferLen + 1 - m);
    //Copy the new method token
-   strncpy(context->buffer, method, n);
+   osStrncpy(context->buffer, method, n);
 
    //Adjust the length of the request header
    context->bufferLen = context->bufferLen + n - m;
 
    //Save HTTP request method
-   strcpy(context->method, method);
+   osStrcpy(context->method, method);
 
    //Successful processing
    return NO_ERROR;
@@ -504,16 +504,16 @@ error_t httpClientSetUri(HttpClientContext *context, const char_t *uri)
    //Compute the length of the current URI
    m = q - p;
    //Compute the length of the new URI
-   n = strlen(uri);
+   n = osStrlen(uri);
 
    //Make sure the buffer is large enough to hold the new resource name
    if((context->bufferLen + n - m) > HTTP_CLIENT_BUFFER_SIZE)
       return ERROR_BUFFER_OVERFLOW;
 
    //Make room for the new resource name
-   memmove(p + n, q, context->buffer + context->bufferLen + 1 - q);
+   osMemmove(p + n, q, context->buffer + context->bufferLen + 1 - q);
    //Copy the new resource name
-   strncpy(p, uri, n);
+   osStrncpy(p, uri, n);
 
    //Adjust the length of the request header
    context->bufferLen = context->bufferLen + n - m;
@@ -555,18 +555,18 @@ error_t httpClientSetHost(HttpClientContext *context, const char_t *host,
    {
       //A host without any trailing port information implies the default port
       //for the service requested
-      strcpy(temp, "");
+      osStrcpy(temp, "");
    }
    else
    {
       //Format port number information
-      sprintf(temp, ":%" PRIu16, port);
+      osSprintf(temp, ":%" PRIu16, port);
    }
 
    //Compute the length of the hostname
-   n = strlen(host);
+   n = osStrlen(host);
    //Compute the length of the trailing port information
-   m = strlen(temp);
+   m = osStrlen(temp);
 
    //Make sure the buffer is large enough to hold the new header field
    if((context->bufferLen + n + m + 8) > HTTP_CLIENT_BUFFER_SIZE)
@@ -574,7 +574,7 @@ error_t httpClientSetHost(HttpClientContext *context, const char_t *host,
 
    //The Host request-header field specifies the Internet host and port number
    //of the resource being requested
-   sprintf(context->buffer + context->bufferLen - 2, "Host: %s%s\r\n\r\n",
+   osSprintf(context->buffer + context->bufferLen - 2, "Host: %s%s\r\n\r\n",
       host, temp);
 
    //Adjust the length of the request header
@@ -647,13 +647,13 @@ error_t httpClientSetQueryString(HttpClientContext *context,
    }
 
    //Compute the length of the new query string
-   n = strlen(queryString);
+   n = osStrlen(queryString);
 
    //Empty query string?
    if(n == 0)
    {
       //Remove the query string
-      memmove(p, p + m, context->buffer + context->bufferLen + 1 - q);
+      osMemmove(p, p + m, context->buffer + context->bufferLen + 1 - q);
    }
    else
    {
@@ -665,12 +665,12 @@ error_t httpClientSetQueryString(HttpClientContext *context,
          return ERROR_BUFFER_OVERFLOW;
 
       //Make room for the new query string
-      memmove(p + n, q, context->buffer + context->bufferLen + 1 - q);
+      osMemmove(p + n, q, context->buffer + context->bufferLen + 1 - q);
 
       //The question mark is used as a separator
       p[0] = '?';
       //Copy the new query string
-      strncpy(p + 1, queryString, n - 1);
+      osStrncpy(p + 1, queryString, n - 1);
    }
 
    //Adjust the length of the request header
@@ -747,7 +747,7 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
    }
 
    //Compute the length of the parameter value
-   nameLen = strlen(name);
+   nameLen = osStrlen(name);
 
    //Empty parameter value?
    if(value == NULL)
@@ -757,12 +757,12 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
          return ERROR_BUFFER_OVERFLOW;
 
       //Make room for the new query parameter
-      memmove(p + nameLen + 1, p, context->buffer + context->bufferLen + 1 - p);
+      osMemmove(p + nameLen + 1, p, context->buffer + context->bufferLen + 1 - p);
 
       //Multiple query parameters are separated by a delimiter
       p[0] = separator;
       //Copy parameter name
-      strncpy(p + 1, name, nameLen);
+      osStrncpy(p + 1, name, nameLen);
 
       //Adjust the length of the request header
       context->bufferLen += nameLen + 1;
@@ -770,24 +770,24 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
    else
    {
       //Compute the length of the parameter value
-      valueLen = strlen(value);
+      valueLen = osStrlen(value);
 
       //Make sure the buffer is large enough to hold the new query parameter
       if((context->bufferLen + nameLen + valueLen + 2) > HTTP_CLIENT_BUFFER_SIZE)
          return ERROR_BUFFER_OVERFLOW;
 
       //Make room for the new query parameter
-      memmove(p + nameLen + valueLen + 2, p, context->buffer +
+      osMemmove(p + nameLen + valueLen + 2, p, context->buffer +
          context->bufferLen + 1 - p);
 
       //Multiple query parameters are separated by a delimiter
       p[0] = separator;
       //Copy parameter name
-      strncpy(p + 1, name, nameLen);
+      osStrncpy(p + 1, name, nameLen);
       //The field name and value are separated by an equals sign
       p[nameLen + 1] = '=';
       //Copy parameter value
-      strncpy(p + nameLen + 2, value, valueLen);
+      osStrncpy(p + nameLen + 2, value, valueLen);
 
       //Adjust the length of the request header
       context->bufferLen += nameLen + valueLen + 2;
@@ -834,8 +834,8 @@ error_t httpClientAddHeaderField(HttpClientContext *context,
       return ERROR_INVALID_SYNTAX;
 
    //Retrieve the length of the field name and value
-   nameLen = strlen(name);
-   valueLen = strlen(value);
+   nameLen = osStrlen(name);
+   valueLen = osStrlen(value);
 
    //Determine the length of the new header field
    n = nameLen + valueLen + 4;
@@ -846,21 +846,21 @@ error_t httpClientAddHeaderField(HttpClientContext *context,
 
    //Each header field consists of a case-insensitive field name followed
    //by a colon, optional leading whitespace and the field value
-   sprintf(context->buffer + context->bufferLen - 2, "%s: %s\r\n\r\n",
+   osSprintf(context->buffer + context->bufferLen - 2, "%s: %s\r\n\r\n",
       name, value);
 
    //Check header field name
-   if(!strcasecmp(name, "Connection"))
+   if(!osStrcasecmp(name, "Connection"))
    {
       //Parse Connection header field
       error = httpClientParseConnectionField(context, value);
    }
-   else if(!strcasecmp(name, "Transfer-Encoding"))
+   else if(!osStrcasecmp(name, "Transfer-Encoding"))
    {
       //Parse Transfer-Encoding header field
       error = httpClientParseTransferEncodingField(context, value);
    }
-   else if(!strcasecmp(name, "Content-Length"))
+   else if(!osStrcasecmp(name, "Content-Length"))
    {
       //Parse Content-Length header field
       error = httpClientParseContentLengthField(context, value);
@@ -918,7 +918,7 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
       return ERROR_INVALID_SYNTAX;
 
    //Retrieve the length of the field name
-   nameLen = strlen(name);
+   nameLen = osStrlen(name);
 
    //Make sure the buffer is large enough to hold the new header field
    if((context->bufferLen + nameLen + 4) > HTTP_CLIENT_BUFFER_SIZE)
@@ -932,7 +932,7 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
    //Initialize processing of a varying-length argument list
    va_start(args, format);
    //Format field value
-   n = vsnprintf(value, size, format, args);
+   n = osVsnprintf(value, size, format, args);
    //End varying-length argument list processing
    va_end(args);
 
@@ -942,21 +942,21 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
 
    //Each header field consists of a case-insensitive field name followed
    //by a colon, optional leading whitespace and the field value
-   strncpy(context->buffer + context->bufferLen - 2, name, nameLen);
-   strncpy(context->buffer + context->bufferLen + nameLen - 2, ": ", 2);
+   osStrncpy(context->buffer + context->bufferLen - 2, name, nameLen);
+   osStrncpy(context->buffer + context->bufferLen + nameLen - 2, ": ", 2);
 
    //Check header field name
-   if(!strcasecmp(name, "Connection"))
+   if(!osStrcasecmp(name, "Connection"))
    {
       //Parse Connection header field
       error = httpClientParseConnectionField(context, value);
    }
-   else if(!strcasecmp(name, "Transfer-Encoding"))
+   else if(!osStrcasecmp(name, "Transfer-Encoding"))
    {
       //Parse Transfer-Encoding header field
       error = httpClientParseTransferEncodingField(context, value);
    }
-   else if(!strcasecmp(name, "Content-Length"))
+   else if(!osStrcasecmp(name, "Content-Length"))
    {
       //Parse Content-Length header field
       error = httpClientParseContentLengthField(context, value);
@@ -968,7 +968,7 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
    }
 
    //Terminate the header field with a CRLF sequence
-   strcpy(context->buffer + context->bufferLen + nameLen + n, "\r\n\r\n");
+   osStrcpy(context->buffer + context->bufferLen + nameLen + n, "\r\n\r\n");
 
    //Adjust the length of the request header
    context->bufferLen += nameLen + n + 4;
@@ -999,7 +999,7 @@ error_t httpClientSetContentLength(HttpClientContext *context, size_t length)
 
    //The Content-Length header field indicates the size of the body, in
    //decimal number of octets
-   sprintf(temp, "%" PRIuSIZE, length);
+   osSprintf(temp, "%" PRIuSIZE, length);
 
    //Add the Content-Length header field
    return httpClientAddHeaderField(context, "Content-Length", temp);
@@ -1079,9 +1079,9 @@ error_t httpClientWriteHeader(HttpClientContext *context)
             else
             {
                //The request header has been successfully transmitted
-               if(!strcasecmp(context->method, "POST") ||
-                  !strcasecmp(context->method, "PUT") ||
-                  !strcasecmp(context->method, "PATCH"))
+               if(!osStrcasecmp(context->method, "POST") ||
+                  !osStrcasecmp(context->method, "PUT") ||
+                  !osStrcasecmp(context->method, "PATCH"))
                {
                   //POST, PUT and PATCH requests have a body
                   httpClientChangeRequestState(context, HTTP_REQ_STATE_SEND_BODY);
@@ -1439,6 +1439,9 @@ error_t httpClientReadHeader(HttpClientContext *context)
                   //Check status code
                   if(!error)
                   {
+                     //Debug message
+                     TRACE_DEBUG("\r\n");
+
                      //The HTTP response header has been successfully received
                      httpClientChangeRequestState(context, HTTP_REQ_STATE_PARSE_HEADER);
                   }
@@ -1559,12 +1562,12 @@ const char_t *httpClientGetHeaderField(HttpClientContext *context,
          while(i < context->bufferLen)
          {
             //Calculate the length of the field name
-            nameLen = strlen(context->buffer + i);
+            nameLen = osStrlen(context->buffer + i);
             //Calculate the length of the field value
-            valueLen = strlen(context->buffer + i + nameLen + 1);
+            valueLen = osStrlen(context->buffer + i + nameLen + 1);
 
             //Check whether the current header field matches the specified name
-            if(!strcasecmp(context->buffer + i, name))
+            if(!osStrcasecmp(context->buffer + i, name))
             {
                //Retrieve the value of the header field
                value = context->buffer + i + nameLen + 1;
@@ -1615,9 +1618,9 @@ error_t httpClientGetNextHeaderField(HttpClientContext *context,
       return ERROR_END_OF_STREAM;
 
    //Calculate the length of the field name
-   nameLen = strlen(context->buffer + context->bufferPos);
+   nameLen = osStrlen(context->buffer + context->bufferPos);
    //Calculate the length of the field value
-   valueLen = strlen(context->buffer + context->bufferPos + nameLen + 1);
+   valueLen = osStrlen(context->buffer + context->bufferPos + nameLen + 1);
 
    //Return the name and the value of the header field
    *name = context->buffer + context->bufferPos;
@@ -1678,7 +1681,7 @@ error_t httpClientReadBody(HttpClientContext *context, void *data,
          //304 status code is always terminated by the first empty line after
          //the header fields, regardless of the header fields present in the
          //message, and thus cannot contain a message body
-         if(!strcasecmp(context->method, "HEAD") ||
+         if(!osStrcasecmp(context->method, "HEAD") ||
             HTTP_STATUS_CODE_1YZ(context->statusCode) ||
             context->statusCode == 204 ||
             context->statusCode == 304)
@@ -2184,7 +2187,7 @@ error_t httpClientDisconnect(HttpClientContext *context)
          }
          else
          {
-            //A communication error has occured
+            //A communication error has occurred
          }
       }
       else if(context->state == HTTP_CLIENT_STATE_DISCONNECTED)
@@ -2254,7 +2257,7 @@ void httpClientDeinit(HttpClientContext *context)
 #endif
 
       //Clear HTTP client context
-      memset(context, 0, sizeof(HttpClientContext));
+      osMemset(context, 0, sizeof(HttpClientContext));
    }
 }
 

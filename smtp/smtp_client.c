@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -69,7 +69,7 @@ error_t smtpClientInit(SmtpClientContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Clear SMTP client context
-   memset(context, 0, sizeof(SmtpClientContext));
+   osMemset(context, 0, sizeof(SmtpClientContext));
 
 #if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Initialize TLS session state
@@ -212,8 +212,8 @@ error_t smtpClientConnect(SmtpClientContext *context,
 
 #if (SMTP_CLIENT_MIME_SUPPORT == ENABLED)
          //Reset MIME-specific parameters
-         strcpy(context->contentType, "");
-         strcpy(context->boundary, "this-is-a-boundary");
+         osStrcpy(context->contentType, "");
+         osStrcpy(context->boundary, "this-is-a-boundary");
 #endif
          //Open TCP socket
          error = smtpClientOpenConnection(context);
@@ -492,14 +492,14 @@ error_t smtpClientSetContentType(SmtpClientContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Retrieve the length of the boundary string
-   n = strlen(contentType);
+   n = osStrlen(contentType);
 
    //Check the length of the string
    if(n < 1 || n > SMTP_CLIENT_CONTENT_TYPE_MAX_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save content type
-   strcpy(context->contentType, contentType);
+   osStrcpy(context->contentType, contentType);
 
    //Successful processing
    return NO_ERROR;
@@ -528,14 +528,14 @@ error_t smtpClientSetMultipartBoundary(SmtpClientContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Retrieve the length of the boundary string
-   n = strlen(boundary);
+   n = osStrlen(boundary);
 
    //The boundary parameter consists of 1 to 70 characters
    if(n < 1 || n > SMTP_CLIENT_BOUNDARY_MAX_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Save boundary string
-   strcpy(context->boundary, boundary);
+   osStrcpy(context->boundary, boundary);
 
    //Successful processing
    return NO_ERROR;
@@ -552,7 +552,7 @@ error_t smtpClientSetMultipartBoundary(SmtpClientContext *context,
  * @param[in] from Email address of the sender
  * @param[in] recipients Email addresses of the recipients
  * @param[in] numRecipients Number of email addresses in the list
- * @param[in] subject NULL-terminsated string containing the email subject
+ * @param[in] subject NULL-terminated string containing the email subject
  * @return Error code
  **/
 
@@ -978,7 +978,7 @@ error_t smtpClientWriteMultipartBody(SmtpClientContext *context,
                }
 
                //Copy the raw data to the transmit buffer
-               memcpy(context->buffer + context->bufferLen, data, n);
+               osMemcpy(context->buffer + context->bufferLen, data, n);
 
                //Advance data pointer
                data = (uint8_t *) data + n;
@@ -1310,7 +1310,7 @@ void smtpClientDeinit(SmtpClientContext *context)
 #endif
 
       //Clear SMTP client context
-      memset(context, 0, sizeof(SmtpClientContext));
+      osMemset(context, 0, sizeof(SmtpClientContext));
    }
 }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -113,7 +113,7 @@ error_t snmpAgentInit(SnmpAgentContext *context, const SnmpAgentSettings *settin
       return ERROR_INVALID_PARAMETER;
 
    //Clear the SNMP agent context
-   memset(context, 0, sizeof(SnmpAgentContext));
+   osMemset(context, 0, sizeof(SnmpAgentContext));
 
    //Save user settings
    context->settings = *settings;
@@ -176,7 +176,7 @@ error_t snmpAgentInit(SnmpAgentContext *context, const SnmpAgentSettings *settin
       //Clean up side effects
       osDeleteMutex(&context->mutex);
 #if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
-      osDeleteMutex(&context->informEvent);
+      osDeleteEvent(&context->informEvent);
 #endif
       //Report an error
       return ERROR_OPEN_FAILED;
@@ -206,7 +206,7 @@ error_t snmpAgentInit(SnmpAgentContext *context, const SnmpAgentSettings *settin
       //Clean up side effects
       osDeleteMutex(&context->mutex);
 #if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
-      osDeleteMutex(&context->informEvent);
+      osDeleteEvent(&context->informEvent);
 #endif
       //Close underlying socket
       socketClose(context->socket);
@@ -227,12 +227,12 @@ error_t snmpAgentStart(SnmpAgentContext *context)
 {
    OsTask *task;
 
-   //Debug message
-   TRACE_INFO("Starting SNMP agent...\r\n");
-
    //Make sure the SNMP agent context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Starting SNMP agent...\r\n");
 
    //Start the SNMP agent service
    task = osCreateTask("SNMP Agent", (OsTaskCode) snmpAgentTask,
@@ -502,7 +502,7 @@ error_t snmpAgentSetEnterpriseOid(SnmpAgentContext *context,
    osAcquireMutex(&context->mutex);
 
    //Set enterprise OID
-   memcpy(context->enterpriseOid, enterpriseOid, enterpriseOidLen);
+   osMemcpy(context->enterpriseOid, enterpriseOid, enterpriseOidLen);
    //Save the length of the enterprise OID
    context->enterpriseOidLen = enterpriseOidLen;
 
@@ -536,7 +536,7 @@ error_t snmpAgentSetContextEngine(SnmpAgentContext *context,
    osAcquireMutex(&context->mutex);
 
    //Set context engine identifier
-   memcpy(context->contextEngine, contextEngine, contextEngineLen);
+   osMemcpy(context->contextEngine, contextEngine, contextEngineLen);
    //Save the length of the context engine identifier
    context->contextEngineLen = contextEngineLen;
 
@@ -570,7 +570,7 @@ error_t snmpAgentSetContextName(SnmpAgentContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Retrieve the length of the context name
-   n = strlen(contextName);
+   n = osStrlen(contextName);
 
    //Make sure the context name is valid
    if(n > SNMP_MAX_CONTEXT_NAME_LEN)
@@ -579,7 +579,7 @@ error_t snmpAgentSetContextName(SnmpAgentContext *context,
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
    //Set context name
-   strcpy(context->contextName, contextName);
+   osStrcpy(context->contextName, contextName);
    //Release exclusive access to the SNMP agent context
    osReleaseMutex(&context->mutex);
 
@@ -613,7 +613,7 @@ error_t snmpAgentCreateCommunity(SnmpAgentContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Retrieve the length of the community string
-   n = strlen(community);
+   n = osStrlen(community);
 
    //Make sure the community string is valid
    if(n == 0 || n > SNMP_MAX_USER_NAME_LEN)
@@ -623,7 +623,7 @@ error_t snmpAgentCreateCommunity(SnmpAgentContext *context,
    osAcquireMutex(&context->mutex);
 
    //Check whether the community string already exists
-   entry = snmpFindCommunityEntry(context, community, strlen(community));
+   entry = snmpFindCommunityEntry(context, community, osStrlen(community));
 
    //If the specified community string does not exist, then a new entry
    //should be created
@@ -637,10 +637,10 @@ error_t snmpAgentCreateCommunity(SnmpAgentContext *context,
    if(entry != NULL)
    {
       //Clear the contents
-      memset(entry, 0, sizeof(SnmpUserEntry));
+      osMemset(entry, 0, sizeof(SnmpUserEntry));
 
       //Save community string
-      strcpy(entry->name, community);
+      osStrcpy(entry->name, community);
       //Set access rights
       entry->mode = mode;
       //The entry is now available for use
@@ -688,13 +688,13 @@ error_t snmpAgentDeleteCommunity(SnmpAgentContext *context, const char_t *commun
    osAcquireMutex(&context->mutex);
 
    //Search the community table for the specified community string
-   entry = snmpFindCommunityEntry(context, community, strlen(community));
+   entry = snmpFindCommunityEntry(context, community, osStrlen(community));
 
    //Any matching entry found?
    if(entry != NULL)
    {
       //Clear the contents
-      memset(entry, 0, sizeof(SnmpUserEntry));
+      osMemset(entry, 0, sizeof(SnmpUserEntry));
       //Now mark the entry as free
       entry->status = MIB_ROW_STATUS_UNUSED;
 
@@ -779,7 +779,7 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
    }
 
    //Retrieve the length of the user name
-   n = strlen(userName);
+   n = osStrlen(userName);
 
    //Make sure the user name is valid
    if(n == 0 || n > SNMP_MAX_USER_NAME_LEN)
@@ -789,7 +789,7 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
    osAcquireMutex(&context->mutex);
 
    //Check whether the user name already exists
-   entry = snmpFindUserEntry(context, userName, strlen(userName));
+   entry = snmpFindUserEntry(context, userName, osStrlen(userName));
 
    //If the specified user name does not exist, then a new entry
    //should be created
@@ -803,10 +803,10 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
    if(entry != NULL)
    {
       //Clear the security profile of the user
-      memset(entry, 0, sizeof(SnmpUserEntry));
+      osMemset(entry, 0, sizeof(SnmpUserEntry));
 
       //Save user name
-      strcpy(entry->name, userName);
+      osStrcpy(entry->name, userName);
       //Access rights
       entry->mode = mode;
       //Authentication protocol
@@ -838,7 +838,7 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
          else if(keyFormat == SNMP_KEY_FORMAT_RAW)
          {
             //Save the authentication key
-            memcpy(&entry->rawAuthKey, authKey, sizeof(SnmpKey));
+            osMemcpy(&entry->rawAuthKey, authKey, sizeof(SnmpKey));
 
             //Now localize the key with the engine ID
             error = snmpLocalizeKey(authProtocol,
@@ -848,7 +848,7 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
          else
          {
             //The authentication key is already localized
-            memcpy(&entry->localizedAuthKey, authKey, sizeof(SnmpKey));
+            osMemcpy(&entry->localizedAuthKey, authKey, sizeof(SnmpKey));
          }
       }
 
@@ -876,7 +876,7 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
             else if(keyFormat == SNMP_KEY_FORMAT_RAW)
             {
                //Save the privacy key
-               memcpy(&entry->rawPrivKey, privKey, sizeof(SnmpKey));
+               osMemcpy(&entry->rawPrivKey, privKey, sizeof(SnmpKey));
 
                //Now localize the key with the engine ID
                error = snmpLocalizeKey(authProtocol,
@@ -886,7 +886,7 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
             else
             {
                //The privacy key is already localized
-               memcpy(&entry->localizedPrivKey, privKey, sizeof(SnmpKey));
+               osMemcpy(&entry->localizedPrivKey, privKey, sizeof(SnmpKey));
             }
          }
       }
@@ -900,7 +900,7 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
       else
       {
          //Clean up side effects
-         memset(entry, 0, sizeof(SnmpUserEntry));
+         osMemset(entry, 0, sizeof(SnmpUserEntry));
          //Now mark the entry as free
          entry->status = MIB_ROW_STATUS_UNUSED;
       }
@@ -944,13 +944,13 @@ error_t snmpAgentDeleteUser(SnmpAgentContext *context, const char_t *userName)
    osAcquireMutex(&context->mutex);
 
    //Search the user table for the specified user name
-   entry = snmpFindUserEntry(context, userName, strlen(userName));
+   entry = snmpFindUserEntry(context, userName, osStrlen(userName));
 
    //Any matching entry found?
    if(entry != NULL)
    {
       //Clear the security profile of the user
-      memset(entry, 0, sizeof(SnmpUserEntry));
+      osMemset(entry, 0, sizeof(SnmpUserEntry));
       //Now mark the entry as free
       entry->status = MIB_ROW_STATUS_UNUSED;
 
@@ -1005,14 +1005,14 @@ error_t snmpAgentJoinGroup(SnmpAgentContext *context, const char_t *userName,
    }
 
    //Retrieve the length of the user name
-   n = strlen(userName);
+   n = osStrlen(userName);
 
    //Make sure the user name is valid
    if(n == 0 || n > SNMP_MAX_USER_NAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Retrieve the length of the group name
-   n = strlen(groupName);
+   n = osStrlen(groupName);
 
    //Make sure the group name is valid
    if(n == 0 || n > SNMP_MAX_GROUP_NAME_LEN)
@@ -1023,7 +1023,7 @@ error_t snmpAgentJoinGroup(SnmpAgentContext *context, const char_t *userName,
 
    //Search the group table for a matching entry
    entry = snmpFindGroupEntry(context, securityModel, userName,
-      strlen(userName));
+      osStrlen(userName));
 
    //No matching entry found?
    if(entry == NULL)
@@ -1036,14 +1036,14 @@ error_t snmpAgentJoinGroup(SnmpAgentContext *context, const char_t *userName,
    if(entry != NULL)
    {
       //Clear entry
-      memset(entry, 0, sizeof(SnmpGroupEntry));
+      osMemset(entry, 0, sizeof(SnmpGroupEntry));
 
       //Save security model
       entry->securityModel = securityModel;
       //Save user name
-      strcpy(entry->securityName, userName);
+      osStrcpy(entry->securityName, userName);
       //Save group name
-      strcpy(entry->groupName, groupName);
+      osStrcpy(entry->groupName, groupName);
 
       //The entry is now available for use
       entry->status = MIB_ROW_STATUS_ACTIVE;
@@ -1093,13 +1093,13 @@ error_t snmpAgentLeaveGroup(SnmpAgentContext *context,
 
    //Search the group table for a matching entry
    entry = snmpFindGroupEntry(context, securityModel, userName,
-      strlen(userName));
+      osStrlen(userName));
 
    //Any matching entry found?
    if(entry != NULL)
    {
       //Clear the entry
-      memset(entry, 0, sizeof(SnmpGroupEntry));
+      osMemset(entry, 0, sizeof(SnmpGroupEntry));
       //Now mark the entry as free
       entry->status = MIB_ROW_STATUS_UNUSED;
 
@@ -1180,26 +1180,26 @@ error_t snmpAgentCreateAccess(SnmpAgentContext *context,
    }
 
    //Retrieve the length of the group name
-   n = strlen(groupName);
+   n = osStrlen(groupName);
 
    //Make sure the group name is valid
    if(n == 0 || n > SNMP_MAX_GROUP_NAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Make sure the context name prefix is valid
-   if(strlen(contextPrefix) > SNMP_MAX_CONTEXT_NAME_LEN)
+   if(osStrlen(contextPrefix) > SNMP_MAX_CONTEXT_NAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Make sure the read view name is valid
-   if(strlen(readViewName) > SNMP_MAX_VIEW_NAME_LEN)
+   if(osStrlen(readViewName) > SNMP_MAX_VIEW_NAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Make sure the write view name is valid
-   if(strlen(writeViewName) > SNMP_MAX_VIEW_NAME_LEN)
+   if(osStrlen(writeViewName) > SNMP_MAX_VIEW_NAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Make sure the notify view name is valid
-   if(strlen(notifyViewName) > SNMP_MAX_VIEW_NAME_LEN)
+   if(osStrlen(notifyViewName) > SNMP_MAX_VIEW_NAME_LEN)
       return ERROR_INVALID_LENGTH;
 
    //Acquire exclusive access to the SNMP agent context
@@ -1220,12 +1220,12 @@ error_t snmpAgentCreateAccess(SnmpAgentContext *context,
    if(entry != NULL)
    {
       //Clear entry
-      memset(entry, 0, sizeof(SnmpAccessEntry));
+      osMemset(entry, 0, sizeof(SnmpAccessEntry));
 
       //Save group name
-      strcpy(entry->groupName, groupName);
+      osStrcpy(entry->groupName, groupName);
       //Save context name prefix
-      strcpy(entry->contextPrefix, contextPrefix);
+      osStrcpy(entry->contextPrefix, contextPrefix);
       //Save security model
       entry->securityModel = securityModel;
       //Save security level
@@ -1233,11 +1233,11 @@ error_t snmpAgentCreateAccess(SnmpAgentContext *context,
       //Save context match
       entry->contextMatch = contextMatch;
       //Save read view name
-      strcpy(entry->readViewName, readViewName);
+      osStrcpy(entry->readViewName, readViewName);
       //Save write view name
-      strcpy(entry->writeViewName, writeViewName);
+      osStrcpy(entry->writeViewName, writeViewName);
       //Save notify view name
-      strcpy(entry->notifyViewName, notifyViewName);
+      osStrcpy(entry->notifyViewName, notifyViewName);
 
       //The entry is now available for use
       entry->status = MIB_ROW_STATUS_ACTIVE;
@@ -1296,7 +1296,7 @@ error_t snmpAgentDeleteAccess(SnmpAgentContext *context,
    if(entry != NULL)
    {
       //Clear the entry
-      memset(entry, 0, sizeof(SnmpAccessEntry));
+      osMemset(entry, 0, sizeof(SnmpAccessEntry));
       //Now mark the entry as free
       entry->status = MIB_ROW_STATUS_UNUSED;
 
@@ -1354,7 +1354,7 @@ error_t snmpAgentCreateView(SnmpAgentContext *context,
    }
 
    //Retrieve the length of the view name
-   n = strlen(viewName);
+   n = osStrlen(viewName);
 
    //Make sure the view name is valid
    if(n == 0 || n > SNMP_MAX_VIEW_NAME_LEN)
@@ -1387,16 +1387,16 @@ error_t snmpAgentCreateView(SnmpAgentContext *context,
    if(entry != NULL)
    {
       //Clear entry
-      memset(entry, 0, sizeof(SnmpViewEntry));
+      osMemset(entry, 0, sizeof(SnmpViewEntry));
 
       //Save view name
-      strcpy(entry->viewName, viewName);
+      osStrcpy(entry->viewName, viewName);
       //Save subtree
-      memcpy(entry->subtree, subtree, subtreeLen);
+      osMemcpy(entry->subtree, subtree, subtreeLen);
       //Save the length of the subtree
       entry->subtreeLen = subtreeLen;
       //Save bit mask
-      memcpy(entry->mask, mask, maskLen);
+      osMemcpy(entry->mask, mask, maskLen);
       //Save the length of the bit mask
       entry->maskLen = maskLen;
       //Save type
@@ -1456,7 +1456,7 @@ error_t snmpAgentDeleteView(SnmpAgentContext *context,
    if(entry != NULL)
    {
       //Clear the entry
-      memset(entry, 0, sizeof(SnmpViewEntry));
+      osMemset(entry, 0, sizeof(SnmpViewEntry));
       //Now mark the entry as free
       entry->status = MIB_ROW_STATUS_UNUSED;
 

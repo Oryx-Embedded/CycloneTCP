@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -221,6 +221,8 @@ void icmpProcessEchoRequest(NetInterface *interface,
    //Check status code
    if(!error)
    {
+      NetTxAncillary ancillary;
+
       //Get the length of the resulting message
       replyLength = netBufferGetLength(reply) - replyOffset;
       //Calculate ICMP header checksum
@@ -240,9 +242,12 @@ void icmpProcessEchoRequest(NetInterface *interface,
       //Dump message contents for debugging purpose
       icmpDumpEchoMessage(replyHeader);
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
+
       //Send Echo Reply message
       ipv4SendDatagram(interface, &replyPseudoHeader, reply, replyOffset,
-         IPV4_DEFAULT_TTL);
+         &ancillary);
    }
 
    //Free previously allocated memory block
@@ -318,6 +323,8 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code
    //Check status code
    if(!error)
    {
+      NetTxAncillary ancillary;
+
       //Get the length of the resulting message
       length = netBufferGetLength(icmpMessage) - offset;
       //Message checksum calculation
@@ -338,9 +345,12 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code
       //Dump message contents for debugging purpose
       icmpDumpErrorMessage(icmpHeader);
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
+
       //Send ICMP Error message
       error = ipv4SendDatagram(interface, &pseudoHeader, icmpMessage, offset,
-         IPV4_DEFAULT_TTL);
+         &ancillary);
    }
 
    //Free previously allocated memory

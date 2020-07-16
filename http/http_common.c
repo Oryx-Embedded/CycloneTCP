@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -82,7 +82,7 @@ error_t httpCheckCharset(const char_t *s, size_t length, uint_t charset)
          m |= HTTP_CHARSET_TCHAR | HTTP_CHARSET_ALPHA;
 
       //Check if character is decimal digit
-      if(isdigit(c))
+      if(osIsdigit(c))
          m |= HTTP_CHARSET_TCHAR | HTTP_CHARSET_DIGIT;
 
       //Check if character is hexadecimal digit
@@ -374,7 +374,7 @@ bool_t httpCompareParamName(const HttpParam *param, const char_t *name)
    res = FALSE;
 
    //Determine the length of the string
-   n = strlen(name);
+   n = osStrlen(name);
 
    //Check the length of the parameter name
    if(param->name != NULL && param->nameLen == n)
@@ -407,7 +407,7 @@ bool_t httpCompareParamValue(const HttpParam *param, const char_t *value)
    res = FALSE;
 
    //Determine the length of the string
-   n = strlen(value);
+   n = osStrlen(value);
 
    //Check the length of the parameter value
    if(param->value != NULL && param->valueLen == n)
@@ -456,7 +456,7 @@ error_t httpCopyParamValue(const HttpParam *param, char_t *value,
    }
 
    //Copy the value of the parameter
-   memcpy(value, param->value, n);
+   osMemcpy(value, param->value, n);
    //Properly terminate the string with a NULL character
    value[n] = '\0';
 

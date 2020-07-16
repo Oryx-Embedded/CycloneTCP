@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _NET_H
@@ -40,6 +40,7 @@ struct _NetInterface;
 #include "net_config.h"
 #include "core/net_legacy.h"
 #include "core/net_mem.h"
+#include "core/net_misc.h"
 #include "core/nic.h"
 #include "core/ethernet.h"
 #include "ipv4/ipv4.h"
@@ -89,13 +90,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "1.9.6"
+#define CYCLONE_TCP_VERSION_STRING "1.9.8"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 1
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 9
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 6
+#define CYCLONE_TCP_REV_NUMBER 8
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -118,12 +119,18 @@ struct _NetInterface;
    #error NET_LOOPBACK_IF_SUPPORT parameter is not valid
 #endif
 
-//Maximum number of callback functions that can be registered
-//to monitor link changes
-#ifndef NET_CALLBACK_TABLE_SIZE
-   #define NET_CALLBACK_TABLE_SIZE 6
-#elif (NET_CALLBACK_TABLE_SIZE < 1)
-   #error NET_CALLBACK_TABLE_SIZE parameter is not valid
+//Maximum number of link change callback functions that can be registered
+#ifndef NET_MAX_LINK_CHANGE_CALLBACKS
+   #define NET_MAX_LINK_CHANGE_CALLBACKS (6 * NET_INTERFACE_COUNT)
+#elif (NET_MAX_LINK_CHANGE_CALLBACKS < 1)
+   #error NET_MAX_LINK_CHANGE_CALLBACKS parameter is not valid
+#endif
+
+//Maximum number of timer callback functions that can be registered
+#ifndef NET_MAX_TIMER_CALLBACKS
+   #define NET_MAX_TIMER_CALLBACKS (6 * NET_INTERFACE_COUNT)
+#elif (NET_MAX_TIMER_CALLBACKS < 1)
+   #error NET_MAX_TIMER_CALLBACKS parameter is not valid
 #endif
 
 //Maximum length of interface name
@@ -138,13 +145,6 @@ struct _NetInterface;
    #define NET_MAX_HOSTNAME_LEN 24
 #elif (NET_MAX_HOSTNAME_LEN < 1)
    #error NET_MAX_HOSTNAME_LEN parameter is not valid
-#endif
-
-//Maximum length of proxy server name
-#ifndef NET_MAX_PROXY_NAME_LEN
-   #define NET_MAX_PROXY_NAME_LEN 16
-#elif (NET_MAX_PROXY_NAME_LEN < 1)
-   #error NET_MAX_PROXY_NAME_LEN parameter is not valid
 #endif
 
 //OS resources are statically allocated at compile time
@@ -190,32 +190,37 @@ struct _NetInterface
    Eui64 eui64;                                   ///<EUI-64 interface identifier
    char_t name[NET_MAX_IF_NAME_LEN + 1];          ///<A unique name identifying the interface
    char_t hostname[NET_MAX_HOSTNAME_LEN + 1];     ///<Host name
-   char_t proxyName[NET_MAX_PROXY_NAME_LEN + 1];  ///<Proxy server name
-   uint16_t proxyPort;                            ///<Proxy server port
    const NicDriver *nicDriver;                    ///<NIC driver
-   const PhyDriver *phyDriver;                    ///<PHY driver
-   uint8_t phyAddr;                               ///<PHY address
    const SpiDriver *spiDriver;                    ///<Underlying SPI driver
    const UartDriver *uartDriver;                  ///<Underlying UART driver
    const ExtIntDriver *extIntDriver;              ///<External interrupt line driver
    uint8_t nicContext[NIC_CONTEXT_SIZE];          ///<Driver specific context
    OsEvent nicTxEvent;                            ///<Network controller TX event
    bool_t nicEvent;                               ///<A NIC event is pending
-   bool_t phyEvent;                               ///<A PHY event is pending
+   NicLinkState adminLinkState;                   ///<Administrative link state
    bool_t linkState;                              ///<Link state
    uint32_t linkSpeed;                            ///<Link speed
    NicDuplexMode duplexMode;                      ///<Duplex mode
    bool_t configured;                             ///<Configuration done
 
 #if (ETH_SUPPORT == ENABLED)
+   const PhyDriver *phyDriver;                    ///<Ethernet PHY driver
+   uint8_t phyAddr;                               ///<PHY address
+   bool_t phyEvent;                               ///<A PHY event is pending
+   const SwitchDriver *switchDriver;              ///<Ethernet switch driver
+   const SmiDriver *smiDriver;                    ///<SMI driver
    MacAddr macAddr;                               ///<Link-layer address
    MacFilterEntry macAddrFilter[MAC_ADDR_FILTER_SIZE]; ///<MAC filter table
 #endif
 #if (ETH_VLAN_SUPPORT == ENABLED)
-   uint16_t vlanId;                               ///<VLAN identifier (802.1q)
+   uint16_t vlanId;                               ///<VLAN identifier (802.1Q)
 #endif
 #if (ETH_VMAN_SUPPORT == ENABLED)
    uint16_t vmanId;                               ///<VMAN identifier (802.1ad)
+#endif
+#if (ETH_LLC_SUPPORT == ENABLED)
+   LlcRxCallback llcRxCallback;                   ///<LLC frame received callback (802.2)
+   void *llcRxParam;                              ///<Callback parameter
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    uint8_t port;                                  ///<Switch port identifier
@@ -227,7 +232,9 @@ struct _NetInterface
 
 #if (IPV4_SUPPORT == ENABLED)
    Ipv4Context ipv4Context;                       ///<IPv4 context
+#if (ETH_SUPPORT == ENABLED)
    ArpCacheEntry arpCache[ARP_CACHE_SIZE];        ///<ARP cache
+#endif
 #if (IGMP_SUPPORT == ENABLED)
    systime_t igmpv1RouterPresentTimer;            ///<IGMPv1 router present timer
    bool_t igmpv1RouterPresent;                    ///<An IGMPv1 query has been recently heard
@@ -274,29 +281,28 @@ struct _NetInterface
 
 
 /**
- * @brief Link change callback
- **/
-
-typedef void (*LinkChangeCallback)(NetInterface *interface, bool_t linkState, void *param);
-
-
-/**
- * @brief Entry describing a user callback
+ * @brief TCP/IP stack context
  **/
 
 typedef struct
 {
-   NetInterface *interface;
-   LinkChangeCallback callback;
-   void *param;
-} LinkChangeCallbackDesc;
+   OsMutex mutex;                                ///<Mutex preventing simultaneous access to the TCP/IP stack
+   OsEvent event;                                ///<Event object to receive notifications from drivers
+   bool_t running;                               ///<The TCP/IP stack is currently running
+   OsTask *taskHandle;
+#if (NET_STATIC_OS_RESOURCES == ENABLED)
+   OsTask taskInstance;
+   uint_t taskStack[NET_TASK_STACK_SIZE];
+#endif
+   systime_t timestamp;
+   NetInterface interfaces[NET_INTERFACE_COUNT]; ///<Network interfaces
+   NetLinkChangeCallbackEntry linkChangeCallbacks[NET_MAX_LINK_CHANGE_CALLBACKS];
+   NetTimerCallbackEntry timerCallbacks[NET_MAX_TIMER_CALLBACKS];
+} NetContext;
 
 
 //Global variables
-extern OsTask *netTaskHandle;
-extern OsMutex netMutex;
-extern OsEvent netEvent;
-extern NetInterface netInterface[NET_INTERFACE_COUNT];
+extern NetContext netContext;
 
 //TCP/IP stack related functions
 error_t netInit(void);
@@ -310,11 +316,9 @@ error_t netGetEui64(NetInterface *interface, Eui64 *eui64);
 error_t netSetInterfaceId(NetInterface *interface, uint32_t id);
 error_t netSetInterfaceName(NetInterface *interface, const char_t *name);
 error_t netSetHostname(NetInterface *interface, const char_t *name);
-error_t netSetProxy(NetInterface *interface, const char_t *name, uint16_t port);
 
 error_t netSetVlanId(NetInterface *interface, uint16_t vlanId);
 error_t netSetVmanId(NetInterface *interface, uint16_t vmanId);
-error_t netSetSwitchPort(NetInterface *interface, uint8_t port);
 
 error_t netSetParentInterface(NetInterface *interface,
    NetInterface *physicalInterface);
@@ -324,6 +328,10 @@ error_t netSetDriver(NetInterface *interface, const NicDriver *driver);
 error_t netSetPhyDriver(NetInterface *interface, const PhyDriver *driver);
 error_t netSetPhyAddr(NetInterface *interface, uint8_t phyAddr);
 
+error_t netSetSwitchDriver(NetInterface *interface, const SwitchDriver *driver);
+error_t netSetSwitchPort(NetInterface *interface, uint8_t port);
+
+error_t netSetSmiDriver(NetInterface *interface, const SmiDriver *driver);
 error_t netSetSpiDriver(NetInterface *interface, const SpiDriver *driver);
 error_t netSetUartDriver(NetInterface *interface, const UartDriver *driver);
 error_t netSetExtIntDriver(NetInterface *interface, const ExtIntDriver *driver);
@@ -335,23 +343,13 @@ error_t netConfigInterface(NetInterface *interface);
 error_t netStartInterface(NetInterface *interface);
 error_t netStopInterface(NetInterface *interface);
 
-void netProcessLinkChange(NetInterface *interface);
-
 void netTask(void);
-void netTick(void);
 
 NetInterface *netGetDefaultInterface(void);
 
 error_t netInitRand(uint32_t seed);
 uint32_t netGetRand(void);
 int32_t netGetRandRange(int32_t min, int32_t max);
-
-error_t netAttachLinkChangeCallback(NetInterface *interface,
-   LinkChangeCallback callback, void *param, uint_t *cookie);
-
-error_t netDetachLinkChangeCallback(uint_t cookie);
-
-void netInvokeLinkChangeCallback(NetInterface *interface, bool_t linkState);
 
 //C++ guard
 #ifdef __cplusplus

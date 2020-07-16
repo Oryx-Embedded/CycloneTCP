@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -52,11 +52,11 @@ void icecastClientGetDefaultSettings(IcecastClientSettings *settings)
    settings->interface = netGetDefaultInterface();
 
    //Icecast server name
-   strcpy(settings->serverName, "");
+   osStrcpy(settings->serverName, "");
    //Icecast server port
    settings->serverPort = 8000;
    //Requested resource
-   strcpy(settings->resource, "/stream");
+   osStrcpy(settings->resource, "/stream");
 
    //Streaming buffer size
    settings->bufferSize = 80000;
@@ -83,7 +83,7 @@ error_t icecastClientInit(IcecastClientContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Clear the Icecast client context
-   memset(context, 0, sizeof(IcecastClientContext));
+   osMemset(context, 0, sizeof(IcecastClientContext));
 
    //Save user settings
    context->settings = *settings;
@@ -213,15 +213,15 @@ error_t icecastClientReadStream(IcecastClientContext *context,
    if((context->readIndex + *length) <= context->bufferSize)
    {
       //Copy the data
-      memcpy(data, context->streamBuffer + context->readIndex, *length);
+      osMemcpy(data, context->streamBuffer + context->readIndex, *length);
    }
    else
    {
       //Copy the first part of the data
-      memcpy(data, context->streamBuffer + context->readIndex,
+      osMemcpy(data, context->streamBuffer + context->readIndex,
          context->bufferSize - context->readIndex);
       //Wrap around to the beginning of the circular buffer
-      memcpy(data + context->bufferSize - context->readIndex, context->streamBuffer,
+      osMemcpy(data + context->bufferSize - context->readIndex, context->streamBuffer,
          *length - context->bufferSize + context->readIndex);
    }
 
@@ -273,7 +273,7 @@ error_t icecastClientReadMetadata(IcecastClientContext *context,
    //Limit the number of data to read
    *length = MIN(size, context->metadataLength);
    //Save metadata information
-   memcpy(metadata, context->metadata, *length);
+   osMemcpy(metadata, context->metadata, *length);
 
    //Leave critical section
    osReleaseMutex(&context->mutex);
@@ -441,7 +441,7 @@ error_t icecastClientConnect(IcecastClientContext *context)
    interface = context->settings.interface;
 
    //Force traffic to go through a proxy server?
-   if(strcmp(interface->proxyName, ""))
+   if(osStrcmp(interface->proxyName, ""))
    {
       //Icecast request template
       const char_t requestTemplate[] =
@@ -453,7 +453,7 @@ error_t icecastClientConnect(IcecastClientContext *context)
          "\r\n";
 
       //Format Icecast request
-      length = sprintf(context->buffer, requestTemplate,
+      length = osSprintf(context->buffer, requestTemplate,
          context->settings.serverName, context->settings.serverPort,
          context->settings.resource, context->settings.serverName,
          context->settings.serverPort);
@@ -479,7 +479,7 @@ error_t icecastClientConnect(IcecastClientContext *context)
          "\r\n";
 
       //Format Icecast request
-      length = sprintf(context->buffer, requestTemplate,
+      length = osSprintf(context->buffer, requestTemplate,
          context->settings.resource, context->settings.serverName);
 
       //The specified Icecast server can be either an IP or a host name
@@ -547,7 +547,7 @@ error_t icecastClientConnect(IcecastClientContext *context)
          context->buffer[length] = '\0';
 
          //The end of the header has been reached?
-         if(!strcmp(context->buffer, "\r\n"))
+         if(!osStrcmp(context->buffer, "\r\n"))
             break;
 
          //Check whether a separator is present
@@ -567,7 +567,7 @@ error_t icecastClientConnect(IcecastClientContext *context)
             TRACE_INFO("<%s>=<%s>\r\n", property, value);
 
             //Icy-Metaint property found?
-            if(!strcasecmp(property, "Icy-Metaint"))
+            if(!osStrcasecmp(property, "Icy-Metaint"))
             {
                //Retrieve the block size used by the Icecast server
                context->blockSize = atoi(value);
@@ -634,7 +634,7 @@ error_t icecastClientProcessMetadata(IcecastClientContext *context)
    osAcquireMutex(&context->mutex);
 
    //Save metadata information
-   memcpy(context->metadata, context->buffer, n);
+   osMemcpy(context->metadata, context->buffer, n);
    //Terminate the string properly
    context->metadata[n] = '\0';
    //Record the length of the metadata

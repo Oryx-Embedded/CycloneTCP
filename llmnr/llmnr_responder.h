@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _LLMNR_RESPONDER_H
@@ -52,8 +52,10 @@ extern "C" {
 //LLMNR related functions
 error_t llmnrResponderInit(NetInterface *interface);
 
-void llmnrProcessQuery(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NetBuffer *buffer, size_t offset, void *param);
+void llmnrProcessQuery(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
+   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
+   void *param);
 
 error_t llmnrSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
    uint16_t destPort, uint16_t id, uint16_t qtype, uint16_t qclass);

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -429,7 +429,7 @@ error_t ndpSelectDefaultRouter(NetInterface *interface,
       }
    }
 
-   //No default router found...
+   //No default router found
    return ERROR_NO_ROUTE;
 }
 
@@ -497,25 +497,27 @@ bool_t ndpIsFirstHopRouter(NetInterface *interface,
  * @brief Next-hop determination
  * @param[in] interface Underlying network interface
  * @param[in] destAddr Destination address
- * @param[in] unreachableNextHop Address of the unreachable next-hop (optional parameter)
+ * @param[in] unreachableNextHop Address of the unreachable next-hop (optional
+ *   parameter)
  * @param[out] nextHop Next-hop address to be used
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] dontRoute Do not send the packet via a router
  * @return Error code
  **/
 
 error_t ndpSelectNextHop(NetInterface *interface, const Ipv6Addr *destAddr,
-   const Ipv6Addr *unreachableNextHop, Ipv6Addr *nextHop, uint_t flags)
+   const Ipv6Addr *unreachableNextHop, Ipv6Addr *nextHop, bool_t dontRoute)
 {
    error_t error;
+
+   //Initialize status code
+   error = NO_ERROR;
 
    //Destination IPv6 address is a multicast address?
    if(ipv6IsMulticastAddr(destAddr))
    {
-      //For multicast packets, the next-hop is always the (multicast)
-      //destination address and is considered to be on-link
+      //For multicast packets, the next-hop is always the multicast destination
+      //address and is considered to be on-link
       *nextHop = *destAddr;
-      //Successful next-hop determination
-      error = NO_ERROR;
    }
    else
    {
@@ -526,15 +528,11 @@ error_t ndpSelectNextHop(NetInterface *interface, const Ipv6Addr *destAddr,
          //If the destination is on-link, the next-hop address is the same as
          //the packet's destination address
          *nextHop = *destAddr;
-         //Successful next-hop determination
-         error = NO_ERROR;
       }
-      else if((flags & IP_FLAG_DONT_ROUTE) != 0)
+      else if(dontRoute)
       {
          //Do not send the packet via a router
          *nextHop = *destAddr;
-         //Successful next-hop determination
-         error = NO_ERROR;
       }
       else
       {
@@ -572,7 +570,7 @@ void ndpUpdateNextHop(NetInterface *interface, const Ipv6Addr *unreachableNextHo
       {
          //Perform next-hop determination
          error = ndpSelectNextHop(interface, &entry->destAddr, &entry->nextHop,
-            &entry->nextHop, 0);
+            &entry->nextHop, FALSE);
 
          //Next-hop determination failed?
          if(error)
@@ -615,7 +613,7 @@ void ndpAddOption(void *message, size_t *messageLen, uint8_t type,
       //Option length
       option->length = (uint8_t) optionLen;
       //Option value
-      memcpy(option->value, value, length);
+      osMemcpy(option->value, value, length);
 
       //Options should be padded when necessary to ensure that they end on
       //their natural 64-bit boundaries
@@ -624,7 +622,7 @@ void ndpAddOption(void *message, size_t *messageLen, uint8_t type,
          //Determine the amount of padding data to append
          paddingLen = (optionLen * 8) - length - sizeof(NdpOption);
          //Write padding data
-         memset(option->value + length, 0, paddingLen);
+         osMemset(option->value + length, 0, paddingLen);
       }
 
       //Adjust the length of the NDP message

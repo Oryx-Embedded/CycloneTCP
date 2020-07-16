@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -116,7 +116,7 @@ error_t coapParseMessageHeader(const uint8_t *p, size_t length,
 
    //Malformed CoAP message?
    if(length < sizeof(CoapMessageHeader))
-      return ERROR_INVALID_MESSAGE;
+      return ERROR_INVALID_HEADER;
 
    //Point to the CoAP message header
    header = (CoapMessageHeader *) p;
@@ -127,11 +127,11 @@ error_t coapParseMessageHeader(const uint8_t *p, size_t length,
 
    //The length of the Token field must 0-8 bytes
    if(header->tokenLen > COAP_MAX_TOKEN_LEN)
-      return ERROR_INVALID_MESSAGE;
+      return ERROR_INVALID_HEADER;
 
    //Malformed CoAP message?
    if(length < (sizeof(CoapMessageHeader) + header->tokenLen))
-      return ERROR_INVALID_MESSAGE;
+      return ERROR_INVALID_HEADER;
 
    //Total number of bytes that have been consumed
    *consumed = sizeof(CoapMessageHeader) + header->tokenLen;
@@ -299,7 +299,7 @@ error_t coapSetPayload(CoapMessage *message, const void *payload,
 
       //The payload data extends from after the marker to the end of the
       //UDP datagram
-      memcpy(p + 1, payload, payloadLen);
+      osMemcpy(p + 1, payload, payloadLen);
 
       //Terminate the payload with a NULL character
       p[payloadLen + 1] = '\0';
@@ -442,7 +442,7 @@ error_t coapWritePayload(CoapMessage *message, const void *data,
       }
 
       //Copy data
-      memcpy(p + n, data, length);
+      osMemcpy(p + n, data, length);
 
       //Terminate the payload with a NULL character
       p[n + length] = '\0';
@@ -516,7 +516,7 @@ error_t coapReadPayload(CoapMessage *message, void *data, size_t size,
       n = MIN(n - message->pos, size);
 
       //Copy data
-      memcpy(data, p + message->pos, n);
+      osMemcpy(data, p + message->pos, n);
 
       //Advance current position
       message->pos += n;
@@ -553,7 +553,7 @@ bool_t coapCompareToken(const CoapMessageHeader *header1,
    if(header1->tokenLen == header2->tokenLen)
    {
       //Compare tokens
-      if(!memcmp(header1->token, header2->token, header1->tokenLen))
+      if(!osMemcmp(header1->token, header2->token, header1->tokenLen))
       {
          //The tokens match
          res = TRUE;

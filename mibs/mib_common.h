@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _MIB_COMMON_H
@@ -342,6 +342,12 @@ error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
 error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
    MacAddr *macAddr);
 
+error_t mibEncodePhysAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const MacAddr *macAddr);
+
+error_t mibDecodePhysAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   MacAddr *macAddr);
+
 error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos,
    Ipv4Addr ipAddr);
 
@@ -360,6 +366,7 @@ error_t mibEncodeIpAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
 error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
    IpAddr *ipAddr);
 
+int_t mibCompMacAddr(const MacAddr *macAddr1, const MacAddr *macAddr2);
 int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
 
 error_t mibTestAndIncSpinLock(int32_t *spinLock, int32_t value, bool_t commit);

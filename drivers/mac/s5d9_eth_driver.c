@@ -1,12 +1,12 @@
 /**
  * @file s5d9_eth_driver.c
- * @brief Renesas Synergy S5D9 Ethernet MAC controller
+ * @brief Renesas Synergy S5D9 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -125,7 +125,7 @@ error_t s5d9EthInit(NetInterface *interface)
    //Disable protection
    R_SYSTEM->PRCR = 0xA50B;
    //Cancel EDMAC0 module stop state
-   R_MSTP->MSTPCRB_b.MSTPB13 = 0;
+   R_MSTP->MSTPCRB_b.MSTPB15 = 0;
    //Enable protection
    R_SYSTEM->PRCR = 0xA500;
 
@@ -136,11 +136,28 @@ error_t s5d9EthInit(NetInterface *interface)
    R_EDMAC0->EDMR_b.SWR = 1;
    sleep(10);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Initialize DMA descriptor lists
    s5d9EthInitDmaDesc(interface);
@@ -324,16 +341,29 @@ void s5d9EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief S5D9 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void s5d9EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -346,8 +376,22 @@ void s5d9EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ETHER_EINT0_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -360,8 +404,22 @@ void s5d9EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ETHER_EINT0_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -383,22 +441,22 @@ void ETHER_EINT0_IRQHandler(void)
    //Read interrupt status register
    status = R_EDMAC0->EESR;
 
-   //A packet has been transmitted?
-   if(status & EDMAC_EESR_TWB)
+   //Packet transmitted?
+   if((status & EDMAC_EESR_TWB) != 0)
    {
       //Clear TWB interrupt flag
       R_EDMAC0->EESR = EDMAC_EESR_TWB;
 
       //Check whether the TX buffer is available for writing
-      if(!(txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT))
+      if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & EDMAC_EESR_FR)
+   //Packet received?
+   if((status & EDMAC_EESR_FR) != 0)
    {
       //Disable FR interrupts
       R_EDMAC0->EESIPR_b.FRIP = 0;
@@ -427,7 +485,7 @@ void s5d9EthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(R_EDMAC0->EESR & EDMAC_EESR_FR)
+   if((R_EDMAC0->EESR & EDMAC_EESR_FR) != 0)
    {
       //Clear FR interrupt flag
       R_EDMAC0->EESR = EDMAC_EESR_FR;
@@ -453,11 +511,13 @@ void s5d9EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t s5d9EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    //Retrieve the length of the packet
    size_t length = netBufferGetLength(buffer) - offset;
@@ -472,8 +532,10 @@ error_t s5d9EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT)
+   if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer[txIndex], buffer, offset, length);
@@ -505,7 +567,7 @@ error_t s5d9EthSendPacket(NetInterface *interface,
    R_EDMAC0->EDTRR_b.TR = 1;
 
    //Check whether the next buffer is available for writing
-   if(!(txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT))
+   if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -526,13 +588,14 @@ error_t s5d9EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RACT))
+   if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RACT) == 0)
    {
       //SOF and EOF flags should be set
-      if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_SOF) &&
-         (rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_EOF))
+      if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_SOF) != 0 &&
+         (rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_EOF) != 0)
       {
          //Make sure no error occurred
          if(!(rxDmaDesc[rxIndex].rd0 & (EDMAC_RD0_RFS_MASK & ~EDMAC_RD0_RFS_RMAF)))
@@ -542,8 +605,11 @@ error_t s5d9EthReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, S5D9_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, rxBuffer[rxIndex], n);
+            nicProcessPacket(interface, rxBuffer[rxIndex], n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -630,9 +696,13 @@ error_t s5d9EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
+   {
       R_EDMAC0->EESR_b.RMAF = 1;
+   }
    else
+   {
       R_EDMAC0->EESR_b.RMAF = 0;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -649,15 +719,23 @@ error_t s5d9EthUpdateMacConfig(NetInterface *interface)
 {
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       R_ETHERC0->ECMR_b.RTM = 1;
+   }
    else
+   {
       R_ETHERC0->ECMR_b.RTM = 0;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       R_ETHERC0->ECMR_b.DM = 1;
+   }
    else
+   {
       R_ETHERC0->ECMR_b.DM = 0;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -747,10 +825,14 @@ void s5d9EthWriteSmi(uint32_t data, uint_t length)
    while(length--)
    {
       //Write MDIO
-      if(data & 0x80000000)
+      if((data & 0x80000000) != 0)
+      {
          R_ETHERC0->PIR_b.MDO = 1;
+      }
       else
+      {
          R_ETHERC0->PIR_b.MDO = 0;
+      }
 
       //Assert MDC
       usleep(1);
@@ -793,7 +875,9 @@ uint32_t s5d9EthReadSmi(uint_t length)
 
       //Check MDIO state
       if(R_ETHERC0->PIR_b.MDI)
-         data |= 0x00000001;
+      {
+         data |= 0x01;
+      }
    }
 
    //Return the received data

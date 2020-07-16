@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Dependencies
@@ -131,7 +131,7 @@ error_t mibEncodeString(uint8_t *oid, size_t maxOidLen, size_t *pos,
 {
    //Encode string
    return mibEncodeOctetString(oid, maxOidLen, pos, (const uint8_t *) string,
-      strlen(string), implied);
+      osStrlen(string), implied);
 }
 
 
@@ -351,7 +351,7 @@ error_t mibEncodeObjectIdentifier(uint8_t *oid, size_t maxOidLen, size_t *pos,
          return ERROR_BUFFER_OVERFLOW;
 
       //Encode the rest of the object identifier
-      memcpy(oid + *pos, objectId + 1, objectIdLen - 1);
+      osMemcpy(oid + *pos, objectId + 1, objectIdLen - 1);
 
       //Update offset value
       *pos += objectIdLen - 1;
@@ -531,12 +531,6 @@ error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
    error_t error;
    uint_t i;
 
-   //Encode the length of the octet string
-   error = oidEncodeSubIdentifier(oid, maxOidLen, pos, sizeof(MacAddr));
-   //Any error to report?
-   if(error)
-      return error;
-
    //The address is encoded as 6 subsequent sub-identifiers
    for(i = 0; i < sizeof(MacAddr); i++)
    {
@@ -566,18 +560,7 @@ error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
 {
    error_t error;
    uint_t i;
-   uint32_t length;
    uint32_t value;
-
-   //Decode the length of the octet string
-   error = oidDecodeSubIdentifier(oid, oidLen, pos, &length);
-   //Any error to report?
-   if(error)
-      return error;
-
-   //Make sure the length of the octet string is valid
-   if(length != sizeof(MacAddr))
-      return ERROR_INSTANCE_NOT_FOUND;
 
    //The address is encoded as 6 subsequent sub-identifiers
    for(i = 0; i < sizeof(MacAddr); i++)
@@ -598,6 +581,74 @@ error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
 
    //Successful processing
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Encode instance identifier (physical address)
+ * @param[in] oid Pointer to the object identifier
+ * @param[in] maxOidLen Maximum number of bytes the OID can hold
+ * @param[in,out] pos Offset where to write the instance identifier
+ * @param[in] macAddr MAC address
+ * @return Error code
+ **/
+
+error_t mibEncodePhysAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
+   const MacAddr *macAddr)
+{
+   error_t error;
+
+   //Encode the length of the octet string
+   error = oidEncodeSubIdentifier(oid, maxOidLen, pos, sizeof(MacAddr));
+
+   //Check status code
+   if(!error)
+   {
+      //The address is encoded as 6 subsequent sub-identifiers
+      error = mibEncodeMacAddr(oid, maxOidLen, pos, macAddr);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Decode instance identifier (physical address)
+ * @param[in] oid Pointer to the object identifier
+ * @param[in] oidLen Length of the OID, in bytes
+ * @param[in,out] pos Offset where to read the instance identifier
+ * @param[out] macAddr MAC address
+ * @return Error code
+ **/
+
+error_t mibDecodePhysAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
+   MacAddr *macAddr)
+{
+   error_t error;
+   uint32_t length;
+
+   //Decode the length of the octet string
+   error = oidDecodeSubIdentifier(oid, oidLen, pos, &length);
+
+   //Check status code
+   if(!error)
+   {
+      //Make sure the length of the octet string is valid
+      if(length == sizeof(MacAddr))
+      {
+         //The address is encoded as 6 subsequent sub-identifiers
+         error = mibDecodeMacAddr(oid, oidLen, pos, macAddr);
+      }
+      else
+      {
+         //Report an error
+         error = ERROR_INSTANCE_NOT_FOUND;
+      }
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -894,6 +945,20 @@ error_t mibDecodeIpAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
 
 
 /**
+ * @brief Compare MAC addresses
+ * @param[in] macAddr1 First MAC address
+ * @param[in] macAddr2 Second MAC address
+ * @return Comparison result
+ **/
+
+int_t mibCompMacAddr(const MacAddr *macAddr1, const MacAddr *macAddr2)
+{
+   //Return comparison result
+   return osMemcmp(macAddr1, macAddr2, sizeof(MacAddr));
+}
+
+
+/**
  * @brief Compare IP addresses
  * @param[in] ipAddr1 First IP address
  * @param[in] ipAddr2 Second IP address
@@ -920,7 +985,7 @@ int_t mibCompIpAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
    else
    {
       //Compare IP addresses
-      res = memcmp((uint8_t *) ipAddr1 + sizeof(size_t),
+      res = osMemcmp((uint8_t *) ipAddr1 + sizeof(size_t),
          (uint8_t *) ipAddr2 + sizeof(size_t), ipAddr1->length);
    }
 

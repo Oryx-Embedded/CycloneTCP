@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -96,10 +96,12 @@ error_t winc1500Init(NetInterface *interface)
 
       //Check status code
       if(status != M2M_SUCCESS)
+      {
          break;
+      }
 
       //Set default parameters
-      memset(&param, 0, sizeof(param));
+      osMemset(&param, 0, sizeof(param));
 
       //Register callback functions
       param.pfAppWifiCb = winc1500AppWifiEvent;
@@ -119,7 +121,9 @@ error_t winc1500Init(NetInterface *interface)
 
       //Check status code
       if(status != M2M_SUCCESS)
+      {
          break;
+      }
 
       //Optionally set the station MAC address
       if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
@@ -129,7 +133,9 @@ error_t winc1500Init(NetInterface *interface)
 
          //Check status code
          if(status != M2M_SUCCESS)
+         {
             break;
+         }
 
          //Generate the 64-bit interface identifier
          macAddrToEui64(&interface->macAddr, &interface->eui64);
@@ -141,7 +147,9 @@ error_t winc1500Init(NetInterface *interface)
 
          //Check status code
          if(status != M2M_SUCCESS)
+         {
             break;
+         }
       }
 
       //End of exception handling block
@@ -152,17 +160,21 @@ error_t winc1500Init(NetInterface *interface)
 
    //Return status code
    if(status == M2M_SUCCESS)
+   {
       return NO_ERROR;
+   }
    else
+   {
       return ERROR_FAILURE;
+   }
 }
 
 
 /**
  * @brief WINC1500 timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
@@ -231,11 +243,13 @@ void winc1500EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t winc1500SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    int8_t status;
    size_t length;
@@ -272,9 +286,13 @@ error_t winc1500SendPacket(NetInterface *interface,
 
    //Return status code
    if(status == M2M_SUCCESS)
+   {
       return NO_ERROR;
+   }
    else
+   {
       return ERROR_FAILURE;
+   }
 }
 
 
@@ -342,7 +360,7 @@ void winc1500AppWifiEvent(uint8_t msgType, void *msg)
       TRACE_INFO("  M2M_WIFI_RESP_CON_STATE_CHANGED\r\n");
 
       //Connection state
-      stateChangedMsg = (tstrM2mWifiStateChanged*) msg;
+      stateChangedMsg = (tstrM2mWifiStateChanged *) msg;
 
       //Check link state
       if(stateChangedMsg->u8CurrState == M2M_WIFI_CONNECTED)
@@ -382,6 +400,7 @@ void winc1500AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
 {
    size_t n;
    tstrM2mIpCtrlBuf *ctrl;
+   NetRxAncillary ancillary;
 
    //Debug message
    TRACE_DEBUG("WINC1500 RX event callback\r\n");
@@ -403,7 +422,10 @@ void winc1500AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
       //Retrieve the length of the packet
       n = ctrl->u16DataSize;
 
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_RX_ANCILLARY;
+
       //Pass the packet to the upper layer
-      nicProcessPacket(nicDriverInterface, rxBuffer, n);
+      nicProcessPacket(nicDriverInterface, rxBuffer, n, &ancillary);
    }
 }

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -49,9 +49,9 @@
 #if (SNMP_AGENT_SUPPORT == ENABLED)
 
 //snmpUnavailableContexts.0 object (1.3.6.1.6.3.12.1.4.0)
-static const uint8_t snmpUnavailableContextsObject[9] = {43, 6, 1, 6, 3, 12, 1, 4, 0};
+const uint8_t snmpUnavailableContextsObject[9] = {43, 6, 1, 6, 3, 12, 1, 4, 0};
 //snmpUnknownContexts.0 object (1.3.6.1.6.3.12.1.5.0)
-static const uint8_t snmpUnknownContextsObject[9] = {43, 6, 1, 6, 3, 12, 1, 5, 0};
+const uint8_t snmpUnknownContextsObject[9] = {43, 6, 1, 6, 3, 12, 1, 5, 0};
 
 
 /**
@@ -372,6 +372,11 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
 
    //Debug message
    TRACE_INFO("Parsing GetBulkRequest-PDU...\r\n");
+
+   //Initialize variables
+   m = 0;
+   endOfMibView = FALSE;
+   next = NULL;
 
    //Make sure the SNMP version identifier is valid
    if(context->request.version == SNMP_VERSION_1)
@@ -738,7 +743,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
 
    //Context name
    context->response.contextName = context->contextName;
-   context->response.contextNameLen = strlen(context->contextName);
+   context->response.contextNameLen = osStrlen(context->contextName);
 
    //PDU type
    context->response.pduType = SNMP_PDU_REPORT;

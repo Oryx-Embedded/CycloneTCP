@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,7 @@ error_t udpMibInit(void)
    TRACE_INFO("Initializing UDP-MIB base...\r\n");
 
    //Clear UDP MIB base
-   memset(&udpMibBase, 0, sizeof(udpMibBase));
+   osMemset(&udpMibBase, 0, sizeof(udpMibBase));
 
    //Successful processing
    return NO_ERROR;
@@ -158,7 +158,7 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
       for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
       {
          //Point to the current entry
-         UdpRxCallbackDesc *entry = &udpCallbackTable[i];
+         UdpRxCallbackEntry *entry = &udpCallbackTable[i];
 
          //Check whether the entry is currently in used
          if(entry->callback != NULL)
@@ -175,7 +175,7 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
    }
 
    //udpEndpointProcess object?
-   if(!strcmp(object->name, "udpEndpointProcess"))
+   if(!osStrcmp(object->name, "udpEndpointProcess"))
    {
       //ID of the process associated with this endpoint
       value->unsigned32 = 0;
@@ -227,7 +227,7 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
@@ -279,23 +279,41 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
          {
             //Perform lexicographic comparison
             if(localPort == 0 && remotePort == 0)
+            {
                acceptable = TRUE;
+            }
             else if(mibCompIpAddr(&socket->localIpAddr, &localIpAddr) < 0)
+            {
                acceptable = TRUE;
+            }
             else if(mibCompIpAddr(&socket->localIpAddr, &localIpAddr) > 0)
+            {
                acceptable = FALSE;
+            }
             else if(socket->localPort < localPort)
+            {
                acceptable = TRUE;
+            }
             else if(socket->localPort > localPort)
+            {
                acceptable = FALSE;
+            }
             else if(mibCompIpAddr(&socket->remoteIpAddr, &remoteIpAddr) < 0)
+            {
                acceptable = TRUE;
+            }
             else if(mibCompIpAddr(&socket->remoteIpAddr, &remoteIpAddr) > 0)
+            {
                acceptable = FALSE;
+            }
             else if(socket->remotePort < remotePort)
+            {
                acceptable = TRUE;
+            }
             else
+            {
                acceptable = FALSE;
+            }
 
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order
@@ -314,7 +332,7 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      UdpRxCallbackDesc *entry = &udpCallbackTable[i];
+      UdpRxCallbackEntry *entry = &udpCallbackTable[i];
 
       //Check whether the entry is currently in used
       if(entry->callback != NULL)
@@ -360,23 +378,41 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
          {
             //Perform lexicographic comparison
             if(localPort == 0 && remotePort == 0)
+            {
                acceptable = TRUE;
+            }
             else if(mibCompIpAddr(&IP_ADDR_ANY, &localIpAddr) < 0)
+            {
                acceptable = TRUE;
+            }
             else if(mibCompIpAddr(&IP_ADDR_ANY, &localIpAddr) > 0)
+            {
                acceptable = FALSE;
+            }
             else if(entry->port < localPort)
+            {
                acceptable = TRUE;
+            }
             else if(entry->port > localPort)
+            {
                acceptable = FALSE;
+            }
             else if(mibCompIpAddr(&IP_ADDR_ANY, &remoteIpAddr) < 0)
+            {
                acceptable = TRUE;
+            }
             else if(mibCompIpAddr(&IP_ADDR_ANY, &remoteIpAddr) > 0)
+            {
                acceptable = FALSE;
+            }
             else if(0 < remotePort)
+            {
                acceptable = TRUE;
+            }
             else
+            {
                acceptable = FALSE;
+            }
 
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order

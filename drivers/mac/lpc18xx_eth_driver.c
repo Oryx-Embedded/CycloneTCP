@@ -1,12 +1,12 @@
 /**
  * @file lpc18xx_eth_driver.c
- * @brief LPC1800 Ethernet MAC controller
+ * @brief LPC1800 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -124,7 +124,7 @@ error_t lpc18xxEthInit(NetInterface *interface)
    //Enable Ethernet peripheral clock
    LPC_CCU1->CLK_M3_ETHERNET_CFG |= CCU1_CLK_M3_ETHERNET_CFG_RUN_Msk;
    //Wait for completion
-   while(!(LPC_CCU1->CLK_M3_ETHERNET_STAT & CCU1_CLK_M3_ETHERNET_STAT_RUN_Msk))
+   while((LPC_CCU1->CLK_M3_ETHERNET_STAT & CCU1_CLK_M3_ETHERNET_STAT_RUN_Msk) == 0)
    {
    }
 
@@ -142,25 +142,42 @@ error_t lpc18xxEthInit(NetInterface *interface)
    //Reset Ethernet peripheral
    LPC_RGU->RESET_CTRL0 = RGU_RESET_CTRL0_ETHERNET_RST_Msk;
    //Wait for the reset to complete
-   while(!(LPC_RGU->RESET_ACTIVE_STATUS0 & RGU_RESET_ACTIVE_STATUS0_ETHERNET_RST_Msk))
+   while((LPC_RGU->RESET_ACTIVE_STATUS0 & RGU_RESET_ACTIVE_STATUS0_ETHERNET_RST_Msk) == 0)
    {
    }
 
    //Perform a software reset
    LPC_ETHERNET->DMA_BUS_MODE |= ETHERNET_DMA_BUS_MODE_SWR_Msk;
    //Wait for the reset to complete
-   while(LPC_ETHERNET->DMA_BUS_MODE & ETHERNET_DMA_BUS_MODE_SWR_Msk)
+   while((LPC_ETHERNET->DMA_BUS_MODE & ETHERNET_DMA_BUS_MODE_SWR_Msk) != 0)
    {
    }
 
    //Adjust MDC clock range
    LPC_ETHERNET->MAC_MII_ADDR = ETHERNET_MAC_MII_ADDR_CR_DIV62;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Use default MAC configuration
    LPC_ETHERNET->MAC_CONFIG = ETHERNET_MAC_CONFIG_DO_Msk;
@@ -233,7 +250,7 @@ void lpc18xxEthInitGpio(NetInterface *interface)
    //Enable GPIO peripheral clock
    LPC_CCU1->CLK_M3_GPIO_CFG |= CCU1_CLK_M3_GPIO_CFG_RUN_Msk;
    //Wait for completion
-   while(!(LPC_CCU1->CLK_M3_GPIO_STAT & CCU1_CLK_M3_GPIO_STAT_RUN_Msk))
+   while((LPC_CCU1->CLK_M3_GPIO_STAT & CCU1_CLK_M3_GPIO_STAT_RUN_Msk) == 0)
    {
    }
 
@@ -334,16 +351,29 @@ void lpc18xxEthInitDmaDesc(NetInterface *interface)
 /**
  * @brief LPC18xx Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void lpc18xxEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -356,8 +386,22 @@ void lpc18xxEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ETHERNET_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -370,8 +414,22 @@ void lpc18xxEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ETHERNET_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -393,22 +451,22 @@ void ETHERNET_IRQHandler(void)
    //Read DMA status register
    status = LPC_ETHERNET->DMA_STAT;
 
-   //A packet has been transmitted?
-   if(status & (ETHERNET_DMA_STAT_TI_Msk | ETHERNET_DMA_STAT_UNF_Msk))
+   //Packet transmitted?
+   if((status & (ETHERNET_DMA_STAT_TI_Msk | ETHERNET_DMA_STAT_UNF_Msk)) != 0)
    {
       //Clear TI and UNF interrupt flags
       LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_TI_Msk | ETHERNET_DMA_STAT_UNF_Msk;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurDmaDesc->tdes0 & ETH_TDES0_OWN))
+      if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & (ETHERNET_DMA_STAT_RI_Msk | ETHERNET_DMA_STAT_OVF_Msk))
+   //Packet received?
+   if((status & (ETHERNET_DMA_STAT_RI_Msk | ETHERNET_DMA_STAT_OVF_Msk)) != 0)
    {
       //Disable RIE and OVE interrupts
       LPC_ETHERNET->DMA_INT_EN &= ~(ETHERNET_DMA_INT_EN_RIE_Msk |
@@ -438,7 +496,7 @@ void lpc18xxEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(LPC_ETHERNET->DMA_STAT & (ETHERNET_DMA_STAT_RI_Msk | ETHERNET_DMA_STAT_OVF_Msk))
+   if((LPC_ETHERNET->DMA_STAT & (ETHERNET_DMA_STAT_RI_Msk | ETHERNET_DMA_STAT_OVF_Msk)) != 0)
    {
       //Clear RI and OVF interrupt flags
       LPC_ETHERNET->DMA_STAT = ETHERNET_DMA_STAT_RI_Msk | ETHERNET_DMA_STAT_OVF_Msk;
@@ -466,11 +524,13 @@ void lpc18xxEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t lpc18xxEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -487,8 +547,10 @@ error_t lpc18xxEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurDmaDesc->tdes0 & ETH_TDES0_OWN)
+   if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txCurDmaDesc->tdes2, buffer, offset, length);
@@ -509,7 +571,7 @@ error_t lpc18xxEthSendPacket(NetInterface *interface,
    txCurDmaDesc = (Lpc18xxTxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurDmaDesc->tdes0 & ETH_TDES0_OWN))
+   if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -530,23 +592,29 @@ error_t lpc18xxEthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurDmaDesc->rdes0 & ETH_RDES0_OWN))
+   if((rxCurDmaDesc->rdes0 & ETH_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
-      if((rxCurDmaDesc->rdes0 & ETH_RDES0_FS) && (rxCurDmaDesc->rdes0 & ETH_RDES0_LS))
+      if((rxCurDmaDesc->rdes0 & ETH_RDES0_FS) != 0 &&
+         (rxCurDmaDesc->rdes0 & ETH_RDES0_LS) != 0)
       {
          //Make sure no error occurred
-         if(!(rxCurDmaDesc->rdes0 & ETH_RDES0_ES))
+         if((rxCurDmaDesc->rdes0 & ETH_RDES0_ES) == 0)
          {
             //Retrieve the length of the frame
             n = (rxCurDmaDesc->rdes0 & ETH_RDES0_FL) >> 16;
             //Limit the number of data to read
             n = MIN(n, LPC18XX_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n);
+            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n,
+               &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -659,15 +727,23 @@ error_t lpc18xxEthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       config |= ETHERNET_MAC_CONFIG_FES_Msk;
+   }
    else
+   {
       config &= ~ETHERNET_MAC_CONFIG_FES_Msk;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       config |= ETHERNET_MAC_CONFIG_DM_Msk;
+   }
    else
+   {
       config &= ~ETHERNET_MAC_CONFIG_DM_Msk;
+   }
 
    //Update MAC configuration register
    LPC_ETHERNET->MAC_CONFIG = config;
@@ -708,7 +784,7 @@ void lpc18xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a write operation
       LPC_ETHERNET->MAC_MII_ADDR = temp;
       //Wait for the write to complete
-      while(LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_GB_Msk)
+      while((LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_GB_Msk) != 0)
       {
       }
    }
@@ -748,7 +824,7 @@ uint16_t lpc18xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       //Start a read operation
       LPC_ETHERNET->MAC_MII_ADDR = temp;
       //Wait for the read to complete
-      while(LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_GB_Msk)
+      while((LPC_ETHERNET->MAC_MII_ADDR & ETHERNET_MAC_MII_ADDR_GB_Msk) != 0)
       {
       }
 
@@ -777,11 +853,13 @@ uint32_t lpc18xxEthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -790,10 +868,14 @@ uint32_t lpc18xxEthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

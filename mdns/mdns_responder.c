@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -95,7 +95,7 @@ error_t mdnsResponderInit(MdnsResponderContext *context,
    interface = settings->interface;
 
    //Clear the mDNS responder context
-   memset(context, 0, sizeof(MdnsResponderContext));
+   osMemset(context, 0, sizeof(MdnsResponderContext));
    //Save user settings
    context->settings = *settings;
 
@@ -120,7 +120,7 @@ error_t mdnsResponderInit(MdnsResponderContext *context,
 
 error_t mdnsResponderStart(MdnsResponderContext *context)
 {
-   //Check parameter
+   //Make sure the mDNS responder context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -151,7 +151,7 @@ error_t mdnsResponderStart(MdnsResponderContext *context)
 
 error_t mdnsResponderStop(MdnsResponderContext *context)
 {
-   //Check parameter
+   //Make sure the mDNS responder context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
@@ -275,7 +275,7 @@ error_t mdnsResponderSetIpv4ReverseName(MdnsResponderContext *context)
       addr = (uint8_t *) &interface->ipv4Context.addrList[0].addr;
 
       //Generate the domain name for reverse DNS lookup
-      sprintf(context->ipv4ReverseName, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+      osSprintf(context->ipv4ReverseName, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
          addr[3], addr[2], addr[1], addr[0]);
    }
    else
@@ -330,11 +330,11 @@ error_t mdnsResponderSetIpv6ReverseName(MdnsResponderContext *context)
          m = (i % 2) * 4;
 
          //Format the current digit
-         p += sprintf(p, "%" PRIx8, (addr[n] >> m) & 0x0F);
+         p += osSprintf(p, "%" PRIx8, (addr[n] >> m) & 0x0F);
 
          //Add a delimiter character
          if(i != 31)
-            p += sprintf(p, ".");
+            p += osSprintf(p, ".");
       }
    }
    else
@@ -601,8 +601,8 @@ void mdnsResponderTick(MdnsResponderContext *context)
          destIpAddr.ipv4Addr = MDNS_IPV4_MULTICAST_ADDR;
 
          //Send mDNS response message
-         mdnsSendMessage(interface, &context->ipv4Response,
-            &destIpAddr, MDNS_PORT);
+         mdnsSendMessage(interface, &context->ipv4Response, &destIpAddr,
+            MDNS_PORT);
 
          //Free previously allocated memory
          mdnsDeleteMessage(&context->ipv4Response);
@@ -632,8 +632,8 @@ void mdnsResponderTick(MdnsResponderContext *context)
          destIpAddr.ipv6Addr = MDNS_IPV6_MULTICAST_ADDR;
 
          //Send mDNS response message
-         mdnsSendMessage(interface, &context->ipv6Response,
-            &destIpAddr, MDNS_PORT);
+         mdnsSendMessage(interface, &context->ipv6Response, &destIpAddr,
+            MDNS_PORT);
 
          //Free previously allocated memory
          mdnsDeleteMessage(&context->ipv6Response);
@@ -721,13 +721,13 @@ void mdnsResponderChangeHostname(MdnsResponderContext *context)
    char_t s[16];
 
    //Retrieve the length of the string
-   n = strlen(context->hostname);
+   n = osStrlen(context->hostname);
 
    //Parse the string backwards
    for(i = n; i > 0; i--)
    {
       //Check whether the current character is a digit
-      if(!isdigit((uint8_t) context->hostname[i - 1]))
+      if(!osIsdigit(context->hostname[i - 1]))
          break;
    }
 
@@ -749,7 +749,7 @@ void mdnsResponderChangeHostname(MdnsResponderContext *context)
    }
 
    //Convert the number to a string of characters
-   m = sprintf(s, "%" PRIu32, index);
+   m = osSprintf(s, "%" PRIu32, index);
 
    //Sanity check
    if((i + m) <= NET_MAX_HOSTNAME_LEN)
@@ -1480,7 +1480,7 @@ void mdnsResponderParseKnownAnRecord(NetInterface *interface, const MdnsMessage 
                if(ntohl(queryRecord->ttl) >= (ntohl(responseRecord->ttl) / 2))
                {
                   //Perform Known-Answer Suppression
-                  memmove((uint8_t *) response->dnsHeader + responseOffset,
+                  osMemmove((uint8_t *) response->dnsHeader + responseOffset,
                      (uint8_t *) response->dnsHeader + n, response->length - n);
 
                   //Update the length of the mDNS response message
@@ -1550,7 +1550,7 @@ void mdnsResponderParseNsRecord(NetInterface *interface,
                {
                   //The two records are compared and the lexicographically
                   //later data wins
-                  if(memcmp(&interface->ipv4Context.addrList[0].addr, record->rdata,
+                  if(osMemcmp(&interface->ipv4Context.addrList[0].addr, record->rdata,
                      sizeof(Ipv4Addr)) >= 0)
                   {
                      tieBreakLost = FALSE;
@@ -1587,7 +1587,7 @@ void mdnsResponderParseNsRecord(NetInterface *interface,
                   {
                      //The two records are compared and the lexicographically
                      //later data wins
-                     if(memcmp(&interface->ipv6Context.addrList[i].addr,
+                     if(osMemcmp(&interface->ipv6Context.addrList[i].addr,
                         record->rdata, sizeof(Ipv6Addr)) >= 0)
                      {
                         tieBreakLost = FALSE;
@@ -2267,7 +2267,7 @@ error_t mdnsResponderAddNsecRecord(NetInterface *interface,
    if(!duplicate)
    {
       //The bitmap identifies the resource record types that exist
-      memset(bitmap, 0, sizeof(bitmap));
+      osMemset(bitmap, 0, sizeof(bitmap));
 
 #if (IPV4_SUPPORT == ENABLED)
       //A resource record is supported
@@ -2333,7 +2333,7 @@ error_t mdnsResponderAddNsecRecord(NetInterface *interface,
       record->rdata[n++] = bitmapLength;
 
       //The Bitmap data identifies the resource record types that exist
-      memcpy(record->rdata + n, bitmap, bitmapLength);
+      osMemcpy(record->rdata + n, bitmap, bitmapLength);
 
       //Convert length field to network byte order
       record->rdlength = htons(n + bitmapLength);

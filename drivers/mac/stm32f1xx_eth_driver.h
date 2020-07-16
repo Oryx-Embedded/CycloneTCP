@@ -1,12 +1,12 @@
 /**
  * @file stm32f1xx_eth_driver.h
- * @brief STM32F1 Ethernet MAC controller
+ * @brief STM32F1 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _STM32F1XX_ETH_DRIVER_H
@@ -82,6 +82,9 @@
 #elif (STM32F1XX_ETH_IRQ_SUB_PRIORITY < 0)
    #error STM32F1XX_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
+
+//ETH_MACCR register
+#define ETH_MACCR_RESERVED15 0x00008000
 
 //Transmit DMA descriptor flags
 #define ETH_TDES0_OWN   0x80000000
@@ -189,7 +192,7 @@ void stm32f1xxEthDisableIrq(NetInterface *interface);
 void stm32f1xxEthEventHandler(NetInterface *interface);
 
 error_t stm32f1xxEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t stm32f1xxEthReceivePacket(NetInterface *interface);
 

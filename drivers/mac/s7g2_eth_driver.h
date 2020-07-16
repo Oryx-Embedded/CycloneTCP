@@ -1,12 +1,12 @@
 /**
  * @file s7g2_eth_driver.h
- * @brief Renesas Synergy S7G2 Ethernet MAC controller
+ * @brief Renesas Synergy S7G2 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _S7G2_ETH_DRIVER_H
@@ -189,7 +189,7 @@ void s7g2EthDisableIrq(NetInterface *interface);
 void s7g2EthEventHandler(NetInterface *interface);
 
 error_t s7g2EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t s7g2EthReceivePacket(NetInterface *interface);
 

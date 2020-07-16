@@ -1,12 +1,12 @@
 /**
  * @file rx62n_eth_driver.c
- * @brief Renesas RX62N Ethernet MAC controller
+ * @brief Renesas RX62N Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -132,11 +132,28 @@ error_t rx62nEthInit(NetInterface *interface)
    EDMAC.EDMR.BIT.SWR = 1;
    sleep(10);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Initialize DMA descriptor lists
    rx62nEthInitDmaDesc(interface);
@@ -301,16 +318,29 @@ void rx62nEthInitDmaDesc(NetInterface *interface)
 /**
  * @brief RX62N Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void rx62nEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -323,8 +353,22 @@ void rx62nEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    IEN(ETHER, EINT) = 1;
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -337,8 +381,22 @@ void rx62nEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    IEN(ETHER, EINT) = 0;
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -361,22 +419,22 @@ __interrupt void rx62nEthIrqHandler(void)
    //Read interrupt status register
    status = EDMAC.EESR.LONG;
 
-   //A packet has been transmitted?
-   if(status & EDMAC_EESR_TWB)
+   //Packet transmitted?
+   if((status & EDMAC_EESR_TWB) != 0)
    {
       //Clear TWB interrupt flag
       EDMAC.EESR.LONG = EDMAC_EESR_TWB;
 
       //Check whether the TX buffer is available for writing
-      if(!(txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT))
+      if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & EDMAC_EESR_FR)
+   //Packet received?
+   if((status & EDMAC_EESR_FR) != 0)
    {
       //Disable FR interrupts
       EDMAC.EESIPR.BIT.FRIP = 0;
@@ -402,7 +460,7 @@ void rx62nEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(EDMAC.EESR.LONG & EDMAC_EESR_FR)
+   if((EDMAC.EESR.LONG & EDMAC_EESR_FR) != 0)
    {
       //Clear FR interrupt flag
       EDMAC.EESR.LONG = EDMAC_EESR_FR;
@@ -428,11 +486,13 @@ void rx62nEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t rx62nEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    //Retrieve the length of the packet
    size_t length = netBufferGetLength(buffer) - offset;
@@ -447,8 +507,10 @@ error_t rx62nEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT)
+   if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(txBuffer[txIndex], buffer, offset, length);
@@ -480,7 +542,7 @@ error_t rx62nEthSendPacket(NetInterface *interface,
    EDMAC.EDTRR.BIT.TR = 1;
 
    //Check whether the next buffer is available for writing
-   if(!(txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT))
+   if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -501,13 +563,14 @@ error_t rx62nEthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RACT))
+   if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RACT) == 0)
    {
       //SOF and EOF flags should be set
-      if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_SOF) &&
-         (rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_EOF))
+      if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_SOF) != 0 &&
+         (rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_EOF) != 0)
       {
          //Make sure no error occurred
          if(!(rxDmaDesc[rxIndex].rd0 & (EDMAC_RD0_RFS_MASK & ~EDMAC_RD0_RFS_RMAF)))
@@ -517,8 +580,11 @@ error_t rx62nEthReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, RX62N_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, rxBuffer[rxIndex], n);
+            nicProcessPacket(interface, rxBuffer[rxIndex], n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -605,9 +671,13 @@ error_t rx62nEthUpdateMacAddrFilter(NetInterface *interface)
 
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
+   {
       EDMAC.EESR.BIT.RMAF = 1;
+   }
    else
+   {
       EDMAC.EESR.BIT.RMAF = 0;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -624,15 +694,23 @@ error_t rx62nEthUpdateMacConfig(NetInterface *interface)
 {
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       ETHERC.ECMR.BIT.RTM = 1;
+   }
    else
+   {
       ETHERC.ECMR.BIT.RTM = 0;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       ETHERC.ECMR.BIT.DM = 1;
+   }
    else
+   {
       ETHERC.ECMR.BIT.DM = 0;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -722,10 +800,14 @@ void rx62nEthWriteSmi(uint32_t data, uint_t length)
    while(length--)
    {
       //Write MDIO
-      if(data & 0x80000000)
+      if((data & 0x80000000) != 0)
+      {
          ETHERC.PIR.BIT.MDO = 1;
+      }
       else
+      {
          ETHERC.PIR.BIT.MDO = 0;
+      }
 
       //Assert MDC
       usleep(1);
@@ -768,7 +850,9 @@ uint32_t rx62nEthReadSmi(uint_t length)
 
       //Check MDIO state
       if(ETHERC.PIR.BIT.MDI)
-         data |= 0x00000001;
+      {
+         data |= 0x01;
+      }
    }
 
    //Return the received data

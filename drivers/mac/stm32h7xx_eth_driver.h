@@ -1,12 +1,12 @@
 /**
  * @file stm32h7xx_eth_driver.h
- * @brief STM32H7 Ethernet MAC controller
+ * @brief STM32H7 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _STM32H7XX_ETH_DRIVER_H
@@ -83,7 +83,15 @@
    #error STM32H7XX_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
-//MMCRIMR register
+//Name of the section where to place DMA buffers
+#ifndef STM32H7XX_ETH_RAM_SECTION
+   #define STM32H7XX_ETH_RAM_SECTION ".ram_no_cache"
+#endif
+
+//ETH_MACCR register
+#define ETH_MACCR_RESERVED15 0x00008000
+
+//ETH_MMCRIMR register
 #ifndef ETH_MMCRIMR_RXLPITRCIM
    #define ETH_MMCRIMR_RXLPITRCIM  0x08000000
    #define ETH_MMCRIMR_RXLPIUSCIM  0x04000000
@@ -92,7 +100,7 @@
    #define ETH_MMCRIMR_RXCRCERPIM  0x00000020
 #endif
 
-//MMCTIMR register
+//ETH_MMCTIMR register
 #ifndef ETH_MMCTIMR_TXLPITRCIM
    #define ETH_MMCTIMR_TXLPITRCIM  0x08000000
    #define ETH_MMCTIMR_TXLPIUSCIM  0x04000000
@@ -258,7 +266,7 @@ void stm32h7xxEthDisableIrq(NetInterface *interface);
 void stm32h7xxEthEventHandler(NetInterface *interface);
 
 error_t stm32h7xxEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t stm32h7xxEthReceivePacket(NetInterface *interface);
 

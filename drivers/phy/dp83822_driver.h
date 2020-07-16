@@ -1,12 +1,12 @@
 /**
  * @file dp83822_driver.h
- * @brief DP83822 Ethernet PHY transceiver
+ * @brief DP83822 Ethernet PHY driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _DP83822_DRIVER_H
@@ -44,13 +44,13 @@
 //DP83822 PHY registers
 #define DP83822_BMCR                           0x00
 #define DP83822_BMSR                           0x01
-#define DP83822_PHYID1                         0x02
-#define DP83822_PHYID2                         0x03
+#define DP83822_PHYIDR1                        0x02
+#define DP83822_PHYIDR2                        0x03
 #define DP83822_ANAR                           0x04
 #define DP83822_ANLPAR                         0x05
 #define DP83822_ANER                           0x06
-#define DP83822_ANNPR                          0x07
-#define DP83822_ANLPNPR                        0x08
+#define DP83822_ANNPTR                         0x07
+#define DP83822_ANLNPTR                        0x08
 #define DP83822_CR1                            0x09
 #define DP83822_CR2                            0x0A
 #define DP83822_CR3                            0x0B
@@ -99,15 +99,15 @@
 #define DP83822_BMSR_EXTENDED_CAPABLE          0x0001
 
 //PHY Identifier 1 register
-#define DP83822_PHYID1_OUI_MSB                 0xFFFF
-#define DP83822_PHYID1_OUI_MSB_DEFAULT         0x2000
+#define DP83822_PHYIDR1_OUI_MSB                0xFFFF
+#define DP83822_PHYIDR1_OUI_MSB_DEFAULT        0x2000
 
 //PHY Identifier 2 register
-#define DP83822_PHYID2_OUI_LSB                 0xFC00
-#define DP83822_PHYID2_OUI_LSB_DEFAULT         0xA000
-#define DP83822_PHYID2_VNDR_MDL                0x03F0
-#define DP83822_PHYID2_VNDR_MDL_DEFAULT        0x0240
-#define DP83822_PHYID2_MDL_REV                 0x000F
+#define DP83822_PHYIDR2_OUI_LSB                0xFC00
+#define DP83822_PHYIDR2_OUI_LSB_DEFAULT        0xA000
+#define DP83822_PHYIDR2_VNDR_MDL               0x03F0
+#define DP83822_PHYIDR2_VNDR_MDL_DEFAULT       0x0240
+#define DP83822_PHYIDR2_MDL_REV                0x000F
 
 //Auto-Negotiation Advertisement register
 #define DP83822_ANAR_NEXT_PAGE                 0x8000
@@ -144,19 +144,19 @@
 #define DP83822_ANER_LP_AN_ABLE                0x0001
 
 //Auto-Negotiation Next Page TX register
-#define DP83822_ANNPR_NEXT_PAGE                0x8000
-#define DP83822_ANNPR_MSG_PAGE                 0x2000
-#define DP83822_ANNPR_ACK2                     0x1000
-#define DP83822_ANNPR_TOGGLE                   0x0800
-#define DP83822_ANNPR_CODE                     0x07FF
+#define DP83822_ANNPTR_NEXT_PAGE               0x8000
+#define DP83822_ANNPTR_MSG_PAGE                0x2000
+#define DP83822_ANNPTR_ACK2                    0x1000
+#define DP83822_ANNPTR_TOGGLE                  0x0800
+#define DP83822_ANNPTR_CODE                    0x07FF
 
 //Auto-Negotiation Link Partner Ability Next Page register
-#define DP83822_ANLPNPR_NEXT_PAGE              0x8000
-#define DP83822_ANLPNPR_ACK                    0x4000
-#define DP83822_ANLPNPR_MSG_PAGE               0x2000
-#define DP83822_ANLPNPR_ACK2                   0x1000
-#define DP83822_ANLPNPR_TOGGLE                 0x0800
-#define DP83822_ANLPNPR_MESSAGE                0x07FF
+#define DP83822_ANLNPTR_NEXT_PAGE              0x8000
+#define DP83822_ANLNPTR_ACK                    0x4000
+#define DP83822_ANLNPTR_MSG_PAGE               0x2000
+#define DP83822_ANLNPTR_ACK2                   0x1000
+#define DP83822_ANLNPTR_TOGGLE                 0x0800
+#define DP83822_ANLNPTR_MESSAGE                0x07FF
 
 //Control 1 register
 #define DP83822_CR1_RMII_ENHANCED_MODE         0x0200

@@ -1,12 +1,12 @@
 /**
  * @file mcimx6ul_eth2_driver.c
- * @brief NXP i.MX6UL Ethernet MAC controller (ENET2 instance)
+ * @brief NXP i.MX6UL Ethernet MAC driver (ENET2 instance)
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -47,19 +47,19 @@ static NetInterface *nicDriverInterface;
 
 //TX buffer
 #pragma data_alignment = 16
-#pragma location = "NonCacheable"
+#pragma location = MCIMX6UL_ETH2_RAM_SECTION
 static uint8_t txBuffer[MCIMX6UL_ETH2_TX_BUFFER_COUNT][MCIMX6UL_ETH2_TX_BUFFER_SIZE];
 //RX buffer
 #pragma data_alignment = 16
-#pragma location = "NonCacheable"
+#pragma location = MCIMX6UL_ETH2_RAM_SECTION
 static uint8_t rxBuffer[MCIMX6UL_ETH2_RX_BUFFER_COUNT][MCIMX6UL_ETH2_RX_BUFFER_SIZE];
 //TX buffer descriptors
 #pragma data_alignment = 16
-#pragma location = "NonCacheable"
+#pragma location = MCIMX6UL_ETH2_RAM_SECTION
 static uint32_t txBufferDesc[MCIMX6UL_ETH2_TX_BUFFER_COUNT][8];
 //RX buffer descriptors
 #pragma data_alignment = 16
-#pragma location = "NonCacheable"
+#pragma location = MCIMX6UL_ETH2_RAM_SECTION
 static uint32_t rxBufferDesc[MCIMX6UL_ETH2_RX_BUFFER_COUNT][8];
 
 //ARM or GCC compiler?
@@ -67,16 +67,16 @@ static uint32_t rxBufferDesc[MCIMX6UL_ETH2_RX_BUFFER_COUNT][8];
 
 //TX buffer
 static uint8_t txBuffer[MCIMX6UL_ETH2_TX_BUFFER_COUNT][MCIMX6UL_ETH2_TX_BUFFER_SIZE]
-   __attribute__((aligned(16), __section__("NonCacheable")));
+   __attribute__((aligned(16), __section__(MCIMX6UL_ETH2_RAM_SECTION)));
 //RX buffer
 static uint8_t rxBuffer[MCIMX6UL_ETH2_RX_BUFFER_COUNT][MCIMX6UL_ETH2_RX_BUFFER_SIZE]
-   __attribute__((aligned(16), __section__("NonCacheable")));
+   __attribute__((aligned(16), __section__(MCIMX6UL_ETH2_RAM_SECTION)));
 //TX buffer descriptors
 static uint32_t txBufferDesc[MCIMX6UL_ETH2_TX_BUFFER_COUNT][8]
-   __attribute__((aligned(16), __section__("NonCacheable")));
+   __attribute__((aligned(16), __section__(MCIMX6UL_ETH2_RAM_SECTION)));
 //RX buffer descriptors
 static uint32_t rxBufferDesc[MCIMX6UL_ETH2_RX_BUFFER_COUNT][8]
-   __attribute__((aligned(16), __section__("NonCacheable")));
+   __attribute__((aligned(16), __section__(MCIMX6UL_ETH2_RAM_SECTION)));
 
 #endif
 
@@ -87,7 +87,7 @@ static uint_t rxBufferIndex;
 
 
 /**
- * @brief i.MX6UL Ethernet MAC driver
+ * @brief i.MX6UL Ethernet MAC driver (ENET2 instance)
  **/
 
 const NicDriver mcimx6ulEth2Driver =
@@ -137,7 +137,7 @@ error_t mcimx6ulEth2Init(NetInterface *interface)
    //Reset ENET module
    ENET2->ECR = ENET_ECR_RESET_MASK;
    //Wait for the reset to complete
-   while(ENET2->ECR & ENET_ECR_RESET_MASK)
+   while((ENET2->ECR & ENET_ECR_RESET_MASK) != 0)
    {
    }
 
@@ -150,11 +150,28 @@ error_t mcimx6ulEth2Init(NetInterface *interface)
    //Configure MDC clock frequency
    ENET2->MSCR = ENET_MSCR_HOLDTIME(10) | ENET_MSCR_MII_SPEED(120);
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set the MAC address of the station (upper 16 bits)
    value = interface->macAddr.b[5];
@@ -393,8 +410,8 @@ void mcimx6ulEth2InitBufferDesc(NetInterface *interface)
    uint32_t address;
 
    //Clear TX and RX buffer descriptors
-   memset(txBufferDesc, 0, sizeof(txBufferDesc));
-   memset(rxBufferDesc, 0, sizeof(rxBufferDesc));
+   osMemset(txBufferDesc, 0, sizeof(txBufferDesc));
+   osMemset(rxBufferDesc, 0, sizeof(rxBufferDesc));
 
    //Initialize TX buffer descriptors
    for(i = 0; i < MCIMX6UL_ETH2_TX_BUFFER_COUNT; i++)
@@ -442,16 +459,29 @@ void mcimx6ulEth2InitBufferDesc(NetInterface *interface)
 /**
  * @brief i.MX6UL Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void mcimx6ulEth2Tick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -464,8 +494,22 @@ void mcimx6ulEth2EnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    GIC_EnableIRQ(ENET2_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -478,8 +522,22 @@ void mcimx6ulEth2DisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    GIC_DisableIRQ(ENET2_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -489,7 +547,7 @@ void mcimx6ulEth2DisableIrq(NetInterface *interface)
  * @param[in] userParam User parameter
  **/
 
-void ENET2_DriverIRQHandler (uint32_t giccIar, void *userParam)
+void ENET2_DriverIRQHandler(uint32_t giccIar, void *userParam)
 {
    bool_t flag;
    uint32_t events;
@@ -502,14 +560,14 @@ void ENET2_DriverIRQHandler (uint32_t giccIar, void *userParam)
    //Read interrupt event register
    events = ENET2->EIR;
 
-   //A packet has been transmitted?
-   if(events & ENET_EIR_TXF_MASK)
+   //Packet transmitted?
+   if((events & ENET_EIR_TXF_MASK) != 0)
    {
       //Clear TXF interrupt flag
       ENET2->EIR = ENET_EIR_TXF_MASK;
 
       //Check whether the TX buffer is available for writing
-      if(!(txBufferDesc[txBufferIndex][0] & ENET_TBD0_R))
+      if((txBufferDesc[txBufferIndex][0] & ENET_TBD0_R) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag = osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -519,8 +577,8 @@ void ENET2_DriverIRQHandler (uint32_t giccIar, void *userParam)
       ENET2->TDAR = ENET_TDAR_TDAR_MASK;
    }
 
-   //A packet has been received?
-   if(events & ENET_EIR_RXF_MASK)
+   //Packet received?
+   if((events & ENET_EIR_RXF_MASK) != 0)
    {
       //Disable RXF interrupt
       ENET2->EIMR &= ~ENET_EIMR_RXF_MASK;
@@ -532,7 +590,7 @@ void ENET2_DriverIRQHandler (uint32_t giccIar, void *userParam)
    }
 
    //System bus error?
-   if(events & ENET_EIR_EBERR_MASK)
+   if((events & ENET_EIR_EBERR_MASK) != 0)
    {
       //Disable EBERR interrupt
       ENET2->EIMR &= ~ENET_EIMR_EBERR_MASK;
@@ -562,7 +620,7 @@ void mcimx6ulEth2EventHandler(NetInterface *interface)
    status = ENET2->EIR;
 
    //Packet received?
-   if(status & ENET_EIR_RXF_MASK)
+   if((status & ENET_EIR_RXF_MASK) != 0)
    {
       //Clear RXF interrupt flag
       ENET2->EIR = ENET_EIR_RXF_MASK;
@@ -578,7 +636,7 @@ void mcimx6ulEth2EventHandler(NetInterface *interface)
    }
 
    //System bus error?
-   if(status & ENET_EIR_EBERR_MASK)
+   if((status & ENET_EIR_EBERR_MASK) != 0)
    {
       //Clear EBERR interrupt flag
       ENET2->EIR = ENET_EIR_EBERR_MASK;
@@ -603,11 +661,13 @@ void mcimx6ulEth2EventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t mcimx6ulEth2SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    static uint8_t temp[MCIMX6UL_ETH2_TX_BUFFER_SIZE];
    size_t length;
@@ -625,12 +685,14 @@ error_t mcimx6ulEth2SendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txBufferDesc[txBufferIndex][0] & ENET_TBD0_R)
+   if((txBufferDesc[txBufferIndex][0] & ENET_TBD0_R) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(temp, buffer, offset, length);
-   memcpy(txBuffer[txBufferIndex], temp, (length + 3) & ~3UL);
+   osMemcpy(txBuffer[txBufferIndex], temp, (length + 3) & ~3UL);
 
    //Clear BDU flag
    txBufferDesc[txBufferIndex][4] = 0;
@@ -649,7 +711,7 @@ error_t mcimx6ulEth2SendPacket(NetInterface *interface,
    {
       //Give the ownership of the descriptor to the DMA engine
       txBufferDesc[txBufferIndex][0] = ENET_TBD0_R | ENET_TBD0_W |
-        ENET_TBD0_L | ENET_TBD0_TC | (length & ENET_TBD0_DATA_LENGTH);
+         ENET_TBD0_L | ENET_TBD0_TC | (length & ENET_TBD0_DATA_LENGTH);
 
       //Wrap around
       txBufferIndex = 0;
@@ -662,7 +724,7 @@ error_t mcimx6ulEth2SendPacket(NetInterface *interface,
    ENET2->TDAR = ENET_TDAR_TDAR_MASK;
 
    //Check whether the next buffer is available for writing
-   if(!(txBufferDesc[txBufferIndex][0] & ENET_TBD0_R))
+   if((txBufferDesc[txBufferIndex][0] & ENET_TBD0_R) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -684,12 +746,13 @@ error_t mcimx6ulEth2ReceivePacket(NetInterface *interface)
    static uint8_t temp[MCIMX6UL_ETH2_RX_BUFFER_SIZE];
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //Make sure the current buffer is available for reading
-   if(!(rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_E))
+   if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_E) == 0)
    {
       //The frame should not span multiple buffers
-      if(rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_L)
+      if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_L) != 0)
       {
          //Check whether an error occurred
          if(!(rxBufferDesc[rxBufferIndex][0] & (ENET_RBD0_LG |
@@ -701,10 +764,13 @@ error_t mcimx6ulEth2ReceivePacket(NetInterface *interface)
             n = MIN(n, MCIMX6UL_ETH2_RX_BUFFER_SIZE);
 
             //Copy data from the receive buffer
-            memcpy(temp, rxBuffer[rxBufferIndex], (n + 3) & ~3UL);
+            osMemcpy(temp, rxBuffer[rxBufferIndex], (n + 3) & ~3UL);
+
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, temp, n);
+            nicProcessPacket(interface, temp, n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -926,7 +992,7 @@ void mcimx6ulEth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
       ENET1->MMFR = temp;
 
       //Wait for the write to complete
-      while(!(ENET1->EIR & ENET_EIR_MII_MASK))
+      while((ENET1->EIR & ENET_EIR_MII_MASK) == 0)
       {
       }
    }
@@ -967,7 +1033,7 @@ uint16_t mcimx6ulEth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       ENET1->MMFR = temp;
 
       //Wait for the read to complete
-      while(!(ENET1->EIR & ENET_EIR_MII_MASK))
+      while((ENET1->EIR & ENET_EIR_MII_MASK) == 0)
       {
       }
 
@@ -996,11 +1062,13 @@ uint32_t mcimx6ulEth2CalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -1010,10 +1078,14 @@ uint32_t mcimx6ulEth2CalcCrc(const void *data, size_t length)
       //The message is processed bit by bit
       for(j = 0; j < 8; j++)
       {
-         if(crc & 0x00000001)
+         if((crc & 0x01) != 0)
+         {
             crc = (crc >> 1) ^ 0xEDB88320;
+         }
          else
+         {
             crc = crc >> 1;
+         }
       }
    }
 

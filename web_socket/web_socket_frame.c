@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -156,7 +156,7 @@ error_t webSocketFormatFrameHeader(WebSocket *webSocket,
       TRACE_DEBUG_ARRAY("  Masking Key = ", txContext->maskingKey, sizeof(uint32_t));
 
       //Copy the masking key
-      memcpy(txContext->buffer + txContext->bufferLen,
+      osMemcpy(txContext->buffer + txContext->bufferLen,
          txContext->maskingKey, sizeof(uint32_t));
 
       //Adjust the length of the frame header
@@ -241,7 +241,7 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
    if(frame->mask)
    {
       //Save the masking key
-      memcpy(rxContext->maskingKey, (uint8_t *) frame + n, sizeof(uint32_t));
+      osMemcpy(rxContext->maskingKey, (uint8_t *) frame + n, sizeof(uint32_t));
       //Debug message
       TRACE_DEBUG_ARRAY("  Masking Key = ", rxContext->maskingKey, sizeof(uint32_t));
 

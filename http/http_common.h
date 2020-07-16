@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _HTTP_COMMON_H
@@ -111,20 +111,22 @@ typedef enum
    HTTP_REQ_STATE_INIT                = 0,
    HTTP_REQ_STATE_FORMAT_HEADER       = 1,
    HTTP_REQ_STATE_SEND_HEADER         = 2,
-   HTTP_REQ_STATE_SEND_BODY           = 3,
-   HTTP_REQ_STATE_SEND_CHUNK_SIZE     = 4,
-   HTTP_REQ_STATE_SEND_CHUNK_DATA     = 5,
-   HTTP_REQ_STATE_FORMAT_TRAILER      = 6,
-   HTTP_REQ_STATE_SEND_TRAILER        = 7,
-   HTTP_REQ_STATE_RECEIVE_STATUS_LINE = 8,
-   HTTP_REQ_STATE_RECEIVE_HEADER      = 9,
-   HTTP_REQ_STATE_PARSE_HEADER        = 10,
-   HTTP_REQ_STATE_RECEIVE_BODY        = 11,
-   HTTP_REQ_STATE_RECEIVE_CHUNK_SIZE  = 12,
-   HTTP_REQ_STATE_RECEIVE_CHUNK_DATA  = 13,
-   HTTP_REQ_STATE_RECEIVE_TRAILER     = 14,
-   HTTP_REQ_STATE_PARSE_TRAILER       = 15,
-   HTTP_REQ_STATE_COMPLETE            = 16
+   HTTP_REQ_STATE_FORMAT_BODY         = 3,
+   HTTP_REQ_STATE_SEND_BODY           = 4,
+   HTTP_REQ_STATE_SEND_CHUNK_SIZE     = 5,
+   HTTP_REQ_STATE_SEND_CHUNK_DATA     = 6,
+   HTTP_REQ_STATE_FORMAT_TRAILER      = 7,
+   HTTP_REQ_STATE_SEND_TRAILER        = 8,
+   HTTP_REQ_STATE_RECEIVE_STATUS_LINE = 9,
+   HTTP_REQ_STATE_RECEIVE_HEADER      = 10,
+   HTTP_REQ_STATE_PARSE_HEADER        = 11,
+   HTTP_REQ_STATE_RECEIVE_BODY        = 12,
+   HTTP_REQ_STATE_RECEIVE_CHUNK_SIZE  = 13,
+   HTTP_REQ_STATE_RECEIVE_CHUNK_DATA  = 14,
+   HTTP_REQ_STATE_PARSE_BODY          = 15,
+   HTTP_REQ_STATE_RECEIVE_TRAILER     = 16,
+   HTTP_REQ_STATE_PARSE_TRAILER       = 17,
+   HTTP_REQ_STATE_COMPLETE            = 18
 } HttpRequestState;
 
 

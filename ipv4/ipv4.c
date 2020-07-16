@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -81,7 +81,7 @@ error_t ipv4Init(NetInterface *interface)
    context = &interface->ipv4Context;
 
    //Clear the IPv4 context
-   memset(context, 0, sizeof(Ipv4Context));
+   osMemset(context, 0, sizeof(Ipv4Context));
 
    //Initialize interface specific variables
    context->linkMtu = physicalInterface->nicDriver->mtu;
@@ -95,13 +95,13 @@ error_t ipv4Init(NetInterface *interface)
    context->identification = 0;
 
    //Initialize the list of DNS servers
-   memset(context->dnsServerList, 0, sizeof(context->dnsServerList));
+   osMemset(context->dnsServerList, 0, sizeof(context->dnsServerList));
    //Initialize the multicast filter table
-   memset(context->multicastFilter, 0, sizeof(context->multicastFilter));
+   osMemset(context->multicastFilter, 0, sizeof(context->multicastFilter));
 
 #if (IPV4_FRAG_SUPPORT == ENABLED)
    //Initialize the reassembly queue
-   memset(context->fragQueue, 0, sizeof(context->fragQueue));
+   osMemset(context->fragQueue, 0, sizeof(context->fragQueue));
 #endif
 
    //Successful initialization
@@ -560,9 +560,12 @@ void ipv4LinkChangeEvent(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] packet Incoming IPv4 packet
  * @param[in] length Packet length including header and payload
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
-void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t length)
+void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
+   size_t length, NetRxAncillary *ancillary)
 {
    error_t error;
 
@@ -696,7 +699,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
       {
 #if (IPV4_FRAG_SUPPORT == ENABLED)
          //Reassemble the original datagram
-         ipv4ReassembleDatagram(interface, packet, length);
+         ipv4ReassembleDatagram(interface, packet, length, ancillary);
 #endif
       }
       else
@@ -710,7 +713,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
          buffer.chunk[0].length = (uint16_t) length;
 
          //Pass the IPv4 datagram to the higher protocol layer
-         ipv4ProcessDatagram(interface, (NetBuffer *) &buffer);
+         ipv4ProcessDatagram(interface, (NetBuffer *) &buffer, ancillary);
       }
 
       //End of exception handling block
@@ -729,9 +732,12 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet, size_t lengt
  * @brief Incoming IPv4 datagram processing
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer that holds the incoming IPv4 datagram
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
-void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
+void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
+   NetRxAncillary *ancillary)
 {
    error_t error;
    size_t offset;
@@ -766,6 +772,9 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
    pseudoHeader.ipv4Data.protocol = header->protocol;
    pseudoHeader.ipv4Data.length = htons(length);
 
+   //Save TTL value
+   ancillary->ttl = header->timeToLive;
+
 #if defined(IPV4_DATAGRAM_FORWARD_HOOK)
    IPV4_DATAGRAM_FORWARD_HOOK(interface, &pseudoHeader, buffer, offset);
 #endif
@@ -777,10 +786,13 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
    case IPV4_PROTOCOL_ICMP:
       //Process incoming ICMP message
       icmpProcessMessage(interface, &pseudoHeader.ipv4Data, buffer, offset);
+
 #if (RAW_SOCKET_SUPPORT == ENABLED)
       //Allow raw sockets to process ICMP messages
-      rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset);
+      rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset,
+         ancillary);
 #endif
+
       //No error to report
       error = NO_ERROR;
       //Continue processing
@@ -791,10 +803,13 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
    case IPV4_PROTOCOL_IGMP:
       //Process incoming IGMP message
       igmpProcessMessage(interface, buffer, offset);
+
 #if (RAW_SOCKET_SUPPORT == ENABLED)
       //Allow raw sockets to process IGMP messages
-      rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset);
+      rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset,
+         ancillary);
 #endif
+
       //No error to report
       error = NO_ERROR;
       //Continue processing
@@ -805,7 +820,7 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
    //TCP protocol?
    case IPV4_PROTOCOL_TCP:
       //Process incoming TCP segment
-      tcpProcessSegment(interface, &pseudoHeader, buffer, offset);
+      tcpProcessSegment(interface, &pseudoHeader, buffer, offset, ancillary);
       //No error to report
       error = NO_ERROR;
       //Continue processing
@@ -816,7 +831,8 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
    //UDP protocol?
    case IPV4_PROTOCOL_UDP:
       //Process incoming UDP datagram
-      error = udpProcessDatagram(interface, &pseudoHeader, buffer, offset);
+      error = udpProcessDatagram(interface, &pseudoHeader, buffer, offset,
+         ancillary);
       //Continue processing
       break;
 #endif
@@ -825,7 +841,8 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
    default:
 #if (RAW_SOCKET_SUPPORT == ENABLED)
       //Allow raw sockets to process IPv4 packets
-      error = rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset);
+      error = rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset,
+         ancillary);
 #else
       //Report an error
       error = ERROR_PROTOCOL_UNREACHABLE;
@@ -871,12 +888,13 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer)
  * @param[in] pseudoHeader IPv4 pseudo header
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint_t flags)
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    size_t length;
@@ -893,33 +911,26 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
    //Retrieve the length of payload
    length = netBufferGetLength(buffer) - offset;
 
-   //Check whether the TTL value is zero
-   if((flags & IP_FLAG_TTL) == 0)
-   {
-      //Use default Time-To-Live value
-      flags |= IPV4_DEFAULT_TTL;
-   }
-
-   //Identification field is primarily used to identify
-   //fragments of an original IP datagram
+   //Identification field is primarily used to identify fragments of an
+   //original IP datagram
    id = interface->ipv4Context.identification++;
 
-   //If the payload length is smaller than the network
-   //interface MTU then no fragmentation is needed
+   //If the payload length is smaller than the network interface MTU then no
+   //fragmentation is needed
    if((length + sizeof(Ipv4Header)) <= interface->ipv4Context.linkMtu)
    {
       //Send data as is
       error = ipv4SendPacket(interface, pseudoHeader, id, 0, buffer, offset,
-         flags);
+         ancillary);
    }
-   //If the payload length exceeds the network interface MTU
-   //then the device must fragment the data
+   //If the payload length exceeds the network interface MTU then the device
+   //must fragment the data
    else
    {
 #if (IPV4_FRAG_SUPPORT == ENABLED)
       //Fragment IP datagram into smaller packets
       error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer, offset,
-         flags);
+         ancillary);
 #else
       //Fragmentation is not supported
       error = ERROR_MESSAGE_TOO_LONG;
@@ -939,13 +950,14 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
  * @param[in] fragOffset Fragment offset field
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first byte of the payload
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
-   uint_t flags)
+   NetTxAncillary *ancillary)
 {
    error_t error;
    size_t length;
@@ -973,11 +985,23 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    packet->totalLength = htons(length);
    packet->identification = htons(fragId);
    packet->fragmentOffset = htons(fragOffset);
-   packet->timeToLive = flags & IP_FLAG_TTL;
+   packet->timeToLive = ancillary->ttl;
    packet->protocol = pseudoHeader->protocol;
    packet->headerChecksum = 0;
    packet->srcAddr = pseudoHeader->srcAddr;
    packet->destAddr = pseudoHeader->destAddr;
+
+   //Check whether the TTL value is zero
+   if(packet->timeToLive == 0)
+   {
+      //Use default Time-To-Live value
+      packet->timeToLive = IPV4_DEFAULT_TTL;
+   }
+
+#if (IP_DIFF_SERV_SUPPORT == ENABLED)
+   //Set DSCP field
+   packet->typeOfService = (ancillary->dscp << 2) & 0xFC;
+#endif
 
    //Calculate IP header checksum
    packet->headerChecksum = ipCalcChecksumEx(buffer, offset,
@@ -1014,7 +1038,7 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
             interface->nicDriver->type == NIC_TYPE_LOOPBACK)
          {
             //Forward the packet to the loopback interface
-            error = nicSendPacket(interface, buffer, offset);
+            error = nicSendPacket(interface, buffer, offset, ancillary);
             break;
          }
       }
@@ -1035,77 +1059,56 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
          physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
       {
          Ipv4Addr destIpAddr;
-         MacAddr destMacAddr;
 
          //Get the destination IPv4 address
          destIpAddr = pseudoHeader->destAddr;
 
-         //Destination address is a broadcast address?
-         if(ipv4IsBroadcastAddr(interface, destIpAddr))
+         //Perform address resolution
+         if(!macCompAddr(&ancillary->destMacAddr, &MAC_UNSPECIFIED_ADDR))
          {
-            //Use of the broadcast MAC address to send the packet
-            destMacAddr = MAC_BROADCAST_ADDR;
-            //No error to report
+            //The destination address is already resolved
             error = NO_ERROR;
          }
-         //Destination address is a multicast address?
+         else if(ipv4IsBroadcastAddr(interface, destIpAddr))
+         {
+            //Use of the broadcast MAC address to send the packet
+            ancillary->destMacAddr = MAC_BROADCAST_ADDR;
+            //Successful address resolution
+            error = NO_ERROR;
+         }
          else if(ipv4IsMulticastAddr(destIpAddr))
          {
             //Map IPv4 multicast address to MAC-layer multicast address
-            error = ipv4MapMulticastAddrToMac(destIpAddr, &destMacAddr);
+            error = ipv4MapMulticastAddrToMac(destIpAddr, &ancillary->destMacAddr);
          }
-         //Source or destination address is a link-local address?
          else if(ipv4IsLinkLocalAddr(pseudoHeader->srcAddr) ||
             ipv4IsLinkLocalAddr(destIpAddr))
          {
             //Packets with a link-local source or destination address are not
             //routable off the link
-            error = arpResolve(interface, destIpAddr, &destMacAddr);
+            error = arpResolve(interface, destIpAddr, &ancillary->destMacAddr);
          }
-         //Destination host is on the local link?
          else if(ipv4IsOnLink(interface, destIpAddr))
          {
             //Resolve destination address before sending the packet
-            error = arpResolve(interface, destIpAddr, &destMacAddr);
+            error = arpResolve(interface, destIpAddr, &ancillary->destMacAddr);
          }
-         //No routing?
-         else if((flags & IP_FLAG_DONT_ROUTE) != 0)
+         else if(ancillary->dontRoute)
          {
             //Do not send the packet via a gateway
-            error = arpResolve(interface, destIpAddr, &destMacAddr);
+            error = arpResolve(interface, destIpAddr, &ancillary->destMacAddr);
          }
-         //Destination host is outside the local subnet?
          else
          {
-            uint_t i;
-            Ipv4AddrEntry *entry;
+            //Default gateway selection
+            error = ipv4SelectDefaultGateway(interface, pseudoHeader->srcAddr,
+               &destIpAddr);
 
-            //Loop through the list of default gateways
-            for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
-            {
-               //Point to the current entry
-               entry = &interface->ipv4Context.addrList[i];
-
-               //Check whether the gateway address is valid
-               if(entry->state == IPV4_ADDR_STATE_VALID &&
-                  entry->defaultGateway != IPV4_UNSPECIFIED_ADDR)
-               {
-                  //Under the strong ES model, the source address is included as
-                  //a parameter in order to select a gateway that is directly
-                  //reachable on the corresponding physical interface (refer to
-                  //RFC 1122, section 3.3.4.2)
-                  if(entry->addr == pseudoHeader->srcAddr)
-                     break;
-               }
-            }
-
-            //Any gateway found?
-            if(i < IPV4_ADDR_LIST_SIZE)
+            //Check status code
+            if(!error)
             {
                //Use the selected gateway to forward the packet
-               destIpAddr = entry->defaultGateway;
-               //Perform address resolution
-               error = arpResolve(interface, destIpAddr, &destMacAddr);
+               error = arpResolve(interface, destIpAddr, &ancillary->destMacAddr);
             }
             else
             {
@@ -1113,14 +1116,11 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
                //to transmit them to their destination
                MIB2_INC_COUNTER32(ipGroup.ipOutNoRoutes, 1);
                IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutNoRoutes, 1);
-
-               //Report an error
-               error = ERROR_NO_ROUTE;
             }
          }
 
          //Successful address resolution?
-         if(!error)
+         if(error == NO_ERROR)
          {
             //Update IP statistics
             ipv4UpdateOutStats(interface, destIpAddr, length);
@@ -1131,10 +1131,9 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
             ipv4DumpHeader(packet);
 
             //Send Ethernet frame
-            error = ethSendFrame(interface, &destMacAddr, buffer, offset,
-               ETH_TYPE_IPV4);
+            error = ethSendFrame(interface, &ancillary->destMacAddr,
+               ETH_TYPE_IPV4, buffer, offset, ancillary);
          }
-         //Address resolution is in progress?
          else if(error == ERROR_IN_PROGRESS)
          {
             //Debug message
@@ -1143,9 +1142,9 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
             ipv4DumpHeader(packet);
 
             //Enqueue packets waiting for address resolution
-            error = arpEnqueuePacket(interface, destIpAddr, buffer, offset);
+            error = arpEnqueuePacket(interface, destIpAddr, buffer, offset,
+               ancillary);
          }
-         //Address resolution failed?
          else
          {
             //Debug message
@@ -1386,7 +1385,7 @@ error_t ipv4StringToAddr(const char_t *str, Ipv4Addr *ipAddr)
    while(1)
    {
       //Decimal digit found?
-      if(isdigit((uint8_t) *str))
+      if(osIsdigit(*str))
       {
          //First digit to be decoded?
          if(value < 0)
@@ -1475,7 +1474,7 @@ char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str)
    //Cast the address to byte array
    p = (uint8_t *) &ipAddr;
    //Format IPv4 address
-   sprintf(str, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "", p[0], p[1], p[2], p[3]);
+   osSprintf(str, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "", p[0], p[1], p[2], p[3]);
 
    //Return a pointer to the formatted string
    return str;

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,7 @@ DnsCacheEntry dnsCache[DNS_CACHE_SIZE];
 error_t dnsInit(void)
 {
    //Initialize DNS cache
-   memset(dnsCache, 0, sizeof(dnsCache));
+   osMemset(dnsCache, 0, sizeof(dnsCache));
 
    //Successful initialization
    return NO_ERROR;
@@ -121,7 +121,7 @@ DnsCacheEntry *dnsCreateEntry(void)
       if(entry->state == DNS_STATE_NONE)
       {
          //Erase contents
-         memset(entry, 0, sizeof(DnsCacheEntry));
+         osMemset(entry, 0, sizeof(DnsCacheEntry));
          //Return a pointer to the DNS entry
          return entry;
       }
@@ -136,7 +136,7 @@ DnsCacheEntry *dnsCreateEntry(void)
    //The oldest entry is removed whenever the table runs out of space
    dnsDeleteEntry(oldestEntry);
    //Erase contents
-   memset(oldestEntry, 0, sizeof(DnsCacheEntry));
+   osMemset(oldestEntry, 0, sizeof(DnsCacheEntry));
    //Return a pointer to the DNS entry
    return oldestEntry;
 }
@@ -205,7 +205,7 @@ DnsCacheEntry *dnsFindEntry(NetInterface *interface,
          continue;
 
       //Does the entry match the specified domain name?
-      if(name == NULL || !strcasecmp(entry->name, name))
+      if(name == NULL || !osStrcasecmp(entry->name, name))
          return entry;
    }
 

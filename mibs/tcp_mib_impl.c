@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,7 @@ error_t tcpMibInit(void)
    TRACE_INFO("Initializing TCP-MIB base...\r\n");
 
    //Clear TCP MIB base
-   memset(&tcpMibBase, 0, sizeof(tcpMibBase));
+   osMemset(&tcpMibBase, 0, sizeof(tcpMibBase));
 
    //tcpRtoAlgorithm object
    tcpMibBase.tcpRtoAlgorithm = TCP_MIB_RTO_ALGORITHM_VANJ;
@@ -111,7 +111,7 @@ error_t tcpMibGetTcpCurrEstab(const MibObject *object, const uint8_t *oid,
       }
    }
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -226,7 +226,7 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //tcpConnectionState object?
-   if(!strcmp(object->name, "tcpConnectionState"))
+   if(!osStrcmp(object->name, "tcpConnectionState"))
    {
       //Get object value
       switch(socket->state)
@@ -270,7 +270,7 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //tcpConnectionProcess object?
-   else if(!strcmp(object->name, "tcpConnectionProcess"))
+   else if(!osStrcmp(object->name, "tcpConnectionProcess"))
    {
       //ID of the process associated with this connection
       value->unsigned32 = 0;
@@ -321,7 +321,7 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
@@ -370,23 +370,41 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
             {
                //Perform lexicographic comparison
                if(localPort == 0 && remotePort == 0)
+               {
                   acceptable = TRUE;
+               }
                else if(mibCompIpAddr(&socket->localIpAddr, &localIpAddr) < 0)
+               {
                   acceptable = TRUE;
+               }
                else if(mibCompIpAddr(&socket->localIpAddr, &localIpAddr) > 0)
+               {
                   acceptable = FALSE;
+               }
                else if(socket->localPort < localPort)
+               {
                   acceptable = TRUE;
+               }
                else if(socket->localPort > localPort)
+               {
                   acceptable = FALSE;
+               }
                else if(mibCompIpAddr(&socket->remoteIpAddr, &remoteIpAddr) < 0)
+               {
                   acceptable = TRUE;
+               }
                else if(mibCompIpAddr(&socket->remoteIpAddr, &remoteIpAddr) > 0)
+               {
                   acceptable = FALSE;
+               }
                else if(socket->remotePort < remotePort)
+               {
                   acceptable = TRUE;
+               }
                else
+               {
                   acceptable = FALSE;
+               }
 
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order
@@ -512,7 +530,7 @@ error_t tcpMibGetTcpListenerEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //tcpListenerProcess object?
-   if(!strcmp(object->name, "tcpListenerProcess"))
+   if(!osStrcmp(object->name, "tcpListenerProcess"))
    {
       //ID of the process associated with this listener
       value->unsigned32 = 0;
@@ -559,7 +577,7 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
@@ -595,15 +613,25 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
             {
                //Perform lexicographic comparison
                if(localPort == 0)
+               {
                   acceptable = TRUE;
+               }
                else if(mibCompIpAddr(&socket->localIpAddr, &localIpAddr) < 0)
+               {
                   acceptable = TRUE;
+               }
                else if(mibCompIpAddr(&socket->localIpAddr, &localIpAddr) > 0)
+               {
                   acceptable = FALSE;
+               }
                else if(socket->localPort < localPort)
+               {
                   acceptable = TRUE;
+               }
                else
+               {
                   acceptable = FALSE;
+               }
 
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order

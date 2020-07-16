@@ -1,12 +1,12 @@
 /**
  * @file pic32mx_eth_driver.c
- * @brief PIC32MX Ethernet MAC controller
+ * @brief PIC32MX Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -110,7 +110,7 @@ error_t pic32mxEthInit(NetInterface *interface)
    ETHCON1CLR = _ETHCON1_ON_MASK | _ETHCON1_TXRTS_POSITION | _ETHCON1_RXEN_MASK;
 
    //Wait activity abort by polling the ETHBUSY bit
-   while(ETHSTAT & _ETHSTAT_ETHBUSY_MASK)
+   while((ETHSTAT & _ETHSTAT_ETHBUSY_MASK) != 0)
    {
    }
 
@@ -141,11 +141,28 @@ error_t pic32mxEthInit(NetInterface *interface)
    //Select the proper divider for the MDC clock
    EMAC1MCFG = _EMAC1MCFG_CLKSEL_DIV40;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Optionally set the station MAC address
    if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
@@ -288,16 +305,29 @@ void pic32mxEthInitBufferDesc(NetInterface *interface)
 /**
  * @brief PIC32MX Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void pic32mxEthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -310,8 +340,22 @@ void pic32mxEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    IEC1SET = _IEC1_ETHIE_MASK;
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -324,8 +368,22 @@ void pic32mxEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    IEC1CLR = _IEC1_ETHIE_MASK;
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -347,22 +405,22 @@ void pic32mxEthIrqHandler(void)
    //Read interrupt status register
    status = ETHIRQ;
 
-   //A packet has been transmitted?
-   if(status & _ETHIRQ_TXDONE_MASK)
+   //Packet transmitted?
+   if((status & _ETHIRQ_TXDONE_MASK) != 0)
    {
       //Clear TXDONE interrupt flag
       ETHIRQCLR = _ETHIRQ_TXDONE_MASK;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurBufferDesc->control & ETH_TX_CTRL_EOWN))
+      if((txCurBufferDesc->control & ETH_TX_CTRL_EOWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & _ETHIRQ_PKTPEND_MASK)
+   //Packet received?
+   if((status & _ETHIRQ_PKTPEND_MASK) != 0)
    {
       //Disable PKTPEND interrupt
       ETHIENCLR = _ETHIEN_PKTPENDIE_MASK;
@@ -391,7 +449,7 @@ void pic32mxEthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(ETHIRQ & _ETHIRQ_PKTPEND_MASK)
+   if((ETHIRQ & _ETHIRQ_PKTPEND_MASK) != 0)
    {
       //Process all pending packets
       do
@@ -413,11 +471,13 @@ void pic32mxEthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t pic32mxEthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
    uint32_t value;
@@ -435,8 +495,10 @@ error_t pic32mxEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurBufferDesc->control & ETH_TX_CTRL_EOWN)
+   if((txCurBufferDesc->control & ETH_TX_CTRL_EOWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead(PA_TO_KVA1(txCurBufferDesc->address), buffer, offset, length);
@@ -455,7 +517,7 @@ error_t pic32mxEthSendPacket(NetInterface *interface,
    txCurBufferDesc = PA_TO_KVA1(txCurBufferDesc->next);
 
    //Check whether the next buffer is available for writing
-   if(!(txCurBufferDesc->control & ETH_TX_CTRL_EOWN))
+   if((txCurBufferDesc->control & ETH_TX_CTRL_EOWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -477,16 +539,17 @@ error_t pic32mxEthReceivePacket(NetInterface *interface)
    static uint8_t temp[PIC32MX_ETH_RX_BUFFER_SIZE];
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurBufferDesc->control & ETH_RX_CTRL_EOWN))
+   if((rxCurBufferDesc->control & ETH_RX_CTRL_EOWN) == 0)
    {
       //SOP and EOP flags should be set
-      if((rxCurBufferDesc->control & ETH_RX_CTRL_SOP) &&
-         (rxCurBufferDesc->control & ETH_RX_CTRL_EOP))
+      if((rxCurBufferDesc->control & ETH_RX_CTRL_SOP) != 0 &&
+         (rxCurBufferDesc->control & ETH_RX_CTRL_EOP) != 0)
       {
          //Make sure no error occurred
-         if(rxCurBufferDesc->status2 & ETH_RX_STATUS2_OK)
+         if((rxCurBufferDesc->status2 & ETH_RX_STATUS2_OK) != 0)
          {
             //Retrieve the length of the frame
             n = (rxCurBufferDesc->control & ETH_RX_CTRL_BYTE_COUNT) >> 16;
@@ -494,10 +557,13 @@ error_t pic32mxEthReceivePacket(NetInterface *interface)
             n = MIN(n, PIC32MX_ETH_RX_BUFFER_SIZE);
 
             //Copy data from the receive buffer
-            memcpy(temp, PA_TO_KVA1(rxCurBufferDesc->address), n);
+            osMemcpy(temp, PA_TO_KVA1(rxCurBufferDesc->address), n);
+
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, temp, n);
+            nicProcessPacket(interface, temp, n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -653,7 +719,7 @@ void pic32mxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
       __asm__ __volatile__ ("nop;");
 
       //Wait for the write to complete
-      while(EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK)
+      while((EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK) != 0)
       {
       }
    }
@@ -691,7 +757,7 @@ uint16_t pic32mxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       __asm__ __volatile__ ("nop;");
 
       //Wait for the read to complete
-      while(EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK)
+      while((EMAC1MIND & _EMAC1MIND_MIIMBUSY_MASK) != 0)
       {
       }
 
@@ -722,11 +788,13 @@ uint32_t pic32mxEthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -735,10 +803,14 @@ uint32_t pic32mxEthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

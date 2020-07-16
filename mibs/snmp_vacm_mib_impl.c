@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -58,7 +58,7 @@ error_t snmpVacmMibInit(void)
    TRACE_INFO("Initializing SNMP VACM MIB base...\r\n");
 
    //Clear SNMP VACM MIB base
-   memset(&snmpVacmMibBase, 0, sizeof(snmpVacmMibBase));
+   osMemset(&snmpVacmMibBase, 0, sizeof(snmpVacmMibBase));
 
    //usmUserSpinLock object
    snmpVacmMibBase.vacmViewSpinLock = netGetRandRange(1, INT32_MAX);
@@ -103,9 +103,9 @@ void snmpVacmMibUnload(void *context)
 void snmpVacmMibLock(void)
 {
    //Clear temporary objects
-   memset(&snmpVacmMibBase.tempGroupEntry, 0, sizeof(SnmpGroupEntry));
-   memset(&snmpVacmMibBase.tempAccessEntry, 0, sizeof(SnmpAccessEntry));
-   memset(&snmpVacmMibBase.tempViewEntry, 0, sizeof(SnmpViewEntry));
+   osMemset(&snmpVacmMibBase.tempGroupEntry, 0, sizeof(SnmpGroupEntry));
+   osMemset(&snmpVacmMibBase.tempAccessEntry, 0, sizeof(SnmpAccessEntry));
+   osMemset(&snmpVacmMibBase.tempViewEntry, 0, sizeof(SnmpViewEntry));
 }
 
 
@@ -116,9 +116,9 @@ void snmpVacmMibLock(void)
 void snmpVacmMibUnlock(void)
 {
    //Clear temporary objects
-   memset(&snmpVacmMibBase.tempGroupEntry, 0, sizeof(SnmpGroupEntry));
-   memset(&snmpVacmMibBase.tempAccessEntry, 0, sizeof(SnmpAccessEntry));
-   memset(&snmpVacmMibBase.tempViewEntry, 0, sizeof(SnmpViewEntry));
+   osMemset(&snmpVacmMibBase.tempGroupEntry, 0, sizeof(SnmpGroupEntry));
+   osMemset(&snmpVacmMibBase.tempAccessEntry, 0, sizeof(SnmpAccessEntry));
+   osMemset(&snmpVacmMibBase.tempViewEntry, 0, sizeof(SnmpViewEntry));
 }
 
 
@@ -161,21 +161,21 @@ error_t snmpVacmMibGetContextEntry(const MibObject *object,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check context name
-   if(strcmp(contextName, context->contextName))
+   if(osStrcmp(contextName, context->contextName))
       return ERROR_INSTANCE_NOT_FOUND;
 
    //vacmContextName object?
-   if(!strcmp(object->name, "vacmContextName"))
+   if(!osStrcmp(object->name, "vacmContextName"))
    {
 #if (SNMP_V3_SUPPORT == ENABLED)
       //Retrieve the length of the context name
-      n = strlen(context->contextName);
+      n = osStrlen(context->contextName);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, context->contextName, n);
+         osMemcpy(value->octetString, context->contextName, n);
          //Return object length
          *valueLen = n;
       }
@@ -229,7 +229,7 @@ error_t snmpVacmMibGetNextContextEntry(const MibObject *object,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -278,6 +278,7 @@ error_t snmpVacmMibGetNextContextEntry(const MibObject *object,
 error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
+#if (SNMP_VACM_MIB_SET_SUPPORT == ENABLED)
    error_t error;
    size_t n;
    uint_t securityModel;
@@ -327,14 +328,14 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
 
    //Search the table for a matching row
    entry = snmpFindGroupEntry(context, securityModel, securityName,
-      strlen(securityName));
+      osStrlen(securityName));
 
    //vacmGroupName object?
-   if(!strcmp(object->name, "vacmGroupName"))
+   if(!osStrcmp(object->name, "vacmGroupName"))
    {
       //Ensure the length of the group name is valid
       if(valueLen > SNMP_MAX_GROUP_NAME_LEN)
-         return ERROR_INVALID_LENGTH;
+         return ERROR_WRONG_LENGTH;
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -343,7 +344,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
          if(commit)
          {
             //Set group name
-            memcpy(entry->groupName, value->octetString, valueLen);
+            osMemcpy(entry->groupName, value->octetString, valueLen);
             //Properly terminate the string with a NULL character
             entry->groupName[valueLen] = '\0';
          }
@@ -354,7 +355,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
          if(!commit)
          {
             //Save the group name for later use
-            memcpy(snmpVacmMibBase.tempGroupEntry.groupName,
+            osMemcpy(snmpVacmMibBase.tempGroupEntry.groupName,
                value->octetString, valueLen);
 
             //Properly terminate the string with a NULL character
@@ -363,7 +364,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
       }
    }
    //vacmSecurityToGroupStorageType object?
-   else if(!strcmp(object->name, "vacmSecurityToGroupStorageType"))
+   else if(!osStrcmp(object->name, "vacmSecurityToGroupStorageType"))
    {
       //The vacmSecurityToGroupStorageType object specifies the storage type
       //for this conceptual row
@@ -377,7 +378,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
       }
    }
    //vacmSecurityToGroupStatus object?
-   else if(!strcmp(object->name, "vacmSecurityToGroupStatus"))
+   else if(!osStrcmp(object->name, "vacmSecurityToGroupStatus"))
    {
       MibRowStatus status;
 
@@ -397,7 +398,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
          {
             //Valid group name specified?
             if(snmpVacmMibBase.tempGroupEntry.groupName[0] != '\0')
-               strcpy(entry->groupName, snmpVacmMibBase.tempGroupEntry.groupName);
+               osStrcpy(entry->groupName, snmpVacmMibBase.tempGroupEntry.groupName);
 
             //A newly created row cannot be made active until a value has been
             //set for vacmGroupName
@@ -429,9 +430,9 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
                //Save security model
                entry->securityModel = (SnmpSecurityModel) securityModel;
                //Save security name
-               strcpy(entry->securityName, securityName);
+               osStrcpy(entry->securityName, securityName);
                //Copy the group name
-               strcpy(entry->groupName, snmpVacmMibBase.tempGroupEntry.groupName);
+               osStrcpy(entry->groupName, snmpVacmMibBase.tempGroupEntry.groupName);
 
                //The conceptual row is now available for use by the managed device
                entry->status = MIB_ROW_STATUS_ACTIVE;
@@ -461,13 +462,13 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
             //Save security model
             entry->securityModel = (SnmpSecurityModel) securityModel;
             //Save security name
-            strcpy(entry->securityName, securityName);
+            osStrcpy(entry->securityName, securityName);
 
             //Valid group name specified?
             if(snmpVacmMibBase.tempGroupEntry.groupName[0] != '\0')
             {
                //Copy the group name
-               strcpy(entry->groupName, snmpVacmMibBase.tempGroupEntry.groupName);
+               osStrcpy(entry->groupName, snmpVacmMibBase.tempGroupEntry.groupName);
 
                //Instances of all corresponding columns are now configured
                entry->status = MIB_ROW_STATUS_NOT_IN_SERVICE;
@@ -512,6 +513,10 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
 
    //Return status code
    return error;
+#else
+   //SET operation is not supported
+   return ERROR_WRITE_FAILED;
+#endif
 }
 
 
@@ -563,22 +568,22 @@ error_t snmpVacmMibGetSecurityToGroupEntry(const MibObject *object,
 
    //Search the table for a matching row
    entry = snmpFindGroupEntry(context, securityModel, securityName,
-      strlen(securityName));
+      osStrlen(securityName));
    //No matching row found?
    if(entry == NULL)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //vacmGroupName object?
-   if(!strcmp(object->name, "vacmGroupName"))
+   if(!osStrcmp(object->name, "vacmGroupName"))
    {
       //Retrieve the length of the group name
-      n = strlen(entry->groupName);
+      n = osStrlen(entry->groupName);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, entry->groupName, n);
+         osMemcpy(value->octetString, entry->groupName, n);
          //Return object length
          *valueLen = n;
       }
@@ -589,13 +594,13 @@ error_t snmpVacmMibGetSecurityToGroupEntry(const MibObject *object,
       }
    }
    //vacmSecurityToGroupStorageType object?
-   else if(!strcmp(object->name, "vacmSecurityToGroupStorageType"))
+   else if(!osStrcmp(object->name, "vacmSecurityToGroupStorageType"))
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //vacmSecurityToGroupStatus object?
-   else if(!strcmp(object->name, "vacmSecurityToGroupStatus"))
+   else if(!osStrcmp(object->name, "vacmSecurityToGroupStatus"))
    {
       //Get the status of this conceptual row
       value->integer = entry->status;
@@ -647,7 +652,7 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through the list of groups
    for(i = 0; i < SNMP_AGENT_GROUP_TABLE_SIZE; i++)
@@ -680,19 +685,33 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
          {
             //Perform lexicographic comparison
             if(nextEntry == NULL)
+            {
                acceptable = TRUE;
+            }
             else if(entry->securityModel < nextEntry->securityModel)
+            {
                acceptable = TRUE;
+            }
             else if(entry->securityModel > nextEntry->securityModel)
+            {
                acceptable = FALSE;
-            else if(strlen(entry->securityName) < strlen(nextEntry->securityName))
+            }
+            else if(osStrlen(entry->securityName) < osStrlen(nextEntry->securityName))
+            {
                acceptable = TRUE;
-            else if(strlen(entry->securityName) > strlen(nextEntry->securityName))
+            }
+            else if(osStrlen(entry->securityName) > osStrlen(nextEntry->securityName))
+            {
                acceptable = FALSE;
-            else if(strcmp(entry->securityName, nextEntry->securityName) < 0)
+            }
+            else if(osStrcmp(entry->securityName, nextEntry->securityName) < 0)
+            {
                acceptable = TRUE;
+            }
             else
+            {
                acceptable = FALSE;
+            }
 
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order
@@ -745,6 +764,7 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
 error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
+#if (SNMP_VACM_MIB_SET_SUPPORT == ENABLED)
    error_t error;
    size_t n;
    char_t groupName[SNMP_MAX_GROUP_NAME_LEN + 1];
@@ -822,7 +842,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       securityModel, securityLevel);
 
    //vacmAccessContextMatch object?
-   if(!strcmp(object->name, "vacmAccessContextMatch"))
+   if(!osStrcmp(object->name, "vacmAccessContextMatch"))
    {
       //Ensure the value of the object is acceptable
       if(value->integer != SNMP_CONTEXT_MATCH_EXACT &&
@@ -852,11 +872,11 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessReadViewName object?
-   else if(!strcmp(object->name, "vacmAccessReadViewName"))
+   else if(!osStrcmp(object->name, "vacmAccessReadViewName"))
    {
       //Ensure the length of the read view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
-         return ERROR_INVALID_LENGTH;
+         return ERROR_WRONG_LENGTH;
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -865,7 +885,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
          if(commit)
          {
             //Set read view name
-            memcpy(entry->readViewName, value->octetString, valueLen);
+            osMemcpy(entry->readViewName, value->octetString, valueLen);
             //Properly terminate the string with a NULL character
             entry->readViewName[valueLen] = '\0';
          }
@@ -876,7 +896,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
          if(!commit)
          {
             //Save the read view name for later use
-            memcpy(snmpVacmMibBase.tempAccessEntry.readViewName,
+            osMemcpy(snmpVacmMibBase.tempAccessEntry.readViewName,
                value->octetString, valueLen);
 
             //Properly terminate the string with a NULL character
@@ -885,11 +905,11 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessWriteViewName object?
-   else if(!strcmp(object->name, "vacmAccessWriteViewName"))
+   else if(!osStrcmp(object->name, "vacmAccessWriteViewName"))
    {
       //Ensure the length of the write view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
-         return ERROR_INVALID_LENGTH;
+         return ERROR_WRONG_LENGTH;
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -898,7 +918,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
          if(commit)
          {
             //Set write view name
-            memcpy(entry->writeViewName, value->octetString, valueLen);
+            osMemcpy(entry->writeViewName, value->octetString, valueLen);
             //Properly terminate the string with a NULL character
             entry->writeViewName[valueLen] = '\0';
          }
@@ -909,7 +929,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
          if(!commit)
          {
             //Save the write view name for later use
-            memcpy(snmpVacmMibBase.tempAccessEntry.writeViewName,
+            osMemcpy(snmpVacmMibBase.tempAccessEntry.writeViewName,
                value->octetString, valueLen);
 
             //Properly terminate the string with a NULL character
@@ -918,11 +938,11 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessNotifyViewName object?
-   else if(!strcmp(object->name, "vacmAccessNotifyViewName"))
+   else if(!osStrcmp(object->name, "vacmAccessNotifyViewName"))
    {
       //Ensure the length of the notify view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
-         return ERROR_INVALID_LENGTH;
+         return ERROR_WRONG_LENGTH;
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -931,7 +951,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
          if(commit)
          {
             //Set notify view name
-            memcpy(entry->notifyViewName, value->octetString, valueLen);
+            osMemcpy(entry->notifyViewName, value->octetString, valueLen);
             //Properly terminate the string with a NULL character
             entry->notifyViewName[valueLen] = '\0';
          }
@@ -942,7 +962,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
          if(!commit)
          {
             //Save the notify view name for later use
-            memcpy(snmpVacmMibBase.tempAccessEntry.notifyViewName,
+            osMemcpy(snmpVacmMibBase.tempAccessEntry.notifyViewName,
                value->octetString, valueLen);
 
             //Properly terminate the string with a NULL character
@@ -951,7 +971,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessStorageType object?
-   else if(!strcmp(object->name, "vacmAccessStorageType"))
+   else if(!osStrcmp(object->name, "vacmAccessStorageType"))
    {
       //The vacmAccessStorageType object specifies the storage type
       //for this conceptual row
@@ -965,7 +985,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessStatus object?
-   else if(!strcmp(object->name, "vacmAccessStatus"))
+   else if(!osStrcmp(object->name, "vacmAccessStatus"))
    {
       MibRowStatus status;
 
@@ -1004,9 +1024,9 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
          if(commit)
          {
             //Save group name
-            strcpy(entry->groupName, groupName);
+            osStrcpy(entry->groupName, groupName);
             //Save context name prefix
-            strcpy(entry->contextPrefix, contextPrefix);
+            osStrcpy(entry->contextPrefix, contextPrefix);
             //Save security model
             entry->securityModel = (SnmpSecurityModel) securityModel;
             //Save security level
@@ -1024,21 +1044,25 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
 
             //Valid read view name specified?
             if(snmpVacmMibBase.tempAccessEntry.readViewName[0] != '\0')
-               strcpy(entry->readViewName, snmpVacmMibBase.tempAccessEntry.readViewName);
+               osStrcpy(entry->readViewName, snmpVacmMibBase.tempAccessEntry.readViewName);
 
             //Valid write view name specified?
             if(snmpVacmMibBase.tempAccessEntry.writeViewName[0] != '\0')
-               strcpy(entry->writeViewName, snmpVacmMibBase.tempAccessEntry.writeViewName);
+               osStrcpy(entry->writeViewName, snmpVacmMibBase.tempAccessEntry.writeViewName);
 
             //Valid notify notify name specified?
             if(snmpVacmMibBase.tempAccessEntry.notifyViewName[0] != '\0')
-               strcpy(entry->notifyViewName, snmpVacmMibBase.tempAccessEntry.notifyViewName);
+               osStrcpy(entry->notifyViewName, snmpVacmMibBase.tempAccessEntry.notifyViewName);
 
             //The conceptual row has been successfully created
             if(status == MIB_ROW_STATUS_CREATE_AND_GO)
+            {
                entry->status = MIB_ROW_STATUS_ACTIVE;
+            }
             else
+            {
                entry->status = MIB_ROW_STATUS_NOT_IN_SERVICE;
+            }
          }
       }
       else if(status == MIB_ROW_STATUS_DESTROY)
@@ -1067,8 +1091,12 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_OBJECT_NOT_FOUND;
    }
 
-   //Successful set operation
+   //Successful processing
    return NO_ERROR;
+#else
+   //SET operation is not supported
+   return ERROR_WRITE_FAILED;
+#endif
 }
 
 
@@ -1141,22 +1169,22 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //vacmAccessContextMatch object?
-   if(!strcmp(object->name, "vacmAccessContextMatch"))
+   if(!osStrcmp(object->name, "vacmAccessContextMatch"))
    {
       //Get object value
       value->integer = entry->contextMatch;
    }
    //vacmAccessReadViewName object?
-   else if(!strcmp(object->name, "vacmAccessReadViewName"))
+   else if(!osStrcmp(object->name, "vacmAccessReadViewName"))
    {
       //Retrieve the length of the read view name
-      n = strlen(entry->readViewName);
+      n = osStrlen(entry->readViewName);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, entry->readViewName, n);
+         osMemcpy(value->octetString, entry->readViewName, n);
          //Return object length
          *valueLen = n;
       }
@@ -1167,16 +1195,16 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       }
    }
    //vacmAccessWriteViewName object?
-   else if(!strcmp(object->name, "vacmAccessWriteViewName"))
+   else if(!osStrcmp(object->name, "vacmAccessWriteViewName"))
    {
       //Retrieve the length of the write view name
-      n = strlen(entry->writeViewName);
+      n = osStrlen(entry->writeViewName);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, entry->writeViewName, n);
+         osMemcpy(value->octetString, entry->writeViewName, n);
          //Return object length
          *valueLen = n;
       }
@@ -1187,16 +1215,16 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       }
    }
    //vacmAccessNotifyViewName object?
-   else if(!strcmp(object->name, "vacmAccessNotifyViewName"))
+   else if(!osStrcmp(object->name, "vacmAccessNotifyViewName"))
    {
       //Retrieve the length of the notify view name
-      n = strlen(entry->notifyViewName);
+      n = osStrlen(entry->notifyViewName);
 
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= n)
       {
          //Copy object value
-         memcpy(value->octetString, entry->notifyViewName, n);
+         osMemcpy(value->octetString, entry->notifyViewName, n);
          //Return object length
          *valueLen = n;
       }
@@ -1207,13 +1235,13 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       }
    }
    //vacmAccessStorageType object?
-   else if(!strcmp(object->name, "vacmAccessStorageType"))
+   else if(!osStrcmp(object->name, "vacmAccessStorageType"))
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //vacmAccessStatus object?
-   else if(!strcmp(object->name, "vacmAccessStatus"))
+   else if(!osStrcmp(object->name, "vacmAccessStatus"))
    {
       //Get the status of this conceptual row
       value->integer = entry->status;
@@ -1265,7 +1293,7 @@ error_t snmpVacmMibGetNextAccessEntry(const MibObject *object,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through the list of access rights
    for(i = 0; i < SNMP_AGENT_ACCESS_TABLE_SIZE; i++)
@@ -1313,31 +1341,57 @@ error_t snmpVacmMibGetNextAccessEntry(const MibObject *object,
          {
             //Perform lexicographic comparison
             if(nextEntry == NULL)
+            {
                acceptable = TRUE;
-            else if(strlen(entry->groupName) < strlen(nextEntry->groupName))
+            }
+            else if(osStrlen(entry->groupName) < osStrlen(nextEntry->groupName))
+            {
                acceptable = TRUE;
-            else if(strlen(entry->groupName) > strlen(nextEntry->groupName))
+            }
+            else if(osStrlen(entry->groupName) > osStrlen(nextEntry->groupName))
+            {
                acceptable = FALSE;
-            else if(strcmp(entry->groupName, nextEntry->groupName) < 0)
+            }
+            else if(osStrcmp(entry->groupName, nextEntry->groupName) < 0)
+            {
                acceptable = TRUE;
-            else if(strcmp(entry->groupName, nextEntry->groupName) > 0)
+            }
+            else if(osStrcmp(entry->groupName, nextEntry->groupName) > 0)
+            {
                acceptable = FALSE;
-            else if(strlen(entry->contextPrefix) < strlen(nextEntry->contextPrefix))
+            }
+            else if(osStrlen(entry->contextPrefix) < osStrlen(nextEntry->contextPrefix))
+            {
                acceptable = TRUE;
-            else if(strlen(entry->contextPrefix) > strlen(nextEntry->contextPrefix))
+            }
+            else if(osStrlen(entry->contextPrefix) > osStrlen(nextEntry->contextPrefix))
+            {
                acceptable = FALSE;
-            else if(strcmp(entry->contextPrefix, nextEntry->contextPrefix) < 0)
+            }
+            else if(osStrcmp(entry->contextPrefix, nextEntry->contextPrefix) < 0)
+            {
                acceptable = TRUE;
-            else if(strcmp(entry->contextPrefix, nextEntry->contextPrefix) > 0)
+            }
+            else if(osStrcmp(entry->contextPrefix, nextEntry->contextPrefix) > 0)
+            {
                acceptable = FALSE;
+            }
             else if(entry->securityModel < nextEntry->securityModel)
+            {
                acceptable = TRUE;
+            }
             else if(entry->securityModel > nextEntry->securityModel)
+            {
                acceptable = FALSE;
+            }
             else if(entry->securityLevel < nextEntry->securityLevel)
+            {
                acceptable = TRUE;
+            }
             else
+            {
                acceptable = FALSE;
+            }
 
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order
@@ -1425,7 +1479,7 @@ error_t snmpVacmMibGetViewSpinLock(const MibObject *object,
    //Get the current value of the spin lock
    value->integer = snmpVacmMibBase.vacmViewSpinLock;
 
-   //Return status code
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -1445,6 +1499,7 @@ error_t snmpVacmMibGetViewSpinLock(const MibObject *object,
 error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, const MibVariant *value, size_t valueLen, bool_t commit)
 {
+#if (SNMP_VACM_MIB_SET_SUPPORT == ENABLED)
    error_t error;
    size_t n;
    char_t viewName[SNMP_MAX_VIEW_NAME_LEN + 1];
@@ -1488,11 +1543,11 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
    entry = snmpFindViewEntry(context, viewName, subtree, subtreeLen);
 
    //vacmViewTreeFamilyMask object?
-   if(!strcmp(object->name, "vacmViewTreeFamilyMask"))
+   if(!osStrcmp(object->name, "vacmViewTreeFamilyMask"))
    {
       //Ensure the length of the bit mask is valid
       if(valueLen > SNMP_MAX_BIT_MASK_SIZE)
-         return ERROR_INVALID_LENGTH;
+         return ERROR_WRONG_LENGTH;
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -1501,7 +1556,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
          if(commit)
          {
             //Set the bit mask
-            memcpy(entry->mask, value->octetString, valueLen);
+            osMemcpy(entry->mask, value->octetString, valueLen);
             //Set the length of the bit mask
             entry->maskLen = valueLen;
          }
@@ -1512,14 +1567,14 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
          if(!commit)
          {
             //Save the bit mask for later use
-            memcpy(snmpVacmMibBase.tempViewEntry.mask, value->octetString, valueLen);
+            osMemcpy(snmpVacmMibBase.tempViewEntry.mask, value->octetString, valueLen);
             //Save the length of the bit mask
             snmpVacmMibBase.tempViewEntry.maskLen = valueLen;
          }
       }
    }
    //vacmViewTreeFamilyType object?
-   else if(!strcmp(object->name, "vacmViewTreeFamilyType"))
+   else if(!osStrcmp(object->name, "vacmViewTreeFamilyType"))
    {
       //Ensure the value of the object is acceptable
       if(value->integer != SNMP_VIEW_TYPE_INCLUDED &&
@@ -1549,7 +1604,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       }
    }
    //vacmViewTreeFamilyStorageType object?
-   else if(!strcmp(object->name, "vacmViewTreeFamilyStorageType"))
+   else if(!osStrcmp(object->name, "vacmViewTreeFamilyStorageType"))
    {
       //The vacmViewTreeFamilyStorageType object specifies the storage type
       //for this conceptual row
@@ -1563,7 +1618,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       }
    }
    //vacmViewTreeFamilyStatus object?
-   else if(!strcmp(object->name, "vacmViewTreeFamilyStatus"))
+   else if(!osStrcmp(object->name, "vacmViewTreeFamilyStatus"))
    {
       MibRowStatus status;
 
@@ -1602,9 +1657,9 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
          if(commit)
          {
             //Save view name
-            strcpy(entry->viewName, viewName);
+            osStrcpy(entry->viewName, viewName);
             //Save subtree
-            memcpy(entry->subtree, subtree, subtreeLen);
+            osMemcpy(entry->subtree, subtree, subtreeLen);
             //Save the length of the subtree
             entry->subtreeLen = subtreeLen;
 
@@ -1616,7 +1671,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
             if(snmpVacmMibBase.tempViewEntry.maskLen != 0)
             {
                //Copy the bit mask
-               memcpy(entry->mask, snmpVacmMibBase.tempViewEntry.mask,
+               osMemcpy(entry->mask, snmpVacmMibBase.tempViewEntry.mask,
                   snmpVacmMibBase.tempViewEntry.maskLen);
 
                //Set the length of the bit mask
@@ -1629,9 +1684,13 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
 
             //The conceptual row has been successfully created
             if(status == MIB_ROW_STATUS_CREATE_AND_GO)
+            {
                entry->status = MIB_ROW_STATUS_ACTIVE;
+            }
             else
+            {
                entry->status = MIB_ROW_STATUS_NOT_IN_SERVICE;
+            }
          }
       }
       else if(status == MIB_ROW_STATUS_DESTROY)
@@ -1660,8 +1719,12 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       return ERROR_OBJECT_NOT_FOUND;
    }
 
-   //Successful set operation
+   //Successful processing
    return NO_ERROR;
+#else
+   //SET operation is not supported
+   return ERROR_WRITE_FAILED;
+#endif
 }
 
 
@@ -1720,13 +1783,13 @@ error_t snmpVacmMibGetViewTreeFamilyEntry(const MibObject *object,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //vacmViewTreeFamilyMask object?
-   if(!strcmp(object->name, "vacmViewTreeFamilyMask"))
+   if(!osStrcmp(object->name, "vacmViewTreeFamilyMask"))
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= entry->maskLen)
       {
          //Copy object value
-         memcpy(value->octetString, entry->mask, entry->maskLen);
+         osMemcpy(value->octetString, entry->mask, entry->maskLen);
          //Return object length
          *valueLen = entry->maskLen;
       }
@@ -1737,7 +1800,7 @@ error_t snmpVacmMibGetViewTreeFamilyEntry(const MibObject *object,
       }
    }
    //vacmViewTreeFamilyType object?
-   else if(!strcmp(object->name, "vacmViewTreeFamilyType"))
+   else if(!osStrcmp(object->name, "vacmViewTreeFamilyType"))
    {
       //This object indicates whether the corresponding instances of
       //vacmViewTreeFamilySubtree and vacmViewTreeFamilyMask define a family
@@ -1745,13 +1808,13 @@ error_t snmpVacmMibGetViewTreeFamilyEntry(const MibObject *object,
       value->integer = entry->type;
    }
    //vacmViewTreeFamilyStorageType object?
-   else if(!strcmp(object->name, "vacmViewTreeFamilyStorageType"))
+   else if(!osStrcmp(object->name, "vacmViewTreeFamilyStorageType"))
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //vacmViewTreeFamilyStatus object?
-   else if(!strcmp(object->name, "vacmViewTreeFamilyStatus"))
+   else if(!osStrcmp(object->name, "vacmViewTreeFamilyStatus"))
    {
       //Get the status of this conceptual row
       value->integer = entry->status;
@@ -1803,7 +1866,7 @@ error_t snmpVacmMibGetNextViewTreeFamilyEntry(const MibObject *object,
       return ERROR_BUFFER_OVERFLOW;
 
    //Copy OID prefix
-   memcpy(nextOid, object->oid, object->oidLen);
+   osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through the list of MIB views
    for(i = 0; i < SNMP_AGENT_VIEW_TABLE_SIZE; i++)
@@ -1837,23 +1900,41 @@ error_t snmpVacmMibGetNextViewTreeFamilyEntry(const MibObject *object,
          {
             //Perform lexicographic comparison
             if(nextEntry == NULL)
+            {
                acceptable = TRUE;
-            else if(strlen(entry->viewName) < strlen(nextEntry->viewName))
+            }
+            else if(osStrlen(entry->viewName) < osStrlen(nextEntry->viewName))
+            {
                acceptable = TRUE;
-            else if(strlen(entry->viewName) > strlen(nextEntry->viewName))
+            }
+            else if(osStrlen(entry->viewName) > osStrlen(nextEntry->viewName))
+            {
                acceptable = FALSE;
-            else if(strcmp(entry->viewName, nextEntry->viewName) < 0)
+            }
+            else if(osStrcmp(entry->viewName, nextEntry->viewName) < 0)
+            {
                acceptable = TRUE;
-            else if(strcmp(entry->viewName, nextEntry->viewName) > 0)
+            }
+            else if(osStrcmp(entry->viewName, nextEntry->viewName) > 0)
+            {
                acceptable = FALSE;
+            }
             else if(entry->subtreeLen < nextEntry->subtreeLen)
+            {
                acceptable = TRUE;
+            }
             else if(entry->subtreeLen > nextEntry->subtreeLen)
+            {
                acceptable = FALSE;
-            else if(memcmp(entry->subtree, nextEntry->subtree, nextEntry->subtreeLen) < 0)
+            }
+            else if(osMemcmp(entry->subtree, nextEntry->subtree, nextEntry->subtreeLen) < 0)
+            {
                acceptable = TRUE;
+            }
             else
+            {
                acceptable = FALSE;
+            }
 
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order

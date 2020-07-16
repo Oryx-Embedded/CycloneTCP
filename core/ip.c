@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -52,12 +52,13 @@ const IpAddr IP_ADDR_UNSPECIFIED = {0};
  * @param[in] pseudoHeader IP pseudo header
  * @param[in] buffer Multi-part buffer containing the payload
  * @param[in] offset Offset to the first payload byte
- * @param[in] flags Set of flags that influences the behavior of this function
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, uint_t flags)
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
 
@@ -66,8 +67,8 @@ error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
    if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
    {
       //Form an IPv4 packet and send it
-      error = ipv4SendDatagram(interface, &pseudoHeader->ipv4Data,
-         buffer, offset, flags);
+      error = ipv4SendDatagram(interface, &pseudoHeader->ipv4Data, buffer,
+         offset, ancillary);
    }
    else
 #endif
@@ -76,8 +77,8 @@ error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
    if(pseudoHeader->length == sizeof(Ipv6PseudoHeader))
    {
       //Form an IPv6 packet and send it
-      error = ipv6SendDatagram(interface, &pseudoHeader->ipv6Data,
-         buffer, offset, flags);
+      error = ipv6SendDatagram(interface, &pseudoHeader->ipv6Data, buffer,
+         offset, ancillary);
    }
    else
 #endif
@@ -402,7 +403,7 @@ uint16_t ipCalcChecksum(const void *data, size_t length)
    p = (const uint8_t *) data;
 
    //Pointer not aligned on a 16-bit boundary?
-   if(((uint_t) p & 1) != 0)
+   if(((uintptr_t) p & 1) != 0)
    {
       if(length >= 1)
       {
@@ -421,7 +422,7 @@ uint16_t ipCalcChecksum(const void *data, size_t length)
    }
 
    //Pointer not aligned on a 32-bit boundary?
-   if(((uint_t) p & 2) != 0)
+   if(((uintptr_t) p & 2) != 0)
    {
       if(length >= 2)
       {
@@ -490,7 +491,7 @@ uint16_t ipCalcChecksum(const void *data, size_t length)
    checksum = (checksum & 0xFFFF) + (checksum >> 16);
 
    //Restore checksum endianness
-   if(((uint_t) data & 1) != 0)
+   if(((uintptr_t) data & 1) != 0)
    {
       //Swap checksum value
       checksum = ((checksum >> 8) | (checksum << 8)) & 0xFFFF;

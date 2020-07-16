@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -158,8 +158,8 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
 #endif
 
 #if (WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
-         strcpy(webSocket->authContext.nonce, "");
-         strcpy(webSocket->authContext.opaque, "");
+         osStrcpy(webSocket->authContext.nonce, "");
+         osStrcpy(webSocket->authContext.opaque, "");
          webSocket->authContext.stale = FALSE;
 #endif
 
@@ -167,7 +167,7 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
          if(webSocket->endpoint == WS_ENDPOINT_CLIENT)
          {
             //Clear server key
-            strcpy(webSocket->handshakeContext.serverKey, "");
+            osStrcpy(webSocket->handshakeContext.serverKey, "");
 
             //Debug message
             TRACE_DEBUG("WebSocket: server handshake\r\n");
@@ -175,7 +175,7 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
          else
          {
             //Clear client key
-            strcpy(webSocket->handshakeContext.clientKey, "");
+            osStrcpy(webSocket->handshakeContext.clientKey, "");
 
             //Debug message
             TRACE_DEBUG("WebSocket: client handshake\r\n");
@@ -204,7 +204,7 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
             //Report an error
             error = ERROR_INVALID_REQUEST;
          }
-         else if(strncmp((char_t *) rxContext->buffer + rxContext->bufferLen - 2, "\r\n", 2))
+         else if(osStrncmp((char_t *) rxContext->buffer + rxContext->bufferLen - 2, "\r\n", 2))
          {
             //Limit the number of characters to read at a time
             n = WEB_SOCKET_BUFFER_SIZE - 1 - rxContext->bufferLen;
@@ -261,7 +261,7 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
             //Report an error
             error = ERROR_INVALID_REQUEST;
          }
-         else if(strncmp((char_t *) rxContext->buffer + rxContext->bufferLen - 2, "\r\n", 2))
+         else if(osStrncmp((char_t *) rxContext->buffer + rxContext->bufferLen - 2, "\r\n", 2))
          {
             //Limit the number of characters to read at a time
             n = WEB_SOCKET_BUFFER_SIZE - 1 - rxContext->bufferLen;
@@ -279,7 +279,7 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
             rxContext->buffer[rxContext->bufferLen] = '\0';
 
             //An empty line indicates the end of the header fields
-            if(!strcmp((char_t *) rxContext->buffer, "\r\n"))
+            if(!osStrcmp((char_t *) rxContext->buffer, "\r\n"))
             {
                //Client or server operation?
                if(webSocket->endpoint == WS_ENDPOINT_CLIENT)
@@ -374,17 +374,17 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
    TRACE_DEBUG("%s", line);
 
    //The Request-Line begins with a method token
-   token = strtok_r(line, " \r\n", &p);
+   token = osStrtok_r(line, " \r\n", &p);
    //Unable to retrieve the method?
    if(token == NULL)
       return ERROR_INVALID_REQUEST;
 
    //The method of the request must be GET
-   if(strcasecmp(token, "GET"))
+   if(osStrcasecmp(token, "GET"))
       return ERROR_INVALID_REQUEST;
 
    //The Request-URI is following the method token
-   token = strtok_r(NULL, " \r\n", &p);
+   token = osStrtok_r(NULL, " \r\n", &p);
    //Unable to retrieve the Request-URI?
    if(token == NULL)
       return ERROR_INVALID_REQUEST;
@@ -406,11 +406,11 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
          return ERROR_INVALID_REQUEST;
 
       //Check the length of the query string
-      if(strlen(s + 1) > WEB_SOCKET_QUERY_STRING_MAX_LEN)
+      if(osStrlen(s + 1) > WEB_SOCKET_QUERY_STRING_MAX_LEN)
          return ERROR_INVALID_REQUEST;
 
       //Save the query string
-      strcpy(webSocket->queryString, s + 1);
+      osStrcpy(webSocket->queryString, s + 1);
    }
    else
    {
@@ -426,7 +426,7 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
    }
 
    //The protocol version is following the Request-URI
-   token = strtok_r(NULL, " \r\n", &p);
+   token = osStrtok_r(NULL, " \r\n", &p);
 
    //HTTP version 0.9?
    if(token == NULL)
@@ -437,7 +437,7 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
       webSocket->handshakeContext.connectionClose = TRUE;
    }
    //HTTP version 1.0?
-   else if(!strcasecmp(token, "HTTP/1.0"))
+   else if(!osStrcasecmp(token, "HTTP/1.0"))
    {
       //Save version number
       webSocket->handshakeContext.version = WS_HTTP_VERSION_1_0;
@@ -445,7 +445,7 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
       webSocket->handshakeContext.connectionClose = TRUE;
    }
    //HTTP version 1.1?
-   else if(!strcasecmp(token, "HTTP/1.1"))
+   else if(!osStrcasecmp(token, "HTTP/1.1"))
    {
       //Save version number
       webSocket->handshakeContext.version = WS_HTTP_VERSION_1_1;
@@ -480,19 +480,19 @@ error_t webSocketParseStatusLine(WebSocket *webSocket, char_t *line)
    TRACE_DEBUG("%s", line);
 
    //Retrieve the HTTP-Version field
-   token = strtok_r(line, " ", &p);
+   token = osStrtok_r(line, " ", &p);
    //Any parsing error?
    if(token == NULL)
       return ERROR_INVALID_SYNTAX;
 
    //Retrieve the Status-Code field
-   token = strtok_r(NULL, " ", &p);
+   token = osStrtok_r(NULL, " ", &p);
    //Any parsing error?
    if(token == NULL)
       return ERROR_INVALID_SYNTAX;
 
    //Convert the status code
-   webSocket->handshakeContext.statusCode = strtoul(token, &p, 10);
+   webSocket->handshakeContext.statusCode = osStrtoul(token, &p, 10);
    //Any parsing error?
    if(*p != '\0')
       return ERROR_INVALID_SYNTAX;
@@ -536,20 +536,20 @@ error_t webSocketParseHeaderField(WebSocket *webSocket, char_t *line)
       value = strTrimWhitespace(separator + 1);
 
       //Upgrade header field found?
-      if(!strcasecmp(name, "Upgrade"))
+      if(!osStrcasecmp(name, "Upgrade"))
       {
-         if(!strcasecmp(value, "websocket"))
+         if(!osStrcasecmp(value, "websocket"))
             handshakeContext->upgradeWebSocket = TRUE;
 
       }
       //Connection header field found?
-      else if(!strcasecmp(name, "Connection"))
+      else if(!osStrcasecmp(name, "Connection"))
       {
          //Parse Connection header field
          webSocketParseConnectionField(webSocket, value);
       }
       //Sec-WebSocket-Key header field found?
-      else if(!strcasecmp(name, "Sec-WebSocket-Key"))
+      else if(!osStrcasecmp(name, "Sec-WebSocket-Key"))
       {
          //Server operation?
          if(webSocket->endpoint == WS_ENDPOINT_SERVER)
@@ -560,7 +560,7 @@ error_t webSocketParseHeaderField(WebSocket *webSocket, char_t *line)
          }
       }
       //Sec-WebSocket-Accept header field found?
-      else if(!strcasecmp(name, "Sec-WebSocket-Accept"))
+      else if(!osStrcasecmp(name, "Sec-WebSocket-Accept"))
       {
          //Client operation?
          if(webSocket->endpoint == WS_ENDPOINT_CLIENT)
@@ -572,16 +572,16 @@ error_t webSocketParseHeaderField(WebSocket *webSocket, char_t *line)
       }
 #if (WEB_SOCKET_BASIC_AUTH_SUPPORT == ENABLED || WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
       //WWW-Authenticate header field found?
-      else if(!strcasecmp(name, "WWW-Authenticate"))
+      else if(!osStrcasecmp(name, "WWW-Authenticate"))
       {
          //Parse WWW-Authenticate header field
          webSocketParseAuthenticateField(webSocket, value);
       }
 #endif
       //Content-Length header field found?
-      else if(!strcasecmp(name, "Content-Length"))
+      else if(!osStrcasecmp(name, "Content-Length"))
       {
-         handshakeContext->contentLength = strtoul(value, NULL, 10);
+         handshakeContext->contentLength = osStrtoul(value, NULL, 10);
       }
    }
 
@@ -602,7 +602,7 @@ void webSocketParseConnectionField(WebSocket *webSocket, char_t *value)
    char_t *token;
 
    //Get the first value of the list
-   token = strtok_r(value, ",", &p);
+   token = osStrtok_r(value, ",", &p);
 
    //Parse the comma-separated list
    while(token != NULL)
@@ -611,24 +611,24 @@ void webSocketParseConnectionField(WebSocket *webSocket, char_t *value)
       value = strTrimWhitespace(token);
 
       //Check current value
-      if(!strcasecmp(value, "keep-alive"))
+      if(!osStrcasecmp(value, "keep-alive"))
       {
          //The connection is persistent
          webSocket->handshakeContext.connectionClose = FALSE;
       }
-      else if(!strcasecmp(value, "close"))
+      else if(!osStrcasecmp(value, "close"))
       {
          //The connection will be closed after completion of the response
          webSocket->handshakeContext.connectionClose = TRUE;
       }
-      else if(!strcasecmp(value, "upgrade"))
+      else if(!osStrcasecmp(value, "upgrade"))
       {
          //Upgrade the connection
          webSocket->handshakeContext.connectionUpgrade = TRUE;
       }
 
       //Get next value
-      token = strtok_r(NULL, ",", &p);
+      token = osStrtok_r(NULL, ",", &p);
    }
 }
 
@@ -652,20 +652,20 @@ error_t webSocketFormatClientHandshake(WebSocket *webSocket, uint16_t serverPort
 
    //The Request-Line begins with a method token, followed by the
    //Request-URI and the protocol version, and ending with CRLF
-   p += sprintf(p, "GET %s HTTP/1.1\r\n", webSocket->uri);
+   p += osSprintf(p, "GET %s HTTP/1.1\r\n", webSocket->uri);
 
    //Add Host header field
    if(webSocket->host[0] != '\0')
    {
       //The Host header field specifies the Internet host and port number of
       //the resource being requested
-      p += sprintf(p, "Host: %s:%d\r\n", webSocket->host, serverPort);
+      p += osSprintf(p, "Host: %s:%d\r\n", webSocket->host, serverPort);
    }
    else
    {
       //If the requested URI does not include a host name for the service being
       //requested, then the Host header field must be given with an empty value
-      p += sprintf(p, "Host:\r\n");
+      p += osSprintf(p, "Host:\r\n");
    }
 
 #if (WEB_SOCKET_BASIC_AUTH_SUPPORT == ENABLED || WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
@@ -679,27 +679,27 @@ error_t webSocketFormatClientHandshake(WebSocket *webSocket, uint16_t serverPort
 
    //Add Origin header field
    if(webSocket->origin[0] != '\0')
-      p += sprintf(p, "Origin: %s\r\n", webSocket->origin);
+      p += osSprintf(p, "Origin: %s\r\n", webSocket->origin);
    else
-      p += sprintf(p, "Origin: null\r\n");
+      p += osSprintf(p, "Origin: null\r\n");
 
    //Add Upgrade header field
-   p += sprintf(p, "Upgrade: websocket\r\n");
+   p += osSprintf(p, "Upgrade: websocket\r\n");
    //Add Connection header field
-   p += sprintf(p, "Connection: Upgrade\r\n");
+   p += osSprintf(p, "Connection: Upgrade\r\n");
 
    //Add Sec-WebSocket-Protocol header field
    if(webSocket->subProtocol[0] != '\0')
-      p += sprintf(p, "Sec-WebSocket-Protocol: %s\r\n", webSocket->subProtocol);
+      p += osSprintf(p, "Sec-WebSocket-Protocol: %s\r\n", webSocket->subProtocol);
 
    //Add Sec-WebSocket-Key header field
-   p += sprintf(p, "Sec-WebSocket-Key: %s\r\n",
+   p += osSprintf(p, "Sec-WebSocket-Key: %s\r\n",
       webSocket->handshakeContext.clientKey);
 
    //Add Sec-WebSocket-Version header field
-   p += sprintf(p, "Sec-WebSocket-Version: 13\r\n");
+   p += osSprintf(p, "Sec-WebSocket-Version: 13\r\n");
    //An empty line indicates the end of the header fields
-   p += sprintf(p, "\r\n");
+   p += osSprintf(p, "\r\n");
 
    //Debug message
    TRACE_DEBUG("\r\n");
@@ -709,7 +709,7 @@ error_t webSocketFormatClientHandshake(WebSocket *webSocket, uint16_t serverPort
    //Rewind to the beginning of the buffer
    txContext->bufferPos = 0;
    //Update the number of data buffered but not yet sent
-   txContext->bufferLen = strlen((char_t *) txContext->buffer);
+   txContext->bufferLen = osStrlen((char_t *) txContext->buffer);
 
    //Successful processing
    return NO_ERROR;
@@ -733,23 +733,23 @@ error_t webSocketFormatServerHandshake(WebSocket *webSocket)
    p = (char_t *) txContext->buffer;
 
    //The first line is an HTTP Status-Line, with the status code 101
-   p += sprintf(p, "HTTP/1.1 101 Switching Protocols\r\n");
+   p += osSprintf(p, "HTTP/1.1 101 Switching Protocols\r\n");
 
    //Add Upgrade header field
-   p += sprintf(p, "Upgrade: websocket\r\n");
+   p += osSprintf(p, "Upgrade: websocket\r\n");
    //Add Connection header field
-   p += sprintf(p, "Connection: Upgrade\r\n");
+   p += osSprintf(p, "Connection: Upgrade\r\n");
 
    //Add Sec-WebSocket-Protocol header field
    if(webSocket->subProtocol[0] != '\0')
-      p += sprintf(p, "Sec-WebSocket-Protocol: %s\r\n", webSocket->subProtocol);
+      p += osSprintf(p, "Sec-WebSocket-Protocol: %s\r\n", webSocket->subProtocol);
 
    //Add Sec-WebSocket-Accept header field
-   p += sprintf(p, "Sec-WebSocket-Accept: %s\r\n",
+   p += osSprintf(p, "Sec-WebSocket-Accept: %s\r\n",
       webSocket->handshakeContext.serverKey);
 
    //An empty line indicates the end of the header fields
-   p += sprintf(p, "\r\n");
+   p += osSprintf(p, "\r\n");
 
    //Debug message
    TRACE_DEBUG("\r\n");
@@ -759,7 +759,7 @@ error_t webSocketFormatServerHandshake(WebSocket *webSocket)
    //Rewind to the beginning of the buffer
    txContext->bufferPos = 0;
    //Update the number of data buffered but not yet sent
-   txContext->bufferLen = strlen((char_t *) txContext->buffer);
+   txContext->bufferLen = osStrlen((char_t *) txContext->buffer);
 
    //Successful processing
    return NO_ERROR;
@@ -801,7 +801,7 @@ error_t webSocketFormatErrorResponse(WebSocket *webSocket,
    //The first line of a response message is the Status-Line, consisting
    //of the protocol version followed by a numeric status code and its
    //associated textual phrase
-   p += sprintf(p, "HTTP/%u.%u %u ", MSB(webSocket->handshakeContext.version),
+   p += osSprintf(p, "HTTP/%u.%u %u ", MSB(webSocket->handshakeContext.version),
       LSB(webSocket->handshakeContext.version), statusCode);
 
    //Retrieve the Reason-Phrase that corresponds to the Status-Code
@@ -811,33 +811,33 @@ error_t webSocketFormatErrorResponse(WebSocket *webSocket,
       if(statusCodeList[i].value == statusCode)
       {
          //Append the textual phrase to the Status-Line
-         p += sprintf(p, statusCodeList[i].message);
+         p += osSprintf(p, statusCodeList[i].message);
          //Break the loop and continue processing
          break;
       }
    }
 
    //Properly terminate the Status-Line
-   p += sprintf(p, "\r\n");
+   p += osSprintf(p, "\r\n");
 
    //Content type
-   p += sprintf(p, "Content-Type: %s\r\n", "text/html");
+   p += osSprintf(p, "Content-Type: %s\r\n", "text/html");
 
    //Compute the length of the response
-   length = strlen(template) + strlen(message) - 4;
+   length = osStrlen(template) + osStrlen(message) - 4;
    //Set Content-Length field
-   p += sprintf(p, "Content-Length: %" PRIuSIZE "\r\n", length);
+   p += osSprintf(p, "Content-Length: %" PRIuSIZE "\r\n", length);
 
    //Terminate the header with an empty line
-   p += sprintf(p, "\r\n");
+   p += osSprintf(p, "\r\n");
 
    //Format HTML response
-   p += sprintf(p, template, statusCode, statusCode, message);
+   p += osSprintf(p, template, statusCode, statusCode, message);
 
    //Rewind to the beginning of the buffer
    txContext->bufferPos = 0;
    //Update the number of data buffered but not yet sent
-   txContext->bufferLen = strlen((char_t *) txContext->buffer);
+   txContext->bufferLen = osStrlen((char_t *) txContext->buffer);
 
    //Successful processing
    return NO_ERROR;
@@ -937,7 +937,7 @@ error_t webSocketVerifyServerHandshake(WebSocket *webSocket)
 
    //If the response lacks a Sec-WebSocket-Accept header field, the client
    //must fail the WebSocket connection
-   if(strlen(handshakeContext->serverKey) == 0)
+   if(osStrlen(handshakeContext->serverKey) == 0)
       return ERROR_INVALID_SYNTAX;
 
    //Check the Sec-WebSocket-Accept header field
@@ -1019,13 +1019,13 @@ error_t webSocketGenerateServerKey(WebSocket *webSocket)
    handshakeContext = &webSocket->handshakeContext;
 
    //Retrieve the length of the client key
-   n = strlen(handshakeContext->clientKey);
+   n = osStrlen(handshakeContext->clientKey);
 
    //Concatenate the Sec-WebSocket-Key with the GUID string and digest
    //the resulting string using SHA-1
    sha1Init(&sha1Context);
    sha1Update(&sha1Context, handshakeContext->clientKey, n);
-   sha1Update(&sha1Context, webSocketGuid, strlen(webSocketGuid));
+   sha1Update(&sha1Context, webSocketGuid, osStrlen(webSocketGuid));
    sha1Final(&sha1Context, NULL);
 
    //Encode the result using Base64
@@ -1063,7 +1063,7 @@ error_t webSocketVerifyClientKey(WebSocket *webSocket)
    handshakeContext = &webSocket->handshakeContext;
 
    //Retrieve the length of the client's key
-   n = strlen(handshakeContext->clientKey);
+   n = osStrlen(handshakeContext->clientKey);
 
    //The value of the Sec-WebSocket-Key header field must be a 16-byte
    //value that has been Base64-encoded
@@ -1104,13 +1104,13 @@ error_t webSocketVerifyServerKey(WebSocket *webSocket)
    handshakeContext = &webSocket->handshakeContext;
 
    //Retrieve the length of the client's key
-   n = strlen(handshakeContext->clientKey);
+   n = osStrlen(handshakeContext->clientKey);
 
    //Concatenate the Sec-WebSocket-Key with the GUID string and digest
    //the resulting string using SHA-1
    sha1Init(&sha1Context);
    sha1Update(&sha1Context, handshakeContext->clientKey, n);
-   sha1Update(&sha1Context, webSocketGuid, strlen(webSocketGuid));
+   sha1Update(&sha1Context, webSocketGuid, osStrlen(webSocketGuid));
    sha1Final(&sha1Context, NULL);
 
    //Encode the result using Base64
@@ -1122,7 +1122,7 @@ error_t webSocketVerifyServerKey(WebSocket *webSocket)
    TRACE_DEBUG("  Calculated key: %s\r\n", webSocket->txContext.buffer);
 
    //Check whether the server's key is valid
-   if(strcmp(handshakeContext->serverKey, buffer))
+   if(osStrcmp(handshakeContext->serverKey, buffer))
       return ERROR_INVALID_KEY;
 
    //Successful verification
@@ -1204,7 +1204,7 @@ error_t webSocketDecodePercentEncodedString(const char_t *input,
          buffer[1] = input[2];
          buffer[2] = '\0';
          //String to integer conversion
-         output[i] = (uint8_t) strtoul(buffer, NULL, 16);
+         output[i] = (uint8_t) osStrtoul(buffer, NULL, 16);
          //Advance data pointer
          input += 3;
       }

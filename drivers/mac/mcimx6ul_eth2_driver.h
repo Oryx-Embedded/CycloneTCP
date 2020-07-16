@@ -1,12 +1,12 @@
 /**
  * @file mcimx6ul_eth2_driver.h
- * @brief NXP i.MX6UL Ethernet MAC controller (ENET2 instance)
+ * @brief NXP i.MX6UL Ethernet MAC driver (ENET2 instance)
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _MCIMX6UL_ETH2_DRIVER_H
@@ -64,6 +64,11 @@
    #define MCIMX6UL_ETH2_IRQ_PRIORITY 21
 #elif (MCIMX6UL_ETH2_IRQ_PRIORITY < 0)
    #error MCIMX6UL_ETH2_IRQ_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef MCIMX6UL_ETH2_RAM_SECTION
+   #define MCIMX6UL_ETH2_RAM_SECTION "NonCacheable"
 #endif
 
 //Enhanced transmit buffer descriptor
@@ -127,7 +132,7 @@
 extern "C" {
 #endif
 
-//i.MX6UL Ethernet MAC driver
+//i.MX6UL Ethernet MAC driver (ENET2 instance)
 extern const NicDriver mcimx6ulEth2Driver;
 
 //i.MX6UL Ethernet MAC related functions
@@ -142,7 +147,7 @@ void mcimx6ulEth2DisableIrq(NetInterface *interface);
 void mcimx6ulEth2EventHandler(NetInterface *interface);
 
 error_t mcimx6ulEth2SendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t mcimx6ulEth2ReceivePacket(NetInterface *interface);
 

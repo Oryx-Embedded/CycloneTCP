@@ -1,12 +1,12 @@
 /**
  * @file fm4_eth_driver.c
- * @brief Cypress FM4 Ethernet MAC controller
+ * @brief Cypress FM4 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -146,11 +146,28 @@ error_t fm4EthInit(NetInterface *interface)
    //Adjust MDC clock range depending on HCLK frequency
    FM4_ETHERNET_MAC0->GAR_f.CR = 5;
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Use default MAC configuration
    FM4_ETHERNET_MAC0->MCR = 0;
@@ -379,16 +396,29 @@ void fm4EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief FM4 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void fm4EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -401,8 +431,22 @@ void fm4EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ETHER0_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -415,8 +459,22 @@ void fm4EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ETHER0_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -434,21 +492,21 @@ void ETHER0_IRQHandler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //A packet has been transmitted?
+   //Packet transmitted?
    if(bFM4_ETHERNET_MAC0_SR_TI)
    {
       //Clear TI interrupt flag
       bFM4_ETHERNET_MAC0_SR_TI = 1;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurDmaDesc->tdes0 & ETH_TDES0_OWN))
+      if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
+   //Packet received?
    if(bFM4_ETHERNET_MAC0_SR_RI)
    {
       //Disable RIE interrupt
@@ -505,11 +563,13 @@ void fm4EthEventHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t fm4EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -526,8 +586,10 @@ error_t fm4EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurDmaDesc->tdes0 & ETH_TDES0_OWN)
+   if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txCurDmaDesc->tdes2, buffer, offset, length);
@@ -548,7 +610,7 @@ error_t fm4EthSendPacket(NetInterface *interface,
    txCurDmaDesc = (Fm4TxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurDmaDesc->tdes0 & ETH_TDES0_OWN))
+   if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -569,23 +631,29 @@ error_t fm4EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurDmaDesc->rdes0 & ETH_RDES0_OWN))
+   if((rxCurDmaDesc->rdes0 & ETH_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
-      if((rxCurDmaDesc->rdes0 & ETH_RDES0_FS) && (rxCurDmaDesc->rdes0 & ETH_RDES0_LS))
+      if((rxCurDmaDesc->rdes0 & ETH_RDES0_FS) != 0 &&
+         (rxCurDmaDesc->rdes0 & ETH_RDES0_LS) != 0)
       {
          //Make sure no error occurred
-         if(!(rxCurDmaDesc->rdes0 & ETH_RDES0_ES))
+         if((rxCurDmaDesc->rdes0 & ETH_RDES0_ES) == 0)
          {
             //Retrieve the length of the frame
             n = (rxCurDmaDesc->rdes0 & ETH_RDES0_FL) >> 16;
             //Limit the number of data to read
             n = MIN(n, FM4_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n);
+            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n,
+               &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -693,15 +761,23 @@ error_t fm4EthUpdateMacConfig(NetInterface *interface)
 {
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       bFM4_ETHERNET_MAC0_MCR_FES = 1;
+   }
    else
+   {
       bFM4_ETHERNET_MAC0_MCR_FES = 0;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       bFM4_ETHERNET_MAC0_MCR_DM = 1;
+   }
    else
+   {
       bFM4_ETHERNET_MAC0_MCR_DM = 0;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -801,11 +877,13 @@ uint32_t fm4EthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -814,10 +892,14 @@ uint32_t fm4EthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(((crc >> 31) ^ (p[i] >> j)) & 0x01)
+         if((((crc >> 31) ^ (p[i] >> j)) & 0x01) != 0)
+         {
             crc = (crc << 1) ^ 0x04C11DB7;
+         }
          else
+         {
             crc = crc << 1;
+         }
       }
    }
 

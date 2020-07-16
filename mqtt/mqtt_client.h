@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -153,7 +153,7 @@ extern "C" {
 
 typedef enum
 {
-   MQTT_CLIENT_STATE_CLOSED              = 0,
+   MQTT_CLIENT_STATE_DISCONNECTED        = 0,
    MQTT_CLIENT_STATE_CONNECTING          = 1,
    MQTT_CLIENT_STATE_CONNECTED           = 2,
    MQTT_CLIENT_STATE_IDLE                = 3,
@@ -162,8 +162,7 @@ typedef enum
    MQTT_CLIENT_STATE_WAITING_PACKET      = 6,
    MQTT_CLIENT_STATE_RECEIVING_PACKET    = 7,
    MQTT_CLIENT_STATE_PACKET_RECEIVED     = 8,
-   MQTT_CLIENT_STATE_DISCONNECTING       = 9,
-   MQTT_CLIENT_STATE_DISCONNECTED        = 10
+   MQTT_CLIENT_STATE_DISCONNECTING       = 9
 } MqttClientState;
 
 
@@ -317,8 +316,6 @@ struct _MqttClientContext
    MqttClientSettings settings;             ///<MQTT client settings
    MqttClientCallbacks callbacks;           ///<MQTT client callback functions
    MqttClientState state;                   ///<MQTT client state
-   systime_t keepAliveTimestamp;            ///<Timestamp used to manage keep-alive
-   systime_t pingTimestamp;                 ///<Timestamp used to measure round-trip time
    NetInterface *interface;                 ///<Underlying network interface
    Socket *socket;                          ///<Underlying TCP socket
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
@@ -328,6 +325,8 @@ struct _MqttClientContext
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
    WebSocket *webSocket;                    ///<Underlying WebSocket
 #endif
+   systime_t startTime;                     ///<Start time
+   systime_t keepAliveTimestamp;            ///<Timestamp used to manage keep-alive
    uint8_t buffer[MQTT_CLIENT_BUFFER_SIZE]; ///<Internal buffer
    uint8_t *packet;                         ///<Pointer to the incoming/outgoing MQTT packet
    size_t packetPos;                        ///<Current position

@@ -1,12 +1,12 @@
 /**
  * @file a2fxxxm3_eth_driver.c
- * @brief SmartFusion (A2FxxxM3) Ethernet MAC controller
+ * @brief SmartFusion (A2FxxxM3) Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -126,15 +126,32 @@ error_t a2fxxxm3EthInit(NetInterface *interface)
    //Perform a software reset
    MAC->CSR0 |= CSR0_SWR_MASK;
    //Wait for the reset to complete
-   while(MAC->CSR0 & CSR0_SWR_MASK)
+   while((MAC->CSR0 & CSR0_SWR_MASK) != 0)
    {
    }
 
-   //PHY transceiver initialization
-   error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //The interface is not properly configured
+      error = ERROR_FAILURE;
+   }
+
+   //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Enable store and forward mode
    MAC->CSR6 |= CSR6_SF_MASK;
@@ -159,7 +176,9 @@ error_t a2fxxxm3EthInit(NetInterface *interface)
    error = a2fxxxm3EthSendSetup(interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -224,16 +243,29 @@ void a2fxxxm3EthInitDmaDesc(NetInterface *interface)
 /**
  * @brief A2FxxxM3 Ethernet MAC timer handler
  *
- * This routine is periodically called by the TCP/IP stack to
- * handle periodic operations such as polling the link state
+ * This routine is periodically called by the TCP/IP stack to handle periodic
+ * operations such as polling the link state
  *
  * @param[in] interface Underlying network interface
  **/
 
 void a2fxxxm3EthTick(NetInterface *interface)
 {
-   //Handle periodic operations
-   interface->phyDriver->tick(interface);
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -246,8 +278,22 @@ void a2fxxxm3EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(EthernetMAC_IRQn);
-   //Enable Ethernet PHY interrupts
-   interface->phyDriver->enableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -260,8 +306,22 @@ void a2fxxxm3EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(EthernetMAC_IRQn);
-   //Disable Ethernet PHY interrupts
-   interface->phyDriver->disableIrq(interface);
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -283,22 +343,22 @@ void EthernetMAC_IRQHandler(void)
    //Read interrupt status register
    status = MAC->CSR5;
 
-   //A packet has been transmitted?
-   if(status & CSR5_TI_MASK)
+   //Packet transmitted?
+   if((status & CSR5_TI_MASK) != 0)
    {
       //Clear TI interrupt flag
       MAC->CSR5 = CSR5_TI_MASK;
 
       //Check whether the TX buffer is available for writing
-      if(!(txCurDmaDesc->tdes0 & TDES0_OWN))
+      if((txCurDmaDesc->tdes0 & TDES0_OWN) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
       }
    }
 
-   //A packet has been received?
-   if(status & CSR5_RI_MASK)
+   //Packet received?
+   if((status & CSR5_RI_MASK) != 0)
    {
       //Disable RIE interrupt
       MAC->CSR7 &= ~CSR7_RIE_MASK;
@@ -327,7 +387,7 @@ void a2fxxxm3EthEventHandler(NetInterface *interface)
    error_t error;
 
    //Packet received?
-   if(MAC->CSR5 & CSR5_RI_MASK)
+   if((MAC->CSR5 & CSR5_RI_MASK) != 0)
    {
       //Clear interrupt flag
       MAC->CSR5 = CSR5_RI_MASK;
@@ -358,14 +418,16 @@ error_t a2fxxxm3EthSendSetup(NetInterface *interface)
    A2fxxxm3HashTableSetupFrame *setupFrame;
 
    //Make sure the current buffer is available for writing
-   if(txCurDmaDesc->tdes0 & TDES0_OWN)
+   if((txCurDmaDesc->tdes0 & TDES0_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Point to the buffer where to format the setup frame
    setupFrame = (A2fxxxm3HashTableSetupFrame *) txCurDmaDesc->tdes2;
 
    //Clear contents
-   memset(setupFrame, 0, sizeof(A2fxxxm3HashTableSetupFrame));
+   osMemset(setupFrame, 0, sizeof(A2fxxxm3HashTableSetupFrame));
 
    //Set MAC address
    setupFrame->physicalAddr[0] = interface->macAddr.w[0];
@@ -395,11 +457,13 @@ error_t a2fxxxm3EthSendSetup(NetInterface *interface)
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer containing the data to send
  * @param[in] offset Offset to the first data byte
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  * @return Error code
  **/
 
 error_t a2fxxxm3EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset)
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
 
@@ -416,8 +480,10 @@ error_t a2fxxxm3EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(txCurDmaDesc->tdes0 & TDES0_OWN)
+   if((txCurDmaDesc->tdes0 & TDES0_OWN) != 0)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data to the transmit buffer
    netBufferRead((uint8_t *) txCurDmaDesc->tdes2, buffer, offset, length);
@@ -436,7 +502,7 @@ error_t a2fxxxm3EthSendPacket(NetInterface *interface,
    txCurDmaDesc = (A2fxxxm3TxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
-   if(!(txCurDmaDesc->tdes0 & TDES0_OWN))
+   if((txCurDmaDesc->tdes0 & TDES0_OWN) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -457,23 +523,29 @@ error_t a2fxxxm3EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   NetRxAncillary ancillary;
 
    //The current buffer is available for reading?
-   if(!(rxCurDmaDesc->rdes0 & RDES0_OWN))
+   if((rxCurDmaDesc->rdes0 & RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
-      if((rxCurDmaDesc->rdes0 & RDES0_FS) && (rxCurDmaDesc->rdes0 & RDES0_LS))
+      if((rxCurDmaDesc->rdes0 & RDES0_FS) != 0 &&
+         (rxCurDmaDesc->rdes0 & RDES0_LS) != 0)
       {
          //Make sure no error occurred
-         if(!(rxCurDmaDesc->rdes0 & RDES0_ES))
+         if((rxCurDmaDesc->rdes0 & RDES0_ES) == 0)
          {
             //Retrieve the length of the frame
             n = (rxCurDmaDesc->rdes0 >> RDES0_FL_OFFSET) & RDES0_FL_MASK;
             //Limit the number of data to read
             n = MIN(n, A2FXXXM3_ETH_RX_BUFFER_SIZE);
 
+            //Additional options can be passed to the stack along with the packet
+            ancillary = NET_DEFAULT_RX_ANCILLARY;
+
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n);
+            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n,
+               &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -539,9 +611,13 @@ error_t a2fxxxm3EthUpdateMacAddrFilter(NetInterface *interface)
 
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
+   {
       MAC->CSR6 |= CSR6_PM_MASK;
+   }
    else
+   {
       MAC->CSR6 &= ~CSR6_PM_MASK;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -566,15 +642,23 @@ error_t a2fxxxm3EthUpdateMacConfig(NetInterface *interface)
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
       MAC->CSR6 |= CSR6_TTM_MASK;
+   }
    else
+   {
       MAC->CSR6 &= ~CSR6_TTM_MASK;
+   }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
       MAC->CSR6 |= CSR6_FD_MASK;
+   }
    else
+   {
       MAC->CSR6 &= ~CSR6_FD_MASK;
+   }
 
    //Restart transmission and reception
    MAC->CSR6 |= CSR6_ST_MASK | CSR6_SR_MASK;
@@ -667,10 +751,14 @@ void a2fxxxm3EthWriteSmi(uint32_t data, uint_t length)
    while(length--)
    {
       //Write MDIO
-      if(data & 0x80000000)
+      if((data & 0x80000000) != 0)
+      {
          MAC->CSR9 |= CSR9_MDO_MASK;
+      }
       else
+      {
          MAC->CSR9 &= ~CSR9_MDO_MASK;
+      }
 
       //Assert MDC
       usleep(1);
@@ -712,8 +800,10 @@ uint32_t a2fxxxm3EthReadSmi(uint_t length)
       usleep(1);
 
       //Check MDIO state
-      if(MAC->CSR9 & CSR9_MDI_MASK)
-         data |= 0x00000001;
+      if((MAC->CSR9 & CSR9_MDI_MASK) != 0)
+      {
+         data |= 0x01;
+      }
    }
 
    //Return the received data
@@ -732,11 +822,13 @@ uint32_t a2fxxxm3EthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
+   uint32_t crc;
+   const uint8_t *p;
 
    //Point to the data over which to calculate the CRC
-   const uint8_t *p = (uint8_t *) data;
+   p = (uint8_t *) data;
    //CRC preset value
-   uint32_t crc = 0xFFFFFFFF;
+   crc = 0xFFFFFFFF;
 
    //Loop through data
    for(i = 0; i < length; i++)
@@ -748,10 +840,14 @@ uint32_t a2fxxxm3EthCalcCrc(const void *data, size_t length)
       for(j = 0; j < 8; j++)
       {
          //Update CRC value
-         if(crc & 0x00000001)
+         if((crc & 0x01) != 0)
+         {
             crc = (crc >> 1) ^ 0xEDB88320;
+         }
          else
+         {
             crc = crc >> 1;
+         }
       }
    }
 

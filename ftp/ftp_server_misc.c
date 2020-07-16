@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 //Switch to the appropriate trace level
@@ -136,22 +136,22 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
    if(pathIsRelative(inputPath))
    {
       //Sanity check
-      if(strlen(connection->currentDir) > maxLen)
+      if(osStrlen(connection->currentDir) > maxLen)
          return ERROR_FAILURE;
 
       //Copy current directory
-      strcpy(outputPath, connection->currentDir);
+      osStrcpy(outputPath, connection->currentDir);
       //Append the specified path
       pathCombine(outputPath, inputPath, maxLen);
    }
    else
    {
       //Sanity check
-      if(strlen(connection->homeDir) > maxLen)
+      if(osStrlen(connection->homeDir) > maxLen)
          return ERROR_FAILURE;
 
       //Copy home directory
-      strcpy(outputPath, connection->homeDir);
+      osStrcpy(outputPath, connection->homeDir);
       //Append the specified path
       pathCombine(outputPath, inputPath, maxLen);
    }
@@ -161,10 +161,10 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
    pathRemoveSlash(outputPath);
 
    //Calculate the length of the home directory
-   n = strlen(connection->homeDir);
+   n = osStrlen(connection->homeDir);
 
    //Make sure the pathname is valid
-   if(strncmp(outputPath, connection->homeDir, n))
+   if(osStrncmp(outputPath, connection->homeDir, n))
       return ERROR_INVALID_PATH;
 
    //Successful processing
@@ -190,10 +190,10 @@ uint_t ftpServerGetFilePermissions(FtpClientConnection *connection,
    context = connection->context;
 
    //Calculate the length of the home directory
-   n = strlen(connection->homeDir);
+   n = osStrlen(connection->homeDir);
 
    //Make sure the pathname is valid
-   if(!strncmp(path, connection->homeDir, n))
+   if(!osStrncmp(path, connection->homeDir, n))
    {
       //Strip root directory from the pathname
       path = ftpServerStripRootDir(context, path);
@@ -256,7 +256,7 @@ size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
    };
 
    //Format links, owner, group and size fields
-   n = sprintf(buffer, "----------   1 owner    group    %10" PRIu32,
+   n = osSprintf(buffer, "----------   1 owner    group    %10" PRIu32,
       dirEntry->size);
 
    //Check whether the current entry is a directory
@@ -294,20 +294,20 @@ size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
    if(time > modified && time < (modified + FTP_SERVER_180_DAYS))
    {
       //The format of the date/time field is Mmm dd hh:mm
-      n += sprintf(buffer + n, " %s %02" PRIu8 " %02" PRIu8 ":%02" PRIu8,
+      n += osSprintf(buffer + n, " %s %02" PRIu8 " %02" PRIu8 ":%02" PRIu8,
          months[MIN(dirEntry->modified.month, 12)], dirEntry->modified.day,
          dirEntry->modified.hours, dirEntry->modified.minutes);
    }
    else
    {
       //The format of the date/time field is Mmm dd  yyyy
-      n += sprintf(buffer + n, " %s %02" PRIu8 "  %04" PRIu16,
+      n += osSprintf(buffer + n, " %s %02" PRIu8 "  %04" PRIu16,
          months[MIN(dirEntry->modified.month, 12)], dirEntry->modified.day,
          dirEntry->modified.year);
    }
 
    //Append filename
-   n += sprintf(buffer + n, " %s\r\n", dirEntry->name);
+   n += osSprintf(buffer + n, " %s\r\n", dirEntry->name);
 
    //Return the length of the resulting string, in bytes
    return n;
@@ -332,9 +332,9 @@ const char_t *ftpServerStripRootDir(FtpServerContext *context,
    size_t n;
 
    //Retrieve the length of the root directory
-   n = strlen(context->settings.rootDir);
+   n = osStrlen(context->settings.rootDir);
    //Retrieve the length of the specified pathname
-   m = strlen(path);
+   m = osStrlen(path);
 
    //Strip the root dir from the specified pathname
    if(n <= 1)
@@ -364,9 +364,9 @@ const char_t *ftpServerStripHomeDir(FtpClientConnection *connection,
    size_t n;
 
    //Retrieve the length of the home directory
-   n = strlen(connection->homeDir);
+   n = osStrlen(connection->homeDir);
    //Retrieve the length of the specified pathname
-   m = strlen(path);
+   m = osStrlen(path);
 
    //Strip the home directory from the specified pathname
    if(n <= 1)

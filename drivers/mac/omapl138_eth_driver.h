@@ -1,12 +1,12 @@
 /**
  * @file omapl138_eth_driver.h
- * @brief OMAP-L138 Ethernet MAC controller
+ * @brief OMAP-L138 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2019 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.6
+ * @version 1.9.8
  **/
 
 #ifndef _OMAPL138_ETH_DRIVER_H
@@ -74,6 +74,16 @@
    #define OMAPL138_ETH_RX_IRQ_CHANNEL 3
 #elif (OMAPL138_ETH_RX_IRQ_CHANNEL < 0 || OMAPL138_ETH_RX_IRQ_CHANNEL > 31)
    #error OMAPL138_ETH_RX_IRQ_CHANNEL parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef OMAPL138_ETH_RAM_SECTION
+   #define OMAPL138_ETH_RAM_SECTION ".ram_no_cache"
+#endif
+
+//Name of the section where to place DMA descriptors
+#ifndef OMAPL138_ETH_RAM_CPPI_SECTION
+   #define OMAPL138_ETH_RAM_CPPI_SECTION ".ram_cppi"
 #endif
 
 //EMAC cores
@@ -329,7 +339,7 @@ void omapl138EthRxIrqHandler(void);
 void omapl138EthEventHandler(NetInterface *interface);
 
 error_t omapl138EthSendPacket(NetInterface *interface,
-   const NetBuffer *buffer, size_t offset);
+   const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t omapl138EthReceivePacket(NetInterface *interface);
 
