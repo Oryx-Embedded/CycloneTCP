@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -161,12 +161,58 @@ error_t ftpServerInit(FtpServerContext *context,
       osMemset(&context->connections[i], 0, sizeof(FtpClientConnection));
    }
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Create an event object to poll the state of sockets
    if(!osCreateEvent(&context->event))
    {
       //Failed to create event
-      return ERROR_OUT_OF_RESOURCES;
+      error = ERROR_OUT_OF_RESOURCES;
    }
+
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+   //Check status code
+   if(!error)
+   {
+      //Initialize ticket encryption context
+      error = tlsInitTicketContext(&context->tlsTicketContext);
+   }
+#endif
+
+   //Any error to report?
+   if(error)
+   {
+      //Clean up side effects
+      ftpServerDeinit(context);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Start FTP server
+ * @param[in] context Pointer to the FTP server context
+ * @return Error code
+ **/
+
+error_t ftpServerStart(FtpServerContext *context)
+{
+   error_t error;
+   OsTask *task;
+
+   //Make sure the FTP server context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Starting FTP server...\r\n");
+
+   //Make sure the FTP server is not already running
+   if(context->running)
+      return ERROR_ALREADY_RUNNING;
 
    //Start of exception handling block
    do
@@ -178,7 +224,6 @@ error_t ftpServerInit(FtpServerContext *context,
       {
          //Report an error
          error = ERROR_OPEN_FAILED;
-         //Exit immediately
          break;
       }
 
@@ -203,14 +248,16 @@ error_t ftpServerInit(FtpServerContext *context,
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket, settings->interface);
-      //Unable to bind the socket to the desired interface?
+      error = socketBindToInterface(context->socket,
+         context->settings.interface);
+      //Any error to report?
       if(error)
          break;
 
       //The FTP server listens for connection requests on port 21
-      error = socketBind(context->socket, &IP_ADDR_ANY, settings->port);
-      //Failed to bind socket to port 21?
+      error = socketBind(context->socket, &IP_ADDR_ANY,
+         context->settings.port);
+      //Any error to report?
       if(error)
          break;
 
@@ -220,69 +267,35 @@ error_t ftpServerInit(FtpServerContext *context,
       if(error)
          break;
 
-#if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
-      //Initialize ticket encryption context
-      error = tlsInitTicketContext(&context->tlsTicketContext);
-      //Any error to report?
-      if(error)
-         return error;
-#endif
+      //Start the FTP server
+      context->stop = FALSE;
+      context->running = TRUE;
+
+      //Create the FTP server task
+      task = osCreateTask("FTP Server", (OsTaskCode) ftpServerTask, context,
+         FTP_SERVER_STACK_SIZE, FTP_SERVER_PRIORITY);
+      //Failed to create task?
+      if(task == OS_INVALID_HANDLE)
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+         break;
+      }
 
       //End of exception handling block
    } while(0);
 
-   //Check status code
+   //Any error to report?
    if(error)
    {
       //Clean up side effects
-      ftpServerDeinit(context);
+      context->running = FALSE;
+      //Close listening socket
+      socketClose(context->socket);
    }
 
    //Return status code
    return error;
-}
-
-
-/**
- * @brief Start FTP server
- * @param[in] context Pointer to the FTP server context
- * @return Error code
- **/
-
-error_t ftpServerStart(FtpServerContext *context)
-{
-   OsTask *task;
-
-   //Make sure the FTP server context is valid
-   if(context == NULL)
-      return ERROR_INVALID_PARAMETER;
-
-   //Debug message
-   TRACE_INFO("Starting FTP server...\r\n");
-
-   //Make sure the FTP server is not already running
-   if(context->running)
-      return ERROR_ALREADY_RUNNING;
-
-   //Start the FTP server
-   context->stop = FALSE;
-   context->running = TRUE;
-
-   //Create the FTP server task
-   task = osCreateTask("FTP Server", (OsTaskCode) ftpServerTask,
-      context, FTP_SERVER_STACK_SIZE, FTP_SERVER_PRIORITY);
-
-   //Unable to create the task?
-   if(task == OS_INVALID_HANDLE)
-   {
-      //Clean up side effects
-      context->running = FALSE;
-      //Report an error
-      return ERROR_OUT_OF_RESOURCES;
-   }
-
-   //Successful processing
-   return NO_ERROR;
 }
 
 
@@ -294,6 +307,8 @@ error_t ftpServerStart(FtpServerContext *context)
 
 error_t ftpServerStop(FtpServerContext *context)
 {
+   uint_t i;
+
    //Make sure the FTP server context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -301,15 +316,30 @@ error_t ftpServerStop(FtpServerContext *context)
    //Debug message
    TRACE_INFO("Stopping FTP server...\r\n");
 
-   //Stop the FTP server
-   context->stop = TRUE;
-   //Send a signal to the task to abort any blocking operation
-   osSetEvent(&context->event);
-
-   //Wait for the task to terminate
-   while(context->running)
+   //Check whether the FTP server is running
+   if(context->running)
    {
-      osDelayTask(1);
+      //Stop the FTP server
+      context->stop = TRUE;
+      //Send a signal to the task to abort any blocking operation
+      osSetEvent(&context->event);
+
+      //Wait for the task to terminate
+      while(context->running)
+      {
+         osDelayTask(1);
+      }
+
+      //Loop through the connection table
+      for(i = 0; i < context->settings.maxConnections; i++)
+      {
+         //Close client connection
+         ftpServerCloseConnection(&context->connections[i]);
+      }
+
+      //Close listening socket
+      socketClose(context->socket);
+      context->socket = NULL;
    }
 
    //Successful processing
@@ -427,13 +457,6 @@ void ftpServerTask(FtpServerContext *context)
          //Stop request?
          if(context->stop)
          {
-            //Loop through the connection table
-            for(i = 0; i < context->settings.maxConnections; i++)
-            {
-               //Close client connection
-               ftpServerCloseConnection(&context->connections[i]);
-            }
-
             //Stop FTP server operation
             context->running = FALSE;
             //Kill ourselves
@@ -501,28 +524,16 @@ void ftpServerTask(FtpServerContext *context)
 
 void ftpServerDeinit(FtpServerContext *context)
 {
-   uint_t i;
-
    //Make sure the FTP server context is valid
    if(context != NULL)
    {
-      //Loop through the connection table
-      for(i = 0; i < context->settings.maxConnections; i++)
-      {
-         //Close client connection
-         ftpServerCloseConnection(&context->connections[i]);
-      }
-
-      //Close listening socket
-      socketClose(context->socket);
+      //Free previously allocated resources
+      osDeleteEvent(&context->event);
 
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
       //Release ticket encryption context
       tlsFreeTicketContext(&context->tlsTicketContext);
 #endif
-
-      //Free previously allocated resources
-      osDeleteEvent(&context->event);
 
       //Clear FTP server context
       osMemset(context, 0, sizeof(FtpServerContext));

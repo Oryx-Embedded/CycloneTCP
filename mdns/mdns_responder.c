@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -761,7 +761,7 @@ void mdnsResponderChangeHostname(MdnsResponderContext *context)
       //Properly terminate the string
       context->hostname[i] = '\0';
       //Programmatically change the host name
-      strcat(context->hostname, s);
+      osStrcat(context->hostname, s);
    }
 }
 

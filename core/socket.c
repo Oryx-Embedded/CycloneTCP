@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -51,24 +51,24 @@ Socket socketTable[SOCKET_MAX_COUNT];
 //Default socket message
 const SocketMsg SOCKET_DEFAULT_MSG =
 {
-   NULL, //Pointer to the payload
-   0,    //Size of the payload, in bytes
-   0,    //Actual length of the payload, in bytes
-   0,    //Time-to-live value
-   {0},  //Source IP address
-   0,    //Source port
-   {0},  //Destination IP address
-   0,    //Destination port
+   NULL,    //Pointer to the payload
+   0,       //Size of the payload, in bytes
+   0,       //Actual length of the payload, in bytes
+   0,       //Time-to-live value
+   {0},     //Source IP address
+   0,       //Source port
+   {0},     //Destination IP address
+   0,       //Destination port
 #if (ETH_SUPPORT == ENABLED)
-   {0},  //Source MAC address
-   {0},  //Destination MAC address
+   {{{0}}}, //Source MAC address
+   {{{0}}}, //Destination MAC address
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   0,    //Switch port identifier
+   0,       //Switch port identifier
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
-   -1,   //Unique identifier for hardware time stamping
-   {0},  //Captured time stamp
+   -1,      //Unique identifier for hardware time stamping
+   {0},     //Captured time stamp
 #endif
 };
 
@@ -1288,7 +1288,7 @@ void socketClose(Socket *socket)
          //Keep track of the next item in the queue
          SocketQueueItem *nextQueueItem = queueItem->next;
          //Free previously allocated memory
-         memPoolFree(queueItem->buffer);
+         netBufferFree(queueItem->buffer);
          //Point to the next item
          queueItem = nextQueueItem;
       }
@@ -1306,8 +1306,8 @@ void socketClose(Socket *socket)
 /**
  * @brief Wait for one of a set of sockets to become ready to perform I/O
  *
- * The socketPoll function determines the status of one or more sockets,
- * waiting if necessary, to perform synchronous I/O
+ * This function determines the status of one or more sockets, waiting if
+ *   necessary, to perform synchronous I/O
  *
  * @param[in,out] eventDesc Set of entries specifying the events the user is interested in
  * @param[in] size Number of entries in the descriptor set
@@ -1355,8 +1355,10 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
       {
          //Clear event flags
          eventDesc[i].eventFlags = 0;
+
          //Subscribe to the requested events
-         socketRegisterEvents(eventDesc[i].socket, event, eventDesc[i].eventMask);
+         socketRegisterEvents(eventDesc[i].socket, event,
+            eventDesc[i].eventMask);
       }
    }
 
@@ -1388,7 +1390,9 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
 
    //Release previously allocated resources
    if(!extEvent)
+   {
       osDeleteEvent(&eventObject);
+   }
 
    //Return status code
    return status ? NO_ERROR : ERROR_TIMEOUT;
@@ -1412,9 +1416,13 @@ void socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask)
 
       //An user event may have been previously registered...
       if(socket->userEvent != NULL)
+      {
          socket->eventMask |= eventMask;
+      }
       else
+      {
          socket->eventMask = eventMask;
+      }
 
       //Suscribe to get notified of events
       socket->userEvent = event;

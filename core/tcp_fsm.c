@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -725,7 +725,7 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
    TRACE_DEBUG("TCP FSM: SYN-RECEIVED state\r\n");
 
    //First check sequence number
-   if(tcpCheckSequenceNumber(socket, segment, length))
+   if(tcpCheckSeqNum(socket, segment, length))
       return;
 
    //Check the RST bit
@@ -800,7 +800,7 @@ void tcpStateEstablished(Socket *socket, TcpHeader *segment,
    TRACE_DEBUG("TCP FSM: ESTABLISHED state\r\n");
 
    //First check sequence number
-   if(tcpCheckSequenceNumber(socket, segment, length))
+   if(tcpCheckSeqNum(socket, segment, length))
       return;
 
    //Check the RST bit
@@ -876,7 +876,7 @@ void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
    TRACE_DEBUG("TCP FSM: CLOSE-WAIT state\r\n");
 
    //First check sequence number
-   if(tcpCheckSequenceNumber(socket, segment, length))
+   if(tcpCheckSeqNum(socket, segment, length))
       return;
 
    //Check the RST bit
@@ -930,7 +930,7 @@ void tcpStateLastAck(Socket *socket, TcpHeader *segment, size_t length)
    TRACE_DEBUG("TCP FSM: LAST-ACK state\r\n");
 
    //First check sequence number
-   if(tcpCheckSequenceNumber(socket, segment, length))
+   if(tcpCheckSeqNum(socket, segment, length))
       return;
 
    //Check the RST bit
@@ -979,7 +979,7 @@ void tcpStateFinWait1(Socket *socket, TcpHeader *segment,
    TRACE_DEBUG("TCP FSM: FIN-WAIT-1 state\r\n");
 
    //First check sequence number
-   if(tcpCheckSequenceNumber(socket, segment, length))
+   if(tcpCheckSeqNum(socket, segment, length))
       return;
 
    //Check the RST bit
@@ -1064,7 +1064,7 @@ void tcpStateFinWait2(Socket *socket, TcpHeader *segment,
    TRACE_DEBUG("TCP FSM: FIN-WAIT-2 state\r\n");
 
    //First check sequence number
-   if(tcpCheckSequenceNumber(socket, segment, length))
+   if(tcpCheckSeqNum(socket, segment, length))
       return;
 
    //Check the RST bit
@@ -1126,7 +1126,7 @@ void tcpStateClosing(Socket *socket, TcpHeader *segment, size_t length)
    TRACE_DEBUG("TCP FSM: CLOSING state\r\n");
 
    //First check sequence number
-   if(tcpCheckSequenceNumber(socket, segment, length))
+   if(tcpCheckSeqNum(socket, segment, length))
       return;
 
    //Check the RST bit
@@ -1178,7 +1178,7 @@ void tcpStateTimeWait(Socket *socket, TcpHeader *segment, size_t length)
    TRACE_DEBUG("TCP FSM: TIME-WAIT state\r\n");
 
    //First check sequence number
-   if(tcpCheckSequenceNumber(socket, segment, length))
+   if(tcpCheckSeqNum(socket, segment, length))
       return;
 
    //Check the RST bit

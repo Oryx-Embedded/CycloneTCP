@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _KSZ8775_DRIVER_H
@@ -420,11 +420,11 @@
 #define KSZ8775_GLOBAL_CTRL2_BACK_PRESSURE_MODE              0x20
 #define KSZ8775_GLOBAL_CTRL2_FLOW_CTRL_FAIR_MODE             0x10
 #define KSZ8775_GLOBAL_CTRL2_NO_EXCESSIVE_COL_DROP           0x08
-#define KSZ8775_GLOBAL_CTRL2_MAX_PACKET_SIZE_CHECK_EN        0x02
+#define KSZ8775_GLOBAL_CTRL2_MAX_PACKET_SIZE_CHECK_DIS       0x02
 
 //Global Control 3 register
 #define KSZ8775_GLOBAL_CTRL3_VLAN_EN                         0x80
-#define KSZ8775_GLOBAL_CTRL3_IGMP_SNOOP_EN                   0x40
+#define KSZ8775_GLOBAL_CTRL3_SW5_IGMP_SNOOP_EN               0x40
 #define KSZ8775_GLOBAL_CTRL3_SNIFF_MODE_SEL                  0x01
 
 //Global Control 4 register
@@ -476,10 +476,10 @@
 
 //Power-Down Management Control 1 register
 #define KSZ8775_PD_MGMT_CTRL1_PLL_PWR_DOWN                   0x20
-#define KSZ8775_PD_MGMT_CTRL1_PWR_MGMT_MODE_SEL              0x18
-#define KSZ8775_PD_MGMT_CTRL1_PWR_MGMT_MODE_SEL_NORMAL       0x00
-#define KSZ8775_PD_MGMT_CTRL1_PWR_MGMT_MODE_SEL_ED           0x08
-#define KSZ8775_PD_MGMT_CTRL1_PWR_MGMT_MODE_SEL_SOFT_PD      0x10
+#define KSZ8775_PD_MGMT_CTRL1_PWR_MGMT_MODE                  0x18
+#define KSZ8775_PD_MGMT_CTRL1_PWR_MGMT_MODE_NORMAL           0x00
+#define KSZ8775_PD_MGMT_CTRL1_PWR_MGMT_MODE_ENERGY_DETECT    0x08
+#define KSZ8775_PD_MGMT_CTRL1_PWR_MGMT_MODE_SOFT_PWR_DOWN    0x10
 
 //Power-Down Management Control 2 register
 #define KSZ8775_PD_MGMT_CTRL2_GO_SLEEP_TIME                  0xFF
@@ -614,7 +614,7 @@ extern "C" {
 
 typedef struct
 {
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t fid : 7;          //0
    uint8_t useFid : 1;
    uint8_t reserved : 1;     //1
@@ -640,7 +640,7 @@ typedef struct
 typedef struct
 {
    uint8_t fid;              //0
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t useFid : 1;       //1
    uint8_t override : 1;
    uint8_t valid : 1;
@@ -661,7 +661,7 @@ typedef struct
 
 typedef struct
 {
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t macEmpty : 1;         //0
    uint8_t numValidEntriesH : 7;
    uint8_t numValidEntriesL : 3; //1

@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -1003,7 +1003,9 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    pseudoHeader.length = sizeof(Ipv6PseudoHeader);
    pseudoHeader.ipv6Data.srcAddr = ipHeader->srcAddr;
    pseudoHeader.ipv6Data.destAddr = ipHeader->destAddr;
-   pseudoHeader.ipv6Data.reserved = 0;
+   pseudoHeader.ipv6Data.reserved[0] = 0;
+   pseudoHeader.ipv6Data.reserved[1] = 0;
+   pseudoHeader.ipv6Data.reserved[2] = 0;
 
    //Save Hop Limit value
    ancillary->ttl = ipHeader->hopLimit;

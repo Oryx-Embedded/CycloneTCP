@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -380,7 +380,7 @@ bool_t httpCompareParamName(const HttpParam *param, const char_t *name)
    if(param->name != NULL && param->nameLen == n)
    {
       //Compare names
-      if(!strncasecmp(param->name, name, n))
+      if(!osStrncasecmp(param->name, name, n))
       {
          res = TRUE;
       }
@@ -413,7 +413,7 @@ bool_t httpCompareParamValue(const HttpParam *param, const char_t *value)
    if(param->value != NULL && param->valueLen == n)
    {
       //Perform case-insensitive comparison
-      if(!strncasecmp(param->value, value, n))
+      if(!osStrncasecmp(param->value, value, n))
       {
          res = TRUE;
       }

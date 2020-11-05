@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -297,7 +297,7 @@ int_t dnsCompareName(const DnsHeader *message, size_t length,
             return -2;
 
          //Compare current label
-         res = strncasecmp((char_t *) p + pos, name, n);
+         res = osStrncasecmp((char_t *) p + pos, name, n);
          //Any mismatch?
          if(res)
             return res;
@@ -436,7 +436,7 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t po
          n = MIN(n1, n2);
 
          //Compare labels
-         res = strncasecmp((char_t *) p1 + pos1, (char_t *) p2 + pos2, n);
+         res = osStrncasecmp((char_t *) p1 + pos1, (char_t *) p2 + pos2, n);
          //Any mismatch?
          if(res)
             return res;

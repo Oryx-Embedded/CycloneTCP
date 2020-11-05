@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -452,7 +452,7 @@ error_t smtpClientFormatMailHeader(SmtpClientContext *context,
       p += osSprintf(p, "MIME-Version: 1.0\r\n");
 
       //Check whether multipart encoding is being used
-      if(!strncasecmp(context->contentType, "multipart/", 10))
+      if(!osStrncasecmp(context->contentType, "multipart/", 10))
       {
          //This Content-Type header field defines the boundary string
          p += osSprintf(p, "Content-Type: %s; boundary=%s\r\n",

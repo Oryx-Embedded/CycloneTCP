@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -485,10 +485,10 @@ void ETH_IRQHandler(void)
    ETH->IFCR = isr;
 
    //Packet transmitted?
-   if((tsr & (_ETH_TXSTATUS_TXUNDERRUN_MASK |
-      _ETH_TXSTATUS_TXCMPLT_MASK | _ETH_TXSTATUS_AMBAERR_MASK |
-      _ETH_TXSTATUS_TXGO_MASK | _ETH_TXSTATUS_RETRYLMTEXCD_MASK |
-      _ETH_TXSTATUS_COLOCCRD_MASK | _ETH_TXSTATUS_USEDBITREAD_MASK)) != 0)
+   if((tsr & (_ETH_TXSTATUS_TXUNDERRUN_MASK | _ETH_TXSTATUS_TXCMPLT_MASK |
+      _ETH_TXSTATUS_AMBAERR_MASK | _ETH_TXSTATUS_TXGO_MASK |
+      _ETH_TXSTATUS_RETRYLMTEXCD_MASK | _ETH_TXSTATUS_COLOCCRD_MASK |
+      _ETH_TXSTATUS_USEDBITREAD_MASK)) != 0)
    {
       //Only clear TXSTATUS flags that are currently set
       ETH->TXSTATUS = tsr;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _KSZ8863_DRIVER_H
@@ -518,7 +518,7 @@ extern "C" {
 
 typedef struct
 {
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t reserved : 6;     //0
    uint8_t fidH : 2;
    uint8_t fidL : 2;         //1
@@ -545,7 +545,7 @@ typedef struct
 
 typedef struct
 {
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t dataNotReady : 1;     //0
    uint8_t reserved : 4;
    uint8_t macEmpty : 1;

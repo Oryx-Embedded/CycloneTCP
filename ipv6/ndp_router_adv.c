@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -764,7 +764,9 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
 
    //Format IPv6 pseudo header
    pseudoHeader.length = htonl(length);
-   pseudoHeader.reserved = 0;
+   pseudoHeader.reserved[0] = 0;
+   pseudoHeader.reserved[1] = 0;
+   pseudoHeader.reserved[2] = 0;
    pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
    //Calculate ICMPv6 header checksum

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -487,7 +487,7 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
    char_t *token;
 
    //Abbreviated months
-   static const char months[13][4] =
+   static const char_t months[13][4] =
    {
       "   ",
       "Jan",

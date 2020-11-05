@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -92,7 +92,7 @@ error_t smtpClientLoginAuth(SmtpClientContext *context,
                //Encode the user name with Base64 algorithm
                base64Encode(username, n, context->buffer, NULL);
                //Terminate the line with a CRLF sequence
-               strcat(context->buffer, "\r\n");
+               osStrcat(context->buffer, "\r\n");
 
                //Calculate the length of the SMTP command
                context->commandLen = osStrlen(context->buffer);
@@ -133,7 +133,7 @@ error_t smtpClientLoginAuth(SmtpClientContext *context,
                //Encode the password with Base64 algorithm
                base64Encode(password, n, context->buffer, NULL);
                //Terminate the line with a CRLF sequence
-               strcat(context->buffer, "\r\n");
+               osStrcat(context->buffer, "\r\n");
 
                //Calculate the length of the SMTP command
                context->commandLen = osStrlen(context->buffer);
@@ -247,7 +247,7 @@ error_t smtpClientPlainAuth(SmtpClientContext *context,
          //Base64 encoding
          base64Encode(p + m, n, p + m, NULL);
          //Terminate the line with a CRLF sequence
-         strcat(p, "\r\n");
+         osStrcat(p, "\r\n");
 
          //Calculate the length of the SMTP command
          context->commandLen = osStrlen(p);
@@ -418,7 +418,7 @@ error_t smtpClientCramMd5Auth(SmtpClientContext *context,
                   //Encode the resulting string with Base64 algorithm
                   base64Encode(p, osStrlen(p), p, NULL);
                   //Terminate the line with a CRLF sequence
-                  strcat(p, "\r\n");
+                  osStrcat(p, "\r\n");
 
                   //Calculate the length of the SMTP command
                   context->commandLen = osStrlen(p);

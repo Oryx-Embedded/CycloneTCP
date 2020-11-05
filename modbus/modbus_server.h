@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -263,6 +263,8 @@ struct _ModbusClientConnection
 struct _ModbusServerContext
 {
    ModbusServerSettings settings;                                    ///<User settings
+   bool_t running;                                                   ///<Operational state of the Modbus/TCP server
+   bool_t stop;                                                      ///<Stop request
    OsEvent event;                                                    ///<Event object used to poll the sockets
    Socket *socket;                                                   ///<Listening socket
    ModbusClientConnection connection[MODBUS_SERVER_MAX_CONNECTIONS]; ///<Client connections
@@ -279,6 +281,7 @@ error_t modbusServerInit(ModbusServerContext *context,
    const ModbusServerSettings *settings);
 
 error_t modbusServerStart(ModbusServerContext *context);
+error_t modbusServerStop(ModbusServerContext *context);
 
 void modbusServerTask(ModbusServerContext *context);
 

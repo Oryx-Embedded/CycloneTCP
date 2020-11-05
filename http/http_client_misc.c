@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -435,7 +435,7 @@ error_t httpClientParseConnectionField(HttpClientContext *context,
       n = strcspn(value, ", \t");
 
       //Check current value
-      if(n == 10 && !strncasecmp(value, "keep-alive", 10))
+      if(n == 10 && !osStrncasecmp(value, "keep-alive", 10))
       {
          //Check HTTP request state
          if(context->requestState == HTTP_REQ_STATE_FORMAT_HEADER)
@@ -444,7 +444,7 @@ error_t httpClientParseConnectionField(HttpClientContext *context,
             context->keepAlive = TRUE;
          }
       }
-      else if(n == 5 && !strncasecmp(value, "close", 5))
+      else if(n == 5 && !osStrncasecmp(value, "close", 5))
       {
          //The connection will be closed after completion of the response
          context->keepAlive = FALSE;

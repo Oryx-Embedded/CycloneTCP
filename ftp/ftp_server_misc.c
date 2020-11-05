@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -238,7 +238,7 @@ size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
    time_t modified;
 
    //Abbreviated months
-   static const char months[13][4] =
+   static const char_t months[13][4] =
    {
       "   ",
       "Jan",
@@ -338,11 +338,17 @@ const char_t *ftpServerStripRootDir(FtpServerContext *context,
 
    //Strip the root dir from the specified pathname
    if(n <= 1)
+   {
       return path;
+   }
    else if(n < m)
+   {
       return path + n;
+   }
    else
+   {
       return defaultDir;
+   }
 }
 
 
@@ -370,11 +376,17 @@ const char_t *ftpServerStripHomeDir(FtpClientConnection *connection,
 
    //Strip the home directory from the specified pathname
    if(n <= 1)
+   {
       return path;
+   }
    else if(n < m)
+   {
       return path + n;
+   }
    else
+   {
       return defaultDir;
+   }
 }
 
 

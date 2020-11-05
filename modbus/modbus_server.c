@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -109,64 +109,26 @@ error_t modbusServerInit(ModbusServerContext *context,
    //Save user settings
    context->settings = *settings;
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Create an event object to poll the state of sockets
    if(!osCreateEvent(&context->event))
    {
       //Failed to create event
-      return ERROR_OUT_OF_RESOURCES;
+      error = ERROR_OUT_OF_RESOURCES;
    }
 
-   //Start of exception handling block
-   do
-   {
-      //Open a TCP socket
-      context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
-
-      //Failed to open socket?
-      if(context->socket == NULL)
-      {
-         //Report an error
-         error = ERROR_OPEN_FAILED;
-         //Exit immediately
-         break;
-      }
-
-      //Force the socket to operate in non-blocking mode
-      error = socketSetTimeout(context->socket, 0);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket, settings->interface);
-      //Any error to report?
-      if(error)
-         break;
-
-      //The Modbus/TCP server listens for connection requests on port 502
-      error = socketBind(context->socket, &IP_ADDR_ANY, settings->port);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Place socket in listening state
-      error = socketListen(context->socket, 0);
-      //Any error to report?
-      if(error)
-         break;
-
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
+   //Check status code
+   if(!error)
+   {
       //Initialize ticket encryption context
       error = tlsInitTicketContext(&context->tlsTicketContext);
-      //Any error to report?
-      if(error)
-         return error;
+   }
 #endif
 
-      //End of exception handling block
-   } while(0);
-
-   //Check status code
+   //Any error to report?
    if(error)
    {
       //Clean up side effects
@@ -177,6 +139,7 @@ error_t modbusServerInit(ModbusServerContext *context,
    return error;
 }
 
+
 /**
  * @brief Start Modbus/TCP server
  * @param[in] context Pointer to the Modbus/TCP server context
@@ -185,6 +148,7 @@ error_t modbusServerInit(ModbusServerContext *context,
 
 error_t modbusServerStart(ModbusServerContext *context)
 {
+   error_t error;
    OsTask *task;
 
    //Make sure the Modbus/TCP server context is valid
@@ -194,13 +158,123 @@ error_t modbusServerStart(ModbusServerContext *context)
    //Debug message
    TRACE_INFO("Starting Modbus/TCP server...\r\n");
 
-   //Create the Modbus/TCP server task
-   task = osCreateTask("Modbus/TCP Server", (OsTaskCode) modbusServerTask,
-      context, MODBUS_SERVER_STACK_SIZE, MODBUS_SERVER_PRIORITY);
+   //Make sure the Modbus/TCP server is not already running
+   if(context->running)
+      return ERROR_ALREADY_RUNNING;
 
-   //Unable to create the task?
-   if(task == OS_INVALID_HANDLE)
-      return ERROR_OUT_OF_RESOURCES;
+   //Start of exception handling block
+   do
+   {
+      //Open a TCP socket
+      context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+      //Failed to open socket?
+      if(context->socket == NULL)
+      {
+         //Report an error
+         error = ERROR_OPEN_FAILED;
+         break;
+      }
+
+      //Force the socket to operate in non-blocking mode
+      error = socketSetTimeout(context->socket, 0);
+      //Any error to report?
+      if(error)
+         break;
+
+      //Associate the socket with the relevant interface
+      error = socketBindToInterface(context->socket,
+         context->settings.interface);
+      //Any error to report?
+      if(error)
+         break;
+
+      //The Modbus/TCP server listens for connection requests on port 502
+      error = socketBind(context->socket, &IP_ADDR_ANY,
+         context->settings.port);
+      //Any error to report?
+      if(error)
+         break;
+
+      //Place socket in listening state
+      error = socketListen(context->socket, 0);
+      //Any error to report?
+      if(error)
+         break;
+
+      //Start the Modbus/TCP server
+      context->stop = FALSE;
+      context->running = TRUE;
+
+      //Create the Modbus/TCP server task
+      task = osCreateTask("Modbus/TCP Server", (OsTaskCode) modbusServerTask,
+         context, MODBUS_SERVER_STACK_SIZE, MODBUS_SERVER_PRIORITY);
+      //Failed to create task?
+      if(task == OS_INVALID_HANDLE)
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+         break;
+      }
+
+      //End of exception handling block
+   } while(0);
+
+   //Any error to report?
+   if(error)
+   {
+      //Clean up side effects
+      context->running = FALSE;
+      //Close listening socket
+      socketClose(context->socket);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Stop Modbus/TCP server
+ * @param[in] context Pointer to the Modbus/TCP server context
+ * @return Error code
+ **/
+
+error_t modbusServerStop(ModbusServerContext *context)
+{
+   uint_t i;
+
+   //Make sure the Modbus/TCP server context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Stopping Modbus/TCP server...\r\n");
+
+   //Check whether the Modbus/TCP server is running
+   if(context->running)
+   {
+      //Stop the Modbus/TCP server
+      context->stop = TRUE;
+      //Send a signal to the task to abort any blocking operation
+      osSetEvent(&context->event);
+
+      //Wait for the task to terminate
+      while(context->running)
+      {
+         osDelayTask(1);
+      }
+
+      //Loop through the connection table
+      for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
+      {
+         //Close client connection
+         modbusServerCloseConnection(&context->connection[i]);
+      }
+
+      //Close listening socket
+      socketClose(context->socket);
+      context->socket = NULL;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -240,66 +314,18 @@ void modbusServerTask(ModbusServerContext *context)
          //Point to the structure describing the current connection
          connection = &context->connection[i];
 
-         //Check the state of the connection
-         if(connection->state == MODBUS_CONNECTION_STATE_CONNECT_TLS)
+         //Loop through active connections only
+         if(connection->state != MODBUS_CONNECTION_STATE_CLOSED)
          {
-#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
-            //Any data pending in the send buffer?
-            if(tlsIsTxReady(connection->tlsContext))
-            {
-               //Wait until there is more room in the send buffer
-               eventDesc[i].socket = connection->socket;
-               eventDesc[i].eventMask = SOCKET_EVENT_TX_READY;
-            }
-            else
-            {
-               //Wait for data to be available for reading
-               eventDesc[i].socket = connection->socket;
-               eventDesc[i].eventMask = SOCKET_EVENT_RX_READY;
-            }
-#endif
-         }
-         else if(connection->state == MODBUS_CONNECTION_STATE_RECEIVE)
-         {
-#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
-            //Any data available in the receive buffer?
-            if(connection->tlsContext != NULL &&
-               tlsIsRxReady(connection->tlsContext))
+            //Register connection events
+            modbusServerRegisterConnectionEvents(connection, &eventDesc[i]);
+
+            //Check whether the socket is ready for I/O operation
+            if(eventDesc[i].eventFlags != 0)
             {
                //No need to poll the underlying socket for incoming traffic
-               eventDesc[i].eventFlags |= SOCKET_EVENT_RX_READY;
                timeout = 0;
             }
-            else
-#endif
-            {
-               //Wait for data to be available for reading
-               eventDesc[i].socket = connection->socket;
-               eventDesc[i].eventMask = SOCKET_EVENT_RX_READY;
-            }
-         }
-         else if(connection->state == MODBUS_CONNECTION_STATE_SEND ||
-            connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_TLS)
-         {
-            //Wait until there is more room in the send buffer
-            eventDesc[i].socket = connection->socket;
-            eventDesc[i].eventMask = SOCKET_EVENT_TX_READY;
-         }
-         else if(connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_TX)
-         {
-            //Wait for the FIN to be acknowledged
-            eventDesc[i].socket = connection->socket;
-            eventDesc[i].eventMask = SOCKET_EVENT_TX_SHUTDOWN;
-         }
-         else if(connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_RX)
-         {
-            //Wait for a FIN to be received
-            eventDesc[i].socket = connection->socket;
-            eventDesc[i].eventMask = SOCKET_EVENT_RX_SHUTDOWN;
-         }
-         else
-         {
-            //Just for sanity
          }
       }
 
@@ -314,6 +340,15 @@ void modbusServerTask(ModbusServerContext *context)
       //Check status code
       if(error == NO_ERROR || error == ERROR_TIMEOUT)
       {
+         //Stop request?
+         if(context->stop)
+         {
+            //Stop Modbus/TCP server operation
+            context->running = FALSE;
+            //Kill ourselves
+            osDeleteTask(NULL);
+         }
+
          //Event-driven processing
          for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
          {
@@ -327,7 +362,7 @@ void modbusServerTask(ModbusServerContext *context)
                if(eventDesc[i].eventFlags != 0)
                {
                   //Connection event handler
-                  modbusServerProcessConnectionEvents(context, connection);
+                  modbusServerProcessConnectionEvents(connection);
                }
             }
          }
@@ -356,28 +391,16 @@ void modbusServerTask(ModbusServerContext *context)
 
 void modbusServerDeinit(ModbusServerContext *context)
 {
-   uint_t i;
-
    //Make sure the Modbus/TCP server context is valid
    if(context != NULL)
    {
-      //Loop through the connection table
-      for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
-      {
-         //Close client connection
-         modbusServerCloseConnection(&context->connection[i]);
-      }
-
-      //Close listening socket
-      socketClose(context->socket);
+      //Free previously allocated resources
+      osDeleteEvent(&context->event);
 
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
       //Release ticket encryption context
       tlsFreeTicketContext(&context->tlsTicketContext);
 #endif
-
-      //Free previously allocated resources
-      osDeleteEvent(&context->event);
 
       //Clear Modbus/TCP server context
       osMemset(context, 0, sizeof(ModbusServerContext));

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -499,7 +499,7 @@ error_t dm9000ReceivePacket(NetInterface *interface)
       i = 0;
 
       //Make sure no error occurred
-      if(!(status & (RSR_LCS | RSR_RWTO | RSR_PLE | RSR_AE | RSR_CE | RSR_FOE)))
+      if((status & (RSR_LCS | RSR_RWTO | RSR_PLE | RSR_AE | RSR_CE | RSR_FOE)) == 0)
       {
          //Read data from FIFO using 16-bit mode
          while((i + 1) < n)

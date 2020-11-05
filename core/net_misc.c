@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -67,44 +67,44 @@
 //Default options passed to the stack (TX path)
 const NetTxAncillary NET_DEFAULT_TX_ANCILLARY =
 {
-   0,     //Time-to-live value
-   FALSE, //Do not send the packet via a router
+   0,       //Time-to-live value
+   FALSE,   //Do not send the packet via a router
 #if (IP_DIFF_SERV_SUPPORT == ENABLED)
-   0,     //Differentiated services codepoint
+   0,       //Differentiated services codepoint
 #endif
 #if (ETH_SUPPORT == ENABLED)
-   {0},  //Source MAC address
-   {0},  //Destination MAC address
+   {{{0}}}, //Source MAC address
+   {{{0}}}, //Destination MAC address
 #endif
 #if (ETH_VLAN_SUPPORT == ENABLED)
-   -1,    //VLAN priority (802.1Q)
-   -1,    //Drop eligible indicator
+   -1,      //VLAN priority (802.1Q)
+   -1,      //Drop eligible indicator
 #endif
 #if (ETH_VMAN_SUPPORT == ENABLED)
-   -1,    //VMAN priority (802.1ad)
-   -1,    //Drop eligible indicator
+   -1,      //VMAN priority (802.1ad)
+   -1,      //Drop eligible indicator
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   0,     //Switch port identifier
+   0,       //Switch port identifier
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
-   -1,    //Unique identifier for hardware time stamping
+   -1,      //Unique identifier for hardware time stamping
 #endif
 };
 
 //Default options passed to the stack (RX path)
 const NetRxAncillary NET_DEFAULT_RX_ANCILLARY =
 {
-   0,   //Time-to-live value
+   0,       //Time-to-live value
 #if (ETH_SUPPORT == ENABLED)
-   {0},  ///<Source MAC address
-   {0},  ///<Destination MAC address
+   {{{0}}}, ///<Source MAC address
+   {{{0}}}, ///<Destination MAC address
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   0,   //Switch port identifier
+   0,       //Switch port identifier
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
-   {0}, //Captured time stamp
+   {0},     //Captured time stamp
 #endif
 };
 
@@ -729,4 +729,172 @@ void netTick(void)
          }
       }
    }
+}
+
+
+/**
+ * @brief PRNG initialization
+ **/
+
+void netInitRand(void)
+{
+   uint_t i;
+   NetRandState *state;
+   uint8_t iv[10];
+
+   //Point to the PRNG state
+   state = &netContext.randState;
+
+   //Increment invocation counter
+   state->counter++;
+
+   //Copy the EUI-64 identifier of the default interface
+   eui64CopyAddr(iv, &netInterface[0].eui64);
+   //Append the invocation counter
+   STORE16BE(state->counter, iv + sizeof(Eui64));
+
+   //Clear the 288-bit internal state
+   osMemset(state->s, 0, 36);
+
+   //Let (s1, s2, ..., s93) = (K1, ..., K80, 0, ..., 0)
+   for(i = 0; i < 10; i++)
+   {
+      state->s[i] = netContext.randSeed[i];
+   }
+
+   //Load the 80-bit initialization vector
+   for(i = 0; i < 10; i++)
+   {
+      state->s[12 + i] = iv[i];
+   }
+
+   //Let (s94, s95, ..., s177) = (IV1, ..., IV80, 0, ..., 0)
+   for(i = 11; i < 22; i++)
+   {
+      state->s[i] = (state->s[i + 1] << 5) | (state->s[i] >> 3);
+   }
+
+   //Let (s178, s279, ..., s288) = (0, ..., 0, 1, 1, 1)
+   NET_RAND_STATE_SET_BIT(state->s, 286, 1);
+   NET_RAND_STATE_SET_BIT(state->s, 287, 1);
+   NET_RAND_STATE_SET_BIT(state->s, 288, 1);
+
+   //The state is rotated over 4 full cycles, without generating key stream bit
+   for(i = 0; i < (4 * 288); i++)
+   {
+      netGetRandBit(state);
+   }
+}
+
+
+/**
+ * @brief Generate a random 32-bit value
+ * @return Random value
+ **/
+
+uint32_t netGetRand(void)
+{
+   uint_t i;
+   uint32_t value;
+
+   //Initialize value
+   value = 0;
+
+   //Generate a random 32-bit value
+   for(i = 0; i < 32; i++)
+   {
+      value |= netGetRandBit(&netContext.randState) << i;
+   }
+
+   //Return the value
+   return value + netContext.entropy;
+}
+
+
+/**
+ * @brief Get a random value in the specified range
+ * @param[in] min Lower bound
+ * @param[in] max Upper bound
+ * @return Random value in the specified range
+ **/
+
+int32_t netGetRandRange(int32_t min, int32_t max)
+{
+   int32_t value;
+
+   //Valid parameters?
+   if(max > min)
+   {
+      //Pick up a random value in the given range
+      value = min + (netGetRand() % (max - min + 1));
+   }
+   else
+   {
+      //Use default value
+      value = min;
+   }
+
+   //Return the random value
+   return value;
+}
+
+
+/**
+ * @brief Generate one random bit
+ * @param[in] state Pointer to the PRNG state
+ * @return Key stream bit
+ **/
+
+uint32_t netGetRandBit(NetRandState *state)
+{
+   uint_t i;
+   uint8_t t1;
+   uint8_t t2;
+   uint8_t t3;
+   uint8_t z;
+
+   //Let t1 = s66 + s93
+   t1 = NET_RAND_GET_BIT(state->s, 66);
+   t1 ^= NET_RAND_GET_BIT(state->s, 93);
+
+   //Let t2 = s162 + s177
+   t2 = NET_RAND_GET_BIT(state->s, 162);
+   t2 ^= NET_RAND_GET_BIT(state->s, 177);
+
+   //Let t3 = s243 + s288
+   t3 = NET_RAND_GET_BIT(state->s, 243);
+   t3 ^= NET_RAND_GET_BIT(state->s, 288);
+
+   //Generate a key stream bit z
+   z = t1 ^ t2 ^ t3;
+
+   //Let t1 = t1 + s91.s92 + s171
+   t1 ^= NET_RAND_GET_BIT(state->s, 91) & NET_RAND_GET_BIT(state->s, 92);
+   t1 ^= NET_RAND_GET_BIT(state->s, 171);
+
+   //Let t2 = t2 + s175.s176 + s264
+   t2 ^= NET_RAND_GET_BIT(state->s, 175) & NET_RAND_GET_BIT(state->s, 176);
+   t2 ^= NET_RAND_GET_BIT(state->s, 264);
+
+   //Let t3 = t3 + s286.s287 + s69
+   t3 ^= NET_RAND_GET_BIT(state->s, 286) & NET_RAND_GET_BIT(state->s, 287);
+   t3 ^= NET_RAND_GET_BIT(state->s, 69);
+
+   //Rotate the internal state
+   for(i = 35; i > 0; i--)
+   {
+      state->s[i] = (state->s[i] << 1) | (state->s[i - 1] >> 7);
+   }
+
+   state->s[0] = state->s[0] << 1;
+
+   //Let s1 = t3
+   NET_RAND_STATE_SET_BIT(state->s, 1, t3);
+   //Let s94 = t1
+   NET_RAND_STATE_SET_BIT(state->s, 94, t1);
+   //Let s178 = t2
+   NET_RAND_STATE_SET_BIT(state->s, 178, t2);
+
+   //Return one bit of key stream
+   return z;
 }

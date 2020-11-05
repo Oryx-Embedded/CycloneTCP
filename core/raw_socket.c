@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -46,6 +46,8 @@
 #include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
+#include "mibs/mib2_module.h"
+#include "mibs/if_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -199,9 +201,17 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          queueItem = queueItem->next;
       }
 
-      //Make sure the receive queue is not full
+      //Check whether the receive queue is full
       if(i >= RAW_SOCKET_RX_QUEUE_SIZE)
+      {
+         //Number of inbound packets which were chosen to be discarded even
+         //though no errors had been detected
+         MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+         IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+
+         //Report an error
          return ERROR_RECEIVE_QUEUE_FULL;
+      }
 
       //Allocate a memory buffer to hold the data and the associated descriptor
       p = netBufferAlloc(sizeof(SocketQueueItem) + length);
@@ -222,9 +232,17 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       }
    }
 
-   //Failed to allocate memory?
+   //Not enough resources to properly handle the packet?
    if(queueItem == NULL)
+   {
+      //Number of inbound packets which were chosen to be discarded even
+      //though no errors had been detected
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+
+      //Report an error
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Initialize next field
    queueItem->next = NULL;
@@ -363,9 +381,17 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
          queueItem = queueItem->next;
       }
 
-      //Make sure the receive queue is not full
+      //Check whether the receive queue is full
       if(i >= RAW_SOCKET_RX_QUEUE_SIZE)
+      {
+         //Number of inbound packets which were chosen to be discarded even
+         //though no errors had been detected
+         MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+         IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+
+         //Exit immediately
          return;
+      }
 
       //Allocate a memory buffer to hold the data and the associated descriptor
       p = netBufferAlloc(sizeof(SocketQueueItem) + sizeof(EthHeader) + length);
@@ -386,9 +412,17 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
       }
    }
 
-   //Failed to allocate memory?
+   //Not enough resources to properly handle the packet?
    if(queueItem == NULL)
+   {
+      //Number of inbound packets which were chosen to be discarded even
+      //though no errors had been detected
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+
+      //Exit immediately
       return;
+   }
 
    //Initialize next field
    queueItem->next = NULL;
@@ -492,7 +526,9 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
          pseudoHeader.length = sizeof(Ipv6PseudoHeader);
          pseudoHeader.ipv6Data.destAddr = message->destIpAddr.ipv6Addr;
          pseudoHeader.ipv6Data.length = htonl(message->length);
-         pseudoHeader.ipv6Data.reserved = 0;
+         pseudoHeader.ipv6Data.reserved[0] = 0;
+         pseudoHeader.ipv6Data.reserved[1] = 0;
+         pseudoHeader.ipv6Data.reserved[2] = 0;
          pseudoHeader.ipv6Data.nextHeader = socket->protocol;
       }
       else
@@ -947,7 +983,9 @@ void rawSocketUpdateEvents(Socket *socket)
 
       //Set user event to signaled state if necessary
       if(socket->userEvent != NULL)
+      {
          osSetEvent(socket->userEvent);
+      }
    }
 }
 

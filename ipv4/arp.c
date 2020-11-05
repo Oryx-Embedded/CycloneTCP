@@ -30,7 +30,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -116,7 +116,7 @@ ArpCacheEntry *arpCreateEntry(NetInterface *interface)
       //Point to the current entry
       entry = &interface->arpCache[i];
 
-      //Check whether the entry is currently in used or not
+      //Check whether the entry is currently in use or not
       if(entry->state == ARP_STATE_NONE)
       {
          //Erase contents
@@ -160,7 +160,7 @@ ArpCacheEntry *arpFindEntry(NetInterface *interface, Ipv4Addr ipAddr)
       //Point to the current entry
       entry = &interface->arpCache[i];
 
-      //Check whether the entry is currently in used
+      //Check whether the entry is currently in use
       if(entry->state != ARP_STATE_NONE)
       {
          //Current entry matches the specified address?

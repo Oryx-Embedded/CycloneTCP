@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -1112,7 +1112,7 @@ bool_t httpCompExtension(const char_t *filename, const char_t *extension)
       return FALSE;
 
    //Compare extensions
-   if(!strncasecmp(filename + n - m, extension, m))
+   if(!osStrncasecmp(filename + n - m, extension, m))
       return TRUE;
    else
       return FALSE;

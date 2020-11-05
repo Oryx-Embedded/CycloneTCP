@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -69,8 +69,6 @@
 
 //TCP/IP stack context
 NetContext netContext;
-//Pseudo-random number generator state
-static uint32_t prngState = 0;
 
 
 /**
@@ -261,6 +259,61 @@ error_t netInit(void)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Seed the pseudo-random number generator
+ * @param[in] seed Pointer to the random seed
+ * @param[in] length Length of the random seed, in bytes
+ * @return Error code
+ **/
+
+error_t netSeedRand(const uint8_t *seed, size_t length)
+{
+   size_t i;
+   size_t j;
+
+   //Check parameters
+   if(seed == NULL || length == 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Save random seed
+   for(i = 0, j = 0; i < NET_RAND_SEED_SIZE; i++)
+   {
+      //Copy current byte
+      netContext.randSeed[i] = seed[j];
+
+      //Increment index and wrap around if necessary
+      if(++j >= length)
+      {
+         j = 0;
+      }
+   }
+
+   //Initialize pseudo-random generator
+   netInitRand();
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Get default network interface
+ * @return Pointer to the default network interface to be used
+ **/
+
+NetInterface *netGetDefaultInterface(void)
+{
+   //Default network interface
+   return &netInterface[0];
 }
 
 
@@ -1051,6 +1104,9 @@ error_t netConfigInterface(NetInterface *interface)
    //Check status code
    if(!error)
    {
+      //Initialize pseudo-random generator
+      netInitRand();
+
       //The network interface is now fully configured
       interface->configured = TRUE;
 
@@ -1124,7 +1180,7 @@ error_t netStartInterface(NetInterface *interface)
             interface->switchDriver->init != NULL)
          {
             //Reconfigure switch operation
-            error = interface->phyDriver->init(interface);
+            error = interface->switchDriver->init(interface);
          }
 #endif
          //Check status code
@@ -1362,89 +1418,4 @@ void netTask(void)
 #if (NET_RTOS_SUPPORT == ENABLED)
    }
 #endif
-}
-
-
-/**
- * @brief Get default network interface
- * @return Pointer to the default network interface to be used
- **/
-
-NetInterface *netGetDefaultInterface(void)
-{
-   //Default network interface
-   return &netInterface[0];
-}
-
-
-/**
- * @brief Seed pseudo-random number generator
- * @param[in] seed An integer value to be used as seed by the pseudo-random number generator
- * @return Error code
- **/
-
-error_t netInitRand(uint32_t seed)
-{
-   //Seed the pseudo-random number generator
-   prngState += seed;
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief Get a random value
- * @return Random value
- **/
-
-uint32_t netGetRand(void)
-{
-   uint32_t value;
-
-   //Use a linear congruential generator (LCG) to update the state of the PRNG
-   prngState *= 1103515245;
-   prngState += 12345;
-   value = (prngState >> 16) & 0x07FF;
-
-   prngState *= 1103515245;
-   prngState += 12345;
-   value <<= 10;
-   value |= (prngState >> 16) & 0x03FF;
-
-   prngState *= 1103515245;
-   prngState += 12345;
-   value <<= 10;
-   value |= (prngState >> 16) & 0x03FF;
-
-   //Return the random value
-   return value;
-}
-
-
-/**
- * @brief Get a random value in the specified range
- * @param[in] min Lower bound
- * @param[in] max Upper bound
- * @return Random value in the specified range
- **/
-
-int32_t netGetRandRange(int32_t min, int32_t max)
-{
-   int32_t value;
-
-   //Valid parameters?
-   if(max > min)
-   {
-      //Pick up a random value in the given range
-      value = min + (netGetRand() % (max - min + 1));
-   }
-   else
-   {
-      //Use default value
-      value = min;
-   }
-
-   //Return the random value
-   return value;
 }

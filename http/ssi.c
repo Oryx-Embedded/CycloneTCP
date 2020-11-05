@@ -30,7 +30,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -367,19 +367,19 @@ error_t ssiProcessCommand(HttpConnection *connection,
    error_t error;
 
    //Include command found?
-   if(length > 7 && !strncasecmp(tag, "include", 7))
+   if(length > 7 && !osStrncasecmp(tag, "include", 7))
    {
       //Process SSI include directive
       error = ssiProcessIncludeCommand(connection, tag, length, uri, level);
    }
    //Echo command found?
-   else if(length > 4 && !strncasecmp(tag, "echo", 4))
+   else if(length > 4 && !osStrncasecmp(tag, "echo", 4))
    {
       //Process SSI echo directive
       error = ssiProcessEchoCommand(connection, tag, length);
    }
    //Exec command found?
-   else if(length > 4 && !strncasecmp(tag, "exec", 4))
+   else if(length > 4 && !osStrncasecmp(tag, "exec", 4))
    {
       //Process SSI exec directive
       error = ssiProcessExecCommand(connection, tag, length);

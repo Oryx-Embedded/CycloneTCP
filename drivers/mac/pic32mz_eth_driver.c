@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -636,7 +636,8 @@ error_t pic32mzEthReceivePacket(NetInterface *interface)
       //Point to the next descriptor in the list
       rxCurBufferDesc = PA_TO_KVA1(rxCurBufferDesc->next);
 
-      //Decrement BUFCNT counter
+      //Once software processes a received packet, it should write the BUFCDEC
+      //bit in order to decrement the packet buffer count BUFCNT
       ETHCON1SET = _ETHCON1_BUFCDEC_MASK;
    }
    else

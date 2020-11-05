@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -70,6 +70,7 @@ const NicDriver enc624j600Driver =
 
 error_t enc624j600Init(NetInterface *interface)
 {
+   uint16_t temp;
    Enc624j600Context *context;
 
    //Debug message
@@ -104,9 +105,12 @@ error_t enc624j600Init(NetInterface *interface)
    if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
    {
       //Use the factory preprogrammed station address
-      interface->macAddr.w[0] = enc624j600ReadReg(interface, ENC624J600_REG_MAADR1);
-      interface->macAddr.w[1] = enc624j600ReadReg(interface, ENC624J600_REG_MAADR2);
-      interface->macAddr.w[2] = enc624j600ReadReg(interface, ENC624J600_REG_MAADR3);
+      temp = enc624j600ReadReg(interface, ENC624J600_REG_MAADR1);
+      interface->macAddr.w[0] = letoh16(temp);
+      temp = enc624j600ReadReg(interface, ENC624J600_REG_MAADR2);
+      interface->macAddr.w[1] = letoh16(temp);
+      temp = enc624j600ReadReg(interface, ENC624J600_REG_MAADR3);
+      interface->macAddr.w[2] = letoh16(temp);
 
       //Generate the 64-bit interface identifier
       macAddrToEui64(&interface->macAddr, &interface->eui64);
@@ -114,9 +118,12 @@ error_t enc624j600Init(NetInterface *interface)
    else
    {
       //Override the factory preprogrammed address
-      enc624j600WriteReg(interface, ENC624J600_REG_MAADR1, interface->macAddr.w[0]);
-      enc624j600WriteReg(interface, ENC624J600_REG_MAADR2, interface->macAddr.w[1]);
-      enc624j600WriteReg(interface, ENC624J600_REG_MAADR3, interface->macAddr.w[2]);
+      temp = htole16(interface->macAddr.w[0]);
+      enc624j600WriteReg(interface, ENC624J600_REG_MAADR1, temp);
+      temp = htole16(interface->macAddr.w[1]);
+      enc624j600WriteReg(interface, ENC624J600_REG_MAADR2, temp);
+      temp = htole16(interface->macAddr.w[2]);
+      enc624j600WriteReg(interface, ENC624J600_REG_MAADR3, temp);
    }
 
    //Set receive buffer location
@@ -442,13 +449,22 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
       enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA,
          (uint8_t *) &context->nextPacket, sizeof(uint16_t));
 
+      //Convert the value to host byte order
+      context->nextPacket = letoh16(context->nextPacket);
+
       //Get the length of the received frame in bytes
       enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA,
          (uint8_t *) &n, sizeof(uint16_t));
 
+      //Convert the value to host byte order
+      n = letoh16(n);
+
       //Read the receive status vector (RSV)
       enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA,
          (uint8_t *) &status, sizeof(uint32_t));
+
+      //Convert the value to host byte order
+      status = letoh32(status);
 
       //Make sure no error occurred
       if((status & RSV_RECEIVED_OK) != 0)

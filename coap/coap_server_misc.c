@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -234,6 +234,7 @@ error_t coapServerProcessRequest(CoapServerContext *context,
          //Dump the contents of the message for debugging purpose
          coapDumpMessage(context->response.buffer, context->response.length);
 
+         //Send CoAP response message
          error = coapServerSendResponse(context, context->response.buffer,
             context->response.length);
       }

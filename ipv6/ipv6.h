@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _IPV6_H
@@ -260,7 +260,7 @@ typedef __start_packed struct
 
 __start_packed struct _Ipv6Header
 {
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t version : 4;       //0
    uint8_t trafficClassH : 4;
    uint8_t trafficClassL : 4; //1
@@ -378,11 +378,11 @@ typedef __start_packed struct
 
 __start_packed struct _Ipv6PseudoHeader
 {
-   Ipv6Addr srcAddr;        //0-15
-   Ipv6Addr destAddr;       //16-31
-   uint32_t length;         //32-35
-   uint32_t reserved : 24;  //36-38
-   uint32_t nextHeader : 8; //39
+   Ipv6Addr srcAddr;    //0-15
+   Ipv6Addr destAddr;   //16-31
+   uint32_t length;     //32-35
+   uint8_t reserved[3]; //36-38
+   uint8_t nextHeader;  //39
 } __end_packed;
 
 

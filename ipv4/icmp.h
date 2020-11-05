@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _ICMP_H
@@ -117,12 +117,12 @@ typedef __start_packed struct
 
 typedef __start_packed struct
 {
-   uint8_t type;           //0
-   uint8_t code;           //1
-   uint16_t checksum;      //2-3
-   uint32_t parameter : 8; //4
-   uint32_t unused : 24;   //5-7
-   uint8_t data[];         //8
+   uint8_t type;      //0
+   uint8_t code;      //1
+   uint16_t checksum; //2-3
+   uint8_t parameter; //4
+   uint8_t unused[3]; //5-7
+   uint8_t data[];    //8
 } __end_packed IcmpErrorMessage;
 
 
@@ -160,12 +160,12 @@ typedef __start_packed struct
 
 typedef __start_packed struct
 {
-   uint8_t type;         //0
-   uint8_t code;         //1
-   uint16_t checksum;    //2-3
-   uint32_t pointer : 8; //4
-   uint32_t unused : 24; //5-7
-   uint8_t data[];       //8
+   uint8_t type;      //0
+   uint8_t code;      //1
+   uint16_t checksum; //2-3
+   uint8_t pointer;   //4
+   uint8_t unused[3]; //5-7
+   uint8_t data[];    //8
 } __end_packed IcmpParamProblemMessage;
 
 

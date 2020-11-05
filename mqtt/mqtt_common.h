@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _MQTT_COMMON_H
@@ -169,7 +169,7 @@ typedef enum
 
 typedef __start_packed struct
 {
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t type : 4;   //0
    uint8_t dup : 1;
    uint8_t qos : 2;

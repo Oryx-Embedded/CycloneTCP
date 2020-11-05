@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -424,7 +424,9 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
       //Format IPv6 pseudo header
       replyPseudoHeader.destAddr = requestPseudoHeader->srcAddr;
       replyPseudoHeader.length = htonl(replyLength);
-      replyPseudoHeader.reserved = 0;
+      replyPseudoHeader.reserved[0] = 0;
+      replyPseudoHeader.reserved[1] = 0;
+      replyPseudoHeader.reserved[2] = 0;
       replyPseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
       //Message checksum calculation
@@ -580,7 +582,9 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type, uint8_t co
       //Format IPv6 pseudo header
       pseudoHeader.destAddr = ipHeader->srcAddr;
       pseudoHeader.length = htonl(length);
-      pseudoHeader.reserved = 0;
+      pseudoHeader.reserved[0] = 0;
+      pseudoHeader.reserved[1] = 0;
+      pseudoHeader.reserved[2] = 0;
       pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
       //Select the relevant source address

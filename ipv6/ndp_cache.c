@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -69,7 +69,7 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
       //Point to the current entry
       entry = &interface->ndpContext.neighborCache[i];
 
-      //Check whether the entry is currently in used or not
+      //Check whether the entry is currently in use or not
       if(entry->state == NDP_STATE_NONE)
       {
          //Erase contents
@@ -114,7 +114,7 @@ NdpNeighborCacheEntry *ndpFindNeighborCacheEntry(NetInterface *interface, const 
       //Point to the current entry
       entry = &interface->ndpContext.neighborCache[i];
 
-      //Check whether the entry is currently in used
+      //Check whether the entry is currently in use
       if(entry->state != NDP_STATE_NONE)
       {
          //Current entry matches the specified address?
@@ -411,7 +411,7 @@ NdpDestCacheEntry *ndpCreateDestCacheEntry(NetInterface *interface)
       //Point to the current entry
       entry = &interface->ndpContext.destCache[i];
 
-      //Check whether the entry is currently in used or not
+      //Check whether the entry is currently in use or not
       if(ipv6CompAddr(&entry->destAddr, &IPV6_UNSPECIFIED_ADDR))
       {
          //Erase contents

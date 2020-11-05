@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _TCP_H
@@ -131,6 +131,13 @@
    #define TCP_MAX_RTO 60000
 #elif (TCP_MAX_RTO < 1000)
    #error TCP_MAX_RTO parameter is not valid
+#endif
+
+//Secure initial sequence number generation
+#ifndef TCP_SECURE_ISN_SUPPORT
+   #define TCP_SECURE_ISN_SUPPORT DISABLED
+#elif (TCP_SECURE_ISN_SUPPORT != ENABLED && TCP_SECURE_ISN_SUPPORT != DISABLED)
+   #error TCP_SECURE_ISN_SUPPORT parameter is not valid
 #endif
 
 //TCP congestion control
@@ -303,7 +310,7 @@ typedef __start_packed struct
    uint16_t destPort;      //2-3
    uint32_t seqNum;        //4-7
    uint32_t ackNum;        //8-11
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t dataOffset : 4; //12
    uint8_t reserved1 : 4;
    uint8_t reserved2 : 2;  //13

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _KSZ8463_DRIVER_H
@@ -756,7 +756,7 @@
 #define KSZ8463_PMCTRL_PWR_MGMT_MODE                        0x0003
 #define KSZ8463_PMCTRL_PWR_MGMT_MODE_NORMAL                 0x0000
 #define KSZ8463_PMCTRL_PWR_MGMT_MODE_ENERGY_DETECT          0x0001
-#define KSZ8463_PMCTRL_PWR_MGMT_MODE_GLOBAL_SOFT_PWR_DOWN   0x0002
+#define KSZ8463_PMCTRL_PWR_MGMT_MODE_SOFT_PWR_DOWN          0x0002
 
 //Go Sleep Time register
 #define KSZ8463_GST_GO_SLEEP_TIME                           0x00FF
@@ -1527,7 +1527,7 @@ extern "C" {
 
 typedef struct
 {
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t reserved : 6;     //0
    uint8_t fidH : 2;
    uint8_t fidL : 2;         //1
@@ -1554,7 +1554,7 @@ typedef struct
 
 typedef struct
 {
-#ifdef _CPU_BIG_ENDIAN
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
    uint8_t dataNotReady : 1;     //0
    uint8_t reserved : 4;
    uint8_t macEmpty : 1;

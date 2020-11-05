@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -544,7 +544,7 @@ void ftpServerWriteDataChannel(FtpClientConnection *connection)
          char_t *path;
          FsDirEntry dirEntry;
 
-         //Read a new entry in the directory
+         //Read a new entry from the directory
          error = fsReadDir(connection->dir, &dirEntry);
 
          //End of stream?

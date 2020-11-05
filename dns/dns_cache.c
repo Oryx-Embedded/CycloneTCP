@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -82,7 +82,7 @@ void dnsFlushCache(NetInterface *interface)
       //Point to the current entry
       entry = &dnsCache[i];
 
-      //Check whether the entry is currently in used
+      //Check whether the entry is currently in use
       if(entry->state != DNS_STATE_NONE)
       {
          //Delete DNS entries only for the given network interface
@@ -117,7 +117,7 @@ DnsCacheEntry *dnsCreateEntry(void)
       //Point to the current entry
       entry = &dnsCache[i];
 
-      //Check whether the entry is currently in used or not
+      //Check whether the entry is currently in use or not
       if(entry->state == DNS_STATE_NONE)
       {
          //Erase contents
@@ -192,7 +192,7 @@ DnsCacheEntry *dnsFindEntry(NetInterface *interface,
       //Point to the current entry
       entry = &dnsCache[i];
 
-      //Make sure that the entry is currently in used
+      //Make sure that the entry is currently in use
       if(entry->state == DNS_STATE_NONE)
          continue;
 

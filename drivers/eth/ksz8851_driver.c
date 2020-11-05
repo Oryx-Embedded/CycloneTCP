@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -70,8 +70,10 @@ const NicDriver ksz8851Driver =
 
 error_t ksz8851Init(NetInterface *interface)
 {
+   Ksz8851Context *context;
+
    //Point to the driver context
-   Ksz8851Context *context = (Ksz8851Context *) interface->nicContext;
+   context = (Ksz8851Context *) interface->nicContext;
 
    //Debug message
    TRACE_INFO("Initializing KSZ8851 Ethernet controller...\r\n");
@@ -405,9 +407,9 @@ error_t ksz8851SendPacket(NetInterface *interface,
    netBufferRead(context->txBuffer, buffer, offset, length);
 
    //Format control word
-   header.controlWord = TX_CTRL_TXIC | (context->frameId++ & TX_CTRL_TXFID);
+   header.controlWord = htole16(TX_CTRL_TXIC | (context->frameId++ & TX_CTRL_TXFID));
    //Total number of bytes to be transmitted
-   header.byteCount = length;
+   header.byteCount = htole16(length);
 
    //Enable TXQ write access
    ksz8851SetBit(interface, KSZ8851_REG_RXQCR, RXQCR_SDA);
@@ -459,7 +461,7 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
    if((status & RXFHSR_RXFV) != 0)
    {
       //Check error flags
-      if(!(status & (RXFHSR_RXMR | RXFHSR_RXFTL | RXFHSR_RXRF | RXFHSR_RXCE)))
+      if((status & (RXFHSR_RXMR | RXFHSR_RXFTL | RXFHSR_RXRF | RXFHSR_RXCE)) == 0)
       {
          //Read received frame byte size from RXFHBCR
          n = ksz8851ReadReg(interface, KSZ8851_REG_RXFHBCR) & RXFHBCR_RXBC_MASK;

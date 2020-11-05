@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Dependencies
@@ -1477,7 +1477,7 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
          //Point to the current entry
          UdpRxCallbackEntry *entry = &udpCallbackTable[i];
 
-         //Check whether the entry is currently in used
+         //Check whether the entry is currently in use
          if(entry->callback != NULL)
          {
             //Check local port number
@@ -1618,7 +1618,7 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
       //Point to the current entry
       UdpRxCallbackEntry *entry = &udpCallbackTable[i];
 
-      //Check whether the entry is currently in used
+      //Check whether the entry is currently in use
       if(entry->callback != NULL)
       {
          //Append the instance identifier to the OID prefix

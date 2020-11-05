@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _MODBUS_SERVER_MISC_H
@@ -43,8 +43,10 @@ extern "C" {
 //Modbus/TCP server related functions
 void modbusServerTick(ModbusServerContext *context);
 
-void modbusServerProcessConnectionEvents(ModbusServerContext *context,
-   ModbusClientConnection *connection);
+void modbusServerRegisterConnectionEvents(ModbusClientConnection *connection,
+   SocketEventDesc *eventDesc);
+
+void modbusServerProcessConnectionEvents(ModbusClientConnection *connection);
 
 error_t modbusServerParseMbapHeader(ModbusClientConnection *connection);
 

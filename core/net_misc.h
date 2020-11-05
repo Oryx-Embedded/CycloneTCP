@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _NET_MISC_H
@@ -43,6 +43,13 @@ struct _NetRxAncillary;
 #include "core/net.h"
 #include "core/ethernet.h"
 #include "core/ip.h"
+
+//Get a given bit of the PRNG internal state
+#define NET_RAND_GET_BIT(s, n) ((s[(n - 1) / 8] >> ((n - 1) % 8)) & 1)
+
+//Set a given bit of the PRNG internal state
+#define NET_RAND_STATE_SET_BIT(s, n, v) s[(n - 1) / 8] = \
+   (s[(n - 1) / 8] & ~(1 << ((n - 1) % 8))) | (v) << ((n - 1) % 8)
 
 //C++ guard
 #ifdef __cplusplus
@@ -153,6 +160,17 @@ struct _NetRxAncillary
 };
 
 
+/**
+ * @brief Pseudo-random number generator state
+ **/
+
+typedef struct
+{
+   uint16_t counter;
+   uint8_t s[36];
+} NetRandState;
+
+
 //Global constants
 extern const NetTxAncillary NET_DEFAULT_TX_ANCILLARY;
 extern const NetRxAncillary NET_DEFAULT_RX_ANCILLARY;
@@ -172,6 +190,11 @@ error_t netAttachTimerCallback(systime_t period, NetTimerCallback callback,
 error_t netDetachTimerCallback(NetTimerCallback callback, void *param);
 
 void netTick(void);
+
+void netInitRand(void);
+uint32_t netGetRand(void);
+int32_t netGetRandRange(int32_t min, int32_t max);
+uint32_t netGetRandBit(NetRandState *state);
 
 //C++ guard
 #ifdef __cplusplus

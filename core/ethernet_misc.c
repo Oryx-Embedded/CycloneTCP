@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -615,8 +615,9 @@ error_t ethCheckCrc(NetInterface *interface, const uint8_t *frame,
 
    //Retrieve CRC value
    crc = LOAD32BE(frame + length - ETH_CRC_SIZE);
-   //Reseed the pseudo-random number generator
-   netInitRand(crc);
+
+   //Gather entropy
+   netContext.entropy += crc;
 
    //Successful CRC verification
    return NO_ERROR;

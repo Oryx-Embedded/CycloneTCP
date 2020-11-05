@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _NET_H
@@ -90,13 +90,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "1.9.8"
+#define CYCLONE_TCP_VERSION_STRING "2.0.0"
 //Major version
-#define CYCLONE_TCP_MAJOR_VERSION 1
+#define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
-#define CYCLONE_TCP_MINOR_VERSION 9
+#define CYCLONE_TCP_MINOR_VERSION 0
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 8
+#define CYCLONE_TCP_REV_NUMBER 0
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -147,6 +147,13 @@ struct _NetInterface;
    #error NET_MAX_HOSTNAME_LEN parameter is not valid
 #endif
 
+//Size of the seed
+#ifndef NET_RAND_SEED_SIZE
+   #define NET_RAND_SEED_SIZE 16
+#elif (NET_RAND_SEED_SIZE < 10)
+   #error NET_RAND_SEED_SIZE parameter is not valid
+#endif
+
 //OS resources are statically allocated at compile time
 #ifndef NET_STATIC_OS_RESOURCES
    #define NET_STATIC_OS_RESOURCES DISABLED
@@ -171,6 +178,11 @@ struct _NetInterface;
    #define NET_TICK_INTERVAL 100
 #elif (NET_TICK_INTERVAL < 10)
    #error NET_TICK_INTERVAL parameter is not valid
+#endif
+
+//Get system tick count
+#ifndef netGetSystemTickCount
+   #define netGetSystemTickCount() osGetSystemTime()
 #endif
 
 //C++ guard
@@ -294,7 +306,10 @@ typedef struct
    OsTask taskInstance;
    uint_t taskStack[NET_TASK_STACK_SIZE];
 #endif
+   uint32_t entropy;
    systime_t timestamp;
+   uint8_t randSeed[NET_RAND_SEED_SIZE];         ///<Random seed
+   NetRandState randState;                       ///<Pseudo-random number generator state
    NetInterface interfaces[NET_INTERFACE_COUNT]; ///<Network interfaces
    NetLinkChangeCallbackEntry linkChangeCallbacks[NET_MAX_LINK_CHANGE_CALLBACKS];
    NetTimerCallbackEntry timerCallbacks[NET_MAX_TIMER_CALLBACKS];
@@ -306,6 +321,9 @@ extern NetContext netContext;
 
 //TCP/IP stack related functions
 error_t netInit(void);
+error_t netSeedRand(const uint8_t *seed, size_t length);
+
+NetInterface *netGetDefaultInterface(void);
 
 error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr);
 error_t netGetMacAddr(NetInterface *interface, MacAddr *macAddr);
@@ -344,12 +362,6 @@ error_t netStartInterface(NetInterface *interface);
 error_t netStopInterface(NetInterface *interface);
 
 void netTask(void);
-
-NetInterface *netGetDefaultInterface(void);
-
-error_t netInitRand(uint32_t seed);
-uint32_t netGetRand(void);
-int32_t netGetRandRange(int32_t min, int32_t max);
 
 //C++ guard
 #ifdef __cplusplus

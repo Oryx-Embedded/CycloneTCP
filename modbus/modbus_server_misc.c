@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -80,20 +80,93 @@ void modbusServerTick(ModbusServerContext *context)
 
 
 /**
+ * @brief Register connection events
+ * @param[in] connection Pointer to the client connection
+ * @param[in] eventDesc Event to be registered
+ **/
+
+void modbusServerRegisterConnectionEvents(ModbusClientConnection *connection,
+   SocketEventDesc *eventDesc)
+{
+   //Check the state of the connection
+   if(connection->state == MODBUS_CONNECTION_STATE_CONNECT_TLS)
+   {
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+      //Any data pending in the send buffer?
+      if(tlsIsTxReady(connection->tlsContext))
+      {
+         //Wait until there is more room in the send buffer
+         eventDesc->socket = connection->socket;
+         eventDesc->eventMask = SOCKET_EVENT_TX_READY;
+      }
+      else
+      {
+         //Wait for data to be available for reading
+         eventDesc->socket = connection->socket;
+         eventDesc->eventMask = SOCKET_EVENT_RX_READY;
+      }
+#endif
+   }
+   else if(connection->state == MODBUS_CONNECTION_STATE_RECEIVE)
+   {
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+      //Any data available in the receive buffer?
+      if(connection->tlsContext != NULL &&
+         tlsIsRxReady(connection->tlsContext))
+      {
+         //No need to poll the underlying socket for incoming traffic
+         eventDesc->eventFlags |= SOCKET_EVENT_RX_READY;
+      }
+      else
+#endif
+      {
+         //Wait for data to be available for reading
+         eventDesc->socket = connection->socket;
+         eventDesc->eventMask = SOCKET_EVENT_RX_READY;
+      }
+   }
+   else if(connection->state == MODBUS_CONNECTION_STATE_SEND ||
+      connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_TLS)
+   {
+      //Wait until there is more room in the send buffer
+      eventDesc->socket = connection->socket;
+      eventDesc->eventMask = SOCKET_EVENT_TX_READY;
+   }
+   else if(connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_TX)
+   {
+      //Wait for the FIN to be acknowledged
+      eventDesc->socket = connection->socket;
+      eventDesc->eventMask = SOCKET_EVENT_TX_SHUTDOWN;
+   }
+   else if(connection->state == MODBUS_CONNECTION_STATE_SHUTDOWN_RX)
+   {
+      //Wait for a FIN to be received
+      eventDesc->socket = connection->socket;
+      eventDesc->eventMask = SOCKET_EVENT_RX_SHUTDOWN;
+   }
+   else
+   {
+      //Just for sanity
+   }
+}
+
+
+/**
  * @brief Connection event handler
- * @param[in] context Pointer to the Modbus/TCP server context
  * @param[in] connection Pointer to the client connection
  **/
 
-void modbusServerProcessConnectionEvents(ModbusServerContext *context,
-   ModbusClientConnection *connection)
+void modbusServerProcessConnectionEvents(ModbusClientConnection *connection)
 {
    error_t error;
    size_t n;
+   ModbusServerContext *context;
 
    //Initialize status code
    error = NO_ERROR;
 
+   //Point to the Modbus/TCP server context
+   context = connection->context;
    //Update time stamp
    connection->timestamp = osGetSystemTime();
 

@@ -33,7 +33,7 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -721,7 +721,7 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          if(*instance != '\0')
          {
             //Compare instance name
-            res = strncasecmp((char_t *) p + pos, instance, n);
+            res = osStrncasecmp((char_t *) p + pos, instance, n);
             //Any mismatch?
             if(res)
                return res;
@@ -741,7 +741,7 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          else if(*service != '\0')
          {
             //Compare service name
-            res = strncasecmp((char_t *) p + pos, service, n);
+            res = osStrncasecmp((char_t *) p + pos, service, n);
             //Any mismatch?
             if(res)
                return res;
@@ -761,7 +761,7 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          else
          {
             //Compare domain name
-            res = strncasecmp((char_t *) p + pos, domain, n);
+            res = osStrncasecmp((char_t *) p + pos, domain, n);
             //Any mismatch?
             if(res)
                return res;

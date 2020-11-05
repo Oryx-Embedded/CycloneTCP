@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -283,6 +283,9 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
    error_t error;
    bool_t status;
 
+   //Gather entropy
+   netContext.entropy += netGetSystemTickCount();
+
 #if (TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
    //Retrieve the length of the packet
    size_t length = netBufferGetLength(buffer) - offset;
@@ -390,6 +393,9 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
 {
    NicType type;
 
+   //Gather entropy
+   netContext.entropy += netGetSystemTickCount();
+
    //Check whether the interface is enabled for operation
    if(interface->configured)
    {
@@ -399,7 +405,7 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
       //Debug message
       TRACE_DEBUG("Packet received (%" PRIuSIZE " bytes)...\r\n", length);
       TRACE_DEBUG_ARRAY("  ", packet, length);
-
+      
       //Retrieve network interface type
       type = interface->nicDriver->type;
 
@@ -534,6 +540,9 @@ void nicNotifyLinkChange(NetInterface *interface)
    uint_t i;
    NetInterface *physicalInterface;
    NetInterface *virtualInterface;
+
+   //Gather entropy
+   netContext.entropy += netGetSystemTickCount();
 
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);

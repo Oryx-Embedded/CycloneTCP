@@ -34,7 +34,7 @@
  * - RFC 3810: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -474,7 +474,9 @@ error_t mldSendListenerReport(NetInterface *interface, Ipv6Addr *ipAddr)
    pseudoHeader.srcAddr = interface->ipv6Context.addrList[0].addr;
    pseudoHeader.destAddr = *ipAddr;
    pseudoHeader.length = HTONS(sizeof(MldMessage));
-   pseudoHeader.reserved = 0;
+   pseudoHeader.reserved[0] = 0;
+   pseudoHeader.reserved[1] = 0;
+   pseudoHeader.reserved[2] = 0;
    pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
    //Message checksum calculation
@@ -558,7 +560,9 @@ error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr)
    pseudoHeader.srcAddr = interface->ipv6Context.addrList[0].addr;
    pseudoHeader.destAddr = IPV6_LINK_LOCAL_ALL_ROUTERS_ADDR;
    pseudoHeader.length = HTONS(sizeof(MldMessage));
-   pseudoHeader.reserved = 0;
+   pseudoHeader.reserved[0] = 0;
+   pseudoHeader.reserved[1] = 0;
+   pseudoHeader.reserved[2] = 0;
    pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
    //Message checksum calculation

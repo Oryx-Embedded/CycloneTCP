@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -1444,7 +1444,9 @@ error_t ndpSendRouterSol(NetInterface *interface)
 
    //Format IPv6 pseudo header
    pseudoHeader.length = htonl(length);
-   pseudoHeader.reserved = 0;
+   pseudoHeader.reserved[0] = 0;
+   pseudoHeader.reserved[1] = 0;
+   pseudoHeader.reserved[2] = 0;
    pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
    //Calculate ICMPv6 header checksum
@@ -1574,7 +1576,9 @@ error_t ndpSendNeighborSol(NetInterface *interface,
 
    //Format IPv6 pseudo header
    pseudoHeader.length = htonl(length);
-   pseudoHeader.reserved = 0;
+   pseudoHeader.reserved[0] = 0;
+   pseudoHeader.reserved[1] = 0;
+   pseudoHeader.reserved[2] = 0;
    pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
    //Calculate ICMPv6 header checksum
@@ -1683,7 +1687,9 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    message->code = 0;
    message->checksum = 0;
    message->reserved1 = 0;
-   message->reserved2 = 0;
+   message->reserved2[0] = 0;
+   message->reserved2[1] = 0;
+   message->reserved2[2] = 0;
    message->targetAddr = *targetIpAddr;
 
    //The Router flag indicates that the sender is a router
@@ -1723,7 +1729,9 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
 
    //Format IPv6 pseudo header
    pseudoHeader.length = htonl(length);
-   pseudoHeader.reserved = 0;
+   pseudoHeader.reserved[0] = 0;
+   pseudoHeader.reserved[1] = 0;
+   pseudoHeader.reserved[2] = 0;
    pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
    //Calculate ICMPv6 header checksum
@@ -1896,7 +1904,9 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
       pseudoHeader.srcAddr = interface->ipv6Context.addrList[0].addr;
       pseudoHeader.destAddr = ipHeader->srcAddr;
       pseudoHeader.length = htonl(length);
-      pseudoHeader.reserved = 0;
+      pseudoHeader.reserved[0] = 0;
+      pseudoHeader.reserved[1] = 0;
+      pseudoHeader.reserved[2] = 0;
       pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
       //Message checksum calculation

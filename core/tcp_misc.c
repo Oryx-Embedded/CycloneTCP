@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -46,6 +46,11 @@
 #include "mibs/tcp_mib_module.h"
 #include "date_time.h"
 #include "debug.h"
+
+//Secure initial sequence number generation?
+#if (TCP_SECURE_ISN_SUPPORT == ENABLED)
+   #include "hash/md5.h"
+#endif
 
 //Check TCP/IP stack configuration
 #if (TCP_SUPPORT == ENABLED)
@@ -159,7 +164,9 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
       pseudoHeader.ipv6Data.srcAddr = socket->localIpAddr.ipv6Addr;
       pseudoHeader.ipv6Data.destAddr = socket->remoteIpAddr.ipv6Addr;
       pseudoHeader.ipv6Data.length = htonl(totalLength);
-      pseudoHeader.ipv6Data.reserved = 0;
+      pseudoHeader.ipv6Data.reserved[0] = 0;
+      pseudoHeader.ipv6Data.reserved[1] = 0;
+      pseudoHeader.ipv6Data.reserved[2] = 0;
       pseudoHeader.ipv6Data.nextHeader = IPV6_TCP_HEADER;
 
       //Calculate TCP header checksum
@@ -388,7 +395,9 @@ error_t tcpSendResetSegment(NetInterface *interface,
       pseudoHeader2.ipv6Data.srcAddr = pseudoHeader->ipv6Data.destAddr;
       pseudoHeader2.ipv6Data.destAddr = pseudoHeader->ipv6Data.srcAddr;
       pseudoHeader2.ipv6Data.length = HTONL(sizeof(TcpHeader));
-      pseudoHeader2.ipv6Data.reserved = 0;
+      pseudoHeader2.ipv6Data.reserved[0] = 0;
+      pseudoHeader2.ipv6Data.reserved[1] = 0;
+      pseudoHeader2.ipv6Data.reserved[2] = 0;
       pseudoHeader2.ipv6Data.nextHeader = IPV6_TCP_HEADER;
 
       //Calculate TCP header checksum
@@ -541,6 +550,43 @@ TcpOption *tcpGetOption(TcpHeader *segment, uint8_t kind)
 
 
 /**
+ * @brief Initial sequence number generation
+ * @param[in] localIpAddr Local IP address
+ * @param[in] localPort Local port
+ * @param[in] remoteIpAddr Remote IP address
+ * @param[in] remotePort Remote port
+ * @return Value of the initial sequence number
+ **/
+
+uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
+   uint16_t localPort, const IpAddr *remoteIpAddr, uint16_t remotePort)
+{
+#if (TCP_SECURE_ISN_SUPPORT == ENABLED)
+   uint32_t isn;
+   Md5Context md5Context;
+
+   //Generate the initial sequence number as per RFC 6528
+   md5Init(&md5Context);
+   md5Update(&md5Context, localIpAddr, sizeof(IpAddr));
+   md5Update(&md5Context, &localPort, sizeof(uint16_t));
+   md5Update(&md5Context, remoteIpAddr, sizeof(IpAddr));
+   md5Update(&md5Context, &remotePort, sizeof(uint16_t));
+   md5Update(&md5Context, netContext.randSeed, NET_RAND_SEED_SIZE);
+   md5Final(&md5Context, NULL);
+
+   //Extract the first 32 bits from the digest value
+   isn = LOAD32BE(md5Context.digest);
+
+   //Calculate ISN = M + F(localip, localport, remoteip, remoteport, secretkey)
+   return isn + netGetSystemTickCount();
+#else
+   //Generate a random initial sequence number
+   return netGetRand();
+#endif
+}
+
+
+/**
  * @brief Test the sequence number of an incoming segment
  * @param[in] socket Handle referencing the current socket
  * @param[in] segment Pointer to the TCP segment to check
@@ -548,7 +594,7 @@ TcpOption *tcpGetOption(TcpHeader *segment, uint8_t kind)
  * @return NO_ERROR if the incoming segment is acceptable, ERROR_FAILURE otherwise
  **/
 
-error_t tcpCheckSequenceNumber(Socket *socket, TcpHeader *segment, size_t length)
+error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length)
 {
    //Acceptability test for an incoming segment
    bool_t acceptable = FALSE;
@@ -1809,11 +1855,13 @@ void tcpUpdateEvents(Socket *socket)
    case TCP_STATE_FIN_WAIT_1:
       socket->eventFlags |= SOCKET_EVENT_CONNECTED;
       break;
+
    //FIN-WAIT-2 state?
    case TCP_STATE_FIN_WAIT_2:
       socket->eventFlags |= SOCKET_EVENT_CONNECTED;
       socket->eventFlags |= SOCKET_EVENT_TX_SHUTDOWN;
       break;
+
    //CLOSE-WAIT, LAST-ACK or CLOSING state?
    case TCP_STATE_CLOSE_WAIT:
    case TCP_STATE_LAST_ACK:
@@ -1821,6 +1869,7 @@ void tcpUpdateEvents(Socket *socket)
       socket->eventFlags |= SOCKET_EVENT_CONNECTED;
       socket->eventFlags |= SOCKET_EVENT_RX_SHUTDOWN;
       break;
+
    //TIME-WAIT or CLOSED state?
    case TCP_STATE_TIME_WAIT:
    case TCP_STATE_CLOSED:
@@ -1828,6 +1877,7 @@ void tcpUpdateEvents(Socket *socket)
       socket->eventFlags |= SOCKET_EVENT_TX_SHUTDOWN;
       socket->eventFlags |= SOCKET_EVENT_RX_SHUTDOWN;
       break;
+
    //Any other state
    default:
       break;
@@ -1846,7 +1896,9 @@ void tcpUpdateEvents(Socket *socket)
    {
       //Check whether the send buffer is full or not
       if((socket->sndUser + socket->sndNxt - socket->sndUna) < socket->txBufferSize)
+      {
          socket->eventFlags |= SOCKET_EVENT_TX_READY;
+      }
 
       //Check whether all the data in the send buffer has been transmitted
       if(!socket->sndUser)
@@ -1856,7 +1908,9 @@ void tcpUpdateEvents(Socket *socket)
 
          //Check whether an acknowledgment has been received
          if(TCP_CMP_SEQ(socket->sndUna, socket->sndNxt) >= 0)
+         {
             socket->eventFlags |= SOCKET_EVENT_TX_ACKED;
+         }
       }
    }
    else if(socket->state != TCP_STATE_LISTEN)
@@ -1874,14 +1928,19 @@ void tcpUpdateEvents(Socket *socket)
    {
       //Data is available for reading?
       if(socket->rcvUser > 0)
+      {
          socket->eventFlags |= SOCKET_EVENT_RX_READY;
+      }
    }
    else if(socket->state == TCP_STATE_LISTEN)
    {
       //If the socket is currently in the listen state, it will be marked
       //as readable if an incoming connection request has been received
       if(socket->synQueue != NULL)
+      {
+         socket->eventFlags |= SOCKET_EVENT_ACCEPT;
          socket->eventFlags |= SOCKET_EVENT_RX_READY;
+      }
    }
    else if(socket->state != TCP_STATE_SYN_SENT &&
       socket->state != TCP_STATE_SYN_RECEIVED)
@@ -1896,9 +1955,13 @@ void tcpUpdateEvents(Socket *socket)
    {
       //Handle link up and link down events
       if(socket->interface->linkState)
+      {
          socket->eventFlags |= SOCKET_EVENT_LINK_UP;
+      }
       else
+      {
          socket->eventFlags |= SOCKET_EVENT_LINK_DOWN;
+      }
    }
 
    //Mask unused events
@@ -1912,7 +1975,9 @@ void tcpUpdateEvents(Socket *socket)
 
       //Set user event to signaled state if necessary
       if(socket->userEvent != NULL)
+      {
          osSetEvent(socket->userEvent);
+      }
    }
 }
 
@@ -1981,9 +2046,11 @@ void tcpWriteTxBuffer(Socket *socket, uint32_t seqNum,
       //Copy the first part of the payload
       netBufferWrite((NetBuffer *) &socket->txBuffer,
          offset, data, socket->txBufferSize - offset);
+
       //Wrap around to the beginning of the circular buffer
-      netBufferWrite((NetBuffer *) &socket->txBuffer,
-         0, data + socket->txBufferSize - offset, length - socket->txBufferSize + offset);
+      netBufferWrite((NetBuffer *) &socket->txBuffer, 0,
+         data + socket->txBufferSize - offset,
+         length - socket->txBufferSize + offset);
    }
 }
 
@@ -2059,9 +2126,11 @@ void tcpWriteRxBuffer(Socket *socket, uint32_t seqNum,
       //Copy the first part of the payload
       netBufferCopy((NetBuffer *) &socket->rxBuffer,
          offset, data, dataOffset, socket->rxBufferSize - offset);
+
       //Wrap around to the beginning of the circular buffer
       netBufferCopy((NetBuffer *) &socket->rxBuffer, 0, data,
-         dataOffset + socket->rxBufferSize - offset, length - socket->rxBufferSize + offset);
+         dataOffset + socket->rxBufferSize - offset,
+         length - socket->rxBufferSize + offset);
    }
 }
 
@@ -2092,9 +2161,11 @@ void tcpReadRxBuffer(Socket *socket, uint32_t seqNum, uint8_t *data,
       //Copy the first part of the payload
       netBufferRead(data, (NetBuffer *) &socket->rxBuffer,
          offset, socket->rxBufferSize - offset);
+
       //Wrap around to the beginning of the circular buffer
-      netBufferRead(data + socket->rxBufferSize - offset, (NetBuffer *) &socket->rxBuffer,
-         0, length - socket->rxBufferSize + offset);
+      netBufferRead(data + socket->rxBufferSize - offset,
+         (NetBuffer *) &socket->rxBuffer, 0,
+         length - socket->rxBufferSize + offset);
    }
 }
 

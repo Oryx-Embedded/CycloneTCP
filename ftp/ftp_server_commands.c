@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -342,9 +342,9 @@ void ftpServerProcessFeat(FtpClientConnection *connection, char_t *param)
    osStrcpy(connection->response, "211-Extensions supported:\r\n");
 
    //Each extension supported must be listed on a separate line
-   strcat(connection->response, " SIZE\r\n");
-   strcat(connection->response, " EPRT\r\n");
-   strcat(connection->response, " EPSV\r\n");
+   osStrcat(connection->response, " SIZE\r\n");
+   osStrcat(connection->response, " EPRT\r\n");
+   osStrcat(connection->response, " EPSV\r\n");
 
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED)
    //TLS security mode supported by the server?
@@ -354,14 +354,14 @@ void ftpServerProcessFeat(FtpClientConnection *connection, char_t *param)
       //If a server supports the FEAT command, then it must advertise
       //supported AUTH, PBSZ, and PROT commands in the reply (refer to
       //RFC 4217, section 6)
-      strcat(connection->response, " AUTH TLS\r\n");
-      strcat(connection->response, " PBSZ\r\n");
-      strcat(connection->response, " PROT\r\n");
+      osStrcat(connection->response, " AUTH TLS\r\n");
+      osStrcat(connection->response, " PBSZ\r\n");
+      osStrcat(connection->response, " PROT\r\n");
    }
 #endif
 
    //Terminate feature listing
-   strcat(connection->response, "211 End\r\n");
+   osStrcat(connection->response, "211 End\r\n");
 }
 
 
@@ -690,10 +690,14 @@ void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
    osStrcpy(connection->user, param);
    //Log out the user
    connection->userLoggedIn = FALSE;
+
    //Set home directory
-   osStrcpy(connection->homeDir, context->settings.rootDir);
+   pathCopy(connection->homeDir, context->settings.rootDir,
+      FTP_SERVER_MAX_HOME_DIR_LEN);
+
    //Set current directory
-   osStrcpy(connection->currentDir, context->settings.rootDir);
+   pathCopy(connection->currentDir, context->settings.rootDir,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Invoke user-defined callback, if any
    if(context->settings.checkUserCallback != NULL)
@@ -865,7 +869,7 @@ void ftpServerProcessQuit(FtpClientConnection *connection, char_t *param)
       osStrcpy(connection->response, "426 Connection closed; transfer aborted\r\n");
 
       //The server then sends a 221 reply
-      strcat(connection->response, "221 Service closing control connection\r\n");
+      osStrcat(connection->response, "221 Service closing control connection\r\n");
    }
 
    //Release previously allocated resources
@@ -1472,7 +1476,7 @@ void ftpServerProcessAbor(FtpClientConnection *connection, char_t *param)
 
       //The server then sends a 226 reply, indicating that the abort command
       //was successfully processed
-      strcat(connection->response, "226 Abort command successful\r\n");
+      osStrcat(connection->response, "226 Abort command successful\r\n");
    }
 
    //Release previously allocated resources
@@ -1567,7 +1571,7 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_READ))
+   if((perm & FTP_FILE_PERM_READ) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -1698,7 +1702,7 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_READ))
+   if((perm & FTP_FILE_PERM_READ) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -1807,7 +1811,7 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_WRITE))
+   if((perm & FTP_FILE_PERM_WRITE) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -1883,7 +1887,7 @@ void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_WRITE))
+   if((perm & FTP_FILE_PERM_WRITE) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -1958,7 +1962,7 @@ void ftpServerProcessSize(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_LIST) && !(perm & FTP_FILE_PERM_READ))
+   if((perm & FTP_FILE_PERM_LIST) == 0 && (perm & FTP_FILE_PERM_READ) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -2032,7 +2036,7 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_READ))
+   if((perm & FTP_FILE_PERM_READ) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -2140,7 +2144,7 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_WRITE))
+   if((perm & FTP_FILE_PERM_WRITE) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -2249,7 +2253,7 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_WRITE))
+   if((perm & FTP_FILE_PERM_WRITE) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -2371,7 +2375,7 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_WRITE))
+   if((perm & FTP_FILE_PERM_WRITE) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -2460,7 +2464,7 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, newPath);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_WRITE))
+   if((perm & FTP_FILE_PERM_WRITE) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");
@@ -2544,7 +2548,7 @@ void ftpServerProcessDele(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Insufficient access rights?
-   if(!(perm & FTP_FILE_PERM_WRITE))
+   if((perm & FTP_FILE_PERM_WRITE) == 0)
    {
       //Report an error
       osStrcpy(connection->response, "550 Access denied\r\n");

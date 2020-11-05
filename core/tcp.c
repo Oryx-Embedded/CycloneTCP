@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -163,13 +163,17 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePo
          return error;
       }
 
-      //The SMSS is the size of the largest segment that the sender can transmit
+      //The SMSS is the size of the largest segment that the sender can
+      //transmit
       socket->smss = MIN(TCP_DEFAULT_MSS, TCP_MAX_MSS);
-      //The RMSS is the size of the largest segment the receiver is willing to accept
+
+      //The RMSS is the size of the largest segment the receiver is willing
+      //to accept
       socket->rmss = MIN(socket->rxBufferSize, TCP_MAX_MSS);
 
-      //An initial send sequence number is selected
-      socket->iss = netGetRand();
+      //Generate the initial sequence number
+      socket->iss = tcpGenerateInitialSeqNum(&socket->localIpAddr,
+         socket->localPort, &socket->remoteIpAddr, socket->remotePort);
 
       //Initialize TCP control block
       socket->sndUna = socket->iss;
@@ -356,16 +360,19 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
             newSocket->remoteIpAddr = queueItem->srcAddr;
             newSocket->remotePort = queueItem->srcPort;
 
-            //The SMSS is the size of the largest segment that the sender
-            //can transmit
+            //The SMSS is the size of the largest segment that the sender can
+            //transmit
             newSocket->smss = queueItem->mss;
 
             //The RMSS is the size of the largest segment the receiver is
             //willing to accept
             newSocket->rmss = MIN(newSocket->rxBufferSize, TCP_MAX_MSS);
 
+            //Generate the initial sequence number
+            newSocket->iss = tcpGenerateInitialSeqNum(&socket->localIpAddr,
+               socket->localPort, &socket->remoteIpAddr, socket->remotePort);
+
             //Initialize TCP control block
-            newSocket->iss = netGetRand();
             newSocket->irs = queueItem->isn;
             newSocket->sndUna = newSocket->iss;
             newSocket->sndNxt = newSocket->iss + 1;
@@ -378,7 +385,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
             //Default congestion state
-            socket->congestState = TCP_CONGEST_STATE_IDLE;
+            newSocket->congestState = TCP_CONGEST_STATE_IDLE;
             //Initial congestion window
             newSocket->cwnd = MIN(TCP_INITIAL_WINDOW * newSocket->smss, newSocket->txBufferSize);
             //Slow start threshold should be set arbitrarily high

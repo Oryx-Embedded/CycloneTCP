@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _SOCKET_H
@@ -151,17 +151,18 @@ typedef enum
 
 typedef enum
 {
-   SOCKET_EVENT_TIMEOUT      = 0x0000,
-   SOCKET_EVENT_CONNECTED    = 0x0001,
-   SOCKET_EVENT_CLOSED       = 0x0002,
-   SOCKET_EVENT_TX_READY     = 0x0004,
-   SOCKET_EVENT_TX_DONE      = 0x0008,
-   SOCKET_EVENT_TX_ACKED     = 0x0010,
-   SOCKET_EVENT_TX_SHUTDOWN  = 0x0020,
-   SOCKET_EVENT_RX_READY     = 0x0040,
-   SOCKET_EVENT_RX_SHUTDOWN  = 0x0080,
-   SOCKET_EVENT_LINK_UP      = 0x0100,
-   SOCKET_EVENT_LINK_DOWN    = 0x0200
+   SOCKET_EVENT_NONE         = 0x0000,
+   SOCKET_EVENT_ACCEPT       = 0x0001,
+   SOCKET_EVENT_CONNECTED    = 0x0002,
+   SOCKET_EVENT_CLOSED       = 0x0004,
+   SOCKET_EVENT_TX_READY     = 0x0008,
+   SOCKET_EVENT_TX_DONE      = 0x0010,
+   SOCKET_EVENT_TX_ACKED     = 0x0020,
+   SOCKET_EVENT_TX_SHUTDOWN  = 0x0040,
+   SOCKET_EVENT_RX_READY     = 0x0080,
+   SOCKET_EVENT_RX_SHUTDOWN  = 0x0100,
+   SOCKET_EVENT_LINK_UP      = 0x0200,
+   SOCKET_EVENT_LINK_DOWN    = 0x0400
 } SocketEvent;
 
 

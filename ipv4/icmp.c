@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -315,7 +315,9 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code
    icmpHeader->code = code;
    icmpHeader->checksum = 0;
    icmpHeader->parameter = parameter;
-   icmpHeader->unused = 0;
+   icmpHeader->unused[0] = 0;
+   icmpHeader->unused[1] = 0;
+   icmpHeader->unused[2] = 0;
 
    //Copy the IP header and the first 8 bytes of the original datagram data
    error = netBufferConcat(icmpMessage, ipPacket, ipPacketOffset, length);

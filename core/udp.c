@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,6 +42,7 @@
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
 #include "mibs/mib2_module.h"
+#include "mibs/if_mib_module.h"
 #include "mibs/udp_mib_module.h"
 #include "debug.h"
 
@@ -317,9 +318,17 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
          queueItem = queueItem->next;
       }
 
-      //Make sure the receive queue is not full
+      //Check whether the receive queue is full
       if(i >= UDP_RX_QUEUE_SIZE)
+      {
+         //Number of inbound packets which were chosen to be discarded even
+         //though no errors had been detected
+         MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+         IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+
+         //Report an error
          return ERROR_RECEIVE_QUEUE_FULL;
+      }
 
       //Allocate a memory buffer to hold the data and the associated descriptor
       p = netBufferAlloc(sizeof(SocketQueueItem) + length);
@@ -340,9 +349,17 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
       }
    }
 
-   //Failed to allocate memory?
+   //Not enough resources to properly handle the packet?
    if(queueItem == NULL)
+   {
+      //Number of inbound packets which were chosen to be discarded even
+      //though no errors had been detected
+      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+
+      //Report an error
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Initialize next field
    queueItem->next = NULL;
@@ -615,7 +632,9 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
       pseudoHeader.length = sizeof(Ipv6PseudoHeader);
       pseudoHeader.ipv6Data.destAddr = destIpAddr->ipv6Addr;
       pseudoHeader.ipv6Data.length = htonl(length);
-      pseudoHeader.ipv6Data.reserved = 0;
+      pseudoHeader.ipv6Data.reserved[0] = 0;
+      pseudoHeader.ipv6Data.reserved[1] = 0;
+      pseudoHeader.ipv6Data.reserved[2] = 0;
       pseudoHeader.ipv6Data.nextHeader = IPV6_UDP_HEADER;
 
       //Calculate UDP header checksum
@@ -823,7 +842,9 @@ void udpUpdateEvents(Socket *socket)
 
       //Set user event to signaled state if necessary
       if(socket->userEvent != NULL)
+      {
          osSetEvent(socket->userEvent);
+      }
    }
 }
 
@@ -852,7 +873,7 @@ error_t udpAttachRxCallback(NetInterface *interface, uint16_t port,
       //Point to the current entry
       entry = &udpCallbackTable[i];
 
-      //Check whether the entry is currently in used
+      //Check whether the entry is currently in use
       if(entry->callback == NULL)
       {
          //Create a new entry
@@ -902,7 +923,7 @@ error_t udpDetachRxCallback(NetInterface *interface, uint16_t port)
       //Point to the current entry
       entry = &udpCallbackTable[i];
 
-      //Check whether the entry is currently in used
+      //Check whether the entry is currently in use
       if(entry->callback != NULL)
       {
          //Does the specified port number match the current entry?
@@ -957,7 +978,7 @@ error_t udpInvokeRxCallback(NetInterface *interface,
       //Point to the current entry
       entry = &udpCallbackTable[i];
 
-      //Check whether the entry is currently in used
+      //Check whether the entry is currently in use
       if(entry->callback != NULL)
       {
          //Bound to a particular interface?

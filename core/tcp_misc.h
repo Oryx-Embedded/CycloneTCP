@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 1.9.8
+ * @version 2.0.0
  **/
 
 #ifndef _TCP_MISC_H
@@ -51,7 +51,10 @@ error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
 
 TcpOption *tcpGetOption(TcpHeader *segment, uint8_t kind);
 
-error_t tcpCheckSequenceNumber(Socket *socket, TcpHeader *segment, size_t length);
+uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
+   uint16_t localPort, const IpAddr *remoteIpAddr, uint16_t remotePort);
+
+error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length);
 error_t tcpCheckSyn(Socket *socket, TcpHeader *segment, size_t length);
 error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length);
 
