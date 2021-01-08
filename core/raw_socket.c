@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -246,6 +246,8 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
 
    //Initialize next field
    queueItem->next = NULL;
+   //Network interface where the packet was received
+   queueItem->interface = interface;
    //Port number is unused
    queueItem->srcPort = 0;
 
@@ -426,6 +428,9 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
 
    //Initialize next field
    queueItem->next = NULL;
+   //Network interface where the packet was received
+   queueItem->interface = interface;
+
    //Other fields are meaningless
    queueItem->srcPort = 0;
    queueItem->srcIpAddr = IP_ADDR_ANY;
@@ -468,8 +473,15 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
    IpPseudoHeader pseudoHeader;
    NetTxAncillary ancillary;
 
-   //The socket may be bound to a particular network interface
-   interface = socket->interface;
+   //Select the relevant network interface
+   if(message->interface != NULL)
+   {
+      interface = message->interface;
+   }
+   else
+   {
+      interface = socket->interface;
+   }
 
    //Allocate a buffer memory to hold the raw IP datagram
    buffer = ipAllocBuffer(0, &offset);
@@ -635,7 +647,11 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
    NetInterface *interface;
 
    //Select the relevant network interface
-   if(socket->interface != NULL)
+   if(message->interface != NULL)
+   {
+      interface = message->interface;
+   }
+   else if(socket->interface != NULL)
    {
       interface = socket->interface;
    }
@@ -751,11 +767,7 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
 /**
  * @brief Receive an IP packet from a raw socket
  * @param[in] socket Handle referencing the socket
- * @param[out] srcIpAddr Source IP address (optional)
- * @param[out] destIpAddr Destination IP address (optional)
- * @param[out] data Buffer where to store the incoming data
- * @param[in] size Maximum number of bytes that can be received
- * @param[out] received Number of bytes that have been received
+ * @param[out] message Received IP packet and ancillary data
  * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
@@ -797,6 +809,8 @@ error_t rawSocketReceiveIpPacket(Socket *socket, SocketMsg *message,
       message->length = netBufferRead(message->data, queueItem->buffer,
          queueItem->offset, message->size);
 
+      //Network interface where the packet was received
+      message->interface = queueItem->interface;
       //Save the source IP address
       message->srcIpAddr = queueItem->srcIpAddr;
       //Save the source port number
@@ -857,9 +871,7 @@ error_t rawSocketReceiveIpPacket(Socket *socket, SocketMsg *message,
 /**
  * @brief Receive an Ethernet packet from a raw socket
  * @param[in] socket Handle referencing the socket
- * @param[out] data Buffer where to store the incoming data
- * @param[in] size Maximum number of bytes that can be received
- * @param[out] received Number of bytes that have been received
+ * @param[out] message Received Ethernet packet and ancillary data
  * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
@@ -900,6 +912,9 @@ error_t rawSocketReceiveEthPacket(Socket *socket, SocketMsg *message,
       //Copy data to user buffer
       message->length = netBufferRead(message->data, queueItem->buffer,
          queueItem->offset, message->size);
+
+      //Network interface where the packet was received
+      message->interface = queueItem->interface;
 
 #if (ETH_SUPPORT == ENABLED)
       //Save source and destination MAC addresses

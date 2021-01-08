@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -87,12 +87,13 @@ error_t ksz8851Init(NetInterface *interface)
    interface->extIntDriver->init();
 
    //Debug message
-   TRACE_DEBUG("CIDER=0x%04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_REG_CIDER));
-   TRACE_DEBUG("PHY1ILR=0x%04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_REG_PHY1ILR));
-   TRACE_DEBUG("PHY1IHR=0x%04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_REG_PHY1IHR));
+   TRACE_DEBUG("CIDER=0x%04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_CIDER));
+   TRACE_DEBUG("PHY1ILR=0x%04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_PHY1ILR));
+   TRACE_DEBUG("PHY1IHR=0x%04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_PHY1IHR));
 
    //Check device ID and revision ID
-   if(ksz8851ReadReg(interface, KSZ8851_REG_CIDER) != KSZ8851_REV_A3_ID)
+   if(ksz8851ReadReg(interface, KSZ8851_CIDER) != (KSZ8851_CIDER_FAMILY_ID_DEFAULT |
+      KSZ8851_CIDER_CHIP_ID_DEFAULT | KSZ8851_CIDER_REV_ID_A3))
    {
       return ERROR_WRONG_IDENTIFIER;
    }
@@ -119,47 +120,56 @@ error_t ksz8851Init(NetInterface *interface)
    }
 
    //Initialize MAC address
-   ksz8851WriteReg(interface, KSZ8851_REG_MARH, htons(interface->macAddr.w[0]));
-   ksz8851WriteReg(interface, KSZ8851_REG_MARM, htons(interface->macAddr.w[1]));
-   ksz8851WriteReg(interface, KSZ8851_REG_MARL, htons(interface->macAddr.w[2]));
+   ksz8851WriteReg(interface, KSZ8851_MARH, htons(interface->macAddr.w[0]));
+   ksz8851WriteReg(interface, KSZ8851_MARM, htons(interface->macAddr.w[1]));
+   ksz8851WriteReg(interface, KSZ8851_MARL, htons(interface->macAddr.w[2]));
 
-   //Packets shorter than 64 bytes are padded and the CRC is automatically generated
-   ksz8851WriteReg(interface, KSZ8851_REG_TXCR, TXCR_TXFCE | TXCR_TXPE | TXCR_TXCE);
+   //Packets shorter than 64 bytes are padded and the CRC is automatically
+   //generated
+   ksz8851WriteReg(interface, KSZ8851_TXCR, KSZ8851_TXCR_TXFCE |
+      KSZ8851_TXCR_TXPE | KSZ8851_TXCR_TXCE);
+
    //Automatically increment TX data pointer
-   ksz8851WriteReg(interface, KSZ8851_REG_TXFDPR, TXFDPR_TXFPAI);
+   ksz8851WriteReg(interface, KSZ8851_TXFDPR, KSZ8851_TXFDPR_TXFPAI);
 
    //Configure address filtering
-   ksz8851WriteReg(interface, KSZ8851_REG_RXCR1,
-      RXCR1_RXPAFMA | RXCR1_RXFCE | RXCR1_RXBE | RXCR1_RXME | RXCR1_RXUE);
+   ksz8851WriteReg(interface, KSZ8851_RXCR1, KSZ8851_RXCR1_RXPAFMA |
+      KSZ8851_RXCR1_RXFCE | KSZ8851_RXCR1_RXBE | KSZ8851_RXCR1_RXME |
+      KSZ8851_RXCR1_RXUE);
 
    //No checksum verification
-   ksz8851WriteReg(interface, KSZ8851_REG_RXCR2,
-      RXCR2_SRDBL2 | RXCR2_IUFFP | RXCR2_RXIUFCEZ);
+   ksz8851WriteReg(interface, KSZ8851_RXCR2, KSZ8851_RXCR2_SRDBL_SINGLE_FRAME |
+      KSZ8851_RXCR2_IUFFP | KSZ8851_RXCR2_RXIUFCEZ);
 
    //Enable automatic RXQ frame buffer dequeue
-   ksz8851WriteReg(interface, KSZ8851_REG_RXQCR, RXQCR_RXFCTE | RXQCR_ADRFE);
+   ksz8851WriteReg(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_RXFCTE |
+      KSZ8851_RXQCR_ADRFE);
+
    //Automatically increment RX data pointer
-   ksz8851WriteReg(interface, KSZ8851_REG_RXFDPR, RXFDPR_RXFPAI);
+   ksz8851WriteReg(interface, KSZ8851_RXFDPR, KSZ8851_RXFDPR_RXFPAI);
    //Configure receive frame count threshold
-   ksz8851WriteReg(interface, KSZ8851_REG_RXFCTR, 1);
+   ksz8851WriteReg(interface, KSZ8851_RXFCTR, 1);
 
    //Force link in half-duplex if auto-negotiation failed
-   ksz8851ClearBit(interface, KSZ8851_REG_P1CR, P1CR_FORCE_DUPLEX);
+   ksz8851ClearBit(interface, KSZ8851_P1CR, KSZ8851_P1CR_FORCE_DUPLEX);
    //Restart auto-negotiation
-   ksz8851SetBit(interface, KSZ8851_REG_P1CR, P1CR_RESTART_AN);
+   ksz8851SetBit(interface, KSZ8851_P1CR, KSZ8851_P1CR_RESTART_AN);
 
    //Clear interrupt flags
-   ksz8851SetBit(interface, KSZ8851_REG_ISR, ISR_LCIS | ISR_TXIS |
-      ISR_RXIS | ISR_RXOIS | ISR_TXPSIS | ISR_RXPSIS | ISR_TXSAIS |
-      ISR_RXWFDIS | ISR_RXMPDIS | ISR_LDIS | ISR_EDIS | ISR_SPIBEIS);
+   ksz8851SetBit(interface, KSZ8851_ISR, KSZ8851_ISR_LCIS |
+      KSZ8851_ISR_TXIS | KSZ8851_ISR_RXIS | KSZ8851_ISR_RXOIS |
+      KSZ8851_ISR_TXPSIS | KSZ8851_ISR_RXPSIS | KSZ8851_ISR_TXSAIS |
+      KSZ8851_ISR_RXWFDIS | KSZ8851_ISR_RXMPDIS | KSZ8851_ISR_LDIS |
+      KSZ8851_ISR_EDIS | KSZ8851_ISR_SPIBEIS);
 
    //Configure interrupts as desired
-   ksz8851SetBit(interface, KSZ8851_REG_IER, IER_LCIE | IER_TXIE | IER_RXIE);
+   ksz8851SetBit(interface, KSZ8851_IER, KSZ8851_IER_LCIE |
+      KSZ8851_IER_TXIE | KSZ8851_IER_RXIE);
 
    //Enable TX operation
-   ksz8851SetBit(interface, KSZ8851_REG_TXCR, TXCR_TXE);
+   ksz8851SetBit(interface, KSZ8851_TXCR, KSZ8851_TXCR_TXE);
    //Enable RX operation
-   ksz8851SetBit(interface, KSZ8851_REG_RXCR1, RXCR1_RXE);
+   ksz8851SetBit(interface, KSZ8851_RXCR1, KSZ8851_RXCR1_RXE);
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -225,18 +235,18 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
    flag = FALSE;
 
    //Save IER register value
-   ier = ksz8851ReadReg(interface, KSZ8851_REG_IER);
+   ier = ksz8851ReadReg(interface, KSZ8851_IER);
    //Disable interrupts to release the interrupt line
-   ksz8851WriteReg(interface, KSZ8851_REG_IER, 0);
+   ksz8851WriteReg(interface, KSZ8851_IER, 0);
 
    //Read interrupt status register
-   isr = ksz8851ReadReg(interface, KSZ8851_REG_ISR);
+   isr = ksz8851ReadReg(interface, KSZ8851_ISR);
 
    //Link status change?
-   if((isr & ISR_LCIS) != 0)
+   if((isr & KSZ8851_ISR_LCIS) != 0)
    {
       //Disable LCIE interrupt
-      ier &= ~IER_LCIE;
+      ier &= ~KSZ8851_IER_LCIE;
 
       //Set event flag
       interface->nicEvent = TRUE;
@@ -245,13 +255,13 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if((isr & ISR_TXIS) != 0)
+   if((isr & KSZ8851_ISR_TXIS) != 0)
    {
       //Clear interrupt flag
-      ksz8851WriteReg(interface, KSZ8851_REG_ISR, ISR_TXIS);
+      ksz8851WriteReg(interface, KSZ8851_ISR, KSZ8851_ISR_TXIS);
 
       //Get the amount of free memory available in the TX FIFO
-      n = ksz8851ReadReg(interface, KSZ8851_REG_TXMIR) & TXMIR_TXMA_MASK;
+      n = ksz8851ReadReg(interface, KSZ8851_TXMIR) & KSZ8851_TXMIR_TXMA;
 
       //Check whether the TX FIFO is available for writing
       if(n >= (ETH_MAX_FRAME_SIZE + 8))
@@ -262,10 +272,10 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if((isr & ISR_RXIS) != 0)
+   if((isr & KSZ8851_ISR_RXIS) != 0)
    {
       //Disable RXIE interrupt
-      ier &= ~IER_RXIE;
+      ier &= ~KSZ8851_IER_RXIE;
 
       //Set event flag
       interface->nicEvent = TRUE;
@@ -274,7 +284,7 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
    }
 
    //Re-enable interrupts once the interrupt has been serviced
-   ksz8851WriteReg(interface, KSZ8851_REG_IER, ier);
+   ksz8851WriteReg(interface, KSZ8851_IER, ier);
 
    //A higher priority task must be woken?
    return flag;
@@ -292,21 +302,21 @@ void ksz8851EventHandler(NetInterface *interface)
    uint_t frameCount;
 
    //Read interrupt status register
-   status = ksz8851ReadReg(interface, KSZ8851_REG_ISR);
+   status = ksz8851ReadReg(interface, KSZ8851_ISR);
 
    //Check whether the link status has changed?
-   if((status & ISR_LCIS) != 0)
+   if((status & KSZ8851_ISR_LCIS) != 0)
    {
       //Clear interrupt flag
-      ksz8851WriteReg(interface, KSZ8851_REG_ISR, ISR_LCIS);
+      ksz8851WriteReg(interface, KSZ8851_ISR, KSZ8851_ISR_LCIS);
       //Read PHY status register
-      status = ksz8851ReadReg(interface, KSZ8851_REG_P1SR);
+      status = ksz8851ReadReg(interface, KSZ8851_P1SR);
 
       //Check link state
-      if((status & P1SR_LINK_GOOD) != 0)
+      if((status & KSZ8851_P1SR_LINK_GOOD) != 0)
       {
          //Get current speed
-         if((status & P1SR_OPERATION_SPEED) != 0)
+         if((status & KSZ8851_P1SR_OPERATION_SPEED) != 0)
          {
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          }
@@ -316,7 +326,7 @@ void ksz8851EventHandler(NetInterface *interface)
          }
 
          //Determine the new duplex mode
-         if((status & P1SR_OPERATION_DUPLEX) != 0)
+         if((status & KSZ8851_P1SR_OPERATION_DUPLEX) != 0)
          {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          }
@@ -339,12 +349,12 @@ void ksz8851EventHandler(NetInterface *interface)
    }
 
    //Check whether a packet has been received?
-   if((status & ISR_RXIS) != 0)
+   if((status & KSZ8851_ISR_RXIS) != 0)
    {
       //Clear interrupt flag
-      ksz8851WriteReg(interface, KSZ8851_REG_ISR, ISR_RXIS);
+      ksz8851WriteReg(interface, KSZ8851_ISR, KSZ8851_ISR_RXIS);
       //Get the total number of frames that are pending in the buffer
-      frameCount = MSB(ksz8851ReadReg(interface, KSZ8851_REG_RXFCTR));
+      frameCount = MSB(ksz8851ReadReg(interface, KSZ8851_RXFCTR));
 
       //Process all pending packets
       while(frameCount > 0)
@@ -357,7 +367,7 @@ void ksz8851EventHandler(NetInterface *interface)
    }
 
    //Re-enable LCIE and RXIE interrupts
-   ksz8851SetBit(interface, KSZ8851_REG_IER, IER_LCIE | IER_RXIE);
+   ksz8851SetBit(interface, KSZ8851_IER, KSZ8851_IER_LCIE | KSZ8851_IER_RXIE);
 }
 
 
@@ -395,7 +405,7 @@ error_t ksz8851SendPacket(NetInterface *interface,
    }
 
    //Get the amount of free memory available in the TX FIFO
-   n = ksz8851ReadReg(interface, KSZ8851_REG_TXMIR) & TXMIR_TXMA_MASK;
+   n = ksz8851ReadReg(interface, KSZ8851_TXMIR) & KSZ8851_TXMIR_TXMA;
 
    //Make sure the TX FIFO is available for writing
    if(n < (length + 8))
@@ -407,24 +417,26 @@ error_t ksz8851SendPacket(NetInterface *interface,
    netBufferRead(context->txBuffer, buffer, offset, length);
 
    //Format control word
-   header.controlWord = htole16(TX_CTRL_TXIC | (context->frameId++ & TX_CTRL_TXFID));
+   header.controlWord = htole16(KSZ8851_TX_CTRL_TXIC |
+      (context->frameId++ & KSZ8851_TX_CTRL_TXFID));
+
    //Total number of bytes to be transmitted
    header.byteCount = htole16(length);
 
    //Enable TXQ write access
-   ksz8851SetBit(interface, KSZ8851_REG_RXQCR, RXQCR_SDA);
+   ksz8851SetBit(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_SDA);
    //Write TX packet header
    ksz8851WriteFifo(interface, (uint8_t *) &header, sizeof(Ksz8851TxHeader));
    //Write data
    ksz8851WriteFifo(interface, context->txBuffer, length);
    //End TXQ write access
-   ksz8851ClearBit(interface, KSZ8851_REG_RXQCR, RXQCR_SDA);
+   ksz8851ClearBit(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_SDA);
 
    //Start transmission
-   ksz8851SetBit(interface, KSZ8851_REG_TXQCR, TXQCR_METFE);
+   ksz8851SetBit(interface, KSZ8851_TXQCR, KSZ8851_TXQCR_METFE);
 
    //Get the amount of free memory available in the TX FIFO
-   n = ksz8851ReadReg(interface, KSZ8851_REG_TXMIR) & TXMIR_TXMA_MASK;
+   n = ksz8851ReadReg(interface, KSZ8851_TXMIR) & KSZ8851_TXMIR_TXMA;
 
    //Check whether the TX FIFO is available for writing
    if(n >= (ETH_MAX_FRAME_SIZE + 8))
@@ -455,28 +467,29 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
    context = (Ksz8851Context *) interface->nicContext;
 
    //Read received frame status from RXFHSR
-   status = ksz8851ReadReg(interface, KSZ8851_REG_RXFHSR);
+   status = ksz8851ReadReg(interface, KSZ8851_RXFHSR);
 
    //Make sure the frame is valid
-   if((status & RXFHSR_RXFV) != 0)
+   if((status & KSZ8851_RXFHSR_RXFV) != 0)
    {
       //Check error flags
-      if((status & (RXFHSR_RXMR | RXFHSR_RXFTL | RXFHSR_RXRF | RXFHSR_RXCE)) == 0)
+      if((status & (KSZ8851_RXFHSR_RXMR | KSZ8851_RXFHSR_RXFTL |
+         KSZ8851_RXFHSR_RXRF | KSZ8851_RXFHSR_RXCE)) == 0)
       {
          //Read received frame byte size from RXFHBCR
-         n = ksz8851ReadReg(interface, KSZ8851_REG_RXFHBCR) & RXFHBCR_RXBC_MASK;
+         n = ksz8851ReadReg(interface, KSZ8851_RXFHBCR) & KSZ8851_RXFHBCR_RXBC;
 
          //Ensure the frame size is acceptable
          if(n > 0 && n <= ETH_MAX_FRAME_SIZE)
          {
             //Reset QMU RXQ frame pointer to zero
-            ksz8851WriteReg(interface, KSZ8851_REG_RXFDPR, RXFDPR_RXFPAI);
+            ksz8851WriteReg(interface, KSZ8851_RXFDPR, KSZ8851_RXFDPR_RXFPAI);
             //Enable RXQ read access
-            ksz8851SetBit(interface, KSZ8851_REG_RXQCR, RXQCR_SDA);
+            ksz8851SetBit(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_SDA);
             //Read data
             ksz8851ReadFifo(interface, context->rxBuffer, n);
             //End RXQ read access
-            ksz8851ClearBit(interface, KSZ8851_REG_RXQCR, RXQCR_SDA);
+            ksz8851ClearBit(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_SDA);
 
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -490,7 +503,7 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
    }
 
    //Release the current error frame from RXQ
-   ksz8851SetBit(interface, KSZ8851_REG_RXQCR, RXQCR_RRXEF);
+   ksz8851SetBit(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_RRXEF);
    //Report an error
    return ERROR_INVALID_PACKET;
 }
@@ -536,16 +549,16 @@ error_t ksz8851UpdateMacAddrFilter(NetInterface *interface)
    }
 
    //Write the hash table to the KSZ8851 controller
-   ksz8851WriteReg(interface, KSZ8851_REG_MAHTR0, hashTable[0]);
-   ksz8851WriteReg(interface, KSZ8851_REG_MAHTR1, hashTable[1]);
-   ksz8851WriteReg(interface, KSZ8851_REG_MAHTR2, hashTable[2]);
-   ksz8851WriteReg(interface, KSZ8851_REG_MAHTR3, hashTable[3]);
+   ksz8851WriteReg(interface, KSZ8851_MAHTR0, hashTable[0]);
+   ksz8851WriteReg(interface, KSZ8851_MAHTR1, hashTable[1]);
+   ksz8851WriteReg(interface, KSZ8851_MAHTR2, hashTable[2]);
+   ksz8851WriteReg(interface, KSZ8851_MAHTR3, hashTable[3]);
 
    //Debug message
-   TRACE_DEBUG("  MAHTR0 = %04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_REG_MAHTR0));
-   TRACE_DEBUG("  MAHTR1 = %04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_REG_MAHTR1));
-   TRACE_DEBUG("  MAHTR2 = %04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_REG_MAHTR2));
-   TRACE_DEBUG("  MAHTR3 = %04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_REG_MAHTR3));
+   TRACE_DEBUG("  MAHTR0 = %04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_MAHTR0));
+   TRACE_DEBUG("  MAHTR1 = %04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_MAHTR1));
+   TRACE_DEBUG("  MAHTR2 = %04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_MAHTR2));
+   TRACE_DEBUG("  MAHTR3 = %04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_MAHTR3));
 
    //Successful processing
    return NO_ERROR;

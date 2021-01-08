@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 #ifndef _COAP_COMMON_H
@@ -142,6 +142,7 @@ typedef enum
    COAP_CODE_SERVICE_UNAVAILABLE          = COAP_CODE(5, 3),
    COAP_CODE_GATEWAY_TIMEOUT              = COAP_CODE(5, 4),
    COAP_CODE_PROXYING_NOT_SUPPORTED       = COAP_CODE(5, 5),
+   COAP_CODE_HOP_LIMIT_REACHED            = COAP_CODE(5, 8),
    COAP_CODE_CSM                          = COAP_CODE(7, 1),
    COAP_CODE_PING                         = COAP_CODE(7, 2),
    COAP_CODE_PONG                         = COAP_CODE(7, 3),

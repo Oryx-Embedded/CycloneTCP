@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -341,9 +341,14 @@ error_t tcpSendResetSegment(NetInterface *interface,
 
       //Advance the acknowledgment number over the SYN or the FIN
       if(segment->flags & TCP_FLAG_SYN)
+      {
          ackNum++;
+      }
+
       if(segment->flags & TCP_FLAG_FIN)
+      {
          ackNum++;
+      }
    }
 
    //Allocate a memory buffer to hold the reset segment
@@ -426,6 +431,7 @@ error_t tcpSendResetSegment(NetInterface *interface,
    //Debug message
    TRACE_DEBUG("%s: Sending TCP reset segment...\r\n",
       formatSystemTime(osGetSystemTime(), NULL));
+
    //Dump TCP header contents for debugging purpose
    tcpDumpHeader(segment2, length, 0, 0);
 
@@ -456,40 +462,55 @@ error_t tcpSendResetSegment(NetInterface *interface,
 error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
    uint8_t length)
 {
-   uint_t i;
+   error_t error;
+   size_t i;
    size_t paddingSize;
    TcpOption *option;
 
-   //Length of the complete option field
+   //The option-length counts the two octets of option-kind and option-length
+   //as well as the option-data octets (refer to RFC 793, section 3.1)
    length += sizeof(TcpOption);
 
-   //Make sure there is enough space to add the specified option
-   if((segment->dataOffset * 4 + length) > TCP_MAX_HEADER_LENGTH)
-      return ERROR_FAILURE;
+   //Make sure there is enough room to add the option
+   if((segment->dataOffset * 4 + length) <= TCP_MAX_HEADER_LENGTH)
+   {
+      //Index of the first available byte
+      i = (segment->dataOffset * 4) - sizeof(TcpHeader);
 
-   //Index of the first available byte
-   i = segment->dataOffset * 4 - sizeof(TcpHeader);
+      //Calculate the number of padding bytes
+      paddingSize = (length % 4) ? 4 - (length % 4) : 0;
 
-   //Calculate the number of padding bytes
-   paddingSize = (length % 4) ? 4 - (length % 4) : 0;
-   //Write padding bytes
-   while(paddingSize--)
-      segment->options[i++] = TCP_OPTION_NOP;
+      //Write padding bytes
+      while(paddingSize--)
+      {
+         segment->options[i++] = TCP_OPTION_NOP;
+      }
 
-   //Point to the current location
-   option = (TcpOption *) (segment->options + i);
-   //Write specified option
-   option->kind = kind;
-   option->length = length;
-   osMemcpy(option->value, value, length - sizeof(TcpOption));
-   //Adjust index value
-   i += length;
+      //Point to the current location
+      option = (TcpOption *) (segment->options + i);
 
-   //Update TCP header length
-   segment->dataOffset = (sizeof(TcpHeader) + i) / 4;
+      //Format option
+      option->kind = kind;
+      option->length = length;
+      osMemcpy(option->value, value, length - sizeof(TcpOption));
 
-   //Option successfully added
-   return NO_ERROR;
+      //Adjust index value
+      i += length;
+
+      //Update the length of the TCP header
+      segment->dataOffset = (sizeof(TcpHeader) + i) / 4;
+
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_FAILURE;
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -503,48 +524,57 @@ error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
 
 TcpOption *tcpGetOption(TcpHeader *segment, uint8_t kind)
 {
+   size_t i;
    size_t length;
-   uint_t i;
    TcpOption *option;
 
    //Make sure the TCP header is valid
-   if(segment->dataOffset < 5)
-      return NULL;
-
-   //Compute the length of the options field
-   length = segment->dataOffset * 4 - sizeof(TcpHeader);
-
-   //Point to the very first option
-   i = 0;
-
-   //Parse TCP options
-   while(i < length)
+   if(segment->dataOffset >= (sizeof(TcpHeader) / 4))
    {
-      //Point to the current option
-      option = (TcpOption *) (segment->options + i);
+      //Compute the length of the options field
+      length = (segment->dataOffset * 4) - sizeof(TcpHeader);
 
-      //NOP option detected?
-      if(option->kind == TCP_OPTION_NOP)
+      //Point to the very first option
+      i = 0;
+
+      //Loop through the list of options
+      while(i < length)
       {
-         i++;
-         continue;
+         //Point to the current option
+         option = (TcpOption *) (segment->options + i);
+
+         //Check option code
+         if(option->kind == TCP_OPTION_END)
+         {
+            //This option code indicates the end of the option list
+            break;
+         }
+         else if(option->kind == TCP_OPTION_NOP)
+         {
+            //This option consists of a single octet
+            i++;
+         }
+         else
+         {
+            //The option code is followed by a one-byte length field
+            if((i + 1) >= length)
+               break;
+
+            //Check the length of the option
+            if(option->length < sizeof(TcpOption) || (i + option->length) > length)
+               break;
+
+            //Matching option code?
+            if(option->kind == kind)
+               return option;
+
+            //Jump to the next option
+            i += option->length;
+         }
       }
-      //END option detected?
-      if(option->kind == TCP_OPTION_END)
-         break;
-      //Check option length
-      if((i + 1) >= length || (i + option->length) > length)
-         break;
-
-      //Current option kind match the specified one?
-      if(option->kind == kind)
-         return option;
-
-      //Jump to next the next option
-      i += option->length;
    }
 
-   //Specified option code not found
+   //The specified option code does not exist
    return NULL;
 }
 
@@ -641,10 +671,13 @@ error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length)
       //Debug message
       TRACE_WARNING("Sequence number is not acceptable!\r\n");
 
-      //If an incoming segment is not acceptable, an acknowledgment
-      //should be sent in reply (unless the RST bit is set)
+      //If an incoming segment is not acceptable, an acknowledgment should
+      //be sent in reply (unless the RST bit is set)
       if(!(segment->flags & TCP_FLAG_RST))
-         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+      {
+         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt,
+            0, FALSE);
+      }
 
       //Return status code
       return ERROR_FAILURE;
@@ -1239,11 +1272,17 @@ void tcpUpdateRetransmitQueue(Socket *socket)
 
       //Calculate the length of the TCP segment
       if(header->flags & TCP_FLAG_SYN)
+      {
          length = 1;
+      }
       else if(header->flags & TCP_FLAG_FIN)
+      {
          length = queueItem->length + 1;
+      }
       else
+      {
          length = queueItem->length;
+      }
 
       //If an acknowledgment is received for a segment before its timer
       //expires, the segment is removed from the retransmission queue

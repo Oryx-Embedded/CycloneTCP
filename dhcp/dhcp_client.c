@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -1378,9 +1378,7 @@ void dhcpClientProcessMessage(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Make sure the DHCP message is valid
-   if(length < sizeof(DhcpMessage))
-      return;
-   if(length > DHCP_MAX_MSG_SIZE)
+   if(length < sizeof(DhcpMessage) || length > DHCP_MAX_MSG_SIZE)
       return;
 
    //Point to the beginning of the DHCP message
@@ -1399,12 +1397,15 @@ void dhcpClientProcessMessage(NetInterface *interface,
    //The DHCP server shall respond with a BOOTREPLY opcode
    if(message->op != DHCP_OPCODE_BOOTREPLY)
       return;
+
    //Enforce hardware type
    if(message->htype != DHCP_HARDWARE_TYPE_ETH)
       return;
+
    //Check the length of the hardware address
    if(message->hlen != sizeof(MacAddr))
       return;
+
    //Check magic cookie
    if(message->magicCookie != HTONL(DHCP_MAGIC_COOKIE))
       return;
@@ -1460,9 +1461,11 @@ void dhcpClientParseOffer(DhcpClientContext *context,
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
       return;
+
    //Make sure the IP address offered to the client is valid
    if(message->yiaddr == IPV4_UNSPECIFIED_ADDR)
       return;
+
    //Check MAC address
    if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
       return;
@@ -1494,7 +1497,6 @@ void dhcpClientParseOffer(DhcpClientContext *context,
  * @param[in] context Pointer to the DHCP client context
  * @param[in] message Pointer to the incoming DHCP message
  * @param[in] length Length of the incoming message to parse
- * @return Error code
  **/
 
 void dhcpClientParseAck(DhcpClientContext *context,
@@ -1522,9 +1524,11 @@ void dhcpClientParseAck(DhcpClientContext *context,
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
       return;
+
    //Make sure the IP address assigned to the client is valid
    if(message->yiaddr == IPV4_UNSPECIFIED_ADDR)
       return;
+
    //Check MAC address
    if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
       return;
@@ -1729,7 +1733,6 @@ void dhcpClientParseAck(DhcpClientContext *context,
  * @param[in] context Pointer to the DHCP client context
  * @param[in] message Pointer to the incoming DHCP message
  * @param[in] length Length of the incoming message to parse
- * @return Error code
  **/
 
 void dhcpClientParseNak(DhcpClientContext *context,
@@ -1751,6 +1754,7 @@ void dhcpClientParseNak(DhcpClientContext *context,
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
       return;
+
    //Check MAC address
    if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
       return;

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -452,7 +452,7 @@ error_t ftpClientParsePwdReply(FtpClientContext *context, char_t *path,
    *p = '\0';
 
    //Search for the first double quote
-   p = strchr(context->buffer, '\"');
+   p = osStrchr(context->buffer, '\"');
    //Failed to parse the response?
    if(p == NULL)
       return ERROR_INVALID_SYNTAX;
@@ -548,8 +548,10 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
          dirEntry->modified.minutes = (uint8_t) osStrtoul(token + 3, NULL, 10);
 
          //The PM period covers the 12 hours from noon to midnight
-         if(strstr(token, "PM") != NULL)
+         if(osStrstr(token, "PM") != NULL)
+         {
             dirEntry->modified.hours += 12;
+         }
       }
       else
       {
@@ -595,10 +597,15 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
    else
    {
       //Check file permissions
-      if(strchr(token, 'd') != NULL)
+      if(osStrchr(token, 'd') != NULL)
+      {
          dirEntry->attributes |= FTP_FILE_ATTR_DIRECTORY;
-      if(strchr(token, 'w') == NULL)
+      }
+
+      if(osStrchr(token, 'w') == NULL)
+      {
          dirEntry->attributes |= FTP_FILE_ATTR_READ_ONLY;
+      }
 
       //Read next field
       token = osStrtok_r(NULL, " ", &p);

@@ -1,12 +1,12 @@
 /**
- * @file lpc546xx_eth_driver.c
- * @brief LPC54608/LPC54618/LPC54628 Ethernet MAC driver
+ * @file lpc54xxx_eth_driver.c
+ * @brief LPC540xx/LPC546xx Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -39,7 +39,7 @@
 #include "fsl_iocon.h"
 #include "fsl_gpio.h"
 #include "core/net.h"
-#include "drivers/mac/lpc546xx_eth_driver.h"
+#include "drivers/mac/lpc54xxx_eth_driver.h"
 #include "debug.h"
 
 //Underlying network interface
@@ -50,31 +50,31 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 4
-static uint8_t txBuffer[LPC546XX_ETH_TX_BUFFER_COUNT][LPC546XX_ETH_TX_BUFFER_SIZE];
+static uint8_t txBuffer[LPC54XXX_ETH_TX_BUFFER_COUNT][LPC54XXX_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 4
-static uint8_t rxBuffer[LPC546XX_ETH_RX_BUFFER_COUNT][LPC546XX_ETH_RX_BUFFER_SIZE];
+static uint8_t rxBuffer[LPC54XXX_ETH_RX_BUFFER_COUNT][LPC54XXX_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 4
-static Lpc546xxTxDmaDesc txDmaDesc[LPC546XX_ETH_TX_BUFFER_COUNT];
+static Lpc54xxxTxDmaDesc txDmaDesc[LPC54XXX_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 4
-static Lpc546xxRxDmaDesc rxDmaDesc[LPC546XX_ETH_RX_BUFFER_COUNT];
+static Lpc54xxxRxDmaDesc rxDmaDesc[LPC54XXX_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
 #else
 
 //Transmit buffer
-static uint8_t txBuffer[LPC546XX_ETH_TX_BUFFER_COUNT][LPC546XX_ETH_TX_BUFFER_SIZE]
+static uint8_t txBuffer[LPC54XXX_ETH_TX_BUFFER_COUNT][LPC54XXX_ETH_TX_BUFFER_SIZE]
    __attribute__((aligned(4)));
 //Receive buffer
-static uint8_t rxBuffer[LPC546XX_ETH_RX_BUFFER_COUNT][LPC546XX_ETH_RX_BUFFER_SIZE]
+static uint8_t rxBuffer[LPC54XXX_ETH_RX_BUFFER_COUNT][LPC54XXX_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(4)));
 //Transmit DMA descriptors
-static Lpc546xxTxDmaDesc txDmaDesc[LPC546XX_ETH_TX_BUFFER_COUNT]
+static Lpc54xxxTxDmaDesc txDmaDesc[LPC54XXX_ETH_TX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 //Receive DMA descriptors
-static Lpc546xxRxDmaDesc rxDmaDesc[LPC546XX_ETH_RX_BUFFER_COUNT]
+static Lpc54xxxRxDmaDesc rxDmaDesc[LPC54XXX_ETH_RX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 
 #endif
@@ -86,23 +86,23 @@ static uint_t rxIndex;
 
 
 /**
- * @brief LPC546xx Ethernet MAC driver
+ * @brief LPC54xxx Ethernet MAC driver
  **/
 
-const NicDriver lpc546xxEthDriver =
+const NicDriver lpc54xxxEthDriver =
 {
    NIC_TYPE_ETHERNET,
    ETH_MTU,
-   lpc546xxEthInit,
-   lpc546xxEthTick,
-   lpc546xxEthEnableIrq,
-   lpc546xxEthDisableIrq,
-   lpc546xxEthEventHandler,
-   lpc546xxEthSendPacket,
-   lpc546xxEthUpdateMacAddrFilter,
-   lpc546xxEthUpdateMacConfig,
-   lpc546xxEthWritePhyReg,
-   lpc546xxEthReadPhyReg,
+   lpc54xxxEthInit,
+   lpc54xxxEthTick,
+   lpc54xxxEthEnableIrq,
+   lpc54xxxEthDisableIrq,
+   lpc54xxxEthEventHandler,
+   lpc54xxxEthSendPacket,
+   lpc54xxxEthUpdateMacAddrFilter,
+   lpc54xxxEthUpdateMacConfig,
+   lpc54xxxEthWritePhyReg,
+   lpc54xxxEthReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -111,17 +111,17 @@ const NicDriver lpc546xxEthDriver =
 
 
 /**
- * @brief LPC546xx Ethernet MAC initialization
+ * @brief LPC54xxx Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t lpc546xxEthInit(NetInterface *interface)
+error_t lpc54xxxEthInit(NetInterface *interface)
 {
    error_t error;
 
    //Debug message
-   TRACE_INFO("Initializing LPC546xx Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing LPC54xxx Ethernet MAC...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -132,7 +132,7 @@ error_t lpc546xxEthInit(NetInterface *interface)
    RESET_PeripheralReset(kETH_RST_SHIFT_RSTn);
 
    //GPIO configuration
-   lpc546xxEthInitGpio(interface);
+   lpc54xxxEthInitGpio(interface);
 
    //Perform a software reset
    ENET->DMA_MODE |= ENET_DMA_MODE_SWR_MASK;
@@ -196,7 +196,7 @@ error_t lpc546xxEthInit(NetInterface *interface)
 
    //Configure RX features
    ENET->DMA_CH[0].DMA_CHX_RX_CTRL = ENET_DMA_CH_DMA_CHX_RX_CTRL_RxPBL(1) |
-      ENET_DMA_CH_DMA_CHX_RX_CTRL_RBSZ(LPC546XX_ETH_RX_BUFFER_SIZE / 4);
+      ENET_DMA_CH_DMA_CHX_RX_CTRL_RBSZ(LPC54XXX_ETH_RX_BUFFER_SIZE / 4);
 
    //Enable store and forward mode for transmission
    ENET->MTL_QUEUE[0].MTL_TXQX_OP_MODE |= ENET_MTL_QUEUE_MTL_TXQX_OP_MODE_TQS(7) |
@@ -208,7 +208,7 @@ error_t lpc546xxEthInit(NetInterface *interface)
       ENET_MTL_QUEUE_MTL_RXQX_OP_MODE_RSF_MASK;
 
    //Initialize DMA descriptor lists
-   lpc546xxEthInitDmaDesc(interface);
+   lpc54xxxEthInitDmaDesc(interface);
 
    //Disable MAC interrupts
    ENET->MAC_INTR_EN = 0;
@@ -218,11 +218,11 @@ error_t lpc546xxEthInit(NetInterface *interface)
       ENET_DMA_CH_DMA_CHX_INT_EN_RIE_MASK | ENET_DMA_CH_DMA_CHX_INT_EN_TIE_MASK;
 
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
-   NVIC_SetPriorityGrouping(LPC546XX_ETH_IRQ_PRIORITY_GROUPING);
+   NVIC_SetPriorityGrouping(LPC54XXX_ETH_IRQ_PRIORITY_GROUPING);
 
    //Configure Ethernet interrupt priority
-   NVIC_SetPriority(ETHERNET_IRQn, NVIC_EncodePriority(LPC546XX_ETH_IRQ_PRIORITY_GROUPING,
-      LPC546XX_ETH_IRQ_GROUP_PRIORITY, LPC546XX_ETH_IRQ_SUB_PRIORITY));
+   NVIC_SetPriority(ETHERNET_IRQn, NVIC_EncodePriority(LPC54XXX_ETH_IRQ_PRIORITY_GROUPING,
+      LPC54XXX_ETH_IRQ_GROUP_PRIORITY, LPC54XXX_ETH_IRQ_SUB_PRIORITY));
 
    //Enable MAC transmission and reception
    ENET->MAC_CONFIG |= ENET_MAC_CONFIG_TE_MASK | ENET_MAC_CONFIG_RE_MASK;
@@ -239,18 +239,25 @@ error_t lpc546xxEthInit(NetInterface *interface)
 }
 
 
-//LPCXpresso54608 evaluation board?
-#if defined(USE_LPCXPRESSO_54608)
+//LPCXpresso54S018, LPCXpresso54S018M, LPCXpresso54608, LPCXpresso54628 or
+//LPC54018-IoT-Module evaluation board?
+#if defined(USE_LPCXPRESSO_54S018) || defined(USE_LPCXPRESSO_54S018M) || \
+   defined(USE_LPCXPRESSO_54608) || defined(USE_LPCXPRESSO_54628) || \
+   defined(USE_LPC54018_IOT_MODULE)
 
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void lpc546xxEthInitGpio(NetInterface *interface)
+void lpc54xxxEthInitGpio(NetInterface *interface)
 {
    gpio_pin_config_t pinConfig;
 
+//LPCXpresso54S018, LPCXpresso54608, LPCXpresso54628 or LPC54018-IoT-Module
+//evaluation board?
+#if defined(USE_LPCXPRESSO_54S018) || defined(USE_LPCXPRESSO_54608) || \
+   defined(USE_LPCXPRESSO_54628) || defined(USE_LPC54018_IOT_MODULE)
    //Select RMII interface mode
    SYSCON->ETHPHYSEL |= SYSCON_ETHPHYSEL_PHY_SEL_MASK;
 
@@ -259,54 +266,117 @@ void lpc546xxEthInitGpio(NetInterface *interface)
 
    //Enable GPIO clocks
    CLOCK_EnableClock(kCLOCK_Gpio0);
+   CLOCK_EnableClock(kCLOCK_Gpio2);
    CLOCK_EnableClock(kCLOCK_Gpio4);
 
-   //Configure ENET_TXD1 (PA0_17)
+   //Configure ENET_TXD1 (P0_17)
    IOCON_PinMuxSet(IOCON, 0, 17, IOCON_FUNC7 | IOCON_MODE_INACT |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_TXD0 (PA4_8)
+   //Configure ENET_TXD0 (P4_8)
    IOCON_PinMuxSet(IOCON, 4, 8, IOCON_FUNC1 | IOCON_MODE_INACT |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_RX_DV (PA4_10)
+   //Configure ENET_RX_DV (P4_10)
    IOCON_PinMuxSet(IOCON, 4, 10, IOCON_FUNC1 | IOCON_MODE_INACT |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_RXD0 (PA4_11)
+   //Configure ENET_RXD0 (P4_11)
    IOCON_PinMuxSet(IOCON, 4, 11, IOCON_FUNC1 | IOCON_MODE_INACT |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_RXD1 (PA4_12)
+   //Configure ENET_RXD1 (P4_12)
    IOCON_PinMuxSet(IOCON, 4, 12, IOCON_FUNC1 | IOCON_MODE_INACT |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_TX_EN (PA4_13)
+   //Configure ENET_TX_EN (P4_13)
    IOCON_PinMuxSet(IOCON, 4, 13, IOCON_FUNC1 | IOCON_MODE_INACT |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_RX_CLK (PA4_14)
+   //Configure ENET_RX_CLK (P4_14)
    IOCON_PinMuxSet(IOCON, 4, 14, IOCON_FUNC1 | IOCON_MODE_INACT |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_MDC (PA4_15)
+   //Configure ENET_MDC (P4_15)
    IOCON_PinMuxSet(IOCON, 4, 15, IOCON_FUNC1 | IOCON_MODE_INACT |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_MDIO (PA4_16)
+   //Configure ENET_MDIO (P4_16)
    IOCON_PinMuxSet(IOCON, 4, 16, IOCON_FUNC1 | IOCON_MODE_PULLUP |
       IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
 
-   //Configure ENET_RST as an output
+   //Configure ENET_RST (P2_26) as an output
    pinConfig.pinDirection = kGPIO_DigitalOutput;
    pinConfig.outputLogic = 0;
    GPIO_PinInit(GPIO, 2, 26, &pinConfig);
 
    //Reset PHY transceiver (hard reset)
-   GPIO_WritePinOutput(GPIO, 2, 26, 0);
+   GPIO_PinWrite(GPIO, 2, 26, 0);
    sleep(10);
-   GPIO_WritePinOutput(GPIO, 2, 26, 1);
+   GPIO_PinWrite(GPIO, 2, 26, 1);
    sleep(10);
+
+//LPCXpresso54S018M evaluation board?
+#elif defined(USE_LPCXPRESSO_54S018M)
+   //Select RMII interface mode
+   SYSCON->ETHPHYSEL |= SYSCON_ETHPHYSEL_PHY_SEL_MASK;
+
+   //Enable IOCON clock
+   CLOCK_EnableClock(kCLOCK_Iocon);
+
+   //Enable GPIO clocks
+   CLOCK_EnableClock(kCLOCK_Gpio0);
+   CLOCK_EnableClock(kCLOCK_Gpio1);
+   CLOCK_EnableClock(kCLOCK_Gpio2);
+   CLOCK_EnableClock(kCLOCK_Gpio4);
+
+   //Configure ENET_TXD1 (P0_17)
+   IOCON_PinMuxSet(IOCON, 0, 17, IOCON_FUNC7 | IOCON_MODE_INACT |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_MDC (P1_16)
+   IOCON_PinMuxSet(IOCON, 1, 16, IOCON_FUNC1 | IOCON_MODE_INACT |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_MDIO (P1_23)
+   IOCON_PinMuxSet(IOCON, 1, 23, IOCON_FUNC4 | IOCON_MODE_PULLUP |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_TXD0 (P4_8)
+   IOCON_PinMuxSet(IOCON, 4, 8, IOCON_FUNC1 | IOCON_MODE_INACT |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_RX_DV (P4_10)
+   IOCON_PinMuxSet(IOCON, 4, 10, IOCON_FUNC1 | IOCON_MODE_INACT |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_RXD0 (P4_11)
+   IOCON_PinMuxSet(IOCON, 4, 11, IOCON_FUNC1 | IOCON_MODE_INACT |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_RXD1 (P4_12)
+   IOCON_PinMuxSet(IOCON, 4, 12, IOCON_FUNC1 | IOCON_MODE_INACT |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_TX_EN (P4_13)
+   IOCON_PinMuxSet(IOCON, 4, 13, IOCON_FUNC1 | IOCON_MODE_INACT |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_RX_CLK (P4_14)
+   IOCON_PinMuxSet(IOCON, 4, 14, IOCON_FUNC1 | IOCON_MODE_INACT |
+      IOCON_DIGITAL_EN | IOCON_INPFILT_OFF);
+
+   //Configure ENET_RST (P2_26) as an output
+   pinConfig.pinDirection = kGPIO_DigitalOutput;
+   pinConfig.outputLogic = 0;
+   GPIO_PinInit(GPIO, 2, 26, &pinConfig);
+
+   //Reset PHY transceiver (hard reset)
+   GPIO_PinWrite(GPIO, 2, 26, 0);
+   sleep(10);
+   GPIO_PinWrite(GPIO, 2, 26, 1);
+   sleep(10);
+#endif
 }
 
 #endif
@@ -317,12 +387,12 @@ void lpc546xxEthInitGpio(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void lpc546xxEthInitDmaDesc(NetInterface *interface)
+void lpc54xxxEthInitDmaDesc(NetInterface *interface)
 {
    uint_t i;
 
    //Initialize TX DMA descriptor list
-   for(i = 0; i < LPC546XX_ETH_TX_BUFFER_COUNT; i++)
+   for(i = 0; i < LPC54XXX_ETH_TX_BUFFER_COUNT; i++)
    {
       //The descriptor is initially owned by the application
       txDmaDesc[i].tdes0 = 0;
@@ -335,7 +405,7 @@ void lpc546xxEthInitDmaDesc(NetInterface *interface)
    txIndex = 0;
 
    //Initialize RX DMA descriptor list
-   for(i = 0; i < LPC546XX_ETH_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < LPC54XXX_ETH_RX_BUFFER_COUNT; i++)
    {
       //The descriptor is initially owned by the DMA
       rxDmaDesc[i].rdes0 = (uint32_t) rxBuffer[i];
@@ -350,17 +420,17 @@ void lpc546xxEthInitDmaDesc(NetInterface *interface)
    //Start location of the TX descriptor list
    ENET->DMA_CH[0].DMA_CHX_TXDESC_LIST_ADDR = (uint32_t) &txDmaDesc[0];
    //Length of the transmit descriptor ring
-   ENET->DMA_CH[0].DMA_CHX_TXDESC_RING_LENGTH = LPC546XX_ETH_TX_BUFFER_COUNT - 1;
+   ENET->DMA_CH[0].DMA_CHX_TXDESC_RING_LENGTH = LPC54XXX_ETH_TX_BUFFER_COUNT - 1;
 
    //Start location of the RX descriptor list
    ENET->DMA_CH[0].DMA_CHX_RXDESC_LIST_ADDR = (uint32_t) &rxDmaDesc[0];
    //Length of the receive descriptor ring
-   ENET->DMA_CH[0].DMA_CHX_RXDESC_RING_LENGTH = LPC546XX_ETH_RX_BUFFER_COUNT - 1;
+   ENET->DMA_CH[0].DMA_CHX_RXDESC_RING_LENGTH = LPC54XXX_ETH_RX_BUFFER_COUNT - 1;
 }
 
 
 /**
- * @brief LPC546xx Ethernet MAC timer handler
+ * @brief LPC54xxx Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to handle periodic
  * operations such as polling the link state
@@ -368,7 +438,7 @@ void lpc546xxEthInitDmaDesc(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void lpc546xxEthTick(NetInterface *interface)
+void lpc54xxxEthTick(NetInterface *interface)
 {
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -393,7 +463,7 @@ void lpc546xxEthTick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void lpc546xxEthEnableIrq(NetInterface *interface)
+void lpc54xxxEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ETHERNET_IRQn);
@@ -421,7 +491,7 @@ void lpc546xxEthEnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void lpc546xxEthDisableIrq(NetInterface *interface)
+void lpc54xxxEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ETHERNET_IRQn);
@@ -445,7 +515,7 @@ void lpc546xxEthDisableIrq(NetInterface *interface)
 
 
 /**
- * @brief LPC546xx Ethernet MAC interrupt service routine
+ * @brief LPC54xxx Ethernet MAC interrupt service routine
  **/
 
 void ETHERNET_IRQHandler(void)
@@ -497,11 +567,11 @@ void ETHERNET_IRQHandler(void)
 
 
 /**
- * @brief LPC546xx Ethernet MAC event handler
+ * @brief LPC54xxx Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 
-void lpc546xxEthEventHandler(NetInterface *interface)
+void lpc54xxxEthEventHandler(NetInterface *interface)
 {
    error_t error;
 
@@ -515,7 +585,7 @@ void lpc546xxEthEventHandler(NetInterface *interface)
       do
       {
          //Read incoming packet
-         error = lpc546xxEthReceivePacket(interface);
+         error = lpc54xxxEthReceivePacket(interface);
 
          //No more data in the receive buffer?
       } while(error != ERROR_BUFFER_EMPTY);
@@ -537,7 +607,7 @@ void lpc546xxEthEventHandler(NetInterface *interface)
  * @return Error code
  **/
 
-error_t lpc546xxEthSendPacket(NetInterface *interface,
+error_t lpc54xxxEthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
@@ -546,7 +616,7 @@ error_t lpc546xxEthSendPacket(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > LPC546XX_ETH_TX_BUFFER_SIZE)
+   if(length > LPC54XXX_ETH_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -576,7 +646,7 @@ error_t lpc546xxEthSendPacket(NetInterface *interface,
    ENET->DMA_CH[0].DMA_CHX_TXDESC_TAIL_PTR = 0;
 
    //Increment index and wrap around if necessary
-   if(++txIndex >= LPC546XX_ETH_TX_BUFFER_COUNT)
+   if(++txIndex >= LPC54XXX_ETH_TX_BUFFER_COUNT)
    {
       txIndex = 0;
    }
@@ -599,7 +669,7 @@ error_t lpc546xxEthSendPacket(NetInterface *interface,
  * @return Error code
  **/
 
-error_t lpc546xxEthReceivePacket(NetInterface *interface)
+error_t lpc54xxxEthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
@@ -618,7 +688,7 @@ error_t lpc546xxEthReceivePacket(NetInterface *interface)
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rdes3 & ENET_RDES3_PL;
             //Limit the number of data to read
-            n = MIN(n, LPC546XX_ETH_RX_BUFFER_SIZE);
+            n = MIN(n, LPC54XXX_ETH_RX_BUFFER_SIZE);
 
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -647,7 +717,7 @@ error_t lpc546xxEthReceivePacket(NetInterface *interface)
       rxDmaDesc[rxIndex].rdes3 = ENET_RDES3_OWN | ENET_RDES3_IOC | ENET_RDES3_BUF1V;
 
       //Increment index and wrap around if necessary
-      if(++rxIndex >= LPC546XX_ETH_RX_BUFFER_COUNT)
+      if(++rxIndex >= LPC54XXX_ETH_RX_BUFFER_COUNT)
       {
          rxIndex = 0;
       }
@@ -674,7 +744,7 @@ error_t lpc546xxEthReceivePacket(NetInterface *interface)
  * @return Error code
  **/
 
-error_t lpc546xxEthUpdateMacAddrFilter(NetInterface *interface)
+error_t lpc54xxxEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    bool_t acceptMulticast;
@@ -724,7 +794,7 @@ error_t lpc546xxEthUpdateMacAddrFilter(NetInterface *interface)
  * @return Error code
  **/
 
-error_t lpc546xxEthUpdateMacConfig(NetInterface *interface)
+error_t lpc54xxxEthUpdateMacConfig(NetInterface *interface)
 {
    uint32_t config;
 
@@ -767,7 +837,7 @@ error_t lpc546xxEthUpdateMacConfig(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void lpc546xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void lpc54xxxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
    uint32_t temp;
@@ -809,7 +879,7 @@ void lpc546xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Register value
  **/
 
-uint16_t lpc546xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t lpc54xxxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr)
 {
    uint16_t data;

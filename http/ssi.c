@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -439,7 +439,7 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
    connection->buffer[length - 7] = '\0';
 
    //Check whether a separator is present
-   separator = strchr(connection->buffer, '=');
+   separator = osStrchr(connection->buffer, '=');
    //Separator not found?
    if(!separator)
       return ERROR_INVALID_TAG;
@@ -612,7 +612,7 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, siz
    connection->buffer[length - 4] = '\0';
 
    //Check whether a separator is present
-   separator = strchr(connection->buffer, '=');
+   separator = osStrchr(connection->buffer, '=');
    //Separator not found?
    if(!separator)
       return ERROR_INVALID_TAG;
@@ -774,7 +774,7 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, siz
    connection->buffer[length - 4] = '\0';
 
    //Check whether a separator is present
-   separator = strchr(connection->buffer, '=');
+   separator = osStrchr(connection->buffer, '=');
    //Separator not found?
    if(!separator)
       return ERROR_INVALID_TAG;

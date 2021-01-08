@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -456,7 +456,7 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
          }
       }
 
-      //Sucessful processing
+      //Successful processing
       error = NO_ERROR;
    }
    else
@@ -476,7 +476,7 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
             {
                //Record IP address
                binding->ipAddr = requestedIpAddr;
-               //Sucessful processing
+               //Successful processing
                error = NO_ERROR;
             }
             else

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -156,7 +156,7 @@ error_t httpReadRequestHeader(HttpConnection *connection)
             break;
 
          //Check whether a separator is present
-         separator = strchr(connection->buffer, ':');
+         separator = osStrchr(connection->buffer, ':');
 
          //Separator found?
          if(separator != NULL)
@@ -225,7 +225,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
       return ERROR_INVALID_REQUEST;
 
    //Check whether a query string is present
-   s = strchr(token, '?');
+   s = osStrchr(token, '?');
 
    //Query string found?
    if(s != NULL)
@@ -415,7 +415,6 @@ error_t httpReadHeaderField(HttpConnection *connection,
  * @param[in] connection Structure representing an HTTP connection
  * @param[in] name Name of the header field
  * @param[in] value Value of the header field
- * @return Error code
  **/
 
 void httpParseHeaderField(HttpConnection *connection,
@@ -1184,7 +1183,6 @@ error_t httpDecodePercentEncodedString(const char_t *input,
  * @param[in] input Point to the byte array
  * @param[in] inputLen Length of the byte array
  * @param[out] output NULL-terminated string resulting from the conversion
- * @return Error code
  **/
 
 void httpConvertArrayToHexString(const uint8_t *input,

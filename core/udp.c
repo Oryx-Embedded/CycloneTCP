@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -363,6 +363,8 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
 
    //Initialize next field
    queueItem->next = NULL;
+   //Network interface where the packet was received
+   queueItem->interface = interface;
    //Record the source port number
    queueItem->srcPort = ntohs(header->srcPort);
 
@@ -427,7 +429,18 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
    error_t error;
    size_t offset;
    NetBuffer *buffer;
+   NetInterface *interface;
    NetTxAncillary ancillary;
+
+   //Select the relevant network interface
+   if(message->interface != NULL)
+   {
+      interface = message->interface;
+   }
+   else
+   {
+      interface = socket->interface;
+   }
 
    //Allocate a memory buffer to hold the UDP datagram
    buffer = udpAllocBuffer(0, &offset);
@@ -499,9 +512,8 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
 #endif
 
       //Send UDP datagram
-      error = udpSendBuffer(socket->interface, &message->srcIpAddr,
-         socket->localPort, &message->destIpAddr, message->destPort, buffer,
-         offset, &ancillary);
+      error = udpSendBuffer(interface, &message->srcIpAddr, socket->localPort,
+         &message->destIpAddr, message->destPort, buffer, offset, &ancillary);
    }
 
    //Free previously allocated memory
@@ -678,12 +690,7 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
 /**
  * @brief Receive data from a UDP socket
  * @param[in] socket Handle referencing the socket
- * @param[out] srcIpAddr Source IP address (optional)
- * @param[out] srcPort Source port number (optional)
- * @param[out] destIpAddr Destination IP address (optional)
- * @param[out] data Buffer where to store the incoming data
- * @param[in] size Maximum number of bytes that can be received
- * @param[out] received Number of bytes that have been received
+ * @param[out] message Received UDP datagram and ancillary data
  * @param[in] flags Set of flags that influences the behavior of this function
  * @return Error code
  **/
@@ -724,6 +731,8 @@ error_t udpReceiveDatagram(Socket *socket, SocketMsg *message, uint_t flags)
       message->length = netBufferRead(message->data, queueItem->buffer,
          queueItem->offset, message->size);
 
+      //Network interface where the packet was received
+      message->interface = queueItem->interface;
       //Save the source IP address
       message->srcIpAddr = queueItem->srcIpAddr;
       //Save the source port number

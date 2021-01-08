@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 #ifndef _ENC624J600_DRIVER_H
@@ -87,359 +87,451 @@
 #define ENC624J600_CMD_WUDADATA    0x32 //Write EUDADATA
 
 //ENC624J600 registers
-#define ENC624J600_REG_ETXST       0x00
-#define ENC624J600_REG_ETXLEN      0x02
-#define ENC624J600_REG_ERXST       0x04
-#define ENC624J600_REG_ERXTAIL     0x06
-#define ENC624J600_REG_ERXHEAD     0x08
-#define ENC624J600_REG_EDMAST      0x0A
-#define ENC624J600_REG_EDMALEN     0x0C
-#define ENC624J600_REG_EDMADST     0x0E
-#define ENC624J600_REG_EDMACS      0x10
-#define ENC624J600_REG_ETXSTAT     0x12
-#define ENC624J600_REG_ETXWIRE     0x14
-#define ENC624J600_REG_EUDAST      0x16
-#define ENC624J600_REG_EUDAND      0x18
-#define ENC624J600_REG_ESTAT       0x1A
-#define ENC624J600_REG_EIR         0x1C
-#define ENC624J600_REG_ECON1       0x1E
-#define ENC624J600_REG_EHT1        0x20
-#define ENC624J600_REG_EHT2        0x22
-#define ENC624J600_REG_EHT3        0x24
-#define ENC624J600_REG_EHT4        0x26
-#define ENC624J600_REG_EPMM1       0x28
-#define ENC624J600_REG_EPMM2       0x2A
-#define ENC624J600_REG_EPMM3       0x2C
-#define ENC624J600_REG_EPMM4       0x2E
-#define ENC624J600_REG_EPMCS       0x30
-#define ENC624J600_REG_EPMO        0x32
-#define ENC624J600_REG_ERXFCON     0x34
-#define ENC624J600_REG_MACON1      0x40
-#define ENC624J600_REG_MACON2      0x42
-#define ENC624J600_REG_MABBIPG     0x44
-#define ENC624J600_REG_MAIPG       0x46
-#define ENC624J600_REG_MACLCON     0x48
-#define ENC624J600_REG_MAMXFL      0x4A
-#define ENC624J600_REG_MICMD       0x52
-#define ENC624J600_REG_MIREGADR    0x54
-#define ENC624J600_REG_MAADR3      0x60
-#define ENC624J600_REG_MAADR2      0x62
-#define ENC624J600_REG_MAADR1      0x64
-#define ENC624J600_REG_MIWR        0x66
-#define ENC624J600_REG_MIRD        0x68
-#define ENC624J600_REG_MISTAT      0x6A
-#define ENC624J600_REG_EPAUS       0x6C
-#define ENC624J600_REG_ECON2       0x6E
-#define ENC624J600_REG_ERXWM       0x70
-#define ENC624J600_REG_EIE         0x72
-#define ENC624J600_REG_EIDLED      0x74
-#define ENC624J600_REG_EGPDATA     0x80
-#define ENC624J600_REG_ERXDATA     0x82
-#define ENC624J600_REG_EUDADATA    0x84
-#define ENC624J600_REG_EGPRDPT     0x86
-#define ENC624J600_REG_EGPWRPT     0x88
-#define ENC624J600_REG_ERXRDPT     0x8A
-#define ENC624J600_REG_ERXWRPT     0x8C
-#define ENC624J600_REG_EUDARDPT    0x8E
-#define ENC624J600_REG_EUDAWRPT    0x90
+#define ENC624J600_ETXST                          0x00
+#define ENC624J600_ETXLEN                         0x02
+#define ENC624J600_ERXST                          0x04
+#define ENC624J600_ERXTAIL                        0x06
+#define ENC624J600_ERXHEAD                        0x08
+#define ENC624J600_EDMAST                         0x0A
+#define ENC624J600_EDMALEN                        0x0C
+#define ENC624J600_EDMADST                        0x0E
+#define ENC624J600_EDMACS                         0x10
+#define ENC624J600_ETXSTAT                        0x12
+#define ENC624J600_ETXWIRE                        0x14
+#define ENC624J600_EUDAST                         0x16
+#define ENC624J600_EUDAND                         0x18
+#define ENC624J600_ESTAT                          0x1A
+#define ENC624J600_EIR                            0x1C
+#define ENC624J600_ECON1                          0x1E
+#define ENC624J600_EHT1                           0x20
+#define ENC624J600_EHT2                           0x22
+#define ENC624J600_EHT3                           0x24
+#define ENC624J600_EHT4                           0x26
+#define ENC624J600_EPMM1                          0x28
+#define ENC624J600_EPMM2                          0x2A
+#define ENC624J600_EPMM3                          0x2C
+#define ENC624J600_EPMM4                          0x2E
+#define ENC624J600_EPMCS                          0x30
+#define ENC624J600_EPMO                           0x32
+#define ENC624J600_ERXFCON                        0x34
+#define ENC624J600_MACON1                         0x40
+#define ENC624J600_MACON2                         0x42
+#define ENC624J600_MABBIPG                        0x44
+#define ENC624J600_MAIPG                          0x46
+#define ENC624J600_MACLCON                        0x48
+#define ENC624J600_MAMXFL                         0x4A
+#define ENC624J600_MICMD                          0x52
+#define ENC624J600_MIREGADR                       0x54
+#define ENC624J600_MAADR3                         0x60
+#define ENC624J600_MAADR2                         0x62
+#define ENC624J600_MAADR1                         0x64
+#define ENC624J600_MIWR                           0x66
+#define ENC624J600_MIRD                           0x68
+#define ENC624J600_MISTAT                         0x6A
+#define ENC624J600_EPAUS                          0x6C
+#define ENC624J600_ECON2                          0x6E
+#define ENC624J600_ERXWM                          0x70
+#define ENC624J600_EIE                            0x72
+#define ENC624J600_EIDLED                         0x74
+#define ENC624J600_EGPDATA                        0x80
+#define ENC624J600_ERXDATA                        0x82
+#define ENC624J600_EUDADATA                       0x84
+#define ENC624J600_EGPRDPT                        0x86
+#define ENC624J600_EGPWRPT                        0x88
+#define ENC624J600_ERXRDPT                        0x8A
+#define ENC624J600_ERXWRPT                        0x8C
+#define ENC624J600_EUDARDPT                       0x8E
+#define ENC624J600_EUDAWRPT                       0x90
 
 //ENC624J600 PHY registers
-#define ENC624J600_PHY_REG_PHCON1  0x00
-#define ENC624J600_PHY_REG_PHSTAT1 0x01
-#define ENC624J600_PHY_REG_PHANA   0x04
-#define ENC624J600_PHY_REG_PHANLPA 0x05
-#define ENC624J600_PHY_REG_PHANE   0x06
-#define ENC624J600_PHY_REG_PHCON2  0x11
-#define ENC624J600_PHY_REG_PHSTAT2 0x1B
-#define ENC624J600_PHY_REG_PHSTAT3 0x1F
+#define ENC624J600_PHCON1                         0x00
+#define ENC624J600_PHSTAT1                        0x01
+#define ENC624J600_PHANA                          0x04
+#define ENC624J600_PHANLPA                        0x05
+#define ENC624J600_PHANE                          0x06
+#define ENC624J600_PHCON2                         0x11
+#define ENC624J600_PHSTAT2                        0x1B
+#define ENC624J600_PHSTAT3                        0x1F
 
-//ESTAT register
-#define ESTAT_INT                  0x8000
-#define ESTAT_FCIDLE               0x4000
-#define ESTAT_RXBUSY               0x2000
-#define ESTAT_CLKRDY               0x1000
-#define ESTAT_R11                  0x0800
-#define ESTAT_PHYDPX               0x0400
-#define ESTAT_R9                   0x0200
-#define ESTAT_PHYLNK               0x0100
-#define ESTAT_PKTCNT               0x00FF
+//TX Start Address register
+#define ENC624J600_ETXST_VAL                      0x7FFF
 
-//EIR register
-#define EIR_CRYPTEN                0x8000
-#define EIR_MODEXIF                0x4000
-#define EIR_HASHIF                 0x2000
-#define EIR_AESIF                  0x1000
-#define EIR_LINKIF                 0x0800
-#define EIR_R10                    0x0400
-#define EIR_R9                     0x0200
-#define EIR_R8                     0x0100
-#define EIR_R7                     0x0080
-#define EIR_PKTIF                  0x0040
-#define EIR_DMAIF                  0x0020
-#define EIR_R4                     0x0010
-#define EIR_TXIF                   0x0008
-#define EIR_TXABTIF                0x0004
-#define EIR_RXABTIF                0x0002
-#define EIR_PCFULIF                0x0001
+//TX Length register
+#define ENC624J600_ETXLEN_VAL                     0x7FFF
 
-//ECON1 register
-#define ECON1_MODEXST              0x8000
-#define ECON1_HASHEN               0x4000
-#define ECON1_HASHOP               0x2000
-#define ECON1_HASHLST              0x1000
-#define ECON1_AESST                0x0800
-#define ECON1_AESOP1               0x0400
-#define ECON1_AESOP0               0x0200
-#define ECON1_PKTDEC               0x0100
-#define ECON1_FCOP1                0x0080
-#define ECON1_FCOP0                0x0040
-#define ECON1_DMAST                0x0020
-#define ECON1_DMACPY               0x0010
-#define ECON1_DMACSSD              0x0008
-#define ECON1_DMANOCS              0x0004
-#define ECON1_TXRTS                0x0002
-#define ECON1_RXEN                 0x0001
+//RX Buffer Start Address register
+#define ENC624J600_ERXST_VAL                      0x7FFF
 
-//ETXSTAT register
-#define ETXSTAT_R12                0x1000
-#define ETXSTAT_R11                0x0800
-#define ETXSTAT_LATECOL            0x0400
-#define ETXSTAT_MAXCOL             0x0200
-#define ETXSTAT_EXDEFER            0x0100
-#define ETXSTAT_DEFER              0x0080
-#define ETXSTAT_R6                 0x0040
-#define ETXSTAT_R5                 0x0020
-#define ETXSTAT_CRCBAD             0x0010
-#define ETXSTAT_COLCNT             0x000F
+//RX Tail Pointer register
+#define ENC624J600_ERXTAIL_VAL                    0x7FFF
 
-//ERXFCON register
-#define ERXFCON_HTEN               0x8000
-#define ERXFCON_MPEN               0x4000
-#define ERXFCON_NOTPM              0x1000
-#define ERXFCON_PMEN3              0x0800
-#define ERXFCON_PMEN2              0x0400
-#define ERXFCON_PMEN1              0x0200
-#define ERXFCON_PMEN0              0x0100
-#define ERXFCON_CRCEEN             0x0080
-#define ERXFCON_CRCEN              0x0040
-#define ERXFCON_RUNTEEN            0x0020
-#define ERXFCON_RUNTEN             0x0010
-#define ERXFCON_UCEN               0x0008
-#define ERXFCON_NOTMEEN            0x0004
-#define ERXFCON_MCEN               0x0002
-#define ERXFCON_BCEN               0x0001
+//RX Head Pointer register
+#define ENC624J600_ERXHEAD_VAL                    0x7FFF
 
-//MACON1 register
-#define MACON1_R15                 0x8000
-#define MACON1_R14                 0x4000
-#define MACON1_R11                 0x0800
-#define MACON1_R10                 0x0400
-#define MACON1_R9                  0x0200
-#define MACON1_R8                  0x0100
-#define MACON1_LOOPBK              0x0010
-#define MACON1_R3                  0x0008
-#define MACON1_RXPAUS              0x0004
-#define MACON1_PASSALL             0x0002
-#define MACON1_R0                  0x0001
+//DMA Start Address register
+#define ENC624J600_EDMAST_VAL                     0x7FFF
 
-//MACON2 register
-#define MACON2_DEFER               0x4000
-#define MACON2_BPEN                0x2000
-#define MACON2_NOBKOFF             0x1000
-#define MACON2_R9                  0x0200
-#define MACON2_R8                  0x0100
-#define MACON2_PADCFG2             0x0080
-#define MACON2_PADCFG1             0x0040
-#define MACON2_PADCFG0             0x0020
-#define MACON2_TXCRCEN             0x0010
-#define MACON2_PHDREN              0x0008
-#define MACON2_HFRMEN              0x0004
-#define MACON2_R1                  0x0002
-#define MACON2_FULDPX              0x0001
+//DMA Length register
+#define ENC624J600_EDMALEN_VAL                    0x7FFF
 
-//MABBIPG register
-#define MABBIPG_BBIPG              0x007F
+//DMA Destination Address register
+#define ENC624J600_EDMADST_VAL                    0x7FFF
 
-//MAIPG register
-#define MAIPG_R14                  0x4000
-#define MAIPG_R13                  0x2000
-#define MAIPG_R12                  0x1000
-#define MAIPG_R11                  0x0800
-#define MAIPG_R10                  0x0400
-#define MAIPG_R9                   0x0200
-#define MAIPG_R8                   0x0100
-#define MAIPG_IPG                  0x007F
+//Ethernet Transmit Status register
+#define ENC624J600_ETXSTAT_R12                    0x1000
+#define ENC624J600_ETXSTAT_R11                    0x0800
+#define ENC624J600_ETXSTAT_LATECOL                0x0400
+#define ENC624J600_ETXSTAT_MAXCOL                 0x0200
+#define ENC624J600_ETXSTAT_EXDEFER                0x0100
+#define ENC624J600_ETXSTAT_DEFER                  0x0080
+#define ENC624J600_ETXSTAT_R6                     0x0040
+#define ENC624J600_ETXSTAT_R5                     0x0020
+#define ENC624J600_ETXSTAT_CRCBAD                 0x0010
+#define ENC624J600_ETXSTAT_COLCNT                 0x000F
 
-//MACLCON register
-#define MACLCON_R13                0x2000
-#define MACLCON_R12                0x1000
-#define MACLCON_R11                0x0800
-#define MACLCON_R10                0x0400
-#define MACLCON_R9                 0x0200
-#define MACLCON_R8                 0x0100
-#define MACLCON_MAXRET             0x000F
+//User-Defined Area Start Pointer register
+#define ENC624J600_EUDAST_VAL                     0x7FFF
 
-//MICMD register
-#define MICMD_MIISCAN              0x0002
-#define MICMD_MIIRD                0x0001
+//User-Defined Area End Pointer register
+#define ENC624J600_EUDAND_VAL                     0x7FFF
 
-//MIREGADR register
-#define MIREGADR_R12               0x1000
-#define MIREGADR_R11               0x0800
-#define MIREGADR_R10               0x0400
-#define MIREGADR_R9                0x0200
-#define MIREGADR_R8                0x0100
-#define MIREGADR_PHREG             0x001F
+//Ethernet Status register
+#define ENC624J600_ESTAT_INT                      0x8000
+#define ENC624J600_ESTAT_FCIDLE                   0x4000
+#define ENC624J600_ESTAT_RXBUSY                   0x2000
+#define ENC624J600_ESTAT_CLKRDY                   0x1000
+#define ENC624J600_ESTAT_R11                      0x0800
+#define ENC624J600_ESTAT_PHYDPX                   0x0400
+#define ENC624J600_ESTAT_R9                       0x0200
+#define ENC624J600_ESTAT_PHYLNK                   0x0100
+#define ENC624J600_ESTAT_PKTCNT                   0x00FF
 
-//MISTAT register
-#define MISTAT_R3                  0x0008
-#define MISTAT_NVALID              0x0004
-#define MISTAT_SCAN                0x0002
-#define MISTAT_BUSY                0x0001
+//Ethernet Interrupt Flag register
+#define ENC624J600_EIR_CRYPTEN                    0x8000
+#define ENC624J600_EIR_MODEXIF                    0x4000
+#define ENC624J600_EIR_HASHIF                     0x2000
+#define ENC624J600_EIR_AESIF                      0x1000
+#define ENC624J600_EIR_LINKIF                     0x0800
+#define ENC624J600_EIR_R10                        0x0400
+#define ENC624J600_EIR_R9                         0x0200
+#define ENC624J600_EIR_R8                         0x0100
+#define ENC624J600_EIR_R7                         0x0080
+#define ENC624J600_EIR_PKTIF                      0x0040
+#define ENC624J600_EIR_DMAIF                      0x0020
+#define ENC624J600_EIR_R4                         0x0010
+#define ENC624J600_EIR_TXIF                       0x0008
+#define ENC624J600_EIR_TXABTIF                    0x0004
+#define ENC624J600_EIR_RXABTIF                    0x0002
+#define ENC624J600_EIR_PCFULIF                    0x0001
 
-//ECON2 register
-#define ECON2_ETHEN                0x8000
-#define ECON2_STRCH                0x4000
-#define ECON2_TXMAC                0x2000
-#define ECON2_SHA1MD5              0x1000
-#define ECON2_COCON3               0x0800
-#define ECON2_COCON2               0x0400
-#define ECON2_COCON1               0x0200
-#define ECON2_COCON0               0x0100
-#define ECON2_AUTOFC               0x0080
-#define ECON2_TXRST                0x0040
-#define ECON2_RXRST                0x0020
-#define ECON2_ETHRST               0x0010
-#define ECON2_MODLEN1              0x0008
-#define ECON2_MODLEN0              0x0004
-#define ECON2_AESLEN1              0x0002
-#define ECON2_AESLEN0              0x0001
+//Ethernet Control 1 register
+#define ENC624J600_ECON1_MODEXST                  0x8000
+#define ENC624J600_ECON1_HASHEN                   0x4000
+#define ENC624J600_ECON1_HASHOP                   0x2000
+#define ENC624J600_ECON1_HASHLST                  0x1000
+#define ENC624J600_ECON1_AESST                    0x0800
+#define ENC624J600_ECON1_AESOP1                   0x0400
+#define ENC624J600_ECON1_AESOP0                   0x0200
+#define ENC624J600_ECON1_PKTDEC                   0x0100
+#define ENC624J600_ECON1_FCOP1                    0x0080
+#define ENC624J600_ECON1_FCOP0                    0x0040
+#define ENC624J600_ECON1_DMAST                    0x0020
+#define ENC624J600_ECON1_DMACPY                   0x0010
+#define ENC624J600_ECON1_DMACSSD                  0x0008
+#define ENC624J600_ECON1_DMANOCS                  0x0004
+#define ENC624J600_ECON1_TXRTS                    0x0002
+#define ENC624J600_ECON1_RXEN                     0x0001
 
-//ERXWM register
-#define ERXWM_RXFWM                0xFF00
-#define ERXWM_RXEWM                0x00FF
+//Ethernet RX Filter Control register
+#define ENC624J600_ERXFCON_HTEN                   0x8000
+#define ENC624J600_ERXFCON_MPEN                   0x4000
+#define ENC624J600_ERXFCON_NOTPM                  0x1000
+#define ENC624J600_ERXFCON_PMEN                   0x0F00
+#define ENC624J600_ERXFCON_PMEN_DISABLED          0x0000
+#define ENC624J600_ERXFCON_PMEN_CHECKSUM          0x0100
+#define ENC624J600_ERXFCON_PMEN_UNICAST           0x0200
+#define ENC624J600_ERXFCON_PMEN_NOT_UNICAST       0x0300
+#define ENC624J600_ERXFCON_PMEN_MULTICAST         0x0400
+#define ENC624J600_ERXFCON_PMEN_NOT_MULTICAST     0x0500
+#define ENC624J600_ERXFCON_PMEN_BROADCAST         0x0600
+#define ENC624J600_ERXFCON_PMEN_NOT_BROADCAST     0x0700
+#define ENC624J600_ERXFCON_PMEN_HASH              0x0800
+#define ENC624J600_ERXFCON_PMEN_MAGIC_PKT         0x0900
+#define ENC624J600_ERXFCON_CRCEEN                 0x0080
+#define ENC624J600_ERXFCON_CRCEN                  0x0040
+#define ENC624J600_ERXFCON_RUNTEEN                0x0020
+#define ENC624J600_ERXFCON_RUNTEN                 0x0010
+#define ENC624J600_ERXFCON_UCEN                   0x0008
+#define ENC624J600_ERXFCON_NOTMEEN                0x0004
+#define ENC624J600_ERXFCON_MCEN                   0x0002
+#define ENC624J600_ERXFCON_BCEN                   0x0001
 
-//EIE register
-#define EIE_INTIE                  0x8000
-#define EIE_MODEXIE                0x4000
-#define EIE_HASHIE                 0x2000
-#define EIE_AESIE                  0x1000
-#define EIE_LINKIE                 0x0800
-#define EIE_R10                    0x0400
-#define EIE_R9                     0x0200
-#define EIE_R8                     0x0100
-#define EIE_R7                     0x0080
-#define EIE_PKTIE                  0x0040
-#define EIE_DMAIE                  0x0020
-#define EIE_R4                     0x0010
-#define EIE_TXIE                   0x0008
-#define EIE_TXABTIE                0x0004
-#define EIE_RXABTIE                0x0002
-#define EIE_PCFULIE                0x0001
+//MAC Control 1 register
+#define ENC624J600_MACON1_R15_14                  0xC000
+#define ENC624J600_MACON1_R11_8                   0x0F00
+#define ENC624J600_MACON1_LOOPBK                  0x0010
+#define ENC624J600_MACON1_R3                      0x0008
+#define ENC624J600_MACON1_R3_DEFAULT              0x0008
+#define ENC624J600_MACON1_RXPAUS                  0x0004
+#define ENC624J600_MACON1_PASSALL                 0x0002
+#define ENC624J600_MACON1_R0                      0x0001
+#define ENC624J600_MACON1_R0_DEFAULT              0x0001
 
-//EIDLED register
-#define EIDLED_LACFG3              0x8000
-#define EIDLED_LACFG2              0x4000
-#define EIDLED_LACFG1              0x2000
-#define EIDLED_LACFG0              0x1000
-#define EIDLED_LBCFG3              0x0800
-#define EIDLED_LBCFG2              0x0400
-#define EIDLED_LBCFG1              0x0200
-#define EIDLED_LBCFG0              0x0100
-#define EIDLED_DEVID               0x00FF
+//MAC Control 2 register
+#define ENC624J600_MACON2_DEFER                   0x4000
+#define ENC624J600_MACON2_BPEN                    0x2000
+#define ENC624J600_MACON2_NOBKOFF                 0x1000
+#define ENC624J600_MACON2_R9_8                    0x0300
+#define ENC624J600_MACON2_PADCFG                  0x00E0
+#define ENC624J600_MACON2_PADCFG_NO               0x0000
+#define ENC624J600_MACON2_PADCFG_60_BYTES         0x0020
+#define ENC624J600_MACON2_PADCFG_64_BYTES         0x0060
+#define ENC624J600_MACON2_PADCFG_AUTO             0x00A0
+#define ENC624J600_MACON2_TXCRCEN                 0x0010
+#define ENC624J600_MACON2_PHDREN                  0x0008
+#define ENC624J600_MACON2_HFRMEN                  0x0004
+#define ENC624J600_MACON2_R1                      0x0002
+#define ENC624J600_MACON2_R1_DEFAULT              0x0002
+#define ENC624J600_MACON2_FULDPX                  0x0001
 
-//PHCON1 register
-#define PHCON1_PRST                0x8000
-#define PHCON1_PLOOPBK             0x4000
-#define PHCON1_SPD100              0x2000
-#define PHCON1_ANEN                0x1000
-#define PHCON1_PSLEEP              0x0800
-#define PHCON1_RENEG               0x0200
-#define PHCON1_PFULDPX             0x0100
+//MAC Back-To-Back Inter-Packet Gap register
+#define ENC624J600_MABBIPG_BBIPG                  0x007F
+#define ENC624J600_MABBIPG_BBIPG_DEFAULT_HD       0x0012
+#define ENC624J600_MABBIPG_BBIPG_DEFAULT_FD       0x0015
 
-//PHSTAT1 register
-#define PHSTAT1_FULL100            0x4000
-#define PHSTAT1_HALF100            0x2000
-#define PHSTAT1_FULL10             0x1000
-#define PHSTAT1_HALF10             0x0800
-#define PHSTAT1_ANDONE             0x0020
-#define PHSTAT1_LRFAULT            0x0010
-#define PHSTAT1_ANABLE             0x0008
-#define PHSTAT1_LLSTAT             0x0004
-#define PHSTAT1_EXTREGS            0x0001
+//MAC Inter-Packet Gap register
+#define ENC624J600_MAIPG_R14_8                    0x7F00
+#define ENC624J600_MAIPG_R14_8_DEFAULT            0x0C00
+#define ENC624J600_MAIPG_IPG                      0x007F
+#define ENC624J600_MAIPG_IPG_DEFAULT              0x0012
 
-//PHANA register
-#define PHANA_ADNP                 0x8000
-#define PHANA_ADFAULT              0x2000
-#define PHANA_ADPAUS1              0x0800
-#define PHANA_ADPAUS0              0x0400
-#define PHANA_AD100FD              0x0100
-#define PHANA_AD100                0x0080
-#define PHANA_AD10FD               0x0040
-#define PHANA_AD10                 0x0020
-#define PHANA_ADIEEE4              0x0010
-#define PHANA_ADIEEE3              0x0008
-#define PHANA_ADIEEE2              0x0004
-#define PHANA_ADIEEE1              0x0002
-#define PHANA_ADIEEE0              0x0001
+//MAC Collision Control register
+#define ENC624J600_MACLCON_R13_8                  0x3F00
+#define ENC624J600_MACLCON_R13_8_DEFAULT          0x3700
+#define ENC624J600_MACLCON_MAXRET                 0x000F
 
-//PHANLPA register
-#define PHANLPA_LPNP               0x8000
-#define PHANLPA_LPACK              0x4000
-#define PHANLPA_LPFAULT            0x2000
-#define PHANLPA_LPPAUS1            0x0800
-#define PHANLPA_LPPAUS0            0x0400
-#define PHANLPA_LP100T4            0x0200
-#define PHANLPA_LP100FD            0x0100
-#define PHANLPA_LP100              0x0080
-#define PHANLPA_LP10FD             0x0040
-#define PHANLPA_LP10               0x0020
-#define PHANLPA_LPIEEE             0x001F
-#define PHANLPA_LPIEEE4            0x0010
-#define PHANLPA_LPIEEE3            0x0008
-#define PHANLPA_LPIEEE2            0x0004
-#define PHANLPA_LPIEEE1            0x0002
-#define PHANLPA_LPIEEE0            0x0001
+//MII Management Command register
+#define ENC624J600_MICMD_MIISCAN                  0x0002
+#define ENC624J600_MICMD_MIIRD                    0x0001
 
-//PHANE register
-#define PHANE_PDFLT                0x0010
-#define PHANE_LPARCD               0x0002
-#define PHANE_LPANABL              0x0001
+//MII Management Address register
+#define ENC624J600_MIREGADR_R12_8                 0x1F00
+#define ENC624J600_MIREGADR_R12_8_DEFAULT         0x0100
+#define ENC624J600_MIREGADR_PHREG                 0x001F
 
-//PHCON2 register
-#define PHCON2_EDPWRDN             0x2000
-#define PHCON2_EDTHRES             0x0800
-#define PHCON2_FRCLNK              0x0004
-#define PHCON2_EDSTAT              0x0002
+//MII Management Status register
+#define ENC624J600_MISTAT_R3                      0x0008
+#define ENC624J600_MISTAT_NVALID                  0x0004
+#define ENC624J600_MISTAT_SCAN                    0x0002
+#define ENC624J600_MISTAT_BUSY                    0x0001
 
-//PHSTAT2 register
-#define PHSTAT2_PLRITY             0x0010
+//Ethernet Control 2 register
+#define ENC624J600_ECON2_ETHEN                    0x8000
+#define ENC624J600_ECON2_STRCH                    0x4000
+#define ENC624J600_ECON2_TXMAC                    0x2000
+#define ENC624J600_ECON2_SHA1MD5                  0x1000
+#define ENC624J600_ECON2_COCON                    0x0F00
+#define ENC624J600_ECON2_COCON_NONE               0x0000
+#define ENC624J600_ECON2_COCON_33_33_MHZ          0x0100
+#define ENC624J600_ECON2_COCON_25_00_MHZ          0x0200
+#define ENC624J600_ECON2_COCON_20_00_MHZ          0x0300
+#define ENC624J600_ECON2_COCON_16_67_MHZ          0x0400
+#define ENC624J600_ECON2_COCON_12_50_MHZ          0x0500
+#define ENC624J600_ECON2_COCON_10_00_MHZ          0x0600
+#define ENC624J600_ECON2_COCON_8_333_MHZ          0x0700
+#define ENC624J600_ECON2_COCON_8_000_MHZ          0x0800
+#define ENC624J600_ECON2_COCON_6_250_MHZ          0x0900
+#define ENC624J600_ECON2_COCON_5_000_MHZ          0x0A00
+#define ENC624J600_ECON2_COCON_4_000_MHZ          0x0B00
+#define ENC624J600_ECON2_COCON_3_125_MHZ          0x0C00
+#define ENC624J600_ECON2_COCON_100_KHZ            0x0E00
+#define ENC624J600_ECON2_COCON_50_KHZ             0x0F00
+#define ENC624J600_ECON2_AUTOFC                   0x0080
+#define ENC624J600_ECON2_TXRST                    0x0040
+#define ENC624J600_ECON2_RXRST                    0x0020
+#define ENC624J600_ECON2_ETHRST                   0x0010
+#define ENC624J600_ECON2_MODLEN                   0x000C
+#define ENC624J600_ECON2_MODLEN_512_BITS          0x0000
+#define ENC624J600_ECON2_MODLEN_768_BITS          0x0004
+#define ENC624J600_ECON2_MODLEN_1024_BITS         0x0008
+#define ENC624J600_ECON2_AESLEN                   0x0003
+#define ENC624J600_ECON2_AESLEN_128_BITS          0x0000
+#define ENC624J600_ECON2_AESLEN_192_BITS          0x0001
+#define ENC624J600_ECON2_AESLEN_256_BITS          0x0002
 
-//PHSTAT3 register
-#define PHSTAT3_SPDDPX2            0x0010
-#define PHSTAT3_SPDDPX1            0x0008
-#define PHSTAT3_SPDDPX0            0x0004
+//Receive Watermark register
+#define ENC624J600_ERXWM_RXFWM                    0xFF00
+#define ENC624J600_ERXWM_RXEWM                    0x00FF
+
+//Ethernet Interrupt Enable register
+#define ENC624J600_EIE_INTIE                      0x8000
+#define ENC624J600_EIE_MODEXIE                    0x4000
+#define ENC624J600_EIE_HASHIE                     0x2000
+#define ENC624J600_EIE_AESIE                      0x1000
+#define ENC624J600_EIE_LINKIE                     0x0800
+#define ENC624J600_EIE_R10_7                      0x0780
+#define ENC624J600_EIE_PKTIE                      0x0040
+#define ENC624J600_EIE_DMAIE                      0x0020
+#define ENC624J600_EIE_R4                         0x0010
+#define ENC624J600_EIE_R4_DEFAULT                 0x0010
+#define ENC624J600_EIE_TXIE                       0x0008
+#define ENC624J600_EIE_TXABTIE                    0x0004
+#define ENC624J600_EIE_RXABTIE                    0x0002
+#define ENC624J600_EIE_PCFULIE                    0x0001
+
+//Ethernet ID Status/LED Control register
+#define ENC624J600_EIDLED_LACFG                   0xF000
+#define ENC624J600_EIDLED_LACFG_OFF               0x0000
+#define ENC624J600_EIDLED_LACFG_ON                0x1000
+#define ENC624J600_EIDLED_LACFG_LINK              0x2000
+#define ENC624J600_EIDLED_LACFG_COL               0x3000
+#define ENC624J600_EIDLED_LACFG_TX                0x4000
+#define ENC624J600_EIDLED_LACFG_RX                0x5000
+#define ENC624J600_EIDLED_LACFG_TX_RX             0x6000
+#define ENC624J600_EIDLED_LACFG_DUPLEX            0x7000
+#define ENC624J600_EIDLED_LACFG_SPEED             0x8000
+#define ENC624J600_EIDLED_LACFG_LINK_TX           0x9000
+#define ENC624J600_EIDLED_LACFG_LINK_RX           0xA000
+#define ENC624J600_EIDLED_LACFG_LINK_TX_RX        0xB000
+#define ENC624J600_EIDLED_LACFG_LINK_COL          0xC000
+#define ENC624J600_EIDLED_LACFG_LINK_DUPLEX_TX_RX 0xE000
+#define ENC624J600_EIDLED_LACFG_LINK_SPEED_TX_RX  0xF000
+#define ENC624J600_EIDLED_LBCFG                   0x0F00
+#define ENC624J600_EIDLED_LBCFG_OFF               0x0000
+#define ENC624J600_EIDLED_LBCFG_ON                0x0100
+#define ENC624J600_EIDLED_LBCFG_LINK              0x0200
+#define ENC624J600_EIDLED_LBCFG_COL               0x0300
+#define ENC624J600_EIDLED_LBCFG_TX                0x0400
+#define ENC624J600_EIDLED_LBCFG_RX                0x0500
+#define ENC624J600_EIDLED_LBCFG_TX_RX             0x0600
+#define ENC624J600_EIDLED_LBCFG_DUPLEX            0x0700
+#define ENC624J600_EIDLED_LBCFG_SPEED             0x0800
+#define ENC624J600_EIDLED_LBCFG_LINK_TX           0x0900
+#define ENC624J600_EIDLED_LBCFG_LINK_RX           0x0A00
+#define ENC624J600_EIDLED_LBCFG_LINK_TX_RX        0x0B00
+#define ENC624J600_EIDLED_LBCFG_LINK_COL          0x0C00
+#define ENC624J600_EIDLED_LBCFG_LINK_DUPLEX_TX_RX 0x0E00
+#define ENC624J600_EIDLED_LBCFG_LINK_SPEED_TX_RX  0x0F00
+#define ENC624J600_EIDLED_DEVID                   0x00E0
+#define ENC624J600_EIDLED_DEVID_DEFAULT           0x0020
+#define ENC624J600_EIDLED_REVID                   0x001F
+
+//General Purpose Data Window register
+#define ENC624J600_EGPDATA_R15_8                  0xFF00
+#define ENC624J600_EGPDATA_VAL                    0x00FF
+
+//Ethernet RX Data Window register
+#define ENC624J600_ERXDATA_R15_8                  0xFF00
+#define ENC624J600_ERXDATA_VAL                    0x00FF
+
+//User-Defined Area Data Window register
+#define ENC624J600_EUDADATA_R15_8                 0xFF00
+#define ENC624J600_EUDADATA_VAL                   0x00FF
+
+//General Purpose Window Read Pointer register
+#define ENC624J600_EGPRDPT_VAL                    0x7FFF
+
+//General Purpose Window Write Pointer register
+#define ENC624J600_EGPWRPT_VAL                    0x7FFF
+
+//RX Window Read Pointer register
+#define ENC624J600_ERXRDPT_VAL                    0x7FFF
+
+//RX Window Write Pointer register
+#define ENC624J600_ERXWRPT_VAL                    0x7FFF
+
+//UDA Window Read Pointer register
+#define ENC624J600_EUDARDPT_VAL                   0x7FFF
+
+//UDA Window Write Pointer register
+#define ENC624J600_EUDAWRPT_VAL                   0x7FFF
+
+//PHY Control 1 register
+#define ENC624J600_PHCON1_PRST                    0x8000
+#define ENC624J600_PHCON1_PLOOPBK                 0x4000
+#define ENC624J600_PHCON1_SPD100                  0x2000
+#define ENC624J600_PHCON1_ANEN                    0x1000
+#define ENC624J600_PHCON1_PSLEEP                  0x0800
+#define ENC624J600_PHCON1_RENEG                   0x0200
+#define ENC624J600_PHCON1_PFULDPX                 0x0100
+
+//PHY Status 1 register
+#define ENC624J600_PHSTAT1_FULL100                0x4000
+#define ENC624J600_PHSTAT1_HALF100                0x2000
+#define ENC624J600_PHSTAT1_FULL10                 0x1000
+#define ENC624J600_PHSTAT1_HALF10                 0x0800
+#define ENC624J600_PHSTAT1_ANDONE                 0x0020
+#define ENC624J600_PHSTAT1_LRFAULT                0x0010
+#define ENC624J600_PHSTAT1_ANABLE                 0x0008
+#define ENC624J600_PHSTAT1_LLSTAT                 0x0004
+#define ENC624J600_PHSTAT1_EXTREGS                0x0001
+
+//PHY Auto-Negotiation Advertisement register
+#define ENC624J600_PHANA_ADNP                     0x8000
+#define ENC624J600_PHANA_ADFAULT                  0x2000
+#define ENC624J600_PHANA_ADPAUS1                  0x0800
+#define ENC624J600_PHANA_ADPAUS0                  0x0400
+#define ENC624J600_PHANA_AD100FD                  0x0100
+#define ENC624J600_PHANA_AD100                    0x0080
+#define ENC624J600_PHANA_AD10FD                   0x0040
+#define ENC624J600_PHANA_AD10                     0x0020
+#define ENC624J600_PHANA_ADIEEE                   0x001F
+#define ENC624J600_PHANA_ADIEEE_DEFAULT           0x0001
+
+//PHY Auto-Negotiation Link Partner Ability register
+#define ENC624J600_PHANLPA_LPNP                   0x8000
+#define ENC624J600_PHANLPA_LPACK                  0x4000
+#define ENC624J600_PHANLPA_LPFAULT                0x2000
+#define ENC624J600_PHANLPA_LPPAUS1                0x0800
+#define ENC624J600_PHANLPA_LPPAUS0                0x0400
+#define ENC624J600_PHANLPA_LP100T4                0x0200
+#define ENC624J600_PHANLPA_LP100FD                0x0100
+#define ENC624J600_PHANLPA_LP100                  0x0080
+#define ENC624J600_PHANLPA_LP10FD                 0x0040
+#define ENC624J600_PHANLPA_LP10                   0x0020
+#define ENC624J600_PHANLPA_LPIEEE                 0x001F
+
+//PHY Auto-Negotiation Expansion register
+#define ENC624J600_PHANE_PDFLT                    0x0010
+#define ENC624J600_PHANE_LPARCD                   0x0002
+#define ENC624J600_PHANE_LPANABL                  0x0001
+
+//PHY Control 2 register
+#define ENC624J600_PHCON2_EDPWRDN                 0x2000
+#define ENC624J600_PHCON2_EDTHRES                 0x0800
+#define ENC624J600_PHCON2_FRCLNK                  0x0004
+#define ENC624J600_PHCON2_EDSTAT                  0x0002
+
+//PHY Status 2 register
+#define ENC624J600_PHSTAT2_PLRITY                 0x0010
+
+//PHY Status 3 register
+#define ENC624J600_PHSTAT3_R6                     0x0040
+#define ENC624J600_PHSTAT3_R6_DEFAULT             0x0040
+#define ENC624J600_PHSTAT3_SPDDPX2                0x0010
+#define ENC624J600_PHSTAT3_SPDDPX1                0x0008
+#define ENC624J600_PHSTAT3_SPDDPX0                0x0004
 
 //Receive status vector
-#define RSV_UNICAST_FILTER         0x00100000
-#define RSV_PATTERN_MATCH_FILTER   0x00080000
-#define RSV_MAGIC_PACKET_FILTER    0x00040000
-#define RSV_HASH_FILTER            0x00020000
-#define RSV_NOT_ME_FILTER          0x00010000
-#define RSV_RUNT_FILTER            0x00008000
-#define RSV_VLAN_TYPE              0x00004000
-#define RSV_UNKNOWN_OPCODE         0x00002000
-#define RSV_PAUSE_CONTROL_FRAME    0x00001000
-#define RSV_CONTROL_FRAME          0x00000800
-#define RSV_DRIBBLE_NIBBLE         0x00000400
-#define RSV_BROADCAST_PACKET       0x00000200
-#define RSV_MULTICAST_PACKET       0x00000100
-#define RSV_RECEIVED_OK            0x00000080
-#define RSV_LENGTH_OUT_OF_RANGE    0x00000040
-#define RSV_LENGTH_CHECK_ERROR     0x00000020
-#define RSV_CRC_ERROR              0x00000010
-#define RSV_CARRIER_EVENT          0x00000004
-#define RSV_PACKET_IGNORED         0x00000001
+#define ENC624J600_RSV_UNICAST_FILTER             0x00100000
+#define ENC624J600_RSV_PATTERN_MATCH_FILTER       0x00080000
+#define ENC624J600_RSV_MAGIC_PACKET_FILTER        0x00040000
+#define ENC624J600_RSV_HASH_FILTER                0x00020000
+#define ENC624J600_RSV_NOT_ME_FILTER              0x00010000
+#define ENC624J600_RSV_RUNT_FILTER                0x00008000
+#define ENC624J600_RSV_VLAN_TYPE                  0x00004000
+#define ENC624J600_RSV_UNKNOWN_OPCODE             0x00002000
+#define ENC624J600_RSV_PAUSE_CONTROL_FRAME        0x00001000
+#define ENC624J600_RSV_CONTROL_FRAME              0x00000800
+#define ENC624J600_RSV_DRIBBLE_NIBBLE             0x00000400
+#define ENC624J600_RSV_BROADCAST_PACKET           0x00000200
+#define ENC624J600_RSV_MULTICAST_PACKET           0x00000100
+#define ENC624J600_RSV_RECEIVED_OK                0x00000080
+#define ENC624J600_RSV_LENGTH_OUT_OF_RANGE        0x00000040
+#define ENC624J600_RSV_LENGTH_CHECK_ERROR         0x00000020
+#define ENC624J600_RSV_CRC_ERROR                  0x00000010
+#define ENC624J600_RSV_CARRIER_EVENT              0x00000004
+#define ENC624J600_RSV_PACKET_IGNORED             0x00000001
 
 //C++ guard
 #ifdef __cplusplus

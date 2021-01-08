@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 #ifndef _COAP_OPTION_H
@@ -179,6 +179,8 @@ typedef enum
    COAP_CONTENT_FORMAT_APP_PKIX_CERT             = 287,
    COAP_CONTENT_FORMAT_APP_SENML_XML             = 310,
    COAP_CONTENT_FORMAT_APP_SENSML_XML            = 311,
+   COAP_CONTENT_FORMAT_SENML_ETCH_JSON           = 320,
+   COAP_CONTENT_FORMAT_SENML_ETCH_CBOR           = 322,
    COAP_CONTENT_FORMAT_APP_VND_OCF_CBOR          = 10000,
    COAP_CONTENT_FORMAT_APP_OSCORE                = 10001,
    COAP_CONTENT_FORMAT_APP_JSON_DEFLATE          = 11050,

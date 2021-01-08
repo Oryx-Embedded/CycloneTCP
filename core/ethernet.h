@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 #ifndef _ETHERNET_H
@@ -158,7 +158,8 @@ typedef enum
    ETH_TYPE_VLAN  = 0x8100,
    ETH_TYPE_IPV6  = 0x86DD,
    ETH_TYPE_EAPOL = 0x888E,
-   ETH_TYPE_VMAN  = 0x88A8
+   ETH_TYPE_VMAN  = 0x88A8,
+   ETH_TYPE_LLDP  = 0x88CC
 } EthType;
 
 

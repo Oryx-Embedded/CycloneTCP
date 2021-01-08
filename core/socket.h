@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 #ifndef _SOCKET_H
@@ -198,24 +198,25 @@ typedef enum
 
 typedef struct
 {
-   void *data;             ///<Pointer to the payload
-   size_t size;            ///<Size of the payload, in bytes
-   size_t length;          ///<Actual length of the payload, in bytes
-   uint8_t ttl;            ///<Time-to-live value
-   IpAddr srcIpAddr;       ///<Source IP address
-   uint16_t srcPort;       ///<Source port
-   IpAddr destIpAddr;      ///<Destination IP address
-   uint16_t destPort;      ///<Destination port
+   void *data;              ///<Pointer to the payload
+   size_t size;             ///<Size of the payload, in bytes
+   size_t length;           ///<Actual length of the payload, in bytes
+   uint8_t ttl;             ///<Time-to-live value
+   NetInterface *interface; ///<Underlying network interface
+   IpAddr srcIpAddr;        ///<Source IP address
+   uint16_t srcPort;        ///<Source port
+   IpAddr destIpAddr;       ///<Destination IP address
+   uint16_t destPort;       ///<Destination port
 #if (ETH_SUPPORT == ENABLED)
-   MacAddr srcMacAddr;     ///<Source MAC address
-   MacAddr destMacAddr;    ///<Destination MAC address
+   MacAddr srcMacAddr;      ///<Source MAC address
+   MacAddr destMacAddr;     ///<Destination MAC address
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   uint8_t switchPort;     ///<Switch port identifier
+   uint8_t switchPort;      ///<Switch port identifier
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
-   int32_t timestampId;    ///<Unique identifier for hardware time stamping
-   NetTimestamp timestamp; ///<Captured time stamp
+   int32_t timestampId;     ///<Unique identifier for hardware time stamping
+   NetTimestamp timestamp;  ///<Captured time stamp
 #endif
 } SocketMsg;
 
@@ -227,6 +228,7 @@ typedef struct
 typedef struct _SocketQueueItem
 {
    struct _SocketQueueItem *next;
+   NetInterface *interface;
    IpAddr srcIpAddr;
    uint16_t srcPort;
    IpAddr destIpAddr;

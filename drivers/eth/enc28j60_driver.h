@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 #ifndef _ENC28J60_DRIVER_H
@@ -37,12 +37,6 @@
 #elif (ENC28J60_FULL_DUPLEX_SUPPORT != ENABLED && ENC28J60_FULL_DUPLEX_SUPPORT != DISABLED)
    #error ENC28J60_FULL_DUPLEX_SUPPORT parameter is not valid
 #endif
-
-//Silicon revision identifiers
-#define ENC28J60_REV_B1 0x02
-#define ENC28J60_REV_B4 0x04
-#define ENC28J60_REV_B5 0x05
-#define ENC28J60_REV_B7 0x06
 
 //Receive and transmit buffers
 #define ENC28J60_RX_BUFFER_START 0x0000
@@ -76,306 +70,387 @@
 #define REG_BANK_MASK 0x0F00
 #define REG_ADDR_MASK 0x001F
 
-//Bank 0 registers
-#define ENC28J60_REG_ERDPTL      (ETH_REG_TYPE | BANK_0 | 0x00)
-#define ENC28J60_REG_ERDPTH      (ETH_REG_TYPE | BANK_0 | 0x01)
-#define ENC28J60_REG_EWRPTL      (ETH_REG_TYPE | BANK_0 | 0x02)
-#define ENC28J60_REG_EWRPTH      (ETH_REG_TYPE | BANK_0 | 0x03)
-#define ENC28J60_REG_ETXSTL      (ETH_REG_TYPE | BANK_0 | 0x04)
-#define ENC28J60_REG_ETXSTH      (ETH_REG_TYPE | BANK_0 | 0x05)
-#define ENC28J60_REG_ETXNDL      (ETH_REG_TYPE | BANK_0 | 0x06)
-#define ENC28J60_REG_ETXNDH      (ETH_REG_TYPE | BANK_0 | 0x07)
-#define ENC28J60_REG_ERXSTL      (ETH_REG_TYPE | BANK_0 | 0x08)
-#define ENC28J60_REG_ERXSTH      (ETH_REG_TYPE | BANK_0 | 0x09)
-#define ENC28J60_REG_ERXNDL      (ETH_REG_TYPE | BANK_0 | 0x0A)
-#define ENC28J60_REG_ERXNDH      (ETH_REG_TYPE | BANK_0 | 0x0B)
-#define ENC28J60_REG_ERXRDPTL    (ETH_REG_TYPE | BANK_0 | 0x0C)
-#define ENC28J60_REG_ERXRDPTH    (ETH_REG_TYPE | BANK_0 | 0x0D)
-#define ENC28J60_REG_ERXWRPTL    (ETH_REG_TYPE | BANK_0 | 0x0E)
-#define ENC28J60_REG_ERXWRPTH    (ETH_REG_TYPE | BANK_0 | 0x0F)
-#define ENC28J60_REG_EDMASTL     (ETH_REG_TYPE | BANK_0 | 0x10)
-#define ENC28J60_REG_EDMASTH     (ETH_REG_TYPE | BANK_0 | 0x11)
-#define ENC28J60_REG_EDMANDL     (ETH_REG_TYPE | BANK_0 | 0x12)
-#define ENC28J60_REG_EDMANDH     (ETH_REG_TYPE | BANK_0 | 0x13)
-#define ENC28J60_REG_EDMADSTL    (ETH_REG_TYPE | BANK_0 | 0x14)
-#define ENC28J60_REG_EDMADSTH    (ETH_REG_TYPE | BANK_0 | 0x15)
-#define ENC28J60_REG_EDMACSL     (ETH_REG_TYPE | BANK_0 | 0x16)
-#define ENC28J60_REG_EDMACSH     (ETH_REG_TYPE | BANK_0 | 0x17)
-#define ENC28J60_REG_EIE         (ETH_REG_TYPE | BANK_0 | 0x1B)
-#define ENC28J60_REG_EIR         (ETH_REG_TYPE | BANK_0 | 0x1C)
-#define ENC28J60_REG_ESTAT       (ETH_REG_TYPE | BANK_0 | 0x1D)
-#define ENC28J60_REG_ECON2       (ETH_REG_TYPE | BANK_0 | 0x1E)
-#define ENC28J60_REG_ECON1       (ETH_REG_TYPE | BANK_0 | 0x1F)
+//ENC28J60 registers
+#define ENC28J60_ERDPTL                      (ETH_REG_TYPE | BANK_0 | 0x00)
+#define ENC28J60_ERDPTH                      (ETH_REG_TYPE | BANK_0 | 0x01)
+#define ENC28J60_EWRPTL                      (ETH_REG_TYPE | BANK_0 | 0x02)
+#define ENC28J60_EWRPTH                      (ETH_REG_TYPE | BANK_0 | 0x03)
+#define ENC28J60_ETXSTL                      (ETH_REG_TYPE | BANK_0 | 0x04)
+#define ENC28J60_ETXSTH                      (ETH_REG_TYPE | BANK_0 | 0x05)
+#define ENC28J60_ETXNDL                      (ETH_REG_TYPE | BANK_0 | 0x06)
+#define ENC28J60_ETXNDH                      (ETH_REG_TYPE | BANK_0 | 0x07)
+#define ENC28J60_ERXSTL                      (ETH_REG_TYPE | BANK_0 | 0x08)
+#define ENC28J60_ERXSTH                      (ETH_REG_TYPE | BANK_0 | 0x09)
+#define ENC28J60_ERXNDL                      (ETH_REG_TYPE | BANK_0 | 0x0A)
+#define ENC28J60_ERXNDH                      (ETH_REG_TYPE | BANK_0 | 0x0B)
+#define ENC28J60_ERXRDPTL                    (ETH_REG_TYPE | BANK_0 | 0x0C)
+#define ENC28J60_ERXRDPTH                    (ETH_REG_TYPE | BANK_0 | 0x0D)
+#define ENC28J60_ERXWRPTL                    (ETH_REG_TYPE | BANK_0 | 0x0E)
+#define ENC28J60_ERXWRPTH                    (ETH_REG_TYPE | BANK_0 | 0x0F)
+#define ENC28J60_EDMASTL                     (ETH_REG_TYPE | BANK_0 | 0x10)
+#define ENC28J60_EDMASTH                     (ETH_REG_TYPE | BANK_0 | 0x11)
+#define ENC28J60_EDMANDL                     (ETH_REG_TYPE | BANK_0 | 0x12)
+#define ENC28J60_EDMANDH                     (ETH_REG_TYPE | BANK_0 | 0x13)
+#define ENC28J60_EDMADSTL                    (ETH_REG_TYPE | BANK_0 | 0x14)
+#define ENC28J60_EDMADSTH                    (ETH_REG_TYPE | BANK_0 | 0x15)
+#define ENC28J60_EDMACSL                     (ETH_REG_TYPE | BANK_0 | 0x16)
+#define ENC28J60_EDMACSH                     (ETH_REG_TYPE | BANK_0 | 0x17)
+#define ENC28J60_EIE                         (ETH_REG_TYPE | BANK_0 | 0x1B)
+#define ENC28J60_EIR                         (ETH_REG_TYPE | BANK_0 | 0x1C)
+#define ENC28J60_ESTAT                       (ETH_REG_TYPE | BANK_0 | 0x1D)
+#define ENC28J60_ECON2                       (ETH_REG_TYPE | BANK_0 | 0x1E)
+#define ENC28J60_ECON1                       (ETH_REG_TYPE | BANK_0 | 0x1F)
+#define ENC28J60_EHT0                        (ETH_REG_TYPE | BANK_1 | 0x00)
+#define ENC28J60_EHT1                        (ETH_REG_TYPE | BANK_1 | 0x01)
+#define ENC28J60_EHT2                        (ETH_REG_TYPE | BANK_1 | 0x02)
+#define ENC28J60_EHT3                        (ETH_REG_TYPE | BANK_1 | 0x03)
+#define ENC28J60_EHT4                        (ETH_REG_TYPE | BANK_1 | 0x04)
+#define ENC28J60_EHT5                        (ETH_REG_TYPE | BANK_1 | 0x05)
+#define ENC28J60_EHT6                        (ETH_REG_TYPE | BANK_1 | 0x06)
+#define ENC28J60_EHT7                        (ETH_REG_TYPE | BANK_1 | 0x07)
+#define ENC28J60_EPMM0                       (ETH_REG_TYPE | BANK_1 | 0x08)
+#define ENC28J60_EPMM1                       (ETH_REG_TYPE | BANK_1 | 0x09)
+#define ENC28J60_EPMM2                       (ETH_REG_TYPE | BANK_1 | 0x0A)
+#define ENC28J60_EPMM3                       (ETH_REG_TYPE | BANK_1 | 0x0B)
+#define ENC28J60_EPMM4                       (ETH_REG_TYPE | BANK_1 | 0x0C)
+#define ENC28J60_EPMM5                       (ETH_REG_TYPE | BANK_1 | 0x0D)
+#define ENC28J60_EPMM6                       (ETH_REG_TYPE | BANK_1 | 0x0E)
+#define ENC28J60_EPMM7                       (ETH_REG_TYPE | BANK_1 | 0x0F)
+#define ENC28J60_EPMCSL                      (ETH_REG_TYPE | BANK_1 | 0x10)
+#define ENC28J60_EPMCSH                      (ETH_REG_TYPE | BANK_1 | 0x11)
+#define ENC28J60_EPMOL                       (ETH_REG_TYPE | BANK_1 | 0x14)
+#define ENC28J60_EPMOH                       (ETH_REG_TYPE | BANK_1 | 0x15)
+#define ENC28J60_EWOLIE                      (ETH_REG_TYPE | BANK_1 | 0x16)
+#define ENC28J60_EWOLIR                      (ETH_REG_TYPE | BANK_1 | 0x17)
+#define ENC28J60_ERXFCON                     (ETH_REG_TYPE | BANK_1 | 0x18)
+#define ENC28J60_EPKTCNT                     (ETH_REG_TYPE | BANK_1 | 0x19)
+#define ENC28J60_MACON1                      (MAC_REG_TYPE | BANK_2 | 0x00)
+#define ENC28J60_MACON2                      (MAC_REG_TYPE | BANK_2 | 0x01)
+#define ENC28J60_MACON3                      (MAC_REG_TYPE | BANK_2 | 0x02)
+#define ENC28J60_MACON4                      (MAC_REG_TYPE | BANK_2 | 0x03)
+#define ENC28J60_MABBIPG                     (MAC_REG_TYPE | BANK_2 | 0x04)
+#define ENC28J60_MAIPGL                      (MAC_REG_TYPE | BANK_2 | 0x06)
+#define ENC28J60_MAIPGH                      (MAC_REG_TYPE | BANK_2 | 0x07)
+#define ENC28J60_MACLCON1                    (MAC_REG_TYPE | BANK_2 | 0x08)
+#define ENC28J60_MACLCON2                    (MAC_REG_TYPE | BANK_2 | 0x09)
+#define ENC28J60_MAMXFLL                     (MAC_REG_TYPE | BANK_2 | 0x0A)
+#define ENC28J60_MAMXFLH                     (MAC_REG_TYPE | BANK_2 | 0x0B)
+#define ENC28J60_MAPHSUP                     (MAC_REG_TYPE | BANK_2 | 0x0D)
+#define ENC28J60_MICON                       (MII_REG_TYPE | BANK_2 | 0x11)
+#define ENC28J60_MICMD                       (MII_REG_TYPE | BANK_2 | 0x12)
+#define ENC28J60_MIREGADR                    (MII_REG_TYPE | BANK_2 | 0x14)
+#define ENC28J60_MIWRL                       (MII_REG_TYPE | BANK_2 | 0x16)
+#define ENC28J60_MIWRH                       (MII_REG_TYPE | BANK_2 | 0x17)
+#define ENC28J60_MIRDL                       (MII_REG_TYPE | BANK_2 | 0x18)
+#define ENC28J60_MIRDH                       (MII_REG_TYPE | BANK_2 | 0x19)
+#define ENC28J60_MAADR1                      (MAC_REG_TYPE | BANK_3 | 0x00)
+#define ENC28J60_MAADR0                      (MAC_REG_TYPE | BANK_3 | 0x01)
+#define ENC28J60_MAADR3                      (MAC_REG_TYPE | BANK_3 | 0x02)
+#define ENC28J60_MAADR2                      (MAC_REG_TYPE | BANK_3 | 0x03)
+#define ENC28J60_MAADR5                      (MAC_REG_TYPE | BANK_3 | 0x04)
+#define ENC28J60_MAADR4                      (MAC_REG_TYPE | BANK_3 | 0x05)
+#define ENC28J60_EBSTSD                      (ETH_REG_TYPE | BANK_3 | 0x06)
+#define ENC28J60_EBSTCON                     (ETH_REG_TYPE | BANK_3 | 0x07)
+#define ENC28J60_EBSTCSL                     (ETH_REG_TYPE | BANK_3 | 0x08)
+#define ENC28J60_EBSTCSH                     (ETH_REG_TYPE | BANK_3 | 0x09)
+#define ENC28J60_MISTAT                      (MII_REG_TYPE | BANK_3 | 0x0A)
+#define ENC28J60_EREVID                      (ETH_REG_TYPE | BANK_3 | 0x12)
+#define ENC28J60_ECOCON                      (ETH_REG_TYPE | BANK_3 | 0x15)
+#define ENC28J60_EFLOCON                     (ETH_REG_TYPE | BANK_3 | 0x17)
+#define ENC28J60_EPAUSL                      (ETH_REG_TYPE | BANK_3 | 0x18)
+#define ENC28J60_EPAUSH                      (ETH_REG_TYPE | BANK_3 | 0x19)
 
-//Bank 1 registers
-#define ENC28J60_REG_EHT0        (ETH_REG_TYPE | BANK_1 | 0x00)
-#define ENC28J60_REG_EHT1        (ETH_REG_TYPE | BANK_1 | 0x01)
-#define ENC28J60_REG_EHT2        (ETH_REG_TYPE | BANK_1 | 0x02)
-#define ENC28J60_REG_EHT3        (ETH_REG_TYPE | BANK_1 | 0x03)
-#define ENC28J60_REG_EHT4        (ETH_REG_TYPE | BANK_1 | 0x04)
-#define ENC28J60_REG_EHT5        (ETH_REG_TYPE | BANK_1 | 0x05)
-#define ENC28J60_REG_EHT6        (ETH_REG_TYPE | BANK_1 | 0x06)
-#define ENC28J60_REG_EHT7        (ETH_REG_TYPE | BANK_1 | 0x07)
-#define ENC28J60_REG_EPMM0       (ETH_REG_TYPE | BANK_1 | 0x08)
-#define ENC28J60_REG_EPMM1       (ETH_REG_TYPE | BANK_1 | 0x09)
-#define ENC28J60_REG_EPMM2       (ETH_REG_TYPE | BANK_1 | 0x0A)
-#define ENC28J60_REG_EPMM3       (ETH_REG_TYPE | BANK_1 | 0x0B)
-#define ENC28J60_REG_EPMM4       (ETH_REG_TYPE | BANK_1 | 0x0C)
-#define ENC28J60_REG_EPMM5       (ETH_REG_TYPE | BANK_1 | 0x0D)
-#define ENC28J60_REG_EPMM6       (ETH_REG_TYPE | BANK_1 | 0x0E)
-#define ENC28J60_REG_EPMM7       (ETH_REG_TYPE | BANK_1 | 0x0F)
-#define ENC28J60_REG_EPMCSL      (ETH_REG_TYPE | BANK_1 | 0x10)
-#define ENC28J60_REG_EPMCSH      (ETH_REG_TYPE | BANK_1 | 0x11)
-#define ENC28J60_REG_EPMOL       (ETH_REG_TYPE | BANK_1 | 0x14)
-#define ENC28J60_REG_EPMOH       (ETH_REG_TYPE | BANK_1 | 0x15)
-#define ENC28J60_REG_EWOLIE      (ETH_REG_TYPE | BANK_1 | 0x16)
-#define ENC28J60_REG_EWOLIR      (ETH_REG_TYPE | BANK_1 | 0x17)
-#define ENC28J60_REG_ERXFCON     (ETH_REG_TYPE | BANK_1 | 0x18)
-#define ENC28J60_REG_EPKTCNT     (ETH_REG_TYPE | BANK_1 | 0x19)
+//ENC28J60 PHY registers
+#define ENC28J60_PHCON1                      (PHY_REG_TYPE | 0x00)
+#define ENC28J60_PHSTAT1                     (PHY_REG_TYPE | 0x01)
+#define ENC28J60_PHID1                       (PHY_REG_TYPE | 0x02)
+#define ENC28J60_PHID2                       (PHY_REG_TYPE | 0x03)
+#define ENC28J60_PHCON2                      (PHY_REG_TYPE | 0x10)
+#define ENC28J60_PHSTAT2                     (PHY_REG_TYPE | 0x11)
+#define ENC28J60_PHIE                        (PHY_REG_TYPE | 0x12)
+#define ENC28J60_PHIR                        (PHY_REG_TYPE | 0x13)
+#define ENC28J60_PHLCON                      (PHY_REG_TYPE | 0x14)
 
-//Bank 2 registers
-#define ENC28J60_REG_MACON1      (MAC_REG_TYPE | BANK_2 | 0x00)
-#define ENC28J60_REG_MACON2      (MAC_REG_TYPE | BANK_2 | 0x01)
-#define ENC28J60_REG_MACON3      (MAC_REG_TYPE | BANK_2 | 0x02)
-#define ENC28J60_REG_MACON4      (MAC_REG_TYPE | BANK_2 | 0x03)
-#define ENC28J60_REG_MABBIPG     (MAC_REG_TYPE | BANK_2 | 0x04)
-#define ENC28J60_REG_MAIPGL      (MAC_REG_TYPE | BANK_2 | 0x06)
-#define ENC28J60_REG_MAIPGH      (MAC_REG_TYPE | BANK_2 | 0x07)
-#define ENC28J60_REG_MACLCON1    (MAC_REG_TYPE | BANK_2 | 0x08)
-#define ENC28J60_REG_MACLCON2    (MAC_REG_TYPE | BANK_2 | 0x09)
-#define ENC28J60_REG_MAMXFLL     (MAC_REG_TYPE | BANK_2 | 0x0A)
-#define ENC28J60_REG_MAMXFLH     (MAC_REG_TYPE | BANK_2 | 0x0B)
-#define ENC28J60_REG_MAPHSUP     (MAC_REG_TYPE | BANK_2 | 0x0D)
-#define ENC28J60_REG_MICON       (MII_REG_TYPE | BANK_2 | 0x11)
-#define ENC28J60_REG_MICMD       (MII_REG_TYPE | BANK_2 | 0x12)
-#define ENC28J60_REG_MIREGADR    (MII_REG_TYPE | BANK_2 | 0x14)
-#define ENC28J60_REG_MIWRL       (MII_REG_TYPE | BANK_2 | 0x16)
-#define ENC28J60_REG_MIWRH       (MII_REG_TYPE | BANK_2 | 0x17)
-#define ENC28J60_REG_MIRDL       (MII_REG_TYPE | BANK_2 | 0x18)
-#define ENC28J60_REG_MIRDH       (MII_REG_TYPE | BANK_2 | 0x19)
+//Ethernet Interrupt Enable register
+#define ENC28J60_EIE_INTIE                   0x80
+#define ENC28J60_EIE_PKTIE                   0x40
+#define ENC28J60_EIE_DMAIE                   0x20
+#define ENC28J60_EIE_LINKIE                  0x10
+#define ENC28J60_EIE_TXIE                    0x08
+#define ENC28J60_EIE_WOLIE                   0x04
+#define ENC28J60_EIE_TXERIE                  0x02
+#define ENC28J60_EIE_RXERIE                  0x01
 
-//Bank 3 registers
-#define ENC28J60_REG_MAADR5      (MAC_REG_TYPE | BANK_3 | 0x00)
-#define ENC28J60_REG_MAADR6      (MAC_REG_TYPE | BANK_3 | 0x01)
-#define ENC28J60_REG_MAADR3      (MAC_REG_TYPE | BANK_3 | 0x02)
-#define ENC28J60_REG_MAADR4      (MAC_REG_TYPE | BANK_3 | 0x03)
-#define ENC28J60_REG_MAADR1      (MAC_REG_TYPE | BANK_3 | 0x04)
-#define ENC28J60_REG_MAADR2      (MAC_REG_TYPE | BANK_3 | 0x05)
-#define ENC28J60_REG_EBSTSD      (ETH_REG_TYPE | BANK_3 | 0x06)
-#define ENC28J60_REG_EBSTCON     (ETH_REG_TYPE | BANK_3 | 0x07)
-#define ENC28J60_REG_EBSTCSL     (ETH_REG_TYPE | BANK_3 | 0x08)
-#define ENC28J60_REG_EBSTCSH     (ETH_REG_TYPE | BANK_3 | 0x09)
-#define ENC28J60_REG_MISTAT      (MII_REG_TYPE | BANK_3 | 0x0A)
-#define ENC28J60_REG_EREVID      (ETH_REG_TYPE | BANK_3 | 0x12)
-#define ENC28J60_REG_ECOCON      (ETH_REG_TYPE | BANK_3 | 0x15)
-#define ENC28J60_REG_EFLOCON     (ETH_REG_TYPE | BANK_3 | 0x17)
-#define ENC28J60_REG_EPAUSL      (ETH_REG_TYPE | BANK_3 | 0x18)
-#define ENC28J60_REG_EPAUSH      (ETH_REG_TYPE | BANK_3 | 0x19)
+//Ethernet Interrupt Request register
+#define ENC28J60_EIR_PKTIF                   0x40
+#define ENC28J60_EIR_DMAIF                   0x20
+#define ENC28J60_EIR_LINKIF                  0x10
+#define ENC28J60_EIR_TXIF                    0x08
+#define ENC28J60_EIR_WOLIF                   0x04
+#define ENC28J60_EIR_TXERIF                  0x02
+#define ENC28J60_EIR_RXERIF                  0x01
 
-//PHY registers
-#define ENC28J60_PHY_REG_PHCON1  (PHY_REG_TYPE | 0x00)
-#define ENC28J60_PHY_REG_PHSTAT1 (PHY_REG_TYPE | 0x01)
-#define ENC28J60_PHY_REG_PHID1   (PHY_REG_TYPE | 0x02)
-#define ENC28J60_PHY_REG_PHID2   (PHY_REG_TYPE | 0x03)
-#define ENC28J60_PHY_REG_PHCON2  (PHY_REG_TYPE | 0x10)
-#define ENC28J60_PHY_REG_PHSTAT2 (PHY_REG_TYPE | 0x11)
-#define ENC28J60_PHY_REG_PHIE    (PHY_REG_TYPE | 0x12)
-#define ENC28J60_PHY_REG_PHIR    (PHY_REG_TYPE | 0x13)
-#define ENC28J60_PHY_REG_PHLCON  (PHY_REG_TYPE | 0x14)
+//Ethernet Status register
+#define ENC28J60_ESTAT_INT                   0x80
+#define ENC28J60_ESTAT_R6                    0x40
+#define ENC28J60_ESTAT_R5                    0x20
+#define ENC28J60_ESTAT_LATECOL               0x10
+#define ENC28J60_ESTAT_RXBUSY                0x04
+#define ENC28J60_ESTAT_TXABRT                0x02
+#define ENC28J60_ESTAT_CLKRDY                0x01
 
-//EIE register
-#define EIE_INTIE         (1 << 7)
-#define EIE_PKTIE         (1 << 6)
-#define EIE_DMAIE         (1 << 5)
-#define EIE_LINKIE        (1 << 4)
-#define EIE_TXIE          (1 << 3)
-#define EIE_WOLIE         (1 << 2)
-#define EIE_TXERIE        (1 << 1)
-#define EIE_RXERIE        (1 << 0)
+//Ethernet Control 2 register
+#define ENC28J60_ECON2_AUTOINC               0x80
+#define ENC28J60_ECON2_PKTDEC                0x40
+#define ENC28J60_ECON2_PWRSV                 0x20
+#define ENC28J60_ECON2_VRPS                  0x08
 
-//EIR register
-#define EIR_PKTIF         (1 << 6)
-#define EIR_DMAIF         (1 << 5)
-#define EIR_LINKIF        (1 << 4)
-#define EIR_TXIF          (1 << 3)
-#define EIR_WOLIF         (1 << 2)
-#define EIR_TXERIF        (1 << 1)
-#define EIR_RXERIF        (1 << 0)
+//Ethernet Control 1 register
+#define ENC28J60_ECON1_TXRST                 0x80
+#define ENC28J60_ECON1_RXRST                 0x40
+#define ENC28J60_ECON1_DMAST                 0x20
+#define ENC28J60_ECON1_CSUMEN                0x10
+#define ENC28J60_ECON1_TXRTS                 0x08
+#define ENC28J60_ECON1_RXEN                  0x04
+#define ENC28J60_ECON1_BSEL1                 0x02
+#define ENC28J60_ECON1_BSEL0                 0x01
 
-//ESTAT register
-#define ESTAT_INT         (1 << 7)
-#define ESTAT_LATECOL     (1 << 4)
-#define ESTAT_RXBUSY      (1 << 2)
-#define ESTAT_TXABRT      (1 << 1)
-#define ESTAT_CLKRDY      (1 << 0)
+//Ethernet Wake-Up On LAN Interrupt Enable register
+#define ENC28J60_EWOLIE_UCWOLIE              0x80
+#define ENC28J60_EWOLIE_AWOLIE               0x40
+#define ENC28J60_EWOLIE_PMWOLIE              0x10
+#define ENC28J60_EWOLIE_MPWOLIE              0x08
+#define ENC28J60_EWOLIE_HTWOLIE              0x04
+#define ENC28J60_EWOLIE_MCWOLIE              0x02
+#define ENC28J60_EWOLIE_BCWOLIE              0x01
 
-//ECON2 register
-#define ECON2_AUTOINC     (1 << 7)
-#define ECON2_PKTDEC      (1 << 6)
-#define ECON2_PWRSV       (1 << 5)
-#define ECON2_VRPS        (1 << 3)
+//Ethernet Wake-Up On LAN Interrupt Request register
+#define ENC28J60_EWOLIR_UCWOLIF              0x80
+#define ENC28J60_EWOLIR_AWOLIF               0x40
+#define ENC28J60_EWOLIR_PMWOLIF              0x10
+#define ENC28J60_EWOLIR_MPWOLIF              0x08
+#define ENC28J60_EWOLIR_HTWOLIF              0x04
+#define ENC28J60_EWOLIR_MCWOLIF              0x02
+#define ENC28J60_EWOLIR_BCWOLIF              0x01
 
-//ECON1 register
-#define ECON1_TXRST       (1 << 7)
-#define ECON1_RXRST       (1 << 6)
-#define ECON1_DMAST       (1 << 5)
-#define ECON1_CSUMEN      (1 << 4)
-#define ECON1_TXRTS       (1 << 3)
-#define ECON1_RXEN        (1 << 2)
-#define ECON1_BSEL1       (1 << 1)
-#define ECON1_BSEL0       (1 << 0)
+//Receive Filter Control register
+#define ENC28J60_ERXFCON_UCEN                0x80
+#define ENC28J60_ERXFCON_ANDOR               0x40
+#define ENC28J60_ERXFCON_CRCEN               0x20
+#define ENC28J60_ERXFCON_PMEN                0x10
+#define ENC28J60_ERXFCON_MPEN                0x08
+#define ENC28J60_ERXFCON_HTEN                0x04
+#define ENC28J60_ERXFCON_MCEN                0x02
+#define ENC28J60_ERXFCON_BCEN                0x01
 
-//ERXFCON register
-#define ERXFCON_UCEN      (1 << 7)
-#define ERXFCON_ANDOR     (1 << 6)
-#define ERXFCON_CRCEN     (1 << 5)
-#define ERXFCON_PMEN      (1 << 4)
-#define ERXFCON_MPEN      (1 << 3)
-#define ERXFCON_HTEN      (1 << 2)
-#define ERXFCON_MCEN      (1 << 1)
-#define ERXFCON_BCEN      (1 << 0)
+//MAC Control 1 register
+#define ENC28J60_MACON1_LOOPBK               0x10
+#define ENC28J60_MACON1_TXPAUS               0x08
+#define ENC28J60_MACON1_RXPAUS               0x04
+#define ENC28J60_MACON1_PASSALL              0x02
+#define ENC28J60_MACON1_MARXEN               0x01
 
-//MACON1 register
-#define MACON1_LOOPBK     (1 << 4)
-#define MACON1_TXPAUS     (1 << 3)
-#define MACON1_RXPAUS     (1 << 2)
-#define MACON1_PASSALL    (1 << 1)
-#define MACON1_MARXEN     (1 << 0)
+//MAC Control 2 register
+#define ENC28J60_MACON2_MARST                0x80
+#define ENC28J60_MACON2_RNDRST               0x40
+#define ENC28J60_MACON2_MARXRST              0x08
+#define ENC28J60_MACON2_RFUNRST              0x04
+#define ENC28J60_MACON2_MATXRST              0x02
+#define ENC28J60_MACON2_TFUNRST              0x01
 
-//MACON2 register
-#define MACON2_MARST      (1 << 7)
-#define MACON2_RNDRST     (1 << 6)
-#define MACON2_MARXRST    (1 << 3)
-#define MACON2_RFUNRST    (1 << 2)
-#define MACON2_MATXRST    (1 << 1)
-#define MACON2_TFUNRST    (1 << 0)
+//MAC Control 3 register
+#define ENC28J60_MACON3_PADCFG               0xE0
+#define ENC28J60_MACON3_PADCFG_NO            0x00
+#define ENC28J60_MACON3_PADCFG_60_BYTES      0x20
+#define ENC28J60_MACON3_PADCFG_64_BYTES      0x60
+#define ENC28J60_MACON3_PADCFG_AUTO          0xA0
+#define ENC28J60_MACON3_TXCRCEN              0x10
+#define ENC28J60_MACON3_PHDRLEN              0x08
+#define ENC28J60_MACON3_HFRMEN               0x04
+#define ENC28J60_MACON3_FRMLNEN              0x02
+#define ENC28J60_MACON3_FULDPX               0x01
 
-//MACON3 register
-#define MACON3_PADCFG2    (1 << 7)
-#define MACON3_PADCFG1    (1 << 6)
-#define MACON3_PADCFG0    (1 << 5)
-#define MACON3_TXCRCEN    (1 << 4)
-#define MACON3_PHDRLEN    (1 << 3)
-#define MACON3_HFRMLEN    (1 << 2)
-#define MACON3_FRMLNEN    (1 << 1)
-#define MACON3_FULDPX     (1 << 0)
+//MAC Control 4 register
+#define ENC28J60_MACON4_DEFER                0x40
+#define ENC28J60_MACON4_BPEN                 0x20
+#define ENC28J60_MACON4_NOBKOFF              0x10
+#define ENC28J60_MACON4_LONGPRE              0x02
+#define ENC28J60_MACON4_PUREPRE              0x01
 
-#define MACON3_PADCFG(x) ((x) << 5)
+//Back-to-Back Inter-Packet Gap register
+#define ENC28J60_MABBIPG_DEFAULT_HD          0x12
+#define ENC28J60_MABBIPG_DEFAULT_FD          0x15
 
-//MACON4 register
-#define MACON4_DEFER      (1 << 6)
-#define MACON4_BPEN       (1 << 5)
-#define MACON4_NOBKOFF    (1 << 4)
-#define MACON4_LONGPRE    (1 << 1)
-#define MACON4_PUREPRE    (1 << 0)
+//Non-Back-to-Back Inter-Packet Gap Low Byte register
+#define ENC28J60_MAIPGL_DEFAULT              0x12
 
-//MAPHSUP register
-#define MAPHSUP_RSTINTFC  (1 << 7)
-#define MAPHSUP_RSTRMII   (1 << 3)
+//Non-Back-to-Back Inter-Packet Gap High Byte register
+#define ENC28J60_MAIPGH_DEFAULT              0x0C
 
-//MICON register
-#define MICON_RSTMII      (1 << 7)
+//Retransmission Maximum register
+#define ENC28J60_MACLCON1_RETMAX             0x0F
 
-//MICMD register
-#define MICMD_MIISCAN     (1 << 1)
-#define MICMD_MIIRD       (1 << 0)
+//Collision Window register
+#define ENC28J60_MACLCON2_COLWIN             0x3F
+#define ENC28J60_MACLCON2_COLWIN_DEFAULT     0x37
 
-//EBSTCON register
-#define EBSTCON_PSV2      (1 << 7)
-#define EBSTCON_PSV1      (1 << 6)
-#define EBSTCON_PSV0      (1 << 5)
-#define EBSTCON_PSEL      (1 << 4)
-#define EBSTCON_TMSEL1    (1 << 3)
-#define EBSTCON_TMSEL0    (1 << 2)
-#define EBSTCON_TME       (1 << 1)
-#define EBSTCON_BISTST    (1 << 0)
+//MAC-PHY Support register
+#define ENC28J60_MAPHSUP_RSTINTFC            0x80
+#define ENC28J60_MAPHSUP_R4                  0x10
+#define ENC28J60_MAPHSUP_RSTRMII             0x08
+#define ENC28J60_MAPHSUP_R0                  0x01
 
-//MISTAT register
-#define MISTAT_NVALID     (1 << 2)
-#define MISTAT_SCAN       (1 << 1)
-#define MISTAT_BUSY       (1 << 0)
+//MII Control register
+#define ENC28J60_MICON_RSTMII                0x80
 
-//ECOCON register
-#define ECOCON_COCON2     (1 << 2)
-#define ECOCON_COCON1     (1 << 1)
-#define ECOCON_COCON0     (1 << 0)
+//MII Command register
+#define ENC28J60_MICMD_MIISCAN               0x02
+#define ENC28J60_MICMD_MIIRD                 0x01
 
-//EFLOCON register
-#define EFLOCON_FULDPXS   (1 << 2)
-#define EFLOCON_FCEN1     (1 << 1)
-#define EFLOCON_FCEN0     (1 << 0)
+//MII Register Addres register
+#define ENC28J60_MIREGADR_VAL                0x1F
 
-//PHCON1 register
-#define PHCON1_PRST       (1 << 15)
-#define PHCON1_PLOOPBK    (1 << 14)
-#define PHCON1_PPWRSV     (1 << 11)
-#define PHCON1_PDPXMD     (1 << 8)
+//Self-Test Control register
+#define ENC28J60_EBSTCON_PSV                 0xE0
+#define ENC28J60_EBSTCON_PSEL                0x10
+#define ENC28J60_EBSTCON_TMSEL               0x0C
+#define ENC28J60_EBSTCON_TMSEL_RANDOM        0x00
+#define ENC28J60_EBSTCON_TMSEL_ADDR          0x04
+#define ENC28J60_EBSTCON_TMSEL_PATTERN_SHIFT 0x08
+#define ENC28J60_EBSTCON_TMSEL_RACE_MODE     0x0C
+#define ENC28J60_EBSTCON_TME                 0x02
+#define ENC28J60_EBSTCON_BISTST              0x01
 
-//PHSTAT1 register
-#define PHSTAT1_PFDPX     (1 << 12)
-#define PHSTAT1_PHDPX     (1 << 11)
-#define PHSTAT1_LLSTAT    (1 << 2)
-#define PHSTAT1_JBSTAT    (1 << 1)
+//MII Status register
+#define ENC28J60_MISTAT_R3                   0x08
+#define ENC28J60_MISTAT_NVALID               0x04
+#define ENC28J60_MISTAT_SCAN                 0x02
+#define ENC28J60_MISTAT_BUSY                 0x01
 
-//PHCON2 register
-#define PHCON2_FRCLINK    (1 << 14)
-#define PHCON2_TXDIS      (1 << 13)
-#define PHCON2_JABBER     (1 << 10)
-#define PHCON2_HDLDIS     (1 << 8)
+//Ethernet Revision ID register
+#define ENC28J60_EREVID_REV                  0x1F
+#define ENC28J60_EREVID_REV_B1               0x02
+#define ENC28J60_EREVID_REV_B4               0x04
+#define ENC28J60_EREVID_REV_B5               0x05
+#define ENC28J60_EREVID_REV_B7               0x06
 
-//PHSTAT2 register
-#define PHSTAT2_TXSTAT    (1 << 13)
-#define PHSTAT2_RXSTAT    (1 << 12)
-#define PHSTAT2_COLSTAT   (1 << 11)
-#define PHSTAT2_LSTAT     (1 << 10)
-#define PHSTAT2_DPXSTAT   (1 << 9)
-#define PHSTAT2_PLRITY    (1 << 4)
+//Clock Output Control register
+#define ENC28J60_ECOCON_COCON                0x07
+#define ENC28J60_ECOCON_COCON_DISABLED       0x00
+#define ENC28J60_ECOCON_COCON_DIV1           0x01
+#define ENC28J60_ECOCON_COCON_DIV2           0x02
+#define ENC28J60_ECOCON_COCON_DIV3           0x03
+#define ENC28J60_ECOCON_COCON_DIV4           0x04
+#define ENC28J60_ECOCON_COCON_DIV8           0x05
 
-//PHIE register
-#define PHIE_PLNKIE       (1 << 4)
-#define PHIE_PGEIE        (1 << 1)
+//Ethernet Flow Control register
+#define ENC28J60_EFLOCON_FULDPXS             0x04
+#define ENC28J60_EFLOCON_FCEN                0x03
+#define ENC28J60_EFLOCON_FCEN_OFF            0x00
+#define ENC28J60_EFLOCON_FCEN_ON_HD          0x01
+#define ENC28J60_EFLOCON_FCEN_ON_FD          0x02
+#define ENC28J60_EFLOCON_FCEN_SEND_PAUSE     0x03
 
-//PHIR register
-#define PHIR_PLNKIF       (1 << 4)
-#define PHIR_PGIF         (1 << 2)
+//PHY Control 1 register
+#define ENC28J60_PHCON1_PRST                 0x8000
+#define ENC28J60_PHCON1_PLOOPBK              0x4000
+#define ENC28J60_PHCON1_PPWRSV               0x0800
+#define ENC28J60_PHCON1_PDPXMD               0x0100
 
-//PHLCON register
-#define PHLCON_LACFG3     (1 << 11)
-#define PHLCON_LACFG2     (1 << 10)
-#define PHLCON_LACFG1     (1 << 9)
-#define PHLCON_LACFG0     (1 << 8)
-#define PHLCON_LBCFG3     (1 << 7)
-#define PHLCON_LBCFG2     (1 << 6)
-#define PHLCON_LBCFG1     (1 << 5)
-#define PHLCON_LBCFG0     (1 << 4)
-#define PHLCON_LFRQ1      (1 << 3)
-#define PHLCON_LFRQ0      (1 << 2)
-#define PHLCON_STRCH      (1 << 1)
+//Physical Layer Status 1 register
+#define ENC28J60_PHSTAT1_PFDPX               0x1000
+#define ENC28J60_PHSTAT1_PHDPX               0x0800
+#define ENC28J60_PHSTAT1_LLSTAT              0x0004
+#define ENC28J60_PHSTAT1_JBRSTAT             0x0002
 
-#define PHLCON_LACFG(x)  ((x) << 8)
-#define PHLCON_LBCFG(x)  ((x) << 4)
-#define PHLCON_LFRQ(x)   ((x) << 2)
+//PHY Identifier 1 register
+#define ENC28J60_PHID1_PIDH                  0xFFFF
+#define ENC28J60_PHID1_PIDH_DEFAULT          0x0083
+
+//PHY Identifier 2 register
+#define ENC28J60_PHID2_PIDL                  0xFC00
+#define ENC28J60_PHID2_PIDL_DEFAULT          0x1400
+#define ENC28J60_PHID2_PPN                   0x03F0
+#define ENC28J60_PHID2_PPN_DEFAULT           0x0000
+#define ENC28J60_PHID2_PREV                  0x000F
+
+//PHY Control 2 register
+#define ENC28J60_PHCON2_FRCLNK               0x4000
+#define ENC28J60_PHCON2_TXDIS                0x2000
+#define ENC28J60_PHCON2_JABBER               0x0400
+#define ENC28J60_PHCON2_HDLDIS               0x0100
+
+//Physical Layer Status 2 register
+#define ENC28J60_PHSTAT2_TXSTAT              0x2000
+#define ENC28J60_PHSTAT2_RXSTAT              0x1000
+#define ENC28J60_PHSTAT2_COLSTAT             0x0800
+#define ENC28J60_PHSTAT2_LSTAT               0x0400
+#define ENC28J60_PHSTAT2_DPXSTAT             0x0200
+#define ENC28J60_PHSTAT2_PLRITY              0x0010
+
+//PHY Interrupt Enable register
+#define ENC28J60_PHIE_PLNKIE                 0x0010
+#define ENC28J60_PHIE_PGEIE                  0x0002
+
+//PHY Interrupt Request register
+#define ENC28J60_PHIR_PLNKIF                 0x0010
+#define ENC28J60_PHIR_PGIF                   0x0004
+
+//PHY Module LED Control register
+#define ENC28J60_PHLCON_LACFG                0x0F00
+#define ENC28J60_PHLCON_LACFG_TX             0x0100
+#define ENC28J60_PHLCON_LACFG_RX             0x0200
+#define ENC28J60_PHLCON_LACFG_COL            0x0300
+#define ENC28J60_PHLCON_LACFG_LINK           0x0400
+#define ENC28J60_PHLCON_LACFG_DUPLEX         0x0500
+#define ENC28J60_PHLCON_LACFG_TX_RX          0x0700
+#define ENC28J60_PHLCON_LACFG_ON             0x0800
+#define ENC28J60_PHLCON_LACFG_OFF            0x0900
+#define ENC28J60_PHLCON_LACFG_BLINK_FAST     0x0A00
+#define ENC28J60_PHLCON_LACFG_BLINK_SLOW     0x0B00
+#define ENC28J60_PHLCON_LACFG_LINK_RX        0x0C00
+#define ENC28J60_PHLCON_LACFG_LINK_TX_RX     0x0D00
+#define ENC28J60_PHLCON_LACFG_DUPLEX_COL     0x0E00
+#define ENC28J60_PHLCON_LBCFG                0x00F0
+#define ENC28J60_PHLCON_LBCFG_TX             0x0010
+#define ENC28J60_PHLCON_LBCFG_RX             0x0020
+#define ENC28J60_PHLCON_LBCFG_COL            0x0030
+#define ENC28J60_PHLCON_LBCFG_LINK           0x0040
+#define ENC28J60_PHLCON_LBCFG_DUPLEX         0x0050
+#define ENC28J60_PHLCON_LBCFG_TX_RX          0x0070
+#define ENC28J60_PHLCON_LBCFG_ON             0x0080
+#define ENC28J60_PHLCON_LBCFG_OFF            0x0090
+#define ENC28J60_PHLCON_LBCFG_BLINK_FAST     0x00A0
+#define ENC28J60_PHLCON_LBCFG_BLINK_SLOW     0x00B0
+#define ENC28J60_PHLCON_LBCFG_LINK_RX        0x00C0
+#define ENC28J60_PHLCON_LBCFG_LINK_TX_RX     0x00D0
+#define ENC28J60_PHLCON_LBCFG_DUPLEX_COL     0x00E0
+#define ENC28J60_PHLCON_LFRQ                 0x000C
+#define ENC28J60_PHLCON_LFRQ_40_MS           0x0000
+#define ENC28J60_PHLCON_LFRQ_73_MS           0x0004
+#define ENC28J60_PHLCON_LFRQ_139_MS          0x0008
+#define ENC28J60_PHLCON_STRCH                0x0002
 
 //Per-packet control byte
-#define TX_CTRL_PHUGEEN   (1 << 3)
-#define TX_CTRL_PPADEN    (1 << 2)
-#define TX_CTRL_PCRCEN    (1 << 1)
-#define TX_CTRL_POVERRIDE (1 << 0)
+#define ENC28J60_TX_CTRL_PHUGEEN             0x08
+#define ENC28J60_TX_CTRL_PPADEN              0x04
+#define ENC28J60_TX_CTRL_PCRCEN              0x02
+#define ENC28J60_TX_CTRL_POVERRIDE           0x01
 
 //Receive status vector
-#define RSV_VLAN_TYPE           0x4000
-#define RSV_UNKNOWN_OPCODE      0x2000
-#define RSV_PAUSE_CONTROL_FRAME 0x1000
-#define RSV_CONTROL_FRAME       0x0800
-#define RSV_DRIBBLE_NIBBLE      0x0400
-#define RSV_BROADCAST_PACKET    0x0200
-#define RSV_MULTICAST_PACKET    0x0100
-#define RSV_RECEIVED_OK         0x0080
-#define RSV_LENGTH_OUT_OF_RANGE 0x0040
-#define RSV_LENGTH_CHECK_ERROR  0x0020
-#define RSV_CRC_ERROR           0x0010
-#define RSV_CARRIER_EVENT       0x0004
-#define RSV_DROP_EVENT          0x0001
+#define ENC28J60_RSV_VLAN_TYPE               0x4000
+#define ENC28J60_RSV_UNKNOWN_OPCODE          0x2000
+#define ENC28J60_RSV_PAUSE_CONTROL_FRAME     0x1000
+#define ENC28J60_RSV_CONTROL_FRAME           0x0800
+#define ENC28J60_RSV_DRIBBLE_NIBBLE          0x0400
+#define ENC28J60_RSV_BROADCAST_PACKET        0x0200
+#define ENC28J60_RSV_MULTICAST_PACKET        0x0100
+#define ENC28J60_RSV_RECEIVED_OK             0x0080
+#define ENC28J60_RSV_LENGTH_OUT_OF_RANGE     0x0040
+#define ENC28J60_RSV_LENGTH_CHECK_ERROR      0x0020
+#define ENC28J60_RSV_CRC_ERROR               0x0010
+#define ENC28J60_RSV_CARRIER_EVENT           0x0004
+#define ENC28J60_RSV_DROP_EVENT              0x0001
 
 //C++ guard
 #ifdef __cplusplus

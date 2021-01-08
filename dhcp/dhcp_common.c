@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -67,7 +67,7 @@ void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
       if(option->code == DHCP_OPT_END)
          break;
 
-      //Jump to next the next option
+      //Jump to the next option
       n += sizeof(DhcpOption) + option->length;
    }
 
@@ -84,7 +84,7 @@ void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
       //Option value
       osMemcpy(option->value, optionValue, optionLen);
 
-      //Jump to next the next option
+      //Jump to the next option
       n += sizeof(DhcpOption) + option->length;
 
       //Point to the buffer where the option is to be written
@@ -108,40 +108,54 @@ void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
 DhcpOption *dhcpGetOption(const DhcpMessage *message,
    size_t length, uint8_t optionCode)
 {
-   uint_t i;
+   size_t i;
    DhcpOption *option;
 
    //Make sure the DHCP header is valid
-   if(length < sizeof(DhcpMessage))
-      return NULL;
-   //Get the length of the options field
-   length -= sizeof(DhcpMessage);
-
-   //Parse DHCP options
-   for(i = 0; i < length; i++)
+   if(length >= sizeof(DhcpMessage))
    {
-      //Point to the current option
-      option = (DhcpOption *) (message->options + i);
+      //Get the length of the options field
+      length -= sizeof(DhcpMessage);
 
-      //Pad option detected?
-      if(option->code == DHCP_OPT_PAD)
-         continue;
-      //End option detected?
-      if(option->code == DHCP_OPT_END)
-         break;
-      //Check option length
-      if((i + 1) >= length || (i + 1 + option->length) >= length)
-         break;
+      //Loop through the list of options
+      for(i = 0; i < length; i++)
+      {
+         //Point to the current option
+         option = (DhcpOption *) (message->options + i);
 
-      //Current option code matches the specified one?
-      if(option->code == optionCode)
-         return option;
+         //Check option code
+         if(option->code == DHCP_OPT_PAD)
+         {
+            //The pad option can be used to cause subsequent fields to align
+            //on word boundaries
+         }
+         else if(option->code == DHCP_OPT_END)
+         {
+            //The end option marks the end of valid information in the vendor
+            //field
+            break;
+         }
+         else
+         {
+            //The option code is followed by a one-byte length field
+            if((i + 1) >= length)
+               break;
 
-      //Jump to the next option
-      i += option->length + 1;
+            //Check the length of the option
+            if((i + sizeof(DhcpOption) + option->length) > length)
+               break;
+
+            //Matching option code?
+            if(option->code == optionCode)
+               return option;
+
+            //Jump to the next option
+            i += option->length + 1;
+         }
+      }
    }
 
-   //Specified option code not found
+   //The specified option code does not exist
    return NULL;
 }
 

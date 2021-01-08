@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -686,7 +686,7 @@ error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr)
 
 #if (IPV6_SUPPORT == ENABLED)
    //IPv6 address?
-   if(strchr(str, ':'))
+   if(osStrchr(str, ':') != NULL)
    {
       //IPv6 addresses are 16-byte long
       ipAddr->length = sizeof(Ipv6Addr);
@@ -697,7 +697,7 @@ error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr)
 #endif
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
-   if(strchr(str, '.'))
+   if(osStrchr(str, '.') != NULL)
    {
       //IPv4 addresses are 4-byte long
       ipAddr->length = sizeof(Ipv4Addr);

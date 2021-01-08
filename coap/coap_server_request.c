@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -102,7 +102,7 @@ error_t coapServerGetUriQuery(CoapServerContext *context, char_t *queryString,
 
 /**
  * @brief Read an opaque option from the CoAP request
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] optionNum Option number to search for
  * @param[in] optionIndex Occurrence index (for repeatable options only)
  * @param[out] optionValue Pointer to the first byte of the option value
@@ -125,7 +125,7 @@ error_t coapServerGetOpaqueOption(CoapServerContext *context, uint16_t optionNum
 
 /**
  * @brief Read a string option from the CoAP request
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] optionNum Option number to search for
  * @param[in] optionIndex Occurrence index (for repeatable options only)
  * @param[out] optionValue Pointer to the first byte of the option value
@@ -148,7 +148,7 @@ error_t coapServerGetStringOption(CoapServerContext *context, uint16_t optionNum
 
 /**
  * @brief Read an uint option from the CoAP request
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] optionNum Option number to search for
  * @param[in] optionIndex Occurrence index (for repeatable options only)
  * @param[out] optionValue Option value (unsigned integer)
@@ -170,7 +170,7 @@ error_t coapServerGetUintOption(CoapServerContext *context, uint16_t optionNum,
 
 /**
  * @brief Get request payload
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[out] payload Pointer to the first byte of the payload
  * @param[out] payloadLen Length of the payload, in bytes
  * @return Error code
@@ -190,7 +190,7 @@ error_t coapServerGetPayload(CoapServerContext *context, const uint8_t **payload
 
 /**
  * @brief Read request payload data
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[out] data Buffer into which received data will be placed
  * @param[in] size Maximum number of bytes that can be received
  * @param[out] length Number of bytes that have been received
@@ -211,7 +211,7 @@ error_t coapServerReadPayload(CoapServerContext *context, void *data, size_t siz
 
 /**
  * @brief Set response method
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] code Response code
  * @return Error code
  **/
@@ -229,7 +229,7 @@ error_t coapServerSetResponseCode(CoapServerContext *context, CoapCode code)
 
 /**
  * @brief Set Location-Path option
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] path NULL-terminated string that contains the path component
  * @return Error code
  **/
@@ -249,7 +249,7 @@ error_t coapServerSetLocationPath(CoapServerContext *context,
 
 /**
  * @brief Set Location-Query option
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] queryString NULL-terminated string that contains the query string
  * @return Error code
  **/
@@ -269,7 +269,7 @@ error_t coapServerSetLocationQuery(CoapServerContext *context,
 
 /**
  * @brief Add an opaque option to the CoAP response
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] optionNum Option number
  * @param[in] optionIndex Occurrence index (for repeatable options only)
  * @param[in] optionValue Pointer to the first byte of the option value
@@ -296,7 +296,7 @@ error_t coapServerSetOpaqueOption(CoapServerContext *context, uint16_t optionNum
 
 /**
  * @brief Add a string option to the CoAP response
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] optionNum Option number
  * @param[in] optionIndex Occurrence index (for repeatable options only)
  * @param[in] optionValue NULL-terminated string that contains the option value
@@ -323,7 +323,7 @@ error_t coapServerSetStringOption(CoapServerContext *context, uint16_t optionNum
 
 /**
  * @brief Add a uint option to the CoAP response
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] optionNum Option number
  * @param[in] optionIndex Occurrence index (for repeatable options only)
  * @param[in] optionValue Option value (unsigned integer)
@@ -345,7 +345,7 @@ error_t coapServerSetUintOption(CoapServerContext *context, uint16_t optionNum,
 
 /**
  * @brief Remove an option from the CoAP response
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] optionNum Option number
  * @param[in] optionIndex Occurrence index (for repeatable options only)
  * @return Error code
@@ -365,7 +365,7 @@ error_t coapServerDeleteOption(CoapServerContext *context, uint16_t optionNum,
 
 /**
  * @brief Set response payload
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[out] payload Pointer to request payload
  * @param[out] payloadLen Length of the payload, in bytes
  * @return Error code
@@ -389,7 +389,7 @@ error_t coapServerSetPayload(CoapServerContext *context, const void *payload,
 
 /**
  * @brief Write payload data
- * @param[in] message Pointer to the CoAP message
+ * @param[in] context Pointer to the CoAP server context
  * @param[in] data Pointer to a buffer containing the data to be written
  * @param[in] length Number of bytes to written
  * @return Error code

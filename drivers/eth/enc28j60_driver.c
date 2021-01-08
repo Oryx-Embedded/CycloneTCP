@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
 //Dependencies
-#include <limits.h>
 #include "core/net.h"
 #include "drivers/eth/enc28j60_driver.h"
 #include "debug.h"
@@ -105,113 +104,117 @@ error_t enc28j60Init(NetInterface *interface)
    }
 
    //Read silicon revision ID
-   revisionId = enc28j60ReadReg(interface, ENC28J60_REG_EREVID);
+   revisionId = enc28j60ReadReg(interface, ENC28J60_EREVID);
 
    //Debug message
    TRACE_INFO("ENC28J60 revision ID: 0x%02X\r\n", revisionId);
 
    //Disable CLKOUT output
-   enc28j60WriteReg(interface, ENC28J60_REG_ECOCON, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_ECOCON, ENC28J60_ECOCON_COCON_DISABLED);
 
    //Set the MAC address of the station
-   enc28j60WriteReg(interface, ENC28J60_REG_MAADR1, interface->macAddr.b[0]);
-   enc28j60WriteReg(interface, ENC28J60_REG_MAADR2, interface->macAddr.b[1]);
-   enc28j60WriteReg(interface, ENC28J60_REG_MAADR3, interface->macAddr.b[2]);
-   enc28j60WriteReg(interface, ENC28J60_REG_MAADR4, interface->macAddr.b[3]);
-   enc28j60WriteReg(interface, ENC28J60_REG_MAADR5, interface->macAddr.b[4]);
-   enc28j60WriteReg(interface, ENC28J60_REG_MAADR6, interface->macAddr.b[5]);
+   enc28j60WriteReg(interface, ENC28J60_MAADR5, interface->macAddr.b[0]);
+   enc28j60WriteReg(interface, ENC28J60_MAADR4, interface->macAddr.b[1]);
+   enc28j60WriteReg(interface, ENC28J60_MAADR3, interface->macAddr.b[2]);
+   enc28j60WriteReg(interface, ENC28J60_MAADR2, interface->macAddr.b[3]);
+   enc28j60WriteReg(interface, ENC28J60_MAADR1, interface->macAddr.b[4]);
+   enc28j60WriteReg(interface, ENC28J60_MAADR0, interface->macAddr.b[5]);
 
    //Set receive buffer location
-   enc28j60WriteReg(interface, ENC28J60_REG_ERXSTL, LSB(ENC28J60_RX_BUFFER_START));
-   enc28j60WriteReg(interface, ENC28J60_REG_ERXSTH, MSB(ENC28J60_RX_BUFFER_START));
-   enc28j60WriteReg(interface, ENC28J60_REG_ERXNDL, LSB(ENC28J60_RX_BUFFER_STOP));
-   enc28j60WriteReg(interface, ENC28J60_REG_ERXNDH, MSB(ENC28J60_RX_BUFFER_STOP));
+   enc28j60WriteReg(interface, ENC28J60_ERXSTL, LSB(ENC28J60_RX_BUFFER_START));
+   enc28j60WriteReg(interface, ENC28J60_ERXSTH, MSB(ENC28J60_RX_BUFFER_START));
+   enc28j60WriteReg(interface, ENC28J60_ERXNDL, LSB(ENC28J60_RX_BUFFER_STOP));
+   enc28j60WriteReg(interface, ENC28J60_ERXNDH, MSB(ENC28J60_RX_BUFFER_STOP));
 
-   //The ERXRDPT register defines a location within the FIFO
-   //where the receive hardware is forbidden to write to
-   enc28j60WriteReg(interface, ENC28J60_REG_ERXRDPTL, LSB(ENC28J60_RX_BUFFER_STOP));
-   enc28j60WriteReg(interface, ENC28J60_REG_ERXRDPTH, MSB(ENC28J60_RX_BUFFER_STOP));
+   //The ERXRDPT register defines a location within the FIFO where the receive
+   //hardware is forbidden to write to
+   enc28j60WriteReg(interface, ENC28J60_ERXRDPTL, LSB(ENC28J60_RX_BUFFER_STOP));
+   enc28j60WriteReg(interface, ENC28J60_ERXRDPTH, MSB(ENC28J60_RX_BUFFER_STOP));
 
    //Configure the receive filters
-   enc28j60WriteReg(interface, ENC28J60_REG_ERXFCON, ERXFCON_UCEN |
-      ERXFCON_CRCEN | ERXFCON_HTEN | ERXFCON_BCEN);
+   enc28j60WriteReg(interface, ENC28J60_ERXFCON, ENC28J60_ERXFCON_UCEN |
+      ENC28J60_ERXFCON_CRCEN | ENC28J60_ERXFCON_HTEN | ENC28J60_ERXFCON_BCEN);
 
    //Initialize the hash table
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT0, 0x00);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT1, 0x00);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT2, 0x00);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT3, 0x00);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT4, 0x00);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT5, 0x00);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT6, 0x00);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT7, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EHT0, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EHT1, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EHT2, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EHT3, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EHT4, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EHT5, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EHT6, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EHT7, 0x00);
 
    //Pull the MAC out of reset
-   enc28j60WriteReg(interface, ENC28J60_REG_MACON2, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_MACON2, 0x00);
 
    //Enable the MAC to receive frames
-   enc28j60WriteReg(interface, ENC28J60_REG_MACON1,
-      MACON1_TXPAUS | MACON1_RXPAUS | MACON1_MARXEN);
+   enc28j60WriteReg(interface, ENC28J60_MACON1, ENC28J60_MACON1_TXPAUS |
+      ENC28J60_MACON1_RXPAUS | ENC28J60_MACON1_MARXEN);
 
-   //Enable automatic padding to at least 60 bytes, always append a valid CRC
-   //and check frame length. MAC can operate in half-duplex or full-duplex mode
+   //Enable automatic padding, always append a valid CRC and check frame
+   //length. MAC can operate in half-duplex or full-duplex mode
 #if (ENC28J60_FULL_DUPLEX_SUPPORT == ENABLED)
-   enc28j60WriteReg(interface, ENC28J60_REG_MACON3, MACON3_PADCFG(1) |
-      MACON3_TXCRCEN | MACON3_FRMLNEN | MACON3_FULDPX);
+   enc28j60WriteReg(interface, ENC28J60_MACON3, ENC28J60_MACON3_PADCFG_AUTO |
+      ENC28J60_MACON3_TXCRCEN | ENC28J60_MACON3_FRMLNEN |
+      ENC28J60_MACON3_FULDPX);
 #else
-   enc28j60WriteReg(interface, ENC28J60_REG_MACON3, MACON3_PADCFG(1) |
-      MACON3_TXCRCEN | MACON3_FRMLNEN);
+   enc28j60WriteReg(interface, ENC28J60_MACON3, ENC28J60_MACON3_PADCFG_AUTO |
+      ENC28J60_MACON3_TXCRCEN | ENC28J60_MACON3_FRMLNEN);
 #endif
 
    //When the medium is occupied, the MAC will wait indefinitely for it to
    //become free when attempting to transmit
-   enc28j60WriteReg(interface, ENC28J60_REG_MACON4, MACON4_DEFER);
+   enc28j60WriteReg(interface, ENC28J60_MACON4, ENC28J60_MACON4_DEFER);
 
    //Maximum frame length that can be received or transmitted
-   enc28j60WriteReg(interface, ENC28J60_REG_MAMXFLL, LSB(ETH_MAX_FRAME_SIZE));
-   enc28j60WriteReg(interface, ENC28J60_REG_MAMXFLH, MSB(ETH_MAX_FRAME_SIZE));
+   enc28j60WriteReg(interface, ENC28J60_MAMXFLL, LSB(ETH_MAX_FRAME_SIZE));
+   enc28j60WriteReg(interface, ENC28J60_MAMXFLH, MSB(ETH_MAX_FRAME_SIZE));
 
    //Configure the back-to-back inter-packet gap register
 #if (ENC28J60_FULL_DUPLEX_SUPPORT == ENABLED)
-   enc28j60WriteReg(interface, ENC28J60_REG_MABBIPG, 0x15);
+   enc28j60WriteReg(interface, ENC28J60_MABBIPG, ENC28J60_MABBIPG_DEFAULT_FD);
 #else
-   enc28j60WriteReg(interface, ENC28J60_REG_MABBIPG, 0x12);
+   enc28j60WriteReg(interface, ENC28J60_MABBIPG, ENC28J60_MABBIPG_DEFAULT_HD);
 #endif
 
    //Configure the non-back-to-back inter-packet gap register
-   enc28j60WriteReg(interface, ENC28J60_REG_MAIPGL, 0x12);
-   enc28j60WriteReg(interface, ENC28J60_REG_MAIPGH, 0x0C);
+   enc28j60WriteReg(interface, ENC28J60_MAIPGL, ENC28J60_MAIPGL_DEFAULT);
+   enc28j60WriteReg(interface, ENC28J60_MAIPGH, ENC28J60_MAIPGH_DEFAULT);
 
    //Collision window register
-   enc28j60WriteReg(interface, ENC28J60_REG_MACLCON2, 63);
+   enc28j60WriteReg(interface, ENC28J60_MACLCON2,
+      ENC28J60_MACLCON2_COLWIN_DEFAULT);
 
    //Set the PHY to the proper duplex mode
 #if (ENC28J60_FULL_DUPLEX_SUPPORT == ENABLED)
-   enc28j60WritePhyReg(interface, ENC28J60_PHY_REG_PHCON1, PHCON1_PDPXMD);
+   enc28j60WritePhyReg(interface, ENC28J60_PHCON1, ENC28J60_PHCON1_PDPXMD);
 #else
-   enc28j60WritePhyReg(interface, ENC28J60_PHY_REG_PHCON1, 0x0000);
+   enc28j60WritePhyReg(interface, ENC28J60_PHCON1, 0x0000);
 #endif
 
    //Disable half-duplex loopback in PHY
-   enc28j60WritePhyReg(interface, ENC28J60_PHY_REG_PHCON2, PHCON2_HDLDIS);
+   enc28j60WritePhyReg(interface, ENC28J60_PHCON2, ENC28J60_PHCON2_HDLDIS);
 
    //LEDA displays link status and LEDB displays TX/RX activity
-   enc28j60WritePhyReg(interface, ENC28J60_PHY_REG_PHLCON,
-      PHLCON_LACFG(4) | PHLCON_LBCFG(7) | PHLCON_LFRQ(0) | PHLCON_STRCH);
+   enc28j60WritePhyReg(interface, ENC28J60_PHLCON,
+      ENC28J60_PHLCON_LACFG_LINK | ENC28J60_PHLCON_LBCFG_TX_RX |
+      ENC28J60_PHLCON_LFRQ_40_MS | ENC28J60_PHLCON_STRCH);
 
    //Clear interrupt flags
-   enc28j60WriteReg(interface, ENC28J60_REG_EIR, 0x00);
+   enc28j60WriteReg(interface, ENC28J60_EIR, 0x00);
 
    //Configure interrupts as desired
-   enc28j60WriteReg(interface, ENC28J60_REG_EIE, EIE_INTIE |
-      EIE_PKTIE | EIE_LINKIE | EIE_TXIE | EIE_TXERIE);
+   enc28j60WriteReg(interface, ENC28J60_EIE, ENC28J60_EIE_INTIE |
+      ENC28J60_EIE_PKTIE | ENC28J60_EIE_LINKIE | ENC28J60_EIE_TXIE |
+      ENC28J60_EIE_TXERIE);
 
    //Configure PHY interrupts as desired
-   enc28j60WritePhyReg(interface, ENC28J60_PHY_REG_PHIE,
-      PHIE_PLNKIE | PHIE_PGEIE);
+   enc28j60WritePhyReg(interface, ENC28J60_PHIE, ENC28J60_PHIE_PLNKIE |
+      ENC28J60_PHIE_PGEIE);
 
    //Set RXEN to enable reception
-   enc28j60SetBit(interface, ENC28J60_REG_ECON1, ECON1_RXEN);
+   enc28j60SetBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_RXEN);
 
    //Dump registers for debugging purpose
    enc28j60DumpReg(interface);
@@ -279,16 +282,16 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
    flag = FALSE;
 
    //Clear the INTIE bit, immediately after an interrupt event
-   enc28j60ClearBit(interface, ENC28J60_REG_EIE, EIE_INTIE);
+   enc28j60ClearBit(interface, ENC28J60_EIE, ENC28J60_EIE_INTIE);
 
    //Read interrupt status register
-   status = enc28j60ReadReg(interface, ENC28J60_REG_EIR);
+   status = enc28j60ReadReg(interface, ENC28J60_EIR);
 
    //Link status change?
-   if((status & EIR_LINKIF) != 0)
+   if((status & ENC28J60_EIR_LINKIF) != 0)
    {
       //Disable LINKIE interrupt
-      enc28j60ClearBit(interface, ENC28J60_REG_EIE, EIE_LINKIE);
+      enc28j60ClearBit(interface, ENC28J60_EIE, ENC28J60_EIE_LINKIE);
 
       //Set event flag
       interface->nicEvent = TRUE;
@@ -297,10 +300,10 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if((status & EIR_PKTIF) != 0)
+   if(enc28j60ReadReg(interface, ENC28J60_EPKTCNT) != 0)
    {
       //Disable PKTIE interrupt
-      enc28j60ClearBit(interface, ENC28J60_REG_EIE, EIE_PKTIE);
+      enc28j60ClearBit(interface, ENC28J60_EIE, ENC28J60_EIE_PKTIE);
 
       //Set event flag
       interface->nicEvent = TRUE;
@@ -309,10 +312,11 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if((status & (EIR_TXIF | EIE_TXERIE)) != 0)
+   if((status & (ENC28J60_EIR_TXIF | ENC28J60_EIE_TXERIE)) != 0)
    {
       //Clear interrupt flags
-      enc28j60ClearBit(interface, ENC28J60_REG_EIR, EIR_TXIF | EIE_TXERIE);
+      enc28j60ClearBit(interface, ENC28J60_EIR, ENC28J60_EIR_TXIF |
+         ENC28J60_EIE_TXERIE);
 
       //Notify the TCP/IP stack that the transmitter is ready to send
       flag |= osSetEventFromIsr(&interface->nicTxEvent);
@@ -320,7 +324,7 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
 
    //Once the interrupt has been serviced, the INTIE bit
    //is set again to re-enable interrupts
-   enc28j60SetBit(interface, ENC28J60_REG_EIE, EIE_INTIE);
+   enc28j60SetBit(interface, ENC28J60_EIE, ENC28J60_EIE_INTIE);
 
    //A higher priority task must be woken?
    return flag;
@@ -339,20 +343,20 @@ void enc28j60EventHandler(NetInterface *interface)
    uint16_t value;
 
    //Read interrupt status register
-   status = enc28j60ReadReg(interface, ENC28J60_REG_EIR);
+   status = enc28j60ReadReg(interface, ENC28J60_EIR);
 
    //Check whether the link state has changed
-   if((status & EIR_LINKIF) != 0)
+   if((status & ENC28J60_EIR_LINKIF) != 0)
    {
       //Clear PHY interrupts flags
-      enc28j60ReadPhyReg(interface, ENC28J60_PHY_REG_PHIR);
+      enc28j60ReadPhyReg(interface, ENC28J60_PHIR);
       //Clear interrupt flag
-      enc28j60ClearBit(interface, ENC28J60_REG_EIR, EIR_LINKIF);
+      enc28j60ClearBit(interface, ENC28J60_EIR, ENC28J60_EIR_LINKIF);
       //Read PHY status register
-      value = enc28j60ReadPhyReg(interface, ENC28J60_PHY_REG_PHSTAT2);
+      value = enc28j60ReadPhyReg(interface, ENC28J60_PHSTAT2);
 
       //Check link state
-      if((value & PHSTAT2_LSTAT) != 0)
+      if((value & ENC28J60_PHSTAT2_LSTAT) != 0)
       {
          //Link speed
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
@@ -378,10 +382,10 @@ void enc28j60EventHandler(NetInterface *interface)
    }
 
    //Check whether a packet has been received?
-   if((status & EIR_PKTIF) != 0)
+   if(enc28j60ReadReg(interface, ENC28J60_EPKTCNT) != 0)
    {
       //Clear interrupt flag
-      enc28j60ClearBit(interface, ENC28J60_REG_EIR, EIR_PKTIF);
+      enc28j60ClearBit(interface, ENC28J60_EIR, ENC28J60_EIR_PKTIF);
 
       //Process all pending packets
       do
@@ -394,7 +398,8 @@ void enc28j60EventHandler(NetInterface *interface)
    }
 
    //Re-enable LINKIE and PKTIE interrupts
-   enc28j60SetBit(interface, ENC28J60_REG_EIE, EIE_LINKIE | EIE_PKTIE);
+   enc28j60SetBit(interface, ENC28J60_EIE, ENC28J60_EIE_LINKIE |
+      ENC28J60_EIE_PKTIE);
 }
 
 
@@ -436,29 +441,30 @@ error_t enc28j60SendPacket(NetInterface *interface,
 
    //It is recommended to reset the transmit logic before
    //attempting to transmit a packet
-   enc28j60SetBit(interface, ENC28J60_REG_ECON1, ECON1_TXRST);
-   enc28j60ClearBit(interface, ENC28J60_REG_ECON1, ECON1_TXRST);
+   enc28j60SetBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_TXRST);
+   enc28j60ClearBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_TXRST);
 
    //Interrupt flags should be cleared after the reset is completed
-   enc28j60ClearBit(interface, ENC28J60_REG_EIR, EIR_TXIF | EIR_TXERIF);
+   enc28j60ClearBit(interface, ENC28J60_EIR, ENC28J60_EIR_TXIF |
+      ENC28J60_EIR_TXERIF);
 
    //Set transmit buffer location
-   enc28j60WriteReg(interface, ENC28J60_REG_ETXSTL, LSB(ENC28J60_TX_BUFFER_START));
-   enc28j60WriteReg(interface, ENC28J60_REG_ETXSTH, MSB(ENC28J60_TX_BUFFER_START));
+   enc28j60WriteReg(interface, ENC28J60_ETXSTL, LSB(ENC28J60_TX_BUFFER_START));
+   enc28j60WriteReg(interface, ENC28J60_ETXSTH, MSB(ENC28J60_TX_BUFFER_START));
 
    //Point to start of transmit buffer
-   enc28j60WriteReg(interface, ENC28J60_REG_EWRPTL, LSB(ENC28J60_TX_BUFFER_START));
-   enc28j60WriteReg(interface, ENC28J60_REG_EWRPTH, MSB(ENC28J60_TX_BUFFER_START));
+   enc28j60WriteReg(interface, ENC28J60_EWRPTL, LSB(ENC28J60_TX_BUFFER_START));
+   enc28j60WriteReg(interface, ENC28J60_EWRPTH, MSB(ENC28J60_TX_BUFFER_START));
 
    //Copy the data to the transmit buffer
    enc28j60WriteBuffer(interface, buffer, offset);
 
    //ETXND should point to the last byte in the data payload
-   enc28j60WriteReg(interface, ENC28J60_REG_ETXNDL, LSB(ENC28J60_TX_BUFFER_START + length));
-   enc28j60WriteReg(interface, ENC28J60_REG_ETXNDH, MSB(ENC28J60_TX_BUFFER_START + length));
+   enc28j60WriteReg(interface, ENC28J60_ETXNDL, LSB(ENC28J60_TX_BUFFER_START + length));
+   enc28j60WriteReg(interface, ENC28J60_ETXNDH, MSB(ENC28J60_TX_BUFFER_START + length));
 
    //Start transmission
-   enc28j60SetBit(interface, ENC28J60_REG_ECON1, ECON1_TXRTS);
+   enc28j60SetBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_TXRTS);
 
    //Successful processing
    return NO_ERROR;
@@ -474,34 +480,38 @@ error_t enc28j60SendPacket(NetInterface *interface,
 error_t enc28j60ReceivePacket(NetInterface *interface)
 {
    error_t error;
-   uint16_t n;
+   uint16_t length;
    uint16_t status;
+   uint8_t header[6];
    Enc28j60Context *context;
 
    //Point to the driver context
    context = (Enc28j60Context *) interface->nicContext;
 
    //Any packet pending in the receive buffer?
-   if(enc28j60ReadReg(interface, ENC28J60_REG_EPKTCNT))
+   if(enc28j60ReadReg(interface, ENC28J60_EPKTCNT) != 0)
    {
       //Point to the start of the received packet
-      enc28j60WriteReg(interface, ENC28J60_REG_ERDPTL, LSB(context->nextPacket));
-      enc28j60WriteReg(interface, ENC28J60_REG_ERDPTH, MSB(context->nextPacket));
+      enc28j60WriteReg(interface, ENC28J60_ERDPTL, LSB(context->nextPacket));
+      enc28j60WriteReg(interface, ENC28J60_ERDPTH, MSB(context->nextPacket));
 
-      //Read the first two bytes, which are the address of the next packet
-      enc28j60ReadBuffer(interface, (uint8_t *) &context->nextPacket, sizeof(uint16_t));
-      //Get the length of the received frame in bytes
-      enc28j60ReadBuffer(interface, (uint8_t *) &n, sizeof(uint16_t));
-      //Read the receive status vector (RSV)
-      enc28j60ReadBuffer(interface, (uint8_t *) &status, sizeof(uint16_t));
+      //The packet is preceded by a 6-byte header
+      enc28j60ReadBuffer(interface, header, sizeof(header));
+
+      //The first two bytes are the address of the next packet
+      context->nextPacket = LOAD16LE(header);
+      //Get the length of the received packet
+      length = LOAD16LE(header + 2);
+      //Get the receive status vector (RSV)
+      status = LOAD16LE(header + 4);
 
       //Make sure no error occurred
-      if((status & RSV_RECEIVED_OK) != 0)
+      if((status & ENC28J60_RSV_RECEIVED_OK) != 0)
       {
          //Limit the number of data to read
-         n = MIN(n, ETH_MAX_FRAME_SIZE);
+         length = MIN(length, ETH_MAX_FRAME_SIZE);
          //Read the Ethernet frame
-         enc28j60ReadBuffer(interface, context->rxBuffer, n);
+         enc28j60ReadBuffer(interface, context->rxBuffer, length);
          //Valid packet received
          error = NO_ERROR;
       }
@@ -515,17 +525,17 @@ error_t enc28j60ReceivePacket(NetInterface *interface)
       //end of the received memory buffer
       if(context->nextPacket == ENC28J60_RX_BUFFER_START)
       {
-         enc28j60WriteReg(interface, ENC28J60_REG_ERXRDPTL, LSB(ENC28J60_RX_BUFFER_STOP));
-         enc28j60WriteReg(interface, ENC28J60_REG_ERXRDPTH, MSB(ENC28J60_RX_BUFFER_STOP));
+         enc28j60WriteReg(interface, ENC28J60_ERXRDPTL, LSB(ENC28J60_RX_BUFFER_STOP));
+         enc28j60WriteReg(interface, ENC28J60_ERXRDPTH, MSB(ENC28J60_RX_BUFFER_STOP));
       }
       else
       {
-         enc28j60WriteReg(interface, ENC28J60_REG_ERXRDPTL, LSB(context->nextPacket - 1));
-         enc28j60WriteReg(interface, ENC28J60_REG_ERXRDPTH, MSB(context->nextPacket - 1));
+         enc28j60WriteReg(interface, ENC28J60_ERXRDPTL, LSB(context->nextPacket - 1));
+         enc28j60WriteReg(interface, ENC28J60_ERXRDPTH, MSB(context->nextPacket - 1));
       }
 
       //Decrement the packet counter
-      enc28j60SetBit(interface, ENC28J60_REG_ECON2, ECON2_PKTDEC);
+      enc28j60SetBit(interface, ENC28J60_ECON2, ENC28J60_ECON2_PKTDEC);
    }
    else
    {
@@ -542,7 +552,7 @@ error_t enc28j60ReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->rxBuffer, n, &ancillary);
+      nicProcessPacket(interface, context->rxBuffer, length, &ancillary);
    }
 
    //Return status code
@@ -590,24 +600,24 @@ error_t enc28j60UpdateMacAddrFilter(NetInterface *interface)
    }
 
    //Write the hash table to the ENC28J60 controller
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT0, hashTable[0]);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT1, hashTable[1]);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT2, hashTable[2]);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT3, hashTable[3]);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT4, hashTable[4]);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT5, hashTable[5]);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT6, hashTable[6]);
-   enc28j60WriteReg(interface, ENC28J60_REG_EHT7, hashTable[7]);
+   enc28j60WriteReg(interface, ENC28J60_EHT0, hashTable[0]);
+   enc28j60WriteReg(interface, ENC28J60_EHT1, hashTable[1]);
+   enc28j60WriteReg(interface, ENC28J60_EHT2, hashTable[2]);
+   enc28j60WriteReg(interface, ENC28J60_EHT3, hashTable[3]);
+   enc28j60WriteReg(interface, ENC28J60_EHT4, hashTable[4]);
+   enc28j60WriteReg(interface, ENC28J60_EHT5, hashTable[5]);
+   enc28j60WriteReg(interface, ENC28J60_EHT6, hashTable[6]);
+   enc28j60WriteReg(interface, ENC28J60_EHT7, hashTable[7]);
 
    //Debug message
-   TRACE_DEBUG("  EHT0 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_REG_EHT0));
-   TRACE_DEBUG("  EHT1 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_REG_EHT1));
-   TRACE_DEBUG("  EHT2 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_REG_EHT2));
-   TRACE_DEBUG("  EHT3 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_REG_EHT3));
-   TRACE_DEBUG("  EHT0 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_REG_EHT4));
-   TRACE_DEBUG("  EHT1 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_REG_EHT5));
-   TRACE_DEBUG("  EHT2 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_REG_EHT6));
-   TRACE_DEBUG("  EHT3 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_REG_EHT7));
+   TRACE_DEBUG("  EHT0 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_EHT0));
+   TRACE_DEBUG("  EHT1 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_EHT1));
+   TRACE_DEBUG("  EHT2 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_EHT2));
+   TRACE_DEBUG("  EHT3 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_EHT3));
+   TRACE_DEBUG("  EHT0 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_EHT4));
+   TRACE_DEBUG("  EHT1 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_EHT5));
+   TRACE_DEBUG("  EHT2 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_EHT6));
+   TRACE_DEBUG("  EHT3 = %02" PRIX8 "\r\n", enc28j60ReadReg(interface, ENC28J60_EHT7));
 
    //Successful processing
    return NO_ERROR;
@@ -652,30 +662,30 @@ void enc28j60SelectBank(NetInterface *interface, uint16_t address)
    //Rewrite the bank number only if a change is detected
    if(bank != context->currentBank)
    {
-      //Select specified bank
-      switch(bank)
+      //Select the relevant bank
+      if(bank == BANK_0)
       {
-      case BANK_0:
          //Select bank 0
-         enc28j60ClearBit(interface, ENC28J60_REG_ECON1, ECON1_BSEL1 | ECON1_BSEL0);
-         break;
-      case BANK_1:
+         enc28j60ClearBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_BSEL1 |
+            ENC28J60_ECON1_BSEL0);
+      }
+      else if(bank == BANK_1)
+      {
          //Select bank 1
-         enc28j60SetBit(interface, ENC28J60_REG_ECON1, ECON1_BSEL0);
-         enc28j60ClearBit(interface, ENC28J60_REG_ECON1, ECON1_BSEL1);
-         break;
-      case BANK_2:
+         enc28j60SetBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_BSEL0);
+         enc28j60ClearBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_BSEL1);
+      }
+      else if(bank == BANK_2)
+      {
          //Select bank 2
-         enc28j60ClearBit(interface, ENC28J60_REG_ECON1, ECON1_BSEL0);
-         enc28j60SetBit(interface, ENC28J60_REG_ECON1, ECON1_BSEL1);
-         break;
-      case BANK_3:
+         enc28j60ClearBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_BSEL0);
+         enc28j60SetBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_BSEL1);
+      }
+      else
+      {
          //Select bank 3
-         enc28j60SetBit(interface, ENC28J60_REG_ECON1, ECON1_BSEL1 | ECON1_BSEL0);
-         break;
-      default:
-         //Invalid bank
-         break;
+         enc28j60SetBit(interface, ENC28J60_ECON1, ENC28J60_ECON1_BSEL1 |
+            ENC28J60_ECON1_BSEL0);
       }
 
       //Save bank number
@@ -757,15 +767,15 @@ void enc28j60WritePhyReg(NetInterface *interface, uint16_t address,
    uint16_t data)
 {
    //Write register address
-   enc28j60WriteReg(interface, ENC28J60_REG_MIREGADR, address & REG_ADDR_MASK);
+   enc28j60WriteReg(interface, ENC28J60_MIREGADR, address & REG_ADDR_MASK);
 
    //Write the lower 8 bits
-   enc28j60WriteReg(interface, ENC28J60_REG_MIWRL, LSB(data));
+   enc28j60WriteReg(interface, ENC28J60_MIWRL, LSB(data));
    //Write the upper 8 bits
-   enc28j60WriteReg(interface, ENC28J60_REG_MIWRH, MSB(data));
+   enc28j60WriteReg(interface, ENC28J60_MIWRH, MSB(data));
 
    //Wait until the PHY register has been written
-   while((enc28j60ReadReg(interface, ENC28J60_REG_MISTAT) & MISTAT_BUSY) != 0)
+   while((enc28j60ReadReg(interface, ENC28J60_MISTAT) & ENC28J60_MISTAT_BUSY) != 0)
    {
    }
 }
@@ -783,22 +793,22 @@ uint16_t enc28j60ReadPhyReg(NetInterface *interface, uint16_t address)
    uint16_t data;
 
    //Write register address
-   enc28j60WriteReg(interface, ENC28J60_REG_MIREGADR, address & REG_ADDR_MASK);
+   enc28j60WriteReg(interface, ENC28J60_MIREGADR, address & REG_ADDR_MASK);
 
    //Start read operation
-   enc28j60WriteReg(interface, ENC28J60_REG_MICMD, MICMD_MIIRD);
+   enc28j60WriteReg(interface, ENC28J60_MICMD, ENC28J60_MICMD_MIIRD);
    //Wait for the read operation to complete
-   while((enc28j60ReadReg(interface, ENC28J60_REG_MISTAT) & MISTAT_BUSY) != 0)
+   while((enc28j60ReadReg(interface, ENC28J60_MISTAT) & ENC28J60_MISTAT_BUSY) != 0)
    {
    }
 
    //Clear command register
-   enc28j60WriteReg(interface, ENC28J60_REG_MICMD, 0);
+   enc28j60WriteReg(interface, ENC28J60_MICMD, 0);
 
    //Read the lower 8 bits
-   data = enc28j60ReadReg(interface, ENC28J60_REG_MIRDL);
+   data = enc28j60ReadReg(interface, ENC28J60_MIRDL);
    //Read the upper 8 bits
-   data |= enc28j60ReadReg(interface, ENC28J60_REG_MIRDH) << 8;
+   data |= enc28j60ReadReg(interface, ENC28J60_MIRDH) << 8;
 
    //Return register contents
    return data;

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -74,7 +74,7 @@ error_t dm9000Init(NetInterface *interface)
    uint_t i;
    uint16_t vendorId;
    uint16_t productId;
-   uint8_t chipRevision;
+   uint8_t chipRev;
    Dm9000Context *context;
 
    //Debug message
@@ -105,9 +105,9 @@ error_t dm9000Init(NetInterface *interface)
    }
 
    //Retrieve vendorID, product ID and chip revision
-   vendorId = (dm9000ReadReg(DM9000_REG_VIDH) << 8) | dm9000ReadReg(DM9000_REG_VIDL);
-   productId = (dm9000ReadReg(DM9000_REG_PIDH) << 8) | dm9000ReadReg(DM9000_REG_PIDL);
-   chipRevision = dm9000ReadReg(DM9000_REG_CHIPR);
+   vendorId = (dm9000ReadReg(DM9000_VIDH) << 8) | dm9000ReadReg(DM9000_VIDL);
+   productId = (dm9000ReadReg(DM9000_PIDH) << 8) | dm9000ReadReg(DM9000_PIDL);
+   chipRev = dm9000ReadReg(DM9000_CHIPR);
 
    //Check vendor ID and product ID
    if(vendorId != DM9000_VID || productId != DM9000_PID)
@@ -116,68 +116,80 @@ error_t dm9000Init(NetInterface *interface)
    }
 
    //Check chip revision
-   if(chipRevision != DM9000A_CHIP_REV && chipRevision != DM9000B_CHIP_REV)
+   if(chipRev != DM9000_CHIPR_REV_A && chipRev != DM9000_CHIPR_REV_B)
    {
       return ERROR_WRONG_IDENTIFIER;
    }
 
    //Power up the internal PHY by clearing PHYPD
-   dm9000WriteReg(DM9000_REG_GPR, 0x00);
+   dm9000WriteReg(DM9000_GPR, 0x00);
    //Wait for the PHY to be ready
    sleep(10);
 
    //Software reset
-   dm9000WriteReg(DM9000_REG_NCR, NCR_RST);
+   dm9000WriteReg(DM9000_NCR, DM9000_NCR_RST);
    //Wait for the reset to complete
-   while((dm9000ReadReg(DM9000_REG_NCR) & NCR_RST) != 0)
+   while((dm9000ReadReg(DM9000_NCR) & DM9000_NCR_RST) != 0)
    {
    }
 
    //PHY software reset
-   dm9000WritePhyReg(DM9000_PHY_REG_BMCR, BMCR_RST);
+   dm9000WritePhyReg(DM9000_BMCR, DM9000_BMCR_RST);
    //Wait for the PHY reset to complete
-   while((dm9000ReadPhyReg(DM9000_PHY_REG_BMCR) & BMCR_RST) != 0)
+   while((dm9000ReadPhyReg(DM9000_BMCR) & DM9000_BMCR_RST) != 0)
    {
    }
 
    //Debug message
    TRACE_INFO("  VID = 0x%04" PRIX16 "\r\n", vendorId);
    TRACE_INFO("  PID = 0x%04" PRIX16 "\r\n", productId);
-   TRACE_INFO("  CHIPR = 0x%02" PRIX8 "\r\n", chipRevision);
-   TRACE_INFO("  PHYIDR1 = 0x%04" PRIX16 "\r\n", dm9000ReadPhyReg(DM9000_PHY_REG_PHYIDR1));
-   TRACE_INFO("  PHYIDR2 = 0x%04" PRIX16 "\r\n", dm9000ReadPhyReg(DM9000_PHY_REG_PHYIDR2));
+   TRACE_INFO("  CHIPR = 0x%02" PRIX8 "\r\n", chipRev);
+   TRACE_INFO("  PHYIDR1 = 0x%04" PRIX16 "\r\n", dm9000ReadPhyReg(DM9000_PHYIDR1));
+   TRACE_INFO("  PHYIDR2 = 0x%04" PRIX16 "\r\n", dm9000ReadPhyReg(DM9000_PHYIDR2));
 
    //Enable loopback mode?
 #if (DM9000_LOOPBACK_MODE == ENABLED)
-   dm9000WriteReg(DM9000_REG_NCR, DM9000_LBK_PHY);
-   dm9000WritePhyReg(DM9000_PHY_REG_BMCR, BMCR_LOOPBACK | BMCR_SPEED_SEL | BMCR_AN_EN | BMCR_DUPLEX_MODE);
+   //Enable loopback mode
+   dm9000WriteReg(DM9000_NCR, DM9000_NCR_LBK_PHY);
+
+   //Set operation mode
+   dm9000WritePhyReg(DM9000_BMCR, DM9000_BMCR_LOOPBACK | DM9000_BMCR_SPEED_SEL |
+      DM9000_BMCR_AN_EN | DM9000_BMCR_DUPLEX_MODE);
 #endif
 
    //Set host MAC address
    for(i = 0; i < 6; i++)
    {
-      dm9000WriteReg(DM9000_REG_PAR0 + i, interface->macAddr.b[i]);
+      dm9000WriteReg(DM9000_PAR0 + i, interface->macAddr.b[i]);
    }
 
    //Initialize hash table
    for(i = 0; i < 8; i++)
    {
-      dm9000WriteReg(DM9000_REG_MAR0 + i, 0x00);
+      dm9000WriteReg(DM9000_MAR0 + i, 0x00);
    }
 
    //Always accept broadcast packets
-   dm9000WriteReg(DM9000_REG_MAR7, 0x80);
+   dm9000WriteReg(DM9000_MAR7, 0x80);
 
    //Enable the Pointer Auto Return function
-   dm9000WriteReg(DM9000_REG_IMR, IMR_PAR);
+   dm9000WriteReg(DM9000_IMR, DM9000_IMR_PAR);
+
    //Clear NSR status bits
-   dm9000WriteReg(DM9000_REG_NSR, NSR_WAKEST | NSR_TX2END | NSR_TX1END);
+   dm9000WriteReg(DM9000_NSR, DM9000_NSR_WAKEST | DM9000_NSR_TX2END |
+      DM9000_NSR_TX1END);
+
    //Clear interrupt flags
-   dm9000WriteReg(DM9000_REG_ISR, ISR_LNKCHG | ISR_UDRUN | ISR_ROO | ISR_ROS | ISR_PT | ISR_PR);
+   dm9000WriteReg(DM9000_ISR, DM9000_ISR_LNKCHG | DM9000_ISR_UDRUN |
+      DM9000_ISR_ROO | DM9000_ISR_ROS | DM9000_ISR_PT | DM9000_ISR_PR);
+
    //Enable interrupts
-   dm9000WriteReg(DM9000_REG_IMR, IMR_PAR | IMR_LNKCHGI | IMR_PTI | IMR_PRI);
+   dm9000WriteReg(DM9000_IMR, DM9000_IMR_PAR | DM9000_IMR_LNKCHGI |
+      DM9000_IMR_PTI | DM9000_IMR_PRI);
+
    //Enable the receiver by setting RXEN
-   dm9000WriteReg(DM9000_REG_RCR, RCR_DIS_LONG | RCR_DIS_CRC | RCR_RXEN);
+   dm9000WriteReg(DM9000_RCR, DM9000_RCR_DIS_LONG | DM9000_RCR_DIS_CRC |
+      DM9000_RCR_RXEN);
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -246,15 +258,15 @@ bool_t dm9000IrqHandler(NetInterface *interface)
    context = (Dm9000Context *) interface->nicContext;
 
    //Read interrupt status register
-   status = dm9000ReadReg(DM9000_REG_ISR);
+   status = dm9000ReadReg(DM9000_ISR);
 
    //Link status change?
-   if((status & ISR_LNKCHG) != 0)
+   if((status & DM9000_ISR_LNKCHG) != 0)
    {
       //Read interrupt mask register
-      mask = dm9000ReadReg(DM9000_REG_IMR);
+      mask = dm9000ReadReg(DM9000_IMR);
       //Disable LNKCHGI interrupt
-      dm9000WriteReg(DM9000_REG_IMR, mask & ~IMR_LNKCHGI);
+      dm9000WriteReg(DM9000_IMR, mask & ~DM9000_IMR_LNKCHGI);
 
       //Set event flag
       interface->nicEvent = TRUE;
@@ -263,10 +275,10 @@ bool_t dm9000IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if((status & ISR_PT) != 0)
+   if((status & DM9000_ISR_PT) != 0)
    {
       //Check TX complete status bits
-      if(dm9000ReadReg(DM9000_REG_NSR) & (NSR_TX2END | NSR_TX1END))
+      if((dm9000ReadReg(DM9000_NSR) & (DM9000_NSR_TX2END | DM9000_NSR_TX1END)) != 0)
       {
          //The transmission of the current packet is complete
          if(context->queuedPackets > 0)
@@ -279,16 +291,16 @@ bool_t dm9000IrqHandler(NetInterface *interface)
       }
 
       //Clear interrupt flag
-      dm9000WriteReg(DM9000_REG_ISR, ISR_PT);
+      dm9000WriteReg(DM9000_ISR, DM9000_ISR_PT);
    }
 
    //Packet received?
-   if((status & ISR_PR) != 0)
+   if((status & DM9000_ISR_PR) != 0)
    {
       //Read interrupt mask register
-      mask = dm9000ReadReg(DM9000_REG_IMR);
+      mask = dm9000ReadReg(DM9000_IMR);
       //Disable PRI interrupt
-      dm9000WriteReg(DM9000_REG_IMR, mask & ~IMR_PRI);
+      dm9000WriteReg(DM9000_IMR, mask & ~DM9000_IMR_PRI);
 
       //Set event flag
       interface->nicEvent = TRUE;
@@ -312,21 +324,21 @@ void dm9000EventHandler(NetInterface *interface)
    uint8_t status;
 
    //Read interrupt status register
-   status = dm9000ReadReg(DM9000_REG_ISR);
+   status = dm9000ReadReg(DM9000_ISR);
 
    //Check whether the link status has changed?
-   if((status & ISR_LNKCHG) != 0)
+   if((status & DM9000_ISR_LNKCHG) != 0)
    {
       //Clear interrupt flag
-      dm9000WriteReg(DM9000_REG_ISR, ISR_LNKCHG);
+      dm9000WriteReg(DM9000_ISR, DM9000_ISR_LNKCHG);
       //Read network status register
-      status = dm9000ReadReg(DM9000_REG_NSR);
+      status = dm9000ReadReg(DM9000_NSR);
 
       //Check link state
-      if((status & NSR_LINKST) != 0)
+      if((status & DM9000_NSR_LINKST) != 0)
       {
          //Get current speed
-         if((status & NSR_SPEED) != 0)
+         if((status & DM9000_NSR_SPEED) != 0)
          {
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          }
@@ -336,10 +348,10 @@ void dm9000EventHandler(NetInterface *interface)
          }
 
          //Read network control register
-         status = dm9000ReadReg(DM9000_REG_NCR);
+         status = dm9000ReadReg(DM9000_NCR);
 
          //Determine the new duplex mode
-         if((status & NCR_FDX) != 0)
+         if((status & DM9000_NCR_FDX) != 0)
          {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          }
@@ -362,10 +374,10 @@ void dm9000EventHandler(NetInterface *interface)
    }
 
    //Check whether a packet has been received?
-   if((status & ISR_PR) != 0)
+   if((status & DM9000_ISR_PR) != 0)
    {
       //Clear interrupt flag
-      dm9000WriteReg(DM9000_REG_ISR, ISR_PR);
+      dm9000WriteReg(DM9000_ISR, DM9000_ISR_PR);
 
       //Process all pending packets
       do
@@ -378,7 +390,8 @@ void dm9000EventHandler(NetInterface *interface)
    }
 
    //Re-enable LNKCHGI and PRI interrupts
-   dm9000WriteReg(DM9000_REG_IMR, IMR_PAR | IMR_LNKCHGI | IMR_PTI | IMR_PRI);
+   dm9000WriteReg(DM9000_IMR, DM9000_IMR_PAR | DM9000_IMR_LNKCHGI |
+      DM9000_IMR_PTI | DM9000_IMR_PRI);
 }
 
 
@@ -419,9 +432,9 @@ error_t dm9000SendPacket(NetInterface *interface,
    netBufferRead(context->txBuffer, buffer, offset, length);
 
    //A dummy write is required before accessing FIFO
-   dm9000WriteReg(DM9000_REG_MWCMDX, 0);
+   dm9000WriteReg(DM9000_MWCMDX, 0);
    //Select MWCMD register
-   DM9000_INDEX_REG = DM9000_REG_MWCMD;
+   DM9000_INDEX_REG = DM9000_MWCMD;
 
    //Point to the beginning of the buffer
    p = (uint16_t *) context->txBuffer;
@@ -439,13 +452,13 @@ error_t dm9000SendPacket(NetInterface *interface,
    }
 
    //Write the number of bytes to send
-   dm9000WriteReg(DM9000_REG_TXPLL, LSB(length));
-   dm9000WriteReg(DM9000_REG_TXPLH, MSB(length));
+   dm9000WriteReg(DM9000_TXPLL, LSB(length));
+   dm9000WriteReg(DM9000_TXPLH, MSB(length));
 
    //Clear interrupt flag
-   dm9000WriteReg(DM9000_REG_ISR, ISR_PT);
+   dm9000WriteReg(DM9000_ISR, DM9000_ISR_PT);
    //Start data transfer
-   dm9000WriteReg(DM9000_REG_TCR, TCR_TXREQ);
+   dm9000WriteReg(DM9000_TCR, DM9000_TCR_TXREQ);
 
    //The packet was successfully written to FIFO
    context->queuedPackets++;
@@ -475,10 +488,10 @@ error_t dm9000ReceivePacket(NetInterface *interface)
    context = (Dm9000Context *) interface->nicContext;
 
    //A dummy read is required before accessing the 4-byte header
-   data = dm9000ReadReg(DM9000_REG_MRCMDX);
+   data = dm9000ReadReg(DM9000_MRCMDX);
 
    //Select MRCMDX1 register
-   DM9000_INDEX_REG = DM9000_REG_MRCMDX1;
+   DM9000_INDEX_REG = DM9000_MRCMDX1;
    //Read the first byte of the header
    status = LSB(DM9000_DATA_REG);
 
@@ -486,7 +499,7 @@ error_t dm9000ReceivePacket(NetInterface *interface)
    if(status == 0x01)
    {
       //Select MRCMD register
-      DM9000_INDEX_REG = DM9000_REG_MRCMD;
+      DM9000_INDEX_REG = DM9000_MRCMD;
       //The second byte is the RX status byte
       status = MSB(DM9000_DATA_REG);
 
@@ -499,7 +512,8 @@ error_t dm9000ReceivePacket(NetInterface *interface)
       i = 0;
 
       //Make sure no error occurred
-      if((status & (RSR_LCS | RSR_RWTO | RSR_PLE | RSR_AE | RSR_CE | RSR_FOE)) == 0)
+      if((status & (DM9000_RSR_LCS | DM9000_RSR_RWTO | DM9000_RSR_PLE |
+         DM9000_RSR_AE | DM9000_RSR_CE | DM9000_RSR_FOE)) == 0)
       {
          //Read data from FIFO using 16-bit mode
          while((i + 1) < n)
@@ -600,16 +614,16 @@ error_t dm9000UpdateMacAddrFilter(NetInterface *interface)
    //Write the hash table to the DM9000 controller
    for(i = 0; i < 8; i++)
    {
-      dm9000WriteReg(DM9000_REG_MAR0 + i, hashTable[i]);
+      dm9000WriteReg(DM9000_MAR0 + i, hashTable[i]);
    }
 
    //Debug message
    TRACE_DEBUG("  MAR = %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " "
       "%02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 "\r\n",
-      dm9000ReadReg(DM9000_REG_MAR0), dm9000ReadReg(DM9000_REG_MAR1),
-      dm9000ReadReg(DM9000_REG_MAR2), dm9000ReadReg(DM9000_REG_MAR3),
-      dm9000ReadReg(DM9000_REG_MAR4), dm9000ReadReg(DM9000_REG_MAR5),
-      dm9000ReadReg(DM9000_REG_MAR6), dm9000ReadReg(DM9000_REG_MAR7));
+      dm9000ReadReg(DM9000_MAR0), dm9000ReadReg(DM9000_MAR1),
+      dm9000ReadReg(DM9000_MAR2), dm9000ReadReg(DM9000_MAR3),
+      dm9000ReadReg(DM9000_MAR4), dm9000ReadReg(DM9000_MAR5),
+      dm9000ReadReg(DM9000_MAR6), dm9000ReadReg(DM9000_MAR7));
 
    //Successful processing
    return NO_ERROR;
@@ -655,22 +669,23 @@ uint8_t dm9000ReadReg(uint8_t address)
 void dm9000WritePhyReg(uint8_t address, uint16_t data)
 {
    //Write PHY register address
-   dm9000WriteReg(DM9000_REG_EPAR, 0x40 | address);
+   dm9000WriteReg(DM9000_EPAR, 0x40 | address);
    //Write register value
-   dm9000WriteReg(DM9000_REG_EPDRL, LSB(data));
-   dm9000WriteReg(DM9000_REG_EPDRH, MSB(data));
+   dm9000WriteReg(DM9000_EPDRL, LSB(data));
+   dm9000WriteReg(DM9000_EPDRH, MSB(data));
 
    //Start the write operation
-   dm9000WriteReg(DM9000_REG_EPCR, EPCR_EPOS | EPCR_ERPRW);
+   dm9000WriteReg(DM9000_EPCR, DM9000_EPCR_EPOS | DM9000_EPCR_ERPRW);
+
    //PHY access is still in progress?
-   while((dm9000ReadReg(DM9000_REG_EPCR) & EPCR_ERRE) != 0)
+   while((dm9000ReadReg(DM9000_EPCR) & DM9000_EPCR_ERRE) != 0)
    {
    }
 
    //Wait 5us minimum
    usleep(5);
    //Clear command register
-   dm9000WriteReg(DM9000_REG_EPCR, EPCR_EPOS);
+   dm9000WriteReg(DM9000_EPCR, DM9000_EPCR_EPOS);
 }
 
 
@@ -683,22 +698,23 @@ void dm9000WritePhyReg(uint8_t address, uint16_t data)
 uint16_t dm9000ReadPhyReg(uint8_t address)
 {
    //Write PHY register address
-   dm9000WriteReg(DM9000_REG_EPAR, 0x40 | address);
+   dm9000WriteReg(DM9000_EPAR, 0x40 | address);
 
    //Start the read operation
-   dm9000WriteReg(DM9000_REG_EPCR, EPCR_EPOS | EPCR_ERPRR);
+   dm9000WriteReg(DM9000_EPCR, DM9000_EPCR_EPOS | DM9000_EPCR_ERPRR);
+
    //PHY access is still in progress?
-   while((dm9000ReadReg(DM9000_REG_EPCR) & EPCR_ERRE) != 0)
+   while((dm9000ReadReg(DM9000_EPCR) & DM9000_EPCR_ERRE) != 0)
    {
    }
 
    //Clear command register
-   dm9000WriteReg(DM9000_REG_EPCR, EPCR_EPOS);
+   dm9000WriteReg(DM9000_EPCR, DM9000_EPCR_EPOS);
    //Wait 5us minimum
    usleep(5);
 
    //Return register value
-   return (dm9000ReadReg(DM9000_REG_EPDRH) << 8) | dm9000ReadReg(DM9000_REG_EPDRL);
+   return (dm9000ReadReg(DM9000_EPDRH) << 8) | dm9000ReadReg(DM9000_EPDRL);
 }
 
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -61,23 +61,39 @@ error_t coapClientSetTxBlockSize(CoapClientRequest *request, uint_t blockSize)
 
    //Set TX block size
    if(blockSize == 16)
+   {
       request->txBlockSzx = COAP_BLOCK_SIZE_16;
+   }
    else if(blockSize == 32)
+   {
       request->txBlockSzx = COAP_BLOCK_SIZE_32;
+   }
    else if(blockSize == 64)
+   {
       request->txBlockSzx = COAP_BLOCK_SIZE_64;
+   }
    else if(blockSize == 128)
+   {
       request->txBlockSzx = COAP_BLOCK_SIZE_128;
+   }
    else if(blockSize == 256)
+   {
       request->txBlockSzx = COAP_BLOCK_SIZE_256;
+   }
    else if(blockSize == 512)
+   {
       request->txBlockSzx = COAP_BLOCK_SIZE_512;
+   }
    else
+   {
       request->txBlockSzx = COAP_BLOCK_SIZE_1024;
+   }
 
    //Ensure the block size is acceptable
    if(request->txBlockSzx > coapClientGetMaxBlockSize())
+   {
       request->txBlockSzx = coapClientGetMaxBlockSize();
+   }
 
    //Release exclusive access to the CoAP client context
    osReleaseMutex(&request->context->mutex);
@@ -105,23 +121,39 @@ error_t coapClientSetRxBlockSize(CoapClientRequest *request, uint_t blockSize)
 
    //Set RX block size
    if(blockSize == 16)
+   {
       request->rxBlockSzx = COAP_BLOCK_SIZE_16;
+   }
    else if(blockSize == 32)
+   {
       request->rxBlockSzx = COAP_BLOCK_SIZE_32;
+   }
    else if(blockSize == 64)
+   {
       request->rxBlockSzx = COAP_BLOCK_SIZE_64;
+   }
    else if(blockSize == 128)
+   {
       request->rxBlockSzx = COAP_BLOCK_SIZE_128;
+   }
    else if(blockSize == 256)
+   {
       request->rxBlockSzx = COAP_BLOCK_SIZE_256;
+   }
    else if(blockSize == 512)
+   {
       request->rxBlockSzx = COAP_BLOCK_SIZE_512;
+   }
    else
+   {
       request->rxBlockSzx = COAP_BLOCK_SIZE_1024;
+   }
 
    //Ensure the block size is acceptable
    if(request->rxBlockSzx > coapClientGetMaxBlockSize())
+   {
       request->rxBlockSzx = coapClientGetMaxBlockSize();
+   }
 
    //Release exclusive access to the CoAP client context
    osReleaseMutex(&request->context->mutex);
@@ -224,9 +256,13 @@ error_t coapClientWriteBody(CoapClientRequest *request,
             //The M bit indicates whether further blocks need to be transferred
             //to complete the transfer of the body
             if(length == 0 && last)
+            {
                COAP_SET_BLOCK_M(value, 0);
+            }
             else
+            {
                COAP_SET_BLOCK_M(value, 1);
+            }
 
             //Set block size
             COAP_SET_BLOCK_SZX(value, blockSzx);
@@ -517,9 +553,13 @@ error_t coapClientReadBody(CoapClientRequest *request, void *data,
          {
             //The Block2 option is not present in the response
             if(blockPos == 0)
+            {
                error = ERROR_END_OF_STREAM;
+            }
             else
+            {
                error = ERROR_FAILURE;
+            }
 
             //Exit immediately
             break;

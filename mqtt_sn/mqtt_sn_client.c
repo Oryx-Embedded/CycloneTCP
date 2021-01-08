@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -936,7 +936,7 @@ error_t mqttSnClientSubscribe(MqttSnClientContext *context,
             {
                //The topic ID field is not relevant in case of subscriptions to a
                //topic name which contains wildcard characters
-               if(strchr(topicName, '#') == NULL && strchr(topicName, '+') == NULL)
+               if(osStrchr(topicName, '#') == NULL && osStrchr(topicName, '+') == NULL)
                {
                   //Save the topic ID assigned by the gateway
                   error = mqttSnClientAddTopic(context, topicName, context->topicId);
@@ -1363,10 +1363,12 @@ error_t mqttSnClientTask(MqttSnClientContext *context, systime_t timeout)
 /**
  * @brief Disconnect from the MQTT-SN gateway
  * @param[in] context Pointer to the MQTT-SN client context
+ * @param[in] duration Sleep duration, in milliseconds
  * @return Error code
  **/
 
-error_t mqttSnClientDisconnect(MqttSnClientContext *context)
+error_t mqttSnClientDisconnect(MqttSnClientContext *context,
+   systime_t duration)
 {
    error_t error;
    systime_t time;
@@ -1392,7 +1394,7 @@ error_t mqttSnClientDisconnect(MqttSnClientContext *context)
 
          //The DISCONNECT message is sent by a client to indicate that it
          //wants to close the connection
-         error = mqttSnClientSendDisconnect(context, 0);
+         error = mqttSnClientSendDisconnect(context, duration / 1000);
       }
       else if(context->state == MQTT_SN_CLIENT_STATE_SENDING_REQ)
       {
@@ -1410,7 +1412,7 @@ error_t mqttSnClientDisconnect(MqttSnClientContext *context)
          {
             //If the retry timer times out and the expected gateway's reply
             //is not received, the client retransmits the message
-            error = mqttSnClientSendDisconnect(context, 0);
+            error = mqttSnClientSendDisconnect(context, duration / 1000);
          }
          else
          {

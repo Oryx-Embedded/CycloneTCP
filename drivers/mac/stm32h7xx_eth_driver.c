@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -255,13 +255,14 @@ error_t stm32h7xxEthInit(NetInterface *interface)
 }
 
 
-//STM32F743I-EVAL, STM32F747I-EVAL, STM32H745I-Discovery, STM32H747I-Discovery,
-//STM32H750B-DK, Nucleo-H743ZI, Nucleo-H743ZI2 or Nucleo-H745ZI-Q evaluation board?
+//STM32F743I-EVAL, STM32F747I-EVAL, STM32H735G-DK, STM32H745I-Discovery,
+//STM32H747I-Discovery, STM32H750B-DK, Nucleo-H723ZG, Nucleo-H743ZI,
+//Nucleo-H743ZI2 or Nucleo-H745ZI-Q evaluation board?
 #if defined(USE_STM32H743I_EVAL) || defined(USE_STM32H747I_EVAL) || \
-   defined(USE_STM32H745I_DISCO) || defined(USE_STM32H747I_DISCO) || \
-   defined(USE_STM32H750B_DISCO) || defined(USE_STM32H7XX_NUCLEO_144) || \
-   defined(USE_STM32H7XX_NUCLEO_144_MB1363) || \
-   defined(USE_STM32H7XX_NUCLEO_144_MB1364)
+   defined(USE_STM32H735G_DK) || defined(USE_STM32H745I_DISCO) || \
+   defined(USE_STM32H747I_DISCO) || defined(USE_STM32H750B_DISCO) || \
+   defined(USE_NUCLEO_H723ZG) || defined(USE_NUCLEO_H743ZI) || \
+   defined(USE_NUCLEO_H743ZI2) || defined(USE_NUCLEO_H745ZI_Q)
 
 /**
  * @brief GPIO configuration
@@ -303,6 +304,38 @@ void stm32h7xxEthInitGpio(NetInterface *interface)
    //Configure RMII_TX_EN (PG11), ETH_RMII_TXD1 (PG12) and ETH_RMII_TXD0 (PG13)
    GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+//STM32H735G-DK evaluation board?
+#elif defined(USE_STM32H735G_DK)
+   //Enable SYSCFG clock
+   __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOB_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+
+   //Select RMII interface mode
+   HAL_SYSCFG_ETHInterfaceSelect(SYSCFG_ETH_RMII);
+
+   //Configure RMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure RMII_RX_ER (PB10), RMII_TX_EN (PB11), ETH_RMII_TXD1 (PB12)
+   //and ETH_RMII_TXD0 (PB13)
+   GPIO_InitStructure.Pin = GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 
 //STM32H745I-Discovery or STM32H750B-DK evaluation board?
 #elif defined(USE_STM32H745I_DISCO) || defined(USE_STM32H750B_DISCO)
@@ -356,9 +389,10 @@ void stm32h7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_10;
    HAL_GPIO_Init(GPIOI, &GPIO_InitStructure);
 
-//Nucleo-H743ZI, Nucleo-H743ZI2 or Nucleo-H745ZI-Q evaluation board?
-#elif defined(USE_STM32H7XX_NUCLEO_144) || defined(USE_STM32H7XX_NUCLEO_144_MB1363) || \
-   defined(USE_STM32H7XX_NUCLEO_144_MB1364)
+//Nucleo-H723ZG, Nucleo-H743ZI, Nucleo-H743ZI2 or Nucleo-H745ZI-Q evaluation
+//board?
+#elif defined(USE_NUCLEO_H723ZG) || defined(USE_NUCLEO_H743ZI) || \
+   defined(USE_NUCLEO_H743ZI2) || defined(USE_NUCLEO_H745ZI_Q)
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 

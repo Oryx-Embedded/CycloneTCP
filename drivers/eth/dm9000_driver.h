@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 #ifndef _DM9000_DRIVER_H
@@ -51,308 +51,469 @@
    #define DM9000_DATA_REG *((volatile uint16_t *) 0x30001000)
 #endif
 
-//DM9000 bus timing
-#define AT91C_SMC2_NWS_2        (2 << 0)
-#define AT91C_SMC2_TDF_2        (2 << 8)
-#define AT91C_SMC2_BAT_16       (1 << 12)
-#define AT91C_SMC2_DRP_STANDARD (0 << 15)
-#define AT91C_SMC2_RWSETUP_1    (1 << 24)
-#define AT91C_SMC2_RWHOLD_1     (1 << 28)
-
 //DM9000 identifiers
-#define DM9000_VID             0x0A46
-#define DM9000_PID             0x9000
-#define DM9000A_CHIP_REV       0x19
-#define DM9000B_CHIP_REV       0x1A
+#define DM9000_VID ((DM9000_VIDH_DEFAULT << 8) | DM9000_VIDL_DEFAULT)
+#define DM9000_PID ((DM9000_PIDH_DEFAULT << 8) | DM9000_PIDL_DEFAULT)
 
 //DM9000 registers
-#define DM9000_REG_NCR         0x00
-#define DM9000_REG_NSR         0x01
-#define DM9000_REG_TCR         0x02
-#define DM9000_REG_TSR1        0x03
-#define DM9000_REG_TSR2        0x04
-#define DM9000_REG_RCR         0x05
-#define DM9000_REG_RSR         0x06
-#define DM9000_REG_ROCR        0x07
-#define DM9000_REG_BPTR        0x08
-#define DM9000_REG_FCTR        0x09
-#define DM9000_REG_FCR         0x0A
-#define DM9000_REG_EPCR        0x0B
-#define DM9000_REG_EPAR        0x0C
-#define DM9000_REG_EPDRL       0x0D
-#define DM9000_REG_EPDRH       0x0E
-#define DM9000_REG_WCR         0x0F
-#define DM9000_REG_PAR0        0x10
-#define DM9000_REG_PAR1        0x11
-#define DM9000_REG_PAR2        0x12
-#define DM9000_REG_PAR3        0x13
-#define DM9000_REG_PAR4        0x14
-#define DM9000_REG_PAR5        0x15
-#define DM9000_REG_MAR0        0x16
-#define DM9000_REG_MAR1        0x17
-#define DM9000_REG_MAR2        0x18
-#define DM9000_REG_MAR3        0x19
-#define DM9000_REG_MAR4        0x1A
-#define DM9000_REG_MAR5        0x1B
-#define DM9000_REG_MAR6        0x1C
-#define DM9000_REG_MAR7        0x1D
-#define DM9000_REG_GPCR        0x1E
-#define DM9000_REG_GPR         0x1F
-#define DM9000_REG_TRPAL       0x22
-#define DM9000_REG_TRPAH       0x23
-#define DM9000_REG_RWPAL       0x24
-#define DM9000_REG_RWPAH       0x25
-#define DM9000_REG_VIDL        0x28
-#define DM9000_REG_VIDH        0x29
-#define DM9000_REG_PIDL        0x2A
-#define DM9000_REG_PIDH        0x2B
-#define DM9000_REG_CHIPR       0x2C
-#define DM9000_REG_TCR2        0x2D
-#define DM9000_REG_OCR         0x2E
-#define DM9000_REG_SMCR        0x2F
-#define DM9000_REG_ETXCSR      0x30
-#define DM9000_REG_TCSCR       0x31
-#define DM9000_REG_RCSCSR      0x32
-#define DM9000_REG_MPAR        0x33
-#define DM9000_REG_LEDCR       0x34
-#define DM9000_REG_BUSCR       0x38
-#define DM9000_REG_INTCR       0x39
-#define DM9000_REG_SCCR        0x50
-#define DM9000_REG_RSCCR       0x51
-#define DM9000_REG_MRCMDX      0xF0
-#define DM9000_REG_MRCMDX1     0xF1
-#define DM9000_REG_MRCMD       0xF2
-#define DM9000_REG_MRRL        0xF4
-#define DM9000_REG_MRRH        0xF5
-#define DM9000_REG_MWCMDX      0xF6
-#define DM9000_REG_MWCMD       0xF8
-#define DM9000_REG_MWRL        0xFA
-#define DM9000_REG_MWRH        0xFB
-#define DM9000_REG_TXPLL       0xFC
-#define DM9000_REG_TXPLH       0xFD
-#define DM9000_REG_ISR         0xFE
-#define DM9000_REG_IMR         0xFF
+#define DM9000_NCR                      0x00
+#define DM9000_NSR                      0x01
+#define DM9000_TCR                      0x02
+#define DM9000_TSR1                     0x03
+#define DM9000_TSR2                     0x04
+#define DM9000_RCR                      0x05
+#define DM9000_RSR                      0x06
+#define DM9000_ROCR                     0x07
+#define DM9000_BPTR                     0x08
+#define DM9000_FCTR                     0x09
+#define DM9000_FCR                      0x0A
+#define DM9000_EPCR                     0x0B
+#define DM9000_EPAR                     0x0C
+#define DM9000_EPDRL                    0x0D
+#define DM9000_EPDRH                    0x0E
+#define DM9000_WCR                      0x0F
+#define DM9000_PAR0                     0x10
+#define DM9000_PAR1                     0x11
+#define DM9000_PAR2                     0x12
+#define DM9000_PAR3                     0x13
+#define DM9000_PAR4                     0x14
+#define DM9000_PAR5                     0x15
+#define DM9000_MAR0                     0x16
+#define DM9000_MAR1                     0x17
+#define DM9000_MAR2                     0x18
+#define DM9000_MAR3                     0x19
+#define DM9000_MAR4                     0x1A
+#define DM9000_MAR5                     0x1B
+#define DM9000_MAR6                     0x1C
+#define DM9000_MAR7                     0x1D
+#define DM9000_GPCR                     0x1E
+#define DM9000_GPR                      0x1F
+#define DM9000_TRPAL                    0x22
+#define DM9000_TRPAH                    0x23
+#define DM9000_RWPAL                    0x24
+#define DM9000_RWPAH                    0x25
+#define DM9000_VIDL                     0x28
+#define DM9000_VIDH                     0x29
+#define DM9000_PIDL                     0x2A
+#define DM9000_PIDH                     0x2B
+#define DM9000_CHIPR                    0x2C
+#define DM9000_TCR2                     0x2D
+#define DM9000_OCR                      0x2E
+#define DM9000_SMCR                     0x2F
+#define DM9000_ETXCSR                   0x30
+#define DM9000_TCSCR                    0x31
+#define DM9000_RCSCSR                   0x32
+#define DM9000_MPAR                     0x33
+#define DM9000_LEDCR                    0x34
+#define DM9000_BUSCR                    0x38
+#define DM9000_INTCR                    0x39
+#define DM9000_SCCR                     0x50
+#define DM9000_RSCCR                    0x51
+#define DM9000_MRCMDX                   0xF0
+#define DM9000_MRCMDX1                  0xF1
+#define DM9000_MRCMD                    0xF2
+#define DM9000_MRRL                     0xF4
+#define DM9000_MRRH                     0xF5
+#define DM9000_MWCMDX                   0xF6
+#define DM9000_MWCMD                    0xF8
+#define DM9000_MWRL                     0xFA
+#define DM9000_MWRH                     0xFB
+#define DM9000_TXPLL                    0xFC
+#define DM9000_TXPLH                    0xFD
+#define DM9000_ISR                      0xFE
+#define DM9000_IMR                      0xFF
 
 //DM9000 PHY registers
-#define DM9000_PHY_REG_BMCR    0x00
-#define DM9000_PHY_REG_BMSR    0x01
-#define DM9000_PHY_REG_PHYIDR1 0x02
-#define DM9000_PHY_REG_PHYIDR2 0x03
-#define DM9000_PHY_REG_ANAR    0x04
-#define DM9000_PHY_REG_ANLPAR  0x05
-#define DM9000_PHY_REG_ANER    0x06
-#define DM9000_PHY_REG_DSCR    0x10
-#define DM9000_PHY_REG_DSCSR   0x11
-#define DM9000_PHY_REG_10BTCSR 0x12
-#define DM9000_PHY_REG_PWDOR   0x13
-#define DM9000_PHY_REG_SCR     0x14
-#define DM9000_PHY_REG_DSP     0x1B
-#define DM9000_PHY_REG_PSCR    0x1D
+#define DM9000_BMCR                     0x00
+#define DM9000_BMSR                     0x01
+#define DM9000_PHYIDR1                  0x02
+#define DM9000_PHYIDR2                  0x03
+#define DM9000_ANAR                     0x04
+#define DM9000_ANLPAR                   0x05
+#define DM9000_ANER                     0x06
+#define DM9000_DSCR                     0x10
+#define DM9000_DSCSR                    0x11
+#define DM9000_10BTCSR                  0x12
+#define DM9000_PWDOR                    0x13
+#define DM9000_SCR                      0x14
+#define DM9000_DSPCR                    0x1B
+#define DM9000_PSCR                     0x1D
 
-//NCR register
-#define NCR_WAKEEN         (1 << 6)
-#define NCR_FCOL           (1 << 4)
-#define NCR_FDX            (1 << 3)
-#define NCR_LBK            (3 << 1)
-#define NCR_RST            (1 << 0)
+//Network Control register
+#define DM9000_NCR_WAKEEN               0x40
+#define DM9000_NCR_FCOL                 0x10
+#define DM9000_NCR_FDX                  0x08
+#define DM9000_NCR_LBK                  0x06
+#define DM9000_NCR_LBK_NORMAL           0x00
+#define DM9000_NCR_LBK_MAC              0x02
+#define DM9000_NCR_LBK_PHY              0x04
+#define DM9000_NCR_RST                  0x01
 
-//NSR register
-#define NSR_SPEED          (1 << 7)
-#define NSR_LINKST         (1 << 6)
-#define NSR_WAKEST         (1 << 5)
-#define NSR_TX2END         (1 << 3)
-#define NSR_TX1END         (1 << 2)
-#define NSR_RXOV           (1 << 1)
+//Network Status register
+#define DM9000_NSR_SPEED                0x80
+#define DM9000_NSR_LINKST               0x40
+#define DM9000_NSR_WAKEST               0x20
+#define DM9000_NSR_TX2END               0x08
+#define DM9000_NSR_TX1END               0x04
+#define DM9000_NSR_RXOV                 0x02
 
-//TCR register
-#define TCR_TJDIS          (1 << 6)
-#define TCR_EXCECM         (1 << 5)
-#define TCR_PAD_DIS2       (1 << 4)
-#define TCR_CRC_DIS2       (1 << 3)
-#define TCR_PAD_DIS1       (1 << 2)
-#define TCR_CRC_DIS1       (1 << 1)
-#define TCR_TXREQ          (1 << 0)
+//TX Control register
+#define DM9000_TCR_TJDIS                0x40
+#define DM9000_TCR_EXCECM               0x20
+#define DM9000_TCR_PAD_DIS2             0x10
+#define DM9000_TCR_CRC_DIS2             0x08
+#define DM9000_TCR_PAD_DIS1             0x04
+#define DM9000_TCR_CRC_DIS1             0x02
+#define DM9000_TCR_TXREQ                0x01
 
-//TSR1 and TSR2 registers
-#define TSR_TJTO           (1 << 7)
-#define TSR_LC             (1 << 6)
-#define TSR_NC             (1 << 5)
-#define TSR_LCOL           (1 << 4)
-#define TSR_COL            (1 << 3)
-#define TSR_EC             (1 << 2)
+//TX Status 1 register
+#define DM9000_TSR1_TJTO                0x80
+#define DM9000_TSR1_LC                  0x40
+#define DM9000_TSR1_NC                  0x20
+#define DM9000_TSR1_LCOL                0x10
+#define DM9000_TSR1_COL                 0x08
+#define DM9000_TSR1_EC                  0x04
 
-//RCR register
-#define RCR_WTDIS          (1 << 6)
-#define RCR_DIS_LONG       (1 << 5)
-#define RCR_DIS_CRC        (1 << 4)
-#define RCR_ALL            (1 << 3)
-#define RCR_RUNT           (1 << 2)
-#define RCR_PRMSC          (1 << 1)
-#define RCR_RXEN           (1 << 0)
+//TX Status 2 register
+#define DM9000_TSR2_TJTO                0x80
+#define DM9000_TSR2_LC                  0x40
+#define DM9000_TSR2_NC                  0x20
+#define DM9000_TSR2_LCOL                0x10
+#define DM9000_TSR2_COL                 0x08
+#define DM9000_TSR2_EC                  0x04
 
-//RSR register
-#define RSR_RF             (1 << 7)
-#define RSR_MF             (1 << 6)
-#define RSR_LCS            (1 << 5)
-#define RSR_RWTO           (1 << 4)
-#define RSR_PLE            (1 << 3)
-#define RSR_AE             (1 << 2)
-#define RSR_CE             (1 << 1)
-#define RSR_FOE            (1 << 0)
+//RX Control register
+#define DM9000_RCR_WTDIS                0x40
+#define DM9000_RCR_DIS_LONG             0x20
+#define DM9000_RCR_DIS_CRC              0x10
+#define DM9000_RCR_ALL                  0x08
+#define DM9000_RCR_RUNT                 0x04
+#define DM9000_RCR_PRMSC                0x02
+#define DM9000_RCR_RXEN                 0x01
 
-//ROCR register
-#define ROCR_ROC           (127 << 0)
-#define ROCR_RXFU          (1 << 7)
+//RX Status register
+#define DM9000_RSR_RF                   0x80
+#define DM9000_RSR_MF                   0x40
+#define DM9000_RSR_LCS                  0x20
+#define DM9000_RSR_RWTO                 0x10
+#define DM9000_RSR_PLE                  0x08
+#define DM9000_RSR_AE                   0x04
+#define DM9000_RSR_CE                   0x02
+#define DM9000_RSR_FOE                  0x01
 
-//BPTR register
-#define BPTR_BPHW          (15 << 4)
-#define BPTR_JPT           (15 << 0)
+//Receive Overflow Counter register
+#define DM9000_ROCR_RXFU                0x80
+#define DM9000_ROCR_ROC                 0x7F
 
-//FCTR register
-#define FCTR_HWOT          (15 << 4)
-#define FCTR_LWOT          (15 << 0)
+//Back Pressure Threshold register
+#define DM9000_BPTR_BPHW                0xF0
+#define DM9000_BPTR_JPT                 0x0F
 
-//FCR register
-#define FCR_TXP0           (1 << 7)
-#define FCR_TXPF           (1 << 6)
-#define FCR_TXPEN          (1 << 5)
-#define FCR_BKPA           (1 << 4)
-#define FCR_BKPM           (1 << 3)
-#define FCR_RXPS           (1 << 2)
-#define FCR_RXPCS          (1 << 1)
-#define FCR_FLCE           (1 << 0)
+//Flow Control Threshold register
+#define DM9000_FCTR_HWOT                0xF0
+#define DM9000_FCTR_LWOT                0x0F
 
-//EPCR register
-#define EPCR_REEP          (1 << 5)
-#define EPCR_WEP           (1 << 4)
-#define EPCR_EPOS          (1 << 3)
-#define EPCR_ERPRR         (1 << 2)
-#define EPCR_ERPRW         (1 << 1)
-#define EPCR_ERRE          (1 << 0)
+//RX Flow Control register
+#define DM9000_FCR_TXP0                 0x80
+#define DM9000_FCR_TXPF                 0x40
+#define DM9000_FCR_TXPEN                0x20
+#define DM9000_FCR_BKPA                 0x10
+#define DM9000_FCR_BKPM                 0x08
+#define DM9000_FCR_RXPS                 0x04
+#define DM9000_FCR_RXPCS                0x02
+#define DM9000_FCR_FLCE                 0x01
 
-//EPAR register
-#define EPAR_PHY_ADR       (3 << 6)
-#define EPAR_EROA          (31 << 0)
+//EEPROM & PHY Control register
+#define DM9000_EPCR_REEP                0x20
+#define DM9000_EPCR_WEP                 0x10
+#define DM9000_EPCR_EPOS                0x08
+#define DM9000_EPCR_ERPRR               0x04
+#define DM9000_EPCR_ERPRW               0x02
+#define DM9000_EPCR_ERRE                0x01
 
-//WCR register
-#define WCR_LINKEN         (1 << 5)
-#define WCR_SAMPLEEN       (1 << 4)
-#define WCR_MAGICEN        (1 << 3)
-#define WCR_LINKST         (1 << 2)
-#define WCR_SAMPLEST       (1 << 1)
-#define WCR_MAGICST        (1 << 0)
+//EEPROM & PHY Address register
+#define DM9000_EPAR_PHY_ADR             0xC0
+#define DM9000_EPAR_EROA                0x3F
 
-//GPCR register
-#define GPCR_GPC6          (1 << 6)
-#define GPCR_GPC5          (1 << 5)
-#define GPCR_GPC4          (1 << 4)
-#define GPCR_GPC3          (1 << 3)
-#define GPCR_GPC2          (1 << 2)
-#define GPCR_GPC1          (1 << 1)
+//Wake Up Control register
+#define DM9000_WCR_LINKEN               0x20
+#define DM9000_WCR_SAMPLEEN             0x10
+#define DM9000_WCR_MAGICEN              0x08
+#define DM9000_WCR_LINKST               0x04
+#define DM9000_WCR_SAMPLEST             0x02
+#define DM9000_WCR_MAGICST              0x01
 
-//GPR register
-#define GPR_GPO6           (1 << 6)
-#define GPR_GPO5           (1 << 5)
-#define GPR_GPO4           (1 << 4)
-#define GPR_GPIO3          (1 << 3)
-#define GPR_GPIO2          (1 << 2)
-#define GPR_GPIO1          (1 << 1)
-#define GPR_PHYPD          (1 << 0)
+//General Purpose Control register
+#define DM9000_GPCR_GPC6                0x40
+#define DM9000_GPCR_GPC5                0x20
+#define DM9000_GPCR_GPC4                0x10
+#define DM9000_GPCR_GPC3                0x08
+#define DM9000_GPCR_GPC2                0x04
+#define DM9000_GPCR_GPC1                0x02
 
-//TCR2 register
-#define TCR2_LED           (1 << 7)
-#define TCR2_RLCP          (1 << 6)
-#define TCR2_DTU           (1 << 5)
-#define TCR2_ONEPM         (1 << 4)
-#define TCR2_IFGS          (15 << 0)
+//General Purpose register
+#define DM9000_GPR_GPO6                 0x40
+#define DM9000_GPR_GPO5                 0x20
+#define DM9000_GPR_GPO4                 0x10
+#define DM9000_GPR_GPIO3                0x08
+#define DM9000_GPR_GPIO2                0x04
+#define DM9000_GPR_GPIO1                0x02
+#define DM9000_GPR_PHYPD                0x01
 
-//OCR register
-#define OCR_SCC            (3 << 6)
-#define OCR_SOE            (1 << 4)
-#define OCR_SCS            (1 << 3)
-#define OCR_PHYOP          (7 << 0)
+//Vendor ID Low Byte register
+#define DM9000_VIDL_DEFAULT             0x46
 
-//SMCR register
-#define SMCR_SM_EN         (1 << 7)
-#define SMCR_FLC           (1 << 2)
-#define SMCR_FB1           (1 << 1)
-#define SMCR_FB0           (1 << 0)
+//Vendor ID High Byte register
+#define DM9000_VIDH_DEFAULT             0x0A
 
-//ETXCSR register
-#define ETXCSR_ETE         (1 << 7)
-#define ETXCSR_ETS2        (1 << 6)
-#define ETXCSR_ETS1        (1 << 5)
-#define ETXCSR_ETT         (3 << 0)
+//Product ID Low Byte register
+#define DM9000_PIDL_DEFAULT             0x00
 
-//TCSCR register
-#define TCSCR_UDPCSE       (1 << 2)
-#define TCSCR_TCPCSE       (1 << 1)
-#define TCSCR_IPCSE        (1 << 0)
+//Product ID High Byte register
+#define DM9000_PIDH_DEFAULT             0x90
 
-//RCSCSR register
-#define RCSCSR_UDPS        (1 << 7)
-#define RCSCSR_TCPS        (1 << 6)
-#define RCSCSR_IPS         (1 << 5)
-#define RCSCSR_UDPP        (1 << 4)
-#define RCSCSR_TCPP        (1 << 3)
-#define RCSCSR_IPP         (1 << 2)
-#define RCSCSR_RCSEN       (1 << 1)
-#define RCSCSR_DCSE        (1 << 0)
+//Chip Revision register
+#define DM9000_CHIPR_REV_A              0x19
+#define DM9000_CHIPR_REV_B              0x1A
 
-//MPAR register
-#define MPAR_ADR_EN        (1 << 7)
-#define MPAR_EPHYADR       (31 << 0)
+//TX Control 2 register
+#define DM9000_TCR2_LED                 0x80
+#define DM9000_TCR2_RLCP                0x40
+#define DM9000_TCR2_DTU                 0x20
+#define DM9000_TCR2_ONEPM               0x10
+#define DM9000_TCR2_IFGS                0x0F
+#define DM9000_TCR2_IFGS_64_BIT         0x08
+#define DM9000_TCR2_IFGS_72_BIT         0x09
+#define DM9000_TCR2_IFGS_80_BIT         0x0A
+#define DM9000_TCR2_IFGS_88_BIT         0x0B
+#define DM9000_TCR2_IFGS_96_BIT         0x0C
+#define DM9000_TCR2_IFGS_104_BIT        0x0D
+#define DM9000_TCR2_IFGS_112_BIT        0x0E
+#define DM9000_TCR2_IFGS_120_BIT        0x0F
 
-//LEDC register
-#define LEDCR_GPIO         (1 << 1)
-#define LEDCR_MII          (1 << 0)
+//Operation Control register
+#define DM9000_OCR_SCC                  0xC0
+#define DM9000_OCR_SCC_50MHZ            0x00
+#define DM9000_OCR_SCC_20MHZ            0x40
+#define DM9000_OCR_SCC_100MHZ           0x80
+#define DM9000_OCR_SOE                  0x10
+#define DM9000_OCR_SCS                  0x08
+#define DM9000_OCR_PHYOP                0x07
 
-//BUSCR register
-#define BUSCR_CURR         (3 << 5)
-#define BUSCR_EST          (1 << 3)
-#define BUSCR_IOW_SPIKE    (1 << 1)
-#define BUSCR_IOR_SPIKE    (1 << 0)
+//Special Mode Control register
+#define DM9000_SMCR_SM_EN               0x80
+#define DM9000_SMCR_FLC                 0x04
+#define DM9000_SMCR_FB1                 0x02
+#define DM9000_SMCR_FB0                 0x01
 
-//INTCR register
-#define INTCR_INT_TYPE     (1 << 1)
-#define INTCR_INT_POL      (1 << 0)
+//Early Transmit Control/Status register
+#define DM9000_ETXCSR_ETE               0x80
+#define DM9000_ETXCSR_ETS2              0x40
+#define DM9000_ETXCSR_ETS1              0x20
+#define DM9000_ETXCSR_ETT               0x03
+#define DM9000_ETXCSR_ETT_12_5_PERCENT  0x00
+#define DM9000_ETXCSR_ETT_25_PERCENT    0x01
+#define DM9000_ETXCSR_ETT_50_PERCENT    0x02
+#define DM9000_ETXCSR_ETT_75_PERCENT    0x03
 
-//SCCR register
-#define SCCR_DIS_CLK       (1 << 0)
+//Transmit Check Sum Control register
+#define DM9000_TCSCR_UDPCSE             0x04
+#define DM9000_TCSCR_TCPCSE             0x02
+#define DM9000_TCSCR_IPCSE              0x01
 
-//ISR register
-#define ISR_IOMODE         (1 << 7)
-#define ISR_LNKCHG         (1 << 5)
-#define ISR_UDRUN          (1 << 4)
-#define ISR_ROO            (1 << 3)
-#define ISR_ROS            (1 << 2)
-#define ISR_PT             (1 << 1)
-#define ISR_PR             (1 << 0)
+//Receive Check Sum Control Status register
+#define DM9000_RCSCSR_UDPS              0x80
+#define DM9000_RCSCSR_TCPS              0x40
+#define DM9000_RCSCSR_IPS               0x20
+#define DM9000_RCSCSR_UDPP              0x10
+#define DM9000_RCSCSR_TCPP              0x08
+#define DM9000_RCSCSR_IPP               0x04
+#define DM9000_RCSCSR_RCSEN             0x02
+#define DM9000_RCSCSR_DCSE              0x01
 
-//IMR register
-#define IMR_PAR            (1 << 7)
-#define IMR_LNKCHGI        (1 << 5)
-#define IMR_UDRUNI         (1 << 4)
-#define IMR_ROOI           (1 << 3)
-#define IMR_ROI            (1 << 2)
-#define IMR_PTI            (1 << 1)
-#define IMR_PRI            (1 << 0)
+//MII PHY Address register
+#define DM9000_MPAR_ADR_EN              0x80
+#define DM9000_MPAR_EPHYADR             0x1F
 
-//PHY BMCR register
-#define BMCR_RST           (1 << 15)
-#define BMCR_LOOPBACK      (1 << 14)
-#define BMCR_SPEED_SEL     (1 << 13)
-#define BMCR_AN_EN         (1 << 12)
-#define BMCR_PD            (1 << 11)
-#define BMCR_ISOLATE       (1 << 10)
-#define BMCR_RESTART_AN    (1 << 9)
-#define BMCR_DUPLEX_MODE   (1 << 8)
-#define BMCR_COL_TEST      (1 << 7)
+//LED Pin Control register
+#define DM9000_LEDCR_GPIO               0x02
+#define DM9000_LEDCR_MII                0x01
 
-//Loopback mode
-#define DM9000_LBK_NORMAL  (0 << 1)
-#define DM9000_LBK_MAC     (1 << 1)
-#define DM9000_LBK_PHY     (2 << 1)
+//Processor Bus Control register
+#define DM9000_BUSCR_CURR               0x60
+#define DM9000_BUSCR_CURR_2MA           0x00
+#define DM9000_BUSCR_CURR_4MA           0x20
+#define DM9000_BUSCR_CURR_6MA           0x40
+#define DM9000_BUSCR_CURR_8MA           0x60
+#define DM9000_BUSCR_EST                0x08
+#define DM9000_BUSCR_IOW_SPIKE          0x02
+#define DM9000_BUSCR_IOR_SPIKE          0x01
+
+//INT Pin Control register
+#define DM9000_INTCR_INT_TYPE           0x02
+#define DM9000_INTCR_INT_TYPE_DIRECT    0x00
+#define DM9000_INTCR_INT_TYPE_OC        0x02
+#define DM9000_INTCR_INT_POL            0x01
+#define DM9000_INTCR_INT_POL_HIGH       0x00
+#define DM9000_INTCR_INT_POL_LOW        0x01
+
+//System Clock Turn On Control register
+#define DM9000_SCCR_DIS_CLK             0x01
+
+//Interrupt Status register
+#define DM9000_ISR_IOMODE               0x80
+#define DM9000_ISR_IOMODE_16_BIT        0x00
+#define DM9000_ISR_IOMODE_8_BIT         0x80
+#define DM9000_ISR_LNKCHG               0x20
+#define DM9000_ISR_UDRUN                0x10
+#define DM9000_ISR_ROO                  0x08
+#define DM9000_ISR_ROS                  0x04
+#define DM9000_ISR_PT                   0x02
+#define DM9000_ISR_PR                   0x01
+
+//Interrupt Mask register
+#define DM9000_IMR_PAR                  0x80
+#define DM9000_IMR_LNKCHGI              0x20
+#define DM9000_IMR_UDRUNI               0x10
+#define DM9000_IMR_ROOI                 0x08
+#define DM9000_IMR_ROI                  0x04
+#define DM9000_IMR_PTI                  0x02
+#define DM9000_IMR_PRI                  0x01
+
+//Basic Mode Control register
+#define DM9000_BMCR_RST                 0x8000
+#define DM9000_BMCR_LOOPBACK            0x4000
+#define DM9000_BMCR_SPEED_SEL           0x2000
+#define DM9000_BMCR_AN_EN               0x1000
+#define DM9000_BMCR_POWER_DOWN          0x0800
+#define DM9000_BMCR_ISOLATE             0x0400
+#define DM9000_BMCR_RESTART_AN          0x0200
+#define DM9000_BMCR_DUPLEX_MODE         0x0100
+#define DM9000_BMCR_COL_TEST            0x0080
+
+//Basic Mode Status register
+#define DM9000_BMSR_100BT4              0x8000
+#define DM9000_BMSR_100BTX_FD           0x4000
+#define DM9000_BMSR_100BTX_HD           0x2000
+#define DM9000_BMSR_10BT_FD             0x1000
+#define DM9000_BMSR_10BT_HD             0x0800
+#define DM9000_BMSR_MF_PREAMBLE_SUPPR   0x0040
+#define DM9000_BMSR_AN_COMPLETE         0x0020
+#define DM9000_BMSR_REMOTE_FAULT        0x0010
+#define DM9000_BMSR_AN_CAPABLE          0x0008
+#define DM9000_BMSR_LINK_STATUS         0x0004
+#define DM9000_BMSR_JABBER_DETECT       0x0002
+#define DM9000_BMSR_EXTENDED_CAPABLE    0x0001
+
+//PHY ID Identifier 1 register
+#define DM9000_PHYIDR1_OUI_MSB          0xFFFF
+#define DM9000_PHYIDR1_OUI_MSB_DEFAULT  0x0181
+
+//PHY ID Identifier 2 register
+#define DM9000_PHYIDR2_OUI_LSB          0xFC00
+#define DM9000_PHYIDR2_OUI_LSB_DEFAULT  0xB800
+#define DM9000_PHYIDR2_VNDR_MDL         0x03F0
+#define DM9000_PHYIDR2_VNDR_MDL_DEFAULT 0x0070
+#define DM9000_PHYIDR2_MDL_REV          0x000F
+#define DM9000_PHYIDR2_MDL_REV_DEFAULT  0x0000
+
+//Auto-Negotiation Advertisement register
+#define DM9000_ANAR_NP                  0x8000
+#define DM9000_ANAR_ACK                 0x4000
+#define DM9000_ANAR_RF                  0x2000
+#define DM9000_ANAR_FCS                 0x0400
+#define DM9000_ANAR_100BT4              0x0200
+#define DM9000_ANAR_100BTX_FD           0x0100
+#define DM9000_ANAR_100BTX_HD           0x0080
+#define DM9000_ANAR_10BT_FD             0x0040
+#define DM9000_ANAR_10BT_HD             0x0020
+#define DM9000_ANAR_SELECTOR            0x001F
+#define DM9000_ANAR_SELECTOR_DEFAULT    0x0001
+
+//Auto-Negotiation Link Partner Ability register
+#define DM9000_ANLPAR_NP                0x8000
+#define DM9000_ANLPAR_ACK               0x4000
+#define DM9000_ANLPAR_RF                0x2000
+#define DM9000_ANLPAR_FCS               0x0400
+#define DM9000_ANLPAR_100BT4            0x0200
+#define DM9000_ANLPAR_100BTX_FD         0x0100
+#define DM9000_ANLPAR_100BTX_HD         0x0080
+#define DM9000_ANLPAR_10BT_FD           0x0040
+#define DM9000_ANLPAR_10BT_HD           0x0020
+#define DM9000_ANLPAR_SELECTOR          0x001F
+#define DM9000_ANLPAR_SELECTOR_DEFAULT  0x0001
+
+//Auto-Negotiation Expansion register
+#define DM9000_ANER_PDF                 0x0010
+#define DM9000_ANER_LP_NP_ABLE          0x0008
+#define DM9000_ANER_NP_ABLE             0x0004
+#define DM9000_ANER_PAGE_RX             0x0002
+#define DM9000_ANER_LP_AN_ABLE          0x0001
+
+//Davicom Specified Configuration register
+#define DM9000_DSCR_BP_4B5B             0x8000
+#define DM9000_DSCR_BP_SCR              0x4000
+#define DM9000_DSCR_BP_ALIGN            0x2000
+#define DM9000_DSCR_BP_ADPOK            0x1000
+#define DM9000_DSCR_TX_FX               0x0400
+#define DM9000_DSCR_F_LINK_100          0x0080
+#define DM9000_DSCR_SPLED_CTL           0x0040
+#define DM9000_DSCR_COLLED_CTL          0x0020
+#define DM9000_DSCR_RPDCTR_EN           0x0010
+#define DM9000_DSCR_SMRST               0x0008
+#define DM9000_DSCR_MFPSC               0x0004
+#define DM9000_DSCR_SLEEP               0x0002
+#define DM9000_DSCR_RLOUT               0x0001
+
+//Davicom Specified Configuration/Status register
+#define DM9000_DSCSR_100FDX             0x8000
+#define DM9000_DSCSR_100HDX             0x4000
+#define DM9000_DSCSR_10FDX              0x2000
+#define DM9000_DSCSR_10HDX              0x1000
+#define DM9000_DSCSR_PHYADR             0x01F0
+#define DM9000_DSCSR_ANMB               0x000F
+
+//10BASE-T Configuration/Status register
+#define DM9000_10BTCSR_LP_EN            0x4000
+#define DM9000_10BTCSR_HBE              0x2000
+#define DM9000_10BTCSR_SQUELCH          0x1000
+#define DM9000_10BTCSR_JABEN            0x0800
+#define DM9000_10BTCSR_POLR             0x0001
+
+//Power Down Control register
+#define DM9000_PWDOR_PD10DRV            0x0100
+#define DM9000_PWDOR_PD100DL            0x0080
+#define DM9000_PWDOR_PDCHIP             0x0040
+#define DM9000_PWDOR_PDCOM              0x0020
+#define DM9000_PWDOR_PDAEQ              0x0010
+#define DM9000_PWDOR_PDDRV              0x0008
+#define DM9000_PWDOR_PDEDI              0x0004
+#define DM9000_PWDOR_PDEDO              0x0002
+#define DM9000_PWDOR_PD10               0x0001
+
+//Specified Configuration register
+#define DM9000_SCR_TSTSE1               0x8000
+#define DM9000_SCR_TSTSE2               0x4000
+#define DM9000_SCR_FORCE_TXSD           0x2000
+#define DM9000_SCR_FORCE_FEF            0x1000
+#define DM9000_SCR_PREAMBLEX            0x0800
+#define DM9000_SCR_TX10M_PWR            0x0400
+#define DM9000_SCR_NWAY_PWR             0x0200
+#define DM9000_SCR_MDIX_CNTL            0x0080
+#define DM9000_SCR_AUTONEG_LPBK         0x0040
+#define DM9000_SCR_MDIX_FIX             0x0020
+#define DM9000_SCR_MDIX_DOWN            0x0010
+#define DM9000_SCR_MONSEL1              0x0008
+#define DM9000_SCR_MONSEL0              0x0004
+#define DM9000_SCR_PD_VALUE             0x0001
+
+//DSP Control register
+#define DM9000_DSPCR_DSP                0xFFFF
+
+//Power Saving Control register
+#define DM9000_PSCR_PREAMBLEX           0x0800
+#define DM9000_PSCR_AMPLITUDE           0x0400
+#define DM9000_PSCR_TX_PWR              0x0200
 
 //C++ guard
 #ifdef __cplusplus

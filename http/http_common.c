@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -94,7 +94,7 @@ error_t httpCheckCharset(const char_t *s, size_t length, uint_t charset)
          m |= HTTP_CHARSET_TEXT | HTTP_CHARSET_OBS_TEXT;
 
       //Check if character is a token character
-      if(strchr("!#$%&'*+-.^_`|~", c))
+      if(osStrchr("!#$%&'*+-.^_`|~", c))
          m |= HTTP_CHARSET_TCHAR;
 
       //Invalid character?
@@ -163,7 +163,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
          {
             //Discard whitespace and separator characters
          }
-         else if(isalnum(c) || strchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
          {
             //Point to the first character of the parameter name
             param->name = p + i;
@@ -196,7 +196,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
             //Save the length of the parameter name
             param->nameLen = p + i - param->name;
          }
-         else if(isalnum(c) || strchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
          {
             //Advance data pointer
          }
@@ -230,7 +230,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
             //Successful processing
             error = NO_ERROR;
          }
-         else if(isalnum(c) || strchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
          {
             //Point to the first character that follows the parameter name
             i = param->name + param->nameLen - p;
@@ -261,7 +261,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
             //using double-quote marks (refer to RFC 7230, section 3.2.6)
             param->value = p + i;
          }
-         else if(isalnum(c) || strchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
          {
             //Point to the first character of the parameter value
             param->value = p + i;
@@ -325,7 +325,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
                //Successful processing
                error = NO_ERROR;
             }
-            else if(isalnum(c) || strchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+            else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
             {
                //Advance data pointer
             }
@@ -470,7 +470,6 @@ error_t httpCopyParamValue(const HttpParam *param, char_t *value,
  * @param[in] input Point to the byte array
  * @param[in] inputLen Length of the byte array
  * @param[out] output NULL-terminated string resulting from the conversion
- * @return Error code
  **/
 
 void httpEncodeHexString(const uint8_t *input, size_t inputLen, char_t *output)

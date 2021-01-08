@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -101,10 +101,10 @@ error_t tja1101Init(NetInterface *interface)
    value |= TJA1101_EXTENDED_CTRL_CONFIG_EN;
    tja1101WritePhyReg(interface, TJA1101_EXTENDED_CTRL, value);
 
-   //Select RMII mode (25MHz XTAL)
+   //Select RMII mode (50MHz output on REF_CLK)
    value = tja1101ReadPhyReg(interface, TJA1101_CONFIG1);
    value &= ~TJA1101_CONFIG1_MII_MODE;
-   value |= TJA1101_CONFIG1_MII_MODE_RMII_25MHZ;
+   value |= TJA1101_CONFIG1_MII_MODE_RMII_50MHZ_REF_CLK_OUT;
    tja1101WritePhyReg(interface, TJA1101_CONFIG1, value);
 
    //The PHY is configured for autonomous operation

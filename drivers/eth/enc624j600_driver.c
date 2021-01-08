@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -99,17 +99,18 @@ error_t enc624j600Init(NetInterface *interface)
    enc624j600SoftReset(interface);
 
    //Disable CLKOUT output
-   enc624j600WriteReg(interface, ENC624J600_REG_ECON2, ECON2_ETHEN | ECON2_STRCH);
+   enc624j600WriteReg(interface, ENC624J600_ECON2, ENC624J600_ECON2_ETHEN |
+      ENC624J600_ECON2_STRCH);
 
    //Optionally set the station MAC address
    if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
    {
       //Use the factory preprogrammed station address
-      temp = enc624j600ReadReg(interface, ENC624J600_REG_MAADR1);
+      temp = enc624j600ReadReg(interface, ENC624J600_MAADR1);
       interface->macAddr.w[0] = letoh16(temp);
-      temp = enc624j600ReadReg(interface, ENC624J600_REG_MAADR2);
+      temp = enc624j600ReadReg(interface, ENC624J600_MAADR2);
       interface->macAddr.w[1] = letoh16(temp);
-      temp = enc624j600ReadReg(interface, ENC624J600_REG_MAADR3);
+      temp = enc624j600ReadReg(interface, ENC624J600_MAADR3);
       interface->macAddr.w[2] = letoh16(temp);
 
       //Generate the 64-bit interface identifier
@@ -119,48 +120,53 @@ error_t enc624j600Init(NetInterface *interface)
    {
       //Override the factory preprogrammed address
       temp = htole16(interface->macAddr.w[0]);
-      enc624j600WriteReg(interface, ENC624J600_REG_MAADR1, temp);
+      enc624j600WriteReg(interface, ENC624J600_MAADR1, temp);
       temp = htole16(interface->macAddr.w[1]);
-      enc624j600WriteReg(interface, ENC624J600_REG_MAADR2, temp);
+      enc624j600WriteReg(interface, ENC624J600_MAADR2, temp);
       temp = htole16(interface->macAddr.w[2]);
-      enc624j600WriteReg(interface, ENC624J600_REG_MAADR3, temp);
+      enc624j600WriteReg(interface, ENC624J600_MAADR3, temp);
    }
 
    //Set receive buffer location
-   enc624j600WriteReg(interface, ENC624J600_REG_ERXST, ENC624J600_RX_BUFFER_START);
+   enc624j600WriteReg(interface, ENC624J600_ERXST, ENC624J600_RX_BUFFER_START);
    //Program the tail pointer ERXTAIL to the last even address of the buffer
-   enc624j600WriteReg(interface, ENC624J600_REG_ERXTAIL, ENC624J600_RX_BUFFER_STOP);
+   enc624j600WriteReg(interface, ENC624J600_ERXTAIL, ENC624J600_RX_BUFFER_STOP);
 
    //Configure the receive filters
-   enc624j600WriteReg(interface, ENC624J600_REG_ERXFCON, ERXFCON_HTEN |
-      ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN);
+   enc624j600WriteReg(interface, ENC624J600_ERXFCON, ENC624J600_ERXFCON_HTEN |
+      ENC624J600_ERXFCON_CRCEN | ENC624J600_ERXFCON_RUNTEN |
+      ENC624J600_ERXFCON_UCEN | ENC624J600_ERXFCON_BCEN);
 
    //Initialize the hash table
-   enc624j600WriteReg(interface, ENC624J600_REG_EHT1, 0x0000);
-   enc624j600WriteReg(interface, ENC624J600_REG_EHT2, 0x0000);
-   enc624j600WriteReg(interface, ENC624J600_REG_EHT3, 0x0000);
-   enc624j600WriteReg(interface, ENC624J600_REG_EHT4, 0x0000);
+   enc624j600WriteReg(interface, ENC624J600_EHT1, 0x0000);
+   enc624j600WriteReg(interface, ENC624J600_EHT2, 0x0000);
+   enc624j600WriteReg(interface, ENC624J600_EHT3, 0x0000);
+   enc624j600WriteReg(interface, ENC624J600_EHT4, 0x0000);
 
-   //All short frames will be zero-padded to 60 bytes and a valid CRC is then appended
-   enc624j600WriteReg(interface, ENC624J600_REG_MACON2,
-      MACON2_DEFER | MACON2_PADCFG0 | MACON2_TXCRCEN | MACON2_R1);
+   //All short frames will be zero-padded to 60 bytes and a valid CRC is then
+   //appended
+   enc624j600WriteReg(interface, ENC624J600_MACON2, ENC624J600_MACON2_DEFER |
+      ENC624J600_MACON2_PADCFG_AUTO | ENC624J600_MACON2_TXCRCEN |
+      ENC624J600_MACON2_R1_DEFAULT);
 
    //Program the MAMXFL register with the maximum frame length to be accepted
-   enc624j600WriteReg(interface, ENC624J600_REG_MAMXFL, ETH_MAX_FRAME_SIZE);
+   enc624j600WriteReg(interface, ENC624J600_MAMXFL, ETH_MAX_FRAME_SIZE);
 
    //PHY initialization
-   enc624j600WritePhyReg(interface, ENC624J600_PHY_REG_PHANA, PHANA_ADPAUS0 |
-      PHANA_AD100FD | PHANA_AD100 | PHANA_AD10FD | PHANA_AD10 | PHANA_ADIEEE0);
+   enc624j600WritePhyReg(interface, ENC624J600_PHANA, ENC624J600_PHANA_ADPAUS0 |
+      ENC624J600_PHANA_AD100FD | ENC624J600_PHANA_AD100 | ENC624J600_PHANA_AD10FD |
+      ENC624J600_PHANA_AD10 | ENC624J600_PHANA_ADIEEE_DEFAULT);
 
    //Clear interrupt flags
-   enc624j600WriteReg(interface, ENC624J600_REG_EIR, 0x0000);
+   enc624j600WriteReg(interface, ENC624J600_EIR, 0x0000);
 
    //Configure interrupts as desired
-   enc624j600WriteReg(interface, ENC624J600_REG_EIE, EIE_INTIE |
-      EIE_LINKIE | EIE_PKTIE | EIE_TXIE | EIE_TXABTIE);
+   enc624j600WriteReg(interface, ENC624J600_EIE, ENC624J600_EIE_INTIE |
+      ENC624J600_EIE_LINKIE | ENC624J600_EIE_PKTIE | ENC624J600_EIE_TXIE |
+      ENC624J600_EIE_TXABTIE);
 
    //Set RXEN to enable reception
-   enc624j600SetBit(interface, ENC624J600_REG_ECON1, ECON1_RXEN);
+   enc624j600SetBit(interface, ENC624J600_ECON1, ENC624J600_ECON1_RXEN);
 
    //Dump registers for debugging purpose
    enc624j600DumpReg(interface);
@@ -228,16 +234,16 @@ bool_t enc624j600IrqHandler(NetInterface *interface)
    flag = FALSE;
 
    //Clear the INTIE bit, immediately after an interrupt event
-   enc624j600ClearBit(interface, ENC624J600_REG_EIE, EIE_INTIE);
+   enc624j600ClearBit(interface, ENC624J600_EIE, ENC624J600_EIE_INTIE);
 
    //Read interrupt status register
-   status = enc624j600ReadReg(interface, ENC624J600_REG_EIR);
+   status = enc624j600ReadReg(interface, ENC624J600_EIR);
 
    //Link status change?
-   if((status & EIR_LINKIF) != 0)
+   if((status & ENC624J600_EIR_LINKIF) != 0)
    {
       //Disable LINKIE interrupt
-      enc624j600ClearBit(interface, ENC624J600_REG_EIE, EIE_LINKIE);
+      enc624j600ClearBit(interface, ENC624J600_EIE, ENC624J600_EIE_LINKIE);
 
       //Set event flag
       interface->nicEvent = TRUE;
@@ -246,10 +252,10 @@ bool_t enc624j600IrqHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if((status & EIR_PKTIF) != 0)
+   if((status & ENC624J600_EIR_PKTIF) != 0)
    {
       //Disable PKTIE interrupt
-      enc624j600ClearBit(interface, ENC624J600_REG_EIE, EIE_PKTIE);
+      enc624j600ClearBit(interface, ENC624J600_EIE, ENC624J600_EIE_PKTIE);
 
       //Set event flag
       interface->nicEvent = TRUE;
@@ -258,10 +264,11 @@ bool_t enc624j600IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if((status & (EIR_TXIF | EIR_TXABTIF)) != 0)
+   if((status & (ENC624J600_EIR_TXIF | ENC624J600_EIR_TXABTIF)) != 0)
    {
       //Clear interrupt flags
-      enc624j600ClearBit(interface, ENC624J600_REG_EIR, EIR_TXIF | EIR_TXABTIF);
+      enc624j600ClearBit(interface, ENC624J600_EIR, ENC624J600_EIR_TXIF |
+         ENC624J600_EIR_TXABTIF);
 
       //Notify the TCP/IP stack that the transmitter is ready to send
       flag |= osSetEventFromIsr(&interface->nicTxEvent);
@@ -269,7 +276,7 @@ bool_t enc624j600IrqHandler(NetInterface *interface)
 
    //Once the interrupt has been serviced, the INTIE bit
    //is set again to re-enable interrupts
-   enc624j600SetBit(interface, ENC624J600_REG_EIE, EIE_INTIE);
+   enc624j600SetBit(interface, ENC624J600_EIE, ENC624J600_EIE_INTIE);
 
    //A higher priority task must be woken?
    return flag;
@@ -288,24 +295,24 @@ void enc624j600EventHandler(NetInterface *interface)
    uint16_t value;
 
    //Read interrupt status register
-   status = enc624j600ReadReg(interface, ENC624J600_REG_EIR);
+   status = enc624j600ReadReg(interface, ENC624J600_EIR);
 
    //Check whether the link state has changed
-   if((status & EIR_LINKIF) != 0)
+   if((status & ENC624J600_EIR_LINKIF) != 0)
    {
       //Clear interrupt flag
-      enc624j600ClearBit(interface, ENC624J600_REG_EIR, EIR_LINKIF);
+      enc624j600ClearBit(interface, ENC624J600_EIR, ENC624J600_EIR_LINKIF);
       //Read Ethernet status register
-      value = enc624j600ReadReg(interface, ENC624J600_REG_ESTAT);
+      value = enc624j600ReadReg(interface, ENC624J600_ESTAT);
 
       //Check link state
-      if((value & ESTAT_PHYLNK) != 0)
+      if((value & ENC624J600_ESTAT_PHYLNK) != 0)
       {
          //Read PHY status register 3
-         value = enc624j600ReadPhyReg(interface, ENC624J600_PHY_REG_PHSTAT3);
+         value = enc624j600ReadPhyReg(interface, ENC624J600_PHSTAT3);
 
          //Get current speed
-         if((value & PHSTAT3_SPDDPX1) != 0)
+         if((value & ENC624J600_PHSTAT3_SPDDPX1) != 0)
          {
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          }
@@ -315,7 +322,7 @@ void enc624j600EventHandler(NetInterface *interface)
          }
 
          //Determine the new duplex mode
-         if((value & PHSTAT3_SPDDPX2) != 0)
+         if((value & ENC624J600_PHSTAT3_SPDDPX2) != 0)
          {
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          }
@@ -341,10 +348,10 @@ void enc624j600EventHandler(NetInterface *interface)
    }
 
    //Check whether a packet has been received?
-   if((status & EIR_PKTIF) != 0)
+   if((status & ENC624J600_EIR_PKTIF) != 0)
    {
       //Clear interrupt flag
-      enc624j600ClearBit(interface, ENC624J600_REG_EIR, EIR_PKTIF);
+      enc624j600ClearBit(interface, ENC624J600_EIR, ENC624J600_EIR_PKTIF);
 
       //Process all pending packets
       do
@@ -357,7 +364,8 @@ void enc624j600EventHandler(NetInterface *interface)
    }
 
    //Re-enable LINKIE and PKTIE interrupts
-   enc624j600SetBit(interface, ENC624J600_REG_EIE, EIE_LINKIE | EIE_PKTIE);
+   enc624j600SetBit(interface, ENC624J600_EIE, ENC624J600_EIE_LINKIE |
+      ENC624J600_EIE_PKTIE);
 }
 
 
@@ -398,25 +406,27 @@ error_t enc624j600SendPacket(NetInterface *interface,
    }
 
    //Ensure that the transmitter is ready to send
-   if(enc624j600ReadReg(interface, ENC624J600_REG_ECON1) & ECON1_TXRTS)
+   if(enc624j600ReadReg(interface, ENC624J600_ECON1) & ENC624J600_ECON1_TXRTS)
    {
       return ERROR_FAILURE;
    }
 
    //Point to the SRAM buffer
-   enc624j600WriteReg(interface, ENC624J600_REG_EGPWRPT, ENC624J600_TX_BUFFER_START);
+   enc624j600WriteReg(interface, ENC624J600_EGPWRPT, ENC624J600_TX_BUFFER_START);
    //Copy the packet to the SRAM buffer
    enc624j600WriteBuffer(interface, ENC624J600_CMD_WGPDATA, buffer, offset);
 
    //Program ETXST to the start address of the packet
-   enc624j600WriteReg(interface, ENC624J600_REG_ETXST, ENC624J600_TX_BUFFER_START);
+   enc624j600WriteReg(interface, ENC624J600_ETXST, ENC624J600_TX_BUFFER_START);
    //Program ETXLEN with the length of data copied to the memory
-   enc624j600WriteReg(interface, ENC624J600_REG_ETXLEN, length);
+   enc624j600WriteReg(interface, ENC624J600_ETXLEN, length);
 
    //Clear TXIF and TXABTIF interrupt flags
-   enc624j600ClearBit(interface, ENC624J600_REG_EIR, EIR_TXIF | EIR_TXABTIF);
+   enc624j600ClearBit(interface, ENC624J600_EIR, ENC624J600_EIR_TXIF |
+      ENC624J600_EIR_TXABTIF);
+
    //Set the TXRTS bit to initiate transmission
-   enc624j600SetBit(interface, ENC624J600_REG_ECON1, ECON1_TXRTS);
+   enc624j600SetBit(interface, ENC624J600_ECON1, ENC624J600_ECON1_TXRTS);
 
    //Successful processing
    return NO_ERROR;
@@ -432,47 +442,40 @@ error_t enc624j600SendPacket(NetInterface *interface,
 error_t enc624j600ReceivePacket(NetInterface *interface)
 {
    error_t error;
-   uint16_t n;
+   uint16_t length;
    uint32_t status;
+   uint8_t header[8];
    Enc624j600Context *context;
 
    //Point to the driver context
    context = (Enc624j600Context *) interface->nicContext;
 
    //Verify that a packet is waiting by ensuring that PKTCNT is non-zero
-   if(enc624j600ReadReg(interface, ENC624J600_REG_ESTAT) & ESTAT_PKTCNT)
+   if(enc624j600ReadReg(interface, ENC624J600_ESTAT) & ENC624J600_ESTAT_PKTCNT)
    {
       //Point to the next packet
-      enc624j600WriteReg(interface, ENC624J600_REG_ERXRDPT, context->nextPacket);
+      enc624j600WriteReg(interface, ENC624J600_ERXRDPT, context->nextPacket);
 
-      //Read the first two bytes, which are the address of the next packet
-      enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA,
-         (uint8_t *) &context->nextPacket, sizeof(uint16_t));
+      //The packet is preceded by a 8-byte header
+      enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA, header, sizeof(header));
 
-      //Convert the value to host byte order
-      context->nextPacket = letoh16(context->nextPacket);
-
-      //Get the length of the received frame in bytes
-      enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA,
-         (uint8_t *) &n, sizeof(uint16_t));
-
-      //Convert the value to host byte order
-      n = letoh16(n);
-
-      //Read the receive status vector (RSV)
-      enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA,
-         (uint8_t *) &status, sizeof(uint32_t));
-
-      //Convert the value to host byte order
-      status = letoh32(status);
+      //The first two bytes are the address of the next packet
+      context->nextPacket = LOAD16LE(header);
+      //Get the length of the received packet
+      length = LOAD16LE(header + 2);
+      //Get the receive status vector (RSV)
+      status = LOAD32LE(header + 4);
 
       //Make sure no error occurred
-      if((status & RSV_RECEIVED_OK) != 0)
+      if((status & ENC624J600_RSV_RECEIVED_OK) != 0)
       {
          //Limit the number of data to read
-         n = MIN(n, ETH_MAX_FRAME_SIZE);
+         length = MIN(length, ETH_MAX_FRAME_SIZE);
+
          //Read the Ethernet frame
-         enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA, context->rxBuffer, n);
+         enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA,
+            context->rxBuffer, length);
+
          //Valid packet received
          error = NO_ERROR;
       }
@@ -487,15 +490,17 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
       //received memory buffer
       if(context->nextPacket == ENC624J600_RX_BUFFER_START)
       {
-         enc624j600WriteReg(interface, ENC624J600_REG_ERXTAIL, ENC624J600_RX_BUFFER_STOP);
+         enc624j600WriteReg(interface, ENC624J600_ERXTAIL,
+            ENC624J600_RX_BUFFER_STOP);
       }
       else
       {
-         enc624j600WriteReg(interface, ENC624J600_REG_ERXTAIL, context->nextPacket - 2);
+         enc624j600WriteReg(interface, ENC624J600_ERXTAIL,
+            context->nextPacket - 2);
       }
 
       //Set PKTDEC to decrement the PKTCNT bits
-      enc624j600SetBit(interface, ENC624J600_REG_ECON1, ECON1_PKTDEC);
+      enc624j600SetBit(interface, ENC624J600_ECON1, ENC624J600_ECON1_PKTDEC);
    }
    else
    {
@@ -512,7 +517,7 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->rxBuffer, n, &ancillary);
+      nicProcessPacket(interface, context->rxBuffer, length, &ancillary);
    }
 
    //Return status code
@@ -560,16 +565,16 @@ error_t enc624j600UpdateMacAddrFilter(NetInterface *interface)
    }
 
    //Write the hash table to the ENC624J600 controller
-   enc624j600WriteReg(interface, ENC624J600_REG_EHT1, hashTable[0]);
-   enc624j600WriteReg(interface, ENC624J600_REG_EHT2, hashTable[1]);
-   enc624j600WriteReg(interface, ENC624J600_REG_EHT3, hashTable[2]);
-   enc624j600WriteReg(interface, ENC624J600_REG_EHT4, hashTable[3]);
+   enc624j600WriteReg(interface, ENC624J600_EHT1, hashTable[0]);
+   enc624j600WriteReg(interface, ENC624J600_EHT2, hashTable[1]);
+   enc624j600WriteReg(interface, ENC624J600_EHT3, hashTable[2]);
+   enc624j600WriteReg(interface, ENC624J600_EHT4, hashTable[3]);
 
    //Debug message
-   TRACE_DEBUG("  EHT1 = %04" PRIX16 "\r\n", enc624j600ReadReg(interface, ENC624J600_REG_EHT1));
-   TRACE_DEBUG("  EHT2 = %04" PRIX16 "\r\n", enc624j600ReadReg(interface, ENC624J600_REG_EHT2));
-   TRACE_DEBUG("  EHT3 = %04" PRIX16 "\r\n", enc624j600ReadReg(interface, ENC624J600_REG_EHT3));
-   TRACE_DEBUG("  EHT4 = %04" PRIX16 "\r\n", enc624j600ReadReg(interface, ENC624J600_REG_EHT4));
+   TRACE_DEBUG("  EHT1 = %04" PRIX16 "\r\n", enc624j600ReadReg(interface, ENC624J600_EHT1));
+   TRACE_DEBUG("  EHT2 = %04" PRIX16 "\r\n", enc624j600ReadReg(interface, ENC624J600_EHT2));
+   TRACE_DEBUG("  EHT3 = %04" PRIX16 "\r\n", enc624j600ReadReg(interface, ENC624J600_EHT3));
+   TRACE_DEBUG("  EHT4 = %04" PRIX16 "\r\n", enc624j600ReadReg(interface, ENC624J600_EHT4));
 
    //Successful processing
    return NO_ERROR;
@@ -586,25 +591,31 @@ void enc624j600UpdateMacConfig(NetInterface *interface)
    uint16_t duplexMode;
 
    //Determine the new duplex mode by reading the PHYDPX bit
-   duplexMode = enc624j600ReadReg(interface, ENC624J600_REG_ESTAT) & ESTAT_PHYDPX;
+   duplexMode = enc624j600ReadReg(interface, ENC624J600_ESTAT) & ENC624J600_ESTAT_PHYDPX;
 
    //Full-duplex mode?
    if(duplexMode)
    {
       //Configure the FULDPX bit to match the current duplex mode
-      enc624j600WriteReg(interface, ENC624J600_REG_MACON2, MACON2_DEFER |
-         MACON2_PADCFG2 | MACON2_PADCFG0 | MACON2_TXCRCEN | MACON2_R1 | MACON2_FULDPX);
+      enc624j600WriteReg(interface, ENC624J600_MACON2, ENC624J600_MACON2_DEFER |
+         ENC624J600_MACON2_PADCFG_AUTO | ENC624J600_MACON2_TXCRCEN |
+         ENC624J600_MACON2_R1_DEFAULT | ENC624J600_MACON2_FULDPX);
+
       //Configure the Back-to-Back Inter-Packet Gap register
-      enc624j600WriteReg(interface, ENC624J600_REG_MABBIPG, 0x15);
+      enc624j600WriteReg(interface, ENC624J600_MABBIPG,
+         ENC624J600_MABBIPG_BBIPG_DEFAULT_FD);
    }
    //Half-duplex mode?
    else
    {
       //Configure the FULDPX bit to match the current duplex mode
-      enc624j600WriteReg(interface, ENC624J600_REG_MACON2, MACON2_DEFER |
-         MACON2_PADCFG2 | MACON2_PADCFG0 | MACON2_TXCRCEN | MACON2_R1);
+      enc624j600WriteReg(interface, ENC624J600_MACON2, ENC624J600_MACON2_DEFER |
+         ENC624J600_MACON2_PADCFG_AUTO | ENC624J600_MACON2_TXCRCEN |
+         ENC624J600_MACON2_R1_DEFAULT);
+
       //Configure the Back-to-Back Inter-Packet Gap register
-      enc624j600WriteReg(interface, ENC624J600_REG_MABBIPG, 0x12);
+      enc624j600WriteReg(interface, ENC624J600_MABBIPG,
+         ENC624J600_MABBIPG_BBIPG_DEFAULT_HD);
    }
 }
 
@@ -621,23 +632,23 @@ error_t enc624j600SoftReset(NetInterface *interface)
    do
    {
       //Write 0x1234 to EUDAST
-      enc624j600WriteReg(interface, ENC624J600_REG_EUDAST, 0x1234);
+      enc624j600WriteReg(interface, ENC624J600_EUDAST, 0x1234);
       //Read back register and check contents
-   } while(enc624j600ReadReg(interface, ENC624J600_REG_EUDAST) != 0x1234);
+   } while(enc624j600ReadReg(interface, ENC624J600_EUDAST) != 0x1234);
 
    //Poll CLKRDY and wait for it to become set
-   while((enc624j600ReadReg(interface, ENC624J600_REG_ESTAT) & ESTAT_CLKRDY) == 0)
+   while((enc624j600ReadReg(interface, ENC624J600_ESTAT) & ENC624J600_ESTAT_CLKRDY) == 0)
    {
    }
 
    //Issue a system reset command by setting ETHRST
-   enc624j600SetBit(interface, ENC624J600_REG_ECON2, ECON2_ETHRST);
+   enc624j600SetBit(interface, ENC624J600_ECON2, ENC624J600_ECON2_ETHRST);
    //Wait at least 25us for the reset to take place
    sleep(1);
 
    //Read EUDAST to confirm that the system reset took place.
    //EUDAST should have reverted back to its reset default
-   if(enc624j600ReadReg(interface, ENC624J600_REG_EUDAST) != 0x0000)
+   if(enc624j600ReadReg(interface, ENC624J600_EUDAST) != 0x0000)
    {
       return ERROR_FAILURE;
    }
@@ -718,15 +729,22 @@ uint16_t enc624j600ReadReg(NetInterface *interface, uint8_t address)
 void enc624j600WritePhyReg(NetInterface *interface, uint8_t address,
    uint16_t data)
 {
+   uint16_t status;
+
    //Write the address of the PHY register to write to
-   enc624j600WriteReg(interface, ENC624J600_REG_MIREGADR, MIREGADR_R8 | address);
+   enc624j600WriteReg(interface, ENC624J600_MIREGADR,
+      ENC624J600_MIREGADR_R12_8_DEFAULT | address);
+
    //Write the 16 bits of data into the MIWR register
-   enc624j600WriteReg(interface, ENC624J600_REG_MIWR, data);
+   enc624j600WriteReg(interface, ENC624J600_MIWR, data);
 
    //Wait until the PHY register has been written
-   while((enc624j600ReadReg(interface, ENC624J600_REG_MISTAT) & MISTAT_BUSY) != 0)
+   do
    {
-   }
+      //Read MII Management Status register
+      status = enc624j600ReadReg(interface, ENC624J600_MISTAT);
+      //Check the value of the busy status bit
+   } while((status & ENC624J600_MISTAT_BUSY) != 0);
 }
 
 
@@ -739,23 +757,31 @@ void enc624j600WritePhyReg(NetInterface *interface, uint8_t address,
 
 uint16_t enc624j600ReadPhyReg(NetInterface *interface, uint8_t address)
 {
+   uint16_t status;
+
    //Write the address of the PHY register to read from
-   enc624j600WriteReg(interface, ENC624J600_REG_MIREGADR, MIREGADR_R8 | address);
+   enc624j600WriteReg(interface, ENC624J600_MIREGADR,
+      ENC624J600_MIREGADR_R12_8_DEFAULT | address);
+
    //Start read operation
-   enc624j600WriteReg(interface, ENC624J600_REG_MICMD, MICMD_MIIRD);
+   enc624j600WriteReg(interface, ENC624J600_MICMD, ENC624J600_MICMD_MIIRD);
 
    //Wait at least 25.6us before polling the BUSY bit
    usleep(100);
+
    //Wait for the read operation to complete
-   while((enc624j600ReadReg(interface, ENC624J600_REG_MISTAT) & MISTAT_BUSY) != 0)
+   do
    {
-   }
+      //Read MII Management Status register
+      status = enc624j600ReadReg(interface, ENC624J600_MISTAT);
+      //Check the value of the busy status bit
+   } while((status & ENC624J600_MISTAT_BUSY) != 0);
 
    //Clear command register
-   enc624j600WriteReg(interface, ENC624J600_REG_MICMD, 0x00);
+   enc624j600WriteReg(interface, ENC624J600_MICMD, 0x00);
 
    //Return register contents
-   return enc624j600ReadReg(interface, ENC624J600_REG_MIRD);
+   return enc624j600ReadReg(interface, ENC624J600_MIRD);
 }
 
 

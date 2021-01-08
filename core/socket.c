@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -55,6 +55,7 @@ const SocketMsg SOCKET_DEFAULT_MSG =
    0,       //Size of the payload, in bytes
    0,       //Actual length of the payload, in bytes
    0,       //Time-to-live value
+   NULL,    //Underlying network interface
    {0},     //Source IP address
    0,       //Source port
    {0},     //Destination IP address
@@ -1603,14 +1604,14 @@ error_t getHostByName(NetInterface *interface,
             protocol = HOST_NAME_RESOLVER_MDNS;
 #endif
          }
-         else if(n <= 15 && !strchr(name, '.') && type == HOST_TYPE_IPV4)
+         else if(n <= 15 && !osStrchr(name, '.') && type == HOST_TYPE_IPV4)
          {
 #if (NBNS_CLIENT_SUPPORT == ENABLED)
             //Use NetBIOS Name Service to resolve the specified host name
             protocol = HOST_NAME_RESOLVER_NBNS;
 #endif
          }
-         else if(!strchr(name, '.'))
+         else if(!osStrchr(name, '.'))
          {
 #if (LLMNR_CLIENT_SUPPORT == ENABLED)
             //Use LLMNR to resolve the specified host name

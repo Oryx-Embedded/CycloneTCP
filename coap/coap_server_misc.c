@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -106,7 +106,8 @@ void coapServerTick(CoapServerContext *context)
 /**
  * @brief Process CoAP request
  * @param[in] context Pointer to the CoAP server context
- * @param[in] request Pointer to the request message
+ * @param[in] data Pointer to the incoming CoAP message
+ * @param[in] length Length of the CoAP message, in bytes
  * @return Error code
  **/
 
@@ -332,7 +333,7 @@ error_t coapServerInitResponse(CoapServerContext *context)
    context->response.length = sizeof(CoapMessageHeader) + responseHeader->tokenLen;
    context->response.pos = 0;
 
-   //Sucessful processing
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -428,7 +429,7 @@ error_t coapServerFormatReset(CoapServerContext *context, uint16_t mid)
    //Set the length of the CoAP message
    context->response.length = sizeof(CoapMessageHeader);
 
-   //Sucessful processing
+   //Successful processing
    return NO_ERROR;
 }
 

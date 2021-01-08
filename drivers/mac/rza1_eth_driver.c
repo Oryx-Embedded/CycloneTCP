@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -47,15 +47,19 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 32
+#pragma location = RZA1_ETH_RAM_SECTION
 static uint8_t txBuffer[RZA1_ETH_TX_BUFFER_COUNT][RZA1_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 32
+#pragma location = RZA1_ETH_RAM_SECTION
 static uint8_t rxBuffer[RZA1_ETH_RX_BUFFER_COUNT][RZA1_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 32
+#pragma location = RZA1_ETH_RAM_SECTION
 static Rza1TxDmaDesc txDmaDesc[RZA1_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 32
+#pragma location = RZA1_ETH_RAM_SECTION
 static Rza1RxDmaDesc rxDmaDesc[RZA1_ETH_RX_BUFFER_COUNT];
 
 //ARM or GCC compiler?
@@ -63,16 +67,16 @@ static Rza1RxDmaDesc rxDmaDesc[RZA1_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer
 static uint8_t txBuffer[RZA1_ETH_TX_BUFFER_COUNT][RZA1_ETH_TX_BUFFER_SIZE]
-   __attribute__((section(".BSS_DMAC_SAMPLE_INTERNAL_RAM"), aligned(32)));
+   __attribute__((aligned(32), section(RZA1_ETH_RAM_SECTION)));
 //Receive buffer
 static uint8_t rxBuffer[RZA1_ETH_RX_BUFFER_COUNT][RZA1_ETH_RX_BUFFER_SIZE]
-   __attribute__((section(".BSS_DMAC_SAMPLE_INTERNAL_RAM"), aligned(32)));
+   __attribute__((aligned(32), section(RZA1_ETH_RAM_SECTION)));
 //Transmit DMA descriptors
 static Rza1TxDmaDesc txDmaDesc[RZA1_ETH_TX_BUFFER_COUNT]
-   __attribute__((section(".BSS_DMAC_SAMPLE_INTERNAL_RAM"), aligned(32)));
+   __attribute__((aligned(32), section(RZA1_ETH_RAM_SECTION)));
 //Receive DMA descriptors
 static Rza1RxDmaDesc rxDmaDesc[RZA1_ETH_RX_BUFFER_COUNT]
-   __attribute__((section(".BSS_DMAC_SAMPLE_INTERNAL_RAM"), aligned(32)));
+   __attribute__((aligned(32), section(RZA1_ETH_RAM_SECTION)));
 
 #endif
 
@@ -219,7 +223,7 @@ error_t rza1EthInit(NetInterface *interface)
    ETHER.ECSIPR0 = 0;
 
    //Enable the desired EDMAC interrupts
-   ETHER.EESIPR0 =  ETHER_EESIPR0_TWBIP | ETHER_EESIPR0_FRIP;
+   ETHER.EESIPR0 = ETHER_EESIPR0_TWBIP | ETHER_EESIPR0_FRIP;
 
    //Register interrupt handler
    R_INTC_Regist_Int_Func(INTC_ID_ETHERI, rza1EthIrqHandler);
@@ -240,7 +244,7 @@ error_t rza1EthInit(NetInterface *interface)
 }
 
 
-//RSK RZ/A1H, Stream it! RZ, Hachiko or VK-RZ/A1H evaluation board?
+//RSK-RZ/A1H, Stream it! RZ, Hachiko or VK-RZ/A1H evaluation board?
 #if defined(USE_RSK_RZA1H) || defined(USE_STREAM_IT_RZ) || \
    defined(USE_HACHIKO) || defined(USE_VK_RZA1H)
 
@@ -875,7 +879,7 @@ void rza1EthEventHandler(NetInterface *interface)
    }
 
    //Re-enable EDMAC interrupts
-   ETHER.EESIPR0 =  ETHER_EESIPR0_TWBIP | ETHER_EESIPR0_FRIP;
+   ETHER.EESIPR0 = ETHER_EESIPR0_TWBIP | ETHER_EESIPR0_FRIP;
 }
 
 

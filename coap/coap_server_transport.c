@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -411,11 +411,11 @@ error_t coapServerReceiveCallback(void *handle, void *data,
 
 /**
  * @brief DTLS cookie generation callback function
- * @param[in] context Pointer to the TLS context
- * @param[in] clientParams Client parameters
+ * @param[in] context Pointer to the DTLS context
+ * @param[in] clientParams Client's parameters
  * @param[out] cookie Pointer to the first byte of the cookie
  * @param[in,out] length Length of the cookie, in bytes
- * @param[in] param An opaque pointer provided by the user
+ * @param[in] param Pointer to the DTLS session
  * @return Error code
  **/
 
@@ -480,10 +480,11 @@ error_t coapServerCookieGenerateCallback(TlsContext *context,
 
 /**
  * @brief DTLS cookie verification callback function
- * @param[in] handle An opaque pointer specified by the user
- * @param[in] params Client parameters
+ * @param[in] context Pointer to the DTLS context
+ * @param[in] clientParams Client's parameters
  * @param[in] cookie Pointer to the first byte of the cookie
  * @param[in] length Length of the cookie, in bytes
+ * @param[in] param Pointer to the DTLS session
  * @return Error code
  **/
 

@@ -1,12 +1,12 @@
 /**
- * @file lpc546xx_eth_driver.h
- * @brief LPC54608/LPC54618/LPC54628 Ethernet MAC driver
+ * @file lpc54xxx_eth_driver.h
+ * @brief LPC540xx/LPC546xx Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,62 +25,62 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
-#ifndef _LPC546XX_ETH_DRIVER_H
-#define _LPC546XX_ETH_DRIVER_H
+#ifndef _LPC54XXX_ETH_DRIVER_H
+#define _LPC54XXX_ETH_DRIVER_H
 
 //Dependencies
 #include "core/nic.h"
 
 //Number of TX buffers
-#ifndef LPC546XX_ETH_TX_BUFFER_COUNT
-   #define LPC546XX_ETH_TX_BUFFER_COUNT 3
-#elif (LPC546XX_ETH_TX_BUFFER_COUNT < 1)
-   #error LPC546XX_ETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef LPC54XXX_ETH_TX_BUFFER_COUNT
+   #define LPC54XXX_ETH_TX_BUFFER_COUNT 3
+#elif (LPC54XXX_ETH_TX_BUFFER_COUNT < 1)
+   #error LPC54XXX_ETH_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef LPC546XX_ETH_TX_BUFFER_SIZE
-   #define LPC546XX_ETH_TX_BUFFER_SIZE 1536
-#elif (LPC546XX_ETH_TX_BUFFER_SIZE != 1536)
-   #error LPC546XX_ETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef LPC54XXX_ETH_TX_BUFFER_SIZE
+   #define LPC54XXX_ETH_TX_BUFFER_SIZE 1536
+#elif (LPC54XXX_ETH_TX_BUFFER_SIZE != 1536)
+   #error LPC54XXX_ETH_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef LPC546XX_ETH_RX_BUFFER_COUNT
-   #define LPC546XX_ETH_RX_BUFFER_COUNT 6
-#elif (LPC546XX_ETH_RX_BUFFER_COUNT < 1)
-   #error LPC546XX_ETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef LPC54XXX_ETH_RX_BUFFER_COUNT
+   #define LPC54XXX_ETH_RX_BUFFER_COUNT 6
+#elif (LPC54XXX_ETH_RX_BUFFER_COUNT < 1)
+   #error LPC54XXX_ETH_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef LPC546XX_ETH_RX_BUFFER_SIZE
-   #define LPC546XX_ETH_RX_BUFFER_SIZE 1536
-#elif (LPC546XX_ETH_RX_BUFFER_SIZE != 1536)
-   #error LPC546XX_ETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef LPC54XXX_ETH_RX_BUFFER_SIZE
+   #define LPC54XXX_ETH_RX_BUFFER_SIZE 1536
+#elif (LPC54XXX_ETH_RX_BUFFER_SIZE != 1536)
+   #error LPC54XXX_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Interrupt priority grouping
-#ifndef LPC546XX_ETH_IRQ_PRIORITY_GROUPING
-   #define LPC546XX_ETH_IRQ_PRIORITY_GROUPING 4
-#elif (LPC546XX_ETH_IRQ_PRIORITY_GROUPING < 0)
-   #error LPC546XX_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
+#ifndef LPC54XXX_ETH_IRQ_PRIORITY_GROUPING
+   #define LPC54XXX_ETH_IRQ_PRIORITY_GROUPING 4
+#elif (LPC54XXX_ETH_IRQ_PRIORITY_GROUPING < 0)
+   #error LPC54XXX_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
 #endif
 
 //Ethernet interrupt group priority
-#ifndef LPC546XX_ETH_IRQ_GROUP_PRIORITY
-   #define LPC546XX_ETH_IRQ_GROUP_PRIORITY 6
-#elif (LPC546XX_ETH_IRQ_GROUP_PRIORITY < 0)
-   #error LPC546XX_ETH_IRQ_GROUP_PRIORITY parameter is not valid
+#ifndef LPC54XXX_ETH_IRQ_GROUP_PRIORITY
+   #define LPC54XXX_ETH_IRQ_GROUP_PRIORITY 6
+#elif (LPC54XXX_ETH_IRQ_GROUP_PRIORITY < 0)
+   #error LPC54XXX_ETH_IRQ_GROUP_PRIORITY parameter is not valid
 #endif
 
 //Ethernet interrupt subpriority
-#ifndef LPC546XX_ETH_IRQ_SUB_PRIORITY
-   #define LPC546XX_ETH_IRQ_SUB_PRIORITY 0
-#elif (LPC546XX_ETH_IRQ_SUB_PRIORITY < 0)
-   #error LPC546XX_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#ifndef LPC54XXX_ETH_IRQ_SUB_PRIORITY
+   #define LPC54XXX_ETH_IRQ_SUB_PRIORITY 0
+#elif (LPC54XXX_ETH_IRQ_SUB_PRIORITY < 0)
+   #error LPC54XXX_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
 //Transmit normal descriptor (read format)
@@ -178,7 +178,7 @@ typedef struct
    uint32_t tdes1;
    uint32_t tdes2;
    uint32_t tdes3;
-} Lpc546xxTxDmaDesc;
+} Lpc54xxxTxDmaDesc;
 
 
 /**
@@ -191,35 +191,35 @@ typedef struct
    uint32_t rdes1;
    uint32_t rdes2;
    uint32_t rdes3;
-} Lpc546xxRxDmaDesc;
+} Lpc54xxxRxDmaDesc;
 
 
-//LPC546xx Ethernet MAC driver
-extern const NicDriver lpc546xxEthDriver;
+//LPC54xxx Ethernet MAC driver
+extern const NicDriver lpc54xxxEthDriver;
 
-//LPC546xx Ethernet MAC related functions
-error_t lpc546xxEthInit(NetInterface *interface);
-void lpc546xxEthInitGpio(NetInterface *interface);
-void lpc546xxEthInitDmaDesc(NetInterface *interface);
+//LPC54xxx Ethernet MAC related functions
+error_t lpc54xxxEthInit(NetInterface *interface);
+void lpc54xxxEthInitGpio(NetInterface *interface);
+void lpc54xxxEthInitDmaDesc(NetInterface *interface);
 
-void lpc546xxEthTick(NetInterface *interface);
+void lpc54xxxEthTick(NetInterface *interface);
 
-void lpc546xxEthEnableIrq(NetInterface *interface);
-void lpc546xxEthDisableIrq(NetInterface *interface);
-void lpc546xxEthEventHandler(NetInterface *interface);
+void lpc54xxxEthEnableIrq(NetInterface *interface);
+void lpc54xxxEthDisableIrq(NetInterface *interface);
+void lpc54xxxEthEventHandler(NetInterface *interface);
 
-error_t lpc546xxEthSendPacket(NetInterface *interface,
+error_t lpc54xxxEthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-error_t lpc546xxEthReceivePacket(NetInterface *interface);
+error_t lpc54xxxEthReceivePacket(NetInterface *interface);
 
-error_t lpc546xxEthUpdateMacAddrFilter(NetInterface *interface);
-error_t lpc546xxEthUpdateMacConfig(NetInterface *interface);
+error_t lpc54xxxEthUpdateMacAddrFilter(NetInterface *interface);
+error_t lpc54xxxEthUpdateMacConfig(NetInterface *interface);
 
-void lpc546xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void lpc54xxxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data);
 
-uint16_t lpc546xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t lpc54xxxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr);
 
 //C++ guard

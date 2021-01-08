@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -425,7 +425,7 @@ error_t httpClientSetMethod(HttpClientContext *context, const char_t *method)
    context->buffer[context->bufferLen] = '\0';
 
    //The Request-Line begins with a method token
-   p = strchr(context->buffer, ' ');
+   p = osStrchr(context->buffer, ' ');
    //Any parsing error?
    if(p == NULL)
       return ERROR_INVALID_SYNTAX;
@@ -487,7 +487,7 @@ error_t httpClientSetUri(HttpClientContext *context, const char_t *uri)
    context->buffer[context->bufferLen] = '\0';
 
    //The Request-Line begins with a method token
-   p = strchr(context->buffer, ' ');
+   p = osStrchr(context->buffer, ' ');
    //Any parsing error?
    if(p == NULL)
       return ERROR_INVALID_SYNTAX;
@@ -616,7 +616,7 @@ error_t httpClientSetQueryString(HttpClientContext *context,
    context->buffer[context->bufferLen] = '\0';
 
    //The Request-Line begins with a method token
-   p = strchr(context->buffer, ' ');
+   p = osStrchr(context->buffer, ' ');
    //Any parsing error?
    if(p == NULL)
       return ERROR_INVALID_SYNTAX;
@@ -631,7 +631,7 @@ error_t httpClientSetQueryString(HttpClientContext *context,
    if(*p == '?')
    {
       //Point to the end of the query string
-      q = strchr(p + 1, ' ');
+      q = osStrchr(p + 1, ' ');
       //Any parsing error?
       if(q == NULL)
          return ERROR_INVALID_SYNTAX;
@@ -717,7 +717,7 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
    context->buffer[context->bufferLen] = '\0';
 
    //The Request-Line begins with a method token
-   p = strchr(context->buffer, ' ');
+   p = osStrchr(context->buffer, ' ');
    //Any parsing error?
    if(p == NULL)
       return ERROR_INVALID_SYNTAX;
@@ -732,7 +732,7 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
    if(*p == '?')
    {
       //Point to the end of the query string
-      p = strchr(p + 1, ' ');
+      p = osStrchr(p + 1, ' ');
       //Any parsing error?
       if(p == NULL)
          return ERROR_INVALID_SYNTAX;

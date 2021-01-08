@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 //Switch to the appropriate trace level
@@ -283,9 +283,6 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
    error_t error;
    bool_t status;
 
-   //Gather entropy
-   netContext.entropy += netGetSystemTickCount();
-
 #if (TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
    //Retrieve the length of the packet
    size_t length = netBufferGetLength(buffer) - offset;
@@ -294,6 +291,9 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
    TRACE_DEBUG("Sending packet (%" PRIuSIZE " bytes)...\r\n", length);
    TRACE_DEBUG_NET_BUFFER("  ", buffer, offset, length);
 #endif
+
+   //Gather entropy
+   netContext.entropy += netGetSystemTickCount();
 
    //Check whether the interface is enabled for operation
    if(interface->configured && interface->nicDriver != NULL)

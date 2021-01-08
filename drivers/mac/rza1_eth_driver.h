@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2020 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.0
+ * @version 2.0.2
  **/
 
 #ifndef _RZA1_ETH_DRIVER_H
@@ -67,6 +67,11 @@
    #define RZA1_ETH_IRQ_PRIORITY 25
 #elif (RZA1_ETH_IRQ_PRIORITY < 0)
    #error RZA1_ETH_IRQ_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef RZA1_ETH_RAM_SECTION
+   #define RZA1_ETH_RAM_SECTION ".BSS_DMAC_SAMPLE_INTERNAL_RAM"
 #endif
 
 //ARSTR register
