@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _SOCKET_H
@@ -318,7 +318,7 @@ struct _Socket
    size_t rxBufferSize;           ///<Size of the receive buffer
 
    TcpQueueItem *retransmitQueue; ///<Retransmission queue
-   TcpTimer retransmitTimer;      ///<Retransmission timer
+   NetTimer retransmitTimer;      ///<Retransmission timer
    uint_t retransmitCount;        ///<Number of retransmissions
 
    TcpSynQueueItem *synQueue;     ///<SYN queue for listening sockets
@@ -327,10 +327,19 @@ struct _Socket
    uint_t wndProbeCount;          ///<Zero window probe counter
    systime_t wndProbeInterval;    ///<Interval between successive probes
 
-   TcpTimer persistTimer;         ///<Persist timer
-   TcpTimer overrideTimer;        ///<Override timer
-   TcpTimer finWait2Timer;        ///<FIN-WAIT-2 timer
-   TcpTimer timeWaitTimer;        ///<2MSL timer
+   NetTimer persistTimer;         ///<Persist timer
+   NetTimer overrideTimer;        ///<Override timer
+   NetTimer finWait2Timer;        ///<FIN-WAIT-2 timer
+   NetTimer timeWaitTimer;        ///<2MSL timer
+
+#if (TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+   bool_t keepAliveEnabled;       ///<Specifies whether TCP keep-alive mechanism is enabled
+   systime_t keepAliveIdle;       ///<Keep-alive idle time
+   systime_t keepAliveInterval;   ///<Time interval between subsequent keep-alive probes
+   uint_t keepAliveMaxProbes;     ///<Number of keep-alive probes
+   uint_t keepAliveProbeCount;    ///<Keep-alive probe counter
+   systime_t keepAliveTimestamp;  ///<Keep-alive timestamp
+#endif
 
    bool_t sackPermitted;                        ///<SACK Permitted option received
    TcpSackBlock sackBlock[TCP_MAX_SACK_BLOCKS]; ///<List of non-contiguous blocks that have been received
@@ -379,6 +388,11 @@ error_t socketSetVlanDei(Socket *socket, bool_t dei);
 error_t socketSetVmanPcp(Socket *socket, uint8_t pcp);
 error_t socketSetVmanDei(Socket *socket, bool_t dei);
 
+error_t socketEnableKeepAlive(Socket *socket, bool_t enabled);
+
+error_t socketSetKeepAliveParams(Socket *socket, systime_t idle,
+   systime_t interval, uint_t maxProbes);
+
 error_t socketSetTxBufferSize(Socket *socket, size_t size);
 error_t socketSetRxBufferSize(Socket *socket, size_t size);
 
@@ -417,10 +431,6 @@ void socketClose(Socket *socket);
 
 error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
    systime_t timeout);
-
-void socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask);
-void socketUnregisterEvents(Socket *socket);
-uint_t socketGetEvents(Socket *socket);
 
 error_t getHostByName(NetInterface *interface,
    const char_t *name, IpAddr *ipAddr, uint_t flags);

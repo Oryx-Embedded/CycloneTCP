@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _KSZ9893_DRIVER_H
@@ -177,7 +177,7 @@
 #define KSZ9893_IP_DIFFSERV_PRIO_MAPPING29                     0x035D
 #define KSZ9893_IP_DIFFSERV_PRIO_MAPPING30                     0x035E
 #define KSZ9893_IP_DIFFSERV_PRIO_MAPPING31                     0x035F
-#define KSZ9893_GLOBAL_PORT_MIRRORING_SNOOPING_CTRL            0x0370
+#define KSZ9893_GLOBAL_PORT_MIRROR_SNOOP_CTRL                  0x0370
 #define KSZ9893_WRED_DIFFSERV_COLOR_MAPPING                    0x0378
 #define KSZ9893_QUEUE_MGMT_CTRL0                               0x0390
 #define KSZ9893_VLAN_TABLE_ENTRY0                              0x0400
@@ -246,7 +246,7 @@
 #define KSZ9893_PORT1_PRIO_CTRL                                0x1801
 #define KSZ9893_PORT1_IG_MAC_CTRL                              0x1802
 #define KSZ9893_PORT1_AUTH_CTRL                                0x1803
-#define KSZ9893_PORT1_POINTER                                  0x1804
+#define KSZ9893_PORT1_PTR                                      0x1804
 #define KSZ9893_PORT1_PRIO_TO_QUEUE_MAPPING                    0x1808
 #define KSZ9893_PORT1_POLICE_CTRL                              0x180C
 #define KSZ9893_PORT1_TX_QUEUE_INDEX                           0x1900
@@ -256,7 +256,7 @@
 #define KSZ9893_PORT1_CTRL0                                    0x1A00
 #define KSZ9893_PORT1_CTRL1                                    0x1A04
 #define KSZ9893_PORT1_CTRL2                                    0x1B00
-#define KSZ9893_PORT1_MSTP_POINTER                             0x1B01
+#define KSZ9893_PORT1_MSTP_PTR                                 0x1B01
 #define KSZ9893_PORT1_MSTP_STATE                               0x1B04
 #define KSZ9893_PORT2_DEFAULT_TAG0                             0x2000
 #define KSZ9893_PORT2_DEFAULT_TAG1                             0x2001
@@ -306,7 +306,7 @@
 #define KSZ9893_PORT2_PRIO_CTRL                                0x2801
 #define KSZ9893_PORT2_IG_MAC_CTRL                              0x2802
 #define KSZ9893_PORT2_AUTH_CTRL                                0x2803
-#define KSZ9893_PORT2_POINTER                                  0x2804
+#define KSZ9893_PORT2_PTR                                      0x2804
 #define KSZ9893_PORT2_PRIO_TO_QUEUE_MAPPING                    0x2808
 #define KSZ9893_PORT2_POLICE_CTRL                              0x280C
 #define KSZ9893_PORT2_TX_QUEUE_INDEX                           0x2900
@@ -316,7 +316,7 @@
 #define KSZ9893_PORT2_CTRL0                                    0x2A00
 #define KSZ9893_PORT2_CTRL1                                    0x2A04
 #define KSZ9893_PORT2_CTRL2                                    0x2B00
-#define KSZ9893_PORT2_MSTP_POINTER                             0x2B01
+#define KSZ9893_PORT2_MSTP_PTR                                 0x2B01
 #define KSZ9893_PORT2_MSTP_STATE                               0x2B04
 #define KSZ9893_PORT3_DEFAULT_TAG0                             0x3000
 #define KSZ9893_PORT3_DEFAULT_TAG1                             0x3001
@@ -369,7 +369,7 @@
 #define KSZ9893_PORT3_PRIO_CTRL                                0x3801
 #define KSZ9893_PORT3_IG_MAC_CTRL                              0x3802
 #define KSZ9893_PORT3_AUTH_CTRL                                0x3803
-#define KSZ9893_PORT3_POINTER                                  0x3804
+#define KSZ9893_PORT3_PTR                                      0x3804
 #define KSZ9893_PORT3_PRIO_TO_QUEUE_MAPPING                    0x3808
 #define KSZ9893_PORT3_POLICE_CTRL                              0x380C
 #define KSZ9893_PORT3_TX_QUEUE_INDEX                           0x3900
@@ -379,7 +379,7 @@
 #define KSZ9893_PORT3_CTRL0                                    0x3A00
 #define KSZ9893_PORT3_CTRL1                                    0x3A04
 #define KSZ9893_PORT3_CTRL2                                    0x3B00
-#define KSZ9893_PORT3_MSTP_POINTER                             0x3B01
+#define KSZ9893_PORT3_MSTP_PTR                                 0x3B01
 #define KSZ9893_PORT3_MSTP_STATE                               0x3B04
 
 //KSZ9893 Switch register access macros
@@ -434,7 +434,7 @@
 #define KSZ9893_PORTn_PRIO_CTRL(port)                          (0x0801 + ((port) * 0x1000))
 #define KSZ9893_PORTn_IG_MAC_CTRL(port)                        (0x0802 + ((port) * 0x1000))
 #define KSZ9893_PORTn_AUTH_CTRL(port)                          (0x0803 + ((port) * 0x1000))
-#define KSZ9893_PORTn_POINTER(port)                            (0x0804 + ((port) * 0x1000))
+#define KSZ9893_PORTn_PTR(port)                                (0x0804 + ((port) * 0x1000))
 #define KSZ9893_PORTn_PRIO_TO_QUEUE_MAPPING(port)              (0x0808 + ((port) * 0x1000))
 #define KSZ9893_PORTn_POLICE_CTRL(port)                        (0x080C + ((port) * 0x1000))
 #define KSZ9893_PORTn_TX_QUEUE_INDEX(port)                     (0x0900 + ((port) * 0x1000))
@@ -444,7 +444,7 @@
 #define KSZ9893_PORTn_CTRL0(port)                              (0x0A00 + ((port) * 0x1000))
 #define KSZ9893_PORTn_CTRL1(port)                              (0x0A04 + ((port) * 0x1000))
 #define KSZ9893_PORTn_CTRL2(port)                              (0x0B00 + ((port) * 0x1000))
-#define KSZ9893_PORTn_MSTP_POINTER(port)                       (0x0B01 + ((port) * 0x1000))
+#define KSZ9893_PORTn_MSTP_PTR(port)                           (0x0B01 + ((port) * 0x1000))
 #define KSZ9893_PORTn_MSTP_STATE(port)                         (0x0B04 + ((port) * 0x1000))
 #define KSZ9893_PORTn_ETH_PHY_REG(port, addr)                  (0x0100 + ((port) * 0x1000) + ((addr) * 2))
 
@@ -716,6 +716,30 @@
 //Address Lookup Table Entry Index 2 register
 #define KSZ9893_ALU_TABLE_ENTRY_INDEX2_CPU_ACCESS_INDEX        0x03FF
 
+//Unknown Unicast Control register
+#define KSZ9893_UNKNOWN_UNICAST_CTRL_FWD                       0x80000000
+#define KSZ9893_UNKNOWN_UNICAST_CTRL_FWD_MAP                   0x00000007
+#define KSZ9893_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT1             0x00000001
+#define KSZ9893_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT2             0x00000002
+#define KSZ9893_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT3             0x00000004
+#define KSZ9893_UNKNOWN_UNICAST_CTRL_FWD_MAP_ALL               0x00000007
+
+//Unknown Multicast Control register
+#define KSZ9893_UNKONWN_MULTICAST_CTRL_FWD                     0x80000000
+#define KSZ9893_UNKONWN_MULTICAST_CTRL_FWD_MAP                 0x00000007
+#define KSZ9893_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT1           0x00000001
+#define KSZ9893_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT2           0x00000002
+#define KSZ9893_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT3           0x00000004
+#define KSZ9893_UNKONWN_MULTICAST_CTRL_FWD_MAP_ALL             0x00000007
+
+//Unknown VLAN ID Control register
+#define KSZ9893_UNKNOWN_VLAN_ID_CTRL_FWD                       0x80000000
+#define KSZ9893_UNKNOWN_VLAN_ID_CTRL_FWD_MAP                   0x00000007
+#define KSZ9893_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT1             0x00000001
+#define KSZ9893_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT2             0x00000002
+#define KSZ9893_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT3             0x00000004
+#define KSZ9893_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_ALL               0x00000007
+
 //Switch MAC Control 0 register
 #define KSZ9893_SWITCH_MAC_CTRL0_ALT_BACK_OFF_MODE             0x80
 #define KSZ9893_SWITCH_MAC_CTRL0_FRAME_LEN_CHECK_EN            0x08
@@ -751,6 +775,12 @@
 //Switch MIB Control register
 #define KSZ9893_SWITCH_MIB_CTRL_FLUSH                          0x80
 #define KSZ9893_SWITCH_MIB_CTRL_FREEZE                         0x40
+
+//Global Port Mirroring and Snooping Control register
+#define KSZ9893_GLOBAL_PORT_MIRROR_SNOOP_CTRL_IGMP_SNOOP_EN    0x40
+#define KSZ9893_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_OPT    0x08
+#define KSZ9893_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_EN     0x04
+#define KSZ9893_GLOBAL_PORT_MIRROR_SNOOP_CTRL_SNIFF_MODE_SEL   0x01
 
 //VLAN Table Entry 0 register
 #define KSZ9893_VLAN_TABLE_ENTRY0_VALID                        0x80000000
@@ -906,6 +936,32 @@
 #define KSZ9893_PORTn_XMII_CTRL1_IF_TYPE_RMII                  0x01
 #define KSZ9893_PORTn_XMII_CTRL1_IF_TYPE_RGMII                 0x03
 
+//Port N ACL Access Control 0 register
+#define KSZ9893_PORTn_ACL_ACCESS_CTRL0_WRITE_STATUS            0x40
+#define KSZ9893_PORTn_ACL_ACCESS_CTRL0_READ_STATUS             0x20
+#define KSZ9893_PORTn_ACL_ACCESS_CTRL0_READ                    0x00
+#define KSZ9893_PORTn_ACL_ACCESS_CTRL0_WRITE                   0x10
+#define KSZ9893_PORTn_ACL_ACCESS_CTRL0_ACL_INDEX               0x0F
+
+//Port N Port Mirroring Control register
+#define KSZ9893_PORTn_MIRRORING_CTRL_RECEIVE_SNIFF             0x40
+#define KSZ9893_PORTn_MIRRORING_CTRL_TRANSMIT_SNIFF            0x20
+#define KSZ9893_PORTn_MIRRORING_CTRL_SNIFFER_PORT              0x02
+
+//Port N Authentication Control register
+#define KSZ9893_PORTn_AUTH_CTRL_ACL_EN                         0x04
+#define KSZ9893_PORTn_AUTH_CTRL_AUTH_MODE                      0x03
+#define KSZ9893_PORTn_AUTH_CTRL_AUTH_MODE_PASS                 0x00
+#define KSZ9893_PORTn_AUTH_CTRL_AUTH_MODE_BLOCK                0x01
+#define KSZ9893_PORTn_AUTH_CTRL_AUTH_MODE_TRAP                 0x02
+
+//Port N Pointer register
+#define KSZ9893_PORTn_PTR_PORT_INDEX                           0x00070000
+#define KSZ9893_PORTn_PTR_QUEUE_PTR                            0x00000003
+
+//Port N MSTP Pointer register
+#define KSZ9893_PORTn_MSTP_PTR_MSTP_PTR                        0x07
+
 //Port N MSTP State register
 #define KSZ9893_PORTn_MSTP_STATE_TRANSMIT_EN                   0x04
 #define KSZ9893_PORTn_MSTP_STATE_RECEIVE_EN                    0x02
@@ -945,6 +1001,9 @@ void ksz9893SetPortState(NetInterface *interface, uint8_t port,
 SwitchPortState ksz9893GetPortState(NetInterface *interface, uint8_t port);
 
 void ksz9893SetAgingTime(NetInterface *interface, uint32_t agingTime);
+
+void ksz9893EnableIgmpSnooping(NetInterface *interface, bool_t enable);
+void ksz9893EnableMldSnooping(NetInterface *interface, bool_t enable);
 void ksz9893EnableRsvdMcastTable(NetInterface *interface, bool_t enable);
 
 error_t ksz9893AddStaticFdbEntry(NetInterface *interface,
@@ -962,6 +1021,9 @@ error_t ksz9893GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    SwitchFdbEntry *entry);
 
 void ksz9893FlushDynamicFdbTable(NetInterface *interface, uint8_t port);
+
+void ksz9893SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts);
 
 void ksz9893WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data);

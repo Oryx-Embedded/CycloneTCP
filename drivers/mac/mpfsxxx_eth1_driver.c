@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -113,7 +113,7 @@ error_t mpfsxxxEth1Init(NetInterface *interface)
    volatile uint32_t temp;
 
    //Debug message
-   TRACE_INFO("Initializing MPFSxxx Ethernet MAC #1...\r\n");
+   TRACE_INFO("Initializing MPFSxxx Ethernet MAC (MAC0)...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -235,8 +235,8 @@ error_t mpfsxxxEth1Init(NetInterface *interface)
 }
 
 
-//MPFS250-KIT evaluation board?
-#if defined(USE_MPFS250_KIT)
+//MPFS-ICICLE-KIT-ES evaluation board?
+#if defined(USE_MPFS_ICICLE_KIT_ES)
 
 /**
  * @brief GPIO configuration

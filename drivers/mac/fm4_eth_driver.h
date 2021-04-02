@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _FM4_ETH_DRIVER_H
@@ -82,6 +82,31 @@
 #elif (FM4_ETH_IRQ_SUB_PRIORITY < 0)
    #error FM4_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
+
+//SR register
+#define ETH_SR_GLPII   0x40000000
+#define ETH_SR_TTI     0x20000000
+#define ETH_SR_GPI     0x10000000
+#define ETH_SR_GMI     0x08000000
+#define ETH_SR_GLI     0x04000000
+#define ETH_SR_EB      0x03800000
+#define ETH_SR_TS      0x00700000
+#define ETH_SR_RS      0x000E0000
+#define ETH_SR_NIS     0x00010000
+#define ETH_SR_AIS     0x00008000
+#define ETH_SR_ERI     0x00004000
+#define ETH_SR_FBI     0x00002000
+#define ETH_SR_ETI     0x00000400
+#define ETH_SR_RWT     0x00000200
+#define ETH_SR_RPS     0x00000100
+#define ETH_SR_RU      0x00000080
+#define ETH_SR_RI      0x00000040
+#define ETH_SR_UNF     0x00000020
+#define ETH_SR_OVF     0x00000010
+#define ETH_SR_TJT     0x00000008
+#define ETH_SR_TU      0x00000004
+#define ETH_SR_TPS     0x00000002
+#define ETH_SR_TI      0x00000001
 
 //Transmit DMA descriptor flags
 #define ETH_TDES0_OWN  0x80000000

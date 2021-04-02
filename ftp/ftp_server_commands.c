@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -204,6 +204,11 @@ void ftpServerProcessCommand(FtpClientConnection *connection)
          else if(!osStrcasecmp(connection->command, "LIST"))
          {
             ftpServerProcessList(connection, p);
+         }
+         //NLST command received?
+         else if(!osStrcasecmp(connection->command, "NLST"))
+         {
+            ftpServerProcessNlst(connection, p);
          }
          //CWD command received?
          else if(!osStrcasecmp(connection->command, "CWD"))
@@ -1630,7 +1635,7 @@ void ftpServerProcessCdup(FtpClientConnection *connection, char_t *param)
    perm = ftpServerGetFilePermissions(connection, connection->path);
 
    //Check access rights
-   if(perm & FTP_FILE_PERM_READ)
+   if((perm & FTP_FILE_PERM_READ) != 0)
    {
       //Update current directory
       osStrcpy(connection->currentDir, connection->path);
@@ -1760,6 +1765,130 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
 
    //LIST command is being processed
    connection->controlChannel.state = FTP_CHANNEL_STATE_LIST;
+
+   //Format response message
+   osStrcpy(connection->response, "150 Opening data connection\r\n");
+}
+
+
+/**
+ * @brief NLST command processing
+ *
+ * The NLST command is used to list the content of a directory
+ *
+ * @param[in] connection Pointer to the client connection
+ * @param[in] param Command line parameters
+ **/
+
+void ftpServerProcessNlst(FtpClientConnection *connection, char_t *param)
+{
+   error_t error;
+   uint_t perm;
+
+   //Ensure the user is logged in
+   if(!connection->userLoggedIn)
+   {
+      //Format response message
+      osStrcpy(connection->response, "530 Not logged in\r\n");
+      //Exit immediately
+      return;
+   }
+
+   //Any option flags
+   while(*param == '-')
+   {
+      //Skip option flags
+      while(*param != ' ' && *param != '\0')
+      {
+         param++;
+      }
+
+      //Skip whitespace characters
+      while(*param == ' ')
+      {
+         param++;
+      }
+   }
+
+   //The pathname is optional
+   if(*param == '\0')
+   {
+      //Use current directory if no pathname is specified
+      osStrcpy(connection->path, connection->currentDir);
+   }
+   else
+   {
+      //Retrieve the full pathname
+      error = ftpServerGetPath(connection, param, connection->path,
+         FTP_SERVER_MAX_PATH_LEN);
+
+      //Any error to report?
+      if(error)
+      {
+         //The specified pathname is not valid...
+         osStrcpy(connection->response, "501 Invalid parameter\r\n");
+         //Exit immediately
+         return;
+      }
+   }
+
+   //Retrieve permissions for the specified directory
+   perm = ftpServerGetFilePermissions(connection, connection->path);
+
+   //Insufficient access rights?
+   if((perm & FTP_FILE_PERM_READ) == 0)
+   {
+      //Report an error
+      osStrcpy(connection->response, "550 Access denied\r\n");
+      //Exit immediately
+      return;
+   }
+
+   //Open the specified directory for reading
+   connection->dir = fsOpenDir(connection->path);
+
+   //Failed to open the directory?
+   if(!connection->dir)
+   {
+      //Report an error
+      osStrcpy(connection->response, "550 Directory not found\r\n");
+      //Exit immediately
+      return;
+   }
+
+   //Check current data transfer mode
+   if(connection->passiveMode)
+   {
+      //Check whether the data connection is already opened
+      if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+         connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
+   }
+   else
+   {
+      //Open the data connection
+      error = ftpServerOpenDataChannel(connection);
+
+      //Any error to report?
+      if(error)
+      {
+         //Clean up side effects
+         fsCloseDir(connection->dir);
+         //Format response
+         osStrcpy(connection->response, "450 Can't open data connection\r\n");
+         //Exit immediately
+         return;
+      }
+
+      //The data connection is ready to send data
+      connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
+   }
+
+   //Flush transmission buffer
+   connection->bufferLength = 0;
+   connection->bufferPos = 0;
+
+   //NLST command is being processed
+   connection->controlChannel.state = FTP_CHANNEL_STATE_NLST;
 
    //Format response message
    osStrcpy(connection->response, "150 Opening data connection\r\n");

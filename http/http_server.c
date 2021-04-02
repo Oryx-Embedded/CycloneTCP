@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -713,7 +713,7 @@ error_t httpReadStream(HttpConnection *connection,
 
          //The HTTP_FLAG_BREAK_CHAR flag causes the function to stop reading
          //data as soon as the specified break character is encountered
-         if(flags & HTTP_FLAG_BREAK_CRLF)
+         if((flags & HTTP_FLAG_BREAK_CRLF) != 0)
          {
             //Check whether a break character has been received
             if(p[n - 1] == LSB(flags))

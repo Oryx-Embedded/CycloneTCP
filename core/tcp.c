@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -35,6 +35,7 @@
 #include <string.h>
 #include "core/net.h"
 #include "core/socket.h"
+#include "core/socket_misc.h"
 #include "core/tcp.h"
 #include "core/tcp_misc.h"
 #include "core/tcp_timer.h"
@@ -308,18 +309,20 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
       //Point to the first item in the SYN queue
       queueItem = socket->synQueue;
 
-      //Return the client IP address and port number
-      if(clientIpAddr)
+      //The function optionally returns the IP address of the client
+      if(clientIpAddr != NULL)
+      {
          *clientIpAddr = queueItem->srcAddr;
-      if(clientPort)
-         *clientPort = queueItem->srcPort;
+      }
 
-      //Release exclusive access
-      osReleaseMutex(&netMutex);
+      //The function optionally returns the port number used by the client
+      if(clientPort != NULL)
+      {
+         *clientPort = queueItem->srcPort;
+      }
+
       //Create a new socket to handle the incoming connection request
-      newSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
-      //Get exclusive access
-      osAcquireMutex(&netMutex);
+      newSocket = socketAllocate(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
 
       //Socket successfully created?
       if(newSocket != NULL)
@@ -327,10 +330,17 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
          //The user owns the socket
          newSocket->ownedFlag = TRUE;
 
-         //Inherit settings from the listening socket
+         //Inherit parameters from the listening socket
          newSocket->txBufferSize = socket->txBufferSize;
          newSocket->rxBufferSize = socket->rxBufferSize;
 
+#if (TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+         //Inherit keep-alive parameters from the listening socket
+         newSocket->keepAliveEnabled = socket->keepAliveEnabled;
+         newSocket->keepAliveIdle = socket->keepAliveIdle;
+         newSocket->keepAliveInterval = socket->keepAliveInterval;
+         newSocket->keepAliveMaxProbes = socket->keepAliveMaxProbes;
+#endif
          //Number of chunks that comprise the TX and the RX buffers
          newSocket->txBuffer.maxChunkCount = arraysize(newSocket->txBuffer.chunk);
          newSocket->rxBuffer.maxChunkCount = arraysize(newSocket->rxBuffer.chunk);
@@ -356,6 +366,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
             //Bind the socket to the specified address
             newSocket->localIpAddr = queueItem->destAddr;
             newSocket->localPort = socket->localPort;
+
             //Save the port number and the IP address of the remote host
             newSocket->remoteIpAddr = queueItem->srcAddr;
             newSocket->remotePort = queueItem->srcPort;
@@ -393,6 +404,14 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
             //Recover is set to the initial send sequence number
             newSocket->recover = newSocket->iss;
 #endif
+            //The connection state should be changed to SYN-RECEIVED
+            tcpChangeState(newSocket, TCP_STATE_SYN_RECEIVED);
+
+            //Number of times TCP connections have made a direct transition to
+            //the SYN-RECEIVED state from the LISTEN state
+            MIB2_INC_COUNTER32(tcpGroup.tcpPassiveOpens, 1);
+            TCP_MIB_INC_COUNTER32(tcpPassiveOpens, 1);
+
             //Send a SYN ACK control segment
             error = tcpSendSegment(newSocket, TCP_FLAG_SYN | TCP_FLAG_ACK,
                newSocket->iss, newSocket->rcvNxt, 0, TRUE);
@@ -407,15 +426,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
                //Update the state of events
                tcpUpdateEvents(socket);
 
-               //The connection state should be changed to SYN-RECEIVED
-               tcpChangeState(newSocket, TCP_STATE_SYN_RECEIVED);
-
-               //Number of times TCP connections have made a direct transition to
-               //the SYN-RECEIVED state from the LISTEN state
-               MIB2_INC_COUNTER32(tcpGroup.tcpPassiveOpens, 1);
-               TCP_MIB_INC_COUNTER32(tcpPassiveOpens, 1);
-
-               //We are done...
+               //We are done
                break;
             }
          }
@@ -537,7 +548,9 @@ error_t tcpSend(Socket *socket, const uint8_t *data,
          //practice, this timeout should seldom occur (refer to RFC 1122,
          //section 4.2.3.4)
          if(socket->sndUser == n)
-            tcpTimerStart(&socket->overrideTimer, TCP_OVERRIDE_TIMEOUT);
+         {
+            netStartTimer(&socket->overrideTimer, TCP_OVERRIDE_TIMEOUT);
+         }
       }
 
       //The Nagle algorithm should be implemented to coalesce
@@ -549,7 +562,7 @@ error_t tcpSend(Socket *socket, const uint8_t *data,
 
    //The SOCKET_FLAG_WAIT_ACK flag causes the function to
    //wait for acknowledgment from the remote side
-   if(flags & SOCKET_FLAG_WAIT_ACK)
+   if((flags & SOCKET_FLAG_WAIT_ACK) != 0)
    {
       //Wait for the data to be acknowledged
       event = tcpWaitForEvents(socket, SOCKET_EVENT_TX_ACKED, socket->timeout);
@@ -626,7 +639,7 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
       case TCP_STATE_CLOSING:
       case TCP_STATE_TIME_WAIT:
          //The user must be satisfied with data already on hand
-         if(!socket->rcvUser)
+         if(socket->rcvUser == 0)
          {
             if(*received > 0)
                return NO_ERROR;
@@ -649,7 +662,7 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
             return ERROR_NOT_CONNECTED;
 
          //The user must be satisfied with data already on hand
-         if(!socket->rcvUser)
+         if(socket->rcvUser == 0)
          {
             if(*received > 0)
                return NO_ERROR;
@@ -664,7 +677,7 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
       }
 
       //Sanity check
-      if(!socket->rcvUser)
+      if(socket->rcvUser == 0)
          return ERROR_FAILURE;
 
       //Calculate the number of bytes to read at a time
@@ -673,7 +686,7 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
       tcpReadRxBuffer(socket, seqNum, data, n);
 
       //Read data until a break character is encountered?
-      if(flags & SOCKET_FLAG_BREAK_CHAR)
+      if((flags & SOCKET_FLAG_BREAK_CHAR) != 0)
       {
          //Search for the specified break character
          for(i = 0; i < n && data[i] != c; i++);
@@ -693,7 +706,7 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
 
       //The SOCKET_FLAG_BREAK_CHAR flag causes the function to stop reading
       //data as soon as the specified break character is encountered
-      if(flags & SOCKET_FLAG_BREAK_CHAR)
+      if((flags & SOCKET_FLAG_BREAK_CHAR) != 0)
       {
          //Check whether a break character has been found
          if(data[n - 1] == c)
@@ -701,7 +714,7 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
       }
       //The SOCKET_FLAG_WAIT_ALL flag causes the function to return
       //only when the requested number of bytes have been read
-      else if(!(flags & SOCKET_FLAG_WAIT_ALL))
+      else if((flags & SOCKET_FLAG_WAIT_ALL) == 0)
       {
          break;
       }
@@ -892,7 +905,7 @@ error_t tcpAbort(Socket *socket)
    case TCP_STATE_FIN_WAIT_2:
    case TCP_STATE_CLOSE_WAIT:
       //Send a reset segment
-      error = tcpSendSegment(socket, TCP_FLAG_RST, socket->sndNxt, 0, 0, FALSE);
+      error = tcpSendResetSegment(socket, socket->sndNxt);
       //Enter CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
       //Delete TCB

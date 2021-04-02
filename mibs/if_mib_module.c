@@ -32,7 +32,7 @@
  * - RFC 2863: The Interfaces Group MIB
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -155,6 +155,7 @@ const MibObject ifMibObjects[] =
       ifMibGetIfEntry,
       ifMibGetNextIfEntry
    },
+#if (ETH_SUPPORT == ENABLED)
    //ifPhysAddress object (1.3.6.1.2.1.2.2.1.6)
    {
       "ifPhysAddress",
@@ -170,6 +171,7 @@ const MibObject ifMibObjects[] =
       ifMibGetIfEntry,
       ifMibGetNextIfEntry
    },
+#endif
    //ifAdminStatus object (1.3.6.1.2.1.2.2.1.7)
    {
       "ifAdminStatus",

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -238,11 +238,11 @@ error_t smtpClientPlainAuth(SmtpClientContext *context,
          m = osSprintf(p, "AUTH PLAIN ");
 
          //Authorization identity
-         n = osSprintf(p + m, username) + 1;
+         n = osSprintf(p + m, "%s", username) + 1;
          //Authentication identity
-         n += osSprintf(p + m + n, username) + 1;
+         n += osSprintf(p + m + n, "%s", username) + 1;
          //Password
-         n += osSprintf(p + m + n, password);
+         n += osSprintf(p + m + n, "%s", password);
 
          //Base64 encoding
          base64Encode(p + m, n, p + m, NULL);

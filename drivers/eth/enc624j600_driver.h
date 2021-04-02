@@ -25,11 +25,18 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _ENC624J600_DRIVER_H
 #define _ENC624J600_DRIVER_H
+
+//RX buffer size
+#ifndef ENC624J600_ETH_RX_BUFFER_SIZE
+   #define ENC624J600_ETH_RX_BUFFER_SIZE 1536
+#elif (ENC624J600_ETH_RX_BUFFER_SIZE != 1536)
+   #error ENC624J600_ETH_RX_BUFFER_SIZE parameter is not valid
+#endif
 
 //Receive and transmit buffers
 #define ENC624J600_TX_BUFFER_START 0x0000
@@ -546,7 +553,6 @@ extern "C" {
 typedef struct
 {
    uint16_t nextPacket; ///<Next packet in the receive buffer
-   uint8_t *rxBuffer;   ///<Receive buffer
 } Enc624j600Context;
 
 

@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -1811,7 +1811,7 @@ error_t httpClientReadBody(HttpClientContext *context, void *data,
                context->timestamp = osGetSystemTime();
 
                //Check flags
-               if(flags & HTTP_FLAG_BREAK_CRLF)
+               if((flags & HTTP_FLAG_BREAK_CRLF) != 0)
                {
                   //The HTTP_FLAG_BREAK_CHAR flag causes the function to stop
                   //reading data as soon as the specified break character is
@@ -1819,7 +1819,7 @@ error_t httpClientReadBody(HttpClientContext *context, void *data,
                   if(p[n - 1] == LSB(flags))
                      break;
                }
-               else if(!(flags & HTTP_FLAG_WAIT_ALL))
+               else if((flags & HTTP_FLAG_WAIT_ALL) == 0)
                {
                   //The HTTP_FLAG_WAIT_ALL flag causes the function to return
                   //only when the requested number of bytes have been read

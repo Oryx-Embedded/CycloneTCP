@@ -1,6 +1,6 @@
 /**
- * @file mimxrt1060_eth_driver.c
- * @brief NXP i.MX RT1060 Ethernet MAC driver
+ * @file mimxrt1060_eth1_driver.c
+ * @brief NXP i.MX RT1060 Ethernet MAC driver (ENET instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -36,7 +36,7 @@
 #include "fsl_gpio.h"
 #include "fsl_iomuxc.h"
 #include "core/net.h"
-#include "drivers/mac/mimxrt1060_eth_driver.h"
+#include "drivers/mac/mimxrt1060_eth1_driver.h"
 #include "debug.h"
 
 //Underlying network interface
@@ -46,37 +46,37 @@ static NetInterface *nicDriverInterface;
 #if defined(__ICCARM__)
 
 //TX buffer
-#pragma data_alignment = 16
-#pragma location = MIMXRT1060_ETH_RAM_SECTION
-static uint8_t txBuffer[MIMXRT1060_ETH_TX_BUFFER_COUNT][MIMXRT1060_ETH_TX_BUFFER_SIZE];
+#pragma data_alignment = 64
+#pragma location = MIMXRT1060_ETH1_RAM_SECTION
+static uint8_t txBuffer[MIMXRT1060_ETH1_TX_BUFFER_COUNT][MIMXRT1060_ETH1_TX_BUFFER_SIZE];
 //RX buffer
-#pragma data_alignment = 16
-#pragma location = MIMXRT1060_ETH_RAM_SECTION
-static uint8_t rxBuffer[MIMXRT1060_ETH_RX_BUFFER_COUNT][MIMXRT1060_ETH_RX_BUFFER_SIZE];
+#pragma data_alignment = 64
+#pragma location = MIMXRT1060_ETH1_RAM_SECTION
+static uint8_t rxBuffer[MIMXRT1060_ETH1_RX_BUFFER_COUNT][MIMXRT1060_ETH1_RX_BUFFER_SIZE];
 //TX buffer descriptors
-#pragma data_alignment = 16
-#pragma location = MIMXRT1060_ETH_RAM_SECTION
-static uint32_t txBufferDesc[MIMXRT1060_ETH_TX_BUFFER_COUNT][8];
+#pragma data_alignment = 64
+#pragma location = MIMXRT1060_ETH1_RAM_SECTION
+static uint32_t txBufferDesc[MIMXRT1060_ETH1_TX_BUFFER_COUNT][8];
 //RX buffer descriptors
-#pragma data_alignment = 16
-#pragma location = MIMXRT1060_ETH_RAM_SECTION
-static uint32_t rxBufferDesc[MIMXRT1060_ETH_RX_BUFFER_COUNT][8];
+#pragma data_alignment = 64
+#pragma location = MIMXRT1060_ETH1_RAM_SECTION
+static uint32_t rxBufferDesc[MIMXRT1060_ETH1_RX_BUFFER_COUNT][8];
 
 //ARM or GCC compiler?
 #else
 
 //TX buffer
-static uint8_t txBuffer[MIMXRT1060_ETH_TX_BUFFER_COUNT][MIMXRT1060_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(16), __section__(MIMXRT1060_ETH_RAM_SECTION)));
+static uint8_t txBuffer[MIMXRT1060_ETH1_TX_BUFFER_COUNT][MIMXRT1060_ETH1_TX_BUFFER_SIZE]
+   __attribute__((aligned(64), __section__(MIMXRT1060_ETH1_RAM_SECTION)));
 //RX buffer
-static uint8_t rxBuffer[MIMXRT1060_ETH_RX_BUFFER_COUNT][MIMXRT1060_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(16), __section__(MIMXRT1060_ETH_RAM_SECTION)));
+static uint8_t rxBuffer[MIMXRT1060_ETH1_RX_BUFFER_COUNT][MIMXRT1060_ETH1_RX_BUFFER_SIZE]
+   __attribute__((aligned(64), __section__(MIMXRT1060_ETH1_RAM_SECTION)));
 //TX buffer descriptors
-static uint32_t txBufferDesc[MIMXRT1060_ETH_TX_BUFFER_COUNT][8]
-   __attribute__((aligned(16), __section__(MIMXRT1060_ETH_RAM_SECTION)));
+static uint32_t txBufferDesc[MIMXRT1060_ETH1_TX_BUFFER_COUNT][8]
+   __attribute__((aligned(64), __section__(MIMXRT1060_ETH1_RAM_SECTION)));
 //RX buffer descriptors
-static uint32_t rxBufferDesc[MIMXRT1060_ETH_RX_BUFFER_COUNT][8]
-   __attribute__((aligned(16), __section__(MIMXRT1060_ETH_RAM_SECTION)));
+static uint32_t rxBufferDesc[MIMXRT1060_ETH1_RX_BUFFER_COUNT][8]
+   __attribute__((aligned(64), __section__(MIMXRT1060_ETH1_RAM_SECTION)));
 
 #endif
 
@@ -87,23 +87,23 @@ static uint_t rxBufferIndex;
 
 
 /**
- * @brief i.MX RT1060 Ethernet MAC driver
+ * @brief i.MX RT1060 Ethernet MAC driver (ENET instance)
  **/
 
-const NicDriver mimxrt1060EthDriver =
+const NicDriver mimxrt1060Eth1Driver =
 {
    NIC_TYPE_ETHERNET,
    ETH_MTU,
-   mimxrt1060EthInit,
-   mimxrt1060EthTick,
-   mimxrt1060EthEnableIrq,
-   mimxrt1060EthDisableIrq,
-   mimxrt1060EthEventHandler,
-   mimxrt1060EthSendPacket,
-   mimxrt1060EthUpdateMacAddrFilter,
-   mimxrt1060EthUpdateMacConfig,
-   mimxrt1060EthWritePhyReg,
-   mimxrt1060EthReadPhyReg,
+   mimxrt1060Eth1Init,
+   mimxrt1060Eth1Tick,
+   mimxrt1060Eth1EnableIrq,
+   mimxrt1060Eth1DisableIrq,
+   mimxrt1060Eth1EventHandler,
+   mimxrt1060Eth1SendPacket,
+   mimxrt1060Eth1UpdateMacAddrFilter,
+   mimxrt1060Eth1UpdateMacConfig,
+   mimxrt1060Eth1WritePhyReg,
+   mimxrt1060Eth1ReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -117,13 +117,13 @@ const NicDriver mimxrt1060EthDriver =
  * @return Error code
  **/
 
-error_t mimxrt1060EthInit(NetInterface *interface)
+error_t mimxrt1060Eth1Init(NetInterface *interface)
 {
    error_t error;
    uint32_t value;
 
    //Debug message
-   TRACE_INFO("Initializing i.MX RT1060 Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing i.MX RT1060 Ethernet MAC (ENET)...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -132,7 +132,7 @@ error_t mimxrt1060EthInit(NetInterface *interface)
    CLOCK_EnableClock(kCLOCK_Enet);
 
    //GPIO configuration
-   mimxrt1060EthInitGpio(interface);
+   mimxrt1060Eth1InitGpio(interface);
 
    //Reset ENET module
    ENET->ECR = ENET_ECR_RESET_MASK;
@@ -142,7 +142,7 @@ error_t mimxrt1060EthInit(NetInterface *interface)
    }
 
    //Receive control register
-   ENET->RCR = ENET_RCR_MAX_FL(MIMXRT1060_ETH_RX_BUFFER_SIZE) |
+   ENET->RCR = ENET_RCR_MAX_FL(MIMXRT1060_ETH1_RX_BUFFER_SIZE) |
       ENET_RCR_RMII_MODE_MASK | ENET_RCR_MII_MODE_MASK;
 
    //Transmit control register
@@ -205,7 +205,7 @@ error_t mimxrt1060EthInit(NetInterface *interface)
    ENET->MIBC = 0;
 
    //Initialize buffer descriptors
-   mimxrt1060EthInitBufferDesc(interface);
+   mimxrt1060Eth1InitBufferDesc(interface);
 
    //Clear any pending interrupts
    ENET->EIR = 0xFFFFFFFF;
@@ -213,11 +213,11 @@ error_t mimxrt1060EthInit(NetInterface *interface)
    ENET->EIMR = ENET_EIMR_TXF_MASK | ENET_EIMR_RXF_MASK | ENET_EIMR_EBERR_MASK;
 
    //Set priority grouping (4 bits for pre-emption priority, no bits for subpriority)
-   NVIC_SetPriorityGrouping(MIMXRT1060_ETH_IRQ_PRIORITY_GROUPING);
+   NVIC_SetPriorityGrouping(MIMXRT1060_ETH1_IRQ_PRIORITY_GROUPING);
 
    //Configure ENET interrupt priority
-   NVIC_SetPriority(ENET_IRQn, NVIC_EncodePriority(MIMXRT1060_ETH_IRQ_PRIORITY_GROUPING,
-      MIMXRT1060_ETH_IRQ_GROUP_PRIORITY, MIMXRT1060_ETH_IRQ_SUB_PRIORITY));
+   NVIC_SetPriority(ENET_IRQn, NVIC_EncodePriority(MIMXRT1060_ETH1_IRQ_PRIORITY_GROUPING,
+      MIMXRT1060_ETH1_IRQ_GROUP_PRIORITY, MIMXRT1060_ETH1_IRQ_SUB_PRIORITY));
 
    //Enable Ethernet MAC
    ENET->ECR |= ENET_ECR_ETHEREN_MASK;
@@ -240,7 +240,7 @@ error_t mimxrt1060EthInit(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void mimxrt1060EthInitGpio(NetInterface *interface)
+void mimxrt1060Eth1InitGpio(NetInterface *interface)
 {
    gpio_pin_config_t pinConfig;
    clock_enet_pll_config_t pllConfig;
@@ -455,7 +455,7 @@ void mimxrt1060EthInitGpio(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void mimxrt1060EthInitBufferDesc(NetInterface *interface)
+void mimxrt1060Eth1InitBufferDesc(NetInterface *interface)
 {
    uint_t i;
    uint32_t address;
@@ -465,7 +465,7 @@ void mimxrt1060EthInitBufferDesc(NetInterface *interface)
    osMemset(rxBufferDesc, 0, sizeof(rxBufferDesc));
 
    //Initialize TX buffer descriptors
-   for(i = 0; i < MIMXRT1060_ETH_TX_BUFFER_COUNT; i++)
+   for(i = 0; i < MIMXRT1060_ETH1_TX_BUFFER_COUNT; i++)
    {
       //Calculate the address of the current TX buffer
       address = (uint32_t) txBuffer[i];
@@ -481,7 +481,7 @@ void mimxrt1060EthInitBufferDesc(NetInterface *interface)
    txBufferIndex = 0;
 
    //Initialize RX buffer descriptors
-   for(i = 0; i < MIMXRT1060_ETH_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < MIMXRT1060_ETH1_RX_BUFFER_COUNT; i++)
    {
       //Calculate the address of the current RX buffer
       address = (uint32_t) rxBuffer[i];
@@ -503,7 +503,7 @@ void mimxrt1060EthInitBufferDesc(NetInterface *interface)
    //Start location of the RX descriptor list
    ENET->RDSR = (uint32_t) rxBufferDesc;
    //Maximum receive buffer size
-   ENET->MRBR = MIMXRT1060_ETH_RX_BUFFER_SIZE;
+   ENET->MRBR = MIMXRT1060_ETH1_RX_BUFFER_SIZE;
 }
 
 
@@ -516,7 +516,7 @@ void mimxrt1060EthInitBufferDesc(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void mimxrt1060EthTick(NetInterface *interface)
+void mimxrt1060Eth1Tick(NetInterface *interface)
 {
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -541,7 +541,7 @@ void mimxrt1060EthTick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void mimxrt1060EthEnableIrq(NetInterface *interface)
+void mimxrt1060Eth1EnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ENET_IRQn);
@@ -569,7 +569,7 @@ void mimxrt1060EthEnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void mimxrt1060EthDisableIrq(NetInterface *interface)
+void mimxrt1060Eth1DisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ENET_IRQn);
@@ -660,7 +660,7 @@ void ENET_IRQHandler(void)
  * @param[in] interface Underlying network interface
  **/
 
-void mimxrt1060EthEventHandler(NetInterface *interface)
+void mimxrt1060Eth1EventHandler(NetInterface *interface)
 {
    error_t error;
    uint32_t status;
@@ -678,7 +678,7 @@ void mimxrt1060EthEventHandler(NetInterface *interface)
       do
       {
          //Read incoming packet
-         error = mimxrt1060EthReceivePacket(interface);
+         error = mimxrt1060Eth1ReceivePacket(interface);
 
          //No more data in the receive buffer?
       } while(error != ERROR_BUFFER_EMPTY);
@@ -693,7 +693,7 @@ void mimxrt1060EthEventHandler(NetInterface *interface)
       //Disable Ethernet MAC
       ENET->ECR &= ~ENET_ECR_ETHEREN_MASK;
       //Reset buffer descriptors
-      mimxrt1060EthInitBufferDesc(interface);
+      mimxrt1060Eth1InitBufferDesc(interface);
       //Resume normal operation
       ENET->ECR |= ENET_ECR_ETHEREN_MASK;
       //Instruct the DMA to poll the receive descriptor list
@@ -715,17 +715,17 @@ void mimxrt1060EthEventHandler(NetInterface *interface)
  * @return Error code
  **/
 
-error_t mimxrt1060EthSendPacket(NetInterface *interface,
+error_t mimxrt1060Eth1SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint8_t temp[MIMXRT1060_ETH_TX_BUFFER_SIZE];
+   static uint8_t temp[MIMXRT1060_ETH1_TX_BUFFER_SIZE];
    size_t length;
 
    //Retrieve the length of the packet
    length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > MIMXRT1060_ETH_TX_BUFFER_SIZE)
+   if(length > MIMXRT1060_ETH1_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -747,7 +747,7 @@ error_t mimxrt1060EthSendPacket(NetInterface *interface,
    txBufferDesc[txBufferIndex][4] = 0;
 
    //Check current index
-   if(txBufferIndex < (MIMXRT1060_ETH_TX_BUFFER_COUNT - 1))
+   if(txBufferIndex < (MIMXRT1060_ETH1_TX_BUFFER_COUNT - 1))
    {
       //Give the ownership of the descriptor to the DMA engine
       txBufferDesc[txBufferIndex][0] = ENET_TBD0_R | ENET_TBD0_L |
@@ -790,27 +790,27 @@ error_t mimxrt1060EthSendPacket(NetInterface *interface,
  * @return Error code
  **/
 
-error_t mimxrt1060EthReceivePacket(NetInterface *interface)
+error_t mimxrt1060Eth1ReceivePacket(NetInterface *interface)
 {
-   static uint8_t temp[MIMXRT1060_ETH_RX_BUFFER_SIZE];
+   static uint8_t temp[MIMXRT1060_ETH1_RX_BUFFER_SIZE];
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
 
-   //Make sure the current buffer is available for reading
+   //Current buffer available for reading?
    if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_E) == 0)
    {
       //The frame should not span multiple buffers
       if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_L) != 0)
       {
          //Check whether an error occurred
-         if(!(rxBufferDesc[rxBufferIndex][0] & (ENET_RBD0_LG |
-            ENET_RBD0_NO | ENET_RBD0_CR | ENET_RBD0_OV | ENET_RBD0_TR)))
+         if((rxBufferDesc[rxBufferIndex][0] & (ENET_RBD0_LG | ENET_RBD0_NO |
+            ENET_RBD0_CR | ENET_RBD0_OV | ENET_RBD0_TR)) == 0)
          {
             //Retrieve the length of the frame
             n = rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_DATA_LENGTH;
             //Limit the number of data to read
-            n = MIN(n, MIMXRT1060_ETH_RX_BUFFER_SIZE);
+            n = MIN(n, MIMXRT1060_ETH1_RX_BUFFER_SIZE);
 
             //Copy data from the receive buffer
             osMemcpy(temp, rxBuffer[rxBufferIndex], (n + 3) & ~3UL);
@@ -840,7 +840,7 @@ error_t mimxrt1060EthReceivePacket(NetInterface *interface)
       rxBufferDesc[rxBufferIndex][4] = 0;
 
       //Check current index
-      if(rxBufferIndex < (MIMXRT1060_ETH_RX_BUFFER_COUNT - 1))
+      if(rxBufferIndex < (MIMXRT1060_ETH1_RX_BUFFER_COUNT - 1))
       {
          //Give the ownership of the descriptor back to the DMA engine
          rxBufferDesc[rxBufferIndex][0] = ENET_RBD0_E;
@@ -875,7 +875,7 @@ error_t mimxrt1060EthReceivePacket(NetInterface *interface)
  * @return Error code
  **/
 
-error_t mimxrt1060EthUpdateMacAddrFilter(NetInterface *interface)
+error_t mimxrt1060Eth1UpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t k;
@@ -919,7 +919,7 @@ error_t mimxrt1060EthUpdateMacAddrFilter(NetInterface *interface)
       if(entry->refCount > 0)
       {
          //Compute CRC over the current MAC address
-         crc = mimxrt1060EthCalcCrc(&entry->addr, sizeof(MacAddr));
+         crc = mimxrt1060Eth1CalcCrc(&entry->addr, sizeof(MacAddr));
 
          //The upper 6 bits in the CRC register are used to index the
          //contents of the hash table
@@ -964,7 +964,7 @@ error_t mimxrt1060EthUpdateMacAddrFilter(NetInterface *interface)
  * @return Error code
  **/
 
-error_t mimxrt1060EthUpdateMacConfig(NetInterface *interface)
+error_t mimxrt1060Eth1UpdateMacConfig(NetInterface *interface)
 {
    //Disable Ethernet MAC while modifying configuration registers
    ENET->ECR &= ~ENET_ECR_ETHEREN_MASK;
@@ -998,7 +998,7 @@ error_t mimxrt1060EthUpdateMacConfig(NetInterface *interface)
    }
 
    //Reset buffer descriptors
-   mimxrt1060EthInitBufferDesc(interface);
+   mimxrt1060Eth1InitBufferDesc(interface);
 
    //Re-enable Ethernet MAC
    ENET->ECR |= ENET_ECR_ETHEREN_MASK;
@@ -1018,7 +1018,7 @@ error_t mimxrt1060EthUpdateMacConfig(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void mimxrt1060EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void mimxrt1060Eth1WritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
    uint32_t temp;
@@ -1060,7 +1060,7 @@ void mimxrt1060EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Register value
  **/
 
-uint16_t mimxrt1060EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t mimxrt1060Eth1ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr)
 {
    uint16_t data;
@@ -1107,7 +1107,7 @@ uint16_t mimxrt1060EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Resulting CRC value
  **/
 
-uint32_t mimxrt1060EthCalcCrc(const void *data, size_t length)
+uint32_t mimxrt1060Eth1CalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;

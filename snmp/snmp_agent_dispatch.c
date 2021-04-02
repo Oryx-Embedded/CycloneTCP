@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -380,7 +380,7 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
       }
 
       //Check whether the authFlag is set
-      if(context->request.msgFlags & SNMP_MSG_FLAG_AUTH)
+      if((context->request.msgFlags & SNMP_MSG_FLAG_AUTH) != 0)
       {
          //Authenticate incoming SNMP message
          error = snmpAuthIncomingMessage(&context->user, &context->request);
@@ -396,7 +396,7 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
       }
 
       //Check whether the privFlag is set
-      if(context->request.msgFlags & SNMP_MSG_FLAG_PRIV)
+      if((context->request.msgFlags & SNMP_MSG_FLAG_PRIV) != 0)
       {
          //Decrypt data
          error = snmpDecryptData(&context->user, &context->request);
@@ -432,7 +432,7 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
    {
       //When the reportable flag is used, if its value is one, a Report-PDU
       //must be returned to the sender
-      if(context->request.msgFlags & SNMP_MSG_FLAG_REPORTABLE)
+      if((context->request.msgFlags & SNMP_MSG_FLAG_REPORTABLE) != 0)
          error = snmpFormatReportPdu(context, error);
 
       //Any error to report?
@@ -459,7 +459,7 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
          return error;
 
       //Check whether the privFlag is set
-      if(context->response.msgFlags & SNMP_MSG_FLAG_PRIV)
+      if((context->response.msgFlags & SNMP_MSG_FLAG_PRIV) != 0)
       {
          //Encrypt data
          error = snmpEncryptData(&context->user, &context->response,
@@ -476,7 +476,7 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
          return error;
 
       //Check whether the authFlag is set
-      if(context->response.msgFlags & SNMP_MSG_FLAG_AUTH)
+      if((context->response.msgFlags & SNMP_MSG_FLAG_AUTH) != 0)
       {
          //Authenticate outgoing SNMP message
          error = snmpAuthOutgoingMessage(&context->user, &context->response);

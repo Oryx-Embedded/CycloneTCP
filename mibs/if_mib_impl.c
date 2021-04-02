@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -117,7 +117,6 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    uint_t index;
    IfMibIfEntry *entry;
    NetInterface *interface;
-   NetInterface *logicalInterface;
    NetInterface *physicalInterface;
 
    //Point to the instance identifier
@@ -142,8 +141,6 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    //Point to the interface table entry
    entry = &ifMibBase.ifTable[index - 1];
 
-   //Point to the logical interface
-   logicalInterface = nicGetLogicalInterface(interface);
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
 
@@ -236,9 +233,15 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       //Get interface's current bandwidth
       value->gauge32 = interface->linkSpeed;
    }
+#if (ETH_SUPPORT == ENABLED)
    //ifPhysAddress object?
    else if(!osStrcmp(object->name, "ifPhysAddress"))
    {
+      NetInterface *logicalInterface;
+
+      //Point to the logical interface
+      logicalInterface = nicGetLogicalInterface(interface);
+
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= sizeof(MacAddr))
       {
@@ -253,6 +256,7 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
          error = ERROR_BUFFER_OVERFLOW;
       }
    }
+#endif
    //ifAdminStatus object?
    else if(!osStrcmp(object->name, "ifAdminStatus"))
    {
@@ -865,6 +869,7 @@ error_t ifMibSetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
 error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
+#if (ETH_SUPPORT == ENABLED)
    error_t error;
    uint_t i;
    size_t n;
@@ -970,6 +975,10 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
 
    //Return status code
    return error;
+#else
+   //Not implemented
+   return ERROR_OBJECT_NOT_FOUND;
+#endif
 }
 
 
@@ -986,6 +995,7 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
 error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen)
 {
+#if (ETH_SUPPORT == ENABLED)
    error_t error;
    int_t i;
    size_t n;
@@ -1122,6 +1132,10 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
    *nextOidLen = n;
    //Next object found
    return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_OBJECT_NOT_FOUND;
+#endif
 }
 
 #endif

@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -297,9 +297,9 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
    {
       //An incoming segment not containing a RST causes a reset to be sent in
       //response
-      if(!(segment->flags & TCP_FLAG_RST))
+      if((segment->flags & TCP_FLAG_RST) == 0)
       {
-         tcpSendResetSegment(interface, pseudoHeader, segment, length);
+         tcpRejectSegment(interface, pseudoHeader, segment, length);
       }
 
       //Return immediately
@@ -418,10 +418,12 @@ void tcpStateClosed(NetInterface *interface,
    //Debug message
    TRACE_DEBUG("TCP FSM: CLOSED state\r\n");
 
-   //An incoming segment not containing a RST causes
-   //a reset to be sent in response
-   if(!(segment->flags & TCP_FLAG_RST))
-      tcpSendResetSegment(interface, pseudoHeader, segment, length);
+   //An incoming segment not containing a RST causes a reset to be sent in
+   //response
+   if((segment->flags & TCP_FLAG_RST) == 0)
+   {
+      tcpRejectSegment(interface, pseudoHeader, segment, length);
+   }
 }
 
 
@@ -450,21 +452,21 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
    TRACE_DEBUG("TCP FSM: LISTEN state\r\n");
 
    //An incoming RST should be ignored
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
       return;
 
    //Any acknowledgment is bad if it arrives on a connection still in the
    //LISTEN state
-   if(segment->flags & TCP_FLAG_ACK)
+   if((segment->flags & TCP_FLAG_ACK) != 0)
    {
       //A reset segment should be formed for any arriving ACK-bearing segment
-      tcpSendResetSegment(interface, pseudoHeader, segment, length);
+      tcpRejectSegment(interface, pseudoHeader, segment, length);
       //Return immediately
       return;
    }
 
    //Check the SYN bit
-   if(segment->flags & TCP_FLAG_SYN)
+   if((segment->flags & TCP_FLAG_SYN) != 0)
    {
       //Silently drop duplicate SYN segments
       if(tcpIsDuplicateSyn(socket, pseudoHeader, segment))
@@ -601,14 +603,16 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
    TRACE_DEBUG("TCP FSM: SYN-SENT state\r\n");
 
    //Check the ACK bit
-   if(segment->flags & TCP_FLAG_ACK)
+   if((segment->flags & TCP_FLAG_ACK) != 0)
    {
       //Make sure the acknowledgment number is valid
       if(segment->ackNum != socket->sndNxt)
       {
          //Send a reset segment unless the RST bit is set
-         if(!(segment->flags & TCP_FLAG_RST))
-            tcpSendSegment(socket, TCP_FLAG_RST, segment->ackNum, 0, 0, FALSE);
+         if((segment->flags & TCP_FLAG_RST) == 0)
+         {
+            tcpSendResetSegment(socket, segment->ackNum);
+         }
 
          //Drop the segment and return
          return;
@@ -616,10 +620,10 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
    }
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Make sure the ACK is acceptable
-      if(segment->flags & TCP_FLAG_ACK)
+      if((segment->flags & TCP_FLAG_ACK) != 0)
       {
          //Enter CLOSED state
          tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -635,7 +639,7 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
    }
 
    //Check the SYN bit
-   if(segment->flags & TCP_FLAG_SYN)
+   if((segment->flags & TCP_FLAG_SYN) != 0)
    {
       //Save initial receive sequence number
       socket->irs = segment->seqNum;
@@ -643,8 +647,10 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
       socket->rcvNxt = segment->seqNum + 1;
 
       //If there is an ACK, SND.UNA should be advanced to equal SEG.ACK
-      if(segment->flags & TCP_FLAG_ACK)
+      if((segment->flags & TCP_FLAG_ACK) != 0)
+      {
          socket->sndUna = segment->ackNum;
+      }
 
       //Compute retransmission timeout
       tcpComputeRto(socket);
@@ -690,14 +696,18 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
          socket->maxSndWnd = segment->window;
 
          //Form an ACK segment and send it
-         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
+            FALSE);
+
          //Switch to the ESTABLISHED state
          tcpChangeState(socket, TCP_STATE_ESTABLISHED);
       }
       else
       {
          //Form an SYN ACK segment and send it
-         tcpSendSegment(socket, TCP_FLAG_SYN | TCP_FLAG_ACK, socket->iss, socket->rcvNxt, 0, TRUE);
+         tcpSendSegment(socket, TCP_FLAG_SYN | TCP_FLAG_ACK, socket->iss,
+            socket->rcvNxt, 0, TRUE);
+
          //Enter SYN-RECEIVED state
          tcpChangeState(socket, TCP_STATE_SYN_RECEIVED);
       }
@@ -729,7 +739,7 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
       return;
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Return to CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -748,15 +758,15 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
       return;
 
    //If the ACK bit is off drop the segment and return
-   if(!(segment->flags & TCP_FLAG_ACK))
+   if((segment->flags & TCP_FLAG_ACK) == 0)
       return;
 
    //Make sure the acknowledgment number is valid
    if(segment->ackNum != socket->sndNxt)
    {
-      //If the segment acknowledgment is not acceptable, form a reset
-      //segment and send it
-      tcpSendSegment(socket, TCP_FLAG_RST, segment->ackNum, 0, 0, FALSE);
+      //If the segment acknowledgment is not acceptable, form a reset segment
+      //and send it
+      tcpSendResetSegment(socket, segment->ackNum);
 
       //Drop the segment and return
       return;
@@ -804,7 +814,7 @@ void tcpStateEstablished(Socket *socket, TcpHeader *segment,
       return;
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Switch to the CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -824,34 +834,42 @@ void tcpStateEstablished(Socket *socket, TcpHeader *segment,
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
       return;
+
    //Process the segment text
    if(length > 0)
+   {
       tcpProcessSegmentData(socket, segment, buffer, offset, length);
+   }
 
    //Check the FIN bit
-   if(segment->flags & TCP_FLAG_FIN)
+   if((segment->flags & TCP_FLAG_FIN) != 0)
    {
-      //The FIN can only be acknowledged if all the segment data
-      //has been successfully transferred to the receive buffer
+      //The FIN can only be acknowledged if all the segment data has been
+      //successfully transferred to the receive buffer
       if(socket->rcvNxt == (segment->seqNum + length))
       {
          //Advance RCV.NXT over the FIN
          socket->rcvNxt++;
+
          //Send an acknowledgment for the FIN
-         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
+            FALSE);
+
          //Switch to the CLOSE-WAIT state
          tcpChangeState(socket, TCP_STATE_CLOSE_WAIT);
       }
    }
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
-   //Duplicate AK received?
+   //Duplicate ACK received?
    if(socket->dupAckCount > 0)
+   {
       flags = SOCKET_FLAG_NO_DELAY;
+   }
 #endif
 
-   //The Nagle algorithm should be implemented to coalesce
-   //short segments (refer to RFC 1122 4.2.3.4)
+   //The Nagle algorithm should be implemented to coalesce short segments (refer
+   //to RFC 1122 4.2.3.4)
    tcpNagleAlgo(socket, flags);
 }
 
@@ -880,7 +898,7 @@ void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
       return;
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Switch to the CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -902,9 +920,11 @@ void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
       return;
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
-   //Duplicate AK received?
+   //Duplicate ACK received?
    if(socket->dupAckCount > 0)
+   {
       flags = SOCKET_FLAG_NO_DELAY;
+   }
 #endif
 
    //The Nagle algorithm should be implemented to coalesce
@@ -934,7 +954,7 @@ void tcpStateLastAck(Socket *socket, TcpHeader *segment, size_t length)
       return;
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Enter CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -946,11 +966,11 @@ void tcpStateLastAck(Socket *socket, TcpHeader *segment, size_t length)
    if(tcpCheckSyn(socket, segment, length))
       return;
    //If the ACK bit is off drop the segment and return
-   if(!(segment->flags & TCP_FLAG_ACK))
+   if((segment->flags & TCP_FLAG_ACK) == 0)
       return;
 
-   //The only thing that can arrive in this state is an
-   //acknowledgment of our FIN
+   //The only thing that can arrive in this state is an acknowledgment of
+   //our FIN
    if(segment->ackNum == socket->sndNxt)
    {
       //Enter CLOSED state
@@ -983,7 +1003,7 @@ void tcpStateFinWait1(Socket *socket, TcpHeader *segment,
       return;
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Switch to the CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -1001,28 +1021,33 @@ void tcpStateFinWait1(Socket *socket, TcpHeader *segment,
    //Check whether our FIN is now acknowledged
    if(segment->ackNum == socket->sndNxt)
    {
-      //Start the FIN-WAIT-2 timer to prevent the connection
-      //from staying in the FIN-WAIT-2 state forever
-      tcpTimerStart(&socket->finWait2Timer, TCP_FIN_WAIT_2_TIMER);
+      //Start the FIN-WAIT-2 timer to prevent the connection from staying in
+      //the FIN-WAIT-2 state forever
+      netStartTimer(&socket->finWait2Timer, TCP_FIN_WAIT_2_TIMER);
+
       //enter FIN-WAIT-2 and continue processing in that state
       tcpChangeState(socket, TCP_STATE_FIN_WAIT_2);
    }
 
    //Process the segment text
    if(length > 0)
+   {
       tcpProcessSegmentData(socket, segment, buffer, offset, length);
+   }
 
    //Check the FIN bit
-   if(segment->flags & TCP_FLAG_FIN)
+   if((segment->flags & TCP_FLAG_FIN) != 0)
    {
-      //The FIN can only be acknowledged if all the segment data
-      //has been successfully transferred to the receive buffer
+      //The FIN can only be acknowledged if all the segment data has been
+      //successfully transferred to the receive buffer
       if(socket->rcvNxt == (segment->seqNum + length))
       {
          //Advance RCV.NXT over the FIN
          socket->rcvNxt++;
+
          //Send an acknowledgment for the FIN
-         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
+            FALSE);
 
          //Check if our FIN has been acknowledged
          if(segment->ackNum == socket->sndNxt)
@@ -1030,7 +1055,7 @@ void tcpStateFinWait1(Socket *socket, TcpHeader *segment,
             //Release previously allocated resources
             tcpDeleteControlBlock(socket);
             //Start the 2MSL timer
-            tcpTimerStart(&socket->timeWaitTimer, TCP_2MSL_TIMER);
+            netStartTimer(&socket->timeWaitTimer, TCP_2MSL_TIMER);
             //Switch to the TIME-WAIT state
             tcpChangeState(socket, TCP_STATE_TIME_WAIT);
          }
@@ -1068,7 +1093,7 @@ void tcpStateFinWait2(Socket *socket, TcpHeader *segment,
       return;
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Switch to the CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -1082,26 +1107,31 @@ void tcpStateFinWait2(Socket *socket, TcpHeader *segment,
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
       return;
+
    //Process the segment text
    if(length > 0)
+   {
       tcpProcessSegmentData(socket, segment, buffer, offset, length);
+   }
 
    //Check the FIN bit
-   if(segment->flags & TCP_FLAG_FIN)
+   if((segment->flags & TCP_FLAG_FIN) != 0)
    {
-      //The FIN can only be acknowledged if all the segment data
-      //has been successfully transferred to the receive buffer
+      //The FIN can only be acknowledged if all the segment data has been
+      //successfully transferred to the receive buffer
       if(socket->rcvNxt == (segment->seqNum + length))
       {
          //Advance RCV.NXT over the FIN
          socket->rcvNxt++;
+
          //Send an acknowledgment for the FIN
-         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
+            FALSE);
 
          //Release previously allocated resources
          tcpDeleteControlBlock(socket);
          //Start the 2MSL timer
-         tcpTimerStart(&socket->timeWaitTimer, TCP_2MSL_TIMER);
+         netStartTimer(&socket->timeWaitTimer, TCP_2MSL_TIMER);
          //Switch to the TIME_WAIT state
          tcpChangeState(socket, TCP_STATE_TIME_WAIT);
       }
@@ -1130,7 +1160,7 @@ void tcpStateClosing(Socket *socket, TcpHeader *segment, size_t length)
       return;
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Enter CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -1145,14 +1175,14 @@ void tcpStateClosing(Socket *socket, TcpHeader *segment, size_t length)
    if(tcpCheckAck(socket, segment, length))
       return;
 
-   //If the ACK acknowledges our FIN then enter the TIME-WAIT
-   //state, otherwise ignore the segment
+   //If the ACK acknowledges our FIN then enter the TIME-WAIT state, otherwise
+   //ignore the segment
    if(segment->ackNum == socket->sndNxt)
    {
       //Release previously allocated resources
       tcpDeleteControlBlock(socket);
       //Start the 2MSL timer
-      tcpTimerStart(&socket->timeWaitTimer, TCP_2MSL_TIMER);
+      netStartTimer(&socket->timeWaitTimer, TCP_2MSL_TIMER);
       //Switch to the TIME-WAIT state
       tcpChangeState(socket, TCP_STATE_TIME_WAIT);
    }
@@ -1182,7 +1212,7 @@ void tcpStateTimeWait(Socket *socket, TcpHeader *segment, size_t length)
       return;
 
    //Check the RST bit
-   if(segment->flags & TCP_FLAG_RST)
+   if((segment->flags & TCP_FLAG_RST) != 0)
    {
       //Enter CLOSED state
       tcpChangeState(socket, TCP_STATE_CLOSED);
@@ -1204,17 +1234,19 @@ void tcpStateTimeWait(Socket *socket, TcpHeader *segment, size_t length)
    if(tcpCheckSyn(socket, segment, length))
       return;
    //If the ACK bit is off drop the segment and return
-   if(!(segment->flags & TCP_FLAG_ACK))
+   if((segment->flags & TCP_FLAG_ACK) == 0)
       return;
 
-   //The only thing that can arrive in this state is a retransmission
-   //of the remote FIN. Acknowledge it and restart the 2 MSL timeout
-   if(segment->flags & TCP_FLAG_FIN)
+   //The only thing that can arrive in this state is a retransmission of the
+   //remote FIN. Acknowledge it and restart the 2 MSL timeout
+   if((segment->flags & TCP_FLAG_FIN) != 0)
    {
       //Send an acknowledgment for the FIN
-      tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+      tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
+         FALSE);
+
       //Restart the 2MSL timer
-      tcpTimerStart(&socket->timeWaitTimer, TCP_2MSL_TIMER);
+      netStartTimer(&socket->timeWaitTimer, TCP_2MSL_TIMER);
    }
 }
 

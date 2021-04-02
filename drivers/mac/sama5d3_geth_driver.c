@@ -1,6 +1,6 @@
 /**
  * @file sama5d3_geth_driver.c
- * @brief SAMA5D3 Gigabit Ethernet MAC driver
+ * @brief SAMA5D3 Gigabit Ethernet MAC driver (GMAC instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -86,7 +86,7 @@ static uint_t rxBufferIndex;
 
 
 /**
- * @brief SAMA5D3 Gigabit Ethernet MAC driver
+ * @brief SAMA5D3 Ethernet MAC driver (GMAC instance)
  **/
 
 const NicDriver sama5d3GigabitEthDriver =
@@ -111,7 +111,7 @@ const NicDriver sama5d3GigabitEthDriver =
 
 
 /**
- * @brief SAMA5D3 Gigabit Ethernet MAC initialization
+ * @brief SAMA5D3 Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
@@ -122,7 +122,7 @@ error_t sama5d3GigabitEthInit(NetInterface *interface)
    volatile uint32_t status;
 
    //Debug message
-   TRACE_INFO("Initializing SAMA5D3 Gigabit Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing SAMA5D3 Ethernet MAC (GMAC)...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -296,7 +296,7 @@ void sama5d3GigabitEthInitBufferDesc(NetInterface *interface)
 
 
 /**
- * @brief SAMA5D3 Gigabit Ethernet MAC timer handler
+ * @brief SAMA5D3 Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to handle periodic
  * operations such as polling the link state
@@ -385,7 +385,7 @@ void sama5d3GigabitEthDisableIrq(NetInterface *interface)
 
 
 /**
- * @brief SAMA5D3 Gigabit Ethernet MAC interrupt service routine
+ * @brief SAMA5D3 Ethernet MAC interrupt service routine
  **/
 
 void sama5d3GigabitEthIrqHandler(void)
@@ -441,7 +441,7 @@ void sama5d3GigabitEthIrqHandler(void)
 
 
 /**
- * @brief SAMA5D3 Gigabit Ethernet MAC event handler
+ * @brief SAMA5D3 Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 

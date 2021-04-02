@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -266,26 +266,26 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       TRACE_DEBUG("  response: %s\r\n", ha1);
 
       //Format Authorization header field
-      n = osSprintf(output, "Authorization: Digest\r\n");
+      n = osSprintf(output, "Authorization: Digest ");
 
       //Username
-      n += osSprintf(output + n, "  username=\"%s\",\r\n", authContext->username);
+      n += osSprintf(output + n, "username=\"%s\", ", authContext->username);
       //Realm
-      n += osSprintf(output + n, "  realm=\"%s\",\r\n", authContext->realm);
+      n += osSprintf(output + n, "realm=\"%s\", ", authContext->realm);
       //Nonce value
-      n += osSprintf(output + n, "  nonce=\"%s\",\r\n", authContext->nonce);
+      n += osSprintf(output + n, "nonce=\"%s\", ", authContext->nonce);
       //URI
-      n += osSprintf(output + n, "  uri=\"%s\",\r\n", webSocket->uri);
+      n += osSprintf(output + n, "uri=\"%s\", ", webSocket->uri);
       //Quality of protection
-      n += osSprintf(output + n, "  qop=\"auth\",\r\n");
+      n += osSprintf(output + n, "qop=\"auth\", ");
       //Nonce count
-      n += osSprintf(output + n, "  nc=\"%08x\",\r\n", authContext->nc);
+      n += osSprintf(output + n, "nc=\"%08x\", ", authContext->nc);
       //Cnonce value
-      n += osSprintf(output + n, "  cnonce=\"%s\",\r\n", authContext->cnonce);
+      n += osSprintf(output + n, "cnonce=\"%s\", ", authContext->cnonce);
       //Response
-      n += osSprintf(output + n, "  response=\"%s\",\r\n", ha1);
+      n += osSprintf(output + n, "response=\"%s\", ", ha1);
       //Opaque parameter
-      n += osSprintf(output + n, "  opaque=\"%s\",\r\n", authContext->opaque);
+      n += osSprintf(output + n, "opaque=\"%s\"\r\n", authContext->opaque);
    }
    else
 #endif

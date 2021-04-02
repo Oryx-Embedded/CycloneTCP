@@ -33,7 +33,7 @@
  * - RFC 3376: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -273,11 +273,12 @@ void igmpLinkChangeEvent(NetInterface *interface)
 /**
  * @brief Process incoming IGMP message
  * @param[in] interface Underlying network interface
+ * @param[in] pseudoHeader IPv4 pseudo header
  * @param[in] buffer Multi-part buffer containing the incoming IGMP message
  * @param[in] offset Offset to the first byte of the IGMP message
  **/
 
-void igmpProcessMessage(NetInterface *interface,
+void igmpProcessMessage(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    const NetBuffer *buffer, size_t offset)
 {
    size_t length;
@@ -372,7 +373,7 @@ void igmpProcessQueryMessage(NetInterface *interface,
    {
       //The Max Resp Time field specifies the maximum time allowed
       //before sending a responding report
-      maxRespTime = message->maxRespTime * 10;
+      maxRespTime = message->maxRespTime * 100;
    }
 
    //Go through the multicast filter table
@@ -502,9 +503,13 @@ error_t igmpSendReportMessage(NetInterface *interface, Ipv4Addr ipAddr)
 
    //The type of report is determined by the state of the interface
    if(interface->igmpv1RouterPresent)
+   {
       message->type = IGMP_TYPE_MEMBERSHIP_REPORT_V1;
+   }
    else
+   {
       message->type = IGMP_TYPE_MEMBERSHIP_REPORT_V2;
+   }
 
    //Format the Membership Report message
    message->maxRespTime = 0;
@@ -528,8 +533,11 @@ error_t igmpSendReportMessage(NetInterface *interface, Ipv4Addr ipAddr)
 
    //Additional options can be passed to the stack along with the packet
    ancillary = NET_DEFAULT_TX_ANCILLARY;
-   //All IGMP messages are sent with IP TTL 1 (refer to RFC 2236, section 2)
+
+   //All IGMP messages are sent with an IP TTL of 1 and contain an IP Router
+   //Alert option in their IP header (refer to RFC 2236, section 2)
    ancillary.ttl = IGMP_TTL;
+   ancillary.routerAlert = TRUE;
 
    //The Membership Report message is sent to the group being reported
    error = ipv4SendDatagram(interface, &pseudoHeader, buffer, offset,
@@ -604,8 +612,11 @@ error_t igmpSendLeaveGroupMessage(NetInterface *interface, Ipv4Addr ipAddr)
 
    //Additional options can be passed to the stack along with the packet
    ancillary = NET_DEFAULT_TX_ANCILLARY;
-   //All IGMP messages are sent with IP TTL 1 (refer to RFC 2236, section 2)
+
+   //All IGMP messages are sent with an IP TTL of 1 and contain an IP Router
+   //Alert option in their IP header (refer to RFC 2236, section 2)
    ancillary.ttl = IGMP_TTL;
+   ancillary.routerAlert = TRUE;
 
    //The Leave Group message is sent to the all-routers multicast group
    error = ipv4SendDatagram(interface, &pseudoHeader, buffer, offset,
@@ -640,7 +651,7 @@ void igmpDumpMessage(const IgmpMessage *message)
 {
    //Dump IGMP message
    TRACE_DEBUG("  Type = 0x%02" PRIX8 "\r\n", message->type);
-   TRACE_DEBUG("  Max Resp Time = 0x%02" PRIX8 "\r\n", message->maxRespTime);
+   TRACE_DEBUG("  Max Resp Time = %" PRIu8 "\r\n", message->maxRespTime);
    TRACE_DEBUG("  Checksum = 0x%04" PRIX16 "\r\n", ntohs(message->checksum));
    TRACE_DEBUG("  Group Address = %s\r\n", ipv4AddrToString(message->groupAddr, NULL));
 }

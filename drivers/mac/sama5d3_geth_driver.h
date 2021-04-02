@@ -1,6 +1,6 @@
 /**
  * @file sama5d3_geth_driver.h
- * @brief SAMA5D3 Gigabit Ethernet MAC driver
+ * @brief SAMA5D3 Gigabit Ethernet MAC driver (GMAC instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _SAMA5D3_GETH_DRIVER_H
@@ -142,10 +142,10 @@ typedef struct
 } Sama5d3GethRxBufferDesc;
 
 
-//SAMA5D3 Gigabit Ethernet MAC driver
+//SAMA5D3 Ethernet MAC driver (GMAC instance)
 extern const NicDriver sama5d3GigabitEthDriver;
 
-//SAMA5D3 Gigabit Ethernet MAC related functions
+//SAMA5D3 Ethernet MAC related functions
 error_t sama5d3GigabitEthInit(NetInterface *interface);
 void sama5d3GigabitEthInitGpio(NetInterface *interface);
 void sama5d3GigabitEthInitBufferDesc(NetInterface *interface);

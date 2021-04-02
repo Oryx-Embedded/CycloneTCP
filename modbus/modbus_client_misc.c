@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -243,7 +243,7 @@ error_t modbusClientCheckResp(ModbusClientContext *context)
    }
 
    //Exception response?
-   if(responseHeader->pdu[0] & MODBUS_EXCEPTION_MASK)
+   if((responseHeader->pdu[0] & MODBUS_EXCEPTION_MASK) != 0)
    {
       //If the server receives the request without a communication error,
       //but cannot handle it, the server will return an exception response

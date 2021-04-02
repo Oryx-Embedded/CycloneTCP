@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _DM9000_DRIVER_H
@@ -39,6 +39,20 @@
    #define DM9000_LOOPBACK_MODE DISABLED
 #elif (DM9000_LOOPBACK_MODE != ENABLED && DM9000_LOOPBACK_MODE != DISABLED)
    #error DM9000_LOOPBACK_MODE parameter is not valid
+#endif
+
+//TX buffer size
+#ifndef DM9000_ETH_TX_BUFFER_SIZE
+   #define DM9000_ETH_TX_BUFFER_SIZE 1536
+#elif (DM9000_ETH_TX_BUFFER_SIZE != 1536)
+   #error DM9000_ETH_TX_BUFFER_SIZE parameter is not valid
+#endif
+
+//RX buffer size
+#ifndef DM9000_ETH_RX_BUFFER_SIZE
+   #define DM9000_ETH_RX_BUFFER_SIZE 1536
+#elif (DM9000_ETH_RX_BUFFER_SIZE != 1536)
+   #error DM9000_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //DM9000 index register
@@ -528,8 +542,6 @@ extern "C" {
 typedef struct
 {
    uint_t queuedPackets; ///<Number of packets in transmission buffer
-   uint8_t *txBuffer;    ///<Transmit buffer
-   uint8_t *rxBuffer;    ///<Receive buffer
 } Dm9000Context;
 
 

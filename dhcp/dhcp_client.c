@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -297,46 +297,54 @@ void dhcpClientTick(DhcpClientContext *context)
       //lease negotiation fails
       dhcpClientStateInit(context);
       break;
+
    //Process SELECTING state
    case DHCP_STATE_SELECTING:
       //The client is waiting to receive DHCPOFFER messages from one or more
       //DHCP servers, so it can choose one
       dhcpClientStateSelecting(context);
       break;
+
    //Process REQUESTING state
    case DHCP_STATE_REQUESTING:
       //The client is waiting to hear back from the server to which
       //it sent its request
       dhcpClientStateRequesting(context);
       break;
+
    //Process INIT REBOOT state
    case DHCP_STATE_INIT_REBOOT:
       //When a client that already has a valid lease starts up after a
       //power-down or reboot, it starts here instead of the INIT state
       dhcpClientStateInitReboot(context);
       break;
+
    //Process REBOOTING state
    case DHCP_STATE_REBOOTING:
       //A client that has rebooted with an assigned address is waiting for
       //a confirming reply from a server
       dhcpClientStateRebooting(context);
       break;
+
    //Process PROBING state
    case DHCP_STATE_PROBING:
       //The client probes the newly received address
       dhcpClientStateProbing(context);
       break;
+
    //Process BOUND state
    case DHCP_STATE_BOUND:
       //Client has a valid lease and is in its normal operating state
       dhcpClientStateBound(context);
       break;
+
    //Process RENEWING state
    case DHCP_STATE_RENEWING:
       //Client is trying to renew its lease. It regularly sends DHCPREQUEST messages with
       //the server that gave it its current lease specified, and waits for a reply
       dhcpClientStateRenewing(context);
       break;
+
    //Process REBINDING state
    case DHCP_STATE_REBINDING:
       //The client has failed to renew its lease with the server that originally granted it,
@@ -344,9 +352,10 @@ void dhcpClientTick(DhcpClientContext *context)
       //DHCPREQUEST messages with no server specified until it gets a reply or the lease ends
       dhcpClientStateRebinding(context);
       break;
-   //Invalid state...
+
+   //Invalid state
    default:
-      //Switch to the INIT state
+      //Switch to the default state
       context->state = DHCP_STATE_INIT;
       break;
    }

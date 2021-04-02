@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -405,7 +405,7 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
       //Debug message
       TRACE_DEBUG("Packet received (%" PRIuSIZE " bytes)...\r\n", length);
       TRACE_DEBUG_ARRAY("  ", packet, length);
-      
+
       //Retrieve network interface type
       type = interface->nicDriver->type;
 

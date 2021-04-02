@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -587,7 +587,7 @@ void ENET_Transmit_IRQHandler(void)
       ENET->EIR = ENET_EIR_TXF_MASK;
 
       //Check whether the TX buffer is available for writing
-      if(!(txBufferDesc[txBufferIndex][0] & HTOBE16(ENET_TBD0_R)))
+      if((txBufferDesc[txBufferIndex][0] & HTOBE16(ENET_TBD0_R)) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag = osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -779,7 +779,7 @@ error_t mk6xEthSendPacket(NetInterface *interface,
    ENET->TDAR = ENET_TDAR_TDAR_MASK;
 
    //Check whether the next buffer is available for writing
-   if(!(txBufferDesc[txBufferIndex][0] & HTOBE16(ENET_TBD0_R)))
+   if((txBufferDesc[txBufferIndex][0] & HTOBE16(ENET_TBD0_R)) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -802,15 +802,15 @@ error_t mk6xEthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //Make sure the current buffer is available for reading
-   if(!(rxBufferDesc[rxBufferIndex][0] & HTOBE16(ENET_RBD0_E)))
+   //Current buffer available for reading?
+   if((rxBufferDesc[rxBufferIndex][0] & HTOBE16(ENET_RBD0_E)) == 0)
    {
       //The frame should not span multiple buffers
-      if(rxBufferDesc[rxBufferIndex][0] & HTOBE16(ENET_RBD0_L))
+      if((rxBufferDesc[rxBufferIndex][0] & HTOBE16(ENET_RBD0_L)) != 0)
       {
          //Check whether an error occurred
-         if(!(rxBufferDesc[rxBufferIndex][0] & HTOBE16(ENET_RBD0_LG |
-            ENET_RBD0_NO | ENET_RBD0_CR | ENET_RBD0_OV | ENET_RBD0_TR)))
+         if((rxBufferDesc[rxBufferIndex][0] & HTOBE16(ENET_RBD0_LG |
+            ENET_RBD0_NO | ENET_RBD0_CR | ENET_RBD0_OV | ENET_RBD0_TR)) == 0)
          {
             //Retrieve the length of the frame
             n = betoh16(rxBufferDesc[rxBufferIndex][1]);

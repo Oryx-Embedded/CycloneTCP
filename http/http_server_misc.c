@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -1032,7 +1032,7 @@ error_t httpReceive(HttpConnection *connection,
 
       //The HTTP_FLAG_BREAK_CHAR flag causes the function to stop reading
       //data as soon as the specified break character is encountered
-      if(flags & HTTP_FLAG_BREAK_CHAR)
+      if((flags & HTTP_FLAG_BREAK_CHAR) != 0)
       {
          //Retrieve the break character code
          c = LSB(flags);

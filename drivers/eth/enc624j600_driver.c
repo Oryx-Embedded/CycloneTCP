@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -87,14 +87,6 @@ error_t enc624j600Init(NetInterface *interface)
    //Initialize driver specific variables
    context->nextPacket = ENC624J600_RX_BUFFER_START;
 
-   //Allocate RX buffer
-   context->rxBuffer = memPoolAlloc(ETH_MAX_FRAME_SIZE);
-   //Failed to allocate memory?
-   if(context->rxBuffer == NULL)
-   {
-      return ERROR_OUT_OF_MEMORY;
-   }
-
    //Issue a system reset
    enc624j600SoftReset(interface);
 
@@ -150,7 +142,8 @@ error_t enc624j600Init(NetInterface *interface)
       ENC624J600_MACON2_R1_DEFAULT);
 
    //Program the MAMXFL register with the maximum frame length to be accepted
-   enc624j600WriteReg(interface, ENC624J600_MAMXFL, ETH_MAX_FRAME_SIZE);
+   enc624j600WriteReg(interface, ENC624J600_MAMXFL,
+      ENC624J600_ETH_RX_BUFFER_SIZE);
 
    //PHY initialization
    enc624j600WritePhyReg(interface, ENC624J600_PHANA, ENC624J600_PHANA_ADPAUS0 |
@@ -274,8 +267,8 @@ bool_t enc624j600IrqHandler(NetInterface *interface)
       flag |= osSetEventFromIsr(&interface->nicTxEvent);
    }
 
-   //Once the interrupt has been serviced, the INTIE bit
-   //is set again to re-enable interrupts
+   //Once the interrupt has been serviced, the INTIE bit is set again to
+   //re-enable interrupts
    enc624j600SetBit(interface, ENC624J600_EIE, ENC624J600_EIE_INTIE);
 
    //A higher priority task must be woken?
@@ -441,6 +434,7 @@ error_t enc624j600SendPacket(NetInterface *interface,
 
 error_t enc624j600ReceivePacket(NetInterface *interface)
 {
+   static uint8_t temp[ENC624J600_ETH_RX_BUFFER_SIZE];
    error_t error;
    uint16_t length;
    uint32_t status;
@@ -457,7 +451,8 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
       enc624j600WriteReg(interface, ENC624J600_ERXRDPT, context->nextPacket);
 
       //The packet is preceded by a 8-byte header
-      enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA, header, sizeof(header));
+      enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA, header,
+         sizeof(header));
 
       //The first two bytes are the address of the next packet
       context->nextPacket = LOAD16LE(header);
@@ -470,11 +465,10 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
       if((status & ENC624J600_RSV_RECEIVED_OK) != 0)
       {
          //Limit the number of data to read
-         length = MIN(length, ETH_MAX_FRAME_SIZE);
+         length = MIN(length, ENC624J600_ETH_RX_BUFFER_SIZE);
 
          //Read the Ethernet frame
-         enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA,
-            context->rxBuffer, length);
+         enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA, temp, length);
 
          //Valid packet received
          error = NO_ERROR;
@@ -485,9 +479,9 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
          error = ERROR_INVALID_PACKET;
       }
 
-      //Update the ERXTAIL pointer value to the point where the packet
-      //has been processed, taking care to wrap back at the end of the
-      //received memory buffer
+      //Update the ERXTAIL pointer value to the point where the packet has
+      //been processed, taking care to wrap back at the end of the received
+      //memory buffer
       if(context->nextPacket == ENC624J600_RX_BUFFER_START)
       {
          enc624j600WriteReg(interface, ENC624J600_ERXTAIL,
@@ -517,7 +511,7 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->rxBuffer, length, &ancillary);
+      nicProcessPacket(interface, temp, length, &ancillary);
    }
 
    //Return status code

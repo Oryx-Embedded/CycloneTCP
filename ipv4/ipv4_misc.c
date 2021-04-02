@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -43,6 +43,46 @@
 
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED)
+
+
+/**
+ * @brief Append a Router Alert option to an IPv4 packet
+ * @param[in] buffer Multi-part buffer containing the payload
+ * @param[in,out] offset Offset to the first payload byte
+ * @return Error code
+ **/
+
+error_t ipv4AddRouterAlertOption(NetBuffer *buffer, size_t *offset)
+{
+   error_t error;
+   Ipv4Option *option;
+
+   //Make sure there is enough room to add the option
+   if(*offset >= sizeof(uint32_t))
+   {
+      //Make room for the IPv4 option
+      *offset -= sizeof(uint32_t);
+      //Point to the IPv4 option
+      option = netBufferAt(buffer, *offset);
+
+      //Format Router Alert option
+      option->type = IPV4_OPTION_RTRALT;
+      option->length = sizeof(uint32_t);
+      option->value[0] = 0;
+      option->value[1] = 0;
+
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_PARAMETER;
+   }
+
+   //Return status code
+   return error;
+}
 
 
 /**
@@ -80,7 +120,6 @@ error_t ipv4CheckDestAddr(NetInterface *interface, Ipv4Addr ipAddr)
 {
    error_t error;
    uint_t i;
-   Ipv4AddrEntry *entry;
 
    //Filter out any invalid addresses
    error = ERROR_INVALID_ADDRESS;
@@ -123,6 +162,8 @@ error_t ipv4CheckDestAddr(NetInterface *interface, Ipv4Addr ipAddr)
       //Loop through the list of IPv4 addresses assigned to the interface
       for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
       {
+         Ipv4AddrEntry *entry;
+
          //Point to the current entry
          entry = &interface->ipv4Context.addrList[i];
 

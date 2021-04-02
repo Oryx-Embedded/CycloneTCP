@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -260,13 +260,13 @@ size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
       dirEntry->size);
 
    //Check whether the current entry is a directory
-   if(dirEntry->attributes & FS_FILE_ATTR_DIRECTORY)
+   if((dirEntry->attributes & FS_FILE_ATTR_DIRECTORY) != 0)
    {
       buffer[0] = 'd';
    }
 
    //Read access permitted?
-   if(perm & FTP_FILE_PERM_READ)
+   if((perm & FTP_FILE_PERM_READ) != 0)
    {
       buffer[1] = 'r';
       buffer[4] = 'r';
@@ -274,10 +274,10 @@ size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
    }
 
    //Write access permitted?
-   if(perm & FTP_FILE_PERM_WRITE)
+   if((perm & FTP_FILE_PERM_WRITE) != 0)
    {
       //Make sure the file is not marked as read-only
-      if(!(dirEntry->attributes & FS_FILE_ATTR_READ_ONLY))
+      if((dirEntry->attributes & FS_FILE_ATTR_READ_ONLY) == 0)
       {
          buffer[2] = 'w';
          buffer[5] = 'w';

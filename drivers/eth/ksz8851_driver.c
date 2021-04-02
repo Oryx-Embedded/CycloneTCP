@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -103,21 +103,6 @@ error_t ksz8851Init(NetInterface *interface)
 
    //Initialize driver specific variables
    context->frameId = 0;
-
-   //Allocate TX and RX buffers
-   context->txBuffer = memPoolAlloc(ETH_MAX_FRAME_SIZE);
-   context->rxBuffer = memPoolAlloc(ETH_MAX_FRAME_SIZE);
-
-   //Failed to allocate memory?
-   if(context->txBuffer == NULL || context->rxBuffer == NULL)
-   {
-      //Clean up side effects
-      memPoolFree(context->txBuffer);
-      memPoolFree(context->rxBuffer);
-
-      //Report an error
-      return ERROR_OUT_OF_MEMORY;
-   }
 
    //Initialize MAC address
    ksz8851WriteReg(interface, KSZ8851_MARH, htons(interface->macAddr.w[0]));
@@ -264,7 +249,7 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
       n = ksz8851ReadReg(interface, KSZ8851_TXMIR) & KSZ8851_TXMIR_TXMA;
 
       //Check whether the TX FIFO is available for writing
-      if(n >= (ETH_MAX_FRAME_SIZE + 8))
+      if(n >= (KSZ8851_ETH_TX_BUFFER_SIZE + 8))
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&interface->nicTxEvent);
@@ -384,6 +369,7 @@ void ksz8851EventHandler(NetInterface *interface)
 error_t ksz8851SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
+   static uint8_t temp[KSZ8851_ETH_TX_BUFFER_SIZE];
    size_t n;
    size_t length;
    Ksz8851TxHeader header;
@@ -396,7 +382,7 @@ error_t ksz8851SendPacket(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > ETH_MAX_FRAME_SIZE)
+   if(length > KSZ8851_ETH_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -414,7 +400,7 @@ error_t ksz8851SendPacket(NetInterface *interface,
    }
 
    //Copy user data
-   netBufferRead(context->txBuffer, buffer, offset, length);
+   netBufferRead(temp, buffer, offset, length);
 
    //Format control word
    header.controlWord = htole16(KSZ8851_TX_CTRL_TXIC |
@@ -428,7 +414,7 @@ error_t ksz8851SendPacket(NetInterface *interface,
    //Write TX packet header
    ksz8851WriteFifo(interface, (uint8_t *) &header, sizeof(Ksz8851TxHeader));
    //Write data
-   ksz8851WriteFifo(interface, context->txBuffer, length);
+   ksz8851WriteFifo(interface, temp, length);
    //End TXQ write access
    ksz8851ClearBit(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_SDA);
 
@@ -439,7 +425,7 @@ error_t ksz8851SendPacket(NetInterface *interface,
    n = ksz8851ReadReg(interface, KSZ8851_TXMIR) & KSZ8851_TXMIR_TXMA;
 
    //Check whether the TX FIFO is available for writing
-   if(n >= (ETH_MAX_FRAME_SIZE + 8))
+   if(n >= (KSZ8851_ETH_TX_BUFFER_SIZE + 8))
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -458,13 +444,10 @@ error_t ksz8851SendPacket(NetInterface *interface,
 
 error_t ksz8851ReceivePacket(NetInterface *interface)
 {
+   static uint8_t temp[KSZ8851_ETH_RX_BUFFER_SIZE];
    size_t n;
    uint16_t status;
-   Ksz8851Context *context;
    NetRxAncillary ancillary;
-
-   //Point to the driver context
-   context = (Ksz8851Context *) interface->nicContext;
 
    //Read received frame status from RXFHSR
    status = ksz8851ReadReg(interface, KSZ8851_RXFHSR);
@@ -480,14 +463,14 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
          n = ksz8851ReadReg(interface, KSZ8851_RXFHBCR) & KSZ8851_RXFHBCR_RXBC;
 
          //Ensure the frame size is acceptable
-         if(n > 0 && n <= ETH_MAX_FRAME_SIZE)
+         if(n > 0 && n <= KSZ8851_ETH_RX_BUFFER_SIZE)
          {
             //Reset QMU RXQ frame pointer to zero
             ksz8851WriteReg(interface, KSZ8851_RXFDPR, KSZ8851_RXFDPR_RXFPAI);
             //Enable RXQ read access
             ksz8851SetBit(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_SDA);
             //Read data
-            ksz8851ReadFifo(interface, context->rxBuffer, n);
+            ksz8851ReadFifo(interface, temp, n);
             //End RXQ read access
             ksz8851ClearBit(interface, KSZ8851_RXQCR, KSZ8851_RXQCR_SDA);
 
@@ -495,7 +478,7 @@ error_t ksz8851ReceivePacket(NetInterface *interface)
             ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, context->rxBuffer, n, &ancillary);
+            nicProcessPacket(interface, temp, n, &ancillary);
             //Valid packet received
             return NO_ERROR;
          }
@@ -700,7 +683,7 @@ void ksz8851WriteFifo(NetInterface *interface, const uint8_t *data,
    }
 
    //Maintain alignment to 4-byte boundaries
-   for(; i % 4; i++)
+   for(; (i % 4) != 0; i++)
    {
       interface->spiDriver->transfer(0x00);
    }
@@ -711,13 +694,13 @@ void ksz8851WriteFifo(NetInterface *interface, const uint8_t *data,
    uint_t i;
 
    //Data phase
-   for(i = 0; i < length; i+=2)
+   for(i = 0; i < length; i += 2)
    {
       KSZ8851_DATA_REG = data[i] | data[i + 1] << 8;
    }
 
    //Maintain alignment to 4-byte boundaries
-   for(; i % 4; i+=2)
+   for(; (i % 4) != 0; i += 2)
    {
       KSZ8851_DATA_REG = 0x0000;
    }
@@ -762,7 +745,7 @@ void ksz8851ReadFifo(NetInterface *interface, uint8_t *data, size_t length)
    }
 
    //Maintain alignment to 4-byte boundaries
-   for(; i % 4; i++)
+   for(; (i % 4) != 0; i++)
    {
       interface->spiDriver->transfer(0x00);
    }
@@ -781,7 +764,7 @@ void ksz8851ReadFifo(NetInterface *interface, uint8_t *data, size_t length)
    temp = KSZ8851_DATA_REG;
 
    //Data phase
-   for(i = 0; i < length; i+=2)
+   for(i = 0; i < length; i += 2)
    {
       temp = KSZ8851_DATA_REG;
       data [i] = temp & 0xFF;
@@ -789,7 +772,7 @@ void ksz8851ReadFifo(NetInterface *interface, uint8_t *data, size_t length)
    }
 
    //Maintain alignment to 4-byte boundaries
-   for(; i % 4; i+=2)
+   for(; (i % 4) != 0; i += 2)
    {
       temp = KSZ8851_DATA_REG;
    }

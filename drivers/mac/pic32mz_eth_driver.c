@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -222,10 +222,12 @@ error_t pic32mzEthInit(NetInterface *interface)
 }
 
 
-//PIC32MZ EC Starter Kit, PIC32MZ EF Starter Kit, PIC32MZ EF Curiosity,
-//PIC32MZ EF Curiosity 2.0 or IoT Ethernet Kit?
+//PIC32MZ EC Starter Kit, PIC32MZ EF Starter Kit, PIC32MZ DA Starter Kit,
+//PIC32MZ EF Curiosity, PIC32MZ EF Curiosity 2.0, PIC32MZ DA Curiosity or
+//IoT Ethernet Kit?
 #if defined(USE_PIC32MZ_EC_STARTER_KIT) || defined(USE_PIC32MZ_EF_STARTER_KIT) || \
-   defined(USE_PIC32MZ_EF_CURIOSITY) || defined(USE_PIC32MZ_EF_CURIOSITY_2) || \
+   defined(USE_PIC32MZ_DA_STARTER_KIT) || defined(USE_PIC32MZ_EF_CURIOSITY) || \
+   defined(USE_PIC32MZ_EF_CURIOSITY_2) || defined(USE_PIC32MZ_DA_CURIOSITY) || \
    defined(USE_IOT_ETHERNET_KIT)
 
 /**
@@ -247,6 +249,17 @@ void pic32mzEthInitGpio(NetInterface *interface)
    ANSELHCLR = _ANSELH_ANSH4_MASK;
    //Disable analog pad on ERXD1 (AN41/RH5)
    ANSELHCLR = _ANSELH_ANSH5_MASK;
+
+//PIC32MZ DA Starter Kit?
+#elif defined(USE_PIC32MZ_DA_STARTER_KIT)
+   //Configure PHY_RST (RJ15)
+   TRISJCLR = _TRISJ_TRISJ15_MASK;
+
+   //Reset PHY transceiver (hard reset)
+   LATJCLR = _LATJ_LATJ15_MASK;
+   sleep(10);
+   LATJSET = _LATJ_LATJ15_MASK;
+   sleep(10);
 
 //PIC32MZ EF Curiosity?
 #elif defined(USE_PIC32MZ_EF_CURIOSITY)
@@ -273,6 +286,19 @@ void pic32mzEthInitGpio(NetInterface *interface)
    ANSELHCLR = _ANSELH_ANSH4_MASK;
    //Disable analog pad on ERXD1 (AN41/RH5)
    ANSELHCLR = _ANSELH_ANSH5_MASK;
+
+//PIC32MZ DA Curiosity?
+#elif defined(USE_PIC32MZ_DA_CURIOSITY)
+   //Configure PHY_RST (AN39/RE1)
+   TRISECLR = _TRISE_TRISE1_MASK;
+   //Disable analog pad
+   ANSELECLR = _ANSELE_ANSE1_MASK;
+
+   //Reset PHY transceiver (hard reset)
+   LATECLR = _LATE_LATE1_MASK;
+   sleep(10);
+   LATESET = _LATE_LATE1_MASK;
+   sleep(10);
 
 //IoT Ethernet Kit?
 #elif defined(USE_IOT_ETHERNET_KIT)
@@ -591,7 +617,7 @@ error_t pic32mzEthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxCurBufferDesc->control & ETH_RX_CTRL_EOWN) == 0)
    {
       //SOP and EOP flags should be set

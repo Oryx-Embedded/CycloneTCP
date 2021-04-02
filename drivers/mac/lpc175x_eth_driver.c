@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -577,7 +577,7 @@ error_t lpc175xEthReceivePacket(NetInterface *interface)
    //Point to the current descriptor
    i = LPC_EMAC->RxConsumeIndex;
 
-   //Make sure the current buffer is available for reading
+   //Current buffer available for reading?
    if(i != LPC_EMAC->RxProduceIndex)
    {
       //Retrieve the length of the frame

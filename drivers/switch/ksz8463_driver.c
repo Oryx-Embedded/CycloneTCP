@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,13 +57,16 @@ const SwitchDriver ksz8463SwitchDriver =
    ksz8463SetPortState,
    ksz8463GetPortState,
    ksz8463SetAgingTime,
+   ksz8463EnableIgmpSnooping,
+   ksz8463EnableMldSnooping,
    ksz8463EnableRsvdMcastTable,
    ksz8463AddStaticFdbEntry,
    ksz8463DeleteStaticFdbEntry,
    ksz8463GetStaticFdbEntry,
    ksz8463FlushStaticFdbTable,
    ksz8463GetDynamicFdbEntry,
-   ksz8463FlushDynamicFdbTable
+   ksz8463FlushDynamicFdbTable,
+   ksz8463SetUnknownMcastFwdPorts
 };
 
 
@@ -299,9 +302,15 @@ void ksz8463EventHandler(NetInterface *interface)
                //Link up event?
                if(linkState && !virtualInterface->linkState)
                {
+                  //Retrieve host interface speed
+                  interface->linkSpeed = ksz8463GetLinkSpeed(interface,
+                     KSZ8463_PORT3);
+
+                  //Retrieve host interface duplex mode
+                  interface->duplexMode = ksz8463GetDuplexMode(interface,
+                     KSZ8463_PORT3);
+
                   //Adjust MAC configuration parameters for proper operation
-                  interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                  interface->duplexMode = NIC_FULL_DUPLEX_MODE;
                   interface->nicDriver->updateMacConfig(interface);
 
                   //Check current speed
@@ -350,9 +359,12 @@ void ksz8463EventHandler(NetInterface *interface)
       //Link up event?
       if(linkState)
       {
+         //Retrieve host interface speed
+         interface->linkSpeed = ksz8463GetLinkSpeed(interface, KSZ8463_PORT3);
+         //Retrieve host interface duplex mode
+         interface->duplexMode = ksz8463GetDuplexMode(interface, KSZ8463_PORT3);
+
          //Adjust MAC configuration parameters for proper operation
-         interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-         interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          interface->nicDriver->updateMacConfig(interface);
 
          //Update link state
@@ -556,6 +568,21 @@ uint32_t ksz8463GetLinkSpeed(NetInterface *interface, uint8_t port)
          linkSpeed = NIC_LINK_SPEED_10MBPS;
       }
    }
+   else if(port == KSZ8463_PORT3)
+   {
+      //Read switch global control 3 register
+      status = ksz8463ReadSwitchReg(interface, KSZ8463_SGCR3);
+
+      //Retrieve host interface speed
+      if((status & KSZ8463_SGCR3_SW_MII_10BT) != 0)
+      {
+         linkSpeed = NIC_LINK_SPEED_10MBPS;
+      }
+      else
+      {
+         linkSpeed = NIC_LINK_SPEED_100MBPS;
+      }
+   }
    else
    {
       //The specified port number is not valid
@@ -593,6 +620,21 @@ NicDuplexMode ksz8463GetDuplexMode(NetInterface *interface, uint8_t port)
       else
       {
          duplexMode = NIC_HALF_DUPLEX_MODE;
+      }
+   }
+   else if(port == KSZ8463_PORT3)
+   {
+      //Read switch global control 3 register
+      status = ksz8463ReadSwitchReg(interface, KSZ8463_SGCR3);
+
+      //Retrieve host interface duplex mode
+      if((status & KSZ8463_SGCR3_SW_HOST_PORT_HALF_DUPLEX_MODE) != 0)
+      {
+         duplexMode = NIC_HALF_DUPLEX_MODE;
+      }
+      else
+      {
+         duplexMode = NIC_FULL_DUPLEX_MODE;
       }
    }
    else
@@ -735,6 +777,46 @@ SwitchPortState ksz8463GetPortState(NetInterface *interface, uint8_t port)
 void ksz8463SetAgingTime(NetInterface *interface, uint32_t agingTime)
 {
    //The aging period is fixed to 300 seconds
+}
+
+
+/**
+ * @brief Enable IGMP snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable IGMP snooping
+ **/
+
+void ksz8463EnableIgmpSnooping(NetInterface *interface, bool_t enable)
+{
+   uint16_t temp;
+
+   //Read switch global control 2 register
+   temp = ksz8463ReadSwitchReg(interface, KSZ8463_SGCR2);
+
+   //Enable or disable IGMP snooping
+   if(enable)
+   {
+      temp |= KSZ8463_SGCR2_IGMP_SNOOP_EN;
+   }
+   else
+   {
+      temp &= ~KSZ8463_SGCR2_IGMP_SNOOP_EN;
+   }
+
+   //Write the value back to switch global control 2 register
+   ksz8463WriteSwitchReg(interface, KSZ8463_SGCR2, temp);
+}
+
+
+/**
+ * @brief Enable MLD snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable MLD snooping
+ **/
+
+void ksz8463EnableMldSnooping(NetInterface *interface, bool_t enable)
+{
+   //Not implemented
 }
 
 
@@ -1143,6 +1225,20 @@ void ksz8463FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
          ksz8463WriteSwitchReg(interface, KSZ8463_PnCR2(i), state[i - 1]);
       }
    }
+}
+
+
+/**
+ * @brief Set forward ports for unknown multicast packets
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable forwarding of unknown multicast packets
+ * @param[in] forwardPorts Port map
+ **/
+
+void ksz8463SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts)
+{
+   //Not implemented
 }
 
 

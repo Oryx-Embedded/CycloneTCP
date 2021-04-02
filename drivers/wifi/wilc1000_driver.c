@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -39,8 +39,8 @@
 #include "debug.h"
 
 //Underlying network interface
-static NetInterface *wilc1000StaInterface = NULL;
-static NetInterface *wilc1000ApInterface = NULL;
+NetInterface *wilc1000StaInterface = NULL;
+NetInterface *wilc1000ApInterface = NULL;
 
 //Transmit buffer
 static uint8_t txBuffer[WILC1000_TX_BUFFER_SIZE];
@@ -586,7 +586,7 @@ void wilc1000AppWifiEvent(uint8_t msgType, void *msg)
          //Check whether STA mode is enabled
          if(wilc1000StaInterface != NULL)
          {
-            //Check link state
+            //Check connection state
             if(stateChangedMsg->u8CurrState == M2M_WIFI_CONNECTED)
             {
                //Link is up
@@ -611,20 +611,18 @@ void wilc1000AppWifiEvent(uint8_t msgType, void *msg)
          //Check whether AP mode is enabled
          if(wilc1000ApInterface != NULL)
          {
-            //Check link state
+            //Check connection state
             if(stateChangedMsg->u8CurrState == M2M_WIFI_CONNECTED)
             {
-               //Link is up
-               wilc1000ApInterface->linkState = TRUE;
+               //Check link state
+               if(!wilc1000ApInterface->linkState)
+               {
+                  //Link is up
+                  wilc1000ApInterface->linkState = TRUE;
+                  //Process link state change event
+                  nicNotifyLinkChange(wilc1000ApInterface);
+               }
             }
-            else
-            {
-               //Link is down
-               wilc1000ApInterface->linkState = FALSE;
-            }
-
-            //Process link state change event
-            nicNotifyLinkChange(wilc1000ApInterface);
          }
       }
    }

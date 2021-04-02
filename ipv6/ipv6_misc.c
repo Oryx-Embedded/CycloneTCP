@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -778,7 +778,6 @@ error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
 {
    error_t error;
    uint_t i;
-   Ipv6AddrEntry *entry;
 
    //Filter out any invalid addresses
    error = ERROR_INVALID_ADDRESS;
@@ -815,6 +814,8 @@ error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
       //Loop through the list of IPv6 unicast addresses
       for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
       {
+         Ipv6AddrEntry *entry;
+
          //Point to the current entry
          entry = &interface->ipv6Context.addrList[i];
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -105,7 +105,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    segment->urgentPointer = 0;
 
    //SYN flag set?
-   if(flags & TCP_FLAG_SYN)
+   if((flags & TCP_FLAG_SYN) != 0)
    {
       //Append MSS option
       tcpAddOption(segment, TCP_OPTION_MAX_SEGMENT_SIZE, &mss, sizeof(mss));
@@ -187,7 +187,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    if(addToQueue)
    {
       //Empty retransmission queue?
-      if(!socket->retransmitQueue)
+      if(socket->retransmitQueue == NULL)
       {
          //Create a new item
          queueItem = memPoolAlloc(sizeof(TcpQueueItem));
@@ -240,16 +240,34 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
 #endif
       }
 
-      //Check whether the RTO timer is already running
-      if(!tcpTimerRunning(&socket->retransmitTimer))
+      //Check whether the RTO timer is running or not
+      if(!netTimerRunning(&socket->retransmitTimer))
       {
-         //If the timer is not running, start it running so that
-         //it will expire after RTO seconds
-         tcpTimerStart(&socket->retransmitTimer, socket->rto);
+         //If the timer is not running, start it running so that it will expire
+         //after RTO seconds
+         netStartTimer(&socket->retransmitTimer, socket->rto);
+
          //Reset retransmission counter
          socket->retransmitCount = 0;
       }
    }
+
+#if (TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+   //Check whether TCP keep-alive mechanism is enabled
+   if(socket->keepAliveEnabled)
+   {
+      //Idle condition?
+      if(socket->keepAliveProbeCount == 0)
+      {
+         //SYN or data packet?
+         if((flags & TCP_FLAG_SYN) != 0 || length > 0)
+         {
+            //Restart keep-alive timer
+            socket->keepAliveTimestamp = osGetSystemTime();
+         }
+      }
+   }
+#endif
 
    //Total number of segments sent
    MIB2_INC_COUNTER32(tcpGroup.tcpOutSegs, 1);
@@ -257,7 +275,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    TCP_MIB_INC_COUNTER64(tcpHCOutSegs, 1);
 
    //RST flag set?
-   if(flags & TCP_FLAG_RST)
+   if((flags & TCP_FLAG_RST) != 0)
    {
       //Number of TCP segments sent containing the RST flag
       MIB2_INC_COUNTER32(tcpGroup.tcpOutRsts, 1);
@@ -301,6 +319,36 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
 
 
 /**
+ * @brief Send a TCP reset segment
+ * @param[in] socket Handle referencing a socket
+ * @param[in] seqNum Sequence number
+ * @return Error code
+ **/
+
+error_t tcpSendResetSegment(Socket *socket, uint32_t seqNum)
+{
+   error_t error;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Check current state
+   if(socket->state == TCP_STATE_SYN_RECEIVED ||
+      socket->state == TCP_STATE_ESTABLISHED ||
+      socket->state == TCP_STATE_FIN_WAIT_1 ||
+      socket->state == TCP_STATE_FIN_WAIT_2 ||
+      socket->state == TCP_STATE_CLOSE_WAIT)
+   {
+      //Send a reset segment
+      error = tcpSendSegment(socket, TCP_FLAG_RST, seqNum, 0, 0, FALSE);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
  * @brief Send a TCP reset in response to an invalid segment
  * @param[in] interface Underlying network interface
  * @param[in] pseudoHeader TCP pseudo header describing the incoming segment
@@ -309,8 +357,8 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
  * @return Error code
  **/
 
-error_t tcpSendResetSegment(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, TcpHeader *segment, size_t length)
+error_t tcpRejectSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
+   TcpHeader *segment, size_t length)
 {
    error_t error;
    size_t offset;
@@ -323,7 +371,7 @@ error_t tcpSendResetSegment(NetInterface *interface,
    NetTxAncillary ancillary;
 
    //Check whether the ACK bit is set
-   if(segment->flags & TCP_FLAG_ACK)
+   if((segment->flags & TCP_FLAG_ACK) != 0)
    {
       //If the incoming segment has an ACK field, the reset takes
       //its sequence number from the ACK field of the segment
@@ -340,12 +388,12 @@ error_t tcpSendResetSegment(NetInterface *interface,
       ackNum = segment->seqNum + length;
 
       //Advance the acknowledgment number over the SYN or the FIN
-      if(segment->flags & TCP_FLAG_SYN)
+      if((segment->flags & TCP_FLAG_SYN) != 0)
       {
          ackNum++;
       }
 
-      if(segment->flags & TCP_FLAG_FIN)
+      if((segment->flags & TCP_FLAG_FIN) != 0)
       {
          ackNum++;
       }
@@ -455,7 +503,7 @@ error_t tcpSendResetSegment(NetInterface *interface,
  * @param[in] segment Pointer to the TCP header
  * @param[in] kind Option code
  * @param[in] value Option value
- * @param[in] length Length of the option value
+ * @param[in] length Length of the option value, in bytes
  * @return Error code
  **/
 
@@ -626,42 +674,61 @@ uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
 
 error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length)
 {
-   //Acceptability test for an incoming segment
-   bool_t acceptable = FALSE;
+   bool_t acceptable;
 
-   //Case where both segment length and receive window are zero
-   if(!length && !socket->rcvWnd)
+   //Due to zero windows and zero length segments, we have four cases for the
+   //acceptability of an incoming segment (refer to RFC 793, section 3.3)
+   if(length == 0 && socket->rcvWnd == 0)
    {
-      //Make sure that SEG.SEQ = RCV.NXT
+      //If both segment length and receive window are zero, then test if
+      //SEG.SEQ = RCV.NXT
       if(segment->seqNum == socket->rcvNxt)
       {
          acceptable = TRUE;
       }
+      else
+      {
+         acceptable = FALSE;
+      }
    }
-   //Case where segment length is zero and receive window is non zero
-   else if(!length && socket->rcvWnd)
+   else if(length == 0 && socket->rcvWnd != 0)
    {
-      //Make sure that RCV.NXT <= SEG.SEQ < RCV.NXT+RCV.WND
+      //If segment length is zero and receive window is non zero, then test if
+      //RCV.NXT <= SEG.SEQ < RCV.NXT+RCV.WND
       if(TCP_CMP_SEQ(segment->seqNum, socket->rcvNxt) >= 0 &&
          TCP_CMP_SEQ(segment->seqNum, socket->rcvNxt + socket->rcvWnd) < 0)
       {
          acceptable = TRUE;
       }
+      else
+      {
+         acceptable = FALSE;
+      }
    }
-   //Case where both segment length and receive window are non zero
-   else if(length && socket->rcvWnd)
+   else if(length != 0 && socket->rcvWnd == 0)
    {
-      //Check whether RCV.NXT <= SEG.SEQ < RCV.NXT+RCV.WND
+      //If segment length is non zero and receive window is zero, then the
+      //sequence number is not acceptable
+      acceptable = FALSE;
+   }
+   else
+   {
+      //If both segment length and receive window are non zero, then test if
+      //RCV.NXT <= SEG.SEQ < RCV.NXT+RCV.WND or
+      //RCV.NXT <= SEG.SEQ+SEG.LEN-1 < RCV.NXT+RCV.WND
       if(TCP_CMP_SEQ(segment->seqNum, socket->rcvNxt) >= 0 &&
          TCP_CMP_SEQ(segment->seqNum, socket->rcvNxt + socket->rcvWnd) < 0)
       {
          acceptable = TRUE;
       }
-      //or RCV.NXT <= SEG.SEQ+SEG.LEN-1 < RCV.NXT+RCV.WND
       else if(TCP_CMP_SEQ(segment->seqNum + length - 1, socket->rcvNxt) >= 0 &&
          TCP_CMP_SEQ(segment->seqNum + length - 1, socket->rcvNxt + socket->rcvWnd) < 0)
       {
          acceptable = TRUE;
+      }
+      else
+      {
+         acceptable = FALSE;
       }
    }
 
@@ -673,7 +740,7 @@ error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length)
 
       //If an incoming segment is not acceptable, an acknowledgment should
       //be sent in reply (unless the RST bit is set)
-      if(!(segment->flags & TCP_FLAG_RST))
+      if((segment->flags & TCP_FLAG_RST) == 0)
       {
          tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt,
             0, FALSE);
@@ -698,14 +765,14 @@ error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length)
 
 error_t tcpCheckSyn(Socket *socket, TcpHeader *segment, size_t length)
 {
-   //Check the SYN bit
-   if(segment->flags & TCP_FLAG_SYN)
+   //Check whether the SYN bit is set
+   if((segment->flags & TCP_FLAG_SYN) != 0)
    {
       //If this step is reached, the SYN is in the window. It is an error
       //and a reset shall be sent in response
-      if(segment->flags & TCP_FLAG_ACK)
+      if((segment->flags & TCP_FLAG_ACK) != 0)
       {
-         tcpSendSegment(socket, TCP_FLAG_RST, segment->ackNum, 0, 0, FALSE);
+         tcpSendResetSegment(socket, segment->ackNum);
       }
       else
       {
@@ -739,8 +806,17 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
    bool_t updateFlag;
 
    //If the ACK bit is off drop the segment and return
-   if(!(segment->flags & TCP_FLAG_ACK))
+   if((segment->flags & TCP_FLAG_ACK) == 0)
       return ERROR_FAILURE;
+
+#if (TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+   //Check whether TCP keep-alive mechanism is enabled
+   if(socket->keepAliveEnabled)
+   {
+      //Reset keep-alive probe counter
+      socket->keepAliveProbeCount = 0;
+   }
+#endif
 
    //Test the case where SEG.ACK < SND.UNA
    if(TCP_CMP_SEQ(segment->ackNum, socket->sndUna) < 0)
@@ -753,7 +829,8 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
    {
       //Send an ACK segment indicating the current send sequence number
       //and the acknowledgment number expected to be received
-      tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+      tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
+         FALSE);
 
       //The ACK segment acknowledges something not yet sent
       return ERROR_FAILURE;
@@ -774,7 +851,9 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
 
       //Check whether the ACK segment acknowledges our SYN
       if(socket->sndUna == socket->iss)
+      {
          n--;
+      }
 
       //Total number of bytes acknowledged during the whole round-trip
       socket->n += n;
@@ -865,9 +944,16 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
             //Compute the duplicate ACK threshold used to trigger a
             //retransmission
             if(ownd <= (3 * socket->smss))
+            {
                thresh = 1;
+            }
             else if(ownd <= (4 * socket->smss))
+            {
                thresh = 2;
+            }
+            else
+            {
+            }
          }
 
          //Check the number of duplicate ACKs that have been received
@@ -1010,8 +1096,8 @@ bool_t tcpIsDuplicateAck(Socket *socket, TcpHeader *segment, size_t length)
       //The incoming acknowledgment carries no data
       if(length == 0)
       {
-         //the SYN and FIN bits are both off
-         if(!(segment->flags & (TCP_FLAG_SYN | TCP_FLAG_FIN)))
+         //The SYN and FIN bits are both off
+         if((segment->flags & (TCP_FLAG_SYN | TCP_FLAG_FIN)) == 0)
          {
             //The acknowledgment number is equal to the greatest acknowledgment
             //received on the given connection
@@ -1042,7 +1128,7 @@ bool_t tcpIsDuplicateAck(Socket *socket, TcpHeader *segment, size_t length)
 void tcpFastRetransmit(Socket *socket)
 {
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
-   uint_t flightSize;
+   uint32_t flightSize;
 
    //Amount of data that has been sent but not yet acknowledged
    flightSize = socket->sndNxt - socket->sndUna;
@@ -1310,7 +1396,7 @@ void tcpUpdateRetransmitQueue(Socket *socket)
 
          //When an ACK is received that acknowledges new data, restart the
          //retransmission timer so that it will expire after RTO seconds
-         tcpTimerStart(&socket->retransmitTimer, socket->rto);
+         netStartTimer(&socket->retransmitTimer, socket->rto);
          //Reset retransmission counter
          socket->retransmitCount = 0;
       }
@@ -1326,7 +1412,7 @@ void tcpUpdateRetransmitQueue(Socket *socket)
    //When all outstanding data has been acknowledged,
    //turn off the retransmission timer
    if(socket->retransmitQueue == NULL)
-      tcpTimerStop(&socket->retransmitTimer);
+      netStopTimer(&socket->retransmitTimer);
 }
 
 
@@ -1355,7 +1441,7 @@ void tcpFlushRetransmitQueue(Socket *socket)
    socket->retransmitQueue = NULL;
 
    //Turn off the retransmission timer
-   tcpTimerStop(&socket->retransmitTimer);
+   netStopTimer(&socket->retransmitTimer);
 }
 
 
@@ -1469,13 +1555,13 @@ void tcpUpdateSendWindow(Socket *socket, TcpHeader *segment)
    else if(TCP_CMP_SEQ(segment->seqNum, socket->sndWl1) >= 0 &&
       TCP_CMP_SEQ(segment->ackNum, socket->sndWl2) >= 0)
    {
-      //The remote host advertises a zero window?
-      if(!segment->window && socket->sndWnd)
+      //Check whether the remote host advertises a zero window
+      if(segment->window == 0 && socket->sndWnd != 0)
       {
          //Start the persist timer
          socket->wndProbeCount = 0;
          socket->wndProbeInterval = TCP_DEFAULT_PROBE_INTERVAL;
-         tcpTimerStart(&socket->persistTimer, socket->wndProbeInterval);
+         netStartTimer(&socket->persistTimer, socket->wndProbeInterval);
       }
 
       //Update the send window and record the sequence number and the
@@ -1551,7 +1637,7 @@ bool_t tcpComputeRto(Socket *socket)
          r = osGetSystemTime() - socket->rttStartTime;
 
          //First RTT measurement?
-         if(!socket->srtt && !socket->rttvar)
+         if(socket->srtt == 0 && socket->rttvar == 0)
          {
             //Initialize RTO calculation algorithm
             socket->srtt = r;
@@ -1724,8 +1810,8 @@ error_t tcpRetransmitSegment(Socket *socket)
 error_t tcpNagleAlgo(Socket *socket, uint_t flags)
 {
    error_t error;
-   uint_t n;
-   uint_t u;
+   uint32_t n;
+   uint32_t u;
 
    //The amount of data that can be sent at any given time is
    //limited by the receiver window and the congestion window
@@ -1745,7 +1831,7 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
    {
       //The usable window size may become zero or negative,
       //preventing packet transmission
-      if((int_t) u <= 0)
+      if((int32_t) u <= 0)
          break;
 
       //Calculate the number of bytes to send at a time
@@ -1753,7 +1839,7 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
       n = MIN(n, socket->smss);
 
       //Disable Nagle algorithm?
-      if(flags & SOCKET_FLAG_NO_DELAY)
+      if((flags & SOCKET_FLAG_NO_DELAY) != 0)
       {
          //All packets will be send no matter what size they have
          if(n > 0)
@@ -1771,7 +1857,7 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
             break;
          }
       }
-      else if(flags & SOCKET_FLAG_DELAY)
+      else if((flags & SOCKET_FLAG_DELAY) != 0)
       {
          //Transmit data if a maximum-sized segment can be sent
          if(MIN(socket->sndUser, u) >= socket->smss)
@@ -1940,7 +2026,7 @@ void tcpUpdateEvents(Socket *socket)
       }
 
       //Check whether all the data in the send buffer has been transmitted
-      if(!socket->sndUser)
+      if(socket->sndUser == 0)
       {
          //All the pending data has been sent out
          socket->eventFlags |= SOCKET_EVENT_TX_DONE;
@@ -2041,7 +2127,7 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
    tcpUpdateEvents(socket);
 
    //No event is signaled?
-   if(!socket->eventFlags)
+   if(socket->eventFlags == 0)
    {
       //Reset the event object
       osResetEvent(&socket->event);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -56,13 +56,16 @@ const SwitchDriver lan9303SwitchDriver =
    lan9303SetPortState,
    lan9303GetPortState,
    lan9303SetAgingTime,
+   lan9303EnableIgmpSnooping,
+   lan9303EnableMldSnooping,
    lan9303EnableRsvdMcastTable,
    lan9303AddStaticFdbEntry,
    lan9303DeleteStaticFdbEntry,
    lan9303GetStaticFdbEntry,
    lan9303FlushStaticFdbTable,
    lan9303GetDynamicFdbEntry,
-   lan9303FlushDynamicFdbTable
+   lan9303FlushDynamicFdbTable,
+   lan9303SetUnknownMcastFwdPorts
 };
 
 
@@ -774,7 +777,7 @@ void lan9303SetPortState(NetInterface *interface, uint8_t port,
 
 SwitchPortState lan9303GetPortState(NetInterface *interface, uint8_t port)
 {
-   uint16_t temp;
+   uint32_t temp;
    SwitchPortState state;
 
    //Read port state register
@@ -839,6 +842,50 @@ SwitchPortState lan9303GetPortState(NetInterface *interface, uint8_t port)
 void lan9303SetAgingTime(NetInterface *interface, uint32_t agingTime)
 {
    //The aging period is fixed to 5 minutes
+}
+
+
+/**
+ * @brief Enable IGMP snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable IGMP snooping
+ **/
+
+void lan9303EnableIgmpSnooping(NetInterface *interface, bool_t enable)
+{
+   uint32_t temp;
+
+   //Read the Switch Engine Global Ingress Configuration register
+   temp = lan9303ReadSwitchReg(interface, LAN9303_SWE_GLB_INGRESS_CFG);
+
+   //Enable or disable IGMP monitoring
+   if(enable)
+   {
+      temp |= LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITORING_EN;
+   }
+   else
+   {
+      temp &= ~LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITORING_EN;
+   }
+
+   //Set the port bit map where IGMP packets are sent
+   temp = (temp & ~LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITOR_PORT) |
+      LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITOR_PORT_0;
+
+   //Write the value back to Switch Engine Global Ingress Configuration register
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_GLB_INGRESS_CFG, temp);
+}
+
+
+/**
+ * @brief Enable MLD snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable MLD snooping
+ **/
+
+void lan9303EnableMldSnooping(NetInterface *interface, bool_t enable)
+{
+   //Not implemented
 }
 
 
@@ -911,7 +958,7 @@ error_t lan9303AddStaticFdbEntry(NetInterface *interface,
    {
       //Write SWE_ALR_WR_DAT_0 and SWE_ALR_WR_DAT_1 with the desired MAC
       //address and control bits
-      value = LAN9303_SWE_ALR_WR_DAT1_VALID | LAN9303_SWE_ALR_WR_DAT1_STATIC;
+      value = LAN9303_SWE_ALR_WR_DAT_1_VALID | LAN9303_SWE_ALR_WR_DAT_1_STATIC;
 
       //When the Override bit set, packets received with a destination
       //address that matches the MAC address in the SWE_ALR_WR_DAT_1 and
@@ -919,52 +966,52 @@ error_t lan9303AddStaticFdbEntry(NetInterface *interface,
       //state
       if(entry->override)
       {
-         value |= LAN9303_SWE_ALR_WR_DAT1_AGE_OVERRIDE;
+         value |= LAN9303_SWE_ALR_WR_DAT_1_AGE_OVERRIDE;
       }
 
       //Set the ports associated with this MAC address
       switch(ports)
       {
       case LAN9303_PORT0_MASK:
-         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_0;
+         value |= LAN9303_SWE_ALR_WR_DAT_1_PORT_0;
          break;
       case LAN9303_PORT1_MASK:
-         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_1;
+         value |= LAN9303_SWE_ALR_WR_DAT_1_PORT_1;
          break;
       case LAN9303_PORT2_MASK:
-         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_2;
+         value |= LAN9303_SWE_ALR_WR_DAT_1_PORT_2;
          break;
       case LAN9303_PORT0_1_MASK:
-         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_0_1;
+         value |= LAN9303_SWE_ALR_WR_DAT_1_PORT_0_1;
          break;
       case LAN9303_PORT0_2_MASK:
-         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_0_2;
+         value |= LAN9303_SWE_ALR_WR_DAT_1_PORT_0_2;
          break;
       case LAN9303_PORT1_2_MASK:
-         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_1_2;
+         value |= LAN9303_SWE_ALR_WR_DAT_1_PORT_1_2;
          break;
       default:
-         value |= LAN9303_SWE_ALR_WR_DAT1_PORT_0_1_2;
+         value |= LAN9303_SWE_ALR_WR_DAT_1_PORT_0_1_2;
          break;
       }
    }
    else
    {
       //An entry can be deleted by setting the Valid bit to 0
-      value = LAN9303_SWE_ALR_WR_DAT1_STATIC;
+      value = LAN9303_SWE_ALR_WR_DAT_1_STATIC;
    }
 
    //Copy MAC address (last 16 bits)
    value |= entry->macAddr.b[4] | (entry->macAddr.b[5] << 8);
    //Write SWE_ALR_WR_DAT_1 register
-   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT1, value);
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT_1, value);
 
    //Copy MAC address (first 32 bits)
    value = entry->macAddr.b[0] | (entry->macAddr.b[1] << 8) |
       (entry->macAddr.b[2] << 16) | (entry->macAddr.b[3] << 24);
 
    //Write SWE_ALR_WR_DAT_0 register
-   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT0, value);
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT_0, value);
 
    //Write the SWE_ALR_CMD register
    lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD,
@@ -1001,19 +1048,19 @@ error_t lan9303DeleteStaticFdbEntry(NetInterface *interface,
    uint32_t value;
 
    //An entry can be deleted by setting the Valid bit to 0
-   value = LAN9303_SWE_ALR_WR_DAT1_STATIC;
+   value = LAN9303_SWE_ALR_WR_DAT_1_STATIC;
 
    //Specify the MAC address to remove (last 16 bits)
    value |= entry->macAddr.b[4] | (entry->macAddr.b[5] << 8);
    //Write SWE_ALR_WR_DAT_1 register
-   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT1, value);
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT_1, value);
 
    //Specify the MAC address to remove (first 32 bits)
    value = entry->macAddr.b[0] | (entry->macAddr.b[1] << 8) |
       (entry->macAddr.b[2] << 16) | (entry->macAddr.b[3] << 24);
 
    //Write SWE_ALR_WR_DAT_0 register
-   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT0, value);
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT_0, value);
 
    //Write the SWE_ALR_CMD register
    lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD,
@@ -1073,23 +1120,23 @@ error_t lan9303GetStaticFdbEntry(NetInterface *interface, uint_t index,
       while(1)
       {
          //Read SWE_ALR_RD_DAT_1 register
-         value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT1);
+         value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT_1);
 
          //If the End of Table bit is set, then exit
-         if((value & LAN9303_SWE_ALR_RD_DAT1_END_OF_TABLE) != 0)
+         if((value & LAN9303_SWE_ALR_RD_DAT_1_END_OF_TABLE) != 0)
          {
             return ERROR_END_OF_TABLE;
          }
 
          //If the Valid bit is set, then the entry is valid
-         if((value & LAN9303_SWE_ALR_RD_DAT1_VALID) != 0)
+         if((value & LAN9303_SWE_ALR_RD_DAT_1_VALID) != 0)
          {
             break;
          }
       }
 
       //Static entry?
-      if((value & LAN9303_SWE_ALR_RD_DAT1_STATIC) != 0)
+      if((value & LAN9303_SWE_ALR_RD_DAT_1_STATIC) != 0)
       {
          break;
       }
@@ -1103,27 +1150,27 @@ error_t lan9303GetStaticFdbEntry(NetInterface *interface, uint_t index,
    entry->override = FALSE;
 
    //Retrieve the ports associated with this MAC address
-   switch(value & LAN9303_SWE_ALR_RD_DAT1_PORT)
+   switch(value & LAN9303_SWE_ALR_RD_DAT_1_PORT)
    {
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_0:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_0:
       entry->destPorts = LAN9303_PORT0_MASK;
       break;
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_1:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_1:
       entry->destPorts = LAN9303_PORT1_MASK;
       break;
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_2:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_2:
       entry->destPorts = LAN9303_PORT2_MASK;
       break;
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_0_1:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_0_1:
       entry->destPorts = LAN9303_PORT0_1_MASK;
       break;
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_0_2:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_0_2:
       entry->destPorts = LAN9303_PORT0_2_MASK;
       break;
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_1_2:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_1_2:
       entry->destPorts = LAN9303_PORT1_2_MASK;
       break;
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_0_1_2:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_0_1_2:
       entry->destPorts = LAN9303_PORT0_1_2_MASK;
       break;
    default:
@@ -1136,7 +1183,7 @@ error_t lan9303GetStaticFdbEntry(NetInterface *interface, uint_t index,
    entry->macAddr.b[5] = (value >> 8) & 0xFF;
 
    //Read SWE_ALR_RD_DAT_0 register
-   value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT0);
+   value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT_0);
 
    //Copy MAC address (first 32 bits)
    entry->macAddr.b[0] = value & 0xFF;
@@ -1217,23 +1264,23 @@ error_t lan9303GetDynamicFdbEntry(NetInterface *interface, uint_t index,
       while(1)
       {
          //Read SWE_ALR_RD_DAT_1 register
-         value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT1);
+         value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT_1);
 
          //If the End of Table bit is set, then exit
-         if((value & LAN9303_SWE_ALR_RD_DAT1_END_OF_TABLE) != 0)
+         if((value & LAN9303_SWE_ALR_RD_DAT_1_END_OF_TABLE) != 0)
          {
             return ERROR_END_OF_TABLE;
          }
 
          //If the Valid bit is set, then the entry is valid
-         if((value & LAN9303_SWE_ALR_RD_DAT1_VALID) != 0)
+         if((value & LAN9303_SWE_ALR_RD_DAT_1_VALID) != 0)
          {
             break;
          }
       }
 
       //Dynamic entry?
-      if((value & LAN9303_SWE_ALR_RD_DAT1_STATIC) == 0)
+      if((value & LAN9303_SWE_ALR_RD_DAT_1_STATIC) == 0)
       {
          break;
       }
@@ -1247,15 +1294,15 @@ error_t lan9303GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    entry->override = FALSE;
 
    //Retrieve the port associated with this MAC address
-   switch(value & LAN9303_SWE_ALR_RD_DAT1_PORT)
+   switch(value & LAN9303_SWE_ALR_RD_DAT_1_PORT)
    {
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_0:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_0:
       entry->srcPort = LAN9303_PORT0;
       break;
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_1:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_1:
       entry->srcPort = LAN9303_PORT1;
       break;
-   case LAN9303_SWE_ALR_RD_DAT1_PORT_2:
+   case LAN9303_SWE_ALR_RD_DAT_1_PORT_2:
       entry->srcPort = LAN9303_PORT2;
       break;
    default:
@@ -1268,7 +1315,7 @@ error_t lan9303GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    entry->macAddr.b[5] = (value >> 8) & 0xFF;
 
    //Read SWE_ALR_RD_DAT_0 register
-   value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT0);
+   value = lan9303ReadSwitchReg(interface, LAN9303_SWE_ALR_RD_DAT_0);
 
    //Copy MAC address (first 32 bits)
    entry->macAddr.b[0] = value & 0xFF;
@@ -1309,14 +1356,14 @@ void lan9303FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
             //Specify the MAC address to remove (last 16 bits)
             value = entry.macAddr.b[4] | (entry.macAddr.b[5] << 8);
             //Write SWE_ALR_WR_DAT_1 register
-            lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT1, value);
+            lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT_1, value);
 
             //Specify the MAC address to remove (first 32 bits)
             value = entry.macAddr.b[0] | (entry.macAddr.b[1] << 8) |
                (entry.macAddr.b[2] << 16) | (entry.macAddr.b[3] << 24);
 
             //Write SWE_ALR_WR_DAT_0 register
-            lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT0, value);
+            lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_WR_DAT_0, value);
 
             //Write the SWE_ALR_CMD register
             lan9303WriteSwitchReg(interface, LAN9303_SWE_ALR_CMD,
@@ -1342,6 +1389,20 @@ void lan9303FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
          break;
       }
    }
+}
+
+
+/**
+ * @brief Set forward ports for unknown multicast packets
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable forwarding of unknown multicast packets
+ * @param[in] forwardPorts Port map
+ **/
+
+void lan9303SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts)
+{
+   //Not implemented
 }
 
 

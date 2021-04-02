@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level

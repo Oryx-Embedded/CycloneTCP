@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -354,23 +354,27 @@ void dhcpv6ClientTick(Dhcpv6ClientContext *context)
       //lease negotiation fails
       dhcpv6ClientStateInit(context);
       break;
+
    //Process SOLICIT state
    case DHCPV6_STATE_SOLICIT:
       //The client sends a Solicit message to locate servers
       dhcpv6ClientStateSolicit(context);
       break;
+
    //Process REQUEST state
    case DHCPV6_STATE_REQUEST:
       //The client sends a Request message to request configuration
       //parameters, including IP addresses, from a specific server
       dhcpv6ClientStateRequest(context);
       break;
+
    //Process INIT-CONFIRM state
    case DHCPV6_STATE_INIT_CONFIRM:
       //When a client that already has a valid lease starts up after a
       //power-down or reboot, it starts here instead of the INIT state
       dhcpv6ClientStateInitConfirm(context);
       break;
+
    //Process CONFIRM state
    case DHCPV6_STATE_CONFIRM:
       //The client sends a Confirm message to any available server
@@ -378,6 +382,7 @@ void dhcpv6ClientTick(Dhcpv6ClientContext *context)
       //appropriate to the link to which the client is connected
       dhcpv6ClientStateConfirm(context);
       break;
+
    //Process DAD state
    case DHCPV6_STATE_DAD:
       //The client should perform duplicate address detection on each
@@ -385,11 +390,13 @@ void dhcpv6ClientTick(Dhcpv6ClientContext *context)
       //before using that address for traffic
       dhcpv6ClientStateDad(context);
       break;
+
    //Process BOUND state
    case DHCPV6_STATE_BOUND:
       //The client has a valid lease and is in its normal operating state
       dhcpv6ClientStateBound(context);
       break;
+
    //Process RENEW state
    case DHCPV6_STATE_RENEW:
       //The client sends a Renew message to the server that originally
@@ -398,6 +405,7 @@ void dhcpv6ClientTick(Dhcpv6ClientContext *context)
       //and to update other configuration parameters
       dhcpv6ClientStateRenew(context);
       break;
+
    //Process REBIND state
    case DHCPV6_STATE_REBIND:
       //The client sends a Rebind message to any available server to extend
@@ -406,12 +414,14 @@ void dhcpv6ClientTick(Dhcpv6ClientContext *context)
       //receives no response to a Renew message
       dhcpv6ClientStateRebind(context);
       break;
+
    //Process RELEASE state
    case DHCPV6_STATE_RELEASE:
       //To release one or more addresses, a client sends a Release message
       //to the server
       dhcpv6ClientStateRelease(context);
       break;
+
    //Process DECLINE state
    case DHCPV6_STATE_DECLINE:
       //If a client detects that one or more addresses assigned to it by a
@@ -419,7 +429,8 @@ void dhcpv6ClientTick(Dhcpv6ClientContext *context)
       //message to the server to inform it that the address is suspect
       dhcpv6ClientStateDecline(context);
       break;
-   //Invalid state...
+
+   //Invalid state
    default:
       //Switch to the default state
       context->state = DHCPV6_STATE_INIT;

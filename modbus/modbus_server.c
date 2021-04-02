@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -183,14 +183,13 @@ error_t modbusServerStart(ModbusServerContext *context)
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket,
-         context->settings.interface);
+        context->settings.interface);
       //Any error to report?
       if(error)
          break;
 
       //The Modbus/TCP server listens for connection requests on port 502
-      error = socketBind(context->socket, &IP_ADDR_ANY,
-         context->settings.port);
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->settings.port);
       //Any error to report?
       if(error)
          break;

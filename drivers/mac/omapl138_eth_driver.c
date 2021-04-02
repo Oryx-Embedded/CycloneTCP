@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -769,7 +769,7 @@ error_t omapl138EthReceivePacket(NetInterface *interface)
    size_t n;
    uint32_t temp;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxCurBufferDesc->word3 & EMAC_RX_WORD3_OWNER) == 0)
    {
       //SOP and EOP flags should be set

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,10 +57,10 @@ static uint8_t txBuffer[MSP432E4_ETH_TX_BUFFER_COUNT][MSP432E4_ETH_TX_BUFFER_SIZ
 static uint8_t rxBuffer[MSP432E4_ETH_RX_BUFFER_COUNT][MSP432E4_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 4
-static Tm4c129TxDmaDesc txDmaDesc[MSP432E4_ETH_TX_BUFFER_COUNT];
+static Msp432e4TxDmaDesc txDmaDesc[MSP432E4_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 4
-static Tm4c129RxDmaDesc rxDmaDesc[MSP432E4_ETH_RX_BUFFER_COUNT];
+static Msp432e4RxDmaDesc rxDmaDesc[MSP432E4_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
 #else
@@ -72,18 +72,18 @@ static uint8_t txBuffer[MSP432E4_ETH_TX_BUFFER_COUNT][MSP432E4_ETH_TX_BUFFER_SIZ
 static uint8_t rxBuffer[MSP432E4_ETH_RX_BUFFER_COUNT][MSP432E4_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(4)));
 //Transmit DMA descriptors
-static Tm4c129TxDmaDesc txDmaDesc[MSP432E4_ETH_TX_BUFFER_COUNT]
+static Msp432e4TxDmaDesc txDmaDesc[MSP432E4_ETH_TX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 //Receive DMA descriptors
-static Tm4c129RxDmaDesc rxDmaDesc[MSP432E4_ETH_RX_BUFFER_COUNT]
+static Msp432e4RxDmaDesc rxDmaDesc[MSP432E4_ETH_RX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 
 #endif
 
 //Pointer to the current TX DMA descriptor
-static Tm4c129TxDmaDesc *txCurDmaDesc;
+static Msp432e4TxDmaDesc *txCurDmaDesc;
 //Pointer to the current RX DMA descriptor
-static Tm4c129RxDmaDesc *rxCurDmaDesc;
+static Msp432e4RxDmaDesc *rxCurDmaDesc;
 
 
 /**
@@ -101,9 +101,9 @@ const NicDriver msp432e4EthDriver =
    msp432e4EthEventHandler,
    msp432e4EthSendPacket,
    msp432e4EthUpdateMacAddrFilter,
-   NULL,
-   NULL,
-   NULL,
+   msp432e4EthUpdateMacConfig,
+   msp432e4EthWritePhyReg,
+   msp432e4EthReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -119,6 +119,11 @@ const NicDriver msp432e4EthDriver =
 
 error_t msp432e4EthInit(NetInterface *interface)
 {
+   error_t error;
+#ifdef ti_sysbios_BIOS___VERS
+   Hwi_Params hwiParams;
+#endif
+
    //Debug message
    TRACE_INFO("Initializing MSP432E4 Ethernet controller...\r\n");
 
@@ -158,24 +163,52 @@ error_t msp432e4EthInit(NetInterface *interface)
    //Adjust MDC clock range depending on SYSCLK frequency
    EMAC0->MIIADDR = EMAC_MIIADDR_CR_100_150;
 
-   //Reset PHY transceiver
-   msp432e4EthWritePhyReg(EPHY_BMCR, EPHY_BMCR_MIIRESET);
-   //Wait for the reset to complete
-   while(msp432e4EthReadPhyReg(EPHY_BMCR) & EPHY_BMCR_MIIRESET)
+   //Internal or external Ethernet PHY?
+   if(interface->phyDriver != NULL)
    {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //Reset internal PHY transceiver
+      msp432e4EthWritePhyReg(SMI_OPCODE_WRITE, 0, EPHY_BMCR,
+         EPHY_BMCR_MIIRESET);
+
+      //Wait for the reset to complete
+      while(msp432e4EthReadPhyReg(SMI_OPCODE_READ, 0, EPHY_BMCR) &
+         EPHY_BMCR_MIIRESET)
+      {
+      }
+
+      //Dump PHY registers for debugging purpose
+      msp432e4EthDumpPhyReg();
+
+      //Configure LED0, LED1 and LED2
+      msp432e4EthWritePhyReg(SMI_OPCODE_WRITE, 0, EPHY_LEDCFG,
+         EPHY_LEDCFG_LED0_TX | EPHY_LEDCFG_LED1_RX | EPHY_LEDCFG_LED2_LINK);
+
+      //Configure PHY interrupts as desired
+      msp432e4EthWritePhyReg(SMI_OPCODE_WRITE, 0, EPHY_MISR1,
+         EPHY_MISR1_LINKSTATEN);
+
+      //Enable PHY interrupts
+      msp432e4EthWritePhyReg(SMI_OPCODE_WRITE, 0, EPHY_SCR, EPHY_SCR_INTEN);
+
+      //The internal Ethernet PHY is initialized
+      error = NO_ERROR;
    }
 
-   //Dump PHY registers for debugging purpose
-   msp432e4EthDumpPhyReg();
-
-   //Configure LED0, LED1 and LED2
-   msp432e4EthWritePhyReg(EPHY_LEDCFG, EPHY_LEDCFG_LED0_TX |
-      EPHY_LEDCFG_LED1_RX | EPHY_LEDCFG_LED2_LINK);
-
-   //Configure PHY interrupts as desired
-   msp432e4EthWritePhyReg(EPHY_MISR1, EPHY_MISR1_LINKSTATEN);
-   //Enable PHY interrupts
-   msp432e4EthWritePhyReg(EPHY_SCR, EPHY_SCR_INTEN);
+   //Any error to report?
+   if(error)
+   {
+      return error;
+   }
 
    //Use default MAC configuration
    EMAC0->CFG = EMAC_CFG_DRO;
@@ -204,8 +237,9 @@ error_t msp432e4EthInit(NetInterface *interface)
    EMAC0->DMAOPMODE = EMAC_DMAOPMODE_RSF | EMAC_DMAOPMODE_TSF;
 
    //Configure DMA bus mode
-   EMAC0->DMABUSMOD = EMAC_DMABUSMOD_AAL | EMAC_DMABUSMOD_USP | EMAC_DMABUSMOD_RPBL_1 |
-      EMAC_DMABUSMOD_PR_1_1 | EMAC_DMABUSMOD_PBL_1 | EMAC_DMABUSMOD_ATDS;
+   EMAC0->DMABUSMOD = EMAC_DMABUSMOD_AAL | EMAC_DMABUSMOD_USP |
+      EMAC_DMABUSMOD_RPBL_1 | EMAC_DMABUSMOD_PR_1_1 | EMAC_DMABUSMOD_PBL_1 |
+      EMAC_DMABUSMOD_ATDS;
 
    //Initialize DMA descriptor lists
    msp432e4EthInitDmaDesc(interface);
@@ -227,10 +261,20 @@ error_t msp432e4EthInit(NetInterface *interface)
    //Enable PHY interrupts
    EMAC0->EPHYIM = EMAC_EPHYIM_INT;
 
+#ifdef ti_sysbios_BIOS___VERS
+   //Configure Ethernet interrupt
+   Hwi_Params_init(&hwiParams);
+   hwiParams.enableInt = FALSE;
+   hwiParams.priority = MSP432E4_ETH_IRQ_PRIORITY;
+
+   //Register interrupt handler
+   Hwi_create(INT_EMAC0, (Hwi_FuncPtr) msp432e4EthIrqHandler, &hwiParams, NULL);
+#else
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
    IntPriorityGroupingSet(MSP432E4_ETH_IRQ_PRIORITY_GROUPING);
    //Configure Ethernet interrupt priority
    IntPrioritySet(INT_EMAC0, MSP432E4_ETH_IRQ_PRIORITY);
+#endif
 
    //Enable MAC transmission and reception
    EMAC0->CFG |= EMAC_CFG_TE | EMAC_CFG_RE;
@@ -345,6 +389,21 @@ void msp432e4EthInitDmaDesc(NetInterface *interface)
 
 void msp432e4EthTick(NetInterface *interface)
 {
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -355,8 +414,29 @@ void msp432e4EthTick(NetInterface *interface)
 
 void msp432e4EthEnableIrq(NetInterface *interface)
 {
+#ifdef ti_sysbios_BIOS___VERS
+   //Enable Ethernet MAC interrupts
+   Hwi_enableInterrupt(INT_EMAC0);
+#else
    //Enable Ethernet MAC interrupts
    IntEnable(INT_EMAC0);
+#endif
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -367,8 +447,29 @@ void msp432e4EthEnableIrq(NetInterface *interface)
 
 void msp432e4EthDisableIrq(NetInterface *interface)
 {
+#ifdef ti_sysbios_BIOS___VERS
+   //Disable Ethernet MAC interrupts
+   Hwi_disableInterrupt(INT_EMAC0);
+#else
    //Disable Ethernet MAC interrupts
    IntDisable(INT_EMAC0);
+#endif
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -376,7 +477,7 @@ void msp432e4EthDisableIrq(NetInterface *interface)
  * @brief MSP432E4 Ethernet MAC interrupt service routine
  **/
 
-void EMAC0_IRQHandler(void)
+void msp432e4EthIrqHandler(void)
 {
    bool_t flag;
    uint32_t status;
@@ -450,73 +551,79 @@ void msp432e4EthEventHandler(NetInterface *interface)
    uint32_t status;
 
    //PHY interrupt?
-   if((EMAC0->EPHYRIS & EMAC_EPHYRIS_INT) != 0)
+   if(( EMAC0->EPHYRIS & EMAC_EPHYRIS_INT) != 0)
    {
       //Clear PHY interrupt flag
       EMAC0->EPHYMISC = EMAC_EPHYMISC_INT;
-      //Read PHY interrupt status register
-      status = msp432e4EthReadPhyReg(EPHY_MISR1);
 
-      //Check whether the link state has changed?
-      if((status & EPHY_MISR1_LINKSTAT) != 0)
+      //Internal or external Ethernet PHY?
+      if(interface->phyDriver != NULL)
       {
-         //Read BMSR register
-         status = msp432e4EthReadPhyReg(EPHY_BMSR);
+         //Handle events
+         interface->phyDriver->eventHandler(interface);
+      }
+      else if(interface->switchDriver != NULL)
+      {
+         //Handle events
+         interface->switchDriver->eventHandler(interface);
+      }
+      else
+      {
+         //Read PHY interrupt status register
+         status = msp432e4EthReadPhyReg(SMI_OPCODE_READ, 0, EPHY_MISR1);
 
-         //Check whether the link is up
-         if((status & EPHY_BMSR_LINKSTAT) != 0)
+         //Check whether the link state has changed?
+         if((status & EPHY_MISR1_LINKSTAT) != 0)
          {
-            //Read PHY status register
-            status = msp432e4EthReadPhyReg(EPHY_STS);
+            //Read BMSR register
+            status = msp432e4EthReadPhyReg(SMI_OPCODE_READ, 0, EPHY_BMSR);
 
-            //Check current speed
-            if((status & EPHY_STS_SPEED) != 0)
+            //Check whether the link is up
+            if((status & EPHY_BMSR_LINKSTAT) != 0)
             {
-               //10BASE-T operation
-               interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
-               //Update MAC configuration
-               EMAC0->CFG &= ~EMAC_CFG_FES;
+               //Read PHY status register
+               status = msp432e4EthReadPhyReg(SMI_OPCODE_READ, 0, EPHY_STS);
+
+               //Check current speed
+               if((status & EPHY_STS_SPEED) != 0)
+               {
+                  interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+               }
+               else
+               {
+                  interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+               }
+
+               //Check duplex mode
+               if((status & EPHY_STS_DUPLEX) != 0)
+               {
+                  interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+               }
+               else
+               {
+                  interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+               }
+
+               //Update link state
+               interface->linkState = TRUE;
+
+               //Adjust MAC configuration parameters for proper operation
+               msp432e4EthUpdateMacConfig(interface);
             }
             else
             {
-               //100BASE-TX operation
-               interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-               //Update MAC configuration
-               EMAC0->CFG |= EMAC_CFG_FES;
+               //Update link state
+               interface->linkState = FALSE;
             }
 
-            //Check current duplex mode
-            if((status & EPHY_STS_DUPLEX) != 0)
-            {
-               //Full-Duplex mode
-               interface->duplexMode = NIC_FULL_DUPLEX_MODE;
-               //Update MAC configuration
-               EMAC0->CFG |= EMAC_CFG_DUPM;
-            }
-            else
-            {
-               //Half-Duplex mode
-               interface->duplexMode = NIC_HALF_DUPLEX_MODE;
-               //Update MAC configuration
-               EMAC0->CFG &= ~EMAC_CFG_DUPM;
-            }
-
-            //Update link state
-            interface->linkState = TRUE;
+            //Process link state change event
+            nicNotifyLinkChange(interface);
          }
-         else
-         {
-            //Update link state
-            interface->linkState = FALSE;
-         }
-
-         //Process link state change event
-         nicNotifyLinkChange(interface);
       }
    }
 
    //Packet received?
-   if((EMAC0->DMARIS & EMAC_DMARIS_RI) != 0)
+   if(( EMAC0->DMARIS & EMAC_DMARIS_RI) != 0)
    {
       //Clear interrupt flag
       EMAC0->DMARIS = EMAC_DMARIS_RI;
@@ -587,7 +694,7 @@ error_t msp432e4EthSendPacket(NetInterface *interface,
    EMAC0->TXPOLLD = 0;
 
    //Point to the next descriptor in the list
-   txCurDmaDesc = (Tm4c129TxDmaDesc *) txCurDmaDesc->tdes3;
+   txCurDmaDesc = (Msp432e4TxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
    if((txCurDmaDesc->tdes0 & EMAC_TDES0_OWN) == 0)
@@ -613,7 +720,7 @@ error_t msp432e4EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxCurDmaDesc->rdes0 & EMAC_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
@@ -653,7 +760,7 @@ error_t msp432e4EthReceivePacket(NetInterface *interface)
       //Give the ownership of the descriptor back to the DMA
       rxCurDmaDesc->rdes0 = EMAC_RDES0_OWN;
       //Point to the next descriptor in the list
-      rxCurDmaDesc = (Tm4c129RxDmaDesc *) rxCurDmaDesc->rdes3;
+      rxCurDmaDesc = (Msp432e4RxDmaDesc *) rxCurDmaDesc->rdes3;
    }
    else
    {
@@ -794,64 +901,132 @@ error_t msp432e4EthUpdateMacAddrFilter(NetInterface *interface)
 
 
 /**
+ * @brief Adjust MAC configuration parameters for proper operation
+ * @param[in] interface Underlying network interface
+ * @return Error code
+ **/
+
+error_t msp432e4EthUpdateMacConfig(NetInterface *interface)
+{
+   uint32_t config;
+
+   //Read current MAC configuration
+   config = EMAC0->CFG;
+
+   //10BASE-T or 100BASE-TX operation mode?
+   if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
+      config |= EMAC_CFG_FES;
+   }
+   else
+   {
+      config &= ~EMAC_CFG_FES;
+   }
+
+   //Half-duplex or full-duplex mode?
+   if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
+      config |= EMAC_CFG_DUPM;
+   }
+   else
+   {
+      config &= ~EMAC_CFG_DUPM;
+   }
+
+   //Update MAC configuration register
+   EMAC0->CFG = config;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
  * @brief Write PHY register
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void msp432e4EthWritePhyReg(uint8_t regAddr, uint16_t data)
+void msp432e4EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
    uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   temp = EMAC0->MIIADDR & EMAC_MIIADDR_CR_M;
-   //Set up a write operation
-   temp |= EMAC_MIIADDR_MIIW | EMAC_MIIADDR_MIIB;
-   //The address of the integrated PHY is 0
-   temp |= (0 << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
-   //Register address
-   temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
-
-   //Data to be written in the PHY register
-   EMAC0->MIIDATA = data & EMAC_MIIDATA_DATA_M;
-
-   //Start a write operation
-   EMAC0->MIIADDR = temp;
-   //Wait for the write to complete
-   while((EMAC0->MIIADDR & EMAC_MIIADDR_MIIB) != 0)
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
    {
+      //Take care not to alter MDC clock configuration
+      temp = EMAC0->MIIADDR & EMAC_MIIADDR_CR_M;
+      //Set up a write operation
+      temp |= EMAC_MIIADDR_MIIW | EMAC_MIIADDR_MIIB;
+      //PHY address
+      temp |= (phyAddr << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
+      //Register address
+      temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
+
+      //Data to be written in the PHY register
+      EMAC0->MIIDATA = data & EMAC_MIIDATA_DATA_M;
+
+      //Start a write operation
+      EMAC0->MIIADDR = temp;
+      //Wait for the write to complete
+      while((EMAC0->MIIADDR & EMAC_MIIADDR_MIIB) != 0)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
    }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t msp432e4EthReadPhyReg(uint8_t regAddr)
+uint16_t msp432e4EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
+   uint16_t data;
    uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   temp = EMAC0->MIIADDR & EMAC_MIIADDR_CR_M;
-   //Set up a read operation
-   temp |= EMAC_MIIADDR_MIIB;
-   //The address of the integrated PHY is 0
-   temp |= (0 << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
-   //Register address
-   temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
-
-   //Start a read operation
-   EMAC0->MIIADDR = temp;
-   //Wait for the read to complete
-   while((EMAC0->MIIADDR & EMAC_MIIADDR_MIIB) != 0)
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
    {
+      //Take care not to alter MDC clock configuration
+      temp = EMAC0->MIIADDR & EMAC_MIIADDR_CR_M;
+      //Set up a read operation
+      temp |= EMAC_MIIADDR_MIIB;
+      //PHY address
+      temp |= (phyAddr << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
+      //Register address
+      temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
+
+      //Start a read operation
+      EMAC0->MIIADDR = temp;
+      //Wait for the read to complete
+      while((EMAC0->MIIADDR & EMAC_MIIADDR_MIIB) != 0)
+      {
+      }
+
+      //Get register value
+      data = EMAC0->MIIDATA & EMAC_MIIDATA_DATA_M;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
    }
 
-   //Return PHY register contents
-   return EMAC0->MIIDATA & EMAC_MIIDATA_DATA_M;
+   //Return the value of the PHY register
+   return data;
 }
 
 
@@ -868,7 +1043,7 @@ void msp432e4EthDumpPhyReg(void)
    {
       //Display current PHY register
       TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
-         msp432e4EthReadPhyReg(i));
+         msp432e4EthReadPhyReg(SMI_OPCODE_READ, 0, i));
    }
 
    //Terminate with a line feed

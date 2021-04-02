@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _IPV4_MISC_H
@@ -42,6 +42,8 @@ extern "C" {
 #endif
 
 //IPv4 related functions
+error_t ipv4AddRouterAlertOption(NetBuffer *buffer, size_t *offset);
+
 error_t ipv4CheckSourceAddr(NetInterface *interface, Ipv4Addr ipAddr);
 error_t ipv4CheckDestAddr(NetInterface *interface, Ipv4Addr ipAddr);
 

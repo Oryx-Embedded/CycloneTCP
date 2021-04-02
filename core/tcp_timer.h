@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _TCP_TIMER_H
@@ -39,13 +39,12 @@ extern "C" {
 //TCP timer related functions
 void tcpTick(void);
 
-void tcpTimerStart(TcpTimer *timer, systime_t delay);
-void tcpTimerStop(TcpTimer *timer);
-
-bool_t tcpTimerRunning(TcpTimer *timer);
-bool_t tcpTimerElapsed(TcpTimer *timer);
-
-systime_t tcpTimerGetInterval(TcpTimer *timer);
+void tcpCheckRetransmitTimer(Socket *socket);
+void tcpCheckPersistTimer(Socket *socket);
+void tcpCheckKeepAliveTimer(Socket *socket);
+void tcpCheckOverrideTimer(Socket *socket);
+void tcpCheckFinWait2Timer(Socket *socket);
+void tcpCheckTimeWaitTimer(Socket *socket);
 
 //C++ guard
 #ifdef __cplusplus

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _TCP_MISC_H
@@ -43,8 +43,10 @@ extern "C" {
 error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    uint32_t ackNum, size_t length, bool_t addToQueue);
 
-error_t tcpSendResetSegment(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, TcpHeader *segment, size_t length);
+error_t tcpSendResetSegment(Socket *socket, uint32_t seqNum);
+
+error_t tcpRejectSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
+   TcpHeader *segment, size_t length);
 
 error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
    uint8_t length);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Dependencies
@@ -212,7 +212,6 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    uint_t index;
    Mib2IfEntry *entry;
    NetInterface *interface;
-   NetInterface *logicalInterface;
    NetInterface *physicalInterface;
 
    //Point to the instance identifier
@@ -237,8 +236,6 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    //Point to the interface table entry
    entry = &mib2Base.ifGroup.ifTable[index - 1];
 
-   //Point to the logical interface
-   logicalInterface = nicGetLogicalInterface(interface);
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
 
@@ -331,9 +328,15 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
       //Get interface's current bandwidth
       value->gauge32 = interface->linkSpeed;
    }
+#if (ETH_SUPPORT == ENABLED)
    //ifPhysAddress object?
    else if(!osStrcmp(object->name, "ifPhysAddress"))
    {
+      NetInterface *logicalInterface;
+
+      //Point to the logical interface
+      logicalInterface = nicGetLogicalInterface(interface);
+
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= MIB2_PHYS_ADDRESS_SIZE)
       {
@@ -348,6 +351,7 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
          error = ERROR_BUFFER_OVERFLOW;
       }
    }
+#endif
    //ifAdminStatus object?
    else if(!osStrcmp(object->name, "ifAdminStatus"))
    {
@@ -779,6 +783,7 @@ error_t mib2SetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
 error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
+#if (ETH_SUPPORT == ENABLED)
    error_t error;
    size_t n;
    uint_t index;
@@ -863,6 +868,10 @@ error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
 
    //Return status code
    return error;
+#else
+   //Not implemented
+   return ERROR_OBJECT_NOT_FOUND;
+#endif
 }
 
 
@@ -879,6 +888,7 @@ error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
 error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, uint8_t *nextOid, size_t *nextOidLen)
 {
+#if (ETH_SUPPORT == ENABLED)
    error_t error;
    uint_t i;
    uint_t j;
@@ -992,6 +1002,10 @@ error_t mib2GetNextIpNetToMediaEntry(const MibObject *object, const uint8_t *oid
    *nextOidLen = n;
    //Next object found
    return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_OBJECT_NOT_FOUND;
+#endif
 }
 
 #endif

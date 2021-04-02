@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -138,7 +138,7 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
          return error;
 
       //Check whether the privFlag is set
-      if(context->response.msgFlags & SNMP_MSG_FLAG_PRIV)
+      if((context->response.msgFlags & SNMP_MSG_FLAG_PRIV) != 0)
       {
          //Encrypt data
          error = snmpEncryptData(&context->user, &context->response,
@@ -155,7 +155,7 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
          return error;
 
       //Check whether the authFlag is set
-      if(context->response.msgFlags & SNMP_MSG_FLAG_AUTH)
+      if((context->response.msgFlags & SNMP_MSG_FLAG_AUTH) != 0)
       {
          //Authenticate outgoing SNMP message
          error = snmpAuthOutgoingMessage(&context->user, &context->response);

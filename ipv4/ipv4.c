@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -802,7 +802,7 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    //IGMP protocol?
    case IPV4_PROTOCOL_IGMP:
       //Process incoming IGMP message
-      igmpProcessMessage(interface, buffer, offset);
+      igmpProcessMessage(interface, &pseudoHeader.ipv4Data, buffer, offset);
 
 #if (RAW_SOCKET_SUPPORT == ENABLED)
       //Allow raw sockets to process IGMP messages
@@ -966,6 +966,16 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    NetInterface *physicalInterface;
 #endif
 
+   //Check whether an IP Router Alert option should be added
+   if(ancillary->routerAlert)
+   {
+      //Add an IP Router Alert option
+      error = ipv4AddRouterAlertOption(buffer, &offset);
+      //Any error to report?
+      if(error)
+         return error;
+   }
+
    //Is there enough space for the IPv4 header?
    if(offset < sizeof(Ipv4Header))
       return ERROR_INVALID_PARAMETER;
@@ -990,6 +1000,14 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    packet->headerChecksum = 0;
    packet->srcAddr = pseudoHeader->srcAddr;
    packet->destAddr = pseudoHeader->destAddr;
+
+   //The IHL field is the length of the internet header in 32-bit words, and
+   //thus points to the beginning of the data. Note that the minimum value for
+   //a correct header is 5 (refer to RFC 791, section 3.1)
+   if(ancillary->routerAlert)
+   {
+      packet->headerLength = 6;
+   }
 
    //Check whether the TTL value is zero
    if(packet->timeToLive == 0)

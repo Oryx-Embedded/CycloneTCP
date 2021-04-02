@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -95,14 +95,6 @@ error_t enc28j60Init(NetInterface *interface)
    context->currentBank = UINT16_MAX;
    context->nextPacket = ENC28J60_RX_BUFFER_START;
 
-   //Allocate RX buffer
-   context->rxBuffer = memPoolAlloc(ETH_MAX_FRAME_SIZE);
-   //Failed to allocate memory?
-   if(context->rxBuffer == NULL)
-   {
-      return ERROR_OUT_OF_MEMORY;
-   }
-
    //Read silicon revision ID
    revisionId = enc28j60ReadReg(interface, ENC28J60_EREVID);
 
@@ -168,8 +160,8 @@ error_t enc28j60Init(NetInterface *interface)
    enc28j60WriteReg(interface, ENC28J60_MACON4, ENC28J60_MACON4_DEFER);
 
    //Maximum frame length that can be received or transmitted
-   enc28j60WriteReg(interface, ENC28J60_MAMXFLL, LSB(ETH_MAX_FRAME_SIZE));
-   enc28j60WriteReg(interface, ENC28J60_MAMXFLH, MSB(ETH_MAX_FRAME_SIZE));
+   enc28j60WriteReg(interface, ENC28J60_MAMXFLL, LSB(ENC28J60_ETH_RX_BUFFER_SIZE));
+   enc28j60WriteReg(interface, ENC28J60_MAMXFLH, MSB(ENC28J60_ETH_RX_BUFFER_SIZE));
 
    //Configure the back-to-back inter-packet gap register
 #if (ENC28J60_FULL_DUPLEX_SUPPORT == ENABLED)
@@ -322,8 +314,8 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
       flag |= osSetEventFromIsr(&interface->nicTxEvent);
    }
 
-   //Once the interrupt has been serviced, the INTIE bit
-   //is set again to re-enable interrupts
+   //Once the interrupt has been serviced, the INTIE bit is set again to
+   //re-enable interrupts
    enc28j60SetBit(interface, ENC28J60_EIE, ENC28J60_EIE_INTIE);
 
    //A higher priority task must be woken?
@@ -479,6 +471,7 @@ error_t enc28j60SendPacket(NetInterface *interface,
 
 error_t enc28j60ReceivePacket(NetInterface *interface)
 {
+   static uint8_t temp[ENC28J60_ETH_RX_BUFFER_SIZE];
    error_t error;
    uint16_t length;
    uint16_t status;
@@ -509,9 +502,9 @@ error_t enc28j60ReceivePacket(NetInterface *interface)
       if((status & ENC28J60_RSV_RECEIVED_OK) != 0)
       {
          //Limit the number of data to read
-         length = MIN(length, ETH_MAX_FRAME_SIZE);
+         length = MIN(length, ENC28J60_ETH_RX_BUFFER_SIZE);
          //Read the Ethernet frame
-         enc28j60ReadBuffer(interface, context->rxBuffer, length);
+         enc28j60ReadBuffer(interface, temp, length);
          //Valid packet received
          error = NO_ERROR;
       }
@@ -521,8 +514,8 @@ error_t enc28j60ReceivePacket(NetInterface *interface)
          error = ERROR_INVALID_PACKET;
       }
 
-      //Advance the ERXRDPT pointer, taking care to wrap back at the
-      //end of the received memory buffer
+      //Advance the ERXRDPT pointer, taking care to wrap back at the end of the
+      //received memory buffer
       if(context->nextPacket == ENC28J60_RX_BUFFER_START)
       {
          enc28j60WriteReg(interface, ENC28J60_ERXRDPTL, LSB(ENC28J60_RX_BUFFER_STOP));
@@ -552,7 +545,7 @@ error_t enc28j60ReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->rxBuffer, length, &ancillary);
+      nicProcessPacket(interface, temp, length, &ancillary);
    }
 
    //Return status code

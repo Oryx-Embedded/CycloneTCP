@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -41,6 +41,8 @@
 #include "ppp/ipv6cp.h"
 #include "ppp/pap.h"
 #include "ppp/chap.h"
+#include "mibs/mib2_module.h"
+#include "mibs/if_mib_module.h"
 #include "str.h"
 #include "debug.h"
 
@@ -901,6 +903,12 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
    //Point to the PPP context
    context = interface->pppContext;
 
+   //Total number of octets received on the interface, including framing
+   //characters
+   MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInOctets, length);
+   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInOctets, length);
+   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInOctets, length);
+
    //Check the length of the PPP frame
    if(length < PPP_FCS_SIZE)
       return;
@@ -1090,6 +1098,12 @@ error_t pppSendFrame(NetInterface *interface,
 
    //Adjust frame length
    length += PPP_FCS_SIZE;
+
+   //Total number of octets transmitted out of the interface, including
+   //framing characters
+   MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutOctets, length);
+   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
+   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutOctets, length);
 
    //Debug message
    TRACE_DEBUG("Sending PPP frame (%" PRIuSIZE " bytes)...\r\n", length);

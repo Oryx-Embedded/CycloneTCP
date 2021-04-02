@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _ENC28J60_DRIVER_H
@@ -36,6 +36,13 @@
    #define ENC28J60_FULL_DUPLEX_SUPPORT ENABLED
 #elif (ENC28J60_FULL_DUPLEX_SUPPORT != ENABLED && ENC28J60_FULL_DUPLEX_SUPPORT != DISABLED)
    #error ENC28J60_FULL_DUPLEX_SUPPORT parameter is not valid
+#endif
+
+//RX buffer size
+#ifndef ENC28J60_ETH_RX_BUFFER_SIZE
+   #define ENC28J60_ETH_RX_BUFFER_SIZE 1536
+#elif (ENC28J60_ETH_RX_BUFFER_SIZE != 1536)
+   #error ENC28J60_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Receive and transmit buffers
@@ -466,7 +473,6 @@ typedef struct
 {
    uint16_t currentBank; ///<Current bank
    uint16_t nextPacket;  ///<Next packet in the receive buffer
-   uint8_t *rxBuffer;    ///<Receive buffer
 } Enc28j60Context;
 
 

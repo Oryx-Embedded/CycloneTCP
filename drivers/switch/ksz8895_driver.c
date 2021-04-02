@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,13 +57,16 @@ const SwitchDriver ksz8895SwitchDriver =
    ksz8895SetPortState,
    ksz8895GetPortState,
    ksz8895SetAgingTime,
+   ksz8895EnableIgmpSnooping,
+   ksz8895EnableMldSnooping,
    ksz8895EnableRsvdMcastTable,
    ksz8895AddStaticFdbEntry,
    ksz8895DeleteStaticFdbEntry,
    ksz8895GetStaticFdbEntry,
    ksz8895FlushStaticFdbTable,
    ksz8895GetDynamicFdbEntry,
-   ksz8895FlushDynamicFdbTable
+   ksz8895FlushDynamicFdbTable,
+   ksz8895SetUnknownMcastFwdPorts
 };
 
 
@@ -310,9 +313,15 @@ void ksz8895EventHandler(NetInterface *interface)
                //Link up event?
                if(linkState && !virtualInterface->linkState)
                {
+                  //Retrieve host interface speed
+                  interface->linkSpeed = ksz8895GetLinkSpeed(interface,
+                     KSZ8895_PORT5);
+
+                  //Retrieve host interface duplex mode
+                  interface->duplexMode = ksz8895GetDuplexMode(interface,
+                     KSZ8895_PORT5);
+
                   //Adjust MAC configuration parameters for proper operation
-                  interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                  interface->duplexMode = NIC_FULL_DUPLEX_MODE;
                   interface->nicDriver->updateMacConfig(interface);
 
                   //Check current speed
@@ -361,9 +370,12 @@ void ksz8895EventHandler(NetInterface *interface)
       //Link up event?
       if(linkState)
       {
+         //Retrieve host interface speed
+         interface->linkSpeed = ksz8895GetLinkSpeed(interface, KSZ8895_PORT5);
+         //Retrieve host interface duplex mode
+         interface->duplexMode = ksz8895GetDuplexMode(interface, KSZ8895_PORT5);
+
          //Adjust MAC configuration parameters for proper operation
-         interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-         interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          interface->nicDriver->updateMacConfig(interface);
 
          //Update link state
@@ -542,6 +554,21 @@ uint32_t ksz8895GetLinkSpeed(NetInterface *interface, uint8_t port)
          linkSpeed = NIC_LINK_SPEED_10MBPS;
       }
    }
+   else if(port == KSZ8895_PORT5)
+   {
+      //Read global control 4 register
+      status = ksz8895ReadSwitchReg(interface, KSZ8895_GLOBAL_CTRL4);
+
+      //Retrieve host interface speed
+      if((status & KSZ8895_GLOBAL_CTRL4_SW5_SPEED) != 0)
+      {
+         linkSpeed = NIC_LINK_SPEED_10MBPS;
+      }
+      else
+      {
+         linkSpeed = NIC_LINK_SPEED_100MBPS;
+      }
+   }
    else
    {
       //The specified port number is not valid
@@ -581,6 +608,21 @@ NicDuplexMode ksz8895GetDuplexMode(NetInterface *interface, uint8_t port)
          duplexMode = NIC_HALF_DUPLEX_MODE;
       }
    }
+   else if(port == KSZ8895_PORT5)
+   {
+      //Read global control 4 register
+      status = ksz8895ReadSwitchReg(interface, KSZ8895_GLOBAL_CTRL4);
+
+      //Retrieve host interface duplex mode
+      if((status & KSZ8895_GLOBAL_CTRL4_SW5_HALF_DUPLEX_MODE) != 0)
+      {
+         duplexMode = NIC_HALF_DUPLEX_MODE;
+      }
+      else
+      {
+         duplexMode = NIC_FULL_DUPLEX_MODE;
+      }
+   }
    else
    {
       //The specified port number is not valid
@@ -602,7 +644,7 @@ NicDuplexMode ksz8895GetDuplexMode(NetInterface *interface, uint8_t port)
 void ksz8895SetPortState(NetInterface *interface, uint8_t port,
    SwitchPortState state)
 {
-   uint16_t temp;
+   uint8_t temp;
 
    //Check port number
    if(port >= KSZ8895_PORT1 && port <= KSZ8895_PORT4)
@@ -657,7 +699,7 @@ void ksz8895SetPortState(NetInterface *interface, uint8_t port,
 
 SwitchPortState ksz8895GetPortState(NetInterface *interface, uint8_t port)
 {
-   uint16_t temp;
+   uint8_t temp;
    SwitchPortState state;
 
    //Check port number
@@ -721,6 +763,46 @@ SwitchPortState ksz8895GetPortState(NetInterface *interface, uint8_t port)
 void ksz8895SetAgingTime(NetInterface *interface, uint32_t agingTime)
 {
    //The aging period is fixed to 300 seconds
+}
+
+
+/**
+ * @brief Enable IGMP snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable IGMP snooping
+ **/
+
+void ksz8895EnableIgmpSnooping(NetInterface *interface, bool_t enable)
+{
+   uint8_t temp;
+
+   //Read global control 3 register
+   temp = ksz8895ReadSwitchReg(interface, KSZ8895_GLOBAL_CTRL3);
+
+   //Enable or disable IGMP snooping
+   if(enable)
+   {
+      temp |= KSZ8895_GLOBAL_CTRL3_SW5_IGMP_SNOOP_EN;
+   }
+   else
+   {
+      temp &= ~KSZ8895_GLOBAL_CTRL3_SW5_IGMP_SNOOP_EN;
+   }
+
+   //Write the value back to global control 3 register
+   ksz8895WriteSwitchReg(interface, KSZ8895_GLOBAL_CTRL3, temp);
+}
+
+
+/**
+ * @brief Enable MLD snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable MLD snooping
+ **/
+
+void ksz8895EnableMldSnooping(NetInterface *interface, bool_t enable)
+{
+   //Not implemented
 }
 
 
@@ -1034,6 +1116,50 @@ void ksz8895FlushStaticFdbTable(NetInterface *interface)
       //Restore the original state of the port
       ksz8895WriteSwitchReg(interface, KSZ8895_PORTn_CTRL2(i), state[i - 1]);
    }
+}
+
+
+/**
+ * @brief Set forward ports for unknown multicast packets
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable forwarding of unknown multicast packets
+ * @param[in] forwardPorts Port map
+ **/
+
+void ksz8895SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts)
+{
+   uint8_t temp;
+
+   //Read global control 16 register
+   temp = ksz8895ReadSwitchReg(interface, KSZ8895_GLOBAL_CTRL16);
+
+   //Clear port map
+   temp &= ~KSZ8895_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP;
+
+   //Enable or disable forwarding of unknown multicast packets
+   if(enable)
+   {
+      //Enable forwarding
+      temp |= KSZ8895_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD;
+
+      //Check whether unknown multicast packets should be forwarded to the CPU port
+      if((forwardPorts & SWITCH_CPU_PORT_MASK) != 0)
+      {
+         temp |= KSZ8895_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_PORT5;
+      }
+
+      //Select the desired forward ports
+      temp |= forwardPorts & KSZ8895_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_ALL;
+   }
+   else
+   {
+      //Disable forwarding
+      temp &= ~KSZ8895_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD;
+   }
+
+   //Write the value back to global control 16 register
+   ksz8895WriteSwitchReg(interface, KSZ8895_GLOBAL_CTRL16, temp);
 }
 
 

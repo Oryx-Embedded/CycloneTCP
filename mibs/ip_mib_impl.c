@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -288,6 +288,8 @@ error_t ipMibGetIpv6InterfaceEntry(const MibObject *object, const uint8_t *oid,
 
    //Point to the underlying interface
    interface = &netInterface[index - 1];
+   //Avoid warnings from the compiler
+   (void) interface;
 
 #if (IPV6_SUPPORT == ENABLED)
    //ipv6InterfaceReasmMaxSize object?
@@ -2339,8 +2341,10 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
 
    //Point to the network interface
    interface = &netInterface[index - 1];
+   //Avoid warnings from the compiler
+   (void) interface;
 
-#if (IPV4_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && ETH_SUPPORT == ENABLED)
    //IPv4 address?
    if(ipAddr.length == sizeof(Ipv4Addr))
    {
@@ -2550,7 +2554,13 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
       //Point to the current interface
       interface = &netInterface[curIndex - 1];
 
-#if (IPV4_SUPPORT == ENABLED)
+      //Avoid warnings from the compiler
+      (void) i;
+      (void) acceptable;
+      (void) curIpAddr;
+      (void) interface;
+
+#if (IPV4_SUPPORT == ENABLED && ETH_SUPPORT == ENABLED)
       //Loop through ARP cache entries
       for(i = 0; i < ARP_CACHE_SIZE; i++)
       {

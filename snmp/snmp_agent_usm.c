@@ -34,7 +34,7 @@
  * - RFC 7860: HMAC-SHA-2 Authentication Protocols in the User-based Security Model
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -348,7 +348,7 @@ error_t snmpCheckSecurityParameters(const SnmpUserEntry *user,
    if(user->authProtocol != SNMP_AUTH_PROTOCOL_NONE)
    {
       //Make sure the authFlag is set
-      if(!(message->msgFlags & SNMP_MSG_FLAG_AUTH))
+      if((message->msgFlags & SNMP_MSG_FLAG_AUTH) == 0)
          return ERROR_UNSUPPORTED_SECURITY_LEVEL;
    }
 
@@ -357,7 +357,7 @@ error_t snmpCheckSecurityParameters(const SnmpUserEntry *user,
    if(user->privProtocol != SNMP_PRIV_PROTOCOL_NONE)
    {
       //Make sure the privFlag is set
-      if(!(message->msgFlags & SNMP_MSG_FLAG_PRIV))
+      if((message->msgFlags & SNMP_MSG_FLAG_PRIV) == 0)
          return ERROR_UNSUPPORTED_SECURITY_LEVEL;
    }
 

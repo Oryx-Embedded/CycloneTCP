@@ -30,7 +30,7 @@
  * Network Management Protocol (SNMP). Refer to RFC 3415 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -113,13 +113,17 @@ error_t snmpIsAccessAllowed(SnmpAgentContext *context,
       contextNameLen = message->contextNameLen;
 
       //Check whether the authFlag is set
-      if(message->msgFlags & SNMP_MSG_FLAG_AUTH)
+      if((message->msgFlags & SNMP_MSG_FLAG_AUTH) != 0)
       {
          //Check whether the privFlag is set
-         if(message->msgFlags & SNMP_MSG_FLAG_PRIV)
+         if((message->msgFlags & SNMP_MSG_FLAG_PRIV) != 0)
+         {
             securityLevel = SNMP_SECURITY_LEVEL_AUTH_PRIV;
+         }
          else
+         {
             securityLevel = SNMP_SECURITY_LEVEL_AUTH_NO_PRIV;
+         }
       }
    }
    else

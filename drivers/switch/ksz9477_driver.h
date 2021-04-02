@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _KSZ9477_DRIVER_H
@@ -212,7 +212,7 @@
 #define KSZ9477_IP_DIFFSERV_PRIO_MAPPING29                     0x035D
 #define KSZ9477_IP_DIFFSERV_PRIO_MAPPING30                     0x035E
 #define KSZ9477_IP_DIFFSERV_PRIO_MAPPING31                     0x035F
-#define KSZ9477_GLOBAL_PORT_MIRRORING_SNOOPING_CTRL            0x0370
+#define KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL                  0x0370
 #define KSZ9477_WRED_DIFFSERV_COLOR_MAPPING                    0x0378
 #define KSZ9477_PTP_EVENT_MSG_PRIO                             0x037C
 #define KSZ9477_PTP_NON_EVENT_MSG_PRIO                         0x037D
@@ -361,7 +361,7 @@
 #define KSZ9477_PORT1_PRIO_CTRL                                0x1801
 #define KSZ9477_PORT1_IG_MAC_CTRL                              0x1802
 #define KSZ9477_PORT1_AUTH_CTRL                                0x1803
-#define KSZ9477_PORT1_POINTER                                  0x1804
+#define KSZ9477_PORT1_PTR                                      0x1804
 #define KSZ9477_PORT1_PRIO_TO_QUEUE_MAPPING                    0x1808
 #define KSZ9477_PORT1_POLICE_CTRL                              0x180C
 #define KSZ9477_PORT1_POLICE_QUEUE_RATE                        0x1820
@@ -384,7 +384,7 @@
 #define KSZ9477_PORT1_CTRL0                                    0x1A00
 #define KSZ9477_PORT1_CTRL1                                    0x1A04
 #define KSZ9477_PORT1_CTRL2                                    0x1B00
-#define KSZ9477_PORT1_MSTP_POINTER                             0x1B01
+#define KSZ9477_PORT1_MSTP_PTR                                 0x1B01
 #define KSZ9477_PORT1_MSTP_STATE                               0x1B04
 #define KSZ9477_PORT1_PTP_RX_LATENCY                           0x1C00
 #define KSZ9477_PORT1_PTP_TX_LATENCY                           0x1C02
@@ -447,7 +447,7 @@
 #define KSZ9477_PORT2_PRIO_CTRL                                0x2801
 #define KSZ9477_PORT2_IG_MAC_CTRL                              0x2802
 #define KSZ9477_PORT2_AUTH_CTRL                                0x2803
-#define KSZ9477_PORT2_POINTER                                  0x2804
+#define KSZ9477_PORT2_PTR                                      0x2804
 #define KSZ9477_PORT2_PRIO_TO_QUEUE_MAPPING                    0x2808
 #define KSZ9477_PORT2_POLICE_CTRL                              0x280C
 #define KSZ9477_PORT2_POLICE_QUEUE_RATE                        0x2820
@@ -470,7 +470,7 @@
 #define KSZ9477_PORT2_CTRL0                                    0x2A00
 #define KSZ9477_PORT2_CTRL1                                    0x2A04
 #define KSZ9477_PORT2_CTRL2                                    0x2B00
-#define KSZ9477_PORT2_MSTP_POINTER                             0x2B01
+#define KSZ9477_PORT2_MSTP_PTR                                 0x2B01
 #define KSZ9477_PORT2_MSTP_STATE                               0x2B04
 #define KSZ9477_PORT2_PTP_RX_LATENCY                           0x2C00
 #define KSZ9477_PORT2_PTP_TX_LATENCY                           0x2C02
@@ -533,7 +533,7 @@
 #define KSZ9477_PORT3_PRIO_CTRL                                0x3801
 #define KSZ9477_PORT3_IG_MAC_CTRL                              0x3802
 #define KSZ9477_PORT3_AUTH_CTRL                                0x3803
-#define KSZ9477_PORT3_POINTER                                  0x3804
+#define KSZ9477_PORT3_PTR                                      0x3804
 #define KSZ9477_PORT3_PRIO_TO_QUEUE_MAPPING                    0x3808
 #define KSZ9477_PORT3_POLICE_CTRL                              0x380C
 #define KSZ9477_PORT3_POLICE_QUEUE_RATE                        0x3820
@@ -556,7 +556,7 @@
 #define KSZ9477_PORT3_CTRL0                                    0x3A00
 #define KSZ9477_PORT3_CTRL1                                    0x3A04
 #define KSZ9477_PORT3_CTRL2                                    0x3B00
-#define KSZ9477_PORT3_MSTP_POINTER                             0x3B01
+#define KSZ9477_PORT3_MSTP_PTR                                 0x3B01
 #define KSZ9477_PORT3_MSTP_STATE                               0x3B04
 #define KSZ9477_PORT3_PTP_RX_LATENCY                           0x3C00
 #define KSZ9477_PORT3_PTP_TX_LATENCY                           0x3C02
@@ -619,7 +619,7 @@
 #define KSZ9477_PORT4_PRIO_CTRL                                0x4801
 #define KSZ9477_PORT4_IG_MAC_CTRL                              0x4802
 #define KSZ9477_PORT4_AUTH_CTRL                                0x4803
-#define KSZ9477_PORT4_POINTER                                  0x4804
+#define KSZ9477_PORT4_PTR                                      0x4804
 #define KSZ9477_PORT4_PRIO_TO_QUEUE_MAPPING                    0x4808
 #define KSZ9477_PORT4_POLICE_CTRL                              0x480C
 #define KSZ9477_PORT4_POLICE_QUEUE_RATE                        0x4820
@@ -642,7 +642,7 @@
 #define KSZ9477_PORT4_CTRL0                                    0x4A00
 #define KSZ9477_PORT4_CTRL1                                    0x4A04
 #define KSZ9477_PORT4_CTRL2                                    0x4B00
-#define KSZ9477_PORT4_MSTP_POINTER                             0x4B01
+#define KSZ9477_PORT4_MSTP_PTR                                 0x4B01
 #define KSZ9477_PORT4_MSTP_STATE                               0x4B04
 #define KSZ9477_PORT4_PTP_RX_LATENCY                           0x4C00
 #define KSZ9477_PORT4_PTP_TX_LATENCY                           0x4C02
@@ -705,7 +705,7 @@
 #define KSZ9477_PORT5_PRIO_CTRL                                0x5801
 #define KSZ9477_PORT5_IG_MAC_CTRL                              0x5802
 #define KSZ9477_PORT5_AUTH_CTRL                                0x5803
-#define KSZ9477_PORT5_POINTER                                  0x5804
+#define KSZ9477_PORT5_PTR                                      0x5804
 #define KSZ9477_PORT5_PRIO_TO_QUEUE_MAPPING                    0x5808
 #define KSZ9477_PORT5_POLICE_CTRL                              0x580C
 #define KSZ9477_PORT5_POLICE_QUEUE_RATE                        0x5820
@@ -728,7 +728,7 @@
 #define KSZ9477_PORT5_CTRL0                                    0x5A00
 #define KSZ9477_PORT5_CTRL1                                    0x5A04
 #define KSZ9477_PORT5_CTRL2                                    0x5B00
-#define KSZ9477_PORT5_MSTP_POINTER                             0x5B01
+#define KSZ9477_PORT5_MSTP_PTR                                 0x5B01
 #define KSZ9477_PORT5_MSTP_STATE                               0x5B04
 #define KSZ9477_PORT5_PTP_RX_LATENCY                           0x5C00
 #define KSZ9477_PORT5_PTP_TX_LATENCY                           0x5C02
@@ -793,7 +793,7 @@
 #define KSZ9477_PORT6_PRIO_CTRL                                0x6801
 #define KSZ9477_PORT6_IG_MAC_CTRL                              0x6802
 #define KSZ9477_PORT6_AUTH_CTRL                                0x6803
-#define KSZ9477_PORT6_POINTER                                  0x6804
+#define KSZ9477_PORT6_PTR                                      0x6804
 #define KSZ9477_PORT6_PRIO_TO_QUEUE_MAPPING                    0x6808
 #define KSZ9477_PORT6_POLICE_CTRL                              0x680C
 #define KSZ9477_PORT6_POLICE_QUEUE_RATE                        0x6820
@@ -816,7 +816,7 @@
 #define KSZ9477_PORT6_CTRL0                                    0x6A00
 #define KSZ9477_PORT6_CTRL1                                    0x6A04
 #define KSZ9477_PORT6_CTRL2                                    0x6B00
-#define KSZ9477_PORT6_MSTP_POINTER                             0x6B01
+#define KSZ9477_PORT6_MSTP_PTR                                 0x6B01
 #define KSZ9477_PORT6_MSTP_STATE                               0x6B04
 #define KSZ9477_PORT6_PTP_RX_LATENCY                           0x6C00
 #define KSZ9477_PORT6_PTP_TX_LATENCY                           0x6C02
@@ -883,7 +883,7 @@
 #define KSZ9477_PORT7_PRIO_CTRL                                0x7801
 #define KSZ9477_PORT7_IG_MAC_CTRL                              0x7802
 #define KSZ9477_PORT7_AUTH_CTRL                                0x7803
-#define KSZ9477_PORT7_POINTER                                  0x7804
+#define KSZ9477_PORT7_PTR                                      0x7804
 #define KSZ9477_PORT7_PRIO_TO_QUEUE_MAPPING                    0x7808
 #define KSZ9477_PORT7_POLICE_CTRL                              0x780C
 #define KSZ9477_PORT7_POLICE_QUEUE_RATE                        0x7820
@@ -906,7 +906,7 @@
 #define KSZ9477_PORT7_CTRL0                                    0x7A00
 #define KSZ9477_PORT7_CTRL1                                    0x7A04
 #define KSZ9477_PORT7_CTRL2                                    0x7B00
-#define KSZ9477_PORT7_MSTP_POINTER                             0x7B01
+#define KSZ9477_PORT7_MSTP_PTR                                 0x7B01
 #define KSZ9477_PORT7_MSTP_STATE                               0x7B04
 #define KSZ9477_PORT7_PTP_RX_LATENCY                           0x7C00
 #define KSZ9477_PORT7_PTP_TX_LATENCY                           0x7C02
@@ -973,7 +973,7 @@
 #define KSZ9477_PORTn_PRIO_CTRL(port)                          (0x0801 + ((port) * 0x1000))
 #define KSZ9477_PORTn_IG_MAC_CTRL(port)                        (0x0802 + ((port) * 0x1000))
 #define KSZ9477_PORTn_AUTH_CTRL(port)                          (0x0803 + ((port) * 0x1000))
-#define KSZ9477_PORTn_POINTER(port)                            (0x0804 + ((port) * 0x1000))
+#define KSZ9477_PORTn_PTR(port)                                (0x0804 + ((port) * 0x1000))
 #define KSZ9477_PORTn_PRIO_TO_QUEUE_MAPPING(port)              (0x0808 + ((port) * 0x1000))
 #define KSZ9477_PORTn_POLICE_CTRL(port)                        (0x080C + ((port) * 0x1000))
 #define KSZ9477_PORTn_POLICE_QUEUE_RATE(port)                  (0x0820 + ((port) * 0x1000))
@@ -996,7 +996,7 @@
 #define KSZ9477_PORTn_CTRL0(port)                              (0x0A00 + ((port) * 0x1000))
 #define KSZ9477_PORTn_CTRL1(port)                              (0x0A04 + ((port) * 0x1000))
 #define KSZ9477_PORTn_CTRL2(port)                              (0x0B00 + ((port) * 0x1000))
-#define KSZ9477_PORTn_MSTP_POINTER(port)                       (0x0B01 + ((port) * 0x1000))
+#define KSZ9477_PORTn_MSTP_PTR(port)                           (0x0B01 + ((port) * 0x1000))
 #define KSZ9477_PORTn_MSTP_STATE(port)                         (0x0B04 + ((port) * 0x1000))
 #define KSZ9477_PORTn_PTP_RX_LATENCY(port)                     (0x0C00 + ((port) * 0x1000))
 #define KSZ9477_PORTn_PTP_TX_LATENCY(port)                     (0x0C02 + ((port) * 0x1000))
@@ -1300,6 +1300,42 @@
 //Address Lookup Table Entry Index 2 register
 #define KSZ9477_ALU_TABLE_ENTRY_INDEX2_CPU_ACCESS_INDEX        0x03FF
 
+//Unknown Unicast Control register
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD                       0x80000000
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP                   0x0000007F
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT1             0x00000001
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT2             0x00000002
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT3             0x00000004
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT4             0x00000008
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT5             0x00000010
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT6             0x00000020
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP_PORT7             0x00000040
+#define KSZ9477_UNKNOWN_UNICAST_CTRL_FWD_MAP_ALL               0x0000007F
+
+//Unknown Multicast Control register
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD                     0x80000000
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP                 0x0000007F
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT1           0x00000001
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT2           0x00000002
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT3           0x00000004
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT4           0x00000008
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT5           0x00000010
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT6           0x00000020
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT7           0x00000040
+#define KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_ALL             0x0000007F
+
+//Unknown VLAN ID Control register
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD                       0x80000000
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP                   0x0000007F
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT1             0x00000001
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT2             0x00000002
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT3             0x00000004
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT4             0x00000008
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT5             0x00000010
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT6             0x00000020
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_PORT7             0x00000040
+#define KSZ9477_UNKNOWN_VLAN_ID_CTRL_FWD_MAP_ALL               0x0000007F
+
 //Switch MAC Control 0 register
 #define KSZ9477_SWITCH_MAC_CTRL0_ALT_BACK_OFF_MODE             0x80
 #define KSZ9477_SWITCH_MAC_CTRL0_FRAME_LEN_CHECK_EN            0x08
@@ -1335,6 +1371,12 @@
 //Switch MIB Control register
 #define KSZ9477_SWITCH_MIB_CTRL_FLUSH                          0x80
 #define KSZ9477_SWITCH_MIB_CTRL_FREEZE                         0x40
+
+//Global Port Mirroring and Snooping Control register
+#define KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL_IGMP_SNOOP_EN    0x40
+#define KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_OPT    0x08
+#define KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_EN     0x04
+#define KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL_SNIFF_MODE_SEL   0x01
 
 //VLAN Table Entry 0 register
 #define KSZ9477_VLAN_TABLE_ENTRY0_VALID                        0x80000000
@@ -1514,6 +1556,35 @@
 #define KSZ9477_PORTn_XMII_CTRL1_IF_TYPE_RMII                  0x01
 #define KSZ9477_PORTn_XMII_CTRL1_IF_TYPE_MII                   0x03
 
+//Port N ACL Access Control 0 register
+#define KSZ9477_PORTn_ACL_ACCESS_CTRL0_WRITE_STATUS            0x40
+#define KSZ9477_PORTn_ACL_ACCESS_CTRL0_READ_STATUS             0x20
+#define KSZ9477_PORTn_ACL_ACCESS_CTRL0_READ                    0x00
+#define KSZ9477_PORTn_ACL_ACCESS_CTRL0_WRITE                   0x10
+#define KSZ9477_PORTn_ACL_ACCESS_CTRL0_ACL_INDEX               0x0F
+
+//Port N ACL Access Control 1 register
+#define KSZ9477_PORTn_ACL_ACCESS_CTRL1_FORCE_DLR_MISS          0x01
+
+//Port N Port Mirroring Control register
+#define KSZ9477_PORTn_MIRRORING_CTRL_RECEIVE_SNIFF             0x40
+#define KSZ9477_PORTn_MIRRORING_CTRL_TRANSMIT_SNIFF            0x20
+#define KSZ9477_PORTn_MIRRORING_CTRL_SNIFFER_PORT              0x02
+
+//Port N Authentication Control register
+#define KSZ9477_PORTn_AUTH_CTRL_ACL_EN                         0x04
+#define KSZ9477_PORTn_AUTH_CTRL_AUTH_MODE                      0x03
+#define KSZ9477_PORTn_AUTH_CTRL_AUTH_MODE_PASS                 0x00
+#define KSZ9477_PORTn_AUTH_CTRL_AUTH_MODE_BLOCK                0x01
+#define KSZ9477_PORTn_AUTH_CTRL_AUTH_MODE_TRAP                 0x02
+
+//Port N Pointer register
+#define KSZ9477_PORTn_PTR_PORT_INDEX                           0x00070000
+#define KSZ9477_PORTn_PTR_QUEUE_PTR                            0x00000003
+
+//Port N MSTP Pointer register
+#define KSZ9477_PORTn_MSTP_PTR_MSTP_PTR                        0x07
+
 //Port N MSTP State register
 #define KSZ9477_PORTn_MSTP_STATE_TRANSMIT_EN                   0x04
 #define KSZ9477_PORTn_MSTP_STATE_RECEIVE_EN                    0x02
@@ -1553,6 +1624,9 @@ void ksz9477SetPortState(NetInterface *interface, uint8_t port,
 SwitchPortState ksz9477GetPortState(NetInterface *interface, uint8_t port);
 
 void ksz9477SetAgingTime(NetInterface *interface, uint32_t agingTime);
+
+void ksz9477EnableIgmpSnooping(NetInterface *interface, bool_t enable);
+void ksz9477EnableMldSnooping(NetInterface *interface, bool_t enable);
 void ksz9477EnableRsvdMcastTable(NetInterface *interface, bool_t enable);
 
 error_t ksz9477AddStaticFdbEntry(NetInterface *interface,
@@ -1570,6 +1644,9 @@ error_t ksz9477GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    SwitchFdbEntry *entry);
 
 void ksz9477FlushDynamicFdbTable(NetInterface *interface, uint8_t port);
+
+void ksz9477SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts);
 
 void ksz9477WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data);

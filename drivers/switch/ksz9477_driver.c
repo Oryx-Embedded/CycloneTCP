@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,13 +57,16 @@ const SwitchDriver ksz9477SwitchDriver =
    ksz9477SetPortState,
    ksz9477GetPortState,
    ksz9477SetAgingTime,
+   ksz9477EnableIgmpSnooping,
+   ksz9477EnableMldSnooping,
    ksz9477EnableRsvdMcastTable,
    ksz9477AddStaticFdbEntry,
    ksz9477DeleteStaticFdbEntry,
    ksz9477GetStaticFdbEntry,
    ksz9477FlushStaticFdbTable,
    ksz9477GetDynamicFdbEntry,
-   ksz9477FlushDynamicFdbTable
+   ksz9477FlushDynamicFdbTable,
+   ksz9477SetUnknownMcastFwdPorts
 };
 
 
@@ -731,7 +734,7 @@ NicDuplexMode ksz9477GetDuplexMode(NetInterface *interface, uint8_t port)
 void ksz9477SetPortState(NetInterface *interface, uint8_t port,
    SwitchPortState state)
 {
-   uint16_t temp;
+   uint8_t temp;
 
    //Check port number
    if(port >= KSZ9477_PORT1 && port <= KSZ9477_PORT5)
@@ -786,7 +789,7 @@ void ksz9477SetPortState(NetInterface *interface, uint8_t port,
 
 SwitchPortState ksz9477GetPortState(NetInterface *interface, uint8_t port)
 {
-   uint16_t temp;
+   uint8_t temp;
    SwitchPortState state;
 
    //Check port number
@@ -849,11 +852,6 @@ SwitchPortState ksz9477GetPortState(NetInterface *interface, uint8_t port)
 
 void ksz9477SetAgingTime(NetInterface *interface, uint32_t agingTime)
 {
-   uint16_t temp;
-
-   //Read the Switch Lookup Engine Control 3 register
-   temp = ksz9477ReadSwitchReg8(interface, KSZ9477_SWITCH_LUE_CTRL3);
-
    //The Age Period in combination with the Age Count field determines the
    //aging time of dynamic entries in the address lookup table
    agingTime = (agingTime + 3) / 4;
@@ -861,8 +859,69 @@ void ksz9477SetAgingTime(NetInterface *interface, uint32_t agingTime)
    //Limit the range of the parameter
    agingTime = MIN(agingTime, 255);
 
-   //Write the value back to Switch Lookup Engine Control 3 register
-   ksz9477WriteSwitchReg8(interface, KSZ9477_SWITCH_LUE_CTRL3, temp);
+   //Write the value to Switch Lookup Engine Control 3 register
+   ksz9477WriteSwitchReg8(interface, KSZ9477_SWITCH_LUE_CTRL3,
+      (uint8_t) agingTime);
+}
+
+
+/**
+ * @brief Enable IGMP snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable IGMP snooping
+ **/
+
+void ksz9477EnableIgmpSnooping(NetInterface *interface, bool_t enable)
+{
+   uint8_t temp;
+
+   //Read the Global Port Mirroring and Snooping Control register
+   temp = ksz9477ReadSwitchReg8(interface,
+      KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL);
+
+   //Enable or disable IGMP snooping
+   if(enable)
+   {
+      temp |= KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL_IGMP_SNOOP_EN;
+   }
+   else
+   {
+      temp &= ~KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL_IGMP_SNOOP_EN;
+   }
+
+   //Write the value back to Global Port Mirroring and Snooping Control register
+   ksz9477WriteSwitchReg8(interface, KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL,
+      temp);
+}
+
+
+/**
+ * @brief Enable MLD snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable MLD snooping
+ **/
+
+void ksz9477EnableMldSnooping(NetInterface *interface, bool_t enable)
+{
+   uint8_t temp;
+
+   //Read the Global Port Mirroring and Snooping Control register
+   temp = ksz9477ReadSwitchReg8(interface,
+      KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL);
+
+   //Enable or disable MLD snooping
+   if(enable)
+   {
+      temp |= KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_EN;
+   }
+   else
+   {
+      temp &= ~KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_EN;
+   }
+
+   //Write the value back to Global Port Mirroring and Snooping Control register
+   ksz9477WriteSwitchReg8(interface, KSZ9477_GLOBAL_PORT_MIRROR_SNOOP_CTRL,
+      temp);
 }
 
 
@@ -874,7 +933,7 @@ void ksz9477SetAgingTime(NetInterface *interface, uint32_t agingTime)
 
 void ksz9477EnableRsvdMcastTable(NetInterface *interface, bool_t enable)
 {
-   uint16_t temp;
+   uint8_t temp;
 
    //Read the Switch Lookup Engine Control 0 register
    temp = ksz9477ReadSwitchReg8(interface, KSZ9477_SWITCH_LUE_CTRL0);
@@ -1358,9 +1417,8 @@ error_t ksz9477GetDynamicFdbEntry(NetInterface *interface, uint_t index,
 
 void ksz9477FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
 {
-   uint_t i;
    uint_t temp;
-   uint8_t state[3];
+   uint8_t state;
 
    //Flush only dynamic table entries
    temp = ksz9477ReadSwitchReg8(interface, KSZ9477_SWITCH_LUE_CTRL2);
@@ -1369,23 +1427,14 @@ void ksz9477FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
    ksz9477WriteSwitchReg8(interface, KSZ9477_SWITCH_LUE_CTRL2, temp);
 
    //Valid port number?
-   if(port > 0)
+   if(port >= KSZ9477_PORT1 && port <= KSZ9477_PORT7)
    {
-      //Loop through the ports
-      for(i = KSZ9477_PORT1; i <= KSZ9477_PORT7; i++)
-      {
-         //Matching port number?
-         if(i == port || port == 0)
-         {
-            //Save the current state of the port
-            state[i - 1] = ksz9477ReadSwitchReg8(interface,
-               KSZ9477_PORTn_MSTP_STATE(i));
+      //Save the current state of the port
+      state = ksz9477ReadSwitchReg8(interface, KSZ9477_PORTn_MSTP_STATE(port));
 
-            //Turn off learning capability
-            ksz9477WriteSwitchReg8(interface, KSZ9477_PORTn_MSTP_STATE(port),
-               state[i - 1] | KSZ9477_PORTn_MSTP_STATE_LEARNING_DIS);
-         }
-      }
+      //Turn off learning capability
+      ksz9477WriteSwitchReg8(interface, KSZ9477_PORTn_MSTP_STATE(port),
+         state | KSZ9477_PORTn_MSTP_STATE_LEARNING_DIS);
 
       //All the entries associated with a port that has its learning capability
       //being turned off will be flushed
@@ -1393,17 +1442,8 @@ void ksz9477FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
       temp |= KSZ9477_SWITCH_LUE_CTRL1_FLUSH_MSTP_ENTRIES;
       ksz9477WriteSwitchReg8(interface, KSZ9477_SWITCH_LUE_CTRL1, temp);
 
-      //Loop through the ports
-      for(i = KSZ9477_PORT1; i <= KSZ9477_PORT7; i++)
-      {
-         //Matching port number?
-         if(i == port || port == 0)
-         {
-            //Restore the original state of the port
-            ksz9477WriteSwitchReg8(interface, KSZ9477_PORTn_MSTP_STATE(i),
-               state[i - 1]);
-         }
-      }
+      //Restore the original state of the port
+      ksz9477WriteSwitchReg8(interface, KSZ9477_PORTn_MSTP_STATE(port), state);
    }
    else
    {
@@ -1412,6 +1452,50 @@ void ksz9477FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
       temp |= KSZ9477_SWITCH_LUE_CTRL1_FLUSH_ALU_TABLE;
       ksz9477WriteSwitchReg8(interface, KSZ9477_SWITCH_LUE_CTRL1, temp);
    }
+}
+
+
+/**
+ * @brief Set forward ports for unknown multicast packets
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable forwarding of unknown multicast packets
+ * @param[in] forwardPorts Port map
+ **/
+
+void ksz9477SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts)
+{
+   uint32_t temp;
+
+   //Read Unknown Multicast Control register
+   temp = ksz9477ReadSwitchReg32(interface, KSZ9477_UNKONWN_MULTICAST_CTRL);
+
+   //Clear port map
+   temp &= ~KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP;
+
+   //Enable or disable forwarding of unknown multicast packets
+   if(enable)
+   {
+      //Enable forwarding
+      temp |= KSZ9477_UNKONWN_MULTICAST_CTRL_FWD;
+      
+      //Check whether unknown multicast packets should be forwarded to the CPU port
+      if((forwardPorts & SWITCH_CPU_PORT_MASK) != 0)
+      {
+         temp |= KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT6;
+      }
+
+      //Select the desired forward ports
+      temp |= forwardPorts & KSZ9477_UNKONWN_MULTICAST_CTRL_FWD_MAP_ALL;
+   }
+   else
+   {
+      //Disable forwarding
+      temp &= ~KSZ9477_UNKONWN_MULTICAST_CTRL_FWD;
+   }
+
+   //Write the value back to Unknown Multicast Control register
+   ksz9477WriteSwitchReg32(interface, KSZ9477_UNKONWN_MULTICAST_CTRL, temp);
 }
 
 

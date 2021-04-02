@@ -32,7 +32,7 @@
  * - RFC 1213: MIB for Network Management of TCP/IP-based internets (version 2)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -307,6 +307,7 @@ const MibObject mib2Objects[] =
       mib2GetIfEntry,
       mib2GetNextIfEntry
    },
+#if (ETH_SUPPORT == ENABLED)
    //ifPhysAddress object (1.3.6.1.2.1.2.2.1.6)
    {
       "ifPhysAddress",
@@ -322,6 +323,7 @@ const MibObject mib2Objects[] =
       mib2GetIfEntry,
       mib2GetNextIfEntry
    },
+#endif
    //ifAdminStatus object (1.3.6.1.2.1.2.2.1.7)
    {
       "ifAdminStatus",

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -967,7 +967,7 @@ error_t rza1EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxDmaDesc[rxIndex].rd0 & ETHER_RD0_RACT) == 0)
    {
       //SOF and EOF flags should be set
@@ -975,7 +975,7 @@ error_t rza1EthReceivePacket(NetInterface *interface)
          (rxDmaDesc[rxIndex].rd0 & ETHER_RD0_RFP_EOF) != 0)
       {
          //Make sure no error occurred
-         if(!(rxDmaDesc[rxIndex].rd0 & (ETHER_RD0_RFS_MASK & ~ETHER_RD0_RFS_RMAF)))
+         if((rxDmaDesc[rxIndex].rd0 & (ETHER_RD0_RFS_MASK & ~ETHER_RD0_RFS_RMAF)) == 0)
          {
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rd1 & ETHER_RD1_RDL;

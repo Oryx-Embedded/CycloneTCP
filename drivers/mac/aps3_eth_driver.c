@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -351,7 +351,7 @@ void aps3EthTxIrqHandler(void)
       eth_tx->tx_irq_mask = 0;
 
       //Check whether the TX buffer is available for writing
-      if(!(eth_tx->tx_desc_status))
+      if(eth_tx->tx_desc_status == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag = osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -495,8 +495,8 @@ error_t aps3EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
-   if(!(eth_rx->rx_desc_status))
+   //Current buffer available for reading?
+   if(eth_rx->rx_desc_status == 0)
    {
       //Point to the current descriptor
       i = eth_rx->rx_desc_consume;

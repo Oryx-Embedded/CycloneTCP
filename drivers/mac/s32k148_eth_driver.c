@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -675,15 +675,15 @@ error_t s32k148EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //Make sure the current buffer is available for reading
+   //Current buffer available for reading?
    if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_E) == 0)
    {
       //The frame should not span multiple buffers
       if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_L) != 0)
       {
          //Check whether an error occurred
-         if(!(rxBufferDesc[rxBufferIndex][0] & (ENET_RBD0_LG |
-            ENET_RBD0_NO | ENET_RBD0_CR | ENET_RBD0_OV | ENET_RBD0_TR)))
+         if((rxBufferDesc[rxBufferIndex][0] & (ENET_RBD0_LG | ENET_RBD0_NO |
+            ENET_RBD0_CR | ENET_RBD0_OV | ENET_RBD0_TR)) == 0)
          {
             //Retrieve the length of the frame
             n = rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_DATA_LENGTH;

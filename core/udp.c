@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -473,7 +473,7 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
 
       //This flag tells the stack that the destination is on a locally attached
       //network and not to perform a lookup of the routing table
-      if(flags & SOCKET_FLAG_DONT_ROUTE)
+      if((flags & SOCKET_FLAG_DONT_ROUTE) != 0)
       {
          ancillary.dontRoute = TRUE;
       }

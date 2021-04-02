@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _RTL8211F_DRIVER_H
@@ -62,6 +62,14 @@
 #define RTL8211F_PHYSR                         0x1A
 #define RTL8211F_INSR                          0x1D
 #define RTL8211F_PAGSR                         0x1F
+
+//RTL8211F MMD registers
+#define RTL8211F_PC1R                          0x03, 0x00
+#define RTL8211F_PS1R                          0x03, 0x01
+#define RTL8211F_EEECR                         0x03, 0x14
+#define RTL8211F_EEEWER                        0x03, 0x16
+#define RTL8211F_EEEAR                         0x07, 0x3C
+#define RTL8211F_EEELPAR                       0x07, 0x3D
 
 //Basic Mode Control register
 #define RTL8211F_BMCR_RESET                    0x8000
@@ -243,6 +251,28 @@
 
 //Page Select register
 #define RTL8211F_PAGSR_PAGE_SEL                0x0007
+
+//PCS Control 1 register
+#define RTL8211F_PC1R_CLK_STOP_EN              0x0400
+
+//PCS Status 1 register
+#define RTL8211F_PS1R_TX_LPI_RCVD              0x0800
+#define RTL8211F_PS1R_RX_LPI_RCVD              0x0400
+#define RTL8211F_PS1R_TX_LPI_IND               0x0200
+#define RTL8211F_PS1R_RX_LPI_IND               0x0100
+#define RTL8211F_PS1R_CLK_STOP_CAPABLE         0x0040
+
+//EEE Capability register
+#define RTL8211F_EEECR_1000BT_EEE              0x0004
+#define RTL8211F_EEECR_100BTX_EEE              0x0002
+
+//EEE Advertisement register
+#define RTL8211F_EEEAR_1000BT_EEE              0x0004
+#define RTL8211F_EEEAR_100BTX_EEE              0x0002
+
+//EEE Link Partner Ability register
+#define RTL8211F_EEELPAR_LP_1000BT_EEE         0x0004
+#define RTL8211F_EEELPAR_LP_100BTX_EEE         0x0002
 
 //C++ guard
 #ifdef __cplusplus

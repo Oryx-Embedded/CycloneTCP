@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -730,7 +730,7 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_OWN) == 0)
    {
       //FD and LD flags should be set

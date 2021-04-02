@@ -1,6 +1,6 @@
 /**
- * @file ra6m3_eth_driver.c
- * @brief Renesas RA6M3 Ethernet MAC driver
+ * @file ra6_eth_driver.c
+ * @brief Renesas RA6M2 / RA6M3 / RA6M4 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -34,7 +34,7 @@
 //Dependencies
 #include "bsp_api.h"
 #include "core/net.h"
-#include "drivers/mac/ra6m3_eth_driver.h"
+#include "drivers/mac/ra6_eth_driver.h"
 #include "debug.h"
 
 //Underlying network interface
@@ -45,31 +45,31 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 32
-static uint8_t txBuffer[RA6M3_ETH_TX_BUFFER_COUNT][RA6M3_ETH_TX_BUFFER_SIZE];
+static uint8_t txBuffer[RA6_ETH_TX_BUFFER_COUNT][RA6_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 32
-static uint8_t rxBuffer[RA6M3_ETH_RX_BUFFER_COUNT][RA6M3_ETH_RX_BUFFER_SIZE];
+static uint8_t rxBuffer[RA6_ETH_RX_BUFFER_COUNT][RA6_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 32
-static Ra6m3TxDmaDesc txDmaDesc[RA6M3_ETH_TX_BUFFER_COUNT];
+static Ra6TxDmaDesc txDmaDesc[RA6_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 32
-static Ra6m3RxDmaDesc rxDmaDesc[RA6M3_ETH_RX_BUFFER_COUNT];
+static Ra6RxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT];
 
 //ARM or GCC compiler?
 #else
 
 //Transmit buffer
-static uint8_t txBuffer[RA6M3_ETH_TX_BUFFER_COUNT][RA6M3_ETH_TX_BUFFER_SIZE]
+static uint8_t txBuffer[RA6_ETH_TX_BUFFER_COUNT][RA6_ETH_TX_BUFFER_SIZE]
    __attribute__((aligned(32)));
 //Receive buffer
-static uint8_t rxBuffer[RA6M3_ETH_RX_BUFFER_COUNT][RA6M3_ETH_RX_BUFFER_SIZE]
+static uint8_t rxBuffer[RA6_ETH_RX_BUFFER_COUNT][RA6_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(32)));
 //Transmit DMA descriptors
-static Ra6m3TxDmaDesc txDmaDesc[RA6M3_ETH_TX_BUFFER_COUNT]
+static Ra6TxDmaDesc txDmaDesc[RA6_ETH_TX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 //Receive DMA descriptors
-static Ra6m3RxDmaDesc rxDmaDesc[RA6M3_ETH_RX_BUFFER_COUNT]
+static Ra6RxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 
 #endif
@@ -81,23 +81,23 @@ static uint_t rxIndex;
 
 
 /**
- * @brief RA6M3 Ethernet MAC driver
+ * @brief RA6 Ethernet MAC driver
  **/
 
-const NicDriver ra6m3EthDriver =
+const NicDriver ra6EthDriver =
 {
    NIC_TYPE_ETHERNET,
    ETH_MTU,
-   ra6m3EthInit,
-   ra6m3EthTick,
-   ra6m3EthEnableIrq,
-   ra6m3EthDisableIrq,
-   ra6m3EthEventHandler,
-   ra6m3EthSendPacket,
-   ra6m3EthUpdateMacAddrFilter,
-   ra6m3EthUpdateMacConfig,
-   ra6m3EthWritePhyReg,
-   ra6m3EthReadPhyReg,
+   ra6EthInit,
+   ra6EthTick,
+   ra6EthEnableIrq,
+   ra6EthDisableIrq,
+   ra6EthEventHandler,
+   ra6EthSendPacket,
+   ra6EthUpdateMacAddrFilter,
+   ra6EthUpdateMacConfig,
+   ra6EthWritePhyReg,
+   ra6EthReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -106,17 +106,17 @@ const NicDriver ra6m3EthDriver =
 
 
 /**
- * @brief RA6M3 Ethernet MAC initialization
+ * @brief RA6 Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t ra6m3EthInit(NetInterface *interface)
+error_t ra6EthInit(NetInterface *interface)
 {
    error_t error;
 
    //Debug message
-   TRACE_INFO("Initializing RA6M3 Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing RA6 Ethernet MAC...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -124,15 +124,15 @@ error_t ra6m3EthInit(NetInterface *interface)
    //Disable protection
    R_SYSTEM->PRCR = 0xA50B;
    //Cancel EDMAC0 module stop state
-   R_MSTP->MSTPCRB_b.MSTPB15 = 0;
+   R_MSTP->MSTPCRB &= ~R_MSTP_MSTPCRB_MSTPB15_Msk;
    //Enable protection
    R_SYSTEM->PRCR = 0xA500;
 
    //GPIO configuration
-   ra6m3EthInitGpio(interface);
+   ra6EthInitGpio(interface);
 
    //Reset EDMAC0 module
-   R_ETHERC_EDMAC->EDMR_b.SWR = 1;
+   R_ETHERC_EDMAC->EDMR |= R_ETHERC_EDMAC_EDMR_SWR_Msk;
    sleep(10);
 
    //Valid Ethernet PHY or switch driver?
@@ -159,10 +159,10 @@ error_t ra6m3EthInit(NetInterface *interface)
    }
 
    //Initialize DMA descriptor lists
-   ra6m3EthInitDmaDesc(interface);
+   ra6EthInitDmaDesc(interface);
 
    //Maximum frame length that can be accepted
-   R_ETHERC0->RFLR = RA6M3_ETH_RX_BUFFER_SIZE;
+   R_ETHERC0->RFLR = RA6_ETH_RX_BUFFER_SIZE;
    //Set default inter packet gap (96-bit time)
    R_ETHERC0->IPGR = 0x14;
 
@@ -171,46 +171,43 @@ error_t ra6m3EthInit(NetInterface *interface)
       (interface->macAddr.b[2] << 8) | interface->macAddr.b[3];
 
    //Set the lower 16 bits of the MAC address
-   R_ETHERC0->MALR_b.MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
+   R_ETHERC0->MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
 
-   //Set descriptor length (16 bytes)
-   R_ETHERC_EDMAC->EDMR_b.DL = 0;
-   //Select little endian mode
-   R_ETHERC_EDMAC->EDMR_b.DE = 1;
+   //Select little endian mode and set descriptor length (16 bytes)
+   R_ETHERC_EDMAC->EDMR = R_ETHERC_EDMAC_EDMR_DE_Msk |
+      (0 << R_ETHERC_EDMAC_EDMR_DL_Pos);
+
    //Use store and forward mode
-   R_ETHERC_EDMAC->TFTR_b.TFT = 0;
+   R_ETHERC_EDMAC->TFTR = 0;
 
-   //Set transmit FIFO size (2048 bytes)
-   R_ETHERC_EDMAC->FDR_b.TFD = 7;
-   //Set receive FIFO size (2048 bytes)
-   R_ETHERC_EDMAC->FDR_b.RFD = 7;
+   //Set transmit and receive FIFO size (2048 bytes)
+   R_ETHERC_EDMAC->FDR = (7 << R_ETHERC_EDMAC_FDR_TFD_Pos) |
+      (7 << R_ETHERC_EDMAC_FDR_RFD_Pos);
 
    //Enable continuous reception of multiple frames
-   R_ETHERC_EDMAC->RMCR_b.RNR = 1;
+   R_ETHERC_EDMAC->RMCR |= R_ETHERC_EDMAC_RMCR_RNR_Msk;
 
-   //Accept transmit interrupt notifications
-   R_ETHERC_EDMAC->TRIMD_b.TIM = 0;
-   R_ETHERC_EDMAC->TRIMD_b.TIS = 1;
+   //Select write-back complete interrupt mode
+   R_ETHERC_EDMAC->TRIMD &= ~R_ETHERC_EDMAC_TRIMD_TIM_Msk;
+   //Enable transmit Interrupts
+   R_ETHERC_EDMAC->TRIMD |= R_ETHERC_EDMAC_TRIMD_TIS_Msk;
 
-   //Disable all EDMAC interrupts
-   R_ETHERC_EDMAC->EESIPR = 0;
-   //Enable only the desired EDMAC interrupts
-   R_ETHERC_EDMAC->EESIPR_b.TWBIP = 1;
-   R_ETHERC_EDMAC->EESIPR_b.FRIP = 1;
+   //Enable the desired EDMAC interrupts
+   R_ETHERC_EDMAC->EESIPR = R_ETHERC_EDMAC_EESIPR_TWBIP_Msk |
+      R_ETHERC_EDMAC_EESIPR_FRIP_Msk;
 
    //Set priority grouping (4 bits for pre-emption priority, no bits for subpriority)
-   NVIC_SetPriorityGrouping(RA6M3_ETH_IRQ_PRIORITY_GROUPING);
+   NVIC_SetPriorityGrouping(RA6_ETH_IRQ_PRIORITY_GROUPING);
 
    //Configure EDMAC interrupt priority
-   NVIC_SetPriority(EDMAC0_EINT_IRQn, NVIC_EncodePriority(RA6M3_ETH_IRQ_PRIORITY_GROUPING,
-      RA6M3_ETH_IRQ_GROUP_PRIORITY, RA6M3_ETH_IRQ_SUB_PRIORITY));
+   NVIC_SetPriority(EDMAC0_EINT_IRQn, NVIC_EncodePriority(RA6_ETH_IRQ_PRIORITY_GROUPING,
+      RA6_ETH_IRQ_GROUP_PRIORITY, RA6_ETH_IRQ_SUB_PRIORITY));
 
    //Enable transmission and reception
-   R_ETHERC0->ECMR_b.TE = 1;
-   R_ETHERC0->ECMR_b.RE = 1;
+   R_ETHERC0->ECMR |= R_ETHERC0_ECMR_TE_Msk | R_ETHERC0_ECMR_RE_Msk;
 
    //Instruct the DMA to poll the receive descriptor list
-   R_ETHERC_EDMAC->EDRRR_b.RR = 1;
+   R_ETHERC_EDMAC->EDRRR = R_ETHERC_EDMAC_EDRRR_RR_Msk;
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -220,66 +217,132 @@ error_t ra6m3EthInit(NetInterface *interface)
 }
 
 
-//EK-RA6M3 evaluation board?
-#if defined(USE_EK_RA6M3)
+//EK-RA6M3 or M13-RA6M3-EK evaluation board?
+#if defined(USE_EK_RA6M3) || defined(USE_M13_RA6M3_EK)
 
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void ra6m3EthInitGpio(NetInterface *interface)
+void ra6EthInitGpio(NetInterface *interface)
 {
+//EK-RA6M3 evaluation board?
+#if defined(USE_EK_RA6M3)
+   //Disable protection
+   R_SYSTEM->PRCR = 0xA50B;
+   //Disable VBATT channel 0 input (P4_2)
+   R_SYSTEM->VBTICTLR &= ~R_SYSTEM_VBTICTLR_VCH0INEN_Msk;
+   //Enable protection
+   R_SYSTEM->PRCR = 0xA500;
+
    //Unlock PFS registers
-   R_PMISC->PWPR_b.B0WI = 0;
-   R_PMISC->PWPR_b.PFSWE = 1;
+   R_PMISC->PWPR &= ~R_PMISC_PWPR_B0WI_Msk;
+   R_PMISC->PWPR |= R_PMISC_PWPR_PFSWE_Msk;
 
    //Select RMII interface mode
-   R_PMISC->PFENET_b.PHYMODE0 = 0;
+   R_PMISC->PFENET &= ~R_PMISC_PFENET_PHYMODE0_Msk;
 
    //Configure ET0_MDC (P4_1)
-   R_PFS->PORT[4].PIN[1].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[4].PIN[1].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[4].PIN[1].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (1 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure ET0_MDIO (P4_2)
-   R_PFS->PORT[4].PIN[2].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[4].PIN[2].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[4].PIN[2].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (1 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure RMII0_TXD_EN_B (P4_5)
-   R_PFS->PORT[4].PIN[5].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[4].PIN[5].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[4].PIN[5].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure RMII0_TXD1_B (P4_6)
-   R_PFS->PORT[4].PIN[6].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[4].PIN[6].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[4].PIN[6].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure RMII0_TXD0_B (P7_0)
-   R_PFS->PORT[7].PIN[0].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[7].PIN[0].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[7].PIN[0].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure REF50CK0_B (P7_1)
-   R_PFS->PORT[7].PIN[1].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[7].PIN[1].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[7].PIN[1].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure RMII0_RXD0_B (P7_2)
-   R_PFS->PORT[7].PIN[2].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[7].PIN[2].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[7].PIN[2].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure RMII0_RXD1_B (P7_3)
-   R_PFS->PORT[7].PIN[3].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[7].PIN[3].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[7].PIN[3].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure RMII0_RX_ER_B (P7_4)
-   R_PFS->PORT[7].PIN[4].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[7].PIN[4].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[7].PIN[4].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Configure RMII0_CRS_DV_B (P7_5)
-   R_PFS->PORT[7].PIN[5].PmnPFS_b.PMR = 1;
-   R_PFS->PORT[7].PIN[5].PmnPFS_b.PSEL = 23;
+   R_PFS->PORT[7].PIN[5].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
    //Lock PFS registers
-   R_PMISC->PWPR_b.PFSWE = 0;
-   R_PMISC->PWPR_b.B0WI = 1;
+   R_PMISC->PWPR &= ~R_PMISC_PWPR_PFSWE_Msk;
+   R_PMISC->PWPR |= R_PMISC_PWPR_B0WI_Msk;
+
+//M13-RA6M3-EK evaluation board?
+#elif defined(USE_M13_RA6M3_EK)
+   //Disable protection
+   R_SYSTEM->PRCR = 0xA50B;
+   //Disable VBATT channel 0 input (P4_2)
+   R_SYSTEM->VBTICTLR &= ~R_SYSTEM_VBTICTLR_VCH0INEN_Msk;
+   //Enable protection
+   R_SYSTEM->PRCR = 0xA500;
+
+   //Unlock PFS registers
+   R_PMISC->PWPR &= ~R_PMISC_PWPR_B0WI_Msk;
+   R_PMISC->PWPR |= R_PMISC_PWPR_PFSWE_Msk;
+
+   //Select RMII interface mode
+   R_PMISC->PFENET &= ~R_PMISC_PFENET_PHYMODE0_Msk;
+
+   //Configure ET0_MDC (P4_1)
+   R_PFS->PORT[4].PIN[1].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (1 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure ET0_MDIO (P4_2)
+   R_PFS->PORT[4].PIN[2].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (1 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_CRS_DV_A (P4_8)
+   R_PFS->PORT[4].PIN[8].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_RXD1_A (P4_10)
+   R_PFS->PORT[4].PIN[10].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_RXD0_A (P4_11)
+   R_PFS->PORT[4].PIN[11].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure REF50CK0_A (P4_12)
+   R_PFS->PORT[4].PIN[12].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD0_A (P4_13)
+   R_PFS->PORT[4].PIN[13].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD1_A (P4_14)
+   R_PFS->PORT[4].PIN[14].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD_EN_A (P4_15)
+   R_PFS->PORT[4].PIN[15].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Lock PFS registers
+   R_PMISC->PWPR &= ~R_PMISC_PWPR_PFSWE_Msk;
+   R_PMISC->PWPR |= R_PMISC_PWPR_B0WI_Msk;
+#endif
 }
 
 #endif
@@ -290,12 +353,12 @@ void ra6m3EthInitGpio(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ra6m3EthInitDmaDesc(NetInterface *interface)
+void ra6EthInitDmaDesc(NetInterface *interface)
 {
    uint_t i;
 
    //Initialize TX descriptors
-   for(i = 0; i < RA6M3_ETH_TX_BUFFER_COUNT; i++)
+   for(i = 0; i < RA6_ETH_TX_BUFFER_COUNT; i++)
    {
       //The descriptor is initially owned by the application
       txDmaDesc[i].td0 = 0;
@@ -313,12 +376,12 @@ void ra6m3EthInitDmaDesc(NetInterface *interface)
    txIndex = 0;
 
    //Initialize RX descriptors
-   for(i = 0; i < RA6M3_ETH_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < RA6_ETH_RX_BUFFER_COUNT; i++)
    {
       //The descriptor is initially owned by the DMA
       rxDmaDesc[i].rd0 = EDMAC_RD0_RACT;
       //Receive buffer length
-      rxDmaDesc[i].rd1 = (RA6M3_ETH_RX_BUFFER_SIZE << 16) & EDMAC_RD1_RBL;
+      rxDmaDesc[i].rd1 = (RA6_ETH_RX_BUFFER_SIZE << 16) & EDMAC_RD1_RBL;
       //Receive buffer address
       rxDmaDesc[i].rd2 = (uint32_t) rxBuffer[i];
       //Clear padding field
@@ -338,7 +401,7 @@ void ra6m3EthInitDmaDesc(NetInterface *interface)
 
 
 /**
- * @brief RA6M3 Ethernet MAC timer handler
+ * @brief RA6 Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to handle periodic
  * operations such as polling the link state
@@ -346,7 +409,7 @@ void ra6m3EthInitDmaDesc(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ra6m3EthTick(NetInterface *interface)
+void ra6EthTick(NetInterface *interface)
 {
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -371,7 +434,7 @@ void ra6m3EthTick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ra6m3EthEnableIrq(NetInterface *interface)
+void ra6EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(EDMAC0_EINT_IRQn);
@@ -399,7 +462,7 @@ void ra6m3EthEnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ra6m3EthDisableIrq(NetInterface *interface)
+void ra6EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(EDMAC0_EINT_IRQn);
@@ -423,7 +486,7 @@ void ra6m3EthDisableIrq(NetInterface *interface)
 
 
 /**
- * @brief RA6M3 Ethernet MAC interrupt service routine
+ * @brief RA6 Ethernet MAC interrupt service routine
  **/
 
 void EDMAC0_EINT_IRQHandler(void)
@@ -441,10 +504,10 @@ void EDMAC0_EINT_IRQHandler(void)
    status = R_ETHERC_EDMAC->EESR;
 
    //Packet transmitted?
-   if((status & EDMAC_EESR_TWB) != 0)
+   if((status & R_ETHERC_EDMAC_EESR_TWB_Msk) != 0)
    {
       //Clear TWB interrupt flag
-      R_ETHERC_EDMAC->EESR = EDMAC_EESR_TWB;
+      R_ETHERC_EDMAC->EESR = R_ETHERC_EDMAC_EESR_TWB_Msk;
 
       //Check whether the TX buffer is available for writing
       if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) == 0)
@@ -455,10 +518,10 @@ void EDMAC0_EINT_IRQHandler(void)
    }
 
    //Packet received?
-   if((status & EDMAC_EESR_FR) != 0)
+   if((status & R_ETHERC_EDMAC_EESR_FR_Msk) != 0)
    {
       //Disable FR interrupts
-      R_ETHERC_EDMAC->EESIPR_b.FRIP = 0;
+      R_ETHERC_EDMAC->EESIPR &= ~R_ETHERC_EDMAC_EESIPR_FRIP_Msk;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -467,7 +530,7 @@ void EDMAC0_EINT_IRQHandler(void)
    }
 
    //Clear IR flag
-   R_ICU->IELSR_b[EDMAC0_EINT_IRQn].IR = 0;
+   R_ICU->IELSR[EDMAC0_EINT_IRQn] &= ~R_ICU_IELSR_IR_Msk;
 
    //Interrupt service routine epilogue
    osExitIsr(flag);
@@ -475,33 +538,33 @@ void EDMAC0_EINT_IRQHandler(void)
 
 
 /**
- * @brief RA6M3 Ethernet MAC event handler
+ * @brief RA6 Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 
-void ra6m3EthEventHandler(NetInterface *interface)
+void ra6EthEventHandler(NetInterface *interface)
 {
    error_t error;
 
    //Packet received?
-   if((R_ETHERC_EDMAC->EESR & EDMAC_EESR_FR) != 0)
+   if((R_ETHERC_EDMAC->EESR & R_ETHERC_EDMAC_EESR_FR_Msk) != 0)
    {
       //Clear FR interrupt flag
-      R_ETHERC_EDMAC->EESR = EDMAC_EESR_FR;
+      R_ETHERC_EDMAC->EESR = R_ETHERC_EDMAC_EESR_FR_Msk;
 
       //Process all pending packets
       do
       {
          //Read incoming packet
-         error = ra6m3EthReceivePacket(interface);
+         error = ra6EthReceivePacket(interface);
 
          //No more data in the receive buffer?
       } while(error != ERROR_BUFFER_EMPTY);
    }
 
    //Re-enable EDMAC interrupts
-   R_ETHERC_EDMAC->EESIPR_b.TWBIP = 1;
-   R_ETHERC_EDMAC->EESIPR_b.FRIP = 1;
+   R_ETHERC_EDMAC->EESIPR = R_ETHERC_EDMAC_EESIPR_TWBIP_Msk |
+      R_ETHERC_EDMAC_EESIPR_FRIP_Msk;
 }
 
 
@@ -515,14 +578,14 @@ void ra6m3EthEventHandler(NetInterface *interface)
  * @return Error code
  **/
 
-error_t ra6m3EthSendPacket(NetInterface *interface,
+error_t ra6EthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    //Retrieve the length of the packet
    size_t length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > RA6M3_ETH_TX_BUFFER_SIZE)
+   if(length > RA6_ETH_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -543,7 +606,7 @@ error_t ra6m3EthSendPacket(NetInterface *interface,
    txDmaDesc[txIndex].td1 = (length << 16) & EDMAC_TD1_TBL;
 
    //Check current index
-   if(txIndex < (RA6M3_ETH_TX_BUFFER_COUNT - 1))
+   if(txIndex < (RA6_ETH_TX_BUFFER_COUNT - 1))
    {
       //Give the ownership of the descriptor to the DMA engine
       txDmaDesc[txIndex].td0 = EDMAC_TD0_TACT | EDMAC_TD0_TFP_SOF |
@@ -563,7 +626,7 @@ error_t ra6m3EthSendPacket(NetInterface *interface,
    }
 
    //Instruct the DMA to poll the transmit descriptor list
-   R_ETHERC_EDMAC->EDTRR_b.TR = 1;
+   R_ETHERC_EDMAC->EDTRR = R_ETHERC_EDMAC_EDTRR_TR_Msk;
 
    //Check whether the next buffer is available for writing
    if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) == 0)
@@ -583,13 +646,13 @@ error_t ra6m3EthSendPacket(NetInterface *interface,
  * @return Error code
  **/
 
-error_t ra6m3EthReceivePacket(NetInterface *interface)
+error_t ra6EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RACT) == 0)
    {
       //SOF and EOF flags should be set
@@ -597,12 +660,12 @@ error_t ra6m3EthReceivePacket(NetInterface *interface)
          (rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_EOF) != 0)
       {
          //Make sure no error occurred
-         if(!(rxDmaDesc[rxIndex].rd0 & (EDMAC_RD0_RFS_MASK & ~EDMAC_RD0_RFS_RMAF)))
+         if((rxDmaDesc[rxIndex].rd0 & (EDMAC_RD0_RFS_MASK & ~EDMAC_RD0_RFS_RMAF)) == 0)
          {
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rd1 & EDMAC_RD1_RFL;
             //Limit the number of data to read
-            n = MIN(n, RA6M3_ETH_RX_BUFFER_SIZE);
+            n = MIN(n, RA6_ETH_RX_BUFFER_SIZE);
 
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -626,7 +689,7 @@ error_t ra6m3EthReceivePacket(NetInterface *interface)
       }
 
       //Check current index
-      if(rxIndex < (RA6M3_ETH_RX_BUFFER_COUNT - 1))
+      if(rxIndex < (RA6_ETH_RX_BUFFER_COUNT - 1))
       {
          //Give the ownership of the descriptor back to the DMA
          rxDmaDesc[rxIndex].rd0 = EDMAC_RD0_RACT;
@@ -642,7 +705,7 @@ error_t ra6m3EthReceivePacket(NetInterface *interface)
       }
 
       //Instruct the DMA to poll the receive descriptor list
-      R_ETHERC_EDMAC->EDRRR_b.RR = 1;
+      R_ETHERC_EDMAC->EDRRR = R_ETHERC_EDMAC_EDRRR_RR_Msk;
    }
    else
    {
@@ -661,7 +724,7 @@ error_t ra6m3EthReceivePacket(NetInterface *interface)
  * @return Error code
  **/
 
-error_t ra6m3EthUpdateMacAddrFilter(NetInterface *interface)
+error_t ra6EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    bool_t acceptMulticast;
@@ -674,7 +737,7 @@ error_t ra6m3EthUpdateMacAddrFilter(NetInterface *interface)
       (interface->macAddr.b[2] << 8) | interface->macAddr.b[3];
 
    //Set the lower 16 bits of the MAC address
-   R_ETHERC0->MALR_b.MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
+   R_ETHERC0->MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
 
    //This flag will be set if multicast addresses should be accepted
    acceptMulticast = FALSE;
@@ -696,11 +759,11 @@ error_t ra6m3EthUpdateMacAddrFilter(NetInterface *interface)
    //Enable the reception of multicast frames if necessary
    if(acceptMulticast)
    {
-      R_ETHERC_EDMAC->EESR_b.RMAF = 1;
+      R_ETHERC_EDMAC->EESR |= R_ETHERC_EDMAC_EESR_RMAF_Msk;
    }
    else
    {
-      R_ETHERC_EDMAC->EESR_b.RMAF = 0;
+      R_ETHERC_EDMAC->EESR &= ~R_ETHERC_EDMAC_EESR_RMAF_Msk;
    }
 
    //Successful processing
@@ -714,27 +777,35 @@ error_t ra6m3EthUpdateMacAddrFilter(NetInterface *interface)
  * @return Error code
  **/
 
-error_t ra6m3EthUpdateMacConfig(NetInterface *interface)
+error_t ra6EthUpdateMacConfig(NetInterface *interface)
 {
+   uint32_t mode;
+
+   //Read ETHERC mode register
+   mode = R_ETHERC0->ECMR;
+
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
    {
-      R_ETHERC0->ECMR_b.RTM = 1;
+      mode |= R_ETHERC0_ECMR_RTM_Msk;
    }
    else
    {
-      R_ETHERC0->ECMR_b.RTM = 0;
+      mode &= ~R_ETHERC0_ECMR_RTM_Msk;
    }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
    {
-      R_ETHERC0->ECMR_b.DM = 1;
+      mode |= R_ETHERC0_ECMR_DM_Msk;
    }
    else
    {
-      R_ETHERC0->ECMR_b.DM = 0;
+      mode &= ~R_ETHERC0_ECMR_DM_Msk;
    }
+
+   //Update ETHERC mode register
+   R_ETHERC0->ECMR = mode;
 
    //Successful processing
    return NO_ERROR;
@@ -749,25 +820,25 @@ error_t ra6m3EthUpdateMacConfig(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void ra6m3EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void ra6EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
    //Synchronization pattern
-   ra6m3EthWriteSmi(SMI_SYNC, 32);
+   ra6EthWriteSmi(SMI_SYNC, 32);
    //Start of frame
-   ra6m3EthWriteSmi(SMI_START, 2);
+   ra6EthWriteSmi(SMI_START, 2);
    //Set up a write operation
-   ra6m3EthWriteSmi(opcode, 2);
+   ra6EthWriteSmi(opcode, 2);
    //Write PHY address
-   ra6m3EthWriteSmi(phyAddr, 5);
+   ra6EthWriteSmi(phyAddr, 5);
    //Write register address
-   ra6m3EthWriteSmi(regAddr, 5);
+   ra6EthWriteSmi(regAddr, 5);
    //Turnaround
-   ra6m3EthWriteSmi(SMI_TA, 2);
+   ra6EthWriteSmi(SMI_TA, 2);
    //Write register value
-   ra6m3EthWriteSmi(data, 16);
+   ra6EthWriteSmi(data, 16);
    //Release MDIO
-   ra6m3EthReadSmi(1);
+   ra6EthReadSmi(1);
 }
 
 
@@ -779,27 +850,27 @@ void ra6m3EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Register value
  **/
 
-uint16_t ra6m3EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t ra6EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr)
 {
    uint16_t data;
 
    //Synchronization pattern
-   ra6m3EthWriteSmi(SMI_SYNC, 32);
+   ra6EthWriteSmi(SMI_SYNC, 32);
    //Start of frame
-   ra6m3EthWriteSmi(SMI_START, 2);
+   ra6EthWriteSmi(SMI_START, 2);
    //Set up a read operation
-   ra6m3EthWriteSmi(opcode, 2);
+   ra6EthWriteSmi(opcode, 2);
    //Write PHY address
-   ra6m3EthWriteSmi(phyAddr, 5);
+   ra6EthWriteSmi(phyAddr, 5);
    //Write register address
-   ra6m3EthWriteSmi(regAddr, 5);
+   ra6EthWriteSmi(regAddr, 5);
    //Turnaround to avoid contention
-   ra6m3EthReadSmi(1);
+   ra6EthReadSmi(1);
    //Read register value
-   data = ra6m3EthReadSmi(16);
+   data = ra6EthReadSmi(16);
    //Force the PHY to release the MDIO pin
-   ra6m3EthReadSmi(1);
+   ra6EthReadSmi(1);
 
    //Return PHY register contents
    return data;
@@ -812,13 +883,13 @@ uint16_t ra6m3EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
  * @param[in] length Number of bits to be written
  **/
 
-void ra6m3EthWriteSmi(uint32_t data, uint_t length)
+void ra6EthWriteSmi(uint32_t data, uint_t length)
 {
    //Skip the most significant bits since they are meaningless
    data <<= 32 - length;
 
    //Configure MDIO as an output
-   R_ETHERC0->PIR_b.MMD = 1;
+   R_ETHERC0->PIR |= R_ETHERC0_PIR_MMD_Msk;
 
    //Write the specified number of bits
    while(length--)
@@ -826,19 +897,19 @@ void ra6m3EthWriteSmi(uint32_t data, uint_t length)
       //Write MDIO
       if((data & 0x80000000) != 0)
       {
-         R_ETHERC0->PIR_b.MDO = 1;
+         R_ETHERC0->PIR |= R_ETHERC0_PIR_MDO_Msk;
       }
       else
       {
-         R_ETHERC0->PIR_b.MDO = 0;
+         R_ETHERC0->PIR &= ~R_ETHERC0_PIR_MDO_Msk;
       }
 
       //Assert MDC
       usleep(1);
-      R_ETHERC0->PIR_b.MDC = 1;
+      R_ETHERC0->PIR |= R_ETHERC0_PIR_MDC_Msk;
       //Deassert MDC
       usleep(1);
-      R_ETHERC0->PIR_b.MDC = 0;
+      R_ETHERC0->PIR &= ~R_ETHERC0_PIR_MDC_Msk;
 
       //Rotate data
       data <<= 1;
@@ -852,12 +923,12 @@ void ra6m3EthWriteSmi(uint32_t data, uint_t length)
  * @return Data resulting from the MDIO read operation
  **/
 
-uint32_t ra6m3EthReadSmi(uint_t length)
+uint32_t ra6EthReadSmi(uint_t length)
 {
    uint32_t data = 0;
 
    //Configure MDIO as an input
-   R_ETHERC0->PIR_b.MMD = 0;
+   R_ETHERC0->PIR &= ~R_ETHERC0_PIR_MMD_Msk;
 
    //Read the specified number of bits
    while(length--)
@@ -866,14 +937,14 @@ uint32_t ra6m3EthReadSmi(uint_t length)
       data <<= 1;
 
       //Assert MDC
-      R_ETHERC0->PIR_b.MDC = 1;
+      R_ETHERC0->PIR |= R_ETHERC0_PIR_MDC_Msk;
       usleep(1);
       //Deassert MDC
-      R_ETHERC0->PIR_b.MDC = 0;
+      R_ETHERC0->PIR &= ~R_ETHERC0_PIR_MDC_Msk;
       usleep(1);
 
       //Check MDIO state
-      if(R_ETHERC0->PIR_b.MDI)
+      if((R_ETHERC0->PIR & R_ETHERC0_PIR_MDI_Msk) != 0)
       {
          data |= 0x01;
       }

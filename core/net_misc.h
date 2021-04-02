@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _NET_MISC_H
@@ -116,6 +116,7 @@ struct _NetTxAncillary
 {
    uint8_t ttl;         ///<Time-to-live value
    bool_t dontRoute;    ///<Do not send the packet via a router
+   bool_t routerAlert;  ///<Add an IP Router Alert option
 #if (IP_DIFF_SERV_SUPPORT == ENABLED)
    uint8_t dscp;        ///<Differentiated services codepoint
 #endif
@@ -161,6 +162,18 @@ struct _NetRxAncillary
 
 
 /**
+ * @brief Timer
+ **/
+
+typedef struct
+{
+   bool_t running;
+   systime_t startTime;
+   systime_t interval;
+} NetTimer;
+
+
+/**
  * @brief Pseudo-random number generator state
  **/
 
@@ -190,6 +203,11 @@ error_t netAttachTimerCallback(systime_t period, NetTimerCallback callback,
 error_t netDetachTimerCallback(NetTimerCallback callback, void *param);
 
 void netTick(void);
+
+void netStartTimer(NetTimer *timer, systime_t interval);
+void netStopTimer(NetTimer *timer);
+bool_t netTimerRunning(NetTimer *timer);
+bool_t netTimerExpired(NetTimer *timer);
 
 void netInitRand(void);
 uint32_t netGetRand(void);

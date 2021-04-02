@@ -25,24 +25,17 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
-//TM4C1294NCPDT device?
-#if defined(PART_TM4C1294NCPDT)
-   #include "tm4c1294ncpdt.h"
-//TM4C129XNCZAD device?
-#elif defined(PART_TM4C129XNCZAD)
-   #include "tm4c129xnczad.h"
-#endif
-
 //Dependencies
 #include <stdint.h>
 #include <stdbool.h>
 #include "inc/hw_emac.h"
+#include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
 #include "driverlib/gpio.h"
@@ -97,7 +90,7 @@ static Tm4c129RxDmaDesc *rxCurDmaDesc;
 
 
 /**
- * @brief Tiva TM4C129 Ethernet MAC driver
+ * @brief TM4C129 Ethernet MAC driver
  **/
 
 const NicDriver tm4c129EthDriver =
@@ -111,9 +104,9 @@ const NicDriver tm4c129EthDriver =
    tm4c129EthEventHandler,
    tm4c129EthSendPacket,
    tm4c129EthUpdateMacAddrFilter,
-   NULL,
-   NULL,
-   NULL,
+   tm4c129EthUpdateMacConfig,
+   tm4c129EthWritePhyReg,
+   tm4c129EthReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -122,15 +115,20 @@ const NicDriver tm4c129EthDriver =
 
 
 /**
- * @brief Tiva TM4C129 Ethernet MAC initialization
+ * @brief TM4C129 Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
 error_t tm4c129EthInit(NetInterface *interface)
 {
+   error_t error;
+#ifdef ti_sysbios_BIOS___VERS
+   Hwi_Params hwiParams;
+#endif
+
    //Debug message
-   TRACE_INFO("Initializing Tiva TM4C129 Ethernet controller...\r\n");
+   TRACE_INFO("Initializing TM4C129 Ethernet controller...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -168,24 +166,52 @@ error_t tm4c129EthInit(NetInterface *interface)
    //Adjust MDC clock range depending on SYSCLK frequency
    EMAC0_MIIADDR_R = EMAC_MIIADDR_CR_100_150;
 
-   //Reset PHY transceiver
-   tm4c129EthWritePhyReg(EPHY_BMCR, EPHY_BMCR_MIIRESET);
-   //Wait for the reset to complete
-   while(tm4c129EthReadPhyReg(EPHY_BMCR) & EPHY_BMCR_MIIRESET)
+   //Internal or external Ethernet PHY?
+   if(interface->phyDriver != NULL)
    {
+      //Ethernet PHY initialization
+      error = interface->phyDriver->init(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Ethernet switch initialization
+      error = interface->switchDriver->init(interface);
+   }
+   else
+   {
+      //Reset internal PHY transceiver
+      tm4c129EthWritePhyReg(SMI_OPCODE_WRITE, 0, EPHY_BMCR,
+         EPHY_BMCR_MIIRESET);
+
+      //Wait for the reset to complete
+      while(tm4c129EthReadPhyReg(SMI_OPCODE_READ, 0, EPHY_BMCR) &
+         EPHY_BMCR_MIIRESET)
+      {
+      }
+
+      //Dump PHY registers for debugging purpose
+      tm4c129EthDumpPhyReg();
+
+      //Configure LED0, LED1 and LED2
+      tm4c129EthWritePhyReg(SMI_OPCODE_WRITE, 0, EPHY_LEDCFG,
+         EPHY_LEDCFG_LED0_TX | EPHY_LEDCFG_LED1_RX | EPHY_LEDCFG_LED2_LINK);
+
+      //Configure PHY interrupts as desired
+      tm4c129EthWritePhyReg(SMI_OPCODE_WRITE, 0, EPHY_MISR1,
+         EPHY_MISR1_LINKSTATEN);
+
+      //Enable PHY interrupts
+      tm4c129EthWritePhyReg(SMI_OPCODE_WRITE, 0, EPHY_SCR, EPHY_SCR_INTEN);
+
+      //The internal Ethernet PHY is initialized
+      error = NO_ERROR;
    }
 
-   //Dump PHY registers for debugging purpose
-   tm4c129EthDumpPhyReg();
-
-   //Configure LED0, LED1 and LED2
-   tm4c129EthWritePhyReg(EPHY_LEDCFG, EPHY_LEDCFG_LED0_TX |
-      EPHY_LEDCFG_LED1_RX | EPHY_LEDCFG_LED2_LINK);
-
-   //Configure PHY interrupts as desired
-   tm4c129EthWritePhyReg(EPHY_MISR1, EPHY_MISR1_LINKSTATEN);
-   //Enable PHY interrupts
-   tm4c129EthWritePhyReg(EPHY_SCR, EPHY_SCR_INTEN);
+   //Any error to report?
+   if(error)
+   {
+      return error;
+   }
 
    //Use default MAC configuration
    EMAC0_CFG_R = EMAC_CFG_DRO;
@@ -214,8 +240,9 @@ error_t tm4c129EthInit(NetInterface *interface)
    EMAC0_DMAOPMODE_R = EMAC_DMAOPMODE_RSF | EMAC_DMAOPMODE_TSF;
 
    //Configure DMA bus mode
-   EMAC0_DMABUSMOD_R = EMAC_DMABUSMOD_AAL | EMAC_DMABUSMOD_USP | EMAC_DMABUSMOD_RPBL_1 |
-      EMAC_DMABUSMOD_PR_1_1 | EMAC_DMABUSMOD_PBL_1 | EMAC_DMABUSMOD_ATDS;
+   EMAC0_DMABUSMOD_R = EMAC_DMABUSMOD_AAL | EMAC_DMABUSMOD_USP |
+      EMAC_DMABUSMOD_RPBL_1 | EMAC_DMABUSMOD_PR_1_1 | EMAC_DMABUSMOD_PBL_1 |
+      EMAC_DMABUSMOD_ATDS;
 
    //Initialize DMA descriptor lists
    tm4c129EthInitDmaDesc(interface);
@@ -237,10 +264,20 @@ error_t tm4c129EthInit(NetInterface *interface)
    //Enable PHY interrupts
    EMAC0_EPHYIM_R = EMAC_EPHYIM_INT;
 
+#ifdef ti_sysbios_BIOS___VERS
+   //Configure Ethernet interrupt
+   Hwi_Params_init(&hwiParams);
+   hwiParams.enableInt = FALSE;
+   hwiParams.priority = TM4C129_ETH_IRQ_PRIORITY;
+
+   //Register interrupt handler
+   Hwi_create(INT_EMAC0, (Hwi_FuncPtr) tm4c129EthIrqHandler, &hwiParams, NULL);
+#else
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
    IntPriorityGroupingSet(TM4C129_ETH_IRQ_PRIORITY_GROUPING);
    //Configure Ethernet interrupt priority
    IntPrioritySet(INT_EMAC0, TM4C129_ETH_IRQ_PRIORITY);
+#endif
 
    //Enable MAC transmission and reception
    EMAC0_CFG_R |= EMAC_CFG_TE | EMAC_CFG_RE;
@@ -373,6 +410,21 @@ void tm4c129EthInitDmaDesc(NetInterface *interface)
 
 void tm4c129EthTick(NetInterface *interface)
 {
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->phyDriver->tick(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Handle periodic operations
+      interface->switchDriver->tick(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -383,8 +435,29 @@ void tm4c129EthTick(NetInterface *interface)
 
 void tm4c129EthEnableIrq(NetInterface *interface)
 {
+#ifdef ti_sysbios_BIOS___VERS
+   //Enable Ethernet MAC interrupts
+   Hwi_enableInterrupt(INT_EMAC0);
+#else
    //Enable Ethernet MAC interrupts
    IntEnable(INT_EMAC0);
+#endif
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Enable Ethernet PHY interrupts
+      interface->phyDriver->enableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Enable Ethernet switch interrupts
+      interface->switchDriver->enableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -395,8 +468,29 @@ void tm4c129EthEnableIrq(NetInterface *interface)
 
 void tm4c129EthDisableIrq(NetInterface *interface)
 {
+#ifdef ti_sysbios_BIOS___VERS
+   //Disable Ethernet MAC interrupts
+   Hwi_disableInterrupt(INT_EMAC0);
+#else
    //Disable Ethernet MAC interrupts
    IntDisable(INT_EMAC0);
+#endif
+
+   //Valid Ethernet PHY or switch driver?
+   if(interface->phyDriver != NULL)
+   {
+      //Disable Ethernet PHY interrupts
+      interface->phyDriver->disableIrq(interface);
+   }
+   else if(interface->switchDriver != NULL)
+   {
+      //Disable Ethernet switch interrupts
+      interface->switchDriver->disableIrq(interface);
+   }
+   else
+   {
+      //Just for sanity
+   }
 }
 
 
@@ -404,7 +498,7 @@ void tm4c129EthDisableIrq(NetInterface *interface)
  * @brief TM4C129 Ethernet MAC interrupt service routine
  **/
 
-void EMAC0_Handler(void)
+void tm4c129EthIrqHandler(void)
 {
    bool_t flag;
    uint32_t status;
@@ -482,64 +576,70 @@ void tm4c129EthEventHandler(NetInterface *interface)
    {
       //Clear PHY interrupt flag
       EMAC0_EPHYMISC_R = EMAC_EPHYMISC_INT;
-      //Read PHY interrupt status register
-      status = tm4c129EthReadPhyReg(EPHY_MISR1);
 
-      //Check whether the link state has changed?
-      if((status & EPHY_MISR1_LINKSTAT) != 0)
+      //Internal or external Ethernet PHY?
+      if(interface->phyDriver != NULL)
       {
-         //Read BMSR register
-         status = tm4c129EthReadPhyReg(EPHY_BMSR);
+         //Handle events
+         interface->phyDriver->eventHandler(interface);
+      }
+      else if(interface->switchDriver != NULL)
+      {
+         //Handle events
+         interface->switchDriver->eventHandler(interface);
+      }
+      else
+      {
+         //Read PHY interrupt status register
+         status = tm4c129EthReadPhyReg(SMI_OPCODE_READ, 0, EPHY_MISR1);
 
-         //Check whether the link is up
-         if((status & EPHY_BMSR_LINKSTAT) != 0)
+         //Check whether the link state has changed?
+         if((status & EPHY_MISR1_LINKSTAT) != 0)
          {
-            //Read PHY status register
-            status = tm4c129EthReadPhyReg(EPHY_STS);
+            //Read BMSR register
+            status = tm4c129EthReadPhyReg(SMI_OPCODE_READ, 0, EPHY_BMSR);
 
-            //Check current speed
-            if((status & EPHY_STS_SPEED) != 0)
+            //Check whether the link is up
+            if((status & EPHY_BMSR_LINKSTAT) != 0)
             {
-               //10BASE-T operation
-               interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
-               //Update MAC configuration
-               EMAC0_CFG_R &= ~EMAC_CFG_FES;
+               //Read PHY status register
+               status = tm4c129EthReadPhyReg(SMI_OPCODE_READ, 0, EPHY_STS);
+
+               //Check current speed
+               if((status & EPHY_STS_SPEED) != 0)
+               {
+                  interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+               }
+               else
+               {
+                  interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+               }
+
+               //Check duplex mode
+               if((status & EPHY_STS_DUPLEX) != 0)
+               {
+                  interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+               }
+               else
+               {
+                  interface->duplexMode = NIC_HALF_DUPLEX_MODE;
+               }
+
+               //Update link state
+               interface->linkState = TRUE;
+
+               //Adjust MAC configuration parameters for proper operation
+               tm4c129EthUpdateMacConfig(interface);
             }
             else
             {
-               //100BASE-TX operation
-               interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-               //Update MAC configuration
-               EMAC0_CFG_R |= EMAC_CFG_FES;
+               //Update link state
+               interface->linkState = FALSE;
             }
 
-            //Check current duplex mode
-            if((status & EPHY_STS_DUPLEX) != 0)
-            {
-               //Full-Duplex mode
-               interface->duplexMode = NIC_FULL_DUPLEX_MODE;
-               //Update MAC configuration
-               EMAC0_CFG_R |= EMAC_CFG_DUPM;
-            }
-            else
-            {
-               //Half-Duplex mode
-               interface->duplexMode = NIC_HALF_DUPLEX_MODE;
-               //Update MAC configuration
-               EMAC0_CFG_R &= ~EMAC_CFG_DUPM;
-            }
-
-            //Update link state
-            interface->linkState = TRUE;
+            //Process link state change event
+            nicNotifyLinkChange(interface);
          }
-         else
-         {
-            //Update link state
-            interface->linkState = FALSE;
-         }
-
-         //Process link state change event
-         nicNotifyLinkChange(interface);
       }
    }
 
@@ -641,7 +741,7 @@ error_t tm4c129EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxCurDmaDesc->rdes0 & EMAC_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
@@ -822,64 +922,132 @@ error_t tm4c129EthUpdateMacAddrFilter(NetInterface *interface)
 
 
 /**
+ * @brief Adjust MAC configuration parameters for proper operation
+ * @param[in] interface Underlying network interface
+ * @return Error code
+ **/
+
+error_t tm4c129EthUpdateMacConfig(NetInterface *interface)
+{
+   uint32_t config;
+
+   //Read current MAC configuration
+   config = EMAC0_CFG_R;
+
+   //10BASE-T or 100BASE-TX operation mode?
+   if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
+      config |= EMAC_CFG_FES;
+   }
+   else
+   {
+      config &= ~EMAC_CFG_FES;
+   }
+
+   //Half-duplex or full-duplex mode?
+   if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
+      config |= EMAC_CFG_DUPM;
+   }
+   else
+   {
+      config &= ~EMAC_CFG_DUPM;
+   }
+
+   //Update MAC configuration register
+   EMAC0_CFG_R = config;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
  * @brief Write PHY register
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @param[in] data Register value
  **/
 
-void tm4c129EthWritePhyReg(uint8_t regAddr, uint16_t data)
+void tm4c129EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data)
 {
    uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   temp = EMAC0_MIIADDR_R & EMAC_MIIADDR_CR_M;
-   //Set up a write operation
-   temp |= EMAC_MIIADDR_MIIW | EMAC_MIIADDR_MIIB;
-   //The address of the integrated PHY is 0
-   temp |= (0 << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
-   //Register address
-   temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
-
-   //Data to be written in the PHY register
-   EMAC0_MIIDATA_R = data & EMAC_MIIDATA_DATA_M;
-
-   //Start a write operation
-   EMAC0_MIIADDR_R = temp;
-   //Wait for the write to complete
-   while((EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB) != 0)
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_WRITE)
    {
+      //Take care not to alter MDC clock configuration
+      temp = EMAC0_MIIADDR_R & EMAC_MIIADDR_CR_M;
+      //Set up a write operation
+      temp |= EMAC_MIIADDR_MIIW | EMAC_MIIADDR_MIIB;
+      //PHY address
+      temp |= (phyAddr << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
+      //Register address
+      temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
+
+      //Data to be written in the PHY register
+      EMAC0_MIIDATA_R = data & EMAC_MIIDATA_DATA_M;
+
+      //Start a write operation
+      EMAC0_MIIADDR_R = temp;
+      //Wait for the write to complete
+      while((EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB) != 0)
+      {
+      }
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
    }
 }
 
 
 /**
  * @brief Read PHY register
- * @param[in] regAddr Register address
+ * @param[in] opcode Access type (2 bits)
+ * @param[in] phyAddr PHY address (5 bits)
+ * @param[in] regAddr Register address (5 bits)
  * @return Register value
  **/
 
-uint16_t tm4c129EthReadPhyReg(uint8_t regAddr)
+uint16_t tm4c129EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr)
 {
+   uint16_t data;
    uint32_t temp;
 
-   //Take care not to alter MDC clock configuration
-   temp = EMAC0_MIIADDR_R & EMAC_MIIADDR_CR_M;
-   //Set up a read operation
-   temp |= EMAC_MIIADDR_MIIB;
-   //The address of the integrated PHY is 0
-   temp |= (0 << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
-   //Register address
-   temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
-
-   //Start a read operation
-   EMAC0_MIIADDR_R = temp;
-   //Wait for the read to complete
-   while((EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB) != 0)
+   //Valid opcode?
+   if(opcode == SMI_OPCODE_READ)
    {
+      //Take care not to alter MDC clock configuration
+      temp = EMAC0_MIIADDR_R & EMAC_MIIADDR_CR_M;
+      //Set up a read operation
+      temp |= EMAC_MIIADDR_MIIB;
+      //PHY address
+      temp |= (phyAddr << EMAC_MIIADDR_PLA_S) & EMAC_MIIADDR_PLA_M;
+      //Register address
+      temp |= (regAddr << EMAC_MIIADDR_MII_S) & EMAC_MIIADDR_MII_M;
+
+      //Start a read operation
+      EMAC0_MIIADDR_R = temp;
+      //Wait for the read to complete
+      while((EMAC0_MIIADDR_R & EMAC_MIIADDR_MIIB) != 0)
+      {
+      }
+
+      //Get register value
+      data = EMAC0_MIIDATA_R & EMAC_MIIDATA_DATA_M;
+   }
+   else
+   {
+      //The MAC peripheral only supports standard Clause 22 opcodes
+      data = 0;
    }
 
-   //Return PHY register contents
-   return EMAC0_MIIDATA_R & EMAC_MIIDATA_DATA_M;
+   //Return the value of the PHY register
+   return data;
 }
 
 
@@ -896,7 +1064,7 @@ void tm4c129EthDumpPhyReg(void)
    {
       //Display current PHY register
       TRACE_DEBUG("%02" PRIu8 ": 0x%04" PRIX16 "\r\n", i,
-         tm4c129EthReadPhyReg(i));
+         tm4c129EthReadPhyReg(SMI_OPCODE_READ, 0, i));
    }
 
    //Terminate with a line feed

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -133,6 +133,10 @@
 
 //TCP level options
 #define TCP_NODELAY      0x0001
+#define TCP_MAXSEG       0x0002
+#define TCP_KEEPIDLE     0x0004
+#define TCP_KEEPINTVL    0x0005
+#define TCP_KEEPCNT      0x0006
 
 //IOCTL commands
 #define FIONREAD         0x400466FF

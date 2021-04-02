@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -38,6 +38,7 @@
 #include "hw_control_am335x.h"
 #include "hw_cpsw_ale.h"
 #include "hw_cpsw_cpdma.h"
+#include "hw_cpsw_cpdma_stateram.h"
 #include "hw_cpsw_port.h"
 #include "hw_cpsw_sl.h"
 #include "hw_cpsw_ss.h"
@@ -227,7 +228,7 @@ error_t am335xEthInitPort1(NetInterface *interface)
    }
 
    //Set port state to forward
-   temp = CPSW_ALE_PORTCTL_R(1) & ~CPSW_ALE_PORTCTL1_PORT_STATE;
+   temp = CPSW_ALE_PORTCTL_R(1) & ~CPSW_ALE_PORTCTL_PORT_STATE_MASK;
    CPSW_ALE_PORTCTL_R(1) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
    //Set the MAC address of the station
@@ -235,8 +236,8 @@ error_t am335xEthInitPort1(NetInterface *interface)
    CPSW_PORT1_SA_LO_R = interface->macAddr.w[2];
 
    //Configure VLAN identifier and VLAN priority
-   CPSW_PORT1_PORT_VLAN_R = (0 << CPSW_PORT_P1_PORT_VLAN_PORT_PRI_SHIFT) |
-      (CPSW_PORT1 << CPSW_PORT_P1_PORT_VLAN_PORT_VID_SHIFT);
+   CPSW_PORT1_VLAN_R = (0 << CPSW_PORT_P_VLAN_PRI_SHIFT) |
+      (CPSW_PORT1 << CPSW_PORT_P_VLAN_VID_SHIFT);
 
    //Add a VLAN entry in the ALE table
    am335xEthAddVlanEntry(CPSW_PORT1, CPSW_PORT1);
@@ -245,10 +246,10 @@ error_t am335xEthInitPort1(NetInterface *interface)
    am335xEthAddVlanAddrEntry(CPSW_PORT1, CPSW_PORT1, &interface->macAddr);
 
    //Enable CPSW statistics
-   CPSW_SS_STAT_PORT_EN_R |= CPSW_SS_STAT_PORT_EN_P1_STAT_EN;
+   CPSW_SS_STAT_PORT_EN_R |= CPSW_SS_STAT_PORT_EN_P1_MASK;
 
    //Enable TX and RX
-   CPSW_SL1_MACCONTROL_R = CPSW_SL_MACCONTROL_GMII_EN;
+   CPSW_SL1_MACCTRL_R = CPSW_SL_MACCTRL_GMII_EN_MASK;
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -302,7 +303,7 @@ error_t am335xEthInitPort2(NetInterface *interface)
    }
 
    //Set port state to forward
-   temp = CPSW_ALE_PORTCTL_R(2) & ~CPSW_ALE_PORTCTL2_PORT_STATE;
+   temp = CPSW_ALE_PORTCTL_R(2) & ~CPSW_ALE_PORTCTL_PORT_STATE_MASK;
    CPSW_ALE_PORTCTL_R(2) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
    //Set the MAC address of the station
@@ -310,8 +311,8 @@ error_t am335xEthInitPort2(NetInterface *interface)
    CPSW_PORT2_SA_LO_R = interface->macAddr.w[2];
 
    //Configure VLAN identifier and VLAN priority
-   CPSW_PORT2_PORT_VLAN_R = (0 << CPSW_PORT_P2_PORT_VLAN_PORT_PRI_SHIFT) |
-      (CPSW_PORT2 << CPSW_PORT_P2_PORT_VLAN_PORT_VID_SHIFT);
+   CPSW_PORT2_VLAN_R = (0 << CPSW_PORT_P_VLAN_PRI_SHIFT) |
+      (CPSW_PORT2 << CPSW_PORT_P_VLAN_VID_SHIFT);
 
    //Add a VLAN entry in the ALE table
    am335xEthAddVlanEntry(CPSW_PORT2, CPSW_PORT2);
@@ -320,10 +321,10 @@ error_t am335xEthInitPort2(NetInterface *interface)
    am335xEthAddVlanAddrEntry(CPSW_PORT2, CPSW_PORT2, &interface->macAddr);
 
    //Enable CPSW statistics
-   CPSW_SS_STAT_PORT_EN_R |= CPSW_SS_STAT_PORT_EN_P2_STAT_EN;
+   CPSW_SS_STAT_PORT_EN_R |= CPSW_SS_STAT_PORT_EN_P2_MASK;
 
    //Enable TX and RX
-   CPSW_SL2_MACCONTROL_R = CPSW_SL_MACCONTROL_GMII_EN;
+   CPSW_SL2_MACCTRL_R = CPSW_SL_MACCTRL_GMII_EN_MASK;
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -379,37 +380,37 @@ void am335xEthInitInstance(NetInterface *interface)
       } while(temp != CM_PER_CPSW_CLKSTCTRL_CLKACTIVITY_CPSW_125MHZ_GCLK_ACT);
 
       //Reset CPSW subsystem
-      CPSW_SS_SOFT_RESET_R = CPSW_SS_SOFT_RESET_SOFT_RESET;
+      CPSW_SS_SOFT_RESET_R = CPSW_SS_SOFT_RESET_MASK;
       //Wait for the reset to complete
-      while((CPSW_SS_SOFT_RESET_R & CPSW_SS_SOFT_RESET_SOFT_RESET) != 0)
+      while((CPSW_SS_SOFT_RESET_R & CPSW_SS_SOFT_RESET_MASK) != 0)
       {
       }
 
       //Reset CPSW wrapper module
-      CPSW_WR_SOFT_RESET_R = CPSW_WR_SOFT_RESET_SOFT_RESET;
+      CPSW_WR_SOFT_RESET_R = CPSW_WR_SOFT_RESET_MASK;
       //Wait for the reset to complete
-      while((CPSW_WR_SOFT_RESET_R & CPSW_WR_SOFT_RESET_SOFT_RESET) != 0)
+      while((CPSW_WR_SOFT_RESET_R & CPSW_WR_SOFT_RESET_MASK) != 0)
       {
       }
 
       //Reset CPSW sliver 1 logic
-      CPSW_SL1_SOFT_RESET_R = CPSW_SL_SOFT_RESET_SOFT_RESET;
+      CPSW_SL1_SOFT_RESET_R = CPSW_SL_SOFT_RESET_MASK;
       //Wait for the reset to complete
-      while((CPSW_SL1_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET) != 0)
+      while((CPSW_SL1_SOFT_RESET_R & CPSW_SL_SOFT_RESET_MASK) != 0)
       {
       }
 
       //Reset CPSW sliver 2 logic
-      CPSW_SL2_SOFT_RESET_R = CPSW_SL_SOFT_RESET_SOFT_RESET;
+      CPSW_SL2_SOFT_RESET_R = CPSW_SL_SOFT_RESET_MASK;
       //Wait for the reset to complete
-      while((CPSW_SL2_SOFT_RESET_R & CPSW_SL_SOFT_RESET_SOFT_RESET) != 0)
+      while((CPSW_SL2_SOFT_RESET_R & CPSW_SL_SOFT_RESET_MASK) != 0)
       {
       }
 
       //Reset CPSW CPDMA module
-      CPSW_CPDMA_CPDMA_SOFT_RESET_R = CPSW_CPDMA_CPDMA_SOFT_RESET_SOFT_RESET;
+      CPSW_CPDMA_SOFT_RESET_R = CPSW_CPDMA_SOFT_RESET_MASK;
       //Wait for the reset to complete
-      while((CPSW_CPDMA_CPDMA_SOFT_RESET_R & CPSW_CPDMA_CPDMA_SOFT_RESET_SOFT_RESET) != 0)
+      while((CPSW_CPDMA_SOFT_RESET_R & CPSW_CPDMA_SOFT_RESET_MASK) != 0)
       {
       }
 
@@ -417,39 +418,38 @@ void am335xEthInitInstance(NetInterface *interface)
       for(i = CPSW_CH0; i <= CPSW_CH7; i++)
       {
          //TX head descriptor pointer
-         CPSW_CPDMA_TX_HDP_R(i) = 0;
+         CPSW_CPDMA_STATERAM_TX_HDP_R(i) = 0;
          //TX completion pointer
-         CPSW_CPDMA_TX_CP_R(i) = 0;
+         CPSW_CPDMA_STATERAM_TX_CP_R(i) = 0;
          //RX head descriptor pointer
-         CPSW_CPDMA_RX_HDP_R(i) = 0;
+         CPSW_CPDMA_STATERAM_RX_HDP_R(i) = 0;
          //RX completion pointer
-         CPSW_CPDMA_RX_CP_R(i) = 0;
+         CPSW_CPDMA_STATERAM_RX_CP_R(i) = 0;
       }
 
       //Enable ALE and clear ALE address table
-      CPSW_ALE_CONTROL_R = CPSW_ALE_CONTROL_ENABLE_ALE |
-         CPSW_ALE_CONTROL_CLEAR_TABLE;
+      CPSW_ALE_CTRL_R = CPSW_ALE_CTRL_EN_MASK | CPSW_ALE_CTRL_CLR_TBL_MASK;
 
       //For dual MAC mode, configure VLAN aware mode
-      CPSW_ALE_CONTROL_R |= CPSW_ALE_CONTROL_ALE_VLAN_AWARE;
+      CPSW_ALE_CTRL_R |= CPSW_ALE_CTRL_VLAN_AWARE_MASK;
 
       //Set dual MAC mode for port 0
-      temp = CPSW_PORT0_TX_IN_CTL_R & ~CPSW_PORT_P0_TX_IN_CTL_TX_IN_SEL;
-      CPSW_PORT0_TX_IN_CTL_R = temp | CPSW_PORT_P0_TX_IN_CTL_TX_IN_DUAL_MAC;
+      temp = CPSW_PORT0_TX_IN_CTL_R & ~CPSW_PORT_P_TX_IN_CTL_SEL_MASK;
+      CPSW_PORT0_TX_IN_CTL_R = temp | CPSW_PORT_P_TX_IN_CTL_SEL_DUAL_MAC;
 
       //Set port 0 state to forward
-      temp = CPSW_ALE_PORTCTL_R(0) & ~CPSW_ALE_PORTCTL0_PORT_STATE;
+      temp = CPSW_ALE_PORTCTL_R(0) & ~CPSW_ALE_PORTCTL_PORT_STATE_MASK;
       CPSW_ALE_PORTCTL_R(0) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
       //Enable CPSW statistics
-      CPSW_SS_STAT_PORT_EN_R = CPSW_SS_STAT_PORT_EN_P0_STAT_EN;
+      CPSW_SS_STAT_PORT_EN_R = CPSW_SS_STAT_PORT_EN_P0_MASK;
 
       //Configure TX and RX buffer descriptors
       am335xEthInitBufferDesc(interface);
 
       //Acknowledge TX and interrupts for proper interrupt pulsing
-      CPSW_CPDMA_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_TX_PULSE;
-      CPSW_CPDMA_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_RX_PULSE;
+      CPSW_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_TX_PULSE;
+      CPSW_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_RX_PULSE;
 
       //Enable channel 1 and 2 interrupts of the DMA engine
       CPSW_CPDMA_TX_INTMASK_SET_R = (1 << CPSW_CH1) | (1 << CPSW_CH2);
@@ -494,15 +494,15 @@ void am335xEthInitInstance(NetInterface *interface)
 #endif
 
       //Enable the transmission and reception
-      CPSW_CPDMA_TX_CONTROL_R = CPSW_CPDMA_TX_CONTROL_TX_EN;
-      CPSW_CPDMA_RX_CONTROL_R = CPSW_CPDMA_RX_CONTROL_RX_EN;
+      CPSW_CPDMA_TX_CTRL_R = CPSW_CPDMA_TX_CTRL_EN_MASK;
+      CPSW_CPDMA_RX_CTRL_R = CPSW_CPDMA_RX_CTRL_EN_MASK;
 
       //Calculate the MDC clock divider to be used
       temp = (MDIO_INPUT_CLK / MDIO_OUTPUT_CLK) - 1;
 
       //Initialize MDIO interface
-      MDIO_CONTROL_R = MDIO_CONTROL_ENABLE |
-         MDIO_CONTROL_FAULTENB | (temp & MDIO_CONTROL_CLKDIV);
+      MDIO_CTRL_R = MDIO_CTRL_EN_MASK | MDIO_CTRL_FAULTENB_MASK |
+         (temp & MDIO_CTRL_CLKDIV_MASK);
    }
 }
 
@@ -826,7 +826,7 @@ void am335xEthInitBufferDesc(NetInterface *interface)
    rxCurBufferDesc->prev->word0 = (uint32_t) NULL;
 
    //Write the RX DMA head descriptor pointer
-   CPSW_CPDMA_RX_HDP_R(CPSW_CH0) = (uint32_t) rxCurBufferDesc;
+   CPSW_CPDMA_STATERAM_RX_HDP_R(CPSW_CH0) = (uint32_t) rxCurBufferDesc;
 }
 
 
@@ -860,12 +860,12 @@ void am335xEthTick(NetInterface *interface)
    //Misqueued buffer condition?
    if((rxCurBufferDesc->word3 & CPSW_RX_WORD3_OWNER) != 0)
    {
-      if(CPSW_CPDMA_RX_HDP_R(CPSW_CH0) == 0)
+      if(CPSW_CPDMA_STATERAM_RX_HDP_R(CPSW_CH0) == 0)
       {
          //The host acts on the misqueued buffer condition by writing the added
          //buffer descriptor address to the appropriate RX DMA head descriptor
          //pointer
-         CPSW_CPDMA_RX_HDP_R(CPSW_CH0) = (uint32_t) rxCurBufferDesc;
+         CPSW_CPDMA_STATERAM_RX_HDP_R(CPSW_CH0) = (uint32_t) rxCurBufferDesc;
       }
    }
 }
@@ -967,7 +967,7 @@ void am335xEthTxIrqHandler(void)
    if(status & (1 << CPSW_CH1))
    {
       //Point to the buffer descriptor
-      p = (Am335xTxBufferDesc *) CPSW_CPDMA_TX_CP_R(CPSW_CH1);
+      p = (Am335xTxBufferDesc *) CPSW_CPDMA_STATERAM_TX_CP_R(CPSW_CH1);
 
       //Read the status flags
       temp = p->word3 & (CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP |
@@ -982,12 +982,12 @@ void am335xEthTxIrqHandler(void)
             //The host corrects the misqueued buffer condition by writing the
             //misqueued packet’s buffer descriptor address to the appropriate
             //TX DMA head descriptor pointer
-            CPSW_CPDMA_TX_HDP_R(CPSW_CH1) = (uint32_t) p->word0;
+            CPSW_CPDMA_STATERAM_TX_HDP_R(CPSW_CH1) = (uint32_t) p->word0;
          }
       }
 
       //Write the TX completion pointer
-      CPSW_CPDMA_TX_CP_R(CPSW_CH1) = (uint32_t) p;
+      CPSW_CPDMA_STATERAM_TX_CP_R(CPSW_CH1) = (uint32_t) p;
 
       //Check whether the TX buffer is available for writing
       if((txCurBufferDesc1->word3 & CPSW_TX_WORD3_OWNER) == 0)
@@ -1001,7 +1001,7 @@ void am335xEthTxIrqHandler(void)
    if(status & (1 << CPSW_CH2))
    {
       //Point to the buffer descriptor
-      p = (Am335xTxBufferDesc *) CPSW_CPDMA_TX_CP_R(CPSW_CH2);
+      p = (Am335xTxBufferDesc *) CPSW_CPDMA_STATERAM_TX_CP_R(CPSW_CH2);
 
       //Read the status flags
       temp = p->word3 & (CPSW_TX_WORD3_SOP | CPSW_TX_WORD3_EOP |
@@ -1016,12 +1016,12 @@ void am335xEthTxIrqHandler(void)
             //The host corrects the misqueued buffer condition by writing the
             //misqueued packet’s buffer descriptor address to the appropriate
             //TX DMA head descriptor pointer
-            CPSW_CPDMA_TX_HDP_R(CPSW_CH2) = (uint32_t) p->word0;
+            CPSW_CPDMA_STATERAM_TX_HDP_R(CPSW_CH2) = (uint32_t) p->word0;
          }
       }
 
       //Write the TX completion pointer
-      CPSW_CPDMA_TX_CP_R(CPSW_CH2) = (uint32_t) p;
+      CPSW_CPDMA_STATERAM_TX_CP_R(CPSW_CH2) = (uint32_t) p;
 
       //Check whether the TX buffer is available for writing
       if((txCurBufferDesc2->word3 & CPSW_TX_WORD3_OWNER) == 0)
@@ -1032,7 +1032,7 @@ void am335xEthTxIrqHandler(void)
    }
 
    //Write the DMA end of interrupt vector
-   CPSW_CPDMA_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_TX_PULSE;
+   CPSW_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_TX_PULSE;
 
    //Interrupt service routine epilogue
    osExitIsr(flag);
@@ -1078,7 +1078,7 @@ void am335xEthRxIrqHandler(void)
    }
 
    //Write the DMA end of interrupt vector
-   CPSW_CPDMA_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_RX_PULSE;
+   CPSW_CPDMA_EOI_VECTOR_R = CPSW_CPDMA_EOI_VECTOR_RX_PULSE;
 
    //Interrupt service routine epilogue
    osExitIsr(flag);
@@ -1100,7 +1100,7 @@ void am335xEthEventHandler(NetInterface *interface)
    //Process all pending packets
    do
    {
-      //The current buffer is available for reading?
+      //Current buffer available for reading?
       if((rxCurBufferDesc->word3 & CPSW_RX_WORD3_OWNER) == 0)
       {
          //SOP and EOP flags should be set
@@ -1179,11 +1179,11 @@ void am335xEthEventHandler(NetInterface *interface)
             //The host acts on the misqueued buffer condition by writing the added
             //buffer descriptor address to the appropriate RX DMA head descriptor
             //pointer
-            CPSW_CPDMA_RX_HDP_R(CPSW_CH0) = (uint32_t) rxCurBufferDesc;
+            CPSW_CPDMA_STATERAM_RX_HDP_R(CPSW_CH0) = (uint32_t) rxCurBufferDesc;
          }
 
          //Write the RX completion pointer
-         CPSW_CPDMA_RX_CP_R(CPSW_CH0) = (uint32_t) rxCurBufferDesc;
+         CPSW_CPDMA_STATERAM_RX_CP_R(CPSW_CH0) = (uint32_t) rxCurBufferDesc;
 
          //Point to the next descriptor in the list
          rxCurBufferDesc = rxCurBufferDesc->next;
@@ -1285,7 +1285,7 @@ error_t am335xEthSendPacketPort1(NetInterface *interface,
       //The host corrects the misqueued buffer condition by writing the
       //misqueued packet’s buffer descriptor address to the appropriate
       //TX DMA head descriptor pointer
-      CPSW_CPDMA_TX_HDP_R(CPSW_CH1) = (uint32_t) txCurBufferDesc1;
+      CPSW_CPDMA_STATERAM_TX_HDP_R(CPSW_CH1) = (uint32_t) txCurBufferDesc1;
    }
 
    //Point to the next descriptor in the list
@@ -1374,7 +1374,7 @@ error_t am335xEthSendPacketPort2(NetInterface *interface,
       //The host corrects the misqueued buffer condition by writing the
       //misqueued packet’s buffer descriptor address to the appropriate
       //TX DMA head descriptor pointer
-      CPSW_CPDMA_TX_HDP_R(CPSW_CH2) = (uint32_t) txCurBufferDesc2;
+      CPSW_CPDMA_STATERAM_TX_HDP_R(CPSW_CH2) = (uint32_t) txCurBufferDesc2;
    }
 
    //Point to the next descriptor in the list
@@ -1463,50 +1463,50 @@ error_t am335xEthUpdateMacConfig(NetInterface *interface)
    //Read MAC control register
    if(interface == nicDriverInterface1)
    {
-      config = CPSW_SL1_MACCONTROL_R;
+      config = CPSW_SL1_MACCTRL_R;
    }
    else if(interface == nicDriverInterface2)
    {
-      config = CPSW_SL2_MACCONTROL_R;
+      config = CPSW_SL2_MACCTRL_R;
    }
 
    //1000BASE-T operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_1GBPS)
    {
-      config |= CPSW_SL_MACCONTROL_GIG;
-      config &= ~(CPSW_SL_MACCONTROL_IFCTL_A | CPSW_SL_MACCONTROL_IFCTL_B);
+      config |= CPSW_SL_MACCTRL_GIG_MASK;
+      config &= ~(CPSW_SL_MACCTRL_IFCTL_A_MASK | CPSW_SL_MACCTRL_IFCTL_B_MASK);
    }
    //100BASE-TX operation mode?
    else if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
    {
-      config &= ~CPSW_SL_MACCONTROL_GIG;
-      config |= CPSW_SL_MACCONTROL_IFCTL_A | CPSW_SL_MACCONTROL_IFCTL_B;
+      config &= ~CPSW_SL_MACCTRL_GIG_MASK;
+      config |= CPSW_SL_MACCTRL_IFCTL_A_MASK | CPSW_SL_MACCTRL_IFCTL_B_MASK;
    }
    //10BASE-T operation mode?
    else
    {
-      config &= ~CPSW_SL_MACCONTROL_GIG;
-      config &= ~(CPSW_SL_MACCONTROL_IFCTL_A | CPSW_SL_MACCONTROL_IFCTL_B);
+      config &= ~CPSW_SL_MACCTRL_GIG_MASK;
+      config &= ~(CPSW_SL_MACCTRL_IFCTL_A_MASK | CPSW_SL_MACCTRL_IFCTL_B_MASK);
    }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
    {
-      config |= CPSW_SL_MACCONTROL_FULLDUPLEX;
+      config |= CPSW_SL_MACCTRL_FULLDUPLEX_MASK;
    }
    else
    {
-      config &= ~CPSW_SL_MACCONTROL_FULLDUPLEX;
+      config &= ~CPSW_SL_MACCTRL_FULLDUPLEX_MASK;
    }
 
    //Update MAC control register
    if(interface == nicDriverInterface1)
    {
-      CPSW_SL1_MACCONTROL_R = config;
+      CPSW_SL1_MACCTRL_R = config;
    }
    else if(interface == nicDriverInterface2)
    {
-      CPSW_SL2_MACCONTROL_R = config;
+      CPSW_SL2_MACCTRL_R = config;
    }
 
    //Successful processing
@@ -1531,18 +1531,18 @@ void am335xEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    if(opcode == SMI_OPCODE_WRITE)
    {
       //Set up a write operation
-      temp = MDIO_USERACCESS0_GO | MDIO_USERACCESS0_WRITE;
+      temp = MDIO_USERACCESS_GO_MASK | MDIO_USERACCESS_WRITE;
       //PHY address
-      temp |= (phyAddr << MDIO_USERACCESS0_PHYADR_SHIFT) & MDIO_USERACCESS0_PHYADR;
+      temp |= (phyAddr << MDIO_USERACCESS_PHYADR_SHIFT) & MDIO_USERACCESS_PHYADR_MASK;
       //Register address
-      temp |= (regAddr << MDIO_USERACCESS0_REGADR_SHIFT) & MDIO_USERACCESS0_REGADR;
+      temp |= (regAddr << MDIO_USERACCESS_REGADR_SHIFT) & MDIO_USERACCESS_REGADR_MASK;
       //Register value
-      temp |= data & MDIO_USERACCESS0_DATA;
+      temp |= data & MDIO_USERACCESS_DATA_MASK;
 
       //Start a write operation
-      MDIO_USERACCESS0_R = temp;
+      MDIO_USERACCESS_R(0) = temp;
       //Wait for the write to complete
-      while((MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO) != 0)
+      while((MDIO_USERACCESS_R(0) & MDIO_USERACCESS_GO_MASK) != 0)
       {
       }
    }
@@ -1571,21 +1571,21 @@ uint16_t am335xEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    if(opcode == SMI_OPCODE_READ)
    {
       //Set up a read operation
-      temp = MDIO_USERACCESS0_GO | MDIO_USERACCESS0_READ;
+      temp = MDIO_USERACCESS_GO_MASK | MDIO_USERACCESS_READ;
       //PHY address
-      temp |= (phyAddr << MDIO_USERACCESS0_PHYADR_SHIFT) & MDIO_USERACCESS0_PHYADR;
+      temp |= (phyAddr << MDIO_USERACCESS_PHYADR_SHIFT) & MDIO_USERACCESS_PHYADR_MASK;
       //Register address
-      temp |= (regAddr << MDIO_USERACCESS0_REGADR_SHIFT) & MDIO_USERACCESS0_REGADR;
+      temp |= (regAddr << MDIO_USERACCESS_REGADR_SHIFT) & MDIO_USERACCESS_REGADR_MASK;
 
       //Start a read operation
-      MDIO_USERACCESS0_R = temp;
+      MDIO_USERACCESS_R(0) = temp;
       //Wait for the read to complete
-      while((MDIO_USERACCESS0_R & MDIO_USERACCESS0_GO) != 0)
+      while((MDIO_USERACCESS_R(0) & MDIO_USERACCESS_GO_MASK) != 0)
       {
       }
 
       //Get register value
-      data = MDIO_USERACCESS0_R & MDIO_USERACCESS0_DATA;
+      data = MDIO_USERACCESS_R(0) & MDIO_USERACCESS_DATA_MASK;
    }
    else
    {
@@ -1612,7 +1612,7 @@ void am335xEthWriteEntry(uint_t index, const Am335xAleEntry *entry)
    CPSW_ALE_TBLW_R(0) = entry->word0;
 
    //Write the ALE entry at the specified index
-   CPSW_ALE_TBLCTL_R = CPSW_ALE_TBLCTL_WRITE_RDZ | index;
+   CPSW_ALE_TBLCTL_R = CPSW_ALE_TBLCTL_WRITE_RDZ_MASK | index;
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -560,7 +560,7 @@ error_t str912EthReceivePacket(NetInterface *interface)
    uint8_t *p;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxCurDmaDesc->status & ENET_RDES_STATUS_VALID) == 0)
    {
       //Make sure no error occurred

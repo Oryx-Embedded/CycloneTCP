@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _FTP_SERVER_H
@@ -229,14 +229,15 @@ typedef enum
    FTP_CHANNEL_STATE_AUTH_TLS_2   = 8,
    FTP_CHANNEL_STATE_USER         = 9,
    FTP_CHANNEL_STATE_LIST         = 10,
-   FTP_CHANNEL_STATE_RETR         = 11,
-   FTP_CHANNEL_STATE_STOR         = 12,
-   FTP_CHANNEL_STATE_APPE         = 13,
-   FTP_CHANNEL_STATE_RNFR         = 14,
-   FTP_CHANNEL_STATE_SHUTDOWN_TLS = 15,
-   FTP_CHANNEL_STATE_WAIT_ACK     = 16,
-   FTP_CHANNEL_STATE_SHUTDOWN_TX  = 17,
-   FTP_CHANNEL_STATE_SHUTDOWN_RX  = 18
+   FTP_CHANNEL_STATE_NLST         = 11,
+   FTP_CHANNEL_STATE_RETR         = 12,
+   FTP_CHANNEL_STATE_STOR         = 13,
+   FTP_CHANNEL_STATE_APPE         = 14,
+   FTP_CHANNEL_STATE_RNFR         = 15,
+   FTP_CHANNEL_STATE_SHUTDOWN_TLS = 16,
+   FTP_CHANNEL_STATE_WAIT_ACK     = 17,
+   FTP_CHANNEL_STATE_SHUTDOWN_TX  = 18,
+   FTP_CHANNEL_STATE_SHUTDOWN_RX  = 19
 } FtpServerChannelState;
 
 

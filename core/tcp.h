@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _TCP_H
@@ -203,6 +203,34 @@
    #error TCP_2MSL_TIMER parameter is not valid
 #endif
 
+//TCP keep-alive support
+#ifndef TCP_KEEP_ALIVE_SUPPORT
+   #define TCP_KEEP_ALIVE_SUPPORT DISABLED
+#elif (TCP_KEEP_ALIVE_SUPPORT != ENABLED && TCP_KEEP_ALIVE_SUPPORT != DISABLED)
+   #error TCP_KEEP_ALIVE_SUPPORT parameter is not valid
+#endif
+
+//Default time interval between last data packet sent and first keep-alive probe
+#ifndef TCP_DEFAULT_KEEP_ALIVE_IDLE
+   #define TCP_DEFAULT_KEEP_ALIVE_IDLE 60000
+#elif (TCP_DEFAULT_KEEP_ALIVE_IDLE < 1000)
+   #error TCP_DEFAULT_KEEP_ALIVE_IDLE parameter is not valid
+#endif
+
+//Default time interval between subsequent keep-alive probes
+#ifndef TCP_DEFAULT_KEEP_ALIVE_INTERVAL
+   #define TCP_DEFAULT_KEEP_ALIVE_INTERVAL 15000
+#elif (TCP_DEFAULT_KEEP_ALIVE_INTERVAL < 1000)
+   #error TCP_DEFAULT_KEEP_ALIVE_INTERVAL parameter is not valid
+#endif
+
+//Number of keep-alive probes before considering the connection is dead
+#ifndef TCP_DEFAULT_KEEP_ALIVE_PROBES
+   #define TCP_DEFAULT_KEEP_ALIVE_PROBES 5
+#elif (TCP_DEFAULT_KEEP_ALIVE_PROBES < 1)
+   #error TCP_DEFAULT_KEEP_ALIVE_PROBES parameter is not valid
+#endif
+
 //Selective acknowledgment support
 #ifndef TCP_SACK_SUPPORT
    #define TCP_SACK_SUPPORT DISABLED
@@ -344,18 +372,6 @@ typedef __start_packed struct
 #if defined(__CWCC__) || defined(_WIN32)
    #pragma pack(pop)
 #endif
-
-
-/**
- * @brief TCP timer
- **/
-
-typedef struct
-{
-   bool_t running;
-   systime_t startTime;
-   systime_t interval;
-} TcpTimer;
 
 
 /**

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -241,7 +241,7 @@ error_t xmc4500EthInit(NetInterface *interface)
 
 
 //XMC4500 Relax Kit?
-#if defined(USE_XMC4500_RELAX_KIT)
+#if defined(USE_KIT_XMC4500_RELAX)
 
 /**
  * @brief GPIO configuration
@@ -598,7 +598,7 @@ error_t xmc4500EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxCurDmaDesc->rdes0 & ETH_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set

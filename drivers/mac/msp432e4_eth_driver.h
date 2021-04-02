@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _MSP432E4_ETH_DRIVER_H
@@ -172,6 +172,10 @@
 #define EMAC_RDES6_RTSL   0xFFFFFFFF
 #define EMAC_RDES7_RTSH   0xFFFFFFFF
 
+#ifndef ti_sysbios_BIOS___VERS
+   #define msp432e4EthIrqHandler EMAC0_IRQHandler
+#endif
+
 //C++ guard
 #ifdef __cplusplus
 extern "C" {
@@ -192,7 +196,7 @@ typedef struct
    uint32_t tdes5;
    uint32_t tdes6;
    uint32_t tdes7;
-} Tm4c129TxDmaDesc;
+} Msp432e4TxDmaDesc;
 
 
 /**
@@ -209,7 +213,7 @@ typedef struct
    uint32_t rdes5;
    uint32_t rdes6;
    uint32_t rdes7;
-} Tm4c129RxDmaDesc;
+} Msp432e4RxDmaDesc;
 
 
 //MSP432E4 Ethernet MAC driver
@@ -224,6 +228,7 @@ void msp432e4EthTick(NetInterface *interface);
 
 void msp432e4EthEnableIrq(NetInterface *interface);
 void msp432e4EthDisableIrq(NetInterface *interface);
+void msp432e4EthIrqHandler(void);
 void msp432e4EthEventHandler(NetInterface *interface);
 
 error_t msp432e4EthSendPacket(NetInterface *interface,
@@ -232,9 +237,14 @@ error_t msp432e4EthSendPacket(NetInterface *interface,
 error_t msp432e4EthReceivePacket(NetInterface *interface);
 
 error_t msp432e4EthUpdateMacAddrFilter(NetInterface *interface);
+error_t msp432e4EthUpdateMacConfig(NetInterface *interface);
 
-void msp432e4EthWritePhyReg(uint8_t regAddr, uint16_t data);
-uint16_t msp432e4EthReadPhyReg(uint8_t regAddr);
+void msp432e4EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr, uint16_t data);
+
+uint16_t msp432e4EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+   uint8_t regAddr);
+
 void msp432e4EthDumpPhyReg(void);
 
 uint32_t msp432e4EthCalcCrc(const void *data, size_t length);

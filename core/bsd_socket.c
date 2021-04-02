@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -36,6 +36,7 @@
 #include "core/net.h"
 #include "core/bsd_socket.h"
 #include "core/socket.h"
+#include "core/socket_misc.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -127,7 +128,7 @@ int_t socket(int_t family, int_t type, int_t protocol)
    }
 
    //Failed to create a new socket?
-   if(!sock)
+   if(sock == NULL)
    {
       //Report an error
       return SOCKET_ERROR;
@@ -998,24 +999,48 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
       if(level == SOL_SOCKET)
       {
          //Check option type
-         switch(optname)
+         if(optname == SO_REUSEADDR)
          {
-         //The socket can be bound to an address which is already in use
-         case SO_REUSEADDR:
-            //Ignore the specified option
+            //The socket can be bound to an address which is already in use
             ret = SOCKET_SUCCESS;
-            //We are done
-            break;
-
-         //Allow transmission and receipt of broadcast messages
-         case SO_BROADCAST:
-            //Ignore the specified option
+         }
+         else if(optname == SO_BROADCAST)
+         {
+            //Allow transmission and receipt of broadcast messages
             ret = SOCKET_SUCCESS;
-            //We are done
-            break;
+         }
+         else if(optname == SO_SNDTIMEO || optname == SO_RCVTIMEO)
+         {
+            //Check the length of the option
+            if(optlen >= (socklen_t) sizeof(timeval))
+            {
+               //Cast the option value to the relevant type
+               t = (timeval *) optval;
 
-         //Set send buffer size
-         case SO_SNDBUF:
+               //If the specified value is of zero, I/O operations shall not
+               //time out
+               if(t->tv_sec == 0 && t->tv_usec == 0)
+               {
+                  socketSetTimeout(sock, INFINITE_DELAY);
+               }
+               else
+               {
+                  socketSetTimeout(sock, t->tv_sec * 1000 + t->tv_usec / 1000);
+               }
+
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+#if (TCP_SUPPORT == ENABLED)
+         else if(optname == SO_SNDBUF)
+         {
             //Check the length of the option
             if(optlen >= (socklen_t) sizeof(int_t))
             {
@@ -1032,12 +1057,9 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Set receive buffer size
-         case SO_RCVBUF:
+         }
+         else if(optname == SO_RCVBUF)
+         {
             //Check the length of the option
             if(optlen >= (socklen_t) sizeof(int_t))
             {
@@ -1054,25 +1076,18 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Set send timeout or receive timeout
-         case SO_SNDTIMEO:
-         case SO_RCVTIMEO:
+         }
+#endif
+#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+         else if(optname == SO_KEEPALIVE)
+         {
             //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(timeval))
+            if(optlen >= (socklen_t) sizeof(int_t))
             {
                //Cast the option value to the relevant type
-               t = (timeval *) optval;
-
-               //If the specified value is of zero, I/O operations shall not time out
-               if(!t->tv_sec && !t->tv_usec)
-                  socketSetTimeout(sock, INFINITE_DELAY);
-               else
-                  socketSetTimeout(sock, t->tv_sec * 1000 + t->tv_usec / 1000);
-
+               val = (int_t *) optval;
+               //This option specifies whether TCP keep-alive is enabled
+               socketEnableKeepAlive(sock, *val);
                //Successful processing
                ret = SOCKET_SUCCESS;
             }
@@ -1082,25 +1097,21 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Unknown option
-         default:
-            //Report an error
+         }
+#endif
+         else
+         {
+            //Unknown option
             sock->errnoCode = ENOPROTOOPT;
+            //Report an error
             ret = SOCKET_ERROR;
-            break;
          }
       }
       else if(level == IPPROTO_IP)
       {
          //Check option type
-         switch(optname)
+         if(optname == IP_TTL)
          {
-         //Time-to-live value
-         case IP_TTL:
             //Check the length of the option
             if(optlen >= (socklen_t) sizeof(int_t))
             {
@@ -1117,18 +1128,15 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Time-to-live value for multicast packets
-         case IP_MULTICAST_TTL:
+         }
+         else if(optname == IP_MULTICAST_TTL)
+         {
             //Check the length of the option
             if(optlen >= (socklen_t) sizeof(int_t))
             {
                //Cast the option value to the relevant type
                val = (int_t *) optval;
-               //Save TTL value
+               //Save TTL value for multicast packets
                sock->multicastTtl = *val;
                //Successful processing
                ret = SOCKET_SUCCESS;
@@ -1139,16 +1147,81 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Unknown option
-         default:
-            //Report an error
+         }
+         else
+         {
+            //Unknown option
             sock->errnoCode = ENOPROTOOPT;
             ret = SOCKET_ERROR;
-            break;
+         }
+      }
+      else if(level == IPPROTO_TCP)
+      {
+#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+         //Check option type
+         if(optname == TCP_KEEPIDLE)
+         {
+            //Check the length of the option
+            if(optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Convert the time interval to milliseconds
+               sock->keepAliveIdle = *val * 1000;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+         else if(optname == TCP_KEEPINTVL)
+         {
+            //Check the length of the option
+            if(optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Convert the time interval to milliseconds
+               sock->keepAliveInterval = *val * 1000;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+         else if(optname == TCP_KEEPCNT)
+         {
+            //Check the length of the option
+            if(optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Save parameter value
+               sock->keepAliveMaxProbes = *val;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+         else
+#endif
+         {
+            //Unknown option
+            sock->errnoCode = ENOPROTOOPT;
+            ret = SOCKET_ERROR;
          }
       }
       else
@@ -1208,60 +1281,8 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
       if(level == SOL_SOCKET)
       {
          //Check option type
-         switch(optname)
+         if(optname == SO_SNDTIMEO || optname == SO_RCVTIMEO)
          {
-#if (TCP_SUPPORT == ENABLED)
-         //Get send buffer size
-         case SO_SNDBUF:
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return the size of the send buffer
-               *val = sock->txBufferSize;
-               //Return the actual length of the option
-               *optlen = sizeof(int_t);
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               sock->errnoCode = EFAULT;
-               ret = SOCKET_ERROR;
-            }
-
-            //We are done
-            break;
-
-         //Get receive buffer size
-         case SO_RCVBUF:
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return the size of the receive buffer
-               *val = sock->rxBufferSize;
-               //Return the actual length of the option
-               *optlen = sizeof(int_t);
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               sock->errnoCode = EFAULT;
-               ret = SOCKET_ERROR;
-            }
-
-            //We are done
-            break;
-#endif
-         //Get send timeout or receive timeout
-         case SO_SNDTIMEO:
-         case SO_RCVTIMEO:
             //Check the length of the option
             if(*optlen >= (socklen_t) sizeof(timeval))
             {
@@ -1291,12 +1312,74 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Get error status
-         case SO_ERROR:
+         }
+#if (TCP_SUPPORT == ENABLED)
+         else if(optname == SO_SNDBUF)
+         {
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Return the size of the send buffer
+               *val = sock->txBufferSize;
+               //Return the actual length of the option
+               *optlen = sizeof(int_t);
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+         else if(optname == SO_RCVBUF)
+         {
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Return the size of the receive buffer
+               *val = sock->rxBufferSize;
+               //Return the actual length of the option
+               *optlen = sizeof(int_t);
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+#endif
+#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+         else if(optname == SO_KEEPALIVE)
+         {
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(timeval))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //This option specifies whether TCP keep-alive is enabled
+               *val = sock->keepAliveEnabled;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+#endif
+         else if(optname == SO_ERROR)
+         {
             //Check the length of the option
             if(*optlen >= (socklen_t) sizeof(int_t))
             {
@@ -1319,31 +1402,25 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Unknown option
-         default:
-            //Report an error
+         }
+         else
+         {
+            //Unknown option
             sock->errnoCode = ENOPROTOOPT;
             ret = SOCKET_ERROR;
-            break;
          }
       }
       else if(level == IPPROTO_IP)
       {
          //Check option type
-         switch(optname)
+         if(optname == IP_TTL)
          {
-         //Time-to-live value
-         case IP_TTL:
             //Check the length of the option
             if(*optlen >= (socklen_t) sizeof(int_t))
             {
                //Cast the option value to the relevant type
                val = (int_t *) optval;
-               //Return the current TTL value
+               //Return TTL value
                *val = sock->ttl;
                //Return the actual length of the option
                *optlen = sizeof(int_t);
@@ -1357,19 +1434,16 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Time-to-live value for multicast packets
-         case IP_MULTICAST_TTL:
+         }
+         else if(optname == IP_MULTICAST_TTL)
+         {
             //Check the length of the option
             if(*optlen >= (socklen_t) sizeof(int_t))
             {
                //Cast the option value to the relevant type
                val = (int_t *) optval;
-               //Return the current TTL value
-               *val = sock->ttl;
+               //Return TTL value for multicast packets
+               *val = sock->multicastTtl;
                //Return the actual length of the option
                *optlen = sizeof(int_t);
 
@@ -1382,16 +1456,81 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
                sock->errnoCode = EFAULT;
                ret = SOCKET_ERROR;
             }
-
-            //We are done
-            break;
-
-         //Unknown option
-         default:
-            //Report an error
+         }
+         else
+         {
+            //Unknown option
             sock->errnoCode = ENOPROTOOPT;
             ret = SOCKET_ERROR;
-            break;
+         }
+      }
+      else if(level == IPPROTO_TCP)
+      {
+#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+         //Check option type
+         if(optname == TCP_KEEPIDLE)
+         {
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Convert the time interval to seconds
+               *val = sock->keepAliveIdle / 1000;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+         else if(optname == TCP_KEEPINTVL)
+         {
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Convert the time interval to seconds
+               *val = sock->keepAliveInterval / 1000;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+         else if(optname == TCP_KEEPCNT)
+         {
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Return parameter value
+               *val = sock->keepAliveMaxProbes;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+         else
+#endif
+         {
+            //Unknown option
+            sock->errnoCode = ENOPROTOOPT;
+            ret = SOCKET_ERROR;
          }
       }
       else

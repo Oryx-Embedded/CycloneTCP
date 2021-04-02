@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -145,7 +145,7 @@ error_t tftpClientOpenFile(TftpClientContext *context,
    error = NO_ERROR;
 
    //Read or write access?
-   if(mode & TFTP_FILE_MODE_WRITE)
+   if((mode & TFTP_FILE_MODE_WRITE) != 0)
    {
       //Wait for the WRQ request to be accepted
       while(!error)
@@ -160,10 +160,14 @@ error_t tftpClientOpenFile(TftpClientContext *context,
             if(!error)
             {
                //Send WRQ packet
-               if(mode & TFTP_FILE_MODE_NETASCII)
+               if((mode & TFTP_FILE_MODE_NETASCII) != 0)
+               {
                   tftpClientSendWrqPacket(context, filename, "netascii");
+               }
                else
+               {
                   tftpClientSendWrqPacket(context, filename, "octet");
+               }
 
                //Initialize block number
                context->block = 0;
@@ -209,10 +213,14 @@ error_t tftpClientOpenFile(TftpClientContext *context,
             if(!error)
             {
                //Send RRQ packet
-               if(mode & TFTP_FILE_MODE_NETASCII)
+               if((mode & TFTP_FILE_MODE_NETASCII) != 0)
+               {
                   tftpClientSendRrqPacket(context, filename, "netascii");
+               }
                else
+               {
                   tftpClientSendRrqPacket(context, filename, "octet");
+               }
 
                //Initialize block number
                context->block = 1;

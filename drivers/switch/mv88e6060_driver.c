@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,13 +57,16 @@ const SwitchDriver mv88e6060SwitchDriver =
    mv88e6060SetPortState,
    mv88e6060GetPortState,
    mv88e6060SetAgingTime,
+   mv88e6060EnableIgmpSnooping,
+   mv88e6060EnableMldSnooping,
    mv88e6060EnableRsvdMcastTable,
    mv88e6060AddStaticFdbEntry,
    mv88e6060DeleteStaticFdbEntry,
    mv88e6060GetStaticFdbEntry,
    mv88e6060FlushStaticFdbTable,
    mv88e6060GetDynamicFdbEntry,
-   mv88e6060FlushDynamicFdbTable
+   mv88e6060FlushDynamicFdbTable,
+   mv88e6060SetUnknownMcastFwdPorts
 };
 
 
@@ -727,6 +730,30 @@ void mv88e6060SetAgingTime(NetInterface *interface, uint32_t agingTime)
 
 
 /**
+ * @brief Enable IGMP snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable IGMP snooping
+ **/
+
+void mv88e6060EnableIgmpSnooping(NetInterface *interface, bool_t enable)
+{
+   //Not implemented
+}
+
+
+/**
+ * @brief Enable MLD snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable MLD snooping
+ **/
+
+void mv88e6060EnableMldSnooping(NetInterface *interface, bool_t enable)
+{
+   //Not implemented
+}
+
+
+/**
  * @brief Enable reserved multicast table
  * @param[in] interface Underlying network interface
  * @param[in] enable Enable or disable reserved group addresses
@@ -1309,6 +1336,20 @@ void mv88e6060FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
          //Poll the ATUBusy bit
       } while((value & MV88E6060_ATU_OPERATION_ATU_BUSY) != 0);
    }
+}
+
+
+/**
+ * @brief Set forward ports for unknown multicast packets
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable forwarding of unknown multicast packets
+ * @param[in] forwardPorts Port map
+ **/
+
+void mv88e6060SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts)
+{
+   //Not implemented
 }
 
 

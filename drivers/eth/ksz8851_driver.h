@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _KSZ8851_DRIVER_H
@@ -36,6 +36,20 @@
    #define KSZ8851_SPI_SUPPORT ENABLED
 #elif (KSZ8851_SPI_SUPPORT != ENABLED && KSZ8851_SPI_SUPPORT != DISABLED)
    #error KSZ8851_SPI_SUPPORT parameter is not valid
+#endif
+
+//TX buffer size
+#ifndef KSZ8851_ETH_TX_BUFFER_SIZE
+   #define KSZ8851_ETH_TX_BUFFER_SIZE 1536
+#elif (KSZ8851_ETH_TX_BUFFER_SIZE != 1536)
+   #error KSZ8851_ETH_TX_BUFFER_SIZE parameter is not valid
+#endif
+
+//RX buffer size
+#ifndef KSZ8851_ETH_RX_BUFFER_SIZE
+   #define KSZ8851_ETH_RX_BUFFER_SIZE 1536
+#elif (KSZ8851_ETH_RX_BUFFER_SIZE != 1536)
+   #error KSZ8851_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //KSZ8851 data register
@@ -496,9 +510,7 @@ typedef __start_packed struct
 
 typedef struct
 {
-   uint_t frameId;    ///<Identify a frame and its associated status
-   uint8_t *txBuffer; ///<Transmit buffer
-   uint8_t *rxBuffer; ///<Receive buffer
+   uint16_t frameId; ///<Identify a frame and its associated status
 } Ksz8851Context;
 
 

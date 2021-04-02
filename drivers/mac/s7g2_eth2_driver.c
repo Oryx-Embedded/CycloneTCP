@@ -1,6 +1,6 @@
 /**
- * @file s7g2_eth_driver.c
- * @brief Renesas Synergy S7G2 Ethernet MAC driver
+ * @file s7g2_eth2_driver.c
+ * @brief Renesas Synergy S7G2 Ethernet MAC driver (ETHERC1 instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -35,7 +35,7 @@
 #include "bsp_irq_cfg.h"
 #include "s7g2.h"
 #include "core/net.h"
-#include "drivers/mac/s7g2_eth_driver.h"
+#include "drivers/mac/s7g2_eth2_driver.h"
 #include "debug.h"
 
 //Underlying network interface
@@ -46,31 +46,31 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 32
-static uint8_t txBuffer[S7G2_ETH_TX_BUFFER_COUNT][S7G2_ETH_TX_BUFFER_SIZE];
+static uint8_t txBuffer[S7G2_ETH2_TX_BUFFER_COUNT][S7G2_ETH2_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 32
-static uint8_t rxBuffer[S7G2_ETH_RX_BUFFER_COUNT][S7G2_ETH_RX_BUFFER_SIZE];
+static uint8_t rxBuffer[S7G2_ETH2_RX_BUFFER_COUNT][S7G2_ETH2_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 32
-static S7g2TxDmaDesc txDmaDesc[S7G2_ETH_TX_BUFFER_COUNT];
+static S7g2TxDmaDesc txDmaDesc[S7G2_ETH2_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 32
-static S7g2RxDmaDesc rxDmaDesc[S7G2_ETH_RX_BUFFER_COUNT];
+static S7g2RxDmaDesc rxDmaDesc[S7G2_ETH2_RX_BUFFER_COUNT];
 
 //ARM or GCC compiler?
 #else
 
 //Transmit buffer
-static uint8_t txBuffer[S7G2_ETH_TX_BUFFER_COUNT][S7G2_ETH_TX_BUFFER_SIZE]
+static uint8_t txBuffer[S7G2_ETH2_TX_BUFFER_COUNT][S7G2_ETH2_TX_BUFFER_SIZE]
    __attribute__((aligned(32)));
 //Receive buffer
-static uint8_t rxBuffer[S7G2_ETH_RX_BUFFER_COUNT][S7G2_ETH_RX_BUFFER_SIZE]
+static uint8_t rxBuffer[S7G2_ETH2_RX_BUFFER_COUNT][S7G2_ETH2_RX_BUFFER_SIZE]
    __attribute__((aligned(32)));
 //Transmit DMA descriptors
-static S7g2TxDmaDesc txDmaDesc[S7G2_ETH_TX_BUFFER_COUNT]
+static S7g2TxDmaDesc txDmaDesc[S7G2_ETH2_TX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 //Receive DMA descriptors
-static S7g2RxDmaDesc rxDmaDesc[S7G2_ETH_RX_BUFFER_COUNT]
+static S7g2RxDmaDesc rxDmaDesc[S7G2_ETH2_RX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 
 #endif
@@ -82,23 +82,23 @@ static uint_t rxIndex;
 
 
 /**
- * @brief S7G2 Ethernet MAC driver
+ * @brief S7G2 Ethernet MAC driver (ETHERC1 instance)
  **/
 
-const NicDriver s7g2EthDriver =
+const NicDriver s7g2Eth2Driver =
 {
    NIC_TYPE_ETHERNET,
    ETH_MTU,
-   s7g2EthInit,
-   s7g2EthTick,
-   s7g2EthEnableIrq,
-   s7g2EthDisableIrq,
-   s7g2EthEventHandler,
-   s7g2EthSendPacket,
-   s7g2EthUpdateMacAddrFilter,
-   s7g2EthUpdateMacConfig,
-   s7g2EthWritePhyReg,
-   s7g2EthReadPhyReg,
+   s7g2Eth2Init,
+   s7g2Eth2Tick,
+   s7g2Eth2EnableIrq,
+   s7g2Eth2DisableIrq,
+   s7g2Eth2EventHandler,
+   s7g2Eth2SendPacket,
+   s7g2Eth2UpdateMacAddrFilter,
+   s7g2Eth2UpdateMacConfig,
+   s7g2Eth2WritePhyReg,
+   s7g2Eth2ReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -112,12 +112,12 @@ const NicDriver s7g2EthDriver =
  * @return Error code
  **/
 
-error_t s7g2EthInit(NetInterface *interface)
+error_t s7g2Eth2Init(NetInterface *interface)
 {
    error_t error;
 
    //Debug message
-   TRACE_INFO("Initializing S7G2 Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing S7G2 Ethernet MAC (ETHERC1)...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -130,7 +130,7 @@ error_t s7g2EthInit(NetInterface *interface)
    R_SYSTEM->PRCR = 0xA500;
 
    //GPIO configuration
-   s7g2EthInitGpio(interface);
+   s7g2Eth2InitGpio(interface);
 
    //Reset EDMAC1 module
    R_EDMAC1->EDMR_b.SWR = 1;
@@ -160,10 +160,10 @@ error_t s7g2EthInit(NetInterface *interface)
    }
 
    //Initialize DMA descriptor lists
-   s7g2EthInitDmaDesc(interface);
+   s7g2Eth2InitDmaDesc(interface);
 
    //Maximum frame length that can be accepted
-   R_ETHERC1->RFLR = S7G2_ETH_RX_BUFFER_SIZE;
+   R_ETHERC1->RFLR = S7G2_ETH2_RX_BUFFER_SIZE;
    //Set default inter packet gap (96-bit time)
    R_ETHERC1->IPGR = 0x14;
 
@@ -200,11 +200,11 @@ error_t s7g2EthInit(NetInterface *interface)
    R_EDMAC1->EESIPR_b.FRIP = 1;
 
    //Set priority grouping (4 bits for pre-emption priority, no bits for subpriority)
-   NVIC_SetPriorityGrouping(S7G2_ETH_IRQ_PRIORITY_GROUPING);
+   NVIC_SetPriorityGrouping(S7G2_ETH2_IRQ_PRIORITY_GROUPING);
 
    //Configure EDMAC interrupt priority
-   NVIC_SetPriority(ETHER_EINT1_IRQn, NVIC_EncodePriority(S7G2_ETH_IRQ_PRIORITY_GROUPING,
-      S7G2_ETH_IRQ_GROUP_PRIORITY, S7G2_ETH_IRQ_SUB_PRIORITY));
+   NVIC_SetPriority(ETHER_EINT1_IRQn, NVIC_EncodePriority(S7G2_ETH2_IRQ_PRIORITY_GROUPING,
+      S7G2_ETH2_IRQ_GROUP_PRIORITY, S7G2_ETH2_IRQ_SUB_PRIORITY));
 
    //Enable transmission and reception
    R_ETHERC1->ECMR_b.TE = 1;
@@ -229,8 +229,19 @@ error_t s7g2EthInit(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s7g2EthInitGpio(NetInterface *interface)
+void s7g2Eth2InitGpio(NetInterface *interface)
 {
+   //Disable protection
+   R_SYSTEM->PRCR = 0xA50B;
+
+   //Disable VBATT channel 1 input (P4_3)
+   R_SYSTEM->VBTICTLR_b.VCH1INEN = 0;
+   //Disable VBATT channel 2 input (P4_4)
+   R_SYSTEM->VBTICTLR_b.VCH2INEN = 0;
+
+   //Enable protection
+   R_SYSTEM->PRCR = 0xA500;
+
    //Unlock PFS registers
    R_PMISC->PWPR_b.BOWI = 0;
    R_PMISC->PWPR_b.PFSWE = 1;
@@ -241,42 +252,52 @@ void s7g2EthInitGpio(NetInterface *interface)
    //Configure ET1_MDC (P4_3)
    R_PFS->P403PFS_b.PMR = 1;
    R_PFS->P403PFS_b.PSEL = 23;
+   R_PFS->P403PFS_b.DSCR = 1;
 
    //Configure ET1_MDIO (P4_4)
    R_PFS->P404PFS_b.PMR = 1;
    R_PFS->P404PFS_b.PSEL = 23;
+   R_PFS->P404PFS_b.DSCR = 1;
 
    //Configure RMII1_TXD_EN (P4_5)
    R_PFS->P405PFS_b.PMR = 1;
    R_PFS->P405PFS_b.PSEL = 23;
+   R_PFS->P405PFS_b.DSCR = 3;
 
    //Configure RMII1_TXD1 (P4_6)
    R_PFS->P406PFS_b.PMR = 1;
    R_PFS->P406PFS_b.PSEL = 23;
+   R_PFS->P406PFS_b.DSCR = 3;
 
    //Configure RMII1_TXD0 (P7_0)
    R_PFS->P700PFS_b.PMR = 1;
    R_PFS->P700PFS_b.PSEL = 23;
+   R_PFS->P700PFS_b.DSCR = 3;
 
    //Configure REF50CK1 (P7_1)
    R_PFS->P701PFS_b.PMR = 1;
    R_PFS->P701PFS_b.PSEL = 23;
+   R_PFS->P701PFS_b.DSCR = 3;
 
    //Configure RMII1_RXD0 (P7_2)
    R_PFS->P702PFS_b.PMR = 1;
    R_PFS->P702PFS_b.PSEL = 23;
+   R_PFS->P702PFS_b.DSCR = 3;
 
    //Configure RMII1_RXD1 (P7_3)
    R_PFS->P703PFS_b.PMR = 1;
    R_PFS->P703PFS_b.PSEL = 23;
+   R_PFS->P703PFS_b.DSCR = 3;
 
    //Configure RMII1_RX_ER (P7_4)
    R_PFS->P704PFS_b.PMR = 1;
    R_PFS->P704PFS_b.PSEL = 23;
+   R_PFS->P704PFS_b.DSCR = 3;
 
    //Configure RMII1_CRS_DV (P7_5)
    R_PFS->P705PFS_b.PMR = 1;
    R_PFS->P705PFS_b.PSEL = 23;
+   R_PFS->P705PFS_b.DSCR = 3;
 
    //Lock PFS registers
    R_PMISC->PWPR_b.PFSWE = 0;
@@ -291,12 +312,12 @@ void s7g2EthInitGpio(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s7g2EthInitDmaDesc(NetInterface *interface)
+void s7g2Eth2InitDmaDesc(NetInterface *interface)
 {
    uint_t i;
 
    //Initialize TX descriptors
-   for(i = 0; i < S7G2_ETH_TX_BUFFER_COUNT; i++)
+   for(i = 0; i < S7G2_ETH2_TX_BUFFER_COUNT; i++)
    {
       //The descriptor is initially owned by the application
       txDmaDesc[i].td0 = 0;
@@ -314,12 +335,12 @@ void s7g2EthInitDmaDesc(NetInterface *interface)
    txIndex = 0;
 
    //Initialize RX descriptors
-   for(i = 0; i < S7G2_ETH_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < S7G2_ETH2_RX_BUFFER_COUNT; i++)
    {
       //The descriptor is initially owned by the DMA
       rxDmaDesc[i].rd0 = EDMAC_RD0_RACT;
       //Receive buffer length
-      rxDmaDesc[i].rd1 = (S7G2_ETH_RX_BUFFER_SIZE << 16) & EDMAC_RD1_RBL;
+      rxDmaDesc[i].rd1 = (S7G2_ETH2_RX_BUFFER_SIZE << 16) & EDMAC_RD1_RBL;
       //Receive buffer address
       rxDmaDesc[i].rd2 = (uint32_t) rxBuffer[i];
       //Clear padding field
@@ -347,7 +368,7 @@ void s7g2EthInitDmaDesc(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s7g2EthTick(NetInterface *interface)
+void s7g2Eth2Tick(NetInterface *interface)
 {
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -372,7 +393,7 @@ void s7g2EthTick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s7g2EthEnableIrq(NetInterface *interface)
+void s7g2Eth2EnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ETHER_EINT1_IRQn);
@@ -400,7 +421,7 @@ void s7g2EthEnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s7g2EthDisableIrq(NetInterface *interface)
+void s7g2Eth2DisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ETHER_EINT1_IRQn);
@@ -480,7 +501,7 @@ void ETHER_EINT1_IRQHandler(void)
  * @param[in] interface Underlying network interface
  **/
 
-void s7g2EthEventHandler(NetInterface *interface)
+void s7g2Eth2EventHandler(NetInterface *interface)
 {
    error_t error;
 
@@ -494,7 +515,7 @@ void s7g2EthEventHandler(NetInterface *interface)
       do
       {
          //Read incoming packet
-         error = s7g2EthReceivePacket(interface);
+         error = s7g2Eth2ReceivePacket(interface);
 
          //No more data in the receive buffer?
       } while(error != ERROR_BUFFER_EMPTY);
@@ -516,14 +537,14 @@ void s7g2EthEventHandler(NetInterface *interface)
  * @return Error code
  **/
 
-error_t s7g2EthSendPacket(NetInterface *interface,
+error_t s7g2Eth2SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    //Retrieve the length of the packet
    size_t length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > S7G2_ETH_TX_BUFFER_SIZE)
+   if(length > S7G2_ETH2_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -544,7 +565,7 @@ error_t s7g2EthSendPacket(NetInterface *interface,
    txDmaDesc[txIndex].td1 = (length << 16) & EDMAC_TD1_TBL;
 
    //Check current index
-   if(txIndex < (S7G2_ETH_TX_BUFFER_COUNT - 1))
+   if(txIndex < (S7G2_ETH2_TX_BUFFER_COUNT - 1))
    {
       //Give the ownership of the descriptor to the DMA engine
       txDmaDesc[txIndex].td0 = EDMAC_TD0_TACT | EDMAC_TD0_TFP_SOF |
@@ -584,13 +605,13 @@ error_t s7g2EthSendPacket(NetInterface *interface,
  * @return Error code
  **/
 
-error_t s7g2EthReceivePacket(NetInterface *interface)
+error_t s7g2Eth2ReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RACT) == 0)
    {
       //SOF and EOF flags should be set
@@ -598,12 +619,12 @@ error_t s7g2EthReceivePacket(NetInterface *interface)
          (rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_EOF) != 0)
       {
          //Make sure no error occurred
-         if(!(rxDmaDesc[rxIndex].rd0 & (EDMAC_RD0_RFS_MASK & ~EDMAC_RD0_RFS_RMAF)))
+         if((rxDmaDesc[rxIndex].rd0 & (EDMAC_RD0_RFS_MASK & ~EDMAC_RD0_RFS_RMAF)) == 0)
          {
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rd1 & EDMAC_RD1_RFL;
             //Limit the number of data to read
-            n = MIN(n, S7G2_ETH_RX_BUFFER_SIZE);
+            n = MIN(n, S7G2_ETH2_RX_BUFFER_SIZE);
 
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -627,7 +648,7 @@ error_t s7g2EthReceivePacket(NetInterface *interface)
       }
 
       //Check current index
-      if(rxIndex < (S7G2_ETH_RX_BUFFER_COUNT - 1))
+      if(rxIndex < (S7G2_ETH2_RX_BUFFER_COUNT - 1))
       {
          //Give the ownership of the descriptor back to the DMA
          rxDmaDesc[rxIndex].rd0 = EDMAC_RD0_RACT;
@@ -662,7 +683,7 @@ error_t s7g2EthReceivePacket(NetInterface *interface)
  * @return Error code
  **/
 
-error_t s7g2EthUpdateMacAddrFilter(NetInterface *interface)
+error_t s7g2Eth2UpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    bool_t acceptMulticast;
@@ -715,7 +736,7 @@ error_t s7g2EthUpdateMacAddrFilter(NetInterface *interface)
  * @return Error code
  **/
 
-error_t s7g2EthUpdateMacConfig(NetInterface *interface)
+error_t s7g2Eth2UpdateMacConfig(NetInterface *interface)
 {
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
@@ -750,25 +771,25 @@ error_t s7g2EthUpdateMacConfig(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void s7g2EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void s7g2Eth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
    //Synchronization pattern
-   s7g2EthWriteSmi(SMI_SYNC, 32);
+   s7g2Eth2WriteSmi(SMI_SYNC, 32);
    //Start of frame
-   s7g2EthWriteSmi(SMI_START, 2);
+   s7g2Eth2WriteSmi(SMI_START, 2);
    //Set up a write operation
-   s7g2EthWriteSmi(opcode, 2);
+   s7g2Eth2WriteSmi(opcode, 2);
    //Write PHY address
-   s7g2EthWriteSmi(phyAddr, 5);
+   s7g2Eth2WriteSmi(phyAddr, 5);
    //Write register address
-   s7g2EthWriteSmi(regAddr, 5);
+   s7g2Eth2WriteSmi(regAddr, 5);
    //Turnaround
-   s7g2EthWriteSmi(SMI_TA, 2);
+   s7g2Eth2WriteSmi(SMI_TA, 2);
    //Write register value
-   s7g2EthWriteSmi(data, 16);
+   s7g2Eth2WriteSmi(data, 16);
    //Release MDIO
-   s7g2EthReadSmi(1);
+   s7g2Eth2ReadSmi(1);
 }
 
 
@@ -780,27 +801,27 @@ void s7g2EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Register value
  **/
 
-uint16_t s7g2EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t s7g2Eth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr)
 {
    uint16_t data;
 
    //Synchronization pattern
-   s7g2EthWriteSmi(SMI_SYNC, 32);
+   s7g2Eth2WriteSmi(SMI_SYNC, 32);
    //Start of frame
-   s7g2EthWriteSmi(SMI_START, 2);
+   s7g2Eth2WriteSmi(SMI_START, 2);
    //Set up a read operation
-   s7g2EthWriteSmi(opcode, 2);
+   s7g2Eth2WriteSmi(opcode, 2);
    //Write PHY address
-   s7g2EthWriteSmi(phyAddr, 5);
+   s7g2Eth2WriteSmi(phyAddr, 5);
    //Write register address
-   s7g2EthWriteSmi(regAddr, 5);
+   s7g2Eth2WriteSmi(regAddr, 5);
    //Turnaround to avoid contention
-   s7g2EthReadSmi(1);
+   s7g2Eth2ReadSmi(1);
    //Read register value
-   data = s7g2EthReadSmi(16);
+   data = s7g2Eth2ReadSmi(16);
    //Force the PHY to release the MDIO pin
-   s7g2EthReadSmi(1);
+   s7g2Eth2ReadSmi(1);
 
    //Return PHY register contents
    return data;
@@ -813,7 +834,7 @@ uint16_t s7g2EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
  * @param[in] length Number of bits to be written
  **/
 
-void s7g2EthWriteSmi(uint32_t data, uint_t length)
+void s7g2Eth2WriteSmi(uint32_t data, uint_t length)
 {
    //Skip the most significant bits since they are meaningless
    data <<= 32 - length;
@@ -853,7 +874,7 @@ void s7g2EthWriteSmi(uint32_t data, uint_t length)
  * @return Data resulting from the MDIO read operation
  **/
 
-uint32_t s7g2EthReadSmi(uint_t length)
+uint32_t s7g2Eth2ReadSmi(uint_t length)
 {
    uint32_t data = 0;
 

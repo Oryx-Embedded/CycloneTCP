@@ -1,6 +1,6 @@
 /**
  * @file sama5d3_eth_driver.h
- * @brief SAMA5D3 Ethernet MAC driver
+ * @brief SAMA5D3 Ethernet MAC driver (EMAC instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _SAMA5D3_ETH_DRIVER_H
@@ -136,7 +136,7 @@ typedef struct
 } Sama5d3EthRxBufferDesc;
 
 
-//SAMA5D3 Ethernet MAC driver
+//SAMA5D3 Ethernet MAC driver (EMAC instance)
 extern const NicDriver sama5d3EthDriver;
 
 //SAMA5D3 Ethernet MAC related functions

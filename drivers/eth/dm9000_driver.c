@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -88,21 +88,6 @@ error_t dm9000Init(NetInterface *interface)
 
    //Initialize driver specific variables
    context->queuedPackets = 0;
-
-   //Allocate TX and RX buffers
-   context->txBuffer = memPoolAlloc(ETH_MAX_FRAME_SIZE);
-   context->rxBuffer = memPoolAlloc(ETH_MAX_FRAME_SIZE);
-
-   //Failed to allocate memory?
-   if(context->txBuffer == NULL || context->rxBuffer == NULL)
-   {
-      //Clean up side effects
-      memPoolFree(context->txBuffer);
-      memPoolFree(context->rxBuffer);
-
-      //Report an error
-      return ERROR_OUT_OF_MEMORY;
-   }
 
    //Retrieve vendorID, product ID and chip revision
    vendorId = (dm9000ReadReg(DM9000_VIDH) << 8) | dm9000ReadReg(DM9000_VIDL);
@@ -408,6 +393,7 @@ void dm9000EventHandler(NetInterface *interface)
 error_t dm9000SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
+   static uint8_t temp[DM9000_ETH_TX_BUFFER_SIZE];
    size_t i;
    size_t length;
    uint16_t *p;
@@ -420,7 +406,7 @@ error_t dm9000SendPacket(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > ETH_MAX_FRAME_SIZE)
+   if(length > DM9000_ETH_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -429,7 +415,7 @@ error_t dm9000SendPacket(NetInterface *interface,
    }
 
    //Copy user data
-   netBufferRead(context->txBuffer, buffer, offset, length);
+   netBufferRead(temp, buffer, offset, length);
 
    //A dummy write is required before accessing FIFO
    dm9000WriteReg(DM9000_MWCMDX, 0);
@@ -437,7 +423,7 @@ error_t dm9000SendPacket(NetInterface *interface,
    DM9000_INDEX_REG = DM9000_MWCMD;
 
    //Point to the beginning of the buffer
-   p = (uint16_t *) context->txBuffer;
+   p = (uint16_t *) temp;
 
    //Write data to the FIFO using 16-bit mode
    for(i = length; i > 1; i -= 2)
@@ -476,16 +462,13 @@ error_t dm9000SendPacket(NetInterface *interface,
 
 error_t dm9000ReceivePacket(NetInterface *interface)
 {
+   static uint8_t temp[DM9000_ETH_RX_BUFFER_SIZE];
    error_t error;
    size_t i;
    size_t n;
    size_t length;
    volatile uint8_t status;
    volatile uint16_t data;
-   Dm9000Context *context;
-
-   //Point to the driver context
-   context = (Dm9000Context *) interface->nicContext;
 
    //A dummy read is required before accessing the 4-byte header
    data = dm9000ReadReg(DM9000_MRCMDX);
@@ -506,7 +489,7 @@ error_t dm9000ReceivePacket(NetInterface *interface)
       //Retrieve packet length
       length = DM9000_DATA_REG;
       //Limit the number of data to read
-      n = MIN(length, ETH_MAX_FRAME_SIZE);
+      n = MIN(length, DM9000_ETH_RX_BUFFER_SIZE);
 
       //Point to the beginning of the buffer
       i = 0;
@@ -519,15 +502,15 @@ error_t dm9000ReceivePacket(NetInterface *interface)
          while((i + 1) < n)
          {
             data = DM9000_DATA_REG;
-            context->rxBuffer[i++] = LSB(data);
-            context->rxBuffer[i++] = MSB(data);
+            temp[i++] = LSB(data);
+            temp[i++] = MSB(data);
          }
 
          //Odd number of bytes to read?
          if((i + 1) == n)
          {
             data = DM9000_DATA_REG;
-            context->rxBuffer[i] = LSB(data);
+            temp[i] = LSB(data);
             i += 2;
          }
 
@@ -562,7 +545,7 @@ error_t dm9000ReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, context->rxBuffer, n, &ancillary);
+      nicProcessPacket(interface, temp, n, &ancillary);
    }
 
    //Return status code

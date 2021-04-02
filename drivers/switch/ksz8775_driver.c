@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,13 +57,16 @@ const SwitchDriver ksz8775SwitchDriver =
    ksz8775SetPortState,
    ksz8775GetPortState,
    ksz8775SetAgingTime,
+   ksz8775EnableIgmpSnooping,
+   ksz8775EnableMldSnooping,
    ksz8775EnableRsvdMcastTable,
    ksz8775AddStaticFdbEntry,
    ksz8775DeleteStaticFdbEntry,
    ksz8775GetStaticFdbEntry,
    ksz8775FlushStaticFdbTable,
    ksz8775GetDynamicFdbEntry,
-   ksz8775FlushDynamicFdbTable
+   ksz8775FlushDynamicFdbTable,
+   ksz8775SetUnknownMcastFwdPorts
 };
 
 
@@ -746,7 +749,7 @@ NicDuplexMode ksz8775GetDuplexMode(NetInterface *interface, uint8_t port)
 void ksz8775SetPortState(NetInterface *interface, uint8_t port,
    SwitchPortState state)
 {
-   uint16_t temp;
+   uint8_t temp;
 
    //Check port number
    if(port >= KSZ8775_PORT1 && port <= KSZ8775_PORT4)
@@ -801,7 +804,7 @@ void ksz8775SetPortState(NetInterface *interface, uint8_t port,
 
 SwitchPortState ksz8775GetPortState(NetInterface *interface, uint8_t port)
 {
-   uint16_t temp;
+   uint8_t temp;
    SwitchPortState state;
 
    //Check port number
@@ -865,6 +868,46 @@ SwitchPortState ksz8775GetPortState(NetInterface *interface, uint8_t port)
 void ksz8775SetAgingTime(NetInterface *interface, uint32_t agingTime)
 {
    //The aging period is fixed to 300 seconds
+}
+
+
+/**
+ * @brief Enable IGMP snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable IGMP snooping
+ **/
+
+void ksz8775EnableIgmpSnooping(NetInterface *interface, bool_t enable)
+{
+   uint8_t temp;
+
+   //Read global control 3 register
+   temp = ksz8775ReadSwitchReg(interface, KSZ8775_GLOBAL_CTRL3);
+
+   //Enable or disable IGMP snooping
+   if(enable)
+   {
+      temp |= KSZ8775_GLOBAL_CTRL3_SW5_IGMP_SNOOP_EN;
+   }
+   else
+   {
+      temp &= ~KSZ8775_GLOBAL_CTRL3_SW5_IGMP_SNOOP_EN;
+   }
+
+   //Write the value back to global control 3 register
+   ksz8775WriteSwitchReg(interface, KSZ8775_GLOBAL_CTRL3, temp);
+}
+
+
+/**
+ * @brief Enable MLD snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable MLD snooping
+ **/
+
+void ksz8775EnableMldSnooping(NetInterface *interface, bool_t enable)
+{
+   //Not implemented
 }
 
 
@@ -1310,6 +1353,50 @@ void ksz8775FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
          ksz8775WriteSwitchReg(interface, KSZ8775_PORTn_CTRL2(i), state[i - 1]);
       }
    }
+}
+
+
+/**
+ * @brief Set forward ports for unknown multicast packets
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable forwarding of unknown multicast packets
+ * @param[in] forwardPorts Port map
+ **/
+
+void ksz8775SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts)
+{
+   uint8_t temp;
+
+   //Read global control 16 register
+   temp = ksz8775ReadSwitchReg(interface, KSZ8775_GLOBAL_CTRL16);
+
+   //Clear port map
+   temp &= ~KSZ8775_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP;
+
+   //Enable or disable forwarding of unknown multicast packets
+   if(enable)
+   {
+      //Enable forwarding
+      temp |= KSZ8775_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD;
+
+      //Check whether unknown multicast packets should be forwarded to the CPU port
+      if((forwardPorts & SWITCH_CPU_PORT_MASK) != 0)
+      {
+         temp |= KSZ8775_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_PORT5;
+      }
+
+      //Select the desired forward ports
+      temp |= forwardPorts & KSZ8775_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_ALL;
+   }
+   else
+   {
+      //Disable forwarding
+      temp &= ~KSZ8775_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD;
+   }
+
+   //Write the value back to global control 16 register
+   ksz8775WriteSwitchReg(interface, KSZ8775_GLOBAL_CTRL16, temp);
 }
 
 

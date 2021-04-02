@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -551,7 +551,7 @@ __irq __arm void tms570EthTxIrqHandler(void)
       EMAC_TXCP_R(EMAC_CH0) = (uint32_t) p;
 
       //Check whether the TX buffer is available for writing
-      if(!(letoh32(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER))
+      if((letoh32(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -697,7 +697,7 @@ error_t tms570EthSendPacket(NetInterface *interface,
    txCurBufferDesc = txCurBufferDesc->next;
 
    //Check whether the next buffer is available for writing
-   if(!(letoh32(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER))
+   if((letoh32(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -721,15 +721,15 @@ error_t tms570EthReceivePacket(NetInterface *interface)
    size_t n;
    uint32_t temp;
 
-   //The current buffer is available for reading?
-   if(!(letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_OWNER))
+   //Current buffer available for reading?
+   if((letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_OWNER) == 0)
    {
       //SOP and EOP flags should be set
-      if((letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_SOP) &&
-         letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_EOP)
+      if((letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_SOP) != 0 &&
+         (letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_EOP) != 0)
       {
          //Make sure no error occurred
-         if(!(letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_ERROR_MASK))
+         if((letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_ERROR_MASK) == 0)
          {
             //Retrieve the length of the frame
             n = letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_PACKET_LENGTH;

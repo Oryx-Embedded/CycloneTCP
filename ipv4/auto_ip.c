@@ -35,7 +35,7 @@
  * - RFC 5227: IPv4 Address Conflict Detection
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level

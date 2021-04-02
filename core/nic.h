@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _NIC_H
@@ -151,6 +151,19 @@ typedef struct
 } SwitchFdbEntry;
 
 
+/**
+ * @brief VLAN entry
+ **/
+
+typedef struct
+{
+   uint16_t vlanId;
+   bool_t valid;
+   uint16_t fid;
+   uint32_t ports;
+} SwitchVlanEntry;
+
+
 //NIC driver abstraction layer
 typedef error_t (*NicInit)(NetInterface *interface);
 typedef void (*NicTick)(NetInterface *interface);
@@ -204,6 +217,12 @@ typedef SwitchPortState (*SwitchGetPortState)(NetInterface *interface,
 
 typedef void (*SwitchSetAgingTime)(NetInterface *interface, uint32_t agingTime);
 
+typedef void (*SwitchEnableIgmpSnooping)(NetInterface *interface,
+   bool_t enable);
+
+typedef void (*SwitchEnableMldSnooping)(NetInterface *interface,
+   bool_t enable);
+
 typedef void (*SwitchEnableRsvdMcastTable)(NetInterface *interface,
    bool_t enable);
 
@@ -220,6 +239,9 @@ typedef void (*SwitchFlushStaticFdbTable)(NetInterface *interface);
 
 typedef void (*SwitchFlushDynamicFdbTable)(NetInterface *interface,
    uint8_t port);
+
+typedef void (*SwitchSetUnknownMcastFwdPorts)(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts);
 
 //SMI driver abstraction layer
 typedef error_t (*SmiInit)(void);
@@ -318,6 +340,8 @@ typedef struct
    SwitchSetPortState setPortState;
    SwitchGetPortState getPortState;
    SwitchSetAgingTime setAgingTime;
+   SwitchEnableIgmpSnooping enableIgmpSnooping;
+   SwitchEnableMldSnooping enableMldSnooping;
    SwitchEnableRsvdMcastTable enableRsvdMcastTable;
    SwitchAddFdbEntry addStaticFdbEntry;
    SwitchDeleteFdbEntry deleteStaticFdbEntry;
@@ -325,6 +349,7 @@ typedef struct
    SwitchFlushStaticFdbTable flushStaticFdbTable;
    SwitchGetFdbEntry getDynamicFdbEntry;
    SwitchFlushDynamicFdbTable flushDynamicFdbTable;
+   SwitchSetUnknownMcastFwdPorts setUnknownMcastFwdPorts;
 } SwitchDriver;
 
 

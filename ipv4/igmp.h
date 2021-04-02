@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _IGMP_H
@@ -145,7 +145,7 @@ error_t igmpLeaveGroup(NetInterface *interface, Ipv4FilterEntry *entry);
 void igmpTick(NetInterface *interface);
 void igmpLinkChangeEvent(NetInterface *interface);
 
-void igmpProcessMessage(NetInterface *interface,
+void igmpProcessMessage(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    const NetBuffer *buffer, size_t offset);
 
 void igmpProcessQueryMessage(NetInterface *interface,

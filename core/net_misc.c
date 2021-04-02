@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -69,6 +69,7 @@ const NetTxAncillary NET_DEFAULT_TX_ANCILLARY =
 {
    0,       //Time-to-live value
    FALSE,   //Do not send the packet via a router
+   FALSE,   //Do not add an IP Router Alert option
 #if (IP_DIFF_SERV_SUPPORT == ENABLED)
    0,       //Differentiated services codepoint
 #endif
@@ -129,7 +130,7 @@ error_t netAttachLinkChangeCallback(NetInterface *interface,
       //Point to the current entry
       entry = &netContext.linkChangeCallbacks[i];
 
-      //Check whether the entry is currently in available
+      //Check whether the entry is available
       if(entry->callback == NULL)
       {
          //Create a new entry
@@ -346,7 +347,7 @@ error_t netAttachTimerCallback(systime_t period, NetTimerCallback callback,
       //Point to the current entry
       entry = &netContext.timerCallbacks[i];
 
-      //Check whether the entry is currently in available
+      //Check whether the entry is available
       if(entry->callback == NULL)
       {
          //Create a new entry
@@ -729,6 +730,77 @@ void netTick(void)
          }
       }
    }
+}
+
+
+/**
+ * @brief Start timer
+ * @param[in] timer Pointer to the timer structure
+ * @param[in] interval Time interval
+ **/
+
+void netStartTimer(NetTimer *timer, systime_t interval)
+{
+   //Start timer
+   timer->startTime = osGetSystemTime();
+   timer->interval = interval;
+   timer->running = TRUE;
+}
+
+
+/**
+ * @brief Stop timer
+ * @param[in] timer Pointer to the timer structure
+ **/
+
+void netStopTimer(NetTimer *timer)
+{
+   //Stop timer
+   timer->running = FALSE;
+}
+
+
+/**
+ * @brief Check whether the timer is running
+ * @param[in] timer Pointer to the timer structure
+ * @return TRUE if the timer is running, else FALSE
+ **/
+
+bool_t netTimerRunning(NetTimer *timer)
+{
+   //Return TRUE if the timer is running
+   return timer->running;
+}
+
+
+/**
+ * @brief Check whether the timer has expired
+ * @param[in] timer Pointer to the timer structure
+ * @return TRUE if the timer has expired, else FALSE
+ **/
+
+bool_t netTimerExpired(NetTimer *timer)
+{
+   bool_t expired;
+   systime_t time;
+
+   //Initialize flag
+   expired = FALSE;
+   //Get current time
+   time = osGetSystemTime();
+
+   //Check whether the timer is running
+   if(timer->running)
+   {
+      //Check whether the specified time interval has elapsed
+      if(timeCompare(time, timer->startTime + timer->interval) >= 0)
+      {
+         expired = TRUE;
+      }
+   }
+
+   //Return TRUE if the timer has expired
+   return expired;
 }
 
 

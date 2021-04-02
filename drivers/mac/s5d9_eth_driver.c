@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -231,6 +231,13 @@ error_t s5d9EthInit(NetInterface *interface)
 
 void s5d9EthInitGpio(NetInterface *interface)
 {
+   //Disable protection
+   R_SYSTEM->PRCR = 0xA50B;
+   //Disable VBATT channel 0 input (P4_2)
+   R_SYSTEM->VBTICTLR_b.VCH0INEN = 0;
+   //Enable protection
+   R_SYSTEM->PRCR = 0xA500;
+
    //Unlock PFS registers
    R_PMISC->PWPR_b.BOWI = 0;
    R_PMISC->PWPR_b.PFSWE = 1;
@@ -241,42 +248,52 @@ void s5d9EthInitGpio(NetInterface *interface)
    //Configure ET0_MDC (P4_1)
    R_PFS->P401PFS_b.PMR = 1;
    R_PFS->P401PFS_b.PSEL = 23;
+   R_PFS->P401PFS_b.DSCR = 1;
 
    //Configure ET0_MDIO (P4_2)
    R_PFS->P402PFS_b.PMR = 1;
    R_PFS->P402PFS_b.PSEL = 23;
+   R_PFS->P402PFS_b.DSCR = 1;
 
    //Configure RMII0_TXD_EN_B (P4_5)
    R_PFS->P405PFS_b.PMR = 1;
    R_PFS->P405PFS_b.PSEL = 23;
+   R_PFS->P405PFS_b.DSCR = 3;
 
    //Configure RMII0_TXD1_B (P4_6)
    R_PFS->P406PFS_b.PMR = 1;
    R_PFS->P406PFS_b.PSEL = 23;
+   R_PFS->P406PFS_b.DSCR = 3;
 
    //Configure RMII0_TXD0_B (P7_0)
    R_PFS->P700PFS_b.PMR = 1;
    R_PFS->P700PFS_b.PSEL = 23;
+   R_PFS->P700PFS_b.DSCR = 3;
 
    //Configure REF50CK0_B (P7_1)
    R_PFS->P701PFS_b.PMR = 1;
    R_PFS->P701PFS_b.PSEL = 23;
+   R_PFS->P701PFS_b.DSCR = 3;
 
    //Configure RMII0_RXD0_B (P7_2)
    R_PFS->P702PFS_b.PMR = 1;
    R_PFS->P702PFS_b.PSEL = 23;
+   R_PFS->P702PFS_b.DSCR = 3;
 
    //Configure RMII0_RXD1_B (P7_3)
    R_PFS->P703PFS_b.PMR = 1;
    R_PFS->P703PFS_b.PSEL = 23;
+   R_PFS->P703PFS_b.DSCR = 3;
 
    //Configure RMII0_RX_ER_B (P7_4)
    R_PFS->P704PFS_b.PMR = 1;
    R_PFS->P704PFS_b.PSEL = 23;
+   R_PFS->P704PFS_b.DSCR = 3;
 
    //Configure RMII0_CRS_DV_B (P7_5)
    R_PFS->P705PFS_b.PMR = 1;
    R_PFS->P705PFS_b.PSEL = 23;
+   R_PFS->P705PFS_b.DSCR = 3;
 
    //Lock PFS registers
    R_PMISC->PWPR_b.PFSWE = 0;
@@ -590,7 +607,7 @@ error_t s5d9EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RACT) == 0)
    {
       //SOF and EOF flags should be set
@@ -598,7 +615,7 @@ error_t s5d9EthReceivePacket(NetInterface *interface)
          (rxDmaDesc[rxIndex].rd0 & EDMAC_RD0_RFP_EOF) != 0)
       {
          //Make sure no error occurred
-         if(!(rxDmaDesc[rxIndex].rd0 & (EDMAC_RD0_RFS_MASK & ~EDMAC_RD0_RFS_RMAF)))
+         if((rxDmaDesc[rxIndex].rd0 & (EDMAC_RD0_RFS_MASK & ~EDMAC_RD0_RFS_RMAF)) == 0)
          {
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rd1 & EDMAC_RD1_RFL;

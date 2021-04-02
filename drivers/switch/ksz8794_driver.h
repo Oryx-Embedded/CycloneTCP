@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _KSZ8794_DRIVER_H
@@ -572,6 +572,47 @@
 //Indirect Access Control 1 register
 #define KSZ8794_INDIRECT_CTRL1_ADDR_7_0                      0xFF
 
+//Global Control 15 register
+#define KSZ8794_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD            0x20
+#define KSZ8794_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD_MAP        0x1F
+#define KSZ8794_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD_MAP_FILT   0x00
+#define KSZ8794_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD_MAP_PORT1  0x01
+#define KSZ8794_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD_MAP_PORT2  0x02
+#define KSZ8794_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD_MAP_PORT3  0x04
+#define KSZ8794_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD_MAP_PORT4  0x10
+#define KSZ8794_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD_MAP_ALL    0x1F
+
+//Global Control 16 register
+#define KSZ8794_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD              0x20
+#define KSZ8794_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP          0x1F
+#define KSZ8794_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_FILT     0x00
+#define KSZ8794_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_PORT1    0x01
+#define KSZ8794_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_PORT2    0x02
+#define KSZ8794_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_PORT3    0x04
+#define KSZ8794_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_PORT4    0x10
+#define KSZ8794_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_ALL      0x17
+
+//Global Control 17 register
+#define KSZ8794_GLOBAL_CTRL17_UNKNOWN_VID_FWD                0x20
+#define KSZ8794_GLOBAL_CTRL17_UNKNOWN_VID_FWD_MAP            0x1F
+#define KSZ8794_GLOBAL_CTRL17_UNKNOWN_VID_FWD_MAP_FILT       0x00
+#define KSZ8794_GLOBAL_CTRL17_UNKNOWN_VID_FWD_MAP_PORT1      0x01
+#define KSZ8794_GLOBAL_CTRL17_UNKNOWN_VID_FWD_MAP_PORT2      0x02
+#define KSZ8794_GLOBAL_CTRL17_UNKNOWN_VID_FWD_MAP_PORT3      0x04
+#define KSZ8794_GLOBAL_CTRL17_UNKNOWN_VID_FWD_MAP_PORT4      0x10
+#define KSZ8794_GLOBAL_CTRL17_UNKNOWN_VID_FWD_MAP_ALL        0x17
+
+//Global Control 18 register
+#define KSZ8794_GLOBAL_CTRL18_SELF_ADDR_FILTER_EN            0x40
+#define KSZ8794_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD           0x20
+#define KSZ8794_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP       0x1F
+#define KSZ8794_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_FILT  0x00
+#define KSZ8794_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_PORT1 0x01
+#define KSZ8794_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_PORT2 0x02
+#define KSZ8794_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_PORT3 0x04
+#define KSZ8794_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_PORT4 0x10
+#define KSZ8794_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_ALL   0x17
+
 //C++ guard
 #ifdef __cplusplus
 extern "C" {
@@ -691,6 +732,9 @@ void ksz8794SetPortState(NetInterface *interface, uint8_t port,
 SwitchPortState ksz8794GetPortState(NetInterface *interface, uint8_t port);
 
 void ksz8794SetAgingTime(NetInterface *interface, uint32_t agingTime);
+
+void ksz8794EnableIgmpSnooping(NetInterface *interface, bool_t enable);
+void ksz8794EnableMldSnooping(NetInterface *interface, bool_t enable);
 void ksz8794EnableRsvdMcastTable(NetInterface *interface, bool_t enable);
 
 error_t ksz8794AddStaticFdbEntry(NetInterface *interface,
@@ -708,6 +752,9 @@ error_t ksz8794GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    SwitchFdbEntry *entry);
 
 void ksz8794FlushDynamicFdbTable(NetInterface *interface, uint8_t port);
+
+void ksz8794SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts);
 
 void ksz8794WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data);

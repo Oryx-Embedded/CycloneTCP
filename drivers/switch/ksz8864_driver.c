@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,13 +57,16 @@ const SwitchDriver ksz8864SwitchDriver =
    ksz8864SetPortState,
    ksz8864GetPortState,
    ksz8864SetAgingTime,
+   ksz8864EnableIgmpSnooping,
+   ksz8864EnableMldSnooping,
    ksz8864EnableRsvdMcastTable,
    ksz8864AddStaticFdbEntry,
    ksz8864DeleteStaticFdbEntry,
    ksz8864GetStaticFdbEntry,
    ksz8864FlushStaticFdbTable,
    ksz8864GetDynamicFdbEntry,
-   ksz8864FlushDynamicFdbTable
+   ksz8864FlushDynamicFdbTable,
+   ksz8864SetUnknownMcastFwdPorts
 };
 
 
@@ -301,7 +304,7 @@ void ksz8864EventHandler(NetInterface *interface)
             port = virtualInterface->port;
 
             //Check port number
-            if(port == KSZ8864_PORT1 || port == KSZ8864_PORT2)
+            if(port >= KSZ8864_PORT1 && port <= KSZ8864_PORT3)
             {
                //Retrieve current link state
                linkState = ksz8864GetLinkState(interface, port);
@@ -309,9 +312,15 @@ void ksz8864EventHandler(NetInterface *interface)
                //Link up event?
                if(linkState && !virtualInterface->linkState)
                {
+                  //Retrieve host interface speed
+                  interface->linkSpeed = ksz8864GetLinkSpeed(interface,
+                     KSZ8864_PORT4);
+
+                  //Retrieve host interface duplex mode
+                  interface->duplexMode = ksz8864GetDuplexMode(interface,
+                     KSZ8864_PORT4);
+
                   //Adjust MAC configuration parameters for proper operation
-                  interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                  interface->duplexMode = NIC_FULL_DUPLEX_MODE;
                   interface->nicDriver->updateMacConfig(interface);
 
                   //Check current speed
@@ -333,27 +342,6 @@ void ksz8864EventHandler(NetInterface *interface)
                {
                   //Update link state
                   virtualInterface->linkState = FALSE;
-
-                  //Process link state change event
-                  nicNotifyLinkChange(virtualInterface);
-               }
-            }
-            else if(port == KSZ8864_PORT3)
-            {
-               //Port 3 is always up
-               if(!virtualInterface->linkState)
-               {
-                  //Adjust MAC configuration parameters for proper operation
-                  interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                  interface->duplexMode = NIC_FULL_DUPLEX_MODE;
-                  interface->nicDriver->updateMacConfig(interface);
-
-                  //100BASE-TX full-duplex
-                  virtualInterface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-                  virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
-
-                  //Update link state
-                  virtualInterface->linkState = TRUE;
 
                   //Process link state change event
                   nicNotifyLinkChange(virtualInterface);
@@ -385,9 +373,12 @@ void ksz8864EventHandler(NetInterface *interface)
       //Link up event?
       if(linkState)
       {
+         //Retrieve host interface speed
+         interface->linkSpeed = ksz8864GetLinkSpeed(interface, KSZ8864_PORT4);
+         //Retrieve host interface duplex mode
+         interface->duplexMode = ksz8864GetDuplexMode(interface, KSZ8864_PORT4);
+
          //Adjust MAC configuration parameters for proper operation
-         interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
-         interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          interface->nicDriver->updateMacConfig(interface);
 
          //Update link state
@@ -576,6 +567,21 @@ uint32_t ksz8864GetLinkSpeed(NetInterface *interface, uint8_t port)
       //Port 3 link speed
       linkSpeed = NIC_LINK_SPEED_100MBPS;
    }
+   else if(port == KSZ8864_PORT4)
+   {
+      //Read global control 4 register
+      status = ksz8864ReadSwitchReg(interface, KSZ8864_GLOBAL_CTRL4);
+
+      //Retrieve host interface speed
+      if((status & KSZ8864_GLOBAL_CTRL4_SW4_SPEED) != 0)
+      {
+         linkSpeed = NIC_LINK_SPEED_10MBPS;
+      }
+      else
+      {
+         linkSpeed = NIC_LINK_SPEED_100MBPS;
+      }
+   }
    else
    {
       //The specified port number is not valid
@@ -620,6 +626,21 @@ NicDuplexMode ksz8864GetDuplexMode(NetInterface *interface, uint8_t port)
       //Port 3 duplex mode
       duplexMode = NIC_FULL_DUPLEX_MODE;
    }
+   else if(port == KSZ8864_PORT4)
+   {
+      //Read global control 4 register
+      status = ksz8864ReadSwitchReg(interface, KSZ8864_GLOBAL_CTRL4);
+
+      //Retrieve host interface duplex mode
+      if((status & KSZ8864_GLOBAL_CTRL4_SW4_HALF_DUPLEX_MODE) != 0)
+      {
+         duplexMode = NIC_HALF_DUPLEX_MODE;
+      }
+      else
+      {
+         duplexMode = NIC_FULL_DUPLEX_MODE;
+      }
+   }
    else
    {
       //The specified port number is not valid
@@ -641,7 +662,7 @@ NicDuplexMode ksz8864GetDuplexMode(NetInterface *interface, uint8_t port)
 void ksz8864SetPortState(NetInterface *interface, uint8_t port,
    SwitchPortState state)
 {
-   uint16_t temp;
+   uint8_t temp;
 
    //Check port number
    if(port >= KSZ8864_PORT1 && port <= KSZ8864_PORT3)
@@ -696,7 +717,7 @@ void ksz8864SetPortState(NetInterface *interface, uint8_t port,
 
 SwitchPortState ksz8864GetPortState(NetInterface *interface, uint8_t port)
 {
-   uint16_t temp;
+   uint8_t temp;
    SwitchPortState state;
 
    //Check port number
@@ -760,6 +781,46 @@ SwitchPortState ksz8864GetPortState(NetInterface *interface, uint8_t port)
 void ksz8864SetAgingTime(NetInterface *interface, uint32_t agingTime)
 {
    //The aging period is fixed to 300 seconds
+}
+
+
+/**
+ * @brief Enable IGMP snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable IGMP snooping
+ **/
+
+void ksz8864EnableIgmpSnooping(NetInterface *interface, bool_t enable)
+{
+   uint8_t temp;
+
+   //Read global control 3 register
+   temp = ksz8864ReadSwitchReg(interface, KSZ8864_GLOBAL_CTRL3);
+
+   //Enable or disable IGMP snooping
+   if(enable)
+   {
+      temp |= KSZ8864_GLOBAL_CTRL3_SW4_IGMP_SNOOP_EN;
+   }
+   else
+   {
+      temp &= ~KSZ8864_GLOBAL_CTRL3_SW4_IGMP_SNOOP_EN;
+   }
+
+   //Write the value back to global control 3 register
+   ksz8864WriteSwitchReg(interface, KSZ8864_GLOBAL_CTRL3, temp);
+}
+
+
+/**
+ * @brief Enable MLD snooping
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable MLD snooping
+ **/
+
+void ksz8864EnableMldSnooping(NetInterface *interface, bool_t enable)
+{
+   //Not implemented
 }
 
 
@@ -1206,6 +1267,50 @@ void ksz8864FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
          ksz8864WriteSwitchReg(interface, KSZ8864_PORTn_CTRL2(i), state[i - 1]);
       }
    }
+}
+
+
+/**
+ * @brief Set forward ports for unknown multicast packets
+ * @param[in] interface Underlying network interface
+ * @param[in] enable Enable or disable forwarding of unknown multicast packets
+ * @param[in] forwardPorts Port map
+ **/
+
+void ksz8864SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts)
+{
+   uint8_t temp;
+
+   //Read global control 16 register
+   temp = ksz8864ReadSwitchReg(interface, KSZ8864_GLOBAL_CTRL16);
+
+   //Clear port map
+   temp &= ~KSZ8864_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP;
+
+   //Enable or disable forwarding of unknown multicast packets
+   if(enable)
+   {
+      //Enable forwarding
+      temp |= KSZ8864_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD;
+
+      //Check whether unknown multicast packets should be forwarded to the CPU port
+      if((forwardPorts & SWITCH_CPU_PORT_MASK) != 0)
+      {
+         temp |= KSZ8864_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_PORT4;
+      }
+
+      //Select the desired forward ports
+      temp |= forwardPorts & KSZ8864_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD_MAP_ALL;
+   }
+   else
+   {
+      //Disable forwarding
+      temp &= ~KSZ8864_GLOBAL_CTRL16_UNKNOWN_MCAST_FWD;
+   }
+
+   //Write the value back to global control 16 register
+   ksz8864WriteSwitchReg(interface, KSZ8864_GLOBAL_CTRL16, temp);
 }
 
 

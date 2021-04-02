@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _FTP_SERVER_COMMANDS_H
@@ -65,6 +65,7 @@ void ftpServerProcessPwd(FtpClientConnection *connection, char_t *param);
 void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param);
 void ftpServerProcessCdup(FtpClientConnection *connection, char_t *param);
 void ftpServerProcessList(FtpClientConnection *connection, char_t *param);
+void ftpServerProcessNlst(FtpClientConnection *connection, char_t *param);
 void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param);
 void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param);
 void ftpServerProcessSize(FtpClientConnection *connection, char_t *param);

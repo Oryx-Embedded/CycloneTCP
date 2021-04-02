@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -595,15 +595,15 @@ error_t mcf5225xEthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //Make sure the current buffer is available for reading
+   //Current buffer available for reading?
    if((rxBufferDesc[rxBufferIndex].status & FEC_RX_BD_E) == 0)
    {
       //The frame should not span multiple buffers
       if((rxBufferDesc[rxBufferIndex].status & FEC_RX_BD_L) != 0)
       {
          //Check whether an error occurred
-         if(!(rxBufferDesc[rxBufferIndex].status & (FEC_RX_BD_LG |
-            FEC_RX_BD_NO | FEC_RX_BD_CR | FEC_RX_BD_OV | FEC_RX_BD_TR)))
+         if((rxBufferDesc[rxBufferIndex].status & (FEC_RX_BD_LG |
+            FEC_RX_BD_NO | FEC_RX_BD_CR | FEC_RX_BD_OV | FEC_RX_BD_TR)) == 0)
          {
             //Retrieve the length of the frame
             n = rxBufferDesc[rxBufferIndex].length;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -156,6 +156,7 @@ void ftpServerProcessDataChannelEvents(FtpClientConnection *connection,
       {
          //Update the state of the data connection
          if(connection->controlChannel.state == FTP_CHANNEL_STATE_LIST ||
+            connection->controlChannel.state == FTP_CHANNEL_STATE_NLST ||
             connection->controlChannel.state == FTP_CHANNEL_STATE_RETR)
          {
             //Prepare to send data
@@ -423,6 +424,7 @@ void ftpServerAcceptDataChannel(FtpClientConnection *connection)
    {
       //Check current state
       if(connection->controlChannel.state == FTP_CHANNEL_STATE_LIST ||
+         connection->controlChannel.state == FTP_CHANNEL_STATE_NLST ||
          connection->controlChannel.state == FTP_CHANNEL_STATE_RETR)
       {
          //Prepare to send data
@@ -538,7 +540,8 @@ void ftpServerWriteDataChannel(FtpClientConnection *connection)
          }
       }
       //Directory listing in progress?
-      else if(connection->controlChannel.state == FTP_CHANNEL_STATE_LIST)
+      else if(connection->controlChannel.state == FTP_CHANNEL_STATE_LIST ||
+         connection->controlChannel.state == FTP_CHANNEL_STATE_NLST)
       {
          uint_t perm;
          char_t *path;
@@ -585,10 +588,31 @@ void ftpServerWriteDataChannel(FtpClientConnection *connection)
          perm = ftpServerGetFilePermissions(connection, path);
 
          //Enforce access rights
-         if(perm & FTP_FILE_PERM_LIST)
+         if((perm & FTP_FILE_PERM_LIST) != 0)
          {
-            //Format the directory entry in UNIX-style format
-            n = ftpServerFormatDirEntry(&dirEntry, perm, connection->buffer);
+            //LIST or NLST command?
+            if(connection->controlChannel.state == FTP_CHANNEL_STATE_LIST)
+            {
+               //Format the directory entry in UNIX-style format
+               n = ftpServerFormatDirEntry(&dirEntry, perm, connection->buffer);
+            }
+            else
+            {
+               //The server returns a stream of names of files and no other
+               //information (refer to RFC 959, section 4.1.3)
+               osStrcpy(connection->buffer, dirEntry.name);
+
+               //Check whether the current entry is a directory
+               if((dirEntry.attributes & FS_FILE_ATTR_DIRECTORY) != 0)
+               {
+                  osStrcat(connection->buffer, "/");
+               }
+
+               //Terminate the name with a CRLF sequence
+               osStrcat(connection->buffer, "\r\n");
+               //Calculate the length of the resulting string
+               n = osStrlen(connection->buffer);
+            }
 
             //Debug message
             TRACE_DEBUG("FTP server: %s", connection->buffer);

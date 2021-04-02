@@ -1,6 +1,6 @@
 /**
- * @file ra6m3_eth_driver.h
- * @brief Renesas RA6M3 Ethernet MAC driver
+ * @file s7g2_eth2_driver.h
+ * @brief Renesas Synergy S7G2 Ethernet MAC driver (ETHERC1 instance)
  *
  * @section License
  *
@@ -25,62 +25,62 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
-#ifndef _RA6M3_ETH_DRIVER_H
-#define _RA6M3_ETH_DRIVER_H
+#ifndef _S7G2_ETH2_DRIVER_H
+#define _S7G2_ETH2_DRIVER_H
 
 //Dependencies
 #include "core/nic.h"
 
 //Number of TX buffers
-#ifndef RA6M3_ETH_TX_BUFFER_COUNT
-   #define RA6M3_ETH_TX_BUFFER_COUNT 3
-#elif (RA6M3_ETH_TX_BUFFER_COUNT < 1)
-   #error RA6M3_ETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef S7G2_ETH2_TX_BUFFER_COUNT
+   #define S7G2_ETH2_TX_BUFFER_COUNT 3
+#elif (S7G2_ETH2_TX_BUFFER_COUNT < 1)
+   #error S7G2_ETH2_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef RA6M3_ETH_TX_BUFFER_SIZE
-   #define RA6M3_ETH_TX_BUFFER_SIZE 1536
-#elif (RA6M3_ETH_TX_BUFFER_SIZE != 1536)
-   #error RA6M3_ETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef S7G2_ETH2_TX_BUFFER_SIZE
+   #define S7G2_ETH2_TX_BUFFER_SIZE 1536
+#elif (S7G2_ETH2_TX_BUFFER_SIZE != 1536)
+   #error S7G2_ETH2_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef RA6M3_ETH_RX_BUFFER_COUNT
-   #define RA6M3_ETH_RX_BUFFER_COUNT 6
-#elif (RA6M3_ETH_RX_BUFFER_COUNT < 1)
-   #error RA6M3_ETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef S7G2_ETH2_RX_BUFFER_COUNT
+   #define S7G2_ETH2_RX_BUFFER_COUNT 6
+#elif (S7G2_ETH2_RX_BUFFER_COUNT < 1)
+   #error S7G2_ETH2_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef RA6M3_ETH_RX_BUFFER_SIZE
-   #define RA6M3_ETH_RX_BUFFER_SIZE 1536
-#elif (RA6M3_ETH_RX_BUFFER_SIZE != 1536)
-   #error RA6M3_ETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef S7G2_ETH2_RX_BUFFER_SIZE
+   #define S7G2_ETH2_RX_BUFFER_SIZE 1536
+#elif (S7G2_ETH2_RX_BUFFER_SIZE != 1536)
+   #error S7G2_ETH2_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Interrupt priority grouping
-#ifndef RA6M3_ETH_IRQ_PRIORITY_GROUPING
-   #define RA6M3_ETH_IRQ_PRIORITY_GROUPING 3
-#elif (RA6M3_ETH_IRQ_PRIORITY_GROUPING < 0)
-   #error RA6M3_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
+#ifndef S7G2_ETH2_IRQ_PRIORITY_GROUPING
+   #define S7G2_ETH2_IRQ_PRIORITY_GROUPING 3
+#elif (S7G2_ETH2_IRQ_PRIORITY_GROUPING < 0)
+   #error S7G2_ETH2_IRQ_PRIORITY_GROUPING parameter is not valid
 #endif
 
 //Ethernet interrupt group priority
-#ifndef RA6M3_ETH_IRQ_GROUP_PRIORITY
-   #define RA6M3_ETH_IRQ_GROUP_PRIORITY 12
-#elif (RA6M3_ETH_IRQ_GROUP_PRIORITY < 0)
-   #error RA6M3_ETH_IRQ_GROUP_PRIORITY parameter is not valid
+#ifndef S7G2_ETH2_IRQ_GROUP_PRIORITY
+   #define S7G2_ETH2_IRQ_GROUP_PRIORITY 12
+#elif (S7G2_ETH2_IRQ_GROUP_PRIORITY < 0)
+   #error S7G2_ETH2_IRQ_GROUP_PRIORITY parameter is not valid
 #endif
 
 //Ethernet interrupt subpriority
-#ifndef RA6M3_ETH_IRQ_SUB_PRIORITY
-   #define RA6M3_ETH_IRQ_SUB_PRIORITY 0
-#elif (RA6M3_ETH_IRQ_SUB_PRIORITY < 0)
-   #error RA6M3_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#ifndef S7G2_ETH2_IRQ_SUB_PRIORITY
+   #define S7G2_ETH2_IRQ_SUB_PRIORITY 0
+#elif (S7G2_ETH2_IRQ_SUB_PRIORITY < 0)
+   #error S7G2_ETH2_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
 //EESR register
@@ -158,7 +158,7 @@ typedef struct
    uint32_t td1;
    uint32_t td2;
    uint32_t padding;
-} Ra6m3TxDmaDesc;
+} S7g2TxDmaDesc;
 
 
 /**
@@ -171,39 +171,39 @@ typedef struct
    uint32_t rd1;
    uint32_t rd2;
    uint32_t padding;
-} Ra6m3RxDmaDesc;
+} S7g2RxDmaDesc;
 
 
-//RA6M3 Ethernet MAC driver
-extern const NicDriver ra6m3EthDriver;
+//S7G2 Ethernet MAC driver (ETHERC1 instance)
+extern const NicDriver s7g2Eth2Driver;
 
-//RA6M3 Ethernet MAC related functions
-error_t ra6m3EthInit(NetInterface *interface);
-void ra6m3EthInitGpio(NetInterface *interface);
-void ra6m3EthInitDmaDesc(NetInterface *interface);
+//S7G2 Ethernet MAC related functions
+error_t s7g2Eth2Init(NetInterface *interface);
+void s7g2Eth2InitGpio(NetInterface *interface);
+void s7g2Eth2InitDmaDesc(NetInterface *interface);
 
-void ra6m3EthTick(NetInterface *interface);
+void s7g2Eth2Tick(NetInterface *interface);
 
-void ra6m3EthEnableIrq(NetInterface *interface);
-void ra6m3EthDisableIrq(NetInterface *interface);
-void ra6m3EthEventHandler(NetInterface *interface);
+void s7g2Eth2EnableIrq(NetInterface *interface);
+void s7g2Eth2DisableIrq(NetInterface *interface);
+void s7g2Eth2EventHandler(NetInterface *interface);
 
-error_t ra6m3EthSendPacket(NetInterface *interface,
+error_t s7g2Eth2SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-error_t ra6m3EthReceivePacket(NetInterface *interface);
+error_t s7g2Eth2ReceivePacket(NetInterface *interface);
 
-error_t ra6m3EthUpdateMacAddrFilter(NetInterface *interface);
-error_t ra6m3EthUpdateMacConfig(NetInterface *interface);
+error_t s7g2Eth2UpdateMacAddrFilter(NetInterface *interface);
+error_t s7g2Eth2UpdateMacConfig(NetInterface *interface);
 
-void ra6m3EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void s7g2Eth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data);
 
-uint16_t ra6m3EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t s7g2Eth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr);
 
-void ra6m3EthWriteSmi(uint32_t data, uint_t length);
-uint32_t ra6m3EthReadSmi(uint_t length);
+void s7g2Eth2WriteSmi(uint32_t data, uint_t length);
+uint32_t s7g2Eth2ReadSmi(uint_t length);
 
 //C++ guard
 #ifdef __cplusplus

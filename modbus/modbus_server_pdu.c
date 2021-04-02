@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -126,60 +126,70 @@ error_t modbusServerProcessRequest(ModbusClientConnection *connection)
          error = modbusServerProcessReadCoilsReq(connection,
             request, requestLen);
          break;
+
       //Format Read Discrete Inputs request?
       case MODBUS_FUNCTION_READ_DISCRETE_INPUTS:
          //Process Modbus PDU
          error = modbusServerProcessReadDiscreteInputsReq(connection,
             request, requestLen);
          break;
+
       //Read Holding Registers request?
       case MODBUS_FUNCTION_READ_HOLDING_REGS:
          //Process Modbus PDU
          error = modbusServerProcessReadHoldingRegsReq(connection,
             request, requestLen);
          break;
+
       //Read Input Registers request?
       case MODBUS_FUNCTION_READ_INPUT_REGS:
          //Process Modbus PDU
          error = modbusServerProcessReadInputRegsReq(connection,
             request, requestLen);
          break;
+
       //Write Single Coil request?
       case MODBUS_FUNCTION_WRITE_SINGLE_COIL:
          //Process Modbus PDU
          error = modbusServerProcessWriteSingleCoilReq(connection,
             request, requestLen);
          break;
+
       //Write Single Register request?
       case MODBUS_FUNCTION_WRITE_SINGLE_REG:
          //Process Modbus PDU
          error = modbusServerProcessWriteSingleRegReq(connection,
             request, requestLen);
          break;
+
       //Write Multiple Coils request?
       case MODBUS_FUNCTION_WRITE_MULTIPLE_COILS:
          //Process Modbus PDU
          error = modbusServerProcessWriteMultipleCoilsReq(connection,
             request, requestLen);
          break;
+
       //Write Multiple Registers request?
       case MODBUS_FUNCTION_WRITE_MULTIPLE_REGS:
          //Process Modbus PDU
          error = modbusServerProcessWriteMultipleRegsReq(connection,
             request, requestLen);
          break;
+
       //Mask Write Register request?
       case MODBUS_FUNCTION_MASK_WRITE_REG:
          //Process Modbus PDU
          error = modbusServerProcessMaskWriteRegReq(connection,
             request, requestLen);
          break;
+
       //Read/Write Multiple Registers request?
       case MODBUS_FUNCTION_READ_WRITE_MULTIPLE_REGS:
          //Process Modbus PDU
          error = modbusServerProcessReadWriteMultipleRegsReq(connection,
             request, requestLen);
          break;
+
       //Illegal function code?
       default:
          //Report an error

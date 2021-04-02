@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -226,9 +226,9 @@ error_t fm4EthInit(NetInterface *interface)
    bFM4_ETHERNET_MAC0_IMR_RGIM = 1;
 
    //Enable the desired DMA interrupts
-   bFM4_ETHERNET_MAC0_IER_NIE = 1;
-   bFM4_ETHERNET_MAC0_IER_RIE = 1;
    bFM4_ETHERNET_MAC0_IER_TIE = 1;
+   bFM4_ETHERNET_MAC0_IER_RIE = 1;
+   bFM4_ETHERNET_MAC0_IER_NIE = 1;
 
    //Set priority grouping (4 bits for pre-emption priority, no bits for subpriority)
    NVIC_SetPriorityGrouping(FM4_ETH_IRQ_PRIORITY_GROUPING);
@@ -485,6 +485,7 @@ void fm4EthDisableIrq(NetInterface *interface)
 void ETHER0_IRQHandler(void)
 {
    bool_t flag;
+   uint32_t status;
 
    //Interrupt service routine prologue
    osEnterIsr();
@@ -492,11 +493,14 @@ void ETHER0_IRQHandler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
+   //Read DMA status register
+   status = FM4_ETHERNET_MAC0->SR;
+
    //Packet transmitted?
-   if(bFM4_ETHERNET_MAC0_SR_TI)
+   if((status & ETH_SR_TI) != 0)
    {
       //Clear TI interrupt flag
-      bFM4_ETHERNET_MAC0_SR_TI = 1;
+      FM4_ETHERNET_MAC0->SR = ETH_SR_TI;
 
       //Check whether the TX buffer is available for writing
       if((txCurDmaDesc->tdes0 & ETH_TDES0_OWN) == 0)
@@ -507,10 +511,10 @@ void ETHER0_IRQHandler(void)
    }
 
    //Packet received?
-   if(bFM4_ETHERNET_MAC0_SR_RI)
+   if((status & ETH_SR_RI) != 0)
    {
-      //Disable RIE interrupt
-      bFM4_ETHERNET_MAC0_IER_RIE = 0;
+      //Clear RI interrupt flag
+      FM4_ETHERNET_MAC0->SR = ETH_SR_RI;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -519,7 +523,7 @@ void ETHER0_IRQHandler(void)
    }
 
    //Clear NIS interrupt flag
-   bFM4_ETHERNET_MAC0_SR_NIS = 1;
+   FM4_ETHERNET_MAC0->SR = ETH_SR_NIS;
 
    //Interrupt service routine epilogue
    osExitIsr(flag);
@@ -535,26 +539,14 @@ void fm4EthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if(bFM4_ETHERNET_MAC0_SR_RI)
+   //Process all pending packets
+   do
    {
-      //Clear interrupt flag
-      bFM4_ETHERNET_MAC0_SR_RI = 1;
+      //Read incoming packet
+      error = fm4EthReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = fm4EthReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable DMA interrupts
-   bFM4_ETHERNET_MAC0_IER_NIE = 1;
-   bFM4_ETHERNET_MAC0_IER_RIE = 1;
-   bFM4_ETHERNET_MAC0_IER_TIE = 1;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 
@@ -602,7 +594,7 @@ error_t fm4EthSendPacket(NetInterface *interface,
    txCurDmaDesc->tdes0 |= ETH_TDES0_OWN;
 
    //Clear TU flag to resume processing
-   bFM4_ETHERNET_MAC0_SR_TU = 1;
+   FM4_ETHERNET_MAC0->SR = ETH_SR_TU;
    //Instruct the DMA to poll the transmit descriptor list
    FM4_ETHERNET_MAC0->TPDR = 0;
 
@@ -633,7 +625,7 @@ error_t fm4EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //The current buffer is available for reading?
+   //Current buffer available for reading?
    if((rxCurDmaDesc->rdes0 & ETH_RDES0_OWN) == 0)
    {
       //FS and LS flags should be set
@@ -682,7 +674,7 @@ error_t fm4EthReceivePacket(NetInterface *interface)
    }
 
    //Clear RU flag to resume processing
-   bFM4_ETHERNET_MAC0_SR_RU = 1;
+   FM4_ETHERNET_MAC0->SR = ETH_SR_RU;
    //Instruct the DMA to poll the receive descriptor list
    FM4_ETHERNET_MAC0->RPDR = 0;
 
@@ -759,25 +751,33 @@ error_t fm4EthUpdateMacAddrFilter(NetInterface *interface)
 
 error_t fm4EthUpdateMacConfig(NetInterface *interface)
 {
+   stc_ethernet_mac_mcr_field_t config;
+
+   //Read current MAC configuration
+   config = FM4_ETHERNET_MAC0->MCR_f;
+
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
    {
-      bFM4_ETHERNET_MAC0_MCR_FES = 1;
+      config.FES = 1;
    }
    else
    {
-      bFM4_ETHERNET_MAC0_MCR_FES = 0;
+      config.FES = 0;
    }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
    {
-      bFM4_ETHERNET_MAC0_MCR_DM = 1;
+      config.DM = 1;
    }
    else
    {
-      bFM4_ETHERNET_MAC0_MCR_DM = 0;
+      config.DM = 0;
    }
+
+   //Update MAC configuration register
+   FM4_ETHERNET_MAC0->MCR_f = config;
 
    //Successful processing
    return NO_ERROR;

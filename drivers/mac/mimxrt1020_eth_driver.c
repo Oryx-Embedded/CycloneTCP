@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -46,19 +46,19 @@ static NetInterface *nicDriverInterface;
 #if defined(__ICCARM__)
 
 //TX buffer
-#pragma data_alignment = 16
+#pragma data_alignment = 64
 #pragma location = MIMXRT1020_ETH_RAM_SECTION
 static uint8_t txBuffer[MIMXRT1020_ETH_TX_BUFFER_COUNT][MIMXRT1020_ETH_TX_BUFFER_SIZE];
 //RX buffer
-#pragma data_alignment = 16
+#pragma data_alignment = 64
 #pragma location = MIMXRT1020_ETH_RAM_SECTION
 static uint8_t rxBuffer[MIMXRT1020_ETH_RX_BUFFER_COUNT][MIMXRT1020_ETH_RX_BUFFER_SIZE];
 //TX buffer descriptors
-#pragma data_alignment = 16
+#pragma data_alignment = 64
 #pragma location = MIMXRT1020_ETH_RAM_SECTION
 static uint32_t txBufferDesc[MIMXRT1020_ETH_TX_BUFFER_COUNT][8];
 //RX buffer descriptors
-#pragma data_alignment = 16
+#pragma data_alignment = 64
 #pragma location = MIMXRT1020_ETH_RAM_SECTION
 static uint32_t rxBufferDesc[MIMXRT1020_ETH_RX_BUFFER_COUNT][8];
 
@@ -67,16 +67,16 @@ static uint32_t rxBufferDesc[MIMXRT1020_ETH_RX_BUFFER_COUNT][8];
 
 //TX buffer
 static uint8_t txBuffer[MIMXRT1020_ETH_TX_BUFFER_COUNT][MIMXRT1020_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(16), __section__(MIMXRT1020_ETH_RAM_SECTION)));
+   __attribute__((aligned(64), __section__(MIMXRT1020_ETH_RAM_SECTION)));
 //RX buffer
 static uint8_t rxBuffer[MIMXRT1020_ETH_RX_BUFFER_COUNT][MIMXRT1020_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(16), __section__(MIMXRT1020_ETH_RAM_SECTION)));
+   __attribute__((aligned(64), __section__(MIMXRT1020_ETH_RAM_SECTION)));
 //TX buffer descriptors
 static uint32_t txBufferDesc[MIMXRT1020_ETH_TX_BUFFER_COUNT][8]
-   __attribute__((aligned(16), __section__(MIMXRT1020_ETH_RAM_SECTION)));
+   __attribute__((aligned(64), __section__(MIMXRT1020_ETH_RAM_SECTION)));
 //RX buffer descriptors
 static uint32_t rxBufferDesc[MIMXRT1020_ETH_RX_BUFFER_COUNT][8]
-   __attribute__((aligned(16), __section__(MIMXRT1020_ETH_RAM_SECTION)));
+   __attribute__((aligned(64), __section__(MIMXRT1020_ETH_RAM_SECTION)));
 
 #endif
 
@@ -232,8 +232,8 @@ error_t mimxrt1020EthInit(NetInterface *interface)
 }
 
 
-//MIMXRT1020-EVK evaluation board?
-#if defined(USE_MIMXRT1020_EVK)
+//MIMXRT1020-EVK or MIMXRT1024-EVK evaluation board?
+#if defined(USE_MIMXRT1020_EVK) || defined(USE_MIMXRT1024_EVK)
 
 /**
  * @brief GPIO configuration
@@ -796,15 +796,15 @@ error_t mimxrt1020EthReceivePacket(NetInterface *interface)
    size_t n;
    NetRxAncillary ancillary;
 
-   //Make sure the current buffer is available for reading
+   //Current buffer available for reading?
    if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_E) == 0)
    {
       //The frame should not span multiple buffers
       if((rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_L) != 0)
       {
          //Check whether an error occurred
-         if(!(rxBufferDesc[rxBufferIndex][0] & (ENET_RBD0_LG |
-            ENET_RBD0_NO | ENET_RBD0_CR | ENET_RBD0_OV | ENET_RBD0_TR)))
+         if((rxBufferDesc[rxBufferIndex][0] & (ENET_RBD0_LG | ENET_RBD0_NO |
+            ENET_RBD0_CR | ENET_RBD0_OV | ENET_RBD0_TR)) == 0)
          {
             //Retrieve the length of the frame
             n = rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_DATA_LENGTH;

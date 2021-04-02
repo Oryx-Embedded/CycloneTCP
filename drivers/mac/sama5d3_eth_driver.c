@@ -1,6 +1,6 @@
 /**
  * @file sama5d3_eth_driver.c
- * @brief SAMA5D3 Ethernet MAC driver
+ * @brief SAMA5D3 Ethernet MAC driver (EMAC instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -86,7 +86,7 @@ static uint_t rxBufferIndex;
 
 
 /**
- * @brief SAMA5D3 Ethernet MAC driver
+ * @brief SAMA5D3 Ethernet MAC driver (EMAC instance)
  **/
 
 const NicDriver sama5d3EthDriver =
@@ -122,7 +122,7 @@ error_t sama5d3EthInit(NetInterface *interface)
    volatile uint32_t status;
 
    //Debug message
-   TRACE_INFO("Initializing SAMA5D3 Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing SAMA5D3 Ethernet MAC (EMAC)...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;

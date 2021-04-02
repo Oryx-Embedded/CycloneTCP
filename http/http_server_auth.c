@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -419,10 +419,10 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
       uint8_t opaque[16];
 
       //Set WWW-Authenticate field
-      n = osSprintf(output, "WWW-Authenticate: Digest\r\n");
-      n += osSprintf(output + n, "  realm=\"Protected Area\",\r\n");
-      n += osSprintf(output + n, "  qop=\"auth\",\r\n");
-      n += osSprintf(output + n, "  nonce=\"");
+      n = osSprintf(output, "WWW-Authenticate: Digest ");
+      n += osSprintf(output + n, "realm=\"Protected Area\", ");
+      n += osSprintf(output + n, "qop=\"auth\", ");
+      n += osSprintf(output + n, "nonce=\"");
 
       //The nonce is a server-specified data string which should be uniquely
       //generated each time a 401 response is made
@@ -434,10 +434,10 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
       //Advance pointer
       n += k;
       //Properly terminate the nonce string
-      n += osSprintf(output + n, "\",\r\n");
+      n += osSprintf(output + n, "\", ");
 
       //Format opaque parameter
-      n += osSprintf(output + n, "  opaque=\"");
+      n += osSprintf(output + n, "opaque=\"");
 
       //Generate a random value
       if(connection->settings->randCallback != NULL)
@@ -460,7 +460,9 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
       //The STALE flag indicates that the previous request from the client
       //was rejected because the nonce value was stale
       if(connection->response.auth.stale)
-         n += osSprintf(output + n, ",\r\n  stale=TRUE");
+      {
+         n += osSprintf(output + n, ", stale=TRUE");
+      }
 
       //Properly terminate the WWW-Authenticate field
       n += osSprintf(output + n, "\r\n");

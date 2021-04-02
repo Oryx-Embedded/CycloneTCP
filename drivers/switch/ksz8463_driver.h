@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _KSZ8463_DRIVER_H
@@ -703,9 +703,9 @@
 
 //Switch Global Control 3 register
 #define KSZ8463_SGCR3_BCAST_STORM_PROTECT_RATE_LSB          0xFF00
-#define KSZ8463_SGCR3_SWITCH_HOST_PORT_HD_MODE              0x0040
-#define KSZ8463_SGCR3_SWITCH_HOST_PORT_FLOW_CTRL_EN         0x0020
-#define KSZ8463_SGCR3_SWITCH_MII_10BT                       0x0010
+#define KSZ8463_SGCR3_SW_HOST_PORT_HALF_DUPLEX_MODE         0x0040
+#define KSZ8463_SGCR3_SW_HOST_PORT_FLOW_CTRL_EN             0x0020
+#define KSZ8463_SGCR3_SW_MII_10BT                           0x0010
 #define KSZ8463_SGCR3_NULL_VID_REPLACEMENT                  0x0008
 #define KSZ8463_SGCR3_BCAST_STORM_PROTECT_RATE_MSB          0x0007
 
@@ -1611,6 +1611,9 @@ void ksz8463SetPortState(NetInterface *interface, uint8_t port,
 SwitchPortState ksz8463GetPortState(NetInterface *interface, uint8_t port);
 
 void ksz8463SetAgingTime(NetInterface *interface, uint32_t agingTime);
+
+void ksz8463EnableIgmpSnooping(NetInterface *interface, bool_t enable);
+void ksz8463EnableMldSnooping(NetInterface *interface, bool_t enable);
 void ksz8463EnableRsvdMcastTable(NetInterface *interface, bool_t enable);
 
 error_t ksz8463AddStaticFdbEntry(NetInterface *interface,
@@ -1628,6 +1631,9 @@ error_t ksz8463GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    SwitchFdbEntry *entry);
 
 void ksz8463FlushDynamicFdbTable(NetInterface *interface, uint8_t port);
+
+void ksz8463SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts);
 
 void ksz8463WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data);

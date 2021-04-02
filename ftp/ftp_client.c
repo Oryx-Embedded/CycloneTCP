@@ -33,7 +33,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -213,7 +213,7 @@ error_t ftpClientConnect(FtpClientContext *context,
          if(!error)
          {
             //Implicit FTPS?
-            if(mode & FTP_MODE_IMPLICIT_TLS)
+            if((mode & FTP_MODE_IMPLICIT_TLS) != 0)
             {
                //TLS initialization
                error = ftpClientOpenSecureChannel(context,
@@ -248,7 +248,7 @@ error_t ftpClientConnect(FtpClientContext *context,
          if(!error)
          {
             //Implicit FTPS?
-            if(mode & FTP_MODE_IMPLICIT_TLS)
+            if((mode & FTP_MODE_IMPLICIT_TLS) != 0)
             {
                //Flush buffer
                context->bufferPos = 0;
@@ -277,7 +277,7 @@ error_t ftpClientConnect(FtpClientContext *context,
             if(FTP_REPLY_CODE_2YZ(context->replyCode))
             {
                //Explicit FTPS?
-               if(mode & FTP_MODE_EXPLICIT_TLS)
+               if((mode & FTP_MODE_EXPLICIT_TLS) != 0)
                {
                   //Format AUTH TLS command
                   error = ftpClientFormatCommand(context, "AUTH TLS", NULL);
@@ -1179,7 +1179,7 @@ error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
       if(context->state == FTP_CLIENT_STATE_CONNECTED)
       {
          //Set representation type
-         if(mode & FTP_FILE_MODE_TEXT)
+         if((mode & FTP_FILE_MODE_TEXT) != 0)
          {
             //Use ASCII type
             error = ftpClientFormatCommand(context, "TYPE", "A");
@@ -1229,19 +1229,24 @@ error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
          context->state == FTP_CLIENT_STATE_CONNECTING_TLS)
       {
          //Initiate data transfer
-         if(mode & (FTP_FILE_MODE_WRITE | FTP_FILE_MODE_APPEND))
+         if((mode & FTP_FILE_MODE_WRITE) != 0 ||
+            (mode & FTP_FILE_MODE_APPEND) != 0)
+         {
             error = ftpClientInitDataTransfer(context, TRUE);
+         }
          else
+         {
             error = ftpClientInitDataTransfer(context, FALSE);
+         }
       }
       else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_7)
       {
          //Format STOR/APPE/RETR command
-         if(mode & FTP_FILE_MODE_WRITE)
+         if((mode & FTP_FILE_MODE_WRITE) != 0)
          {
             ftpClientFormatCommand(context, "STOR", path);
          }
-         else if(mode & FTP_FILE_MODE_APPEND)
+         else if((mode & FTP_FILE_MODE_APPEND) != 0)
          {
             ftpClientFormatCommand(context, "APPE", path);
          }
@@ -1260,7 +1265,8 @@ error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
       else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_9)
       {
          //Check data transfer direction
-         if(mode & (FTP_FILE_MODE_WRITE | FTP_FILE_MODE_APPEND))
+         if((mode & FTP_FILE_MODE_WRITE) != 0 ||
+            (mode & FTP_FILE_MODE_APPEND) != 0)
          {
             //The content of the file can be written via the data connection
             ftpClientChangeState(context, FTP_CLIENT_STATE_WRITING_DATA);

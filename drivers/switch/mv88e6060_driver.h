@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 #ifndef _MV88E6060_DRIVER_H
@@ -579,6 +579,9 @@ void mv88e6060SetPortState(NetInterface *interface, uint8_t port,
 SwitchPortState mv88e6060GetPortState(NetInterface *interface, uint8_t port);
 
 void mv88e6060SetAgingTime(NetInterface *interface, uint32_t agingTime);
+
+void mv88e6060EnableIgmpSnooping(NetInterface *interface, bool_t enable);
+void mv88e6060EnableMldSnooping(NetInterface *interface, bool_t enable);
 void mv88e6060EnableRsvdMcastTable(NetInterface *interface, bool_t enable);
 
 error_t mv88e6060AddStaticFdbEntry(NetInterface *interface,
@@ -596,6 +599,9 @@ error_t mv88e6060GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    SwitchFdbEntry *entry);
 
 void mv88e6060FlushDynamicFdbTable(NetInterface *interface, uint8_t port);
+
+void mv88e6060SetUnknownMcastFwdPorts(NetInterface *interface,
+   bool_t enable, uint32_t forwardPorts);
 
 void mv88e6060WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data);

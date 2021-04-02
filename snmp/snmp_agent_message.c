@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.2
+ * @version 2.0.4
  **/
 
 //Switch to the appropriate trace level
@@ -552,8 +552,8 @@ error_t snmpParseGlobalData(SnmpMessage *message)
 
    //If the authFlag is not set and privFlag is set, then the snmpInvalidMsgs
    //counter is incremented and the message is silently discarded
-   if(!(message->msgFlags & SNMP_MSG_FLAG_AUTH) &&
-      (message->msgFlags & SNMP_MSG_FLAG_PRIV))
+   if((message->msgFlags & SNMP_MSG_FLAG_AUTH) == 0 &&
+      (message->msgFlags & SNMP_MSG_FLAG_PRIV) != 0)
    {
       //Total number of packets received by the SNMP engine which were dropped
       //because there were invalid or inconsistent components in the message
