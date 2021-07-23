@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _DHCP_COMMON_H
@@ -86,14 +86,14 @@ typedef enum
 
 typedef enum
 {
-   DHCP_MESSAGE_TYPE_DISCOVER = 1,
-   DHCP_MESSAGE_TYPE_OFFER    = 2,
-   DHCP_MESSAGE_TYPE_REQUEST  = 3,
-   DHCP_MESSAGE_TYPE_DECLINE  = 4,
-   DHCP_MESSAGE_TYPE_ACK      = 5,
-   DHCP_MESSAGE_TYPE_NAK      = 6,
-   DHCP_MESSAGE_TYPE_RELEASE  = 7,
-   DHCP_MESSAGE_TYPE_INFORM   = 8
+   DHCP_MSG_TYPE_DISCOVER = 1,
+   DHCP_MSG_TYPE_OFFER    = 2,
+   DHCP_MSG_TYPE_REQUEST  = 3,
+   DHCP_MSG_TYPE_DECLINE  = 4,
+   DHCP_MSG_TYPE_ACK      = 5,
+   DHCP_MSG_TYPE_NAK      = 6,
+   DHCP_MSG_TYPE_RELEASE  = 7,
+   DHCP_MSG_TYPE_INFORM   = 8
 } DhcpMessageType;
 
 
@@ -131,11 +131,11 @@ typedef enum
    DHCP_OPT_PATH_MTU_PLATEAU_TABLE       = 25,
    DHCP_OPT_INTERFACE_MTU                = 26,
    DHCP_OPT_ALL_SUBNETS_ARE_LOCAL        = 27,
-   DHCP_OPT_BROADCAST_ADDRESS            = 28,
+   DHCP_OPT_BROADCAST_ADDR               = 28,
    DHCP_OPT_PERFORM_MASK_DISCOVERY       = 29,
    DHCP_OPT_MASK_SUPPLIER                = 30,
    DHCP_OPT_PERFORM_ROUTER_DISCOVERY     = 31,
-   DHCP_OPT_ROUTER_SOLICITATION_ADDRESS  = 32,
+   DHCP_OPT_ROUTER_SOLICITATION_ADDR     = 32,
    DHCP_OPT_STATIC_ROUTE                 = 33,
    DHCP_OPT_TRAILER_ENCAPSULATION        = 34,
    DHCP_OPT_ARP_CACHE_TIMEOUT            = 35,
@@ -153,18 +153,18 @@ typedef enum
    DHCP_OPT_NETBIOS_SCOPE                = 47,
    DHCP_OPT_X11_FONT_SERVER              = 48,
    DHCP_OPT_X11_DISPLAY_MANAGER          = 49,
-   DHCP_OPT_REQUESTED_IP_ADDRESS         = 50,
+   DHCP_OPT_REQUESTED_IP_ADDR            = 50,
    DHCP_OPT_IP_ADDRESS_LEASE_TIME        = 51,
    DHCP_OPT_OPTION_OVERLOAD              = 52,
    DHCP_OPT_DHCP_MESSAGE_TYPE            = 53,
-   DHCP_OPT_SERVER_IDENTIFIER            = 54,
+   DHCP_OPT_SERVER_ID                    = 54,
    DHCP_OPT_PARAM_REQUEST_LIST           = 55,
    DHCP_OPT_MESSAGE                      = 56,
    DHCP_OPT_MAX_DHCP_MESSAGE_SIZE        = 57,
    DHCP_OPT_RENEWAL_TIME_VALUE           = 58,
    DHCP_OPT_REBINDING_TIME_VALUE         = 59,
-   DHCP_OPT_VENDOR_CLASS_IDENTIFIER      = 60,
-   DHCP_OPT_CLIENT_IDENTIFIER            = 61,
+   DHCP_OPT_VENDOR_CLASS_ID              = 60,
+   DHCP_OPT_CLIENT_ID                    = 61,
    DHCP_OPT_NISP_DOMAIN                  = 64,
    DHCP_OPT_NISP_SERVER                  = 65,
    DHCP_OPT_TFTP_SERVER_NAME             = 66,
@@ -176,10 +176,18 @@ typedef enum
    DHCP_OPT_DEFAULT_WWW_SERVER           = 72,
    DHCP_OPT_DEFAULT_FINGER_SERVER        = 73,
    DHCP_OPT_DEFAULT_IRC_SERVER           = 74,
-   DHCP_OPT_STREETTALK_SERVER            = 75,
+   DHCP_OPT_STREET_TALK_SERVER           = 75,
    DHCP_OPT_STDA_SERVER                  = 76,
    DHCP_OPT_RAPID_COMMIT                 = 80,
-   DHCP_OPT_CAPTIVE_PORTAL               = 160,
+   DHCP_OPT_CLIENT_FQDN                  = 81,
+   DHCP_OPT_RELAY_AGENT_INFO             = 82,
+   DHCP_OPT_CAPTIVE_PORTAL               = 114,
+   DHCP_OPT_AUTO_CONFIG                  = 116,
+   DHCP_OPT_NAME_SERVICE_SEARCH          = 117,
+   DHCP_OPT_SUBNET_SELECTION             = 118,
+   DHCP_OPT_DOMAIN_SEARCH                = 119,
+   DHCP_OPT_SIP_SERVER                   = 120,
+   DHCP_OPT_CLASSLESS_STATIC_ROUTE       = 121,
    DHCP_OPT_END                          = 255
 } DhcpOptionCode;
 
@@ -235,11 +243,11 @@ typedef __start_packed struct
 
 
 //DHCP related functions
-void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
-   const void *optionValue, size_t optionLen);
+error_t dhcpAddOption(DhcpMessage *message, size_t *messageLen,
+   uint8_t optionCode, const void *optionValue, size_t optionLen);
 
-DhcpOption *dhcpGetOption(const DhcpMessage *message,
-   size_t length, uint8_t optionCode);
+DhcpOption *dhcpGetOption(const DhcpMessage *message, size_t length,
+   uint8_t optionCode);
 
 //C++ guard
 #ifdef __cplusplus

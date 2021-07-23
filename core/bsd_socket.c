@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -1148,6 +1148,27 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
                ret = SOCKET_ERROR;
             }
          }
+#if (IP_DIFF_SERV_SUPPORT == ENABLED)
+         else if(optname == IP_TOS)
+         {
+            //Check the length of the option
+            if(optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Save DSCP value
+               sock->dscp = (*val & 0xFF) >> 2;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+#endif
          else
          {
             //Unknown option
@@ -1457,6 +1478,30 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
                ret = SOCKET_ERROR;
             }
          }
+#if (IP_DIFF_SERV_SUPPORT == ENABLED)
+         else if(optname == IP_TOS)
+         {
+            //Check the length of the option
+            if(*optlen >= (socklen_t) sizeof(int_t))
+            {
+               //Cast the option value to the relevant type
+               val = (int_t *) optval;
+               //Return DSCP value
+               *val = sock->dscp << 2;
+               //Return the actual length of the option
+               *optlen = sizeof(int_t);
+
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               sock->errnoCode = EFAULT;
+               ret = SOCKET_ERROR;
+            }
+         }
+#endif
          else
          {
             //Unknown option

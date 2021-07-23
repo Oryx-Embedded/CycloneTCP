@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -191,14 +191,15 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 
          //A cryptographically strong random number generator must be used to
          //generate the cnonce
-         error = context->randCallback(authParams->cnonce, HTTP_CLIENT_CNONCE_SIZE);
+         error = context->randCallback((uint8_t *) authParams->cnonce,
+            HTTP_CLIENT_CNONCE_SIZE);
          //Any error to report?
          if(error)
             return error;
 
          //Convert the byte array to hex string
-         httpEncodeHexString(authParams->cnonce, HTTP_CLIENT_CNONCE_SIZE,
-            authParams->cnonce);
+         httpEncodeHexString((const uint8_t *) authParams->cnonce,
+            HTTP_CLIENT_CNONCE_SIZE, authParams->cnonce);
 
          //Count of the number of requests (including the current request)
          //that the client has sent with the nonce value in this request
@@ -595,7 +596,7 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
    char_t buffer[9];
    uint8_t ha1[HTTP_CLIENT_MAX_HASH_DIGEST_SIZE];
    uint8_t ha2[HTTP_CLIENT_MAX_HASH_DIGEST_SIZE];
-   uint8_t hashContext[HTTP_CLIENT_MAX_HASH_CONTEXT_SIZE];
+   HashContext hashContext;
    const HashAlgo *hash;
 
    //Point to the hash algorithm to be used
@@ -605,23 +606,23 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
       return ERROR_FAILURE;
 
    //Compute H(A1) = H(username : realm : password)
-   hash->init(hashContext);
-   hash->update(hashContext, authParams->username, osStrlen(authParams->username));
-   hash->update(hashContext, ":", 1);
-   hash->update(hashContext, authParams->realm, osStrlen(authParams->realm));
-   hash->update(hashContext, ":", 1);
-   hash->update(hashContext, authParams->password, osStrlen(authParams->password));
-   hash->final(hashContext, ha1);
+   hash->init(&hashContext);
+   hash->update(&hashContext, authParams->username, osStrlen(authParams->username));
+   hash->update(&hashContext, ":", 1);
+   hash->update(&hashContext, authParams->realm, osStrlen(authParams->realm));
+   hash->update(&hashContext, ":", 1);
+   hash->update(&hashContext, authParams->password, osStrlen(authParams->password));
+   hash->final(&hashContext, ha1);
 
    //Compute H(A2) = H(method : uri)
-   hash->init(hashContext);
-   hash->update(hashContext, method, methodLen);
-   hash->update(hashContext, ":", 1);
-   hash->update(hashContext, uri, uriLen);
-   hash->final(hashContext, ha2);
+   hash->init(&hashContext);
+   hash->update(&hashContext, method, methodLen);
+   hash->update(&hashContext, ":", 1);
+   hash->update(&hashContext, uri, uriLen);
+   hash->final(&hashContext, ha2);
 
    //Compute H(H(A1) : nonce : nc : cnonce : qop : H(A2))
-   hash->init(hashContext);
+   hash->init(&hashContext);
 
    //Digest H(A1) as an hex string
    for(i = 0; i < hash->digestSize; i++)
@@ -629,13 +630,13 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
       //Convert the current byte to hex representation
       osSprintf(buffer, "%02" PRIx8, ha1[i]);
       //Digest the resulting value
-      hash->update(hashContext, buffer, 2);
+      hash->update(&hashContext, buffer, 2);
    }
 
    //Digest nonce parameter
-   hash->update(hashContext, ":", 1);
-   hash->update(hashContext, authParams->nonce, osStrlen(authParams->nonce));
-   hash->update(hashContext, ":", 1);
+   hash->update(&hashContext, ":", 1);
+   hash->update(&hashContext, authParams->nonce, osStrlen(authParams->nonce));
+   hash->update(&hashContext, ":", 1);
 
    //Convert the nonce count to hex string
    osSprintf(buffer, "%08x", authParams->nc);
@@ -645,12 +646,12 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
       authParams->qop == HTTP_AUTH_QOP_AUTH_INT)
    {
       //Digest nc, cnonce and qop parameters
-      hash->update(hashContext, buffer, 8);
-      hash->update(hashContext, ":", 1);
-      hash->update(hashContext, authParams->cnonce, osStrlen(authParams->cnonce));
-      hash->update(hashContext, ":", 1);
-      hash->update(hashContext, "auth", 4);
-      hash->update(hashContext, ":", 1);
+      hash->update(&hashContext, buffer, 8);
+      hash->update(&hashContext, ":", 1);
+      hash->update(&hashContext, authParams->cnonce, osStrlen(authParams->cnonce));
+      hash->update(&hashContext, ":", 1);
+      hash->update(&hashContext, "auth", 4);
+      hash->update(&hashContext, ":", 1);
    }
 
    //Digest H(A2) as an hex string
@@ -659,14 +660,14 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
       //Convert the current byte to hex representation
       osSprintf(buffer, "%02" PRIx8, ha2[i]);
       //Digest the resulting value
-      hash->update(hashContext, buffer, 2);
+      hash->update(&hashContext, buffer, 2);
    }
 
    //Finalize hash computation
-   hash->final(hashContext, response);
+   hash->final(&hashContext, (uint8_t *) response);
 
    //Convert the resulting digest to hex string
-   httpEncodeHexString(response, hash->digestSize, response);
+   httpEncodeHexString((const uint8_t *) response, hash->digestSize, response);
 
    //Successful processing
    return NO_ERROR;

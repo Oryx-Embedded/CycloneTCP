@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -645,7 +645,7 @@ NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
    headerLen = sizeof(Ipv6Header) + sizeof(Ipv6FragmentHeader);
 #else
    //Maximum overhead when using IPv4
-   headerLen = sizeof(Ipv4Header);
+   headerLen = sizeof(Ipv4Header) + sizeof(uint32_t);
 #endif
 
 #if (ETH_SUPPORT == ENABLED)

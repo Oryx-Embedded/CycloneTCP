@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _IPV4_MISC_H
@@ -62,8 +62,9 @@ uint_t ipv4GetAddrScope(Ipv4Addr ipAddr);
 uint_t ipv4GetPrefixLength(Ipv4Addr mask);
 
 error_t ipv4GetBroadcastAddr(NetInterface *interface, Ipv4Addr *addr);
-
 error_t ipv4MapMulticastAddrToMac(Ipv4Addr ipAddr, MacAddr *macAddr);
+
+bool_t ipv4TrapIgmpPacket(Ipv4Header *header);
 
 void ipv4UpdateInStats(NetInterface *interface, Ipv4Addr destIpAddr,
    size_t length);

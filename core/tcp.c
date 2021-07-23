@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -553,15 +553,15 @@ error_t tcpSend(Socket *socket, const uint8_t *data,
          }
       }
 
-      //The Nagle algorithm should be implemented to coalesce
-      //short segments (refer to RFC 1122 4.2.3.4)
+      //The Nagle algorithm should be implemented to coalesce short segments
+      //(refer to RFC 1122 4.2.3.4)
       tcpNagleAlgo(socket, flags);
 
       //Send as much data as possible
    } while(totalLength < length);
 
-   //The SOCKET_FLAG_WAIT_ACK flag causes the function to
-   //wait for acknowledgment from the remote side
+   //The SOCKET_FLAG_WAIT_ACK flag causes the function to wait for
+   //acknowledgment from the remote side
    if((flags & SOCKET_FLAG_WAIT_ACK) != 0)
    {
       //Wait for the data to be acknowledged
@@ -571,7 +571,7 @@ error_t tcpSend(Socket *socket, const uint8_t *data,
       if(event != SOCKET_EVENT_TX_ACKED)
          return ERROR_TIMEOUT;
 
-      //The connection was closed before an acknowledgment was received?
+      //The connection closed before an acknowledgment was received?
       if(socket->state != TCP_STATE_ESTABLISHED && socket->state != TCP_STATE_CLOSE_WAIT)
          return ERROR_NOT_CONNECTED;
    }

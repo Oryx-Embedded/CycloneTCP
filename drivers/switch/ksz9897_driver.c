@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -120,7 +120,7 @@ error_t ksz9897Init(NetInterface *interface)
       temp |= KSZ9897_PORTn_OP_CTRL0_TAIL_TAG_EN;
       ksz9897WriteSwitchReg8(interface, KSZ9897_PORT6_OP_CTRL0, temp);
 
-      //Disable frame length check (silicon errata workaround)
+      //Disable frame length check (silicon errata workaround 13)
       temp = ksz9897ReadSwitchReg8(interface, KSZ9897_SWITCH_MAC_CTRL0);
       temp &= ~KSZ9897_SWITCH_MAC_CTRL0_FRAME_LEN_CHECK_EN;
       ksz9897WriteSwitchReg8(interface, KSZ9897_SWITCH_MAC_CTRL0, temp);
@@ -186,7 +186,37 @@ error_t ksz9897Init(NetInterface *interface)
    //Loop through the ports
    for(port = KSZ9897_PORT1; port <= KSZ9897_PORT5; port++)
    {
-      //Select tri-color dual-LED mode (silicon errata workaround)
+      //Improve PHY receive performance (silicon errata workaround 1)
+      ksz9897WriteMmdReg(interface, port, 0x01, 0x6F, 0xDD0B);
+      ksz9897WriteMmdReg(interface, port, 0x01, 0x8F, 0x6032);
+      ksz9897WriteMmdReg(interface, port, 0x01, 0x9D, 0x248C);
+      ksz9897WriteMmdReg(interface, port, 0x01, 0x75, 0x0060);
+      ksz9897WriteMmdReg(interface, port, 0x01, 0xD3, 0x7777);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x06, 0x3008);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x08, 0x2001);
+
+      //Improve transmit waveform amplitude (silicon errata workaround 2)
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x04, 0x00D0);
+
+      //EEE must be manually disabled (silicon errata workaround 4)
+      ksz9897WriteMmdReg(interface, port, KSZ9897_MMD_EEE_ADV, 0);
+
+      //Adjust power supply settings (silicon errata workaround 7)
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x13, 0x6EFF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x14, 0xE6FF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x15, 0x6EFF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x16, 0xE6FF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x17, 0x00FF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x18, 0x43FF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x19, 0xC3FF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x1A, 0x6FFF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x1B, 0x07FF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x1C, 0x0FFF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x1D, 0xE7FF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x1E, 0xEFFF);
+      ksz9897WriteMmdReg(interface, port, 0x1C, 0x20, 0xEEEE);
+
+      //Select tri-color dual-LED mode (silicon errata workaround 15)
       ksz9897WriteMmdReg(interface, port, KSZ9897_MMD_LED_MODE,
          KSZ9897_MMD_LED_MODE_LED_MODE_TRI_COLOR_DUAL |
          KSZ9897_MMD_LED_MODE_RESERVED_DEFAULT);
@@ -1478,7 +1508,7 @@ void ksz9897SetUnknownMcastFwdPorts(NetInterface *interface,
    {
       //Enable forwarding
       temp |= KSZ9897_UNKONWN_MULTICAST_CTRL_FWD;
-      
+
       //Check whether unknown multicast packets should be forwarded to the CPU port
       if((forwardPorts & SWITCH_CPU_PORT_MASK) != 0)
       {

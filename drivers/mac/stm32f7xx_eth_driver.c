@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -174,24 +174,9 @@ error_t stm32f7xxEthInit(NetInterface *interface)
    //Use default MAC configuration
    ETH->MACCR = ETH_MACCR_RESERVED15 | ETH_MACCR_ROD;
 
-   //Set the MAC address of the station
-   ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   ETH->MACA0HR = interface->macAddr.w[2];
+   //Configure MAC address filtering
+   stm32f7xxEthUpdateMacAddrFilter(interface);
 
-   //The MAC supports 3 additional addresses for unicast perfect filtering
-   ETH->MACA1LR = 0;
-   ETH->MACA1HR = 0;
-   ETH->MACA2LR = 0;
-   ETH->MACA2HR = 0;
-   ETH->MACA3LR = 0;
-   ETH->MACA3HR = 0;
-
-   //Initialize hash table
-   ETH->MACHTLR = 0;
-   ETH->MACHTHR = 0;
-
-   //Configure the receive filter
-   ETH->MACFFR = ETH_MACFFR_HPF | ETH_MACFFR_HM;
    //Disable flow control
    ETH->MACFCR = 0;
    //Enable store and forward mode
@@ -839,103 +824,125 @@ error_t stm32f7xxEthUpdateMacAddrFilter(NetInterface *interface)
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Set the MAC address of the station
-   ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   ETH->MACA0HR = interface->macAddr.w[2];
-
-   //The MAC supports 3 additional addresses for unicast perfect filtering
-   unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
-   unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
-   unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
-
-   //The hash table is used for multicast address filtering
-   hashTable[0] = 0;
-   hashTable[1] = 0;
-
-   //The MAC address filter contains the list of MAC addresses to accept
-   //when receiving an Ethernet frame
-   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   //Promiscuous mode?
+   if(interface->promiscuous)
    {
-      //Point to the current entry
-      entry = &interface->macAddrFilter[i];
+      //Pass all incoming frames regardless of their destination address
+      ETH->MACFFR = ETH_MACFFR_PM;
+   }
+   else
+   {
+      //Set the MAC address of the station
+      ETH->MACA0LR = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+      ETH->MACA0HR = interface->macAddr.w[2];
 
-      //Valid entry?
-      if(entry->refCount > 0)
+      //The MAC supports 3 additional addresses for unicast perfect filtering
+      unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
+      unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
+      unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
+      //The hash table is used for multicast address filtering
+      hashTable[0] = 0;
+      hashTable[1] = 0;
+
+      //The MAC address filter contains the list of MAC addresses to accept
+      //when receiving an Ethernet frame
+      for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
       {
-         //Multicast address?
-         if(macIsMulticastAddr(&entry->addr))
-         {
-            //Compute CRC over the current MAC address
-            crc = stm32f7xxEthCalcCrc(&entry->addr, sizeof(MacAddr));
+         //Point to the current entry
+         entry = &interface->macAddrFilter[i];
 
-            //The upper 6 bits in the CRC register are used to index the
-            //contents of the hash table
-            k = (crc >> 26) & 0x3F;
-
-            //Update hash table contents
-            hashTable[k / 32] |= (1 << (k % 32));
-         }
-         else
+         //Valid entry?
+         if(entry->refCount > 0)
          {
-            //Up to 3 additional MAC addresses can be specified
-            if(j < 3)
+            //Multicast address?
+            if(macIsMulticastAddr(&entry->addr))
             {
-               //Save the unicast address
-               unicastMacAddr[j++] = entry->addr;
+               //Compute CRC over the current MAC address
+               crc = stm32f7xxEthCalcCrc(&entry->addr, sizeof(MacAddr));
+
+               //The upper 6 bits in the CRC register are used to index the
+               //contents of the hash table
+               k = (crc >> 26) & 0x3F;
+
+               //Update hash table contents
+               hashTable[k / 32] |= (1 << (k % 32));
+            }
+            else
+            {
+               //Up to 3 additional MAC addresses can be specified
+               if(j < 3)
+               {
+                  //Save the unicast address
+                  unicastMacAddr[j++] = entry->addr;
+               }
             }
          }
       }
-   }
 
-   //Configure the first unicast address filter
-   if(j >= 1)
-   {
-      //When the AE bit is set, the entry is used for perfect filtering
-      ETH->MACA1LR = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
-      ETH->MACA1HR = unicastMacAddr[0].w[2] | ETH_MACA1HR_AE;
-   }
-   else
-   {
-      //When the AE bit is cleared, the entry is ignored
-      ETH->MACA1LR = 0;
-      ETH->MACA1HR = 0;
-   }
+      //Configure the first unicast address filter
+      if(j >= 1)
+      {
+         //When the AE bit is set, the entry is used for perfect filtering
+         ETH->MACA1LR = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+         ETH->MACA1HR = unicastMacAddr[0].w[2] | ETH_MACA1HR_AE;
+      }
+      else
+      {
+         //When the AE bit is cleared, the entry is ignored
+         ETH->MACA1LR = 0;
+         ETH->MACA1HR = 0;
+      }
 
-   //Configure the second unicast address filter
-   if(j >= 2)
-   {
-      //When the AE bit is set, the entry is used for perfect filtering
-      ETH->MACA2LR = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
-      ETH->MACA2HR = unicastMacAddr[1].w[2] | ETH_MACA2HR_AE;
-   }
-   else
-   {
-      //When the AE bit is cleared, the entry is ignored
-      ETH->MACA2LR = 0;
-      ETH->MACA2HR = 0;
-   }
+      //Configure the second unicast address filter
+      if(j >= 2)
+      {
+         //When the AE bit is set, the entry is used for perfect filtering
+         ETH->MACA2LR = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+         ETH->MACA2HR = unicastMacAddr[1].w[2] | ETH_MACA2HR_AE;
+      }
+      else
+      {
+         //When the AE bit is cleared, the entry is ignored
+         ETH->MACA2LR = 0;
+         ETH->MACA2HR = 0;
+      }
 
-   //Configure the third unicast address filter
-   if(j >= 3)
-   {
-      //When the AE bit is set, the entry is used for perfect filtering
-      ETH->MACA3LR = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
-      ETH->MACA3HR = unicastMacAddr[2].w[2] | ETH_MACA3HR_AE;
-   }
-   else
-   {
-      //When the AE bit is cleared, the entry is ignored
-      ETH->MACA3LR = 0;
-      ETH->MACA3HR = 0;
-   }
+      //Configure the third unicast address filter
+      if(j >= 3)
+      {
+         //When the AE bit is set, the entry is used for perfect filtering
+         ETH->MACA3LR = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+         ETH->MACA3HR = unicastMacAddr[2].w[2] | ETH_MACA3HR_AE;
+      }
+      else
+      {
+         //When the AE bit is cleared, the entry is ignored
+         ETH->MACA3LR = 0;
+         ETH->MACA3HR = 0;
+      }
 
-   //Configure the multicast address filter
-   ETH->MACHTLR = hashTable[0];
-   ETH->MACHTHR = hashTable[1];
+      //Check whether frames with a multicast destination address should be
+      //accepted
+      if(interface->acceptAllMulticast)
+      {
+         //Configure the receive filter
+         ETH->MACFFR = ETH_MACFFR_HPF | ETH_MACFFR_PAM;
+      }
+      else
+      {
+         //Configure the receive filter
+         ETH->MACFFR = ETH_MACFFR_HPF | ETH_MACFFR_HM;
 
-   //Debug message
-   TRACE_DEBUG("  MACHTLR = %08" PRIX32 "\r\n", ETH->MACHTLR);
-   TRACE_DEBUG("  MACHTHR = %08" PRIX32 "\r\n", ETH->MACHTHR);
+         //Configure the multicast hash table
+         ETH->MACHTLR = hashTable[0];
+         ETH->MACHTHR = hashTable[1];
+
+         //Debug message
+         TRACE_DEBUG("  MACHTLR = %08" PRIX32 "\r\n", ETH->MACHTLR);
+         TRACE_DEBUG("  MACHTHR = %08" PRIX32 "\r\n", ETH->MACHTHR);
+      }
+   }
 
    //Successful processing
    return NO_ERROR;

@@ -25,33 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
-//MK60N512MD100 device?
-#if defined(MK60N512MD100)
-   #include "mk60n512md100.h"
-//MK60D10 device?
-#elif defined(MK60D10)
-   #include "mk60d10.h"
-//MK60F12 device?
-#elif defined(MK60F12)
-   #include "mk60f12.h"
-//MK64F12 device?
-#elif defined(MK64F12)
-   #include "mk64f12.h"
-//MK65F18 device?
-#elif defined(MK65F18)
-   #include "mk65f18.h"
-//MK66F18 device?
-#elif defined(MK66F18)
-   #include "mk66f18.h"
-#endif
-
 //Dependencies
+#include "fsl_device_registers.h"
 #include "core/net.h"
 #include "drivers/mac/mk6x_eth_driver.h"
 #include "debug.h"
@@ -258,12 +239,12 @@ error_t mk6xEthInit(NetInterface *interface)
 }
 
 
-//FRDM-K64F, FRDM-K66F, TWR-K60N512, TWR-K60F120M, TWR-K64F120M,
-//TWR-K65F180M or embOS/IP Switch Board?
+//FRDM-K64F, FRDM-K66F, TWR-K60N512, TWR-K60D100M, TWR-K60F120M,
+//TWR-K64F120M, TWR-K65F180M or embOS/IP Switch Board?
 #if defined(USE_FRDM_K64F) || defined(USE_FRDM_K66F) || \
-   defined(USE_TWR_K60N512) || defined(USE_TWR_K60F120M) || \
-   defined(USE_TWR_K64F120M) || defined(USE_TWR_K65F180M) || \
-   defined(USE_EMBOS_IP_SWITCH_BOARD)
+   defined(USE_TWR_K60N512) || defined(USE_TWR_K60D100M) || \
+   defined(USE_TWR_K60F120M) || defined(USE_TWR_K64F120M) || \
+   defined(USE_TWR_K65F180M) || defined(USE_EMBOS_IP_SWITCH_BOARD)
 
 /**
  * @brief GPIO configuration
@@ -272,8 +253,9 @@ error_t mk6xEthInit(NetInterface *interface)
 
 void mk6xEthInitGpio(NetInterface *interface)
 {
-//TWR-K60N512 or TWR-K60F120M evaluation board?
-#if defined(USE_TWR_K60N512) || defined(USE_TWR_K60F120M)
+//TWR-K60N512, TWR-K60D100M or TWR-K60F120M evaluation board?
+#if defined(USE_TWR_K60N512) || defined(USE_TWR_K60D100M) || \
+   defined(USE_TWR_K60F120M)
    //Enable PORTA and PORTB peripheral clocks
    SIM->SCGC5 |= SIM_SCGC5_PORTA_MASK | SIM_SCGC5_PORTB_MASK;
 

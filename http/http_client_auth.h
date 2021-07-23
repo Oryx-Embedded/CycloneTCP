@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _HTTP_CLIENT_AUTH_H
@@ -34,15 +34,6 @@
 //Dependencies
 #include "core/net.h"
 #include "http/http_client.h"
-
-//Maximum digest context size
-#if (HTTP_CLIENT_SHA512_256_SUPPORT == ENABLED)
-   #define HTTP_CLIENT_MAX_HASH_CONTEXT_SIZE sizeof(Sha512_256Context)
-#elif (HTTP_CLIENT_SHA256_SUPPORT == ENABLED)
-   #define HTTP_CLIENT_MAX_HASH_CONTEXT_SIZE sizeof(Sha256Context)
-#else
-   #define HTTP_CLIENT_MAX_HASH_CONTEXT_SIZE sizeof(Md5Context)
-#endif
 
 //Maximum digest size
 #if (HTTP_CLIENT_SHA512_256_SUPPORT == ENABLED)

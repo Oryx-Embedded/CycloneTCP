@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -130,7 +130,7 @@ error_t ksz9893Init(NetInterface *interface)
       temp |= KSZ9893_PORTn_OP_CTRL0_TAIL_TAG_EN;
       ksz9893WriteSwitchReg8(interface, KSZ9893_PORT3_OP_CTRL0, temp);
 
-      //Disable frame length check (silicon errata workaround)
+      //Disable frame length check (silicon errata workaround 1)
       temp = ksz9893ReadSwitchReg8(interface, KSZ9893_SWITCH_MAC_CTRL0);
       temp &= ~KSZ9893_SWITCH_MAC_CTRL0_FRAME_LEN_CHECK_EN;
       ksz9893WriteSwitchReg8(interface, KSZ9893_SWITCH_MAC_CTRL0, temp);
@@ -196,7 +196,11 @@ error_t ksz9893Init(NetInterface *interface)
    //Loop through the ports
    for(port = KSZ9893_PORT1; port <= KSZ9893_PORT2; port++)
    {
-      //Select tri-color dual-LED mode (silicon errata workaround)
+      //Adjust EEE refresh time (silicon errata workaround 2)
+      ksz9893WriteMmdReg(interface, port, KSZ9893_MMD_1000BT_EEE_WAKE_TX_TIMER,
+         0x0021);
+
+      //Select tri-color dual-LED mode (silicon errata workaround 7)
       ksz9893WriteMmdReg(interface, port, KSZ9893_MMD_LED_MODE,
          KSZ9893_MMD_LED_MODE_LED_MODE_TRI_COLOR_DUAL |
          KSZ9893_MMD_LED_MODE_RESERVED_DEFAULT);
@@ -1476,7 +1480,7 @@ void ksz9893SetUnknownMcastFwdPorts(NetInterface *interface,
    {
       //Enable forwarding
       temp |= KSZ9893_UNKONWN_MULTICAST_CTRL_FWD;
-      
+
       //Check whether unknown multicast packets should be forwarded to the CPU port
       if((forwardPorts & SWITCH_CPU_PORT_MASK) != 0)
       {

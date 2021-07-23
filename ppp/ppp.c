@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -388,14 +388,17 @@ error_t pppReceiveAtCommand(NetInterface *interface, char_t *data, size_t size)
    PppContext *context;
 
    //Check parameters
-   if(interface == NULL)
+   if(interface == NULL || data == NULL || size == 0)
       return ERROR_INVALID_PARAMETER;
+
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
       return ERROR_NOT_CONFIGURED;
 
    //Point to the PPP context
    context = interface->pppContext;
+   //Properly terminate the string with a NULL character
+   data[0] = '\0';
    //Save current time
    start = osGetSystemTime();
 
@@ -420,8 +423,8 @@ error_t pppReceiveAtCommand(NetInterface *interface, char_t *data, size_t size)
       //Release exclusive access
       osReleaseMutex(&netMutex);
 
-      //No data received?
-      if(error == ERROR_BUFFER_EMPTY || data[0] == '\0')
+      //Check status code
+      if(error == ERROR_BUFFER_EMPTY)
       {
          //Get current time
          time = osGetSystemTime();

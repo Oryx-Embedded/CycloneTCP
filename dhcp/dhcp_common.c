@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -43,56 +43,63 @@
 /**
  * @brief Append an option to a DHCP message
  * @param[in] message Pointer to the DHCP message
+ * @param[in,out] messageLen Actual length of the DHCP message
  * @param[in] optionCode Option code
  * @param[in] optionValue Option value
  * @param[in] optionLen Length of the option value
+ * @return Error code
  **/
 
-void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
-   const void *optionValue, size_t optionLen)
+error_t dhcpAddOption(DhcpMessage *message, size_t *messageLen,
+   uint8_t optionCode, const void *optionValue, size_t optionLen)
 {
    size_t n;
    DhcpOption *option;
 
-   //Point to the very first option
-   n = 0;
+   //Check parameters
+   if(message == NULL || messageLen == NULL)
+      return ERROR_INVALID_PARAMETER;
 
-   //Parse DHCP options
-   while(1)
-   {
-      //Point to the current option
-      option = (DhcpOption *) (message->options + n);
+   //Check the length of the DHCP message
+   if(*messageLen < (sizeof(DhcpMessage) + sizeof(uint8_t)))
+      return ERROR_INVALID_LENGTH;
 
-      //End option detected?
-      if(option->code == DHCP_OPT_END)
-         break;
+   //Check the length of the option
+   if(optionLen > 0 && optionValue == NULL)
+      return ERROR_INVALID_PARAMETER;
 
-      //Jump to the next option
-      n += sizeof(DhcpOption) + option->length;
-   }
+   if(optionLen > UINT8_MAX)
+      return ERROR_INVALID_LENGTH;
 
-   //Sanity check
-   if(optionLen <= UINT8_MAX)
-   {
-      //Point to the buffer where the option is to be written
-      option = (DhcpOption *) (message->options + n);
+   //Ensure that the length of the resulting message will not exceed the
+   //maximum DHCP message size
+   if((*messageLen + sizeof(DhcpOption) + optionLen) > DHCP_MAX_MSG_SIZE)
+      return ERROR_BUFFER_OVERFLOW;
 
-      //Option code
-      option->code = optionCode;
-      //Option length
-      option->length = (uint8_t) optionLen;
-      //Option value
-      osMemcpy(option->value, optionValue, optionLen);
+   //Retrieve the total length of the options field, excluding the end option
+   n = *messageLen - sizeof(DhcpMessage) - sizeof(uint8_t);
 
-      //Jump to the next option
-      n += sizeof(DhcpOption) + option->length;
+   //Point to the buffer where to format the option
+   option = (DhcpOption *) (message->options + n);
 
-      //Point to the buffer where the option is to be written
-      option = (DhcpOption *) (message->options + n);
+   //Set option code
+   option->code = optionCode;
+   //Set option length
+   option->length = (uint8_t) optionLen;
+   //Copy option value
+   osMemcpy(option->value, optionValue, optionLen);
 
-      //Always terminate the options field with 255
-      option->code = DHCP_OPT_END;
-   }
+   //Determine the length of the options field
+   n += sizeof(DhcpOption) + option->length;
+
+   //Always terminate the options field with 255
+   message->options[n++] = DHCP_OPT_END;
+
+   //Update the length of the DHCPv6 message
+   *messageLen = sizeof(DhcpMessage) + n;
+
+   //Successful processing
+   return NO_ERROR;
 }
 
 
@@ -105,8 +112,8 @@ void dhcpAddOption(DhcpMessage *message, uint8_t optionCode,
  *   option is returned. Otherwise NULL pointer is returned
  **/
 
-DhcpOption *dhcpGetOption(const DhcpMessage *message,
-   size_t length, uint8_t optionCode)
+DhcpOption *dhcpGetOption(const DhcpMessage *message, size_t length,
+   uint8_t optionCode)
 {
    size_t i;
    DhcpOption *option;
@@ -139,15 +146,21 @@ DhcpOption *dhcpGetOption(const DhcpMessage *message,
          {
             //The option code is followed by a one-byte length field
             if((i + 1) >= length)
+            {
                break;
+            }
 
             //Check the length of the option
             if((i + sizeof(DhcpOption) + option->length) > length)
+            {
                break;
+            }
 
             //Matching option code?
             if(option->code == optionCode)
+            {
                return option;
+            }
 
             //Jump to the next option
             i += option->length + 1;

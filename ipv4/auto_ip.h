@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _AUTO_IP_H
@@ -205,25 +205,14 @@ struct _AutoIpContext
 };
 
 
-//Tick counter to handle periodic operations
-extern systime_t autoIpTickCounter;
-
 //Auto-IP related functions
 void autoIpGetDefaultSettings(AutoIpSettings *settings);
 error_t autoIpInit(AutoIpContext *context, const AutoIpSettings *settings);
+
 error_t autoIpStart(AutoIpContext *context);
 error_t autoIpStop(AutoIpContext *context);
+
 AutoIpState autoIpGetState(AutoIpContext *context);
-
-void autoIpTick(AutoIpContext *context);
-void autoIpLinkChangeEvent(AutoIpContext *context);
-
-void autoIpChangeState(AutoIpContext *context,
-   AutoIpState newState, systime_t delay);
-
-void autoIpGenerateAddr(Ipv4Addr *ipAddr);
-
-void autoIpDumpConfig(AutoIpContext *context);
 
 //C++ guard
 #ifdef __cplusplus

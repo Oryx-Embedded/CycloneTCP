@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _NET_MISC_H
@@ -133,7 +133,9 @@ struct _NetTxAncillary
    int8_t vmanDei;      ///<Drop eligible indicator
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   uint8_t port;        ///<Switch port identifier
+   uint8_t port;        ///<Egress port identifier
+   uint32_t ports;      ///<Egress port map
+   bool_t override;     ///<Override port state
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
    int32_t timestampId; ///<Unique identifier for hardware time stamping
@@ -153,7 +155,7 @@ struct _NetRxAncillary
    MacAddr destMacAddr;    ///<Destination MAC address
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   uint8_t port;           ///<Switch port identifier
+   uint8_t port;           ///<Ingress port identifier
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
    NetTimestamp timestamp; ///<Captured time stamp

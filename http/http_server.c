@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -67,6 +67,8 @@ void httpServerGetDefaultSettings(HttpServerSettings *settings)
 
    //Listen to port 80
    settings->port = HTTP_PORT;
+   //HTTP server IP address
+   settings->ipAddr = IP_ADDR_ANY;
    //Maximum length of the pending connection queue
    settings->backlog = HTTP_SERVER_BACKLOG;
 
@@ -183,7 +185,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
       return error;
 
    //Bind newly created socket to port 80
-   error = socketBind(context->socket, &IP_ADDR_ANY, settings->port);
+   error = socketBind(context->socket, &settings->ipAddr, settings->port);
    //Failed to bind socket to port 80?
    if(error)
       return error;

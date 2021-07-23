@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -51,8 +51,6 @@
 
 //Ephemeral ports are used for dynamic port assignment
 static uint16_t udpDynamicPort;
-//Mutex to prevent simultaneous access to the callback table
-OsMutex udpCallbackMutex;
 //Table that holds the registered user callbacks
 UdpRxCallbackEntry udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
 
@@ -66,13 +64,6 @@ error_t udpInit(void)
 {
    //Reset ephemeral port number
    udpDynamicPort = 0;
-
-   //Create a mutex to prevent simultaneous access to the callback table
-   if(!osCreateMutex(&udpCallbackMutex))
-   {
-      //Failed to create mutex
-      return ERROR_OUT_OF_RESOURCES;
-   }
 
    //Initialize callback table
    osMemset(udpCallbackTable, 0, sizeof(udpCallbackTable));
@@ -873,9 +864,6 @@ error_t udpAttachRxCallback(NetInterface *interface, uint16_t port,
    uint_t i;
    UdpRxCallbackEntry *entry;
 
-   //Acquire exclusive access to the callback table
-   osAcquireMutex(&udpCallbackMutex);
-
    //Loop through the table
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
@@ -894,9 +882,6 @@ error_t udpAttachRxCallback(NetInterface *interface, uint16_t port,
          break;
       }
    }
-
-   //Release exclusive access to the callback table
-   osReleaseMutex(&udpCallbackMutex);
 
    //Failed to attach the specified user callback?
    if(i >= UDP_CALLBACK_TABLE_SIZE)
@@ -923,9 +908,6 @@ error_t udpDetachRxCallback(NetInterface *interface, uint16_t port)
    //Initialize status code
    error = ERROR_FAILURE;
 
-   //Acquire exclusive access to the callback table
-   osAcquireMutex(&udpCallbackMutex);
-
    //Loop through the table
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
@@ -945,9 +927,6 @@ error_t udpDetachRxCallback(NetInterface *interface, uint16_t port)
          }
       }
    }
-
-   //Release exclusive access to the callback table
-   osReleaseMutex(&udpCallbackMutex);
 
    //Return status code
    return error;
@@ -972,14 +951,10 @@ error_t udpInvokeRxCallback(NetInterface *interface,
 {
    error_t error;
    uint_t i;
-   void *param;
    UdpRxCallbackEntry *entry;
 
    //Initialize status code
    error = ERROR_PORT_UNREACHABLE;
-
-   //Acquire exclusive access to the callback table
-   osAcquireMutex(&udpCallbackMutex);
 
    //Loop through the table
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
@@ -996,20 +971,9 @@ error_t udpInvokeRxCallback(NetInterface *interface,
             //Does the specified port number match the current entry?
             if(entry->port == ntohs(header->destPort))
             {
-               //Retrieve callback parameter
-               param = entry->param;
-
-               //Release mutex to prevent any deadlock
-               if(param == NULL)
-                  osReleaseMutex(&udpCallbackMutex);
-
                //Invoke user callback function
                entry->callback(interface, pseudoHeader, header, buffer, offset,
-                  ancillary, param);
-
-               //Acquire mutex
-               if(param == NULL)
-                  osAcquireMutex(&udpCallbackMutex);
+                  ancillary, entry->param);
 
                //A matching entry has been found
                error = NO_ERROR;
@@ -1017,9 +981,6 @@ error_t udpInvokeRxCallback(NetInterface *interface,
          }
       }
    }
-
-   //Release exclusive access to the callback table
-   osReleaseMutex(&udpCallbackMutex);
 
    //Check status code
    if(error)

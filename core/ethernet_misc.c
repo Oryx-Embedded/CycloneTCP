@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -44,6 +44,7 @@
 #include "core/tcp_timer.h"
 #include "ipv4/arp.h"
 #include "ipv4/ipv4.h"
+#include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
 #include "mibs/mib2_module.h"
 #include "mibs/if_mib_module.h"
@@ -304,23 +305,34 @@ error_t ethCheckDestAddr(NetInterface *interface, const MacAddr *macAddr)
    //Multicast address?
    else if(macIsMulticastAddr(macAddr))
    {
-      //Go through the MAC filter table
-      for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+#if (IPV4_SUPPORT == ENABLED && IGMP_ROUTER_SUPPORT == ENABLED)
+      //Trap multicast packets when IGMP router is enabled
+      if(interface->igmpRouterContext != NULL &&
+         interface->igmpRouterContext->running)
       {
-         //Point to the current entry
-         entry = &interface->macAddrFilter[i];
-
-         //Valid entry?
-         if(entry->refCount > 0)
+         error = NO_ERROR;
+      }
+      else
+#endif
+      {
+         //Go through the MAC filter table
+         for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
          {
-            //Check whether the destination MAC address matches
-            //a relevant multicast address
-            if(macCompAddr(&entry->addr, macAddr))
+            //Point to the current entry
+            entry = &interface->macAddrFilter[i];
+
+            //Valid entry?
+            if(entry->refCount > 0)
             {
-               //The MAC address is acceptable
-               error = NO_ERROR;
-               //Stop immediately
-               break;
+               //Check whether the destination MAC address matches
+               //a relevant multicast address
+               if(macCompAddr(&entry->addr, macAddr))
+               {
+                  //The MAC address is acceptable
+                  error = NO_ERROR;
+                  //Stop immediately
+                  break;
+               }
             }
          }
       }
@@ -328,6 +340,40 @@ error_t ethCheckDestAddr(NetInterface *interface, const MacAddr *macAddr)
 
    //Return status code
    return error;
+}
+
+
+/**
+ * @brief Trap IGMP packets
+ * @param[in] header Pointer to the Ethernet header
+ * @param[in] data Pointer to the payload data
+ * @param[in] length Length of the payload data, in bytes
+ * @return TRUE if the Ethernet frame contains an IGMP message, else FALSE
+ **/
+
+bool_t ethTrapIgmpPacket(EthHeader *header, uint8_t *data, size_t length)
+{
+   bool_t flag;
+
+   //Initialize flag
+   flag = FALSE;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Multicast IPv4 packet?
+   if(macIsMulticastAddr(&header->destAddr) &&
+      ntohs(header->type) == ETH_TYPE_IPV4)
+   {
+      //Check the length of the payload data
+      if(length >= sizeof(Ipv4Header))
+      {
+         //Check whether the IPv4 packet contains an IGMP message
+         flag = ipv4TrapIgmpPacket((Ipv4Header *) data);
+      }
+   }
+#endif
+
+   //Return TRUE if the Ethernet frame contains an IGMP message
+   return flag;
 }
 
 

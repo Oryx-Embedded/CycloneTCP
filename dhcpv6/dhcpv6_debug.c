@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -238,90 +238,90 @@ error_t dhcpv6DumpOptions(const uint8_t *options, size_t length, uint_t level)
       switch(ntohs(option->code))
       {
       //Client Identifier option
-      case DHCPV6_OPTION_CLIENTID:
+      case DHCPV6_OPT_CLIENT_ID:
          error = dhcpv6DumpClientIdOption(option, level);
          break;
       //Server Identifier option
-      case DHCPV6_OPTION_SERVERID:
+      case DHCPV6_OPT_SERVER_ID:
          error = dhcpv6DumpServerIdOption(option, level);
          break;
       //IA_NA option
-      case DHCPV6_OPTION_IA_NA:
+      case DHCPV6_OPT_IA_NA:
          error = dhcpv6DumpIaNaOption(option, level);
          break;
       //IA_TA option
-      case DHCPV6_OPTION_IA_TA:
+      case DHCPV6_OPT_IA_TA:
          error = dhcpv6DumpIaTaOption(option, level);
          break;
       //IA Address option
-      case DHCPV6_OPTION_IAADDR:
+      case DHCPV6_OPT_IA_ADDR:
          error = dhcpv6DumpIaAddrOption(option, level);
          break;
       //Option Request option
-      case DHCPV6_OPTION_ORO:
+      case DHCPV6_OPT_ORO:
          error = dhcpv6DumpOroOption(option, level);
          break;
       //Preference option
-      case DHCPV6_OPTION_PREFERENCE:
+      case DHCPV6_OPT_PREFERENCE:
          error = dhcpv6DumpPreferenceOption(option, level);
          break;
       //Elapsed Time option
-      case DHCPV6_OPTION_ELAPSED_TIME:
+      case DHCPV6_OPT_ELAPSED_TIME:
          error = dhcpv6DumpElapsedTimeOption(option, level);
          break;
       //Relay Message option
-      case DHCPV6_OPTION_RELAY_MSG:
+      case DHCPV6_OPT_RELAY_MSG:
          error = dhcpv6DumpRelayMessageOption(option, level);
          break;
       //Authentication option
-      case DHCPV6_OPTION_AUTH:
+      case DHCPV6_OPT_AUTH:
          error = dhcpv6DumpAuthOption(option, level);
          break;
       //Server Unicast option
-      case DHCPV6_OPTION_UNICAST:
+      case DHCPV6_OPT_UNICAST:
          error = dhcpv6DumpServerUnicastOption(option, level);
          break;
       //Status Code option
-      case DHCPV6_OPTION_STATUS_CODE:
+      case DHCPV6_OPT_STATUS_CODE:
          error = dhcpv6DumpStatusCodeOption(option, level);
          break;
       //Rapid Commit option
-      case DHCPV6_OPTION_RAPID_COMMIT:
+      case DHCPV6_OPT_RAPID_COMMIT:
          error = dhcpv6DumpRapidCommitOption(option, level);
          break;
       //User Class option
-      case DHCPV6_OPTION_USER_CLASS:
+      case DHCPV6_OPT_USER_CLASS:
          error = dhcpv6DumpUserClassOption(option, level);
          break;
       //Vendor Class option
-      case DHCPV6_OPTION_VENDOR_CLASS:
+      case DHCPV6_OPT_VENDOR_CLASS:
          error = dhcpv6DumpVendorClassOption(option, level);
          break;
       //Vendor Specific Information option
-      case DHCPV6_OPTION_VENDOR_OPTS:
+      case DHCPV6_OPT_VENDOR_OPTS:
          error = dhcpv6DumpVendorSpecificInfoOption(option, level);
          break;
       //Interface ID option
-      case DHCPV6_OPTION_INTERFACE_ID:
+      case DHCPV6_OPT_INTERFACE_ID:
          error = dhcpv6DumpInterfaceIdOption(option, level);
          break;
       //Reconfigure Message option
-      case DHCPV6_OPTION_RECONF_MSG:
+      case DHCPV6_OPT_RECONF_MSG:
          error = dhcpv6DumpReconfMessageOption(option, level);
          break;
       //Reconfigure Accept option
-      case DHCPV6_OPTION_RECONF_ACCEPT:
+      case DHCPV6_OPT_RECONF_ACCEPT:
          error = dhcpv6DumpReconfAcceptOption(option, level);
          break;
       //DNS Recursive Name Server option
-      case DHCPV6_OPTION_DNS_SERVERS:
+      case DHCPV6_OPT_DNS_SERVERS:
          error = dhcpv6DumpDnsServersOption(option, level);
          break;
       //Domain Search List option
-      case DHCPV6_OPTION_DOMAIN_LIST:
+      case DHCPV6_OPT_DOMAIN_LIST:
          error = dhcpv6DumpDomainListOption(option, level);
          break;
-      //Unknown option...
+      //Unknown option
       default:
          error = dhcpv6DumpGenericOption(option, level);
          break;

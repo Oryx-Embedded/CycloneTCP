@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -256,6 +256,7 @@ void mimxrt1170Eth1InitGpio(NetInterface *interface)
    rootConfig.div = 10;
    CLOCK_SetRootClock(kCLOCK_Root_Enet1, &rootConfig);
 
+#if 0
    //Initialize PLL PFD3 (528*18/24 = 396MHz)
    CLOCK_InitPfd(kCLOCK_PllSys2, kCLOCK_Pfd3, 24);
 
@@ -264,6 +265,7 @@ void mimxrt1170Eth1InitGpio(NetInterface *interface)
    rootConfig.mux = kCLOCK_BUS_ClockRoot_MuxSysPll2Pfd3;
    rootConfig.div = 2;
    CLOCK_SetRootClock(kCLOCK_Root_Bus, &rootConfig);
+#endif
 
    //ENET_REF_CLK is output driven by ENET1_CLK_ROOT
    IOMUXC_GPR->GPR4 |= IOMUXC_GPR_GPR4_ENET_REF_CLK_DIR_MASK |

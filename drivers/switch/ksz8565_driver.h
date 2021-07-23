@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _KSZ8565_DRIVER_H
@@ -133,7 +133,7 @@
 #define KSZ8565_IBA_OP_STAT1                                   0x0110
 #define KSZ8565_LED_OVERRIDE                                   0x0120
 #define KSZ8565_LED_OUTPUT                                     0x0124
-#define KSZ8565_LED2_0_LED2_1_SOURCE                           0x0128
+#define KSZ8565_LED2_0_LED2_1_SRC                              0x0128
 #define KSZ8565_PWR_DOWN_CTRL0                                 0x0201
 #define KSZ8565_LED_STRAP_IN                                   0x0210
 #define KSZ8565_SWITCH_OP                                      0x0300
@@ -978,10 +978,109 @@
 #define KSZ8565_GLOBAL_PORT_INT_MASK_PORT2                     0x00000002
 #define KSZ8565_GLOBAL_PORT_INT_MASK_PORT1                     0x00000001
 
+//Serial I/O Control register
+#define KSZ8565_SERIAL_IO_CTRL_MIIM_PREAMBLE_SUPPR             0x04
+#define KSZ8565_SERIAL_IO_CTRL_AUTO_SPI_DATA_OUT_EDGE_SEL      0x02
+#define KSZ8565_SERIAL_IO_CTRL_SPI_DATA_OUT_EDGE_SEL           0x01
+#define KSZ8565_SERIAL_IO_CTRL_SPI_DATA_OUT_EDGE_SEL_FALLING   0x00
+#define KSZ8565_SERIAL_IO_CTRL_SPI_DATA_OUT_EDGE_SEL_RISING    0x01
+
+//Output Clock Control register
+#define KSZ8565_OUT_CLK_CTRL_REC_CLK_RDY                       0x80
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_SRC                       0x1C
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_SRC_XI                    0x00
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_SRC_PORT1                 0x04
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_SRC_PORT2                 0x08
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_SRC_PORT3                 0x0C
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_SRC_PORT4                 0x10
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_SRC_PORT5                 0x14
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_EN                        0x02
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_FREQ                      0x01
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_FREQ_25MHZ                0x00
+#define KSZ8565_OUT_CLK_CTRL_SYNCLKO_FREQ_125MHZ               0x01
+
+//In-Band Management Control register
+#define KSZ8565_IBA_CTRL_IBA_EN                                0x80000000
+#define KSZ8565_IBA_CTRL_DEST_MAC_ADDR_MATCH_EN                0x40000000
+#define KSZ8565_IBA_CTRL_IBA_RESET                             0x20000000
+#define KSZ8565_IBA_CTRL_RESP_PRIO_QUEUE                       0x00C00000
+#define KSZ8565_IBA_CTRL_RESP_PRIO_QUEUE_DEFAULT               0x00400000
+#define KSZ8565_IBA_CTRL_IBA_COMM                              0x00070000
+#define KSZ8565_IBA_CTRL_IBA_COMM_PORT1                        0x00000000
+#define KSZ8565_IBA_CTRL_IBA_COMM_PORT2                        0x00010000
+#define KSZ8565_IBA_CTRL_IBA_COMM_PORT3                        0x00020000
+#define KSZ8565_IBA_CTRL_IBA_COMM_PORT4                        0x00030000
+#define KSZ8565_IBA_CTRL_IBA_COMM_PORT5                        0x00060000
+#define KSZ8565_IBA_CTRL_TPID                                  0x0000FFFF
+#define KSZ8565_IBA_CTRL_TPID_DEFAULT                          0x000040FE
+
+//I/O Drive Strength register
+#define KSZ8565_IO_DRIVE_STRENGTH_HIGH_SPEED_DRIVE_STRENGTH    0x70
+#define KSZ8565_IO_DRIVE_STRENGTH_LOW_SPEED_DRIVE_STRENGTH     0x07
+
+//In-Band Management Operation Status 1 register
+#define KSZ8565_IBA_OP_STAT1_GOOD_PKT_DETECT                   0x80000000
+#define KSZ8565_IBA_OP_STAT1_RESP_PKT_TX_DONE                  0x40000000
+#define KSZ8565_IBA_OP_STAT1_EXEC_DONE                         0x20000000
+#define KSZ8565_IBA_OP_STAT1_MAC_ADDR_MISMATCH_ERR             0x00004000
+#define KSZ8565_IBA_OP_STAT1_ACCESS_FORMAT_ERR                 0x00002000
+#define KSZ8565_IBA_OP_STAT1_ACCESS_CODE_ERR                   0x00001000
+#define KSZ8565_IBA_OP_STAT1_ACCESS_CMD_ERR                    0x00000800
+#define KSZ8565_IBA_OP_STAT1_OVERSIZE_PKT_ERR                  0x00000400
+#define KSZ8565_IBA_OP_STAT1_ACCESS_CODE_ERR_LOC               0x0000007F
+
+//LED Override register
+#define KSZ8565_LED_OVERRIDE_OVERRIDE                          0x000000FF
+#define KSZ8565_LED_OVERRIDE_OVERRIDE_LED1_0                   0x00000001
+#define KSZ8565_LED_OVERRIDE_OVERRIDE_LED1_1                   0x00000002
+#define KSZ8565_LED_OVERRIDE_OVERRIDE_LED2_0                   0x00000004
+#define KSZ8565_LED_OVERRIDE_OVERRIDE_LED2_1                   0x00000008
+#define KSZ8565_LED_OVERRIDE_OVERRIDE_LED3_0                   0x00000010
+#define KSZ8565_LED_OVERRIDE_OVERRIDE_LED3_1                   0x00000020
+#define KSZ8565_LED_OVERRIDE_OVERRIDE_LED4_0                   0x00000040
+#define KSZ8565_LED_OVERRIDE_OVERRIDE_LED4_1                   0x00000080
+
+//LED Output register
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL                       0x000000FF
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL_LED1_0                0x00000001
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL_LED1_1                0x00000002
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL_LED2_0                0x00000004
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL_LED2_1                0x00000008
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL_LED3_0                0x00000010
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL_LED3_1                0x00000020
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL_LED4_0                0x00000040
+#define KSZ8565_LED_OUTPUT_GPIO_OUT_CTRL_LED4_1                0x00000080
+
+//LED2_0/LED2_1 Source register
+#define KSZ8565_LED2_0_LED2_1_SRC_LED2_1_SRC                   0x00000008
+#define KSZ8565_LED2_0_LED2_1_SRC_LED2_0_SRC                   0x00000004
+
+//Power Down Control 0 register
+#define KSZ8565_PWR_DOWN_CTRL0_PLL_PWR_DOWN                    0x20
+#define KSZ8565_PWR_DOWN_CTRL0_PWR_MGMT_MODE                   0x18
+#define KSZ8565_PWR_DOWN_CTRL0_PWR_MGMT_MODE_NORMAL            0x00
+#define KSZ8565_PWR_DOWN_CTRL0_PWR_MGMT_MODE_EDPD              0x08
+#define KSZ8565_PWR_DOWN_CTRL0_PWR_MGMT_MODE_SOFT_PWR_DOWN     0x10
+
+//LED Strap-In register
+#define KSZ8565_LED_STRAP_IN_STRAP_IN                          0x000000FF
+#define KSZ8565_LED_STRAP_IN_STRAP_IN_LED1_0                   0x00000001
+#define KSZ8565_LED_STRAP_IN_STRAP_IN_LED1_1                   0x00000002
+#define KSZ8565_LED_STRAP_IN_STRAP_IN_LED2_0                   0x00000004
+#define KSZ8565_LED_STRAP_IN_STRAP_IN_LED2_1                   0x00000008
+#define KSZ8565_LED_STRAP_IN_STRAP_IN_LED3_0                   0x00000010
+#define KSZ8565_LED_STRAP_IN_STRAP_IN_LED3_1                   0x00000020
+#define KSZ8565_LED_STRAP_IN_STRAP_IN_LED4_0                   0x00000040
+#define KSZ8565_LED_STRAP_IN_STRAP_IN_LED4_1                   0x00000080
+
 //Switch Operation register
 #define KSZ8565_SWITCH_OP_DOUBLE_TAG_EN                        0x80
 #define KSZ8565_SWITCH_OP_SOFT_HARD_RESET                      0x02
 #define KSZ8565_SWITCH_OP_START_SWITCH                         0x01
+
+//Switch Maximum Transmit Unit register
+#define KSZ8565_SWITCH_MTU_MTU                                 0x3FFF
+#define KSZ8565_SWITCH_MTU_MTU_DEFAULT                         0x07D0
 
 //Switch Lookup Engine Control 0 register
 #define KSZ8565_SWITCH_LUE_CTRL0_VLAN_EN                       0x80
@@ -1080,9 +1179,9 @@
 #define KSZ8565_SWITCH_MAC_CTRL1_BACK_PRESSURE_MODE            0x20
 #define KSZ8565_SWITCH_MAC_CTRL1_FLOW_CTRL_FAIR_MODE           0x10
 #define KSZ8565_SWITCH_MAC_CTRL1_NO_EXCESSIVE_COL_DROP         0x08
-#define KSZ8565_SWITCH_MAC_CTRL1_JUMBO_PACKET_SUPPORT          0x04
-#define KSZ8565_SWITCH_MAC_CTRL1_MAX_PACKET_SIZE_CHECK_DIS     0x02
-#define KSZ8565_SWITCH_MAC_CTRL1_PASS_SHORT_PACKET             0x01
+#define KSZ8565_SWITCH_MAC_CTRL1_JUMBO_PKT_SUPPORT             0x04
+#define KSZ8565_SWITCH_MAC_CTRL1_MAX_PKT_SIZE_CHECK_DIS        0x02
+#define KSZ8565_SWITCH_MAC_CTRL1_PASS_SHORT_PKT                0x01
 
 //Switch MAC Control 2 register
 #define KSZ8565_SWITCH_MAC_CTRL2_NULL_VID_REPLACEMENT          0x08

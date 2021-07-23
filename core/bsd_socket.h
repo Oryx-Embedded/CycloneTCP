@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -63,108 +63,114 @@
 #include "os_port.h"
 
 //Address families
-#define AF_UNSPEC        0
-#define AF_INET          2
-#define AF_INET6         10
-#define AF_PACKET        17
+#define AF_UNSPEC         0
+#define AF_INET           2
+#define AF_INET6          10
+#define AF_PACKET         17
 
 //Protocol families
-#define PF_UNSPEC        AF_UNSPEC
-#define PF_INET          AF_INET
-#define PF_INET6         AF_INET6
-#define PF_PACKET        AF_PACKET
+#define PF_UNSPEC         AF_UNSPEC
+#define PF_INET           AF_INET
+#define PF_INET6          AF_INET6
+#define PF_PACKET         AF_PACKET
 
 //Socket types
-#define SOCK_STREAM      1
-#define SOCK_DGRAM       2
-#define SOCK_RAW         3
+#define SOCK_STREAM       1
+#define SOCK_DGRAM        2
+#define SOCK_RAW          3
 
 //IP protocol identifiers
-#define IPPROTO_IP       0
-#define IPPROTO_ICMP     1
-#define IPPROTO_IGMP     2
-#define IPPROTO_TCP      6
-#define IPPROTO_UDP      17
-#define IPPROTO_ICMPV6   58
+#define IPPROTO_IP        0
+#define IPPROTO_ICMP      1
+#define IPPROTO_IGMP      2
+#define IPPROTO_TCP       6
+#define IPPROTO_UDP       17
+#define IPPROTO_ICMPV6    58
 
 //Ethernet protocol identifiers
-#define ETH_P_ALL        0x0000
-#define ETH_P_IP         0x0800
-#define ETH_P_ARP        0x0806
-#define ETH_P_IPV6       0x86DD
+#define ETH_P_ALL         0x0000
+#define ETH_P_IP          0x0800
+#define ETH_P_ARP         0x0806
+#define ETH_P_IPV6        0x86DD
 
 //Option levels
-#define SOL_SOCKET       0xFFFF
+#define SOL_SOCKET        0xFFFF
 
 //Common addresses
-#define INADDR_ANY       0x00000000
-#define INADDR_LOOPBACK  0x7F000001
-#define INADDR_BROADCAST 0xFFFFFFFF
+#define INADDR_ANY        0x00000000
+#define INADDR_LOOPBACK   0x7F000001
+#define INADDR_BROADCAST  0xFFFFFFFF
 
 //Flags used by I/O functions
-#define MSG_PEEK         0x02
-#define MSG_DONTROUTE    0x04
-#define MSG_WAITALL      0x08
-#define MSG_DONTWAIT     0x01
+#define MSG_PEEK          0x02
+#define MSG_DONTROUTE     0x04
+#define MSG_WAITALL       0x08
+#define MSG_DONTWAIT      0x01
 
 //Flags used by shutdown function
-#define SD_RECEIVE       0
-#define SD_SEND          1
-#define SD_BOTH          2
+#define SD_RECEIVE        0
+#define SD_SEND           1
+#define SD_BOTH           2
 
 //Socket level options
-#define SO_REUSEADDR     0x0004
-#define SO_KEEPALIVE     0x0008
-#define SO_DONTROUTE     0x0010
-#define SO_BROADCAST     0x0020
-#define SO_LINGER        0x0080
-#define SO_SNDBUF        0x1001
-#define SO_RCVBUF        0x1002
-#define SO_SNDTIMEO      0x1005
-#define SO_RCVTIMEO      0x1006
-#define SO_ERROR         0x1007
-#define SO_TYPE          0x1008
-#define SO_MAX_MSG_SIZE  0x2003
-#define SO_BINDTODEVICE  0x3000
+#define SO_REUSEADDR      0x0004
+#define SO_KEEPALIVE      0x0008
+#define SO_DONTROUTE      0x0010
+#define SO_BROADCAST      0x0020
+#define SO_LINGER         0x0080
+#define SO_SNDBUF         0x1001
+#define SO_RCVBUF         0x1002
+#define SO_SNDTIMEO       0x1005
+#define SO_RCVTIMEO       0x1006
+#define SO_ERROR          0x1007
+#define SO_TYPE           0x1008
+#define SO_MAX_MSG_SIZE   0x2003
+#define SO_BINDTODEVICE   0x3000
 
 //IP level options
-#define IP_TTL           2
-#define IP_MULTICAST_TTL 33
+#define IP_TOS            1
+#define IP_TTL            2
+#define IP_MULTICAST_TTL  33
 
 //TCP level options
-#define TCP_NODELAY      0x0001
-#define TCP_MAXSEG       0x0002
-#define TCP_KEEPIDLE     0x0004
-#define TCP_KEEPINTVL    0x0005
-#define TCP_KEEPCNT      0x0006
+#define TCP_NODELAY       0x0001
+#define TCP_MAXSEG        0x0002
+#define TCP_KEEPIDLE      0x0004
+#define TCP_KEEPINTVL     0x0005
+#define TCP_KEEPCNT       0x0006
+
+//IP TOS option
+#define IPTOS_LOWDELAY    0x10
+#define IPTOS_THROUGHPUT  0x08
+#define IPTOS_RELIABILITY 0x04
 
 //IOCTL commands
-#define FIONREAD         0x400466FF
-#define FIONBIO          0x800466FE
+#define FIONREAD          0x400466FF
+#define FIONBIO           0x800466FE
 
 //FCNTL commands
-#define F_GETFL          3
-#define F_SETFL          4
+#define F_GETFL           3
+#define F_SETFL           4
 
 //FCNTL flags
-#define O_NONBLOCK       0x0004
+#define O_NONBLOCK        0x0004
 
 //Status codes
-#define SOCKET_SUCCESS 0
-#define SOCKET_ERROR (-1)
+#define SOCKET_SUCCESS    0
+#define SOCKET_ERROR      (-1)
 
 //Error codes
-#define EINTR        4
-#define EAGAIN       11
-#define EWOULDBLOCK  11
-#define EFAULT       14
-#define EINVAL       22
-#define ENOPROTOOPT  92
-#define ECONNRESET   104
-#define EISCONN      106
-#define ENOTCONN     107
-#define ESHUTDOWN    108
-#define ECONNREFUSED 111
+#define EINTR             4
+#define EAGAIN            11
+#define EWOULDBLOCK       11
+#define EFAULT            14
+#define EINVAL            22
+#define ENOPROTOOPT       92
+#define ECONNRESET        104
+#define EISCONN           106
+#define ENOTCONN          107
+#define ESHUTDOWN         108
+#define ECONNREFUSED      111
 
 //Host error codes
 #define NETDB_SUCCESS  0

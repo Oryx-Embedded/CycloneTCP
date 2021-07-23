@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _IPV6_H
@@ -260,7 +260,7 @@ typedef __start_packed struct
 
 __start_packed struct _Ipv6Header
 {
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t version : 4;       //0
    uint8_t trafficClassH : 4;
    uint8_t trafficClassL : 4; //1

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -244,11 +244,13 @@ void mimxrt1170Eth2InitGpio(NetInterface *interface)
 {
    gpio_pin_config_t pinConfig;
    clock_root_config_t rootConfig = {0};
-   //clock_sys_pll1_config_t sysPll1Config = {0};
+#if 0
+   clock_sys_pll1_config_t sysPll1Config = {0};
 
    //Initialize system PLL1
-   //sysPll1Config.pllDiv2En = true;
-   //CLOCK_InitSysPll1(&sysPll1Config);
+   sysPll1Config.pllDiv2En = true;
+   CLOCK_InitSysPll1(&sysPll1Config);
+#endif
 
    //Generate 125MHz root clock
    rootConfig.clockOff = false;
@@ -256,14 +258,16 @@ void mimxrt1170Eth2InitGpio(NetInterface *interface)
    rootConfig.div = 4;
    CLOCK_SetRootClock(kCLOCK_Root_Enet2, &rootConfig);
 
+#if 0
    //Initialize PLL PFD3 (528*18/24 = 396MHz)
-   //CLOCK_InitPfd(kCLOCK_PllSys2, kCLOCK_Pfd3, 24);
+   CLOCK_InitPfd(kCLOCK_PllSys2, kCLOCK_Pfd3, 24);
 
    //Generate 198MHz bus clock
    rootConfig.clockOff = false;
    rootConfig.mux = kCLOCK_BUS_ClockRoot_MuxSysPll2Pfd3;
    rootConfig.div = 2;
    CLOCK_SetRootClock(kCLOCK_Root_Bus, &rootConfig);
+#endif
 
    //ENET_1G_TX_CLK is driven by ENET2_CLK_ROOT
    IOMUXC_GPR->GPR5 &= ~IOMUXC_GPR_GPR5_ENET1G_TX_CLK_SEL_MASK;

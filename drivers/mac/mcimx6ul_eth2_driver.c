@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -987,12 +987,12 @@ void mcimx6ulEth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
       temp |= ENET_MMFR_DATA(data);
 
       //Clear MII interrupt flag
-      ENET1->EIR = ENET_EIR_MII_MASK;
+      ENET2->EIR = ENET_EIR_MII_MASK;
       //Start a write operation
-      ENET1->MMFR = temp;
+      ENET2->MMFR = temp;
 
       //Wait for the write to complete
-      while((ENET1->EIR & ENET_EIR_MII_MASK) == 0)
+      while((ENET2->EIR & ENET_EIR_MII_MASK) == 0)
       {
       }
    }
@@ -1028,17 +1028,17 @@ uint16_t mcimx6ulEth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
       temp |= ENET_MMFR_RA(regAddr);
 
       //Clear MII interrupt flag
-      ENET1->EIR = ENET_EIR_MII_MASK;
+      ENET2->EIR = ENET_EIR_MII_MASK;
       //Start a read operation
-      ENET1->MMFR = temp;
+      ENET2->MMFR = temp;
 
       //Wait for the read to complete
-      while((ENET1->EIR & ENET_EIR_MII_MASK) == 0)
+      while((ENET2->EIR & ENET_EIR_MII_MASK) == 0)
       {
       }
 
       //Get register value
-      data = ENET1->MMFR & ENET_MMFR_DATA_MASK;
+      data = ENET2->MMFR & ENET_MMFR_DATA_MASK;
    }
    else
    {

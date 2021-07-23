@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _NDP_H
@@ -286,7 +286,7 @@ typedef __start_packed struct
    uint8_t code;                  //1
    uint16_t checksum;             //2-3
    uint8_t curHopLimit;           //4
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t m : 1;                 //5
    uint8_t o : 1;
    uint8_t h : 1;
@@ -332,7 +332,7 @@ typedef __start_packed struct
    uint8_t type;          //0
    uint8_t code;          //1
    uint16_t checksum;     //2-3
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t r : 1;         //4
    uint8_t s : 1;
    uint8_t o : 1;
@@ -398,7 +398,7 @@ typedef __start_packed struct
    uint8_t type;               //0
    uint8_t length;             //1
    uint8_t prefixLength;       //2
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t l : 1;              //3
    uint8_t a : 1;
    uint8_t r : 1;
@@ -452,7 +452,7 @@ typedef __start_packed struct
    uint8_t type;           //0
    uint8_t length;         //1
    uint8_t prefixLength;   //2
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t reserved1 : 3;  //3
    uint8_t prf : 2;
    uint8_t reserved2 : 3;
@@ -503,7 +503,7 @@ typedef __start_packed struct
    uint8_t type;           //0
    uint8_t length;         //1
    uint8_t contextLength;  //2
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t reserved1 : 3;  //3
    uint8_t c : 1;
    uint8_t cid : 4;

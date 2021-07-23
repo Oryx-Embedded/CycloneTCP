@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -49,6 +49,7 @@
 #include "ipv6/ndp_cache.h"
 #include "ipv6/ndp_misc.h"
 #include "ipv6/slaac.h"
+#include "ipv6/slaac_misc.h"
 #include "mibs/ip_mib_module.h"
 #include "debug.h"
 

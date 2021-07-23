@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _DHCP_CLIENT_H
@@ -49,34 +49,6 @@
    #define DHCP_CLIENT_TICK_INTERVAL 200
 #elif (DHCP_CLIENT_TICK_INTERVAL < 10)
    #error DHCP_CLIENT_TICK_INTERVAL parameter is not valid
-#endif
-
-//Host name option support
-#ifndef DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT
-   #define DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT ENABLED
-#elif (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT != ENABLED && DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT != DISABLED)
-   #error DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT parameter is not valid
-#endif
-
-//Maximum length of host name
-#ifndef DHCP_CLIENT_MAX_HOSTNAME_LEN
-   #define DHCP_CLIENT_MAX_HOSTNAME_LEN 24
-#elif (DHCP_CLIENT_MAX_HOSTNAME_LEN < 1)
-   #error DHCP_CLIENT_MAX_HOSTNAME_LEN parameter is not valid
-#endif
-
-//Client identifier option support
-#ifndef DHCP_CLIENT_ID_OPTION_SUPPORT
-   #define DHCP_CLIENT_ID_OPTION_SUPPORT DISABLED
-#elif (DHCP_CLIENT_ID_OPTION_SUPPORT != ENABLED && DHCP_CLIENT_ID_OPTION_SUPPORT != DISABLED)
-   #error DHCP_CLIENT_ID_OPTION_SUPPORT parameter is not valid
-#endif
-
-//Maximum size of client identifier
-#ifndef DHCP_CLIENT_MAX_ID_SIZE
-   #define DHCP_CLIENT_MAX_ID_SIZE 15
-#elif (DHCP_CLIENT_MAX_ID_SIZE < 1)
-   #error DHCP_CLIENT_MAX_ID_SIZE parameter is not valid
 #endif
 
 //Random delay before sending the first message
@@ -202,26 +174,37 @@ typedef void (*DhcpStateChangeCallback)(DhcpClientContext *context,
 
 
 /**
+ * @brief Add DHCP options callback
+ **/
+
+typedef void (*DhcpAddOptionsCallback)(DhcpClientContext *context,
+   DhcpMessage *message, size_t *length, DhcpMessageType type);
+
+
+/**
+ * @brief Parse DHCP options callback
+ **/
+
+typedef void (*DhcpParseOptionsCallback)(DhcpClientContext *context,
+   const DhcpMessage *message, size_t length, DhcpMessageType type);
+
+
+/**
  * @brief DHCP client settings
  **/
 
 typedef struct
 {
-   NetInterface *interface;                           ///<Network interface to configure
-   uint_t ipAddrIndex;                                ///<Index of the IP address to be configured
-#if (DHCP_CLIENT_HOSTNAME_OPTION_SUPPORT == ENABLED)
-   char_t hostname[DHCP_CLIENT_MAX_HOSTNAME_LEN + 1]; ///<Host name
-#endif
-#if (DHCP_CLIENT_ID_OPTION_SUPPORT == ENABLED)
-   uint8_t clientId[DHCP_CLIENT_MAX_ID_SIZE];         ///<Client identifier
-   size_t clientIdLength;                             ///<Length of the client identifier
-#endif
-   bool_t rapidCommit;                                ///<Quick configuration using rapid commit
-   bool_t manualDnsConfig;                            ///<Force manual DNS configuration
-   systime_t timeout;                                 ///<DHCP configuration timeout
-   DhcpTimeoutCallback timeoutEvent;                  ///<DHCP configuration timeout event
-   DhcpLinkChangeCallback linkChangeEvent;            ///<Link state change event
-   DhcpStateChangeCallback stateChangeEvent;          ///<FSM state change event
+   NetInterface *interface;                       ///<Network interface to configure
+   uint_t ipAddrIndex;                            ///<Index of the IP address to be configured
+   bool_t rapidCommit;                            ///<Quick configuration using rapid commit
+   bool_t manualDnsConfig;                        ///<Force manual DNS configuration
+   systime_t timeout;                             ///<DHCP configuration timeout
+   DhcpTimeoutCallback timeoutEvent;              ///<DHCP configuration timeout event
+   DhcpLinkChangeCallback linkChangeEvent;        ///<Link state change event
+   DhcpStateChangeCallback stateChangeEvent;      ///<FSM state change event
+   DhcpAddOptionsCallback addOptionsCallback;     ///<Add DHCP options callback
+   DhcpParseOptionsCallback parseOptionsCallback; ///<Parse DHCP options callback
 } DhcpClientSettings;
 
 
@@ -250,55 +233,16 @@ struct _DhcpClientContext
 };
 
 
-//Tick counter to handle periodic operations
-extern systime_t dhcpClientTickCounter;
-
 //DHCP client related functions
 void dhcpClientGetDefaultSettings(DhcpClientSettings *settings);
-error_t dhcpClientInit(DhcpClientContext *context, const DhcpClientSettings *settings);
+
+error_t dhcpClientInit(DhcpClientContext *context,
+   const DhcpClientSettings *settings);
+
 error_t dhcpClientStart(DhcpClientContext *context);
 error_t dhcpClientStop(DhcpClientContext *context);
+
 DhcpState dhcpClientGetState(DhcpClientContext *context);
-
-void dhcpClientTick(DhcpClientContext *context);
-void dhcpClientLinkChangeEvent(DhcpClientContext *context);
-
-void dhcpClientStateInit(DhcpClientContext *context);
-void dhcpClientStateSelecting(DhcpClientContext *context);
-void dhcpClientStateRequesting(DhcpClientContext *context);
-void dhcpClientStateInitReboot(DhcpClientContext *context);
-void dhcpClientStateRebooting(DhcpClientContext *context);
-void dhcpClientStateProbing(DhcpClientContext *context);
-void dhcpClientStateBound(DhcpClientContext *context);
-void dhcpClientStateRenewing(DhcpClientContext *context);
-void dhcpClientStateRebinding(DhcpClientContext *context);
-
-error_t dhcpClientSendDiscover(DhcpClientContext *context);
-error_t dhcpClientSendRequest(DhcpClientContext *context);
-error_t dhcpClientSendDecline(DhcpClientContext *context);
-
-void dhcpClientProcessMessage(NetInterface *interface,
-   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
-   void *param);
-
-void dhcpClientParseOffer(DhcpClientContext *context,
-   const DhcpMessage *message, size_t length);
-
-void dhcpClientParseAck(DhcpClientContext *context,
-   const DhcpMessage *message, size_t length);
-
-void dhcpClientParseNak(DhcpClientContext *context,
-   const DhcpMessage *message, size_t length);
-
-void dhcpClientCheckTimeout(DhcpClientContext *context);
-
-uint16_t dhcpClientComputeElapsedTime(DhcpClientContext *context);
-
-void dhcpClientChangeState(DhcpClientContext *context,
-   DhcpState newState, systime_t delay);
-
-void dhcpClientDumpConfig(DhcpClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus

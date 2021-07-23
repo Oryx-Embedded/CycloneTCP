@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -130,7 +130,7 @@ error_t ksz8563Init(NetInterface *interface)
       temp |= KSZ8563_PORTn_OP_CTRL0_TAIL_TAG_EN;
       ksz8563WriteSwitchReg8(interface, KSZ8563_PORT3_OP_CTRL0, temp);
 
-      //Disable frame length check (silicon errata workaround)
+      //Disable frame length check (silicon errata workaround 1)
       temp = ksz8563ReadSwitchReg8(interface, KSZ8563_SWITCH_MAC_CTRL0);
       temp &= ~KSZ8563_SWITCH_MAC_CTRL0_FRAME_LEN_CHECK_EN;
       ksz8563WriteSwitchReg8(interface, KSZ8563_SWITCH_MAC_CTRL0, temp);
@@ -196,7 +196,7 @@ error_t ksz8563Init(NetInterface *interface)
    //Loop through the ports
    for(port = KSZ8563_PORT1; port <= KSZ8563_PORT2; port++)
    {
-      //Select tri-color dual-LED mode (silicon errata workaround)
+      //Select tri-color dual-LED mode (silicon errata workaround 4)
       ksz8563WriteMmdReg(interface, port, KSZ8563_MMD_LED_MODE,
          KSZ8563_MMD_LED_MODE_LED_MODE_TRI_COLOR_DUAL |
          KSZ8563_MMD_LED_MODE_RESERVED_DEFAULT);
@@ -1471,7 +1471,7 @@ void ksz8563SetUnknownMcastFwdPorts(NetInterface *interface,
    {
       //Enable forwarding
       temp |= KSZ8563_UNKONWN_MULTICAST_CTRL_FWD;
-      
+
       //Check whether unknown multicast packets should be forwarded to the CPU port
       if((forwardPorts & SWITCH_CPU_PORT_MASK) != 0)
       {

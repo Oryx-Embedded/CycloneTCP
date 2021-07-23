@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -539,7 +539,8 @@ typedef struct
 typedef struct
 {
    NetInterface *interface;                                     ///<Underlying network interface
-   uint16_t port;                                               ///<HTTP port number
+   uint16_t port;                                               ///<HTTP server port number
+   IpAddr ipAddr;                                               ///<HTTP server IP address
    uint_t backlog;                                              ///<Maximum length of the pending connection queue
    uint_t maxConnections;                                       ///<Maximum number of client connections
    HttpConnection *connections;                                 ///<Client connections

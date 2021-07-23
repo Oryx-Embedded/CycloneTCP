@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -48,7 +48,7 @@
 #include "ipv6/icmpv6.h"
 #include "ipv6/mld.h"
 #include "ipv6/ndp.h"
-#include "ipv6/ndp_router_adv.h"
+#include "ipv6/ndp_router_adv_misc.h"
 #include "mibs/ip_mib_module.h"
 #include "debug.h"
 

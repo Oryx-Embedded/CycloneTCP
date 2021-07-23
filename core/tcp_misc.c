@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -1813,8 +1813,8 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
    uint32_t n;
    uint32_t u;
 
-   //The amount of data that can be sent at any given time is
-   //limited by the receiver window and the congestion window
+   //The amount of data that can be sent at any given time is limited by the
+   //receiver window and the congestion window
    n = MIN(socket->sndWnd, socket->txBufferSize);
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
@@ -1825,12 +1825,12 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
    //Retrieve the size of the usable window
    u = n - (socket->sndNxt - socket->sndUna);
 
-   //The Nagle algorithm discourages sending tiny segments when
-   //the data to be sent increases in small increments
+   //The Nagle algorithm discourages sending tiny segments when the data to be
+   //sent increases in small increments
    while(socket->sndUser > 0)
    {
-      //The usable window size may become zero or negative,
-      //preventing packet transmission
+      //The usable window size may become zero or negative, preventing packet
+      //transmission
       if((int32_t) u <= 0)
          break;
 

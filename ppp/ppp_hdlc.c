@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -447,39 +447,54 @@ error_t pppHdlcDriverReceiveAtCommand(NetInterface *interface, char_t *data,
    //Loop through received data
    for(i = 0, valid = FALSE; i < n && !valid; i++)
    {
-      //Read current character
-      data[i] = context->rxBuffer[k];
+      //Check whether the buffer is available for writing
+      if((i + 1) < size)
+      {
+         //Read current character
+         data[i] = context->rxBuffer[k];
+         data[i + 1] = '\0';
 
-      //Carriage return?
-      if(data[i] == '\r' || data[i] == '\n')
-      {
-         data[i] = '\0';
-         valid = TRUE;
-      }
-      //Special processing of null-modem connections
-      else if(i >= 5 && !osMemcmp(data + i - 5, "CLIENT", 6))
-      {
-         data[i + 1] = '\0';
-         valid = TRUE;
-      }
-      else if(i >= 5 && !osMemcmp(data + i - 5, "SERVER", 6))
-      {
-         data[i + 1] = '\0';
-         valid = TRUE;
-      }
-      //Buffer full?
-      else if(i == (size - 2))
-      {
-         data[i + 1] = '\0';
-         valid = TRUE;
-      }
+         //Check current character
+         if(data[i] == '\r' || data[i] == '\n')
+         {
+            //A complete AT command has been received
+            data[i] = '\0';
+            valid = TRUE;
+         }
+         if(data[i] == PPP_FLAG_CHAR)
+         {
+            //A flag character has been received
+            valid = TRUE;
+         }
+         else if(i >= 5 && !osMemcmp(data + i - 5, "CLIENT", 6))
+         {
+            //Special processing of null-modem connections
+            valid = TRUE;
+         }
+         else if(i >= 5 && !osMemcmp(data + i - 5, "SERVER", 6))
+         {
+            //Special processing of null-modem connections
+            valid = TRUE;
+         }
+         else
+         {
+            //Just for sanity
+         }
 
-      //Increment index and wrap around if necessary
-      if(++k >= PPP_RX_BUFFER_SIZE)
-         k = 0;
+         //Increment index and wrap around if necessary
+         if(++k >= PPP_RX_BUFFER_SIZE)
+         {
+            k = 0;
+         }
+      }
+      else
+      {
+         //The buffer is full
+         valid = TRUE;
+      }
    }
 
-   //Valid command received?
+   //Any data received?
    if(valid)
    {
       //Advance read index
@@ -492,14 +507,12 @@ error_t pppHdlcDriverReceiveAtCommand(NetInterface *interface, char_t *data,
       //Exit critical section
       __enable_irq();
 
-      //Successful processing
-      return NO_ERROR;
+      //Return status code
+      return (i < size) ? NO_ERROR : ERROR_BUFFER_OVERFLOW;
    }
    else
    {
-      //data[i] = '\0';
-      //TRACE_INFO("PPP RX buffer residue (%d bytes)\r\n", i);
-      //TRACE_INFO_ARRAY("#  ", data, i);
+      //The receive buffer is empty
       return ERROR_BUFFER_EMPTY;
    }
 }

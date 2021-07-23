@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -780,7 +780,7 @@ error_t sam9263EthUpdateMacAddrFilter(NetInterface *interface)
       AT91C_BASE_EMAC->EMAC_SA4L = 0;
    }
 
-   //Configure the multicast address filter
+   //Configure the multicast hash table
    AT91C_BASE_EMAC->EMAC_HRB = hashTable[0];
    AT91C_BASE_EMAC->EMAC_HRT = hashTable[1];
 

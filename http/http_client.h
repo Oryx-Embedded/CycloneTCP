@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _HTTP_CLIENT_H
@@ -182,22 +182,10 @@
    #include "encoding/base64.h"
 #endif
 
-//MD5 digest authentication supported?
-#if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED && HTTP_CLIENT_MD5_SUPPORT == ENABLED)
+//Digest access authentication supported?
+#if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED)
    #include "core/crypto.h"
-   #include "hash/md5.h"
-#endif
-
-//SHA-256 digest authentication supported?
-#if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED && HTTP_CLIENT_SHA256_SUPPORT == ENABLED)
-   #include "core/crypto.h"
-   #include "hash/sha256.h"
-#endif
-
-//SHA-512/256 digest authentication supported?
-#if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED && HTTP_CLIENT_SHA512_256_SUPPORT == ENABLED)
-   #include "core/crypto.h"
-   #include "hash/sha512_256.h"
+   #include "hash/hash_algorithms.h"
 #endif
 
 //Forward declaration of HttpClientContext structure

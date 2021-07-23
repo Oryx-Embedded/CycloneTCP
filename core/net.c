@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,14 +42,18 @@
 #include "ipv4/arp.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_routing.h"
-#include "ipv4/igmp.h"
+#include "ipv4/auto_ip_misc.h"
+#include "igmp/igmp_host.h"
+#include "igmp/igmp_router.h"
+#include "igmp/igmp_snooping.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_routing.h"
 #include "ipv6/mld.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv.h"
-#include "dhcp/dhcp_client.h"
-#include "dhcp/dhcp_server.h"
+#include "dhcp/dhcp_client_misc.h"
+#include "dhcp/dhcp_server_misc.h"
+#include "dhcpv6/dhcpv6_client_misc.h"
 #include "dns/dns_cache.h"
 #include "dns/dns_client.h"
 #include "mdns/mdns_client.h"
@@ -197,7 +201,8 @@ error_t netInit(void)
 #if (IPV4_SUPPORT == ENABLED && IPV4_FRAG_SUPPORT == ENABLED)
    ipv4FragTickCounter = 0;
 #endif
-#if (IPV4_SUPPORT == ENABLED && IGMP_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && (IGMP_HOST_SUPPORT == ENABLED || \
+   IGMP_ROUTER_SUPPORT == ENABLED || IGMP_SNOOPING_SUPPORT == ENABLED))
    igmpTickCounter = 0;
 #endif
 #if (IPV4_SUPPORT == ENABLED && AUTO_IP_SUPPORT == ENABLED)
@@ -1029,15 +1034,10 @@ error_t netConfigInterface(NetInterface *interface)
          break;
 #endif
 
-#if (IGMP_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && (IGMP_HOST_SUPPORT == ENABLED || \
+   IGMP_ROUTER_SUPPORT == ENABLED || IGMP_SNOOPING_SUPPORT == ENABLED))
       //IGMP related initialization
       error = igmpInit(interface);
-      //Any error to report?
-      if(error)
-         break;
-
-      //Join the all-systems group
-      error = ipv4JoinMulticastGroup(interface, IGMP_ALL_SYSTEMS_ADDR);
       //Any error to report?
       if(error)
          break;

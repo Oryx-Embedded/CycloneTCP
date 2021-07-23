@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -54,9 +54,9 @@
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_cache.h"
 #include "ipv6/ndp_misc.h"
-#include "ipv6/ndp_router_adv.h"
-#include "ipv6/slaac.h"
-#include "dhcpv6/dhcpv6_client.h"
+#include "ipv6/ndp_router_adv_misc.h"
+#include "ipv6/slaac_misc.h"
+#include "dhcpv6/dhcpv6_client_misc.h"
 #include "mibs/ip_mib_module.h"
 #include "debug.h"
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _NDP_ROUTER_ADV_H
@@ -150,14 +150,6 @@ error_t ndpRouterAdvInit(NdpRouterAdvContext *context,
 
 error_t ndpRouterAdvStart(NdpRouterAdvContext *context);
 error_t ndpRouterAdvStop(NdpRouterAdvContext *context);
-
-void ndpRouterAdvTick(NdpRouterAdvContext *context);
-void ndpRouterAdvLinkChangeEvent(NdpRouterAdvContext *context);
-
-void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, uint8_t hopLimit);
-
-error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime);
 
 //C++ guard
 #ifdef __cplusplus

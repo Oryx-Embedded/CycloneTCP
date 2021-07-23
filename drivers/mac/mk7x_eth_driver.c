@@ -25,21 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
-//MK70F12 device?
-#if defined(MK70F12)
-   #include "mk70f12.h"
-//MK70F15 device?
-#elif defined(MK70F15)
-   #include "mk70f15.h"
-#endif
-
 //Dependencies
+#include "mk70f12.h"
 #include "core/net.h"
 #include "drivers/mac/mk7x_eth_driver.h"
 #include "debug.h"

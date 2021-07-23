@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _NIC_H
@@ -56,6 +56,7 @@
 #endif
 
 //Switch CPU port
+#define SWITCH_CPU_PORT 32
 #define SWITCH_CPU_PORT_MASK 0x80000000
 
 //Serial Management Interface
@@ -294,16 +295,6 @@ typedef struct
    bool_t autoCrcCalc;
    bool_t autoCrcVerif;
    bool_t autoCrcStrip;
-   //bool_t autoIpv4ChecksumCalc;
-   //bool_t autoIpv4ChecksumVerif;
-   //bool_t autoIpv6ChecksumCalc;
-   //bool_t autoIpv6ChecksumVerif;
-   //bool_t autoIcmpChecksumCalc;
-   //bool_t autoIcmpChecksumVerif;
-   //bool_t autoTcpChecksumCalc;
-   //bool_t autoTcpChecksumVerif;
-   //bool_t autoUdpChecksumCalc;
-   //bool_t autoUdpChecksumVerif;
 } NicDriver;
 
 

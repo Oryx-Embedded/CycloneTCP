@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -275,10 +275,32 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
          continue;
 #endif
 
-      //The host must silently discards an incoming frame whose destination
-      //address does not correspond to the physical interface through which
-      //it was received
-      error = ethCheckDestAddr(virtualInterface, &header->destAddr);
+#if (IPV4_SUPPORT == ENABLED && IGMP_ROUTER_SUPPORT == ENABLED)
+      //Trap IGMP packets when IGMP router is enabled
+      if(virtualInterface->igmpRouterContext != NULL &&
+         ethTrapIgmpPacket(header, data, length))
+      {
+         //Forward the packet to the IGMP router
+         error = NO_ERROR;
+      }
+      else
+#endif
+#if (IPV4_SUPPORT == ENABLED && IGMP_SNOOPING_SUPPORT == ENABLED)
+      //Trap IGMP packets when IGMP snooping is enabled
+      if(virtualInterface->igmpSnoopingContext != NULL &&
+         ethTrapIgmpPacket(header, data, length))
+      {
+         //Forward the packet to the IGMP snooping switch
+         error = NO_ERROR;
+      }
+      else
+#endif
+      {
+         //The host must silently discards an incoming frame whose destination
+         //address does not correspond to the physical interface through which
+         //it was received
+         error = ethCheckDestAddr(virtualInterface, &header->destAddr);
+      }
 
       //Valid destination address?
       if(!error)
@@ -770,8 +792,8 @@ NetBuffer *ethAllocBuffer(size_t length, size_t *offset)
 #endif
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Special VLAN tagging overhead
-   n += sizeof(VlanTag);
+   //Switch port tagging overhead
+   n += ETH_PORT_TAG_SIZE;
 #endif
 
    //Allocate a buffer to hold the Ethernet header and the payload

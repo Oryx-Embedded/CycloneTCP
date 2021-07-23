@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _COAP_COMMON_H
@@ -163,7 +163,7 @@ typedef enum
 
 typedef __start_packed struct
 {
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t version : 2;  //0
    uint8_t type : 2;
    uint8_t tokenLen : 4;
@@ -184,7 +184,7 @@ typedef __start_packed struct
 
 typedef __start_packed struct
 {
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t delta : 4;  //0
    uint8_t length : 4;
 #else

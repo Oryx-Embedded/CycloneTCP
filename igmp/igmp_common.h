@@ -1,6 +1,6 @@
 /**
- * @file igmp.h
- * @brief IGMP (Internet Group Management Protocol)
+ * @file igmp_common.h
+ * @brief Definitions common to IGMP host, router and snooping switch
  *
  * @section License
  *
@@ -25,21 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
-#ifndef _IGMP_H
-#define _IGMP_H
+#ifndef _IGMP_COMMON_H
+#define _IGMP_COMMON_H
 
 //Dependencies
 #include "core/net.h"
-
-//IGMP support
-#ifndef IGMP_SUPPORT
-   #define IGMP_SUPPORT DISABLED
-#elif (IGMP_SUPPORT != ENABLED && IGMP_SUPPORT != DISABLED)
-   #error IGMP_SUPPORT parameter is not valid
-#endif
 
 //IGMP tick interval
 #ifndef IGMP_TICK_INTERVAL
@@ -48,11 +41,79 @@
    #error IGMP_TICK_INTERVAL parameter is not valid
 #endif
 
-//Unsolicited report interval
+//Robustness Variable
+#ifndef IGMP_ROBUSTNESS_VARIABLE
+   #define IGMP_ROBUSTNESS_VARIABLE 2
+#elif (IGMP_ROBUSTNESS_VARIABLE < 1)
+   #error IGMP_ROBUSTNESS_VARIABLE parameter is not valid
+#endif
+
+//Query Interval
+#ifndef IGMP_QUERY_INTERVAL
+   #define IGMP_QUERY_INTERVAL 125000
+#elif (IGMP_QUERY_INTERVAL < 1000)
+   #error IGMP_QUERY_INTERVAL parameter is not valid
+#endif
+
+//Query Response Interval
+#ifndef IGMP_QUERY_RESPONSE_INTERVAL
+   #define IGMP_QUERY_RESPONSE_INTERVAL 10000
+#elif (IGMP_QUERY_RESPONSE_INTERVAL < 1000 || IGMP_QUERY_RESPONSE_INTERVAL > IGMP_QUERY_INTERVAL)
+   #error IGMP_QUERY_RESPONSE_INTERVAL parameter is not valid
+#endif
+
+//Group Membership Interval
+#define IGMP_GROUP_MEMBERSHIP_INTERVAL ((IGMP_ROBUSTNESS_VARIABLE * \
+   IGMP_QUERY_INTERVAL) + IGMP_QUERY_RESPONSE_INTERVAL)
+
+//Other Querier Present Interval
+#define IGMP_OTHER_QUERIER_PRESENT_INTERVAL ((IGMP_ROBUSTNESS_VARIABLE * \
+   IGMP_QUERY_INTERVAL) + (IGMP_QUERY_RESPONSE_INTERVAL / 2))
+
+//Startup Query Interval
+#ifndef IGMP_STARTUP_QUERY_INTERVAL
+   #define IGMP_STARTUP_QUERY_INTERVAL (IGMP_QUERY_INTERVAL / 4)
+#elif (IGMP_STARTUP_QUERY_INTERVAL < 1000)
+   #error IGMP_STARTUP_QUERY_INTERVAL parameter is not valid
+#endif
+
+//Startup Query Count
+#ifndef IGMP_STARTUP_QUERY_COUNT
+   #define IGMP_STARTUP_QUERY_COUNT IGMP_ROBUSTNESS_VARIABLE
+#elif (IGMP_STARTUP_QUERY_COUNT < 1)
+   #error IGMP_STARTUP_QUERY_COUNT parameter is not valid
+#endif
+
+//Last Member Query Interval
+#ifndef IGMP_LAST_MEMBER_QUERY_INTERVAL
+   #define IGMP_LAST_MEMBER_QUERY_INTERVAL 1000
+#elif (IGMP_LAST_MEMBER_QUERY_INTERVAL < 100)
+   #error IGMP_LAST_MEMBER_QUERY_INTERVAL parameter is not valid
+#endif
+
+//Last Member Query Count
+#ifndef IGMP_LAST_MEMBER_QUERY_COUNT
+   #define IGMP_LAST_MEMBER_QUERY_COUNT IGMP_ROBUSTNESS_VARIABLE
+#elif (IGMP_LAST_MEMBER_QUERY_COUNT < 1)
+   #error IGMP_LAST_MEMBER_QUERY_COUNT parameter is not valid
+#endif
+
+//Last Member Query Time
+#define IGMP_LAST_MEMBER_QUERY_TIME (IGMP_LAST_MEMBER_QUERY_COUNT * \
+   IGMP_LAST_MEMBER_QUERY_INTERVAL)
+
+//Unsolicited Report Interval
 #ifndef IGMP_UNSOLICITED_REPORT_INTERVAL
    #define IGMP_UNSOLICITED_REPORT_INTERVAL 10000
 #elif (IGMP_UNSOLICITED_REPORT_INTERVAL < 1000)
    #error IGMP_UNSOLICITED_REPORT_INTERVAL parameter is not valid
+#endif
+
+//Version 1 Router Present Timeout
+#ifndef IGMP_V1_ROUTER_PRESENT_TIMEOUT
+   #define IGMP_V1_ROUTER_PRESENT_TIMEOUT 400000
+#elif (IGMP_V1_ROUTER_PRESENT_TIMEOUT < 1000)
+   #error IGMP_V1_ROUTER_PRESENT_TIMEOUT parameter is not valid
 #endif
 
 //Maximum response time for IGMPv1 queries
@@ -60,13 +121,6 @@
    #define IGMP_V1_MAX_RESPONSE_TIME 10000
 #elif (IGMP_V1_MAX_RESPONSE_TIME < 1000)
    #error IGMP_V1_MAX_RESPONSE_TIME parameter is not valid
-#endif
-
-//Older version querier present timeout
-#ifndef IGMP_V1_ROUTER_PRESENT_TIMEOUT
-   #define IGMP_V1_ROUTER_PRESENT_TIMEOUT 400000
-#elif (IGMP_V1_ROUTER_PRESENT_TIMEOUT < 1000)
-   #error IGMP_V1_ROUTER_PRESENT_TIMEOUT parameter is not valid
 #endif
 
 //TTL used by IGMP messages
@@ -81,18 +135,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-/**
- * @brief IGMP host states
- **/
-
-typedef enum
-{
-   IGMP_STATE_NON_MEMBER      = 0,
-   IGMP_STATE_DELAYING_MEMBER = 1,
-   IGMP_STATE_IDLE_MEMBER     = 2
-} IgmpState;
 
 
 /**
@@ -133,31 +175,20 @@ typedef __start_packed struct
    #pragma pack(pop)
 #endif
 
-
 //Tick counter to handle periodic operations
 extern systime_t igmpTickCounter;
 
 //IGMP related functions
 error_t igmpInit(NetInterface *interface);
-error_t igmpJoinGroup(NetInterface *interface, Ipv4FilterEntry *entry);
-error_t igmpLeaveGroup(NetInterface *interface, Ipv4FilterEntry *entry);
-
 void igmpTick(NetInterface *interface);
 void igmpLinkChangeEvent(NetInterface *interface);
 
-void igmpProcessMessage(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset);
-
-void igmpProcessQueryMessage(NetInterface *interface,
+error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
    const IgmpMessage *message, size_t length);
 
-void igmpProcessReportMessage(NetInterface *interface,
-   const IgmpMessage *message, size_t length);
-
-error_t igmpSendReportMessage(NetInterface *interface, Ipv4Addr ipAddr);
-error_t igmpSendLeaveGroupMessage(NetInterface *interface, Ipv4Addr ipAddr);
-
-uint32_t igmpRand(uint32_t max);
+void igmpProcessMessage(NetInterface *interface,
+   Ipv4PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, NetRxAncillary *ancillary);
 
 void igmpDumpMessage(const IgmpMessage *message);
 

@@ -30,7 +30,7 @@
  * Network Management Protocol (SNMP). Refer to RFC 3415 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level

@@ -33,7 +33,7 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -922,7 +922,7 @@ error_t smtpClientWriteMultipartHeader(SmtpClientContext *context,
 
 
 /**
- * @brief Write data to the the multipart body
+ * @brief Write data to the multipart body
  * @param[in] context Pointer to the SMTP client context
  * @param[in] data Pointer to the buffer containing the data to be transmitted
  * @param[in] length Number of data bytes to send

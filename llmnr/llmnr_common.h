@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _LLMNR_COMMON_H
@@ -69,7 +69,7 @@ extern "C" {
 typedef __start_packed struct
 {
    uint16_t id;         //0-1
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t qr : 1;      //2
    uint8_t opcode : 4;
    uint8_t c : 1;

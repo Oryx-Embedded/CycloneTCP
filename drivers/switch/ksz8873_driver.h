@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _KSZ8873_DRIVER_H
@@ -351,8 +351,8 @@
 #define KSZ8873_GLOBAL_CTRL2_BACK_PRESSURE_MODE                    0x20
 #define KSZ8873_GLOBAL_CTRL2_FLOW_CTRL_FAIR_MODE                   0x10
 #define KSZ8873_GLOBAL_CTRL2_NO_EXCESSIVE_COL_DROP                 0x08
-#define KSZ8873_GLOBAL_CTRL2_HUGE_PACKET_SUPPORT                   0x04
-#define KSZ8873_GLOBAL_CTRL2_MAX_PACKET_SIZE_CHECK_EN              0x02
+#define KSZ8873_GLOBAL_CTRL2_HUGE_PKT_SUPPORT                      0x04
+#define KSZ8873_GLOBAL_CTRL2_MAX_PKT_SIZE_CHECK_EN                 0x02
 
 //Global Control 3 register
 #define KSZ8873_GLOBAL_CTRL3_VLAN_EN                               0x80
@@ -624,7 +624,7 @@ extern "C" {
 
 typedef struct
 {
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t reserved : 6;     //0
    uint8_t fidH : 2;
    uint8_t fidL : 2;         //1
@@ -651,7 +651,7 @@ typedef struct
 
 typedef struct
 {
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t dataNotReady : 1;     //0
    uint8_t reserved : 4;
    uint8_t macEmpty : 1;

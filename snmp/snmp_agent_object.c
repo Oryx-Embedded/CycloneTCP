@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -193,7 +193,9 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
          {
             //Record the length of the object value
             if(object->valueLen != NULL)
+            {
                *object->valueLen = n;
+            }
 
             //Set object value
             osMemcpy(object->value, value, n);
@@ -322,28 +324,32 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
    {
       //Invoke callback function to retrieve object value
       error = object->getValue(object, var->oid, var->oidLen, value, &n);
+      //Unable to retrieve object value?
+      if(error)
+         return error;
    }
    //Simple scalar objects can also be attached to a variable
    else if(object->value != NULL)
    {
-      //Get the length of the object value
+      //Fixed or variable-length object?
       if(object->valueLen != NULL)
+      {
+         //Make sure the buffer is large enough
+         if(n < *object->valueLen)
+            return ERROR_BUFFER_OVERFLOW;
+
+         //Get the length of the object value
          n = *object->valueLen;
+      }
 
       //Retrieve object value
       osMemcpy(value, object->value, n);
-      //Successful read operation
-      error = NO_ERROR;
    }
    else
    {
       //Report an error
-      error = ERROR_READ_FAILED;
+      return ERROR_READ_FAILED;
    }
-
-   //Unable to retrieve object value?
-   if(error)
-      return error;
 
    //Check object class
    if(object->objClass == ASN1_CLASS_UNIVERSAL)

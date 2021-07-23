@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -175,6 +175,9 @@ error_t mv88e6060Init(NetInterface *interface)
    temp &= ~MV88E6060_ATU_CTRL_AGE_TIME;
    temp |= MV88E6060_ATU_CTRL_AGE_TIME_DEFAULT;
    mv88e6060WriteSwitchGlobalReg(interface, MV88E6060_ATU_CTRL, temp);
+
+   //Flush static MAC table
+   mv88e6060FlushStaticFdbTable(interface);
 
    //Loop through the ports
    for(port = MV88E6060_PORT0; port <= MV88E6060_PORT4; port++)

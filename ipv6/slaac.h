@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _SLAAC_H
@@ -99,20 +99,9 @@ struct _SlaacContext
 //SLAAC related functions
 void slaacGetDefaultSettings(SlaacSettings *settings);
 error_t slaacInit(SlaacContext *context, const SlaacSettings *settings);
+
 error_t slaacStart(SlaacContext *context);
 error_t slaacStop(SlaacContext *context);
-
-void slaacLinkChangeEvent(SlaacContext *context);
-
-void slaacParseRouterAdv(SlaacContext *context,
-   NdpRouterAdvMessage *message, size_t length);
-
-void slaacParsePrefixInfoOption(SlaacContext *context,
-   NdpPrefixInfoOption *option);
-
-error_t slaacGenerateLinkLocalAddr(SlaacContext *context);
-
-void slaacDumpConfig(SlaacContext *context);
 
 //C++ guard
 #ifdef __cplusplus

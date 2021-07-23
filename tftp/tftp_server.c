@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -81,7 +81,8 @@ void tftpServerGetDefaultSettings(TftpServerSettings *settings)
  * @return Error code
  **/
 
-error_t tftpServerInit(TftpServerContext *context, const TftpServerSettings *settings)
+error_t tftpServerInit(TftpServerContext *context,
+   const TftpServerSettings *settings)
 {
    error_t error;
 
@@ -98,42 +99,15 @@ error_t tftpServerInit(TftpServerContext *context, const TftpServerSettings *set
    //Save user settings
    context->settings = *settings;
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Create an event object to poll the state of sockets
    if(!osCreateEvent(&context->event))
    {
       //Failed to create event
-      return ERROR_OUT_OF_RESOURCES;
+      error = ERROR_OUT_OF_RESOURCES;
    }
-
-   //Start of exception handling block
-   do
-   {
-      //Open a UDP socket
-      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
-
-      //Failed to open socket?
-      if(context->socket == NULL)
-      {
-         //Report an error
-         error = ERROR_OPEN_FAILED;
-         //Exit immediately
-         break;
-      }
-
-      //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket, settings->interface);
-      //Unable to bind the socket to the desired interface?
-      if(error)
-         break;
-
-      //The TFTP server listens for connection requests on port 69
-      error = socketBind(context->socket, &IP_ADDR_ANY, settings->port);
-      //Unable to bind the socket to the desired port?
-      if(error)
-         break;
-
-      //End of exception handling block
-   } while(0);
 
    //Check status code
    if(error)
@@ -155,6 +129,7 @@ error_t tftpServerInit(TftpServerContext *context, const TftpServerSettings *set
 
 error_t tftpServerStart(TftpServerContext *context)
 {
+   error_t error;
    OsTask *task;
 
    //Make sure the TFTP server context is valid
@@ -164,13 +139,112 @@ error_t tftpServerStart(TftpServerContext *context)
    //Debug message
    TRACE_INFO("Starting TFTP server...\r\n");
 
-   //Create the TFTP server task
-   task = osCreateTask("TFTP Server", (OsTaskCode) tftpServerTask,
-      context, TFTP_SERVER_STACK_SIZE, TFTP_SERVER_PRIORITY);
+   //Make sure the TFTP server is not already running
+   if(context->running)
+      return ERROR_ALREADY_RUNNING;
 
-   //Unable to create the task?
-   if(task == OS_INVALID_HANDLE)
-      return ERROR_OUT_OF_RESOURCES;
+   //Start of exception handling block
+   do
+   {
+      //Open a UDP socket
+      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+      //Failed to open socket?
+      if(context->socket == NULL)
+      {
+         //Report an error
+         error = ERROR_OPEN_FAILED;
+         break;
+      }
+
+      //Associate the socket with the relevant interface
+      error = socketBindToInterface(context->socket,
+         context->settings.interface);
+      //Unable to bind the socket to the desired interface?
+      if(error)
+         break;
+
+      //The TFTP server listens for connection requests on port 69
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->settings.port);
+      //Unable to bind the socket to the desired port?
+      if(error)
+         break;
+
+      //Start the TFTP server
+      context->stop = FALSE;
+      context->running = TRUE;
+
+      //Create the TFTP server task
+      task = osCreateTask("TFTP Server", (OsTaskCode) tftpServerTask,
+         context, TFTP_SERVER_STACK_SIZE, TFTP_SERVER_PRIORITY);
+      //Failed to create task?
+      if(task == OS_INVALID_HANDLE)
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+         break;
+      }
+
+      //End of exception handling block
+   } while(0);
+
+   //Any error to report?
+   if(error)
+   {
+      //Clean up side effects
+      context->running = FALSE;
+
+      //Close the UDP socket
+      socketClose(context->socket);
+      context->socket = NULL;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Stop TFTP server
+ * @param[in] context Pointer to the TFTP server context
+ * @return Error code
+ **/
+
+error_t tftpServerStop(TftpServerContext *context)
+{
+   uint_t i;
+
+   //Make sure the TFTP server context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Stopping TFTP server...\r\n");
+
+   //Check whether the TFTP server is running
+   if(context->running)
+   {
+      //Stop the TFTP server
+      context->stop = TRUE;
+      //Send a signal to the task to abort any blocking operation
+      osSetEvent(&context->event);
+
+      //Wait for the task to terminate
+      while(context->running)
+      {
+         osDelayTask(1);
+      }
+
+      //Loop through the connection table
+      for(i = 0; i < TFTP_SERVER_MAX_CONNECTIONS; i++)
+      {
+         //Close client connection
+         tftpServerCloseConnection(&context->connection[i]);
+      }
+
+      //Close the UDP socket
+      socketClose(context->socket);
+      context->socket = NULL;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -222,9 +296,18 @@ void tftpServerTask(TftpServerContext *context)
       error = socketPoll(context->eventDesc, TFTP_SERVER_MAX_CONNECTIONS + 1,
          &context->event, TFTP_SERVER_TICK_INTERVAL);
 
-      //Verify status code
-      if(!error)
+      //Check status code
+      if(error == NO_ERROR || error == ERROR_TIMEOUT)
       {
+         //Stop request?
+         if(context->stop)
+         {
+            //Stop TFTP server operation
+            context->running = FALSE;
+            //Kill ourselves
+            osDeleteTask(NULL);
+         }
+
          //Event-driven processing
          for(i = 0; i < TFTP_SERVER_MAX_CONNECTIONS; i++)
          {
@@ -235,7 +318,7 @@ void tftpServerTask(TftpServerContext *context)
             if(connection->state != TFTP_STATE_CLOSED)
             {
                //Check whether a packet has been received
-               if(context->eventDesc[i].eventFlags & SOCKET_EVENT_RX_READY)
+               if((context->eventDesc[i].eventFlags & SOCKET_EVENT_RX_READY) != 0)
                {
                   //Process incoming packet
                   tftpServerProcessPacket(context, connection);
@@ -244,7 +327,7 @@ void tftpServerTask(TftpServerContext *context)
          }
 
          //Any connection request received on port 69?
-         if(context->eventDesc[i].eventFlags & SOCKET_EVENT_RX_READY)
+         if((context->eventDesc[i].eventFlags & SOCKET_EVENT_RX_READY) != 0)
          {
             //Accept connection request
             tftpServerAcceptRequest(context);
@@ -267,21 +350,9 @@ void tftpServerTask(TftpServerContext *context)
 
 void tftpServerDeinit(TftpServerContext *context)
 {
-   uint_t i;
-
    //Make sure the TFTP server context is valid
    if(context != NULL)
    {
-     //Loop through the connection table
-      for(i = 0; i < TFTP_SERVER_MAX_CONNECTIONS; i++)
-      {
-         //Close client connection
-         tftpServerCloseConnection(&context->connection[i]);
-      }
-
-      //Close listening socket
-      socketClose(context->socket);
-
       //Free previously allocated resources
       osDeleteEvent(&context->event);
 

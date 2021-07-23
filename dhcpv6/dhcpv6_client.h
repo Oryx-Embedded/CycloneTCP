@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _DHCPV6_CLIENT_H
@@ -54,13 +54,6 @@
    #define DHCPV6_CLIENT_ADDR_LIST_SIZE 2
 #elif (DHCPV6_CLIENT_ADDR_LIST_SIZE < 1)
    #error DHCPV6_CLIENT_ADDR_LIST_SIZE parameter is not valid
-#endif
-
-//Maximum size of the client's FQDN
-#ifndef DHCPV6_CLIENT_MAX_FQDN_SIZE
-   #define DHCPV6_CLIENT_MAX_FQDN_SIZE 16
-#elif (DHCPV6_CLIENT_MAX_FQDN_SIZE < 1)
-   #error DHCPV6_CLIENT_MAX_FQDN_SIZE parameter is not valid
 #endif
 
 //Max delay of first Solicit
@@ -279,18 +272,36 @@ typedef void (*Dhcpv6StateChangeCallback)(Dhcpv6ClientContext *context,
 
 
 /**
+ * @brief Add DHCPv6 options callback
+ **/
+
+typedef void (*Dhcpv6AddOptionsCallback)(Dhcpv6ClientContext *context,
+   Dhcpv6Message *message, size_t *length);
+
+
+/**
+ * @brief Parse DHCPv6 options callback
+ **/
+
+typedef void (*Dhcpv6ParseOptionsCallback)(Dhcpv6ClientContext *context,
+   const Dhcpv6Message *message, size_t length);
+
+
+/**
  * @brief DHCPv6 client settings
  **/
 
 typedef struct
 {
-   NetInterface *interface;                    ///<Network interface to configure
-   bool_t rapidCommit;                         ///<Quick configuration using rapid commit
-   bool_t manualDnsConfig;                     ///<Force manual DNS configuration
-   systime_t timeout;                          ///<DHCPv6 configuration timeout
-   Dhcpv6TimeoutCallback timeoutEvent;         ///<DHCPv6 configuration timeout event
-   Dhcpv6LinkChangeCallback linkChangeEvent;   ///<Link state change event
-   Dhcpv6StateChangeCallback stateChangeEvent; ///<FSM state change event
+   NetInterface *interface;                         ///<Network interface to configure
+   bool_t rapidCommit;                              ///<Quick configuration using rapid commit
+   bool_t manualDnsConfig;                          ///<Force manual DNS configuration
+   systime_t timeout;                               ///<DHCPv6 configuration timeout
+   Dhcpv6TimeoutCallback timeoutEvent;              ///<DHCPv6 configuration timeout event
+   Dhcpv6LinkChangeCallback linkChangeEvent;        ///<Link state change event
+   Dhcpv6StateChangeCallback stateChangeEvent;      ///<FSM state change event
+   Dhcpv6AddOptionsCallback addOptionsCallback;     ///<Add DHCPv6 options callback
+   Dhcpv6ParseOptionsCallback parseOptionsCallback; ///<Parse DHCPv6 options callback
 } Dhcpv6ClientSettings;
 
 
@@ -332,11 +343,9 @@ struct _Dhcpv6ClientContext
    systime_t timeout;                               ///<Timeout value
    uint_t retransmitCount;                          ///<Retransmission counter
    uint8_t clientId[DHCPV6_MAX_DUID_SIZE];          ///<Client DUID
-   size_t clientIdLength;                           ///<Length of the client DUID
-   uint8_t clientFqdn[DHCPV6_CLIENT_MAX_FQDN_SIZE]; ///<Client's fully qualified domain name
-   size_t clientFqdnLength;                         ///<Length of the client's FQDN
+   size_t clientIdLen;                              ///<Length of the client DUID
    uint8_t serverId[DHCPV6_MAX_DUID_SIZE];          ///<Server DUID
-   size_t serverIdLength;                           ///<Length of the server DUID
+   size_t serverIdLen;                              ///<Length of the server DUID
    int_t serverPreference;                          ///<Preference value for the server
    uint32_t transactionId;                          ///<Value to match requests with replies
    systime_t configStartTime;                       ///<Address acquisition or renewal process start time
@@ -346,74 +355,17 @@ struct _Dhcpv6ClientContext
 };
 
 
-//Tick counter to handle periodic operations
-extern systime_t dhcpv6ClientTickCounter;
-
 //DHCPv6 client related functions
 void dhcpv6ClientGetDefaultSettings(Dhcpv6ClientSettings *settings);
-error_t dhcpv6ClientInit(Dhcpv6ClientContext *context, const Dhcpv6ClientSettings *settings);
+
+error_t dhcpv6ClientInit(Dhcpv6ClientContext *context,
+   const Dhcpv6ClientSettings *settings);
+
 error_t dhcpv6ClientStart(Dhcpv6ClientContext *context);
 error_t dhcpv6ClientStop(Dhcpv6ClientContext *context);
+
 error_t dhcpv6ClientRelease(Dhcpv6ClientContext *context);
 Dhcpv6State dhcpv6ClientGetState(Dhcpv6ClientContext *context);
-
-void dhcpv6ClientTick(Dhcpv6ClientContext *context);
-void dhcpv6ClientLinkChangeEvent(Dhcpv6ClientContext *context);
-
-void dhcpv6ClientStateInit(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateSolicit(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateRequest(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateInitConfirm(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateConfirm(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateDad(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateBound(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateRenew(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateRebind(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateRelease(Dhcpv6ClientContext *context);
-void dhcpv6ClientStateDecline(Dhcpv6ClientContext *context);
-
-error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
-   Dhcpv6MessageType type);
-
-void dhcpv6ClientProcessMessage(NetInterface *interface,
-   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
-   void *param);
-
-void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
-   const Dhcpv6Message *message, size_t length);
-
-void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
-   const Dhcpv6Message *message, size_t length);
-
-error_t dhcpv6ClientParseIaNaOption(Dhcpv6ClientContext *context,
-   const Dhcpv6Option *option);
-
-error_t dhcpv6ClientParseIaAddrOption(Dhcpv6ClientContext *context,
-   const Dhcpv6Option *option);
-
-void dhcpv6ClientAddAddr(Dhcpv6ClientContext *context, const Ipv6Addr *addr,
-   uint32_t validLifetime, uint32_t preferredLifetime);
-
-void dhcpv6ClientRemoveAddr(Dhcpv6ClientContext *context, const Ipv6Addr *addr);
-
-void dhcpv6ClientFlushAddrList(Dhcpv6ClientContext *context);
-
-error_t dhcpv6ClientGenerateDuid(Dhcpv6ClientContext *context);
-error_t dhcpv6ClientGenerateFqdn(Dhcpv6ClientContext *context);
-error_t dhcpv6ClientGenerateLinkLocalAddr(Dhcpv6ClientContext *context);
-
-bool_t dhcpv6ClientCheckServerId(Dhcpv6ClientContext *context,
-   Dhcpv6Option *serverIdOption);
-
-void dhcpv6ClientCheckTimeout(Dhcpv6ClientContext *context);
-
-uint16_t dhcpv6ClientComputeElapsedTime(Dhcpv6ClientContext *context);
-
-void dhcpv6ClientChangeState(Dhcpv6ClientContext *context,
-   Dhcpv6State newState, systime_t delay);
-
-void dhcpv6ClientDumpConfig(Dhcpv6ClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus

@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -97,7 +97,8 @@ void snmpAgentGetDefaultSettings(SnmpAgentSettings *settings)
  * @return Error code
  **/
 
-error_t snmpAgentInit(SnmpAgentContext *context, const SnmpAgentSettings *settings)
+error_t snmpAgentInit(SnmpAgentContext *context,
+   const SnmpAgentSettings *settings)
 {
    error_t error;
 
@@ -121,81 +122,70 @@ error_t snmpAgentInit(SnmpAgentContext *context, const SnmpAgentSettings *settin
    //Initialize request identifier
    context->requestId = netGetRandRange(1, INT32_MAX);
 
-#if (SNMP_V3_SUPPORT == ENABLED)
-   //Get current time
-   context->systemTime = osGetSystemTime();
-
-   //Each SNMP engine maintains two values, snmpEngineBoots and snmpEngineTime,
-   //which taken together provide an indication of time at that SNMP engine
-   context->engineBoots = 1;
-   context->engineTime = 0;
-
-   //Initialize message identifier
-   context->msgId = netGetRandRange(1, INT32_MAX);
-
-   //Check whether SNMPv3 is supported
-   if(settings->versionMin <= SNMP_VERSION_3 &&
-      settings->versionMax >= SNMP_VERSION_3)
-   {
-      //Make sure a random number generator has been registered
-      if(settings->randCallback == NULL)
-         return ERROR_INVALID_PARAMETER;
-
-      //The salt integer is initialized to an arbitrary value at boot time
-      error = settings->randCallback((uint8_t *) &context->salt, sizeof(context->salt));
-      //Any error to report?
-      if(error)
-         return error;
-   }
-#endif
-
-   //Create a mutex to prevent simultaneous access to SNMP agent context
-   if(!osCreateMutex(&context->mutex))
-   {
-      //Failed to create mutex
-      return ERROR_OUT_OF_RESOURCES;
-   }
-
-#if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
-   //Create an event object to manage inform request retransmissions
-   if(!osCreateEvent(&context->informEvent))
-   {
-      //Clean up side effects
-      osDeleteMutex(&context->mutex);
-      //Failed to event object
-      return ERROR_OUT_OF_RESOURCES;
-   }
-#endif
-
-   //Open a UDP socket
-   context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
-
-   //Failed to open socket?
-   if(context->socket == NULL)
-   {
-      //Clean up side effects
-      osDeleteMutex(&context->mutex);
-#if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
-      osDeleteEvent(&context->informEvent);
-#endif
-      //Report an error
-      return ERROR_OPEN_FAILED;
-   }
-
    //Start of exception handling block
    do
    {
-      //Explicitly associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket, settings->interface);
-      //Unable to bind the socket to the desired interface?
-      if(error)
+      //Create a mutex to prevent simultaneous access to SNMP agent context
+      if(!osCreateMutex(&context->mutex))
+      {
+         //Failed to create mutex
+         error = ERROR_OUT_OF_RESOURCES;
          break;
+      }
 
-      //The SNMP agent listens for messages on port 161
-      error = socketBind(context->socket, &IP_ADDR_ANY, settings->port);
-      //Unable to bind the socket to the desired port?
-      if(error)
+      //Create an event object to poll the state of the UDP socket
+      if(!osCreateEvent(&context->event))
+      {
+         //Failed to create event
+         error = ERROR_OUT_OF_RESOURCES;
          break;
+      }
+
+#if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
+      //Create an event object to manage inform request retransmissions
+      if(!osCreateEvent(&context->informEvent))
+      {
+         //Failed to create event
+         error = ERROR_OUT_OF_RESOURCES;
+         break;
+      }
+#endif
+
+#if (SNMP_V3_SUPPORT == ENABLED)
+      //Get current time
+      context->systemTime = osGetSystemTime();
+
+      //Each SNMP engine maintains 2 values, snmpEngineBoots and snmpEngineTime,
+      //which taken together provide an indication of time at that SNMP engine
+      context->engineBoots = 1;
+      context->engineTime = 0;
+
+      //Initialize message identifier
+      context->msgId = netGetRandRange(1, INT32_MAX);
+
+      //Check whether SNMPv3 is supported
+      if(settings->versionMin <= SNMP_VERSION_3 &&
+         settings->versionMax >= SNMP_VERSION_3)
+      {
+         //Make sure a random number generator has been registered
+         if(settings->randCallback == NULL)
+         {
+            //Report en error
+            error = ERROR_INVALID_PARAMETER;
+            break;
+         }
+
+         //The salt integer is initialized to an arbitrary value at boot time
+         error = settings->randCallback((uint8_t *) &context->salt,
+            sizeof(context->salt));
+         //Any error to report?
+         if(error)
+            break;
+      }
+#endif
+
+      //Successful initialization
+      error = NO_ERROR;
 
       //End of exception handling block
    } while(0);
@@ -204,12 +194,7 @@ error_t snmpAgentInit(SnmpAgentContext *context, const SnmpAgentSettings *settin
    if(error)
    {
       //Clean up side effects
-      osDeleteMutex(&context->mutex);
-#if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
-      osDeleteEvent(&context->informEvent);
-#endif
-      //Close underlying socket
-      socketClose(context->socket);
+      snmpAgentDeinit(context);
    }
 
    //Return status code
@@ -225,6 +210,7 @@ error_t snmpAgentInit(SnmpAgentContext *context, const SnmpAgentSettings *settin
 
 error_t snmpAgentStart(SnmpAgentContext *context)
 {
+   error_t error;
    OsTask *task;
 
    //Make sure the SNMP agent context is valid
@@ -234,15 +220,111 @@ error_t snmpAgentStart(SnmpAgentContext *context)
    //Debug message
    TRACE_INFO("Starting SNMP agent...\r\n");
 
-   //Start the SNMP agent service
-   task = osCreateTask("SNMP Agent", (OsTaskCode) snmpAgentTask,
-      context, SNMP_AGENT_STACK_SIZE, SNMP_AGENT_PRIORITY);
+   //Make sure the Modbus/TCP server is not already running
+   if(context->running)
+      return ERROR_ALREADY_RUNNING;
 
-   //Unable to create the task?
-   if(task == OS_INVALID_HANDLE)
-      return ERROR_OUT_OF_RESOURCES;
+   //Start of exception handling block
+   do
+   {
+      //Open a UDP socket
+      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+      //Failed to open socket?
+      if(context->socket == NULL)
+      {
+         //Report an error
+         error = ERROR_OPEN_FAILED;
+         break;
+      }
 
-   //The SNMP agent has successfully started
+      //Force the socket to operate in non-blocking mode
+      error = socketSetTimeout(context->socket, 0);
+      //Any error to report?
+      if(error)
+         return error;
+
+      //Associate the socket with the relevant interface
+      error = socketBindToInterface(context->socket,
+         context->settings.interface);
+      //Unable to bind the socket to the desired interface?
+      if(error)
+         break;
+
+      //The SNMP agent listens for messages on port 161
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->settings.port);
+      //Unable to bind the socket to the desired port?
+      if(error)
+         break;
+
+      //Start the SNMP agent
+      context->stop = FALSE;
+      context->running = TRUE;
+
+      //Start the SNMP agent service
+      task = osCreateTask("SNMP Agent", (OsTaskCode) snmpAgentTask,
+         context, SNMP_AGENT_STACK_SIZE, SNMP_AGENT_PRIORITY);
+      //Failed to create task?
+      if(task == OS_INVALID_HANDLE)
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+         break;
+      }
+
+      //End of exception handling block
+   } while(0);
+
+   //Any error to report?
+   if(error)
+   {
+      //Clean up side effects
+      context->running = FALSE;
+
+      //Close the UDP socket
+      socketClose(context->socket);
+      context->socket = NULL;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Stop SNMP agent
+ * @param[in] context Pointer to the SNMP agent context
+ * @return Error code
+ **/
+
+error_t snmpAgentStop(SnmpAgentContext *context)
+{
+   //Make sure the SNMP agent context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Stopping SNMP agent...\r\n");
+
+   //Check whether the SNMP agent is running
+   if(context->running)
+   {
+      //Stop the SNMP agent
+      context->stop = TRUE;
+      //Send a signal to the task to abort any blocking operation
+      osSetEvent(&context->event);
+
+      //Wait for the task to terminate
+      while(context->running)
+      {
+         osDelayTask(1);
+      }
+
+      //Close the UDP socket
+      socketClose(context->socket);
+      context->socket = NULL;
+   }
+
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -1494,9 +1576,10 @@ error_t snmpAgentDeleteView(SnmpAgentContext *context,
  * @return Error code
  **/
 
-error_t snmpAgentSendTrap(SnmpAgentContext *context, const IpAddr *destIpAddr,
-   SnmpVersion version, const char_t *userName, uint_t genericTrapType,
-   uint_t specificTrapCode, const SnmpTrapObject *objectList, uint_t objectListSize)
+error_t snmpAgentSendTrap(SnmpAgentContext *context,
+   const IpAddr *destIpAddr, SnmpVersion version, const char_t *userName,
+   uint_t genericTrapType, uint_t specificTrapCode,
+   const SnmpTrapObject *objectList, uint_t objectListSize)
 {
 #if (SNMP_AGENT_TRAP_SUPPORT == ENABLED)
    error_t error;
@@ -1569,9 +1652,10 @@ error_t snmpAgentSendTrap(SnmpAgentContext *context, const IpAddr *destIpAddr,
  * @return Error code
  **/
 
-error_t snmpAgentSendInform(SnmpAgentContext *context, const IpAddr *destIpAddr,
-   SnmpVersion version, const char_t *userName, uint_t genericTrapType,
-   uint_t specificTrapCode, const SnmpTrapObject *objectList, uint_t objectListSize)
+error_t snmpAgentSendInform(SnmpAgentContext *context,
+   const IpAddr *destIpAddr, SnmpVersion version, const char_t *userName,
+   uint_t genericTrapType, uint_t specificTrapCode,
+   const SnmpTrapObject *objectList, uint_t objectListSize)
 {
 #if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
    error_t error;
@@ -1851,6 +1935,8 @@ error_t snmpAgentSendInform(SnmpAgentContext *context, const IpAddr *destIpAddr,
 void snmpAgentTask(SnmpAgentContext *context)
 {
    error_t error;
+   SocketMsg msg;
+   SocketEventDesc eventDesc;
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Task prologue
@@ -1860,61 +1946,135 @@ void snmpAgentTask(SnmpAgentContext *context)
    while(1)
    {
 #endif
-      //Wait for an incoming datagram
-      error = socketReceiveFrom(context->socket, &context->remoteIpAddr,
-         &context->remotePort, context->request.buffer,
-         SNMP_MAX_MSG_SIZE, &context->request.bufferLen, 0);
+      //Specify the events the application is interested in
+      eventDesc.socket = context->socket;
+      eventDesc.eventMask = SOCKET_EVENT_RX_READY;
+      eventDesc.eventFlags = 0;
+
+      //Wait for an event
+      socketPoll(&eventDesc, 1, &context->event, INFINITE_DELAY);
+
+      //Stop request?
+      if(context->stop)
+      {
+         //Stop SNMP agent operation
+         context->running = FALSE;
+         //Kill ourselves
+         osDeleteTask(NULL);
+      }
 
       //Any datagram received?
-      if(!error)
+      if(eventDesc.eventFlags != 0)
       {
-         //Acquire exclusive access to the SNMP agent context
-         osAcquireMutex(&context->mutex);
+         //Point to the receive buffer
+         msg = SOCKET_DEFAULT_MSG;
+         msg.data = context->request.buffer;
+         msg.size = SNMP_MAX_MSG_SIZE;
 
-         //Debug message
-         TRACE_INFO("\r\nSNMP message received from %s port %" PRIu16
-            " (%" PRIuSIZE " bytes)...\r\n",
-            ipAddrToString(&context->remoteIpAddr, NULL),
-            context->remotePort, context->request.bufferLen);
-
-         //Display the contents of the SNMP message
-         TRACE_DEBUG_ARRAY("  ", context->request.buffer, context->request.bufferLen);
-         //Dump ASN.1 structure
-         asn1DumpObject(context->request.buffer, context->request.bufferLen, 0);
-
-         //Process incoming SNMP message
-         error = snmpProcessMessage(context);
+         //Receive incoming datagram
+         error = socketReceiveMsg(context->socket, &msg, 0);
 
          //Check status code
          if(!error)
          {
-            //Any response?
-            if(context->response.length > 0)
+            //Make sure the destination IP address is a valid unicast address
+            if(!ipIsMulticastAddr(&msg.destIpAddr))
             {
+               //Acquire exclusive access to the SNMP agent context
+               osAcquireMutex(&context->mutex);
+
+               //Retrieve the length of the datagram
+               context->request.bufferLen = msg.length;
+
+               //Get the source and destination IP addresses
+               context->localInterface = msg.interface;
+               context->localIpAddr = msg.destIpAddr;
+               context->remoteIpAddr = msg.srcIpAddr;
+               context->remotePort = msg.srcPort;
+
                //Debug message
-               TRACE_INFO("Sending SNMP message to %s port %" PRIu16
+               TRACE_INFO("\r\nSNMP message received from %s port %" PRIu16
                   " (%" PRIuSIZE " bytes)...\r\n",
                   ipAddrToString(&context->remoteIpAddr, NULL),
-                  context->remotePort, context->response.length);
+                  context->remotePort, context->request.bufferLen);
 
                //Display the contents of the SNMP message
-               TRACE_DEBUG_ARRAY("  ", context->response.pos, context->response.length);
-               //Display ASN.1 structure
-               asn1DumpObject(context->response.pos, context->response.length, 0);
+               TRACE_DEBUG_ARRAY("  ", context->request.buffer,
+                  context->request.bufferLen);
+               //Dump ASN.1 structure
+               asn1DumpObject(context->request.buffer,
+                  context->request.bufferLen, 0);
 
-               //Send SNMP response message
-               socketSendTo(context->socket, &context->remoteIpAddr,
-                  context->remotePort, context->response.pos,
-                  context->response.length, NULL, 0);
+               //Process incoming SNMP message
+               error = snmpProcessMessage(context);
+
+               //Check status code
+               if(!error)
+               {
+                  //Any response?
+                  if(context->response.length > 0)
+                  {
+                     //Debug message
+                     TRACE_INFO("Sending SNMP message to %s port %" PRIu16
+                        " (%" PRIuSIZE " bytes)...\r\n",
+                        ipAddrToString(&context->remoteIpAddr, NULL),
+                        context->remotePort, context->response.length);
+
+                     //Display the contents of the SNMP message
+                     TRACE_DEBUG_ARRAY("  ", context->response.pos,
+                        context->response.length);
+                     //Display ASN.1 structure
+                     asn1DumpObject(context->response.pos,
+                        context->response.length, 0);
+
+                     //Point to the send buffer
+                     msg = SOCKET_DEFAULT_MSG;
+                     msg.data = context->response.pos;
+                     msg.length = context->response.length;
+
+                     //Set the source and destination IP addresses
+                     msg.interface = context->localInterface;
+                     msg.srcIpAddr = context->localIpAddr;
+                     msg.destIpAddr = context->remoteIpAddr;
+                     msg.destPort = context->remotePort;
+
+                     //Send SNMP response message
+                     socketSendMsg(context->socket, &msg, 0);
+                  }
+               }
+
+               //Release exclusive access to the SNMP agent context
+               osReleaseMutex(&context->mutex);
             }
          }
-
-         //Release exclusive access to the SNMP agent context
-         osReleaseMutex(&context->mutex);
       }
 #if (NET_RTOS_SUPPORT == ENABLED)
    }
 #endif
+}
+
+
+/**
+ * @brief Release SNMP agent context
+ * @param[in] context Pointer to the SNMP agent context
+ **/
+
+void snmpAgentDeinit(SnmpAgentContext *context)
+{
+   //Make sure the SNMP agent context is valid
+   if(context != NULL)
+   {
+      //Free previously allocated resources
+      osDeleteMutex(&context->mutex);
+      osDeleteEvent(&context->event);
+
+#if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)
+      osDeleteEvent(&context->informEvent);
+#endif
+
+      //Clear SNMP agent context
+      osMemset(context, 0, sizeof(SnmpAgentContext));
+   }
 }
 
 #endif

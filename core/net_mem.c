@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -51,7 +51,7 @@
 //Mutex preventing simultaneous access to the memory pool
 static OsMutex memPoolMutex;
 //Memory pool
-static uint8_t memPool[NET_MEM_POOL_BUFFER_COUNT][NET_MEM_POOL_BUFFER_SIZE];
+static uint32_t memPool[NET_MEM_POOL_BUFFER_COUNT][NET_MEM_POOL_BUFFER_SIZE / 4];
 //Allocation table
 static bool_t memPoolAllocTable[NET_MEM_POOL_BUFFER_COUNT];
 //Number of buffers currently allocated

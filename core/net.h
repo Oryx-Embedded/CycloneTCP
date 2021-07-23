@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _NET_H
@@ -48,6 +48,9 @@ struct _NetInterface;
 #include "ipv4/auto_ip.h"
 #include "ipv6/ipv6.h"
 #include "ipv4/arp.h"
+#include "igmp/igmp_host.h"
+#include "igmp/igmp_router.h"
+#include "igmp/igmp_snooping.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv.h"
 #include "ipv6/slaac.h"
@@ -90,13 +93,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.0.4"
+#define CYCLONE_TCP_VERSION_STRING "2.1.0"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
-#define CYCLONE_TCP_MINOR_VERSION 0
+#define CYCLONE_TCP_MINOR_VERSION 1
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 4
+#define CYCLONE_TCP_REV_NUMBER 0
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -223,6 +226,8 @@ struct _NetInterface
    const SmiDriver *smiDriver;                    ///<SMI driver
    MacAddr macAddr;                               ///<Link-layer address
    MacFilterEntry macAddrFilter[MAC_ADDR_FILTER_SIZE]; ///<MAC filter table
+   bool_t promiscuous;                            ///<Promiscuous mode
+   bool_t acceptAllMulticast;                     ///<Accept all frames with a multicast destination address
 #endif
 #if (ETH_VLAN_SUPPORT == ENABLED)
    uint16_t vlanId;                               ///<VLAN identifier (802.1Q)
@@ -247,9 +252,14 @@ struct _NetInterface
 #if (ETH_SUPPORT == ENABLED)
    ArpCacheEntry arpCache[ARP_CACHE_SIZE];        ///<ARP cache
 #endif
-#if (IGMP_SUPPORT == ENABLED)
-   systime_t igmpv1RouterPresentTimer;            ///<IGMPv1 router present timer
-   bool_t igmpv1RouterPresent;                    ///<An IGMPv1 query has been recently heard
+#if (IGMP_HOST_SUPPORT == ENABLED)
+   IgmpHostContext igmpHostContext;               ///<IGMP host context
+#endif
+#if (IGMP_ROUTER_SUPPORT == ENABLED)
+   IgmpRouterContext *igmpRouterContext;          ///<IGMP router context
+#endif
+#if (IGMP_SNOOPING_SUPPORT == ENABLED)
+   IgmpSnoopingContext *igmpSnoopingContext;      ///<IGMP snooping switch context
 #endif
 #if (AUTO_IP_SUPPORT == ENABLED)
    AutoIpContext *autoIpContext;                  ///<Auto-IP context

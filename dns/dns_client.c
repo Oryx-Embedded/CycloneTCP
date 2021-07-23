@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -101,7 +101,7 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
       entry->protocol = HOST_NAME_RESOLVER_DNS;
       entry->interface = interface;
       //Select primary DNS server
-      entry->dnsServerNum = 0;
+      entry->dnsServerIndex = 0;
 
       //Get an ephemeral port number
       entry->port = udpGetDynamicPort();
@@ -232,17 +232,24 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
       //Point to the IPv4 context
       Ipv4Context *ipv4Context = &entry->interface->ipv4Context;
 
-      //Out of range index?
-      if(entry->dnsServerNum >= IPV4_DNS_SERVER_LIST_SIZE)
-         return ERROR_NO_DNS_SERVER;
-
       //Select the relevant DNS server
-      destIpAddr.length = sizeof(Ipv4Addr);
-      destIpAddr.ipv4Addr = ipv4Context->dnsServerList[entry->dnsServerNum];
+      while(1)
+      {
+         //Out of range index?
+         if(entry->dnsServerIndex >= IPV4_DNS_SERVER_LIST_SIZE)
+            return ERROR_NO_DNS_SERVER;
 
-      //Make sure the IP address is valid
-      if(destIpAddr.ipv4Addr == IPV4_UNSPECIFIED_ADDR)
-         return ERROR_NO_DNS_SERVER;
+         //Copy the address of the DNS server
+         destIpAddr.length = sizeof(Ipv4Addr);
+         destIpAddr.ipv4Addr = ipv4Context->dnsServerList[entry->dnsServerIndex];
+
+         //Make sure the IP address is valid
+         if(destIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR)
+            break;
+
+         //Select the next DNS server in the list
+         entry->dnsServerIndex++;
+      }
    }
    else
 #endif
@@ -253,17 +260,24 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
       //Point to the IPv6 context
       Ipv6Context *ipv6Context = &entry->interface->ipv6Context;
 
-      //Out of range index?
-      if(entry->dnsServerNum >= IPV6_DNS_SERVER_LIST_SIZE)
-         return ERROR_NO_DNS_SERVER;
-
       //Select the relevant DNS server
-      destIpAddr.length = sizeof(Ipv6Addr);
-      destIpAddr.ipv6Addr = ipv6Context->dnsServerList[entry->dnsServerNum];
+      while(1)
+      {
+         //Out of range index?
+         if(entry->dnsServerIndex >= IPV6_DNS_SERVER_LIST_SIZE)
+            return ERROR_NO_DNS_SERVER;
 
-      //Make sure the IP address is valid
-      if(ipv6CompAddr(&destIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR))
-         return ERROR_NO_DNS_SERVER;
+         //Copy the address of the DNS server
+         destIpAddr.length = sizeof(Ipv6Addr);
+         destIpAddr.ipv6Addr = ipv6Context->dnsServerList[entry->dnsServerIndex];
+
+         //Make sure the IP address is valid
+         if(!ipv6CompAddr(&destIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR))
+            break;
+
+         //Select the next DNS server in the list
+         entry->dnsServerIndex++;
+      }
    }
    else
 #endif

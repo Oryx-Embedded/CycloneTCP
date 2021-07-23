@@ -25,18 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
-//MKV58F12 device?
-#if defined(MKV58F22)
-   #include "mkv58f22.h"
-#endif
-
 //Dependencies
+#include "fsl_device_registers.h"
 #include "core/net.h"
 #include "drivers/mac/mkv5x_eth_driver.h"
 #include "debug.h"
@@ -127,7 +123,7 @@ error_t mkv5xEthInit(NetInterface *interface)
    nicDriverInterface = interface;
 
    //Disable MPU
-   MPU->CESR &= ~MPU_CESR_VLD_MASK;
+   SYSMPU->CESR &= ~SYSMPU_CESR_VLD_MASK;
 
    //Enable ENET peripheral clock
    SIM->SCGC2 |= SIM_SCGC2_ENET_MASK;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _KSZ8463_DRIVER_H
@@ -697,8 +697,8 @@
 #define KSZ8463_SGCR2_BACK_PRESSURE_MODE                    0x0020
 #define KSZ8463_SGCR2_FLOW_CTRL_FAIR_MODE                   0x0010
 #define KSZ8463_SGCR2_NO_EXCESSIVE_COL_DROP                 0x0008
-#define KSZ8463_SGCR2_HUGE_PACKET_SUPPORT                   0x0004
-#define KSZ8463_SGCR2_MAX_PACKET_SIZE_CHECK_EN              0x0002
+#define KSZ8463_SGCR2_HUGE_PKT_SUPPORT                      0x0004
+#define KSZ8463_SGCR2_MAX_PKT_SIZE_CHECK_EN                 0x0002
 #define KSZ8463_SGCR2_PRIO_BUFFER_RESERVE                   0x0001
 
 //Switch Global Control 3 register
@@ -1527,7 +1527,7 @@ extern "C" {
 
 typedef struct
 {
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t reserved : 6;     //0
    uint8_t fidH : 2;
    uint8_t fidL : 2;         //1
@@ -1554,7 +1554,7 @@ typedef struct
 
 typedef struct
 {
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t dataNotReady : 1;     //0
    uint8_t reserved : 4;
    uint8_t macEmpty : 1;

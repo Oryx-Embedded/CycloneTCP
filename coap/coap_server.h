@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _COAP_SERVER_H
@@ -185,6 +185,9 @@ struct _CoapDtlsSession
 struct _CoapServerContext
 {
    CoapServerSettings settings;                              ///<User settings
+   bool_t running;                                           ///<Operational state of the CoAP server
+   bool_t stop;                                              ///<Stop request
+   OsEvent event;                                            ///<Event object used to poll the underlying socket
    Socket *socket;                                           ///<Underlying socket
    IpAddr serverIpAddr;                                      ///<Server's IP address
    IpAddr clientIpAddr;                                      ///<Client's IP address
@@ -212,6 +215,7 @@ error_t coapServerSetCookieSecret(CoapServerContext *context,
    const uint8_t *cookieSecret, size_t cookieSecretLen);
 
 error_t coapServerStart(CoapServerContext *context);
+error_t coapServerStop(CoapServerContext *context);
 
 void coapServerTask(CoapServerContext *context);
 

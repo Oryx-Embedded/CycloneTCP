@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -285,10 +285,10 @@ error_t dhcpDumpMessage(const DhcpMessage *message, size_t length)
       //IPv4 address?
       case DHCP_OPT_SUBNET_MASK:
       case DHCP_OPT_SWAP_SERVER:
-      case DHCP_OPT_BROADCAST_ADDRESS:
-      case DHCP_OPT_ROUTER_SOLICITATION_ADDRESS:
-      case DHCP_OPT_REQUESTED_IP_ADDRESS:
-      case DHCP_OPT_SERVER_IDENTIFIER:
+      case DHCP_OPT_BROADCAST_ADDR:
+      case DHCP_OPT_ROUTER_SOLICITATION_ADDR:
+      case DHCP_OPT_REQUESTED_IP_ADDR:
+      case DHCP_OPT_SERVER_ID:
          error = dhcpDumpIpv4Addr(option);
          break;
       //List of IPv4 addresses?
@@ -315,7 +315,7 @@ error_t dhcpDumpMessage(const DhcpMessage *message, size_t length)
       case DHCP_OPT_DEFAULT_WWW_SERVER:
       case DHCP_OPT_DEFAULT_FINGER_SERVER:
       case DHCP_OPT_DEFAULT_IRC_SERVER:
-      case DHCP_OPT_STREETTALK_SERVER:
+      case DHCP_OPT_STREET_TALK_SERVER:
       case DHCP_OPT_STDA_SERVER:
          error = dhcpDumpIpv4AddrList(option);
          break;

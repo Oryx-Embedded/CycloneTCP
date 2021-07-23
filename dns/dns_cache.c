@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -300,7 +300,7 @@ void dnsTick(void)
             else if(entry->protocol == HOST_NAME_RESOLVER_DNS)
             {
                //Select the next DNS server
-               entry->dnsServerNum++;
+               entry->dnsServerIndex++;
                //Initialize retransmission counter
                entry->retransmitCount = DNS_CLIENT_MAX_RETRIES;
                //Send DNS query

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _NET_LEGACY_H
@@ -271,5 +271,9 @@
 #define netTaskStack (netContext.taskStack)
 #define netTimestamp (netContext.timestamp)
 #define netInterface (netContext.interfaces)
+
+#ifdef IGMP_SUPPORT
+   #define IGMP_HOST_SUPPORT IGMP_SUPPORT
+#endif
 
 #endif

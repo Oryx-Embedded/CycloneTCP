@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _TFTP_SERVER_H
@@ -199,6 +199,8 @@ struct _TftpClientConnection
 struct _TftpServerContext
 {
    TftpServerSettings settings;                                  ///<User settings
+   bool_t running;                                               ///<Operational state of the TFTP server
+   bool_t stop;                                                  ///<Stop request
    OsEvent event;                                                ///<Event object used to poll the sockets
    Socket *socket;                                               ///<Listening socket
    TftpClientConnection connection[TFTP_SERVER_MAX_CONNECTIONS]; ///<Client connections
@@ -209,8 +211,12 @@ struct _TftpServerContext
 
 //TFTP server related functions
 void tftpServerGetDefaultSettings(TftpServerSettings *settings);
-error_t tftpServerInit(TftpServerContext *context, const TftpServerSettings *settings);
+
+error_t tftpServerInit(TftpServerContext *context,
+   const TftpServerSettings *settings);
+
 error_t tftpServerStart(TftpServerContext *context);
+error_t tftpServerStop(TftpServerContext *context);
 
 void tftpServerTask(TftpServerContext *context);
 

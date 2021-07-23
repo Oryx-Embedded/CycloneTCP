@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _TCP_H
@@ -338,7 +338,7 @@ typedef __start_packed struct
    uint16_t destPort;      //2-3
    uint32_t seqNum;        //4-7
    uint32_t ackNum;        //8-11
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t dataOffset : 4; //12
    uint8_t reserved1 : 4;
    uint8_t reserved2 : 2;  //13

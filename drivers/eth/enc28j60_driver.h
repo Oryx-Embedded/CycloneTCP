@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _ENC28J60_DRIVER_H
@@ -314,7 +314,7 @@
 #define ENC28J60_MICMD_MIISCAN               0x02
 #define ENC28J60_MICMD_MIIRD                 0x01
 
-//MII Register Addres register
+//MII Register Address register
 #define ENC28J60_MIREGADR_VAL                0x1F
 
 //Self-Test Control register

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -787,7 +787,7 @@ error_t tftpServerSendDataPacket(TftpClientConnection *connection)
    {
       //Catch exception
       error = NO_ERROR;
-      //This is the the last block of data
+      //This is the last block of data
       connection->packetLen = 0;
    }
 

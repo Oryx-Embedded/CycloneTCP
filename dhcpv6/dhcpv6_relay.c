@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -527,11 +527,11 @@ error_t dhcpv6ForwardClientMessage(Dhcpv6RelayContext *context, uint_t index)
    //to identify the interface through which the response to the client
    //will be relayed, the relay agent must include an Interface ID option
    dhcpv6AddOption(outputMessage, &outputMessageLen,
-      DHCPV6_OPTION_INTERFACE_ID, &interfaceId, sizeof(interfaceId));
+      DHCPV6_OPT_INTERFACE_ID, &interfaceId, sizeof(interfaceId));
 
    //Copy the received DHCPv6 message into a Relay Message option
    option = dhcpv6AddOption(outputMessage, &outputMessageLen,
-      DHCPV6_OPTION_RELAY_MSG, NULL, 0);
+      DHCPV6_OPT_RELAY_MSG, NULL, 0);
 
    //Set the appropriate length of the option
    option->length = htons(inputMessageLen);
@@ -604,7 +604,7 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
    inputMessageLen -= sizeof(Dhcpv6Message);
 
    //Check whether an Interface ID option is included in the Relay-Reply
-   option = dhcpv6GetOption(inputMessage->options, inputMessageLen, DHCPV6_OPTION_INTERFACE_ID);
+   option = dhcpv6GetOption(inputMessage->options, inputMessageLen, DHCPV6_OPT_INTERFACE_ID);
    //Failed to retrieve specified option?
    if(option == NULL || ntohs(option->length) != sizeof(interfaceId))
       return ERROR_INVALID_MESSAGE;
@@ -615,7 +615,7 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
    interfaceId = ntohl(interfaceId);
 
    //The Relay-Reply message must include a Relay Message option
-   option = dhcpv6GetOption(inputMessage->options, inputMessageLen, DHCPV6_OPTION_RELAY_MSG);
+   option = dhcpv6GetOption(inputMessage->options, inputMessageLen, DHCPV6_OPT_RELAY_MSG);
    //Failed to retrieve specified option?
    if(option == NULL || ntohs(option->length) < sizeof(Dhcpv6Message))
       return ERROR_INVALID_MESSAGE;

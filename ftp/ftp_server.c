@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -290,8 +290,10 @@ error_t ftpServerStart(FtpServerContext *context)
    {
       //Clean up side effects
       context->running = FALSE;
+
       //Close listening socket
       socketClose(context->socket);
+      context->socket = NULL;
    }
 
    //Return status code

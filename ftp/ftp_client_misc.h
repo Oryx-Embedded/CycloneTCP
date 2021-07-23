@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _FTP_CLIENT_MISC_H
@@ -33,7 +33,7 @@
 
 //Dependencies
 #include "core/net.h"
-#include "ftp_client.h"
+#include "ftp/ftp_client.h"
 
 //C++ guard
 #ifdef __cplusplus

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _SNMP_AGENT_H
@@ -141,7 +141,10 @@ typedef struct
 struct _SnmpAgentContext
 {
    SnmpAgentSettings settings;                                ///<SNMP agent settings
+   bool_t running;                                            ///<Operational state of the SNMP agent
+   bool_t stop;                                               ///<Stop request
    OsMutex mutex;                                             ///<Mutex preventing simultaneous access to SNMP agent context
+   OsEvent event;                                             ///<Event object used to poll the underlying socket
    uint8_t enterpriseOid[SNMP_MAX_OID_SIZE];                  ///<Enterprise OID
    size_t enterpriseOidLen;                                   ///<Length of the enterprise OID
    const MibModule *mibTable[SNMP_AGENT_MAX_MIBS];            ///<MIB modules
@@ -157,8 +160,10 @@ struct _SnmpAgentContext
    SnmpViewEntry viewTable[SNMP_AGENT_VIEW_TABLE_SIZE];       ///<Families of subtrees within MIB views
 #endif
    Socket *socket;                                            ///<Underlying socket
-   IpAddr remoteIpAddr;                                       ///<IP address of the remote SNMP engine
-   uint16_t remotePort;                                       ///<Source port used by the remote SNMP engine
+   NetInterface *localInterface;                              ///<Network interface the SNMP request was received on
+   IpAddr localIpAddr;                                        ///<Destination IP address of the received SNMP request
+   IpAddr remoteIpAddr;                                       ///<Source IP address of the received SNMP request
+   uint16_t remotePort;                                       ///<Source port of the received SNMP request
    int32_t requestId;                                         ///<Request identifier
    SnmpMessage request;                                       ///<SNMP request message
    SnmpMessage response;                                      ///<SNMP response message
@@ -193,8 +198,12 @@ struct _SnmpAgentContext
 
 //SNMP agent related functions
 void snmpAgentGetDefaultSettings(SnmpAgentSettings *settings);
-error_t snmpAgentInit(SnmpAgentContext *context, const SnmpAgentSettings *settings);
+
+error_t snmpAgentInit(SnmpAgentContext *context,
+   const SnmpAgentSettings *settings);
+
 error_t snmpAgentStart(SnmpAgentContext *context);
+error_t snmpAgentStop(SnmpAgentContext *context);
 
 error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module);
 error_t snmpAgentUnloadMib(SnmpAgentContext *context, const MibModule *module);
@@ -250,15 +259,19 @@ error_t snmpAgentCreateView(SnmpAgentContext *context,
 error_t snmpAgentDeleteView(SnmpAgentContext *context,
    const char_t *viewName, const uint8_t *subtree, size_t subtreeLen);
 
-error_t snmpAgentSendTrap(SnmpAgentContext *context, const IpAddr *destIpAddr,
-   SnmpVersion version, const char_t *userName, uint_t genericTrapType,
-   uint_t specificTrapCode, const SnmpTrapObject *objectList, uint_t objectListSize);
+error_t snmpAgentSendTrap(SnmpAgentContext *context,
+   const IpAddr *destIpAddr, SnmpVersion version, const char_t *userName,
+   uint_t genericTrapType, uint_t specificTrapCode,
+   const SnmpTrapObject *objectList, uint_t objectListSize);
 
-error_t snmpAgentSendInform(SnmpAgentContext *context, const IpAddr *destIpAddr,
-   SnmpVersion version, const char_t *userName, uint_t genericTrapType,
-   uint_t specificTrapCode, const SnmpTrapObject *objectList, uint_t objectListSize);
+error_t snmpAgentSendInform(SnmpAgentContext *context,
+   const IpAddr *destIpAddr, SnmpVersion version, const char_t *userName,
+   uint_t genericTrapType, uint_t specificTrapCode,
+   const SnmpTrapObject *objectList, uint_t objectListSize);
 
 void snmpAgentTask(SnmpAgentContext *context);
+
+void snmpAgentDeinit(SnmpAgentContext *context);
 
 //C++ guard
 #ifdef __cplusplus

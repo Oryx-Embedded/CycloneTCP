@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -91,41 +91,15 @@ error_t coapServerInit(CoapServerContext *context,
    //Save user settings
    context->settings = *settings;
 
-   //Start of exception handling block
-   do
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Create an event object to poll the state of the UDP socket
+   if(!osCreateEvent(&context->event))
    {
-      //Open a UDP socket
-      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
-
-      //Failed to open socket?
-      if(context->socket == NULL)
-      {
-         //Report an error
-         error = ERROR_OPEN_FAILED;
-         //Exit immediately
-         break;
-      }
-
-      //Set timeout for blocking functions
-      error = socketSetTimeout(context->socket, COAP_SERVER_TICK_INTERVAL);
-      //Any error to report?
-      if(error)
-         return error;
-
-      //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket, settings->interface);
-      //Unable to bind the socket to the desired interface?
-      if(error)
-         break;
-
-      //The CoAP server listens for datagrams on port 5683
-      error = socketBind(context->socket, &IP_ADDR_ANY, settings->port);
-      //Unable to bind the socket to the desired port?
-      if(error)
-         break;
-
-      //End of exception handling block
-   } while(0);
+      //Failed to create event
+      error = ERROR_OUT_OF_RESOURCES;
+   }
 
    //Check status code
    if(error)
@@ -183,6 +157,7 @@ error_t coapServerSetCookieSecret(CoapServerContext *context,
 
 error_t coapServerStart(CoapServerContext *context)
 {
+   error_t error;
    OsTask *task;
 
    //Make sure the CoAP server context is valid
@@ -192,13 +167,122 @@ error_t coapServerStart(CoapServerContext *context)
    //Debug message
    TRACE_INFO("Starting CoAP server...\r\n");
 
-   //Create the CoAP server task
-   task = osCreateTask("CoAP Server", (OsTaskCode) coapServerTask,
-      context, COAP_SERVER_STACK_SIZE, COAP_SERVER_PRIORITY);
+   //Make sure the CoAP server is not already running
+   if(context->running)
+      return ERROR_ALREADY_RUNNING;
 
-   //Unable to create the task?
-   if(task == OS_INVALID_HANDLE)
-      return ERROR_OUT_OF_RESOURCES;
+   //Start of exception handling block
+   do
+   {
+      //Open a UDP socket
+      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+      //Failed to open socket?
+      if(context->socket == NULL)
+      {
+         //Report an error
+         error = ERROR_OPEN_FAILED;
+         break;
+      }
+
+      //Force the socket to operate in non-blocking mode
+      error = socketSetTimeout(context->socket, 0);
+      //Any error to report?
+      if(error)
+         return error;
+
+      //Associate the socket with the relevant interface
+      error = socketBindToInterface(context->socket,
+         context->settings.interface);
+      //Unable to bind the socket to the desired interface?
+      if(error)
+         break;
+
+      //The CoAP server listens for datagrams on port 5683
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->settings.port);
+      //Unable to bind the socket to the desired port?
+      if(error)
+         break;
+
+      //Start the CoAP server
+      context->stop = FALSE;
+      context->running = TRUE;
+
+      //Create the CoAP server task
+      task = osCreateTask("CoAP Server", (OsTaskCode) coapServerTask,
+         context, COAP_SERVER_STACK_SIZE, COAP_SERVER_PRIORITY);
+      //Failed to create task?
+      if(task == OS_INVALID_HANDLE)
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+         break;
+      }
+
+      //End of exception handling block
+   } while(0);
+
+   //Any error to report?
+   if(error)
+   {
+      //Clean up side effects
+      context->running = FALSE;
+
+      //Close the UDP socket
+      socketClose(context->socket);
+      context->socket = NULL;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Stop CoAP server
+ * @param[in] context Pointer to the CoAP server context
+ * @return Error code
+ **/
+
+error_t coapServerStop(CoapServerContext *context)
+{
+#if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
+   uint_t i;
+#endif
+
+   //Make sure the CoAP server context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Stopping CoAP server...\r\n");
+
+   //Check whether the CoAP server is running
+   if(context->running)
+   {
+      //Stop the CoAP server
+      context->stop = TRUE;
+      //Send a signal to the task to abort any blocking operation
+      osSetEvent(&context->event);
+
+      //Wait for the task to terminate
+      while(context->running)
+      {
+         osDelayTask(1);
+      }
+
+#if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
+      //Loop through DTLS sessions
+      for(i = 0; i < COAP_SERVER_MAX_SESSIONS; i++)
+      {
+         //Release DTLS session
+         coapServerDeleteSession(&context->session[i]);
+      }
+#endif
+
+      //Close the UDP socket
+      socketClose(context->socket);
+      context->socket = NULL;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -213,6 +297,7 @@ error_t coapServerStart(CoapServerContext *context)
 void coapServerTask(CoapServerContext *context)
 {
    error_t error;
+   SocketEventDesc eventDesc;
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Task prologue
@@ -222,31 +307,52 @@ void coapServerTask(CoapServerContext *context)
    while(1)
    {
 #endif
-      //Wait for an incoming datagram
-      error = socketReceiveEx(context->socket, &context->clientIpAddr,
-         &context->clientPort, &context->serverIpAddr, context->buffer,
-         COAP_SERVER_BUFFER_SIZE, &context->bufferLen, 0);
+      //Specify the events the application is interested in
+      eventDesc.socket = context->socket;
+      eventDesc.eventMask = SOCKET_EVENT_RX_READY;
+      eventDesc.eventFlags = 0;
+
+      //Wait for an event
+      socketPoll(&eventDesc, 1, &context->event, COAP_SERVER_TICK_INTERVAL);
+
+      //Stop request?
+      if(context->stop)
+      {
+         //Stop CoAP server operation
+         context->running = FALSE;
+         //Kill ourselves
+         osDeleteTask(NULL);
+      }
 
       //Any datagram received?
-      if(!error)
+      if(eventDesc.eventFlags != 0)
       {
-         //An endpoint must be prepared to receive multicast messages but may
-         //ignore them if multicast service discovery is not desired
-         if(!ipIsMulticastAddr(&context->serverIpAddr))
+         //Receive incoming datagram
+         error = socketReceiveEx(context->socket, &context->clientIpAddr,
+            &context->clientPort, &context->serverIpAddr, context->buffer,
+            COAP_SERVER_BUFFER_SIZE, &context->bufferLen, 0);
+
+         //Check status code
+         if(!error)
          {
-#if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
-            //DTLS-secured communication?
-            if(context->settings.dtlsInitCallback != NULL)
+            //An endpoint must be prepared to receive multicast messages but may
+            //ignore them if multicast service discovery is not desired
+            if(!ipIsMulticastAddr(&context->serverIpAddr))
             {
-               //Demultiplexing of incoming datagrams into separate DTLS sessions
-               error = coapServerDemultiplexSession(context);
-            }
-            else
-#endif
-            {
-               //Process the received CoAP message
-               error = coapServerProcessRequest(context, context->buffer,
-                  context->bufferLen);
+   #if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
+               //DTLS-secured communication?
+               if(context->settings.dtlsInitCallback != NULL)
+               {
+                  //Demultiplexing of incoming datagrams into separate DTLS sessions
+                  error = coapServerDemultiplexSession(context);
+               }
+               else
+   #endif
+               {
+                  //Process the received CoAP message
+                  error = coapServerProcessRequest(context, context->buffer,
+                     context->bufferLen);
+               }
             }
          }
       }
@@ -269,19 +375,8 @@ void coapServerDeinit(CoapServerContext *context)
    //Make sure the CoAP server context is valid
    if(context != NULL)
    {
-#if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
-      uint_t i;
-
-      //Loop through DTLS sessions
-      for(i = 0; i < COAP_SERVER_MAX_SESSIONS; i++)
-      {
-         //Release DTLS session
-         coapServerDeleteSession(&context->session[i]);
-      }
-#endif
-
-      //Close listening socket
-      socketClose(context->socket);
+      //Free previously allocated resources
+      osDeleteEvent(&context->event);
 
       //Clear CoAP server context
       osMemset(context, 0, sizeof(CoapServerContext));

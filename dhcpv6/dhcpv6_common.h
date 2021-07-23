@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _DHCPV6_COMMON_H
@@ -109,31 +109,31 @@ typedef enum
 
 typedef enum
 {
-   DHCPV6_OPTION_CLIENTID       = 1,
-   DHCPV6_OPTION_SERVERID       = 2,
-   DHCPV6_OPTION_IA_NA          = 3,
-   DHCPV6_OPTION_IA_TA          = 4,
-   DHCPV6_OPTION_IAADDR         = 5,
-   DHCPV6_OPTION_ORO            = 6,
-   DHCPV6_OPTION_PREFERENCE     = 7,
-   DHCPV6_OPTION_ELAPSED_TIME   = 8,
-   DHCPV6_OPTION_RELAY_MSG      = 9,
-   DHCPV6_OPTION_AUTH           = 11,
-   DHCPV6_OPTION_UNICAST        = 12,
-   DHCPV6_OPTION_STATUS_CODE    = 13,
-   DHCPV6_OPTION_RAPID_COMMIT   = 14,
-   DHCPV6_OPTION_USER_CLASS     = 15,
-   DHCPV6_OPTION_VENDOR_CLASS   = 16,
-   DHCPV6_OPTION_VENDOR_OPTS    = 17,
-   DHCPV6_OPTION_INTERFACE_ID   = 18,
-   DHCPV6_OPTION_RECONF_MSG     = 19,
-   DHCPV6_OPTION_RECONF_ACCEPT  = 20,
-   DHCPV6_OPTION_DNS_SERVERS    = 23,
-   DHCPV6_OPTION_DOMAIN_LIST    = 24,
-   DHCPV6_OPTION_IA_PD          = 25,
-   DHCPV6_OPTION_IAPREFIX       = 26,
-   DHCPV6_OPTION_FQDN           = 39,
-   DHCPV6_OPTION_CAPTIVE_PORTAL = 103
+   DHCPV6_OPT_CLIENT_ID      = 1,
+   DHCPV6_OPT_SERVER_ID      = 2,
+   DHCPV6_OPT_IA_NA          = 3,
+   DHCPV6_OPT_IA_TA          = 4,
+   DHCPV6_OPT_IA_ADDR        = 5,
+   DHCPV6_OPT_ORO            = 6,
+   DHCPV6_OPT_PREFERENCE     = 7,
+   DHCPV6_OPT_ELAPSED_TIME   = 8,
+   DHCPV6_OPT_RELAY_MSG      = 9,
+   DHCPV6_OPT_AUTH           = 11,
+   DHCPV6_OPT_UNICAST        = 12,
+   DHCPV6_OPT_STATUS_CODE    = 13,
+   DHCPV6_OPT_RAPID_COMMIT   = 14,
+   DHCPV6_OPT_USER_CLASS     = 15,
+   DHCPV6_OPT_VENDOR_CLASS   = 16,
+   DHCPV6_OPT_VENDOR_OPTS    = 17,
+   DHCPV6_OPT_INTERFACE_ID   = 18,
+   DHCPV6_OPT_RECONF_MSG     = 19,
+   DHCPV6_OPT_RECONF_ACCEPT  = 20,
+   DHCPV6_OPT_DNS_SERVERS    = 23,
+   DHCPV6_OPT_DOMAIN_LIST    = 24,
+   DHCPV6_OPT_IA_PD          = 25,
+   DHCPV6_OPT_IA_PREFIX      = 26,
+   DHCPV6_OPT_FQDN           = 39,
+   DHCPV6_OPT_CAPTIVE_PORTAL = 103
 } Dhcpv6OptionCode;
 
 
@@ -402,7 +402,7 @@ typedef __start_packed struct
 
 typedef __start_packed struct
 {
-#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+#if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t mbz : 5;      //0
    uint8_t n : 1;
    uint8_t o : 1;

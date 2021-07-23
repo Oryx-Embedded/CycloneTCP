@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -551,7 +551,7 @@ void msp432e4EthEventHandler(NetInterface *interface)
    uint32_t status;
 
    //PHY interrupt?
-   if(( EMAC0->EPHYRIS & EMAC_EPHYRIS_INT) != 0)
+   if((EMAC0->EPHYRIS & EMAC_EPHYRIS_INT) != 0)
    {
       //Clear PHY interrupt flag
       EMAC0->EPHYMISC = EMAC_EPHYMISC_INT;
@@ -623,7 +623,7 @@ void msp432e4EthEventHandler(NetInterface *interface)
    }
 
    //Packet received?
-   if(( EMAC0->DMARIS & EMAC_DMARIS_RI) != 0)
+   if((EMAC0->DMARIS & EMAC_DMARIS_RI) != 0)
    {
       //Clear interrupt flag
       EMAC0->DMARIS = EMAC_DMARIS_RI;
@@ -887,7 +887,7 @@ error_t msp432e4EthUpdateMacAddrFilter(NetInterface *interface)
       EMAC0->ADDR3H = 0;
    }
 
-   //Configure the multicast address filter
+   //Configure the multicast hash table
    EMAC0->HASHTBLL = hashTable[0];
    EMAC0->HASHTBLH = hashTable[1];
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -773,7 +773,7 @@ error_t lpc54xxxEthUpdateMacAddrFilter(NetInterface *interface)
       }
    }
 
-   //Enable the reception of multicast frames if necessary
+   //Enable or disable the reception of multicast frames
    if(acceptMulticast)
    {
       ENET->MAC_FRAME_FILTER |= ENET_MAC_FRAME_FILTER_PM_MASK;

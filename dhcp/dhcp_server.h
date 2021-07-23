@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _DHCP_SERVER_H
@@ -123,54 +123,16 @@ typedef struct
 } DhcpServerContext;
 
 
-//Tick counter to handle periodic operations
-extern systime_t dhcpServerTickCounter;
-
 //DHCP server related functions
 void dhcpServerGetDefaultSettings(DhcpServerSettings *settings);
 
 error_t dhcpServerInit(DhcpServerContext *context,
    const DhcpServerSettings *settings);
 
-void dhcpServerDeinit(DhcpServerContext *context);
-
 error_t dhcpServerStart(DhcpServerContext *context);
 error_t dhcpServerStop(DhcpServerContext *context);
 
-void dhcpServerTick(DhcpServerContext *context);
-
-void dhcpServerProcessMessage(NetInterface *interface,
-   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
-   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
-   void *param);
-
-void dhcpServerParseDiscover(DhcpServerContext *context,
-   const DhcpMessage *message, size_t length);
-
-void dhcpServerParseRequest(DhcpServerContext *context,
-   const DhcpMessage *message, size_t length);
-
-void dhcpServerParseDecline(DhcpServerContext *context,
-   const DhcpMessage *message, size_t length);
-
-void dhcpServerParseRelease(DhcpServerContext *context,
-   const DhcpMessage *message, size_t length);
-
-void dhcpServerParseInform(DhcpServerContext *context,
-   const DhcpMessage *message, size_t length);
-
-error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
-   Ipv4Addr yourIpAddr, const DhcpMessage *request, size_t length);
-
-DhcpServerBinding *dhcpServerCreateBinding(DhcpServerContext *context);
-
-DhcpServerBinding *dhcpServerFindBindingByMacAddr(DhcpServerContext *context,
-   const MacAddr *macAddr);
-
-DhcpServerBinding *dhcpServerFindBindingByIpAddr(DhcpServerContext *context,
-   Ipv4Addr ipAddr);
-
-error_t dhcpServerGetNextIpAddr(DhcpServerContext *context, Ipv4Addr *ipAddr);
+void dhcpServerDeinit(DhcpServerContext *context);
 
 //C++ guard
 #ifdef __cplusplus

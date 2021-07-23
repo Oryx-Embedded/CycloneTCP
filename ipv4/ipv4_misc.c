@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -741,6 +741,35 @@ error_t ipv4MapMulticastAddrToMac(Ipv4Addr ipAddr, MacAddr *macAddr)
    //The specified host group address was successfully
    //mapped to a MAC-layer address
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Trap IGMP packets
+ * @param[in] header Pointer to the IPv4 header
+ * @return TRUE if the IPv4 packet contains an IGMP message, else FALSE
+ **/
+
+bool_t ipv4TrapIgmpPacket(Ipv4Header *header)
+{
+   bool_t flag;
+
+   //Initialize flag
+   flag = FALSE;
+
+   //Make sure the IPv4 packet is not fragmented
+   if((ntohs(header->fragmentOffset) & (IPV4_FLAG_MF | IPV4_OFFSET_MASK)) == 0)
+   {
+      //Valid IGMP message?
+      if(ipv4IsMulticastAddr(header->destAddr) &&
+         header->protocol == IPV4_PROTOCOL_IGMP)
+      {
+         flag = TRUE;
+      }
+   }
+
+   //Return TRUE if the IPv4 packet contains an IGMP message
+   return flag;
 }
 
 

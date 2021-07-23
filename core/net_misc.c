@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,14 +42,16 @@
 #include "ipv4/arp.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_routing.h"
-#include "ipv4/igmp.h"
+#include "ipv4/auto_ip_misc.h"
+#include "igmp/igmp_host.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_routing.h"
 #include "ipv6/mld.h"
 #include "ipv6/ndp.h"
-#include "ipv6/ndp_router_adv.h"
-#include "dhcp/dhcp_client.h"
-#include "dhcp/dhcp_server.h"
+#include "ipv6/ndp_router_adv_misc.h"
+#include "dhcp/dhcp_client_misc.h"
+#include "dhcp/dhcp_server_misc.h"
+#include "dhcpv6/dhcpv6_client_misc.h"
 #include "dns/dns_cache.h"
 #include "dns/dns_client.h"
 #include "mdns/mdns_client.h"
@@ -86,7 +88,9 @@ const NetTxAncillary NET_DEFAULT_TX_ANCILLARY =
    -1,      //Drop eligible indicator
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   0,       //Switch port identifier
+   0,       //Egress port identifier
+   0,       //Egress port map
+   FALSE,   //Override port state
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
    -1,      //Unique identifier for hardware time stamping
@@ -98,11 +102,11 @@ const NetRxAncillary NET_DEFAULT_RX_ANCILLARY =
 {
    0,       //Time-to-live value
 #if (ETH_SUPPORT == ENABLED)
-   {{{0}}}, ///<Source MAC address
-   {{{0}}}, ///<Destination MAC address
+   {{{0}}}, //Source MAC address
+   {{{0}}}, //Destination MAC address
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   0,       //Switch port identifier
+   0,       //Ingress port identifier
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
    {0},     //Captured time stamp
@@ -487,7 +491,8 @@ void netTick(void)
    }
 #endif
 
-#if (IPV4_SUPPORT == ENABLED && IGMP_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && (IGMP_HOST_SUPPORT == ENABLED || \
+   IGMP_ROUTER_SUPPORT == ENABLED || IGMP_SNOOPING_SUPPORT == ENABLED))
    //Increment tick counter
    igmpTickCounter += NET_TICK_INTERVAL;
 

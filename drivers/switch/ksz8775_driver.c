@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -143,17 +143,17 @@ error_t ksz8775Init(NetInterface *interface)
          }
       }
 
-      //Silicon errata workaround #2
+      //Disable EEE next page exchange (silicon errata workaround 2)
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_CTRL0, 0x20);
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_CTRL1, 0x35);
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_BYTE, 0x00);
 
-      //Silicon errata workaround #3
+      //Improve receiver settings (silicon errata workaround 3)
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_CTRL0, 0xA0);
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_CTRL1, 0x3C);
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_BYTE, 0x15);
 
-      //Silicon errata workaround #4
+      //Improve transmitter settings (silicon errata workaround 4)
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_CTRL0, 0xA0);
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_CTRL1, 0x4E);
       ksz8775WriteSwitchReg(interface, KSZ8775_INDIRECT_BYTE, 0x40);

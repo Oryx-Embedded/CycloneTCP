@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -652,7 +652,7 @@ error_t webSocketConnect(WebSocket *webSocket, const IpAddr *serverIpAddr,
 /**
  * @brief Set client's key
  * @param[in] webSocket Handle to a WebSocket
- * @param[in] clientKey NULL-terminated string that holds the the client's key
+ * @param[in] clientKey NULL-terminated string that holds the client's key
  * @return Error code
  **/
 

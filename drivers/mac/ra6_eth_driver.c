@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -217,8 +217,9 @@ error_t ra6EthInit(NetInterface *interface)
 }
 
 
-//EK-RA6M3 or M13-RA6M3-EK evaluation board?
-#if defined(USE_EK_RA6M3) || defined(USE_M13_RA6M3_EK)
+//EK-RA6M3, EK-RA6M4, EK-RA6M5 or M13-RA6M3-EK evaluation board?
+#if defined(USE_EK_RA6M3) || defined(USE_EK_RA6M4) || defined(USE_EK_RA6M5) || \
+   defined(USE_M13_RA6M3_EK)
 
 /**
  * @brief GPIO configuration
@@ -227,8 +228,8 @@ error_t ra6EthInit(NetInterface *interface)
 
 void ra6EthInitGpio(NetInterface *interface)
 {
-//EK-RA6M3 evaluation board?
-#if defined(USE_EK_RA6M3)
+//EK-RA6M3, EK-RA6M4 or EK-RA6M5 evaluation board?
+#if defined(USE_EK_RA6M3) || defined(USE_EK_RA6M4) || defined(USE_EK_RA6M5)
    //Disable protection
    R_SYSTEM->PRCR = 0xA50B;
    //Disable VBATT channel 0 input (P4_2)
@@ -732,38 +733,50 @@ error_t ra6EthUpdateMacAddrFilter(NetInterface *interface)
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Set the upper 32 bits of the MAC address
-   R_ETHERC0->MAHR = (interface->macAddr.b[0] << 24) | (interface->macAddr.b[1] << 16) |
-      (interface->macAddr.b[2] << 8) | interface->macAddr.b[3];
-
-   //Set the lower 16 bits of the MAC address
-   R_ETHERC0->MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
-
-   //This flag will be set if multicast addresses should be accepted
-   acceptMulticast = FALSE;
-
-   //The MAC address filter contains the list of MAC addresses to accept
-   //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   //Promiscuous mode?
+   if(interface->promiscuous)
    {
-      //Valid entry?
-      if(interface->macAddrFilter[i].refCount > 0)
-      {
-         //Accept multicast addresses
-         acceptMulticast = TRUE;
-         //We are done
-         break;
-      }
-   }
-
-   //Enable the reception of multicast frames if necessary
-   if(acceptMulticast)
-   {
-      R_ETHERC_EDMAC->EESR |= R_ETHERC_EDMAC_EESR_RMAF_Msk;
+      //Accept all frames regardless of their destination address
+      R_ETHERC0->ECMR |= R_ETHERC0_ECMR_PRM_Msk;
    }
    else
    {
-      R_ETHERC_EDMAC->EESR &= ~R_ETHERC_EDMAC_EESR_RMAF_Msk;
+      //Disable promiscuous mode
+      R_ETHERC0->ECMR &= ~R_ETHERC0_ECMR_PRM_Msk;
+
+      //Set the upper 32 bits of the MAC address
+      R_ETHERC0->MAHR = (interface->macAddr.b[0] << 24) | (interface->macAddr.b[1] << 16) |
+         (interface->macAddr.b[2] << 8) | interface->macAddr.b[3];
+
+      //Set the lower 16 bits of the MAC address
+      R_ETHERC0->MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
+
+      //This flag will be set if multicast addresses should be accepted
+      acceptMulticast = FALSE;
+
+      //The MAC address filter contains the list of MAC addresses to accept
+      //when receiving an Ethernet frame
+      for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+      {
+         //Valid entry?
+         if(interface->macAddrFilter[i].refCount > 0)
+         {
+            //Accept multicast addresses
+            acceptMulticast = TRUE;
+            //We are done
+            break;
+         }
+      }
+
+      //Enable or disable the reception of multicast frames
+      if(acceptMulticast || interface->acceptAllMulticast)
+      {
+         R_ETHERC_EDMAC->EESR |= R_ETHERC_EDMAC_EESR_RMAF_Msk;
+      }
+      else
+      {
+         R_ETHERC_EDMAC->EESR &= ~R_ETHERC_EDMAC_EESR_RMAF_Msk;
+      }
    }
 
    //Successful processing

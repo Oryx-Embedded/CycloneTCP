@@ -34,7 +34,7 @@
  * - RFC 7860: HMAC-SHA-2 Authentication Protocols in the User-based Security Model
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -182,7 +182,7 @@ error_t snmpGenerateKey(SnmpAuthProtocol authProtocol, const char_t *password,
    size_t n;
    size_t passwordLen;
    const HashAlgo *hashAlgo;
-   uint8_t hashContext[MAX_HASH_CONTEXT_SIZE];
+   HashContext hashContext;
 
    //Check parameters
    if(password == NULL || key == NULL)
@@ -207,17 +207,17 @@ error_t snmpGenerateKey(SnmpAuthProtocol authProtocol, const char_t *password,
       return ERROR_INVALID_LENGTH;
 
    //Initialize hash context
-   hashAlgo->init(hashContext);
+   hashAlgo->init(&hashContext);
 
    //Loop until we have done 1 megabyte
    for(i = 0; i < 1048576; i += n)
    {
       n = MIN(passwordLen, 1048576 - i);
-      hashAlgo->update(hashContext, password, n);
+      hashAlgo->update(&hashContext, password, n);
    }
 
    //Finalize hash computation
-   hashAlgo->final(hashContext, key->b);
+   hashAlgo->final(&hashContext, key->b);
 
    //Successful processing
    return NO_ERROR;
@@ -239,7 +239,7 @@ error_t snmpLocalizeKey(SnmpAuthProtocol authProtocol, const uint8_t *engineId,
    size_t engineIdLen, SnmpKey *key, SnmpKey *localizedKey)
 {
    const HashAlgo *hashAlgo;
-   uint8_t hashContext[MAX_HASH_CONTEXT_SIZE];
+   HashContext hashContext;
 
    //Check parameters
    if(engineId == NULL && engineIdLen > 0)
@@ -255,11 +255,11 @@ error_t snmpLocalizeKey(SnmpAuthProtocol authProtocol, const uint8_t *engineId,
       return ERROR_INVALID_PARAMETER;
 
    //Localize the key with the engine ID
-   hashAlgo->init(hashContext);
-   hashAlgo->update(hashContext, key, hashAlgo->digestSize);
-   hashAlgo->update(hashContext, engineId, engineIdLen);
-   hashAlgo->update(hashContext, key, hashAlgo->digestSize);
-   hashAlgo->final(hashContext, localizedKey->b);
+   hashAlgo->init(&hashContext);
+   hashAlgo->update(&hashContext, key, hashAlgo->digestSize);
+   hashAlgo->update(&hashContext, engineId, engineIdLen);
+   hashAlgo->update(&hashContext, key, hashAlgo->digestSize);
+   hashAlgo->final(&hashContext, localizedKey->b);
 
    //Successful processing
    return NO_ERROR;
@@ -278,15 +278,15 @@ void snmpChangeKey(const HashAlgo *hashAlgo, const uint8_t *random,
    const uint8_t *delta, SnmpKey *key)
 {
    uint_t i;
-   uint8_t hashContext[MAX_HASH_CONTEXT_SIZE];
+   HashContext hashContext;
    uint8_t digest[SNMP_MAX_KEY_SIZE];
 
    //The random component is appended to the existing value of the K, and the
    //result is input to the hash algorithm H to produce a digest value
-   hashAlgo->init(hashContext);
-   hashAlgo->update(hashContext, key, hashAlgo->digestSize);
-   hashAlgo->update(hashContext, random, hashAlgo->digestSize);
-   hashAlgo->final(hashContext, digest);
+   hashAlgo->init(&hashContext);
+   hashAlgo->update(&hashContext, key, hashAlgo->digestSize);
+   hashAlgo->update(&hashContext, random, hashAlgo->digestSize);
+   hashAlgo->final(&hashContext, digest);
 
    //This digest value is XOR-ed with the unused portion of the delta component
    //to produce the new value of K

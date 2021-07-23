@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _ETHERNET_MISC_H
@@ -53,6 +53,7 @@ error_t ethDecodeVlanTag(const uint8_t *frame, size_t length, uint16_t *vlanId,
    uint16_t *type);
 
 error_t ethCheckDestAddr(NetInterface *interface, const MacAddr *macAddr);
+bool_t ethTrapIgmpPacket(EthHeader *header, uint8_t *data, size_t length);
 
 void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr);
 

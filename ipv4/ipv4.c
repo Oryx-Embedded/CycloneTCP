@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 //Switch to the appropriate trace level
@@ -51,9 +51,9 @@
 #include "ipv4/ipv4_misc.h"
 #include "ipv4/ipv4_routing.h"
 #include "ipv4/icmp.h"
-#include "ipv4/igmp.h"
-#include "ipv4/auto_ip.h"
-#include "dhcp/dhcp_client.h"
+#include "ipv4/auto_ip_misc.h"
+#include "igmp/igmp_host.h"
+#include "dhcp/dhcp_client_misc.h"
 #include "mdns/mdns_responder.h"
 #include "mibs/mib2_module.h"
 #include "mibs/ip_mib_module.h"
@@ -538,7 +538,8 @@ void ipv4LinkChangeEvent(NetInterface *interface)
    ipv4FlushFragQueue(interface);
 #endif
 
-#if (IGMP_SUPPORT == ENABLED)
+#if (IGMP_HOST_SUPPORT == ENABLED || IGMP_ROUTER_SUPPORT == ENABLED || \
+   IGMP_SNOOPING_SUPPORT == ENABLED)
    //Notify IGMP of link state changes
    igmpLinkChangeEvent(interface);
 #endif
@@ -641,13 +642,28 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
          break;
       }
 
-#if defined(IPV4_PACKET_FORWARD_HOOK)
-      IPV4_PACKET_FORWARD_HOOK(interface, packet, length);
-#else
-      //Destination address filtering
-      if(ipv4CheckDestAddr(interface, packet->destAddr))
+#if (IGMP_ROUTER_SUPPORT == ENABLED)
+      //Trap IGMP packets when IGMP router is enabled
+      if(interface->igmpRouterContext != NULL && ipv4TrapIgmpPacket(packet))
       {
-#if (IPV4_ROUTING_SUPPORT == ENABLED)
+         //Forward the packet to the IGMP router
+         error = NO_ERROR;
+      }
+      else
+#endif
+#if (IGMP_SNOOPING_SUPPORT == ENABLED)
+      //Trap IGMP packets when IGMP snooping is enabled
+      if(interface->igmpSnoopingContext != NULL && ipv4TrapIgmpPacket(packet))
+      {
+         //Forward the packet to the IGMP snooping switch
+         error = NO_ERROR;
+      }
+      else
+#endif
+#if (IGMP_ROUTER_SUPPORT == ENABLED && IPV4_ROUTING_SUPPORT == ENABLED)
+      //Trap multicast packets
+      if(ipv4IsMulticastAddr(packet->destAddr))
+      {
          NetBuffer1 buffer;
 
          //Unfragmented datagrams fit in a single chunk
@@ -656,16 +672,45 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
          buffer.chunk[0].address = packet;
          buffer.chunk[0].length = length;
 
-         //Forward the packet according to the routing table
+         //Forward the multicast packet
          ipv4ForwardPacket(interface, (NetBuffer *) &buffer, 0);
-#else
+
+         //Destination address filtering
+         error = ipv4CheckDestAddr(interface, packet->destAddr);
+      }
+      else
+#endif
+      {
+         //Destination address filtering
+         error = ipv4CheckDestAddr(interface, packet->destAddr);
+
+#if defined(IPV4_PACKET_FORWARD_HOOK)
+         IPV4_PACKET_FORWARD_HOOK(interface, packet, length);
+#elif (IPV4_ROUTING_SUPPORT == ENABLED)
+         //Invalid destination address?
+         if(error)
+         {
+            NetBuffer1 buffer;
+
+            //Unfragmented datagrams fit in a single chunk
+            buffer.chunkCount = 1;
+            buffer.maxChunkCount = 1;
+            buffer.chunk[0].address = packet;
+            buffer.chunk[0].length = length;
+
+            //Forward the packet according to the routing table
+            ipv4ForwardPacket(interface, (NetBuffer *) &buffer, 0);
+         }
+#endif
+      }
+
+      //Invalid destination address?
+      if(error)
+      {
          //Discard the received packet
          error = ERROR_INVALID_ADDRESS;
-#endif
-         //We are done
          break;
       }
-#endif
 
       //Packets addressed to a tentative address should be silently discarded
       if(ipv4IsTentativeAddr(interface, packet->destAddr))
@@ -695,7 +740,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
       length = ntohs(packet->totalLength);
 
       //A fragmented packet was received?
-      if(ntohs(packet->fragmentOffset) & (IPV4_FLAG_MF | IPV4_OFFSET_MASK))
+      if((ntohs(packet->fragmentOffset) & (IPV4_FLAG_MF | IPV4_OFFSET_MASK)) != 0)
       {
 #if (IPV4_FRAG_SUPPORT == ENABLED)
          //Reassemble the original datagram
@@ -798,11 +843,13 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
       //Continue processing
       break;
 
-#if (IGMP_SUPPORT == ENABLED)
+#if (IGMP_HOST_SUPPORT == ENABLED || IGMP_ROUTER_SUPPORT == ENABLED || \
+   IGMP_SNOOPING_SUPPORT == ENABLED)
    //IGMP protocol?
    case IPV4_PROTOCOL_IGMP:
       //Process incoming IGMP message
-      igmpProcessMessage(interface, &pseudoHeader.ipv4Data, buffer, offset);
+      igmpProcessMessage(interface, &pseudoHeader.ipv4Data, buffer, offset,
+         ancillary);
 
 #if (RAW_SOCKET_SUPPORT == ENABLED)
       //Allow raw sockets to process IGMP messages
@@ -1001,7 +1048,7 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    packet->srcAddr = pseudoHeader->srcAddr;
    packet->destAddr = pseudoHeader->destAddr;
 
-   //The IHL field is the length of the internet header in 32-bit words, and
+   //The IHL field is the length of the IP packet header in 32-bit words, and
    //thus points to the beginning of the data. Note that the minimum value for
    //a correct header is 5 (refer to RFC 791, section 3.1)
    if(ancillary->routerAlert)
@@ -1299,9 +1346,9 @@ error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
       //Initialize the reference count
       firstFreeEntry->refCount = 1;
 
-#if (IGMP_SUPPORT == ENABLED)
+#if (IGMP_HOST_SUPPORT == ENABLED)
       //Report multicast group membership to the router
-      igmpJoinGroup(interface, firstFreeEntry);
+      igmpHostJoinGroup(interface, firstFreeEntry);
 #endif
    }
 
@@ -1353,9 +1400,9 @@ error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
             //Remove the entry if the reference count drops to zero
             if(entry->refCount == 0)
             {
-#if (IGMP_SUPPORT == ENABLED)
+#if (IGMP_HOST_SUPPORT == ENABLED)
                //Report group membership termination
-               igmpLeaveGroup(interface, entry);
+               igmpHostLeaveGroup(interface, entry);
 #endif
 #if (ETH_SUPPORT == ENABLED)
                //Map the IPv4 multicast address to a MAC-layer address

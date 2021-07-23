@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.0.4
+ * @version 2.1.0
  **/
 
 #ifndef _ETHERNET_H
@@ -76,6 +76,13 @@
    #error ETH_PORT_TAGGING_SUPPORT parameter is not valid
 #endif
 
+//Size of tags used for switch port tagging
+#ifndef ETH_PORT_TAG_SIZE
+   #define ETH_PORT_TAG_SIZE 4
+#elif (ETH_PORT_TAG_SIZE < 0)
+   #error ETH_PORT_TAG_SIZE parameter is not valid
+#endif
+
 //Hardware time stamping support
 #ifndef ETH_TIMESTAMP_SUPPORT
    #define ETH_TIMESTAMP_SUPPORT DISABLED
@@ -121,7 +128,7 @@
 #define macCompAddr(macAddr1, macAddr2) (!osMemcmp(macAddr1, macAddr2, sizeof(MacAddr)))
 
 //Determine whether a MAC address is a group address
-#define macIsMulticastAddr(macAddr) ((macAddr)->b[0] & 0x01)
+#define macIsMulticastAddr(macAddr) (((macAddr)->b[0] & 0x01) != 0)
 
 //Copy EUI-64 address
 #define eui64CopyAddr(destEui64Addr, srcEui64Addr) osMemcpy(destEui64Addr, srcEui64Addr, sizeof(Eui64))
