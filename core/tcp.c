@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -119,7 +119,7 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePo
    uint_t event;
 
    //Check current TCP state
-   if(socket->state == TCP_STATE_CLOSED)
+   if(socket->state == TCP_STATE_CLOSED && !socket->resetFlag)
    {
       //Save port number and IP address of the remote host
       socket->remoteIpAddr = *remoteIpAddr;

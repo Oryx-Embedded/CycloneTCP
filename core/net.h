@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _NET_H
@@ -93,13 +93,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.1.0"
+#define CYCLONE_TCP_VERSION_STRING "2.1.2"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 1
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 0
+#define CYCLONE_TCP_REV_NUMBER 2
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -155,13 +155,6 @@ struct _NetInterface;
    #define NET_RAND_SEED_SIZE 16
 #elif (NET_RAND_SEED_SIZE < 10)
    #error NET_RAND_SEED_SIZE parameter is not valid
-#endif
-
-//OS resources are statically allocated at compile time
-#ifndef NET_STATIC_OS_RESOURCES
-   #define NET_STATIC_OS_RESOURCES DISABLED
-#elif (NET_STATIC_OS_RESOURCES != ENABLED && NET_STATIC_OS_RESOURCES != DISABLED)
-   #error NET_STATIC_OS_RESOURCES parameter is not valid
 #endif
 
 //Stack size required to run the TCP/IP task
@@ -311,10 +304,10 @@ typedef struct
    OsMutex mutex;                                ///<Mutex preventing simultaneous access to the TCP/IP stack
    OsEvent event;                                ///<Event object to receive notifications from drivers
    bool_t running;                               ///<The TCP/IP stack is currently running
-   OsTask *taskHandle;
-#if (NET_STATIC_OS_RESOURCES == ENABLED)
-   OsTask taskInstance;
-   uint_t taskStack[NET_TASK_STACK_SIZE];
+   OsTaskId taskId;                              ///<Task identifier
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   OsTaskTcb taskTcb;                            ///<Task control block
+   OsStackType taskStack[NET_TASK_STACK_SIZE];   ///<Task stack
 #endif
    uint32_t entropy;
    systime_t timestamp;

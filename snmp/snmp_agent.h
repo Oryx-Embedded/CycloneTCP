@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _SNMP_AGENT_H
@@ -145,6 +145,11 @@ struct _SnmpAgentContext
    bool_t stop;                                               ///<Stop request
    OsMutex mutex;                                             ///<Mutex preventing simultaneous access to SNMP agent context
    OsEvent event;                                             ///<Event object used to poll the underlying socket
+   OsTaskId taskId;                                           ///<Task identifier
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   OsTaskTcb taskTcb;                                         ///<Task control block
+   OsStackType taskStack[SNMP_AGENT_STACK_SIZE];              ///<Task stack
+#endif
    uint8_t enterpriseOid[SNMP_MAX_OID_SIZE];                  ///<Enterprise OID
    size_t enterpriseOidLen;                                   ///<Length of the enterprise OID
    const MibModule *mibTable[SNMP_AGENT_MAX_MIBS];            ///<MIB modules

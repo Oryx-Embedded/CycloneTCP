@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -76,10 +76,14 @@ error_t enc624j600Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing ENC624J600 Ethernet controller...\r\n");
 
-   //Initialize SPI
+   //Initialize SPI interface
    interface->spiDriver->init();
-   //Initialize external interrupt line
-   interface->extIntDriver->init();
+
+   //Initialize external interrupt line driver
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->init();
+   }
 
    //Point to the driver context
    context = (Enc624j600Context *) interface->nicContext;
@@ -196,7 +200,10 @@ void enc624j600Tick(NetInterface *interface)
 void enc624j600EnableIrq(NetInterface *interface)
 {
    //Enable interrupts
-   interface->extIntDriver->enableIrq();
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -208,7 +215,10 @@ void enc624j600EnableIrq(NetInterface *interface)
 void enc624j600DisableIrq(NetInterface *interface)
 {
    //Disable interrupts
-   interface->extIntDriver->disableIrq();
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->disableIrq();
+   }
 }
 
 

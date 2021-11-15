@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _NET_LEGACY_H
@@ -266,9 +266,6 @@
 #define netMutex (netContext.mutex)
 #define netEvent (netContext.event)
 #define netTaskRunning (netContext.running)
-#define netTaskHandle (netContext.taskHandle)
-#define netTaskInstance (netContext.taskInstance)
-#define netTaskStack (netContext.taskStack)
 #define netTimestamp (netContext.timestamp)
 #define netInterface (netContext.interfaces)
 

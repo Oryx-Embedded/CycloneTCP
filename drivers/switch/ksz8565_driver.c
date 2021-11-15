@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -215,10 +215,13 @@ error_t ksz8565Init(NetInterface *interface)
       ksz8565WriteMmdReg(interface, port, 0x1C, 0x1E, 0xEFFF);
       ksz8565WriteMmdReg(interface, port, 0x1C, 0x20, 0xEEEE);
 
-      //Select tri-color dual-LED mode (silicon errata workaround 15)
+      //Select single-LED mode
       ksz8565WriteMmdReg(interface, port, KSZ8565_MMD_LED_MODE,
-         KSZ8565_MMD_LED_MODE_LED_MODE_TRI_COLOR_DUAL |
+         KSZ8565_MMD_LED_MODE_LED_MODE_SINGLE |
          KSZ8565_MMD_LED_MODE_RESERVED_DEFAULT);
+
+      //Implement workaround for single-LED mode
+      ksz8565WritePhyReg(interface, port, 0x1E, 0xFA00);
 
       //Debug message
       TRACE_DEBUG("Port %u:\r\n", port);

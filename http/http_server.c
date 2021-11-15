@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -210,6 +210,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 error_t httpServerStart(HttpServerContext *context)
 {
    uint_t i;
+   HttpConnection *connection;
 
    //Make sure the HTTP server context is valid
    if(context == NULL)
@@ -221,22 +222,38 @@ error_t httpServerStart(HttpServerContext *context)
    //Loop through client connections
    for(i = 0; i < context->settings.maxConnections; i++)
    {
-      //Create a task to service a given HTTP client connection
-      context->connections[i].taskHandle = osCreateTask("HTTP Connection",
-         httpConnectionTask, &context->connections[i],
-         HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
+      //Point to the current session
+      connection = &context->connections[i];
+
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+      //Create a task using statically allocated memory
+      connection->taskId = osCreateStaticTask("HTTP Connection",
+         (OsTaskCode) httpConnectionTask, connection, &connection->taskTcb,
+         connection->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
+#else
+      //Create a task
+      connection->taskId = osCreateTask("HTTP Connection", httpConnectionTask,
+         &context->connections[i], HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
+#endif
 
       //Unable to create the task?
-      if(context->connections[i].taskHandle == OS_INVALID_HANDLE)
+      if(connection->taskId == OS_INVALID_TASK_ID)
          return ERROR_OUT_OF_RESOURCES;
    }
 
-   //Create the HTTP server listener task
-   context->taskHandle = osCreateTask("HTTP Listener", httpListenerTask,
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+      //Create a task using statically allocated memory
+      context->taskId = osCreateStaticTask("FTP Server",
+         (OsTaskCode) httpListenerTask, context, &context->taskTcb,
+         context->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
+#else
+   //Create a task
+   context->taskId = osCreateTask("HTTP Listener", httpListenerTask,
       context, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
+#endif
 
    //Unable to create the task?
-   if(context->taskHandle == OS_INVALID_HANDLE)
+   if(context->taskId == OS_INVALID_TASK_ID)
       return ERROR_OUT_OF_RESOURCES;
 
    //The HTTP server has successfully started
@@ -379,6 +396,12 @@ void httpConnectionTask(void *param)
 
 #if (TLS_TICKET_SUPPORT == ENABLED)
             //Enable session ticket mechanism
+            error = tlsEnableSessionTickets(connection->tlsContext, TRUE);
+            //Any error to report?
+            if(error)
+               break;
+
+            //Register ticket encryption/decryption callbacks
             error = tlsSetTicketCallbacks(connection->tlsContext, tlsEncryptTicket,
                tlsDecryptTicket, &connection->serverContext->tlsTicketContext);
             //Any error to report?
@@ -629,6 +652,12 @@ void httpConnectionTask(void *param)
 error_t httpWriteHeader(HttpConnection *connection)
 {
    error_t error;
+
+#if (NET_RTOS_SUPPORT == DISABLED)
+   //Flush buffer
+   connection->bufferPos = 0;
+   connection->bufferLen = 0;
+#endif
 
    //Format HTTP response header
    error = httpFormatResponseHeader(connection, connection->buffer);

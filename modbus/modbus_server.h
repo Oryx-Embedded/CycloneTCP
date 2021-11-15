@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -208,6 +208,13 @@ typedef error_t (*ModbusServerProcessPduCallback)(const uint8_t *request,
 
 
 /**
+ * @brief Tick callback function
+ **/
+
+typedef void (*ModbusServerTickCallback)(ModbusServerContext *context);
+
+
+/**
  * @brief Modbus/TCP server settings
  **/
 
@@ -228,7 +235,8 @@ typedef struct
    ModbusServerReadRegCallback readHoldingRegCallback;     ///<Get holding register value callback function
    ModbusServerReadRegCallback readInputRegCallback;       ///<Get input register value callback function
    ModbusServerWriteRegCallback writeRegCallback;          ///<Set register value callback function
-   ModbusServerProcessPduCallback processPduCallback;      ///<PDU processing callback
+   ModbusServerProcessPduCallback processPduCallback;      ///<PDU processing callback function
+   ModbusServerTickCallback tickCallback;                  ///<Tick callback function
 } ModbusServerSettings;
 
 
@@ -266,6 +274,11 @@ struct _ModbusServerContext
    bool_t running;                                                   ///<Operational state of the Modbus/TCP server
    bool_t stop;                                                      ///<Stop request
    OsEvent event;                                                    ///<Event object used to poll the sockets
+   OsTaskId taskId;                                                  ///<Task identifier
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   OsTaskTcb taskTcb;                                                ///<Task control block
+   OsStackType taskStack[MODBUS_SERVER_STACK_SIZE];                  ///<Task stack
+#endif
    Socket *socket;                                                   ///<Listening socket
    ModbusClientConnection connection[MODBUS_SERVER_MAX_CONNECTIONS]; ///<Client connections
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)

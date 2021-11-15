@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -281,7 +281,6 @@ void aps3EthEnableIrq(NetInterface *interface)
    irq[IRQ_ETH_TX].ien = 1;
    irq[IRQ_ETH_RX].ien = 1;
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -310,7 +309,6 @@ void aps3EthDisableIrq(NetInterface *interface)
    //Disable Ethernet MAC interrupts
    irq[IRQ_ETH_TX].ien = 0;
    irq[IRQ_ETH_RX].ien = 0;
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

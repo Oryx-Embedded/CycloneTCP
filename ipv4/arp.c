@@ -30,7 +30,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level

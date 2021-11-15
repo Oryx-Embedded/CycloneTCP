@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -579,8 +579,12 @@ typedef struct
 struct _HttpServerContext
 {
    HttpServerSettings settings;                                  ///<User settings
-   OsTask *taskHandle;                                           ///<Listener task handle
    OsSemaphore semaphore;                                        ///<Semaphore limiting the number of connections
+   OsTaskId taskId;                                              ///<Task identifier
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   OsTaskTcb taskTcb;                                            ///<Task control block
+   OsStackType taskStack[HTTP_SERVER_STACK_SIZE];                ///<Task stack
+#endif
    Socket *socket;                                               ///<Listening socket
    HttpConnection *connections;                                  ///<Client connections
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
@@ -605,9 +609,13 @@ struct _HttpConnection
 {
    HttpServerSettings *settings;                       ///<Reference to the HTTP server settings
    HttpServerContext *serverContext;                   ///<Reference to the HTTP server context
-   OsTask *taskHandle;                                 ///<Client task handle
    OsEvent startEvent;
    bool_t running;
+   OsTaskId taskId;                                    ///<Task identifier
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   OsTaskTcb taskTcb;                                  ///<Task control block
+   OsStackType taskStack[HTTP_SERVER_STACK_SIZE];      ///<Task stack
+#endif
    Socket *socket;                                     ///<Socket
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
    TlsContext *tlsContext;                             ///<TLS context

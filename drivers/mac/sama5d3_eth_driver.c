@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -335,7 +335,6 @@ void sama5d3EthEnableIrq(NetInterface *interface)
    AIC->AIC_SSR = ID_EMAC;
    AIC->AIC_IECR = AIC_IECR_INTEN;
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -364,7 +363,6 @@ void sama5d3EthDisableIrq(NetInterface *interface)
    //Disable Ethernet MAC interrupts
    AIC->AIC_SSR = ID_EMAC;
    AIC->AIC_IDCR = AIC_IDCR_INTD;
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

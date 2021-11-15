@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _KSZ8463_DRIVER_H
@@ -1417,12 +1417,12 @@
 //PTP Message Configuration 2 register
 #define KSZ8463_PTP_MSG_CFG_2_UNICAST_PTP_EN                0x1000
 #define KSZ8463_PTP_MSG_CFG_2_ALT_MASTER_EN                 0x0800
-#define KSZ8463_PTP_MSG_CFG_2_PTP_PRIO_TX_QUEUE             0x0400
-#define KSZ8463_PTP_MSG_CFG_2_SYNC_FOLLOW_UP_EN             0x0200
-#define KSZ8463_PTP_MSG_CFG_2_DELAY_REQ_RESP_EN             0x0100
-#define KSZ8463_PTP_MSG_CFG_2_PDELAY_REQ_RESP_EN            0x0080
-#define KSZ8463_PTP_MSG_CFG_2_DOMAIN_EN                     0x0010
-#define KSZ8463_PTP_MSG_CFG_2_EG_CHECKSUM_EN                0x0004
+#define KSZ8463_PTP_MSG_CFG_2_PTP_MSG_PRIO_TX_QUEUE         0x0400
+#define KSZ8463_PTP_MSG_CFG_2_CHECK_SYNC_FOLLOW_UP          0x0200
+#define KSZ8463_PTP_MSG_CFG_2_CHECK_DELAY_REQ_RESP          0x0100
+#define KSZ8463_PTP_MSG_CFG_2_CHECK_PDELAY_REQ_RESP         0x0080
+#define KSZ8463_PTP_MSG_CFG_2_CHECK_DOMAIN                  0x0010
+#define KSZ8463_PTP_MSG_CFG_2_IPV4_UDP_CHECKSUM_EN          0x0004
 #define KSZ8463_PTP_MSG_CFG_2_ANNOUNCE_PORT1                0x0002
 #define KSZ8463_PTP_MSG_CFG_2_ANNOUNCE_PORT2                0x0001
 

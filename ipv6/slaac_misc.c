@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -265,9 +265,13 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
       //The length of time in seconds that the prefix is valid for the
       //purpose of on-link determination
       if(validLifetime < (MAX_DELAY / 1000))
+      {
          validLifetime *= 1000;
+      }
       else
+      {
          validLifetime = MAX_DELAY;
+      }
    }
    else
    {
@@ -284,9 +288,13 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
       //The length of time in seconds that addresses generated from the
       //prefix via stateless address autoconfiguration remain preferred
       if(preferredLifetime < (MAX_DELAY / 1000))
+      {
          preferredLifetime *= 1000;
+      }
       else
+      {
          preferredLifetime = MAX_DELAY;
+      }
    }
    else
    {

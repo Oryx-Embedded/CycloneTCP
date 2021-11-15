@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -46,6 +46,13 @@
 #define MDIO_INPUT_CLK 75000000
 //MDIO output clock frequency
 #define MDIO_OUTPUT_CLK 1000000
+
+//Byte-swapped read/write accesses to CPPI memory?
+#if(TMS570_ETH_CPPI_SWAP_SUPPORT == ENABLED)
+   #define CPPI_SWAP(x) swapInt32((uint32_t) (x))
+#else
+   #define CPPI_SWAP(x) ((uint32_t) (x))
+#endif
 
 //Underlying network interface
 static NetInterface *nicDriverInterface;
@@ -353,13 +360,13 @@ void tms570EthInitBufferDesc(NetInterface *interface)
       prevIndex = (i + TMS570_ETH_TX_BUFFER_COUNT - 1) % TMS570_ETH_TX_BUFFER_COUNT;
 
       //Next descriptor pointer
-      txBufferDesc[i].word0 = HTOLE32((uint32_t) NULL);
+      txBufferDesc[i].word0 = CPPI_SWAP(NULL);
       //Buffer pointer
-      txBufferDesc[i].word1 = htole32((uint32_t) txBuffer[i]);
+      txBufferDesc[i].word1 = CPPI_SWAP(txBuffer[i]);
       //Buffer offset and buffer length
-      txBufferDesc[i].word2 = HTOLE32(0);
+      txBufferDesc[i].word2 = CPPI_SWAP(0);
       //Status flags and packet length
-      txBufferDesc[i].word3 = HTOLE32(0);
+      txBufferDesc[i].word3 = CPPI_SWAP(0);
 
       //Form a doubly linked list
       txBufferDesc[i].next = &txBufferDesc[nextIndex];
@@ -370,7 +377,7 @@ void tms570EthInitBufferDesc(NetInterface *interface)
    txCurBufferDesc = &txBufferDesc[0];
 
    //Mark the end of the queue
-   txCurBufferDesc->prev->word3 = HTOLE32(EMAC_TX_WORD3_SOP |
+   txCurBufferDesc->prev->word3 = CPPI_SWAP(EMAC_TX_WORD3_SOP |
       EMAC_TX_WORD3_EOP | EMAC_TX_WORD3_EOQ);
 
    //Initialize RX buffer descriptor list
@@ -382,13 +389,13 @@ void tms570EthInitBufferDesc(NetInterface *interface)
       prevIndex = (i + TMS570_ETH_RX_BUFFER_COUNT - 1) % TMS570_ETH_RX_BUFFER_COUNT;
 
       //Next descriptor pointer
-      rxBufferDesc[i].word0 = htole32((uint32_t) &rxBufferDesc[nextIndex]);
+      rxBufferDesc[i].word0 = CPPI_SWAP(&rxBufferDesc[nextIndex]);
       //Buffer pointer
-      rxBufferDesc[i].word1 = htole32((uint32_t) rxBuffer[i]);
+      rxBufferDesc[i].word1 = CPPI_SWAP(rxBuffer[i]);
       //Buffer offset and buffer length
-      rxBufferDesc[i].word2 = HTOLE32(TMS570_ETH_RX_BUFFER_SIZE);
+      rxBufferDesc[i].word2 = CPPI_SWAP(TMS570_ETH_RX_BUFFER_SIZE);
       //Status flags and packet length
-      rxBufferDesc[i].word3 = HTOLE32(EMAC_RX_WORD3_OWNER);
+      rxBufferDesc[i].word3 = CPPI_SWAP(EMAC_RX_WORD3_OWNER);
 
       //Form a doubly linked list
       rxBufferDesc[i].next = &rxBufferDesc[nextIndex];
@@ -399,7 +406,7 @@ void tms570EthInitBufferDesc(NetInterface *interface)
    rxCurBufferDesc = &rxBufferDesc[0];
 
    //Mark the end of the queue
-   rxCurBufferDesc->prev->word0 = HTOLE32((uint32_t) NULL);
+   rxCurBufferDesc->prev->word0 = CPPI_SWAP(NULL);
 }
 
 
@@ -431,7 +438,7 @@ void tms570EthTick(NetInterface *interface)
    }
 
    //Misqueued buffer condition?
-   if(letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_OWNER)
+   if(CPPI_SWAP(rxCurBufferDesc->word3) & EMAC_RX_WORD3_OWNER)
    {
       if(EMAC_RXHDP_R(EMAC_CH0) == 0)
       {
@@ -454,7 +461,6 @@ void tms570EthEnableIrq(NetInterface *interface)
    //Enable Ethernet MAC interrupts
    vimEnableInterrupt(TMS570_ETH_TX_IRQ_CHANNEL, SYS_IRQ);
    vimEnableInterrupt(TMS570_ETH_RX_IRQ_CHANNEL, SYS_IRQ);
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -484,7 +490,6 @@ void tms570EthDisableIrq(NetInterface *interface)
    //Disable Ethernet MAC interrupts
    vimDisableInterrupt(TMS570_ETH_TX_IRQ_CHANNEL);
    vimDisableInterrupt(TMS570_ETH_RX_IRQ_CHANNEL);
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -531,19 +536,19 @@ __irq __arm void tms570EthTxIrqHandler(void)
       p = (Tms570TxBufferDesc *) EMAC_TXCP_R(EMAC_CH0);
 
       //Read the status flags
-      temp = letoh32(p->word3) & (EMAC_TX_WORD3_SOP | EMAC_TX_WORD3_EOP |
+      temp = CPPI_SWAP(p->word3) & (EMAC_TX_WORD3_SOP | EMAC_TX_WORD3_EOP |
          EMAC_TX_WORD3_OWNER | EMAC_TX_WORD3_EOQ);
 
       //Misqueued buffer condition?
       if(temp == (EMAC_TX_WORD3_SOP | EMAC_TX_WORD3_EOP | EMAC_TX_WORD3_EOQ))
       {
          //Check whether the next descriptor pointer is non-zero
-         if(letoh32(p->word0) != 0)
+         if(CPPI_SWAP(p->word0) != 0)
          {
             //The host corrects the misqueued buffer condition by writing the
             //misqueued packet’s buffer descriptor address to the appropriate
             //TX DMA head descriptor pointer
-            EMAC_TXHDP_R(EMAC_CH0) = letoh32((uint32_t) p->word0);
+            EMAC_TXHDP_R(EMAC_CH0) = CPPI_SWAP(p->word0);
          }
       }
 
@@ -551,7 +556,7 @@ __irq __arm void tms570EthTxIrqHandler(void)
       EMAC_TXCP_R(EMAC_CH0) = (uint32_t) p;
 
       //Check whether the TX buffer is available for writing
-      if((letoh32(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER) == 0)
+      if((CPPI_SWAP(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER) == 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -656,36 +661,37 @@ error_t tms570EthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if(letoh32(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER)
+   if(CPPI_SWAP(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER)
    {
       return ERROR_FAILURE;
    }
 
    //Mark the end of the queue with a NULL pointer
-   txCurBufferDesc->word0 = HTOLE32((uint32_t) NULL);
+   txCurBufferDesc->word0 = CPPI_SWAP(NULL);
 
    //Copy user data to the transmit buffer
-   netBufferRead((uint8_t *) letoh32(txCurBufferDesc->word1), buffer, offset, length);
+   netBufferRead((uint8_t *) CPPI_SWAP(txCurBufferDesc->word1), buffer,
+      offset, length);
 
    //Set the length of the buffer
-   txCurBufferDesc->word2 = htole32(length & EMAC_TX_WORD2_BUFFER_LENGTH);
+   txCurBufferDesc->word2 = CPPI_SWAP(length & EMAC_TX_WORD2_BUFFER_LENGTH);
 
    //Give the ownership of the descriptor to the DMA
-   txCurBufferDesc->word3 = htole32(EMAC_TX_WORD3_SOP | EMAC_TX_WORD3_EOP |
+   txCurBufferDesc->word3 = CPPI_SWAP(EMAC_TX_WORD3_SOP | EMAC_TX_WORD3_EOP |
       EMAC_TX_WORD3_OWNER | (length & EMAC_TX_WORD3_PACKET_LENGTH));
 
    //Link the current descriptor to the previous descriptor
-   txCurBufferDesc->prev->word0 = htole32((uint32_t) txCurBufferDesc);
+   txCurBufferDesc->prev->word0 = CPPI_SWAP((uint32_t) txCurBufferDesc);
 
    //Read the status flags of the previous descriptor
-   temp = letoh32(txCurBufferDesc->prev->word3) & (EMAC_TX_WORD3_SOP |
+   temp = CPPI_SWAP(txCurBufferDesc->prev->word3) & (EMAC_TX_WORD3_SOP |
       EMAC_TX_WORD3_EOP | EMAC_TX_WORD3_OWNER | EMAC_TX_WORD3_EOQ);
 
    //Misqueued buffer condition?
    if(temp == (EMAC_TX_WORD3_SOP | EMAC_TX_WORD3_EOP | EMAC_TX_WORD3_EOQ))
    {
       //Clear the misqueued buffer condition
-      txCurBufferDesc->prev->word3 = HTOLE32(0);
+      txCurBufferDesc->prev->word3 = CPPI_SWAP(0);
 
       //The host corrects the misqueued buffer condition by writing the
       //misqueued packet’s buffer descriptor address to the appropriate
@@ -697,7 +703,7 @@ error_t tms570EthSendPacket(NetInterface *interface,
    txCurBufferDesc = txCurBufferDesc->next;
 
    //Check whether the next buffer is available for writing
-   if((letoh32(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER) == 0)
+   if((CPPI_SWAP(txCurBufferDesc->word3) & EMAC_TX_WORD3_OWNER) == 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -722,22 +728,22 @@ error_t tms570EthReceivePacket(NetInterface *interface)
    uint32_t temp;
 
    //Current buffer available for reading?
-   if((letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_OWNER) == 0)
+   if((CPPI_SWAP(rxCurBufferDesc->word3) & EMAC_RX_WORD3_OWNER) == 0)
    {
       //SOP and EOP flags should be set
-      if((letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_SOP) != 0 &&
-         (letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_EOP) != 0)
+      if((CPPI_SWAP(rxCurBufferDesc->word3) & EMAC_RX_WORD3_SOP) != 0 &&
+         (CPPI_SWAP(rxCurBufferDesc->word3) & EMAC_RX_WORD3_EOP) != 0)
       {
          //Make sure no error occurred
-         if((letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_ERROR_MASK) == 0)
+         if((CPPI_SWAP(rxCurBufferDesc->word3) & EMAC_RX_WORD3_ERROR_MASK) == 0)
          {
             //Retrieve the length of the frame
-            n = letoh32(rxCurBufferDesc->word3) & EMAC_RX_WORD3_PACKET_LENGTH;
+            n = CPPI_SWAP(rxCurBufferDesc->word3) & EMAC_RX_WORD3_PACKET_LENGTH;
             //Limit the number of data to read
             n = MIN(n, TMS570_ETH_RX_BUFFER_SIZE);
 
             //Copy data from the receive buffer
-            osMemcpy(buffer, (uint8_t *) letoh32(rxCurBufferDesc->word1), n);
+            osMemcpy(buffer, (uint8_t *) CPPI_SWAP(rxCurBufferDesc->word1), n);
 
             //Valid packet received
             error = NO_ERROR;
@@ -755,17 +761,17 @@ error_t tms570EthReceivePacket(NetInterface *interface)
       }
 
       //Mark the end of the queue with a NULL pointer
-      rxCurBufferDesc->word0 = HTOLE32((uint32_t) NULL);
+      rxCurBufferDesc->word0 = CPPI_SWAP((uint32_t) NULL);
       //Restore the length of the buffer
-      rxCurBufferDesc->word2 = HTOLE32(TMS570_ETH_RX_BUFFER_SIZE);
+      rxCurBufferDesc->word2 = CPPI_SWAP(TMS570_ETH_RX_BUFFER_SIZE);
       //Give the ownership of the descriptor back to the DMA
-      rxCurBufferDesc->word3 = HTOLE32(EMAC_RX_WORD3_OWNER);
+      rxCurBufferDesc->word3 = CPPI_SWAP(EMAC_RX_WORD3_OWNER);
 
       //Link the current descriptor to the previous descriptor
-      rxCurBufferDesc->prev->word0 = htole32((uint32_t) rxCurBufferDesc);
+      rxCurBufferDesc->prev->word0 = CPPI_SWAP(rxCurBufferDesc);
 
       //Read the status flags of the previous descriptor
-      temp = letoh32(rxCurBufferDesc->prev->word3) & (EMAC_RX_WORD3_SOP |
+      temp = CPPI_SWAP(rxCurBufferDesc->prev->word3) & (EMAC_RX_WORD3_SOP |
          EMAC_RX_WORD3_EOP | EMAC_RX_WORD3_OWNER | EMAC_RX_WORD3_EOQ);
 
       //Misqueued buffer condition?

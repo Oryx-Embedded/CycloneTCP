@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -118,14 +118,14 @@ error_t pcapDriverInit(NetInterface *interface)
    char_t errorBuffer[PCAP_ERRBUF_SIZE];
    PcapDriverContext *context;
 #if (NET_RTOS_SUPPORT == ENABLED)
-   OsTask *task;
+   OsTaskId taskId;
 #endif
 
    //Debug message
    TRACE_INFO("Initializing PCAP driver...\r\n");
 
    //Allocate PCAP driver context
-   context = (PcapDriverContext *) malloc(sizeof(PcapDriverContext));
+   context = (PcapDriverContext *) osAllocMem(sizeof(PcapDriverContext));
 
    //Failed to allocate memory?
    if(context == NULL)
@@ -295,10 +295,10 @@ error_t pcapDriverInit(NetInterface *interface)
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Create the receive task
-   task = osCreateTask("PCAP", (OsTaskCode) pcapDriverTask, interface, 0, 0);
+   taskId = osCreateTask("PCAP", (OsTaskCode) pcapDriverTask, interface, 0, 0);
 
    //Failed to create the task?
-   if(task == OS_INVALID_HANDLE)
+   if(taskId == OS_INVALID_TASK_ID)
    {
       //Debug message
       printf("Failed to create task!\r\n");

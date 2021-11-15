@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -75,6 +75,13 @@ void modbusServerTick(ModbusServerContext *context)
             modbusServerCloseConnection(connection);
          }
       }
+   }
+
+   //Any registered callback?
+   if(context->settings.tickCallback != NULL)
+   {
+      //Invoke user callback function
+      context->settings.tickCallback(context);
    }
 }
 
@@ -496,7 +503,7 @@ void modbusServerUnlock(ModbusClientConnection *connection)
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.lockCallback != NULL)
+   if(context->settings.unlockCallback != NULL)
    {
       //Invoke user callback function
       context->settings.unlockCallback();
@@ -505,10 +512,10 @@ void modbusServerUnlock(ModbusClientConnection *connection)
 
 
 /**
- * @brief Get coil state
+ * @brief Read a single coil
  * @param[in] connection Pointer to the client connection
- * @param[in] address Coil address
- * @param[out] state Current coil state
+ * @param[in] address Address of the coil
+ * @param[out] state Current state of the coil
  * @return Error code
  **/
 
@@ -540,10 +547,10 @@ error_t modbusServerReadCoil(ModbusClientConnection *connection,
 
 
 /**
- * @brief Get discrete input state
+ * @brief Read a single discrete input
  * @param[in] connection Pointer to the client connection
- * @param[in] address Coil address
- * @param[out] state Current coil state
+ * @param[in] address Address of the discrete input
+ * @param[out] state Current state of the discrete input
  * @return Error code
  **/
 
@@ -581,10 +588,10 @@ error_t modbusServerReadDiscreteInput(ModbusClientConnection *connection,
 
 
 /**
- * @brief Set coil state
+ * @brief Write a single coil
  * @param[in] connection Pointer to the client connection
  * @param[in] address Address of the coil
- * @param[in] state Desired coil state
+ * @param[in] state Desired state of the coil
  * @param[in] commit This flag indicates the current phase (validation phase
  *   or write phase if the validation was successful)
  * @return Error code
@@ -618,10 +625,10 @@ error_t modbusServerWriteCoil(ModbusClientConnection *connection,
 
 
 /**
- * @brief Get holding register value
+ * @brief Read a single holding register
  * @param[in] connection Pointer to the client connection
- * @param[in] address Register address
- * @param[out] value Current register value
+ * @param[in] address Address of the holding register
+ * @param[out] value Current value of the holding register
  * @return Error code
  **/
 
@@ -659,10 +666,10 @@ error_t modbusServerReadHoldingReg(ModbusClientConnection *connection,
 
 
 /**
- * @brief Get input register value
+ * @brief Read a single input register
  * @param[in] connection Pointer to the client connection
- * @param[in] address Register address
- * @param[out] value Current register value
+ * @param[in] address Address of the input register
+ * @param[out] value Current value of the input register
  * @return Error code
  **/
 
@@ -700,10 +707,10 @@ error_t modbusServerReadInputReg(ModbusClientConnection *connection,
 
 
 /**
- * @brief Set register value
+ * @brief Write a single register
  * @param[in] connection Pointer to the client connection
- * @param[in] address Register address
- * @param[in] value Desired register value
+ * @param[in] address Address of the register
+ * @param[in] value Desired value of the register
  * @param[in] commit This flag indicates the current phase (validation phase
  *   or write phase if the validation was successful)
  * @return Error code
@@ -754,20 +761,24 @@ ModbusExceptionCode modbusServerTranslateExceptionCode(error_t status)
       //for the server
       exceptionCode = MODBUS_EXCEPTION_ILLEGAL_FUNCTION;
       break;
+
    case ERROR_INVALID_ADDRESS:
       //The data address received in the query is not an allowable address
       //for the server
       exceptionCode = MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
       break;
+
    case ERROR_INVALID_VALUE:
       //A value contained in the query data field is not an allowable value
       //for the server
       exceptionCode = MODBUS_EXCEPTION_ILLEGAL_DATA_VALUE;
       break;
+
    case ERROR_DEVICE_BUSY:
       //The client should retransmit the message later when the server is free
       exceptionCode = MODBUS_EXCEPTION_SLAVE_DEVICE_BUSY;
       break;
+
    default:
       //An unrecoverable error occurred while the server was attempting to
       //perform the requested action

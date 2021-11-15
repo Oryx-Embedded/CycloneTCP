@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -849,7 +849,7 @@ uint32_t rx62nEthReadSmi(uint_t length)
       usleep(1);
 
       //Check MDIO state
-      if(ETHERC.PIR.BIT.MDI)
+      if(ETHERC.PIR.BIT.MDI != 0)
       {
          data |= 0x01;
       }

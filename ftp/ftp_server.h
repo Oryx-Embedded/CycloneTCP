@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _FTP_SERVER_H
@@ -422,6 +422,11 @@ struct _FtpServerContext
    bool_t running;                                                ///<Operational state of the FTP server
    bool_t stop;                                                   ///<Stop request
    OsEvent event;                                                 ///<Event object used to poll the sockets
+   OsTaskId taskId;                                               ///<Task identifier
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   OsTaskTcb taskTcb;                                             ///<Task control block
+   OsStackType taskStack[FTP_SERVER_STACK_SIZE];                  ///<Task stack
+#endif
    Socket *socket;                                                ///<Listening socket
    uint16_t passivePort;                                          ///<Current passive port number
    FtpClientConnection *connections;                              ///<Client connections

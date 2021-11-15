@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -81,6 +81,8 @@ void modbusServerGetDefaultSettings(ModbusServerSettings *settings)
    settings->writeRegCallback = NULL;
    //PDU processing callback
    settings->processPduCallback = NULL;
+   //Tick callback function
+   settings->tickCallback = NULL;
 }
 
 
@@ -149,7 +151,6 @@ error_t modbusServerInit(ModbusServerContext *context,
 error_t modbusServerStart(ModbusServerContext *context)
 {
    error_t error;
-   OsTask *task;
 
    //Make sure the Modbus/TCP server context is valid
    if(context == NULL)
@@ -204,11 +205,20 @@ error_t modbusServerStart(ModbusServerContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-      //Create the Modbus/TCP server task
-      task = osCreateTask("Modbus/TCP Server", (OsTaskCode) modbusServerTask,
-         context, MODBUS_SERVER_STACK_SIZE, MODBUS_SERVER_PRIORITY);
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+      //Create a task using statically allocated memory
+      context->taskId = osCreateStaticTask("Modbus/TCP Server",
+         (OsTaskCode) modbusServerTask, context, &context->taskTcb,
+         context->taskStack, MODBUS_SERVER_STACK_SIZE, MODBUS_SERVER_PRIORITY);
+#else
+      //Create a task
+      context->taskId = osCreateTask("Modbus/TCP Server",
+         (OsTaskCode) modbusServerTask, context, MODBUS_SERVER_STACK_SIZE,
+         MODBUS_SERVER_PRIORITY);
+#endif
+
       //Failed to create task?
-      if(task == OS_INVALID_HANDLE)
+      if(context->taskId == OS_INVALID_TASK_ID)
       {
          //Report an error
          error = ERROR_OUT_OF_RESOURCES;
@@ -346,8 +356,10 @@ void modbusServerTask(ModbusServerContext *context)
          {
             //Stop Modbus/TCP server operation
             context->running = FALSE;
+            //Task epilogue
+            osExitTask();
             //Kill ourselves
-            osDeleteTask(NULL);
+            osDeleteTask(OS_SELF_TASK_ID);
          }
 
          //Event-driven processing

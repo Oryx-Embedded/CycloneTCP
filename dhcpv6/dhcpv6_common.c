@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -76,7 +76,7 @@ Dhcpv6StatusCode dhcpv6GetStatusCode(const uint8_t *options, size_t length)
    //Search for the Status Code option
    option = dhcpv6GetOption(options, length, DHCPV6_OPT_STATUS_CODE);
 
-   //Check whether the option has been found
+   //Option found?
    if(option != NULL && ntohs(option->length) >= sizeof(Dhcpv6StatusCodeOption))
    {
       //The option contains a status code and a status message

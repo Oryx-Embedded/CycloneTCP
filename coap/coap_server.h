@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _COAP_SERVER_H
@@ -188,6 +188,11 @@ struct _CoapServerContext
    bool_t running;                                           ///<Operational state of the CoAP server
    bool_t stop;                                              ///<Stop request
    OsEvent event;                                            ///<Event object used to poll the underlying socket
+   OsTaskId taskId;                                          ///<Task identifier
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   OsTaskTcb taskTcb;                                        ///<Task control block
+   OsStackType taskStack[COAP_SERVER_STACK_SIZE];            ///<Task stack
+#endif
    Socket *socket;                                           ///<Underlying socket
    IpAddr serverIpAddr;                                      ///<Server's IP address
    IpAddr clientIpAddr;                                      ///<Client's IP address

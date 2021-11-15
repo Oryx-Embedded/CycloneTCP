@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -67,7 +67,7 @@
 #include "str.h"
 #include "debug.h"
 
-#if (WEB_SOCKET_SUPPORT == ENABLED)
+#if (defined(WEB_SOCKET_SUPPORT) && WEB_SOCKET_SUPPORT == ENABLED)
    #include "web_socket/web_socket.h"
 #endif
 
@@ -143,7 +143,7 @@ error_t netInit(void)
    if(error)
       return error;
 
-#if (WEB_SOCKET_SUPPORT == ENABLED)
+#if (defined(WEB_SOCKET_SUPPORT) && WEB_SOCKET_SUPPORT == ENABLED)
    //WebSocket related initialization
    webSocketInit();
 #endif
@@ -243,19 +243,20 @@ error_t netInit(void)
    dnsSdTickCounter = 0;
 #endif
 
-#if (NET_STATIC_OS_RESOURCES == ENABLED)
-   //Create a task to handle TCP/IP events
-   osCreateStaticTask(&netTaskInstance, "TCP/IP Stack", (OsTaskCode) netTask,
-      NULL, netTaskStack, NET_TASK_STACK_SIZE, NET_TASK_PRIORITY);
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   //Create a task using statically allocated memory
+   netContext.taskId = osCreateStaticTask("TCP/IP Stack",
+      (OsTaskCode) netTask, NULL, &netContext.taskTcb, netContext.taskStack,
+      NET_TASK_STACK_SIZE, NET_TASK_PRIORITY);
 #else
-   //Create a task to handle TCP/IP events
-   netTaskHandle = osCreateTask("TCP/IP Stack", (OsTaskCode) netTask,
+   //Create a task
+   netContext.taskId = osCreateTask("TCP/IP Stack", (OsTaskCode) netTask,
       NULL, NET_TASK_STACK_SIZE, NET_TASK_PRIORITY);
+#endif
 
    //Unable to create the task?
-   if(netTaskHandle == OS_INVALID_HANDLE)
+   if(netContext.taskId == OS_INVALID_TASK_ID)
       return ERROR_OUT_OF_RESOURCES;
-#endif
 
 #if (NET_RTOS_SUPPORT == DISABLED)
    //The TCP/IP process is now running

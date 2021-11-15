@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -33,8 +33,8 @@
 
 //Dependencies
 #include "a2fxxxm3.h"
-#include "drivers/mss_ethernet_mac/mss_ethernet_mac_regs_driver.h"
-#include "drivers/mss_ethernet_mac/mss_ethernet_mac_desc_driver.h"
+#include "drivers/mss_ethernet_mac/mss_ethernet_mac_regs.h"
+#include "drivers/mss_ethernet_mac/mss_ethernet_mac_desc.h"
 #include "core/net.h"
 #include "drivers/mac/a2fxxxm3_eth_driver.h"
 #include "debug.h"
@@ -360,8 +360,8 @@ void EthernetMAC_IRQHandler(void)
    //Packet received?
    if((status & CSR5_RI_MASK) != 0)
    {
-      //Disable RIE interrupt
-      MAC->CSR7 &= ~CSR7_RIE_MASK;
+      //Clear RI interrupt flag
+      MAC->CSR5 = CSR5_RI_MASK;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -386,24 +386,14 @@ void a2fxxxm3EthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if((MAC->CSR5 & CSR5_RI_MASK) != 0)
+   //Process all pending packets
+   do
    {
-      //Clear interrupt flag
-      MAC->CSR5 = CSR5_RI_MASK;
+      //Read incoming packet
+      error = a2fxxxm3EthReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = a2fxxxm3EthReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable Ethernet interrupts
-   MAC->CSR7 |= CSR7_NIE_MASK | CSR7_RIE_MASK | CSR7_TIE_MASK;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 

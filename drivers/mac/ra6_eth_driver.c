@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -51,10 +51,10 @@ static uint8_t txBuffer[RA6_ETH_TX_BUFFER_COUNT][RA6_ETH_TX_BUFFER_SIZE];
 static uint8_t rxBuffer[RA6_ETH_RX_BUFFER_COUNT][RA6_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 32
-static Ra6TxDmaDesc txDmaDesc[RA6_ETH_TX_BUFFER_COUNT];
+static Ra6EthTxDmaDesc txDmaDesc[RA6_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 32
-static Ra6RxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT];
+static Ra6EthRxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT];
 
 //ARM or GCC compiler?
 #else
@@ -66,10 +66,10 @@ static uint8_t txBuffer[RA6_ETH_TX_BUFFER_COUNT][RA6_ETH_TX_BUFFER_SIZE]
 static uint8_t rxBuffer[RA6_ETH_RX_BUFFER_COUNT][RA6_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(32)));
 //Transmit DMA descriptors
-static Ra6TxDmaDesc txDmaDesc[RA6_ETH_TX_BUFFER_COUNT]
+static Ra6EthTxDmaDesc txDmaDesc[RA6_ETH_TX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 //Receive DMA descriptors
-static Ra6RxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT]
+static Ra6EthRxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 
 #endif
@@ -180,17 +180,19 @@ error_t ra6EthInit(NetInterface *interface)
    //Use store and forward mode
    R_ETHERC_EDMAC->TFTR = 0;
 
-   //Set transmit and receive FIFO size (2048 bytes)
+   //Set transmit FIFO size (2048 bytes) and receive FIFO size (4096 bytes)
    R_ETHERC_EDMAC->FDR = (7 << R_ETHERC_EDMAC_FDR_TFD_Pos) |
-      (7 << R_ETHERC_EDMAC_FDR_RFD_Pos);
+      (15 << R_ETHERC_EDMAC_FDR_RFD_Pos);
 
    //Enable continuous reception of multiple frames
-   R_ETHERC_EDMAC->RMCR |= R_ETHERC_EDMAC_RMCR_RNR_Msk;
+   R_ETHERC_EDMAC->RMCR = R_ETHERC_EDMAC_RMCR_RNR_Msk;
 
-   //Select write-back complete interrupt mode
-   R_ETHERC_EDMAC->TRIMD &= ~R_ETHERC_EDMAC_TRIMD_TIM_Msk;
-   //Enable transmit Interrupts
-   R_ETHERC_EDMAC->TRIMD |= R_ETHERC_EDMAC_TRIMD_TIS_Msk;
+   //Select write-back complete interrupt mode and enable transmit interrupts
+   R_ETHERC_EDMAC->TRIMD = R_ETHERC_EDMAC_TRIMD_TIM_Msk |
+      R_ETHERC_EDMAC_TRIMD_TIS_Msk;
+
+   //Disable all ETHERC interrupts
+   R_ETHERC0->ECSIPR = 0;
 
    //Enable the desired EDMAC interrupts
    R_ETHERC_EDMAC->EESIPR = R_ETHERC_EDMAC_EESIPR_TWBIP_Msk |
@@ -521,8 +523,8 @@ void EDMAC0_EINT_IRQHandler(void)
    //Packet received?
    if((status & R_ETHERC_EDMAC_EESR_FR_Msk) != 0)
    {
-      //Disable FR interrupts
-      R_ETHERC_EDMAC->EESIPR &= ~R_ETHERC_EDMAC_EESIPR_FRIP_Msk;
+      //Clear FR interrupt flag
+      R_ETHERC_EDMAC->EESR = R_ETHERC_EDMAC_EESR_FR_Msk;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -547,25 +549,14 @@ void ra6EthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if((R_ETHERC_EDMAC->EESR & R_ETHERC_EDMAC_EESR_FR_Msk) != 0)
+   //Process all pending packets
+   do
    {
-      //Clear FR interrupt flag
-      R_ETHERC_EDMAC->EESR = R_ETHERC_EDMAC_EESR_FR_Msk;
+      //Read incoming packet
+      error = ra6EthReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = ra6EthReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable EDMAC interrupts
-   R_ETHERC_EDMAC->EESIPR = R_ETHERC_EDMAC_EESIPR_TWBIP_Msk |
-      R_ETHERC_EDMAC_EESIPR_FRIP_Msk;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 

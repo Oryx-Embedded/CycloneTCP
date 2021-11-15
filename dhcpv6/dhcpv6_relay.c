@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,6 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings 
 {
    error_t error;
    uint_t i;
-   OsTask *task;
 
    //Debug message
    TRACE_INFO("Starting DHCPv6 relay agent...\r\n");
@@ -203,12 +202,20 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings 
       //The DHCPv6 relay agent is now running
       context->running = TRUE;
 
-      //Start the DHCPv6 relay agent service
-      task = osCreateTask("DHCPv6 Relay", dhcpv6RelayTask,
-         context, DHCPV6_RELAY_STACK_SIZE, DHCPV6_RELAY_PRIORITY);
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+      //Create a task using statically allocated memory
+      context->taskId = osCreateStaticTask("DHCPv6 Relay",
+         (OsTaskCode) dhcpv6RelayTask, context, &context->taskTcb,
+         context->taskStack, DHCPV6_RELAY_STACK_SIZE, DHCPV6_RELAY_PRIORITY);
+#else
+      //Create a task
+      context->taskId = osCreateTask("DHCPv6 Relay",
+         (OsTaskCode) dhcpv6RelayTask, context, DHCPV6_RELAY_STACK_SIZE,
+         DHCPV6_RELAY_PRIORITY);
+#endif
 
-      //Unable to create the task?
-      if(task == OS_INVALID_HANDLE)
+      //Failed to create task?
+      if(context->taskId == OS_INVALID_TASK_ID)
          error = ERROR_OUT_OF_RESOURCES;
 
       //End of exception handling block
@@ -222,7 +229,9 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings 
 
       //Close the socket associated with each client-facing interface
       for(i = 0; i < context->clientInterfaceCount; i++)
+      {
          socketClose(context->clientSocket[i]);
+      }
 
       //Leave the All_DHCP_Relay_Agents_and_Servers multicast group
       //for each client-facing interface
@@ -278,7 +287,9 @@ error_t dhcpv6RelayStop(Dhcpv6RelayContext *context)
 
    //Properly dispose the sockets that carry traffic towards the DHCPv6 clients
    for(i = 0; i < context->clientInterfaceCount; i++)
+   {
       socketClose(context->clientSocket[i]);
+   }
 
    //Delete event objects
    osDeleteEvent(&context->event);
@@ -399,8 +410,10 @@ void dhcpv6RelayTask(void *param)
          context->running = FALSE;
          //Acknowledge the reception of the user request
          osSetEvent(&context->ackEvent);
+         //Task epilogue
+         osExitTask();
          //Kill ourselves
-         osDeleteTask(NULL);
+         osDeleteTask(OS_SELF_TASK_ID);
       }
 
       //Verify status code

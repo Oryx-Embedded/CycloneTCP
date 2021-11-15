@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -357,7 +357,6 @@ void mpc57xxEthEnableIrq(NetInterface *interface)
    INTC->PSR[ENET0_GROUP1_IRQn] |= INTC_PSR_PRC_SELN0_MASK;
    INTC->PSR[ENET0_GROUP0_IRQn] |= INTC_PSR_PRC_SELN0_MASK;
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -387,7 +386,6 @@ void mpc57xxEthDisableIrq(NetInterface *interface)
    INTC->PSR[ENET0_GROUP2_IRQn] &= ~INTC_PSR_PRC_SELN0_MASK;
    INTC->PSR[ENET0_GROUP1_IRQn] &= ~INTC_PSR_PRC_SELN0_MASK;
    INTC->PSR[ENET0_GROUP0_IRQn] &= ~INTC_PSR_PRC_SELN0_MASK;
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

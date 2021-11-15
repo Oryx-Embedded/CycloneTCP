@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -130,7 +130,6 @@ error_t tftpServerInit(TftpServerContext *context,
 error_t tftpServerStart(TftpServerContext *context)
 {
    error_t error;
-   OsTask *task;
 
    //Make sure the TFTP server context is valid
    if(context == NULL)
@@ -173,11 +172,19 @@ error_t tftpServerStart(TftpServerContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-      //Create the TFTP server task
-      task = osCreateTask("TFTP Server", (OsTaskCode) tftpServerTask,
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+      //Create a task using statically allocated memory
+      context->taskId = osCreateStaticTask("TFTP Server",
+         (OsTaskCode) tftpServerTask, context, &context->taskTcb,
+         context->taskStack, TFTP_SERVER_STACK_SIZE, TFTP_SERVER_PRIORITY);
+#else
+      //Create a task
+      context->taskId = osCreateTask("TFTP Server", (OsTaskCode) tftpServerTask,
          context, TFTP_SERVER_STACK_SIZE, TFTP_SERVER_PRIORITY);
+#endif
+
       //Failed to create task?
-      if(task == OS_INVALID_HANDLE)
+      if(context->taskId == OS_INVALID_TASK_ID)
       {
          //Report an error
          error = ERROR_OUT_OF_RESOURCES;
@@ -304,8 +311,10 @@ void tftpServerTask(TftpServerContext *context)
          {
             //Stop TFTP server operation
             context->running = FALSE;
+            //Task epilogue
+            osExitTask();
             //Kill ourselves
-            osDeleteTask(NULL);
+            osDeleteTask(OS_SELF_TASK_ID);
          }
 
          //Event-driven processing

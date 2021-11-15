@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -52,10 +52,10 @@ static uint8_t txBuffer[S7G2_ETH2_TX_BUFFER_COUNT][S7G2_ETH2_TX_BUFFER_SIZE];
 static uint8_t rxBuffer[S7G2_ETH2_RX_BUFFER_COUNT][S7G2_ETH2_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 32
-static S7g2TxDmaDesc txDmaDesc[S7G2_ETH2_TX_BUFFER_COUNT];
+static S7g2Eth2TxDmaDesc txDmaDesc[S7G2_ETH2_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 32
-static S7g2RxDmaDesc rxDmaDesc[S7G2_ETH2_RX_BUFFER_COUNT];
+static S7g2Eth2RxDmaDesc rxDmaDesc[S7G2_ETH2_RX_BUFFER_COUNT];
 
 //ARM or GCC compiler?
 #else
@@ -67,10 +67,10 @@ static uint8_t txBuffer[S7G2_ETH2_TX_BUFFER_COUNT][S7G2_ETH2_TX_BUFFER_SIZE]
 static uint8_t rxBuffer[S7G2_ETH2_RX_BUFFER_COUNT][S7G2_ETH2_RX_BUFFER_SIZE]
    __attribute__((aligned(32)));
 //Transmit DMA descriptors
-static S7g2TxDmaDesc txDmaDesc[S7G2_ETH2_TX_BUFFER_COUNT]
+static S7g2Eth2TxDmaDesc txDmaDesc[S7G2_ETH2_TX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 //Receive DMA descriptors
-static S7g2RxDmaDesc rxDmaDesc[S7G2_ETH2_RX_BUFFER_COUNT]
+static S7g2Eth2RxDmaDesc rxDmaDesc[S7G2_ETH2_RX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 
 #endif
@@ -133,7 +133,7 @@ error_t s7g2Eth2Init(NetInterface *interface)
    s7g2Eth2InitGpio(interface);
 
    //Reset EDMAC1 module
-   R_EDMAC1->EDMR_b.SWR = 1;
+   R_EDMAC1->EDMR |= EDMAC_EDMR_SWR;
    sleep(10);
 
    //Valid Ethernet PHY or switch driver?
@@ -172,32 +172,23 @@ error_t s7g2Eth2Init(NetInterface *interface)
       (interface->macAddr.b[2] << 8) | interface->macAddr.b[3];
 
    //Set the lower 16 bits of the MAC address
-   R_ETHERC1->MALR_b.MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
+   R_ETHERC1->MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
 
-   //Set descriptor length (16 bytes)
-   R_EDMAC1->EDMR_b.DL = 0;
-   //Select little endian mode
-   R_EDMAC1->EDMR_b.DE = 1;
+   //Select little endian mode and set descriptor length (16 bytes)
+   R_EDMAC1->EDMR = EDMAC_EDMR_DE | EDMAC_EDMR_DL_16;
    //Use store and forward mode
-   R_EDMAC1->TFTR_b.TFT = 0;
-
-   //Set transmit FIFO size (2048 bytes)
-   R_EDMAC1->FDR_b.TFD = 7;
-   //Set receive FIFO size (2048 bytes)
-   R_EDMAC1->FDR_b.RFD = 7;
-
+   R_EDMAC1->TFTR = 0;
+   //Set transmit FIFO size (2048 bytes) and receive FIFO size (4096 bytes)
+   R_EDMAC1->FDR = EDMAC_FDR_TFD_2048 | EDMAC_FDR_RFD_4096;
    //Enable continuous reception of multiple frames
-   R_EDMAC1->RMCR_b.RNR = 1;
+   R_EDMAC1->RMCR = EDMAC_RMCR_RNR;
+   //Select write-back complete interrupt mode and enable transmit interrupts
+   R_EDMAC1->TRIMD = EDMAC_TRIMD_TIM | EDMAC_TRIMD_TIS;
 
-   //Accept transmit interrupt notifications
-   R_EDMAC1->TRIMD_b.TIM = 0;
-   R_EDMAC1->TRIMD_b.TIS = 1;
-
-   //Disable all EDMAC interrupts
-   R_EDMAC1->EESIPR = 0;
-   //Enable only the desired EDMAC interrupts
-   R_EDMAC1->EESIPR_b.TWBIP = 1;
-   R_EDMAC1->EESIPR_b.FRIP = 1;
+   //Disable all ETHERC interrupts
+   R_ETHERC1->ECSIPR = 0;
+   //Enable the desired EDMAC interrupts
+   R_EDMAC1->EESIPR = EDMAC_EESIPR_TWBIP | EDMAC_EESIPR_FRIP;
 
    //Set priority grouping (4 bits for pre-emption priority, no bits for subpriority)
    NVIC_SetPriorityGrouping(S7G2_ETH2_IRQ_PRIORITY_GROUPING);
@@ -207,11 +198,10 @@ error_t s7g2Eth2Init(NetInterface *interface)
       S7G2_ETH2_IRQ_GROUP_PRIORITY, S7G2_ETH2_IRQ_SUB_PRIORITY));
 
    //Enable transmission and reception
-   R_ETHERC1->ECMR_b.TE = 1;
-   R_ETHERC1->ECMR_b.RE = 1;
+   R_ETHERC1->ECMR |= ETHERC_ECMR_TE | ETHERC_ECMR_RE;
 
    //Instruct the DMA to poll the receive descriptor list
-   R_EDMAC1->EDRRR_b.RR = 1;
+   R_EDMAC1->EDRRR = EDMAC_EDRRR_RR;
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -221,8 +211,8 @@ error_t s7g2Eth2Init(NetInterface *interface)
 }
 
 
-//SK-S7G2 evaluation board?
-#if defined(USE_SK_S7G2)
+//DK-S7G2 or SK-S7G2 evaluation board?
+#if defined(USE_DK_S7G2) || defined(USE_SK_S7G2)
 
 /**
  * @brief GPIO configuration
@@ -479,8 +469,8 @@ void ETHER_EINT1_IRQHandler(void)
    //Packet received?
    if((status & EDMAC_EESR_FR) != 0)
    {
-      //Disable FR interrupts
-      R_EDMAC1->EESIPR_b.FRIP = 0;
+      //Clear FR interrupt flag
+      R_EDMAC1->EESR = EDMAC_EESR_FR;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -505,25 +495,14 @@ void s7g2Eth2EventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if((R_EDMAC1->EESR & EDMAC_EESR_FR) != 0)
+   //Process all pending packets
+   do
    {
-      //Clear FR interrupt flag
-      R_EDMAC1->EESR = EDMAC_EESR_FR;
+      //Read incoming packet
+      error = s7g2Eth2ReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = s7g2Eth2ReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable EDMAC interrupts
-   R_EDMAC1->EESIPR_b.TWBIP = 1;
-   R_EDMAC1->EESIPR_b.FRIP = 1;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 
@@ -585,7 +564,7 @@ error_t s7g2Eth2SendPacket(NetInterface *interface,
    }
 
    //Instruct the DMA to poll the transmit descriptor list
-   R_EDMAC1->EDTRR_b.TR = 1;
+   R_EDMAC1->EDTRR = EDMAC_EDTRR_TR;
 
    //Check whether the next buffer is available for writing
    if((txDmaDesc[txIndex].td0 & EDMAC_TD0_TACT) == 0)
@@ -664,7 +643,7 @@ error_t s7g2Eth2ReceivePacket(NetInterface *interface)
       }
 
       //Instruct the DMA to poll the receive descriptor list
-      R_EDMAC1->EDRRR_b.RR = 1;
+      R_EDMAC1->EDRRR = EDMAC_EDRRR_RR;
    }
    else
    {
@@ -691,38 +670,50 @@ error_t s7g2Eth2UpdateMacAddrFilter(NetInterface *interface)
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Set the upper 32 bits of the MAC address
-   R_ETHERC1->MAHR = (interface->macAddr.b[0] << 24) | (interface->macAddr.b[1] << 16) |
-      (interface->macAddr.b[2] << 8) | interface->macAddr.b[3];
-
-   //Set the lower 16 bits of the MAC address
-   R_ETHERC1->MALR_b.MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
-
-   //This flag will be set if multicast addresses should be accepted
-   acceptMulticast = FALSE;
-
-   //The MAC address filter contains the list of MAC addresses to accept
-   //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   //Promiscuous mode?
+   if(interface->promiscuous)
    {
-      //Valid entry?
-      if(interface->macAddrFilter[i].refCount > 0)
-      {
-         //Accept multicast addresses
-         acceptMulticast = TRUE;
-         //We are done
-         break;
-      }
-   }
-
-   //Enable or disable the reception of multicast frames
-   if(acceptMulticast)
-   {
-      R_EDMAC1->EESR_b.RMAF = 1;
+      //Accept all frames regardless of their destination address
+      R_ETHERC1->ECMR |= ETHERC_ECMR_PRM;
    }
    else
    {
-      R_EDMAC1->EESR_b.RMAF = 0;
+      //Disable promiscuous mode
+      R_ETHERC1->ECMR &= ~ETHERC_ECMR_PRM;
+
+      //Set the upper 32 bits of the MAC address
+      R_ETHERC1->MAHR = (interface->macAddr.b[0] << 24) | (interface->macAddr.b[1] << 16) |
+         (interface->macAddr.b[2] << 8) | interface->macAddr.b[3];
+
+      //Set the lower 16 bits of the MAC address
+      R_ETHERC1->MALR = (interface->macAddr.b[4] << 8) | interface->macAddr.b[5];
+
+      //This flag will be set if multicast addresses should be accepted
+      acceptMulticast = FALSE;
+
+      //The MAC address filter contains the list of MAC addresses to accept
+      //when receiving an Ethernet frame
+      for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+      {
+         //Valid entry?
+         if(interface->macAddrFilter[i].refCount > 0)
+         {
+            //Accept multicast addresses
+            acceptMulticast = TRUE;
+            //We are done
+            break;
+         }
+      }
+
+      //Enable or disable the reception of multicast frames
+      if(acceptMulticast || interface->acceptAllMulticast)
+      {
+         R_EDMAC1->EESR |= EDMAC_EESR_RMAF;
+      }
+      else
+      {
+         R_EDMAC1->EESR &= ~EDMAC_EESR_RMAF;
+      }
    }
 
    //Successful processing
@@ -738,25 +729,33 @@ error_t s7g2Eth2UpdateMacAddrFilter(NetInterface *interface)
 
 error_t s7g2Eth2UpdateMacConfig(NetInterface *interface)
 {
+   uint32_t mode;
+
+   //Read ETHERC mode register
+   mode = R_ETHERC1->ECMR;
+
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
    {
-      R_ETHERC1->ECMR_b.RTM = 1;
+      mode |= ETHERC_ECMR_RTM;
    }
    else
    {
-      R_ETHERC1->ECMR_b.RTM = 0;
+      mode &= ~ETHERC_ECMR_RTM;
    }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
    {
-      R_ETHERC1->ECMR_b.DM = 1;
+      mode |= ETHERC_ECMR_DM;
    }
    else
    {
-      R_ETHERC1->ECMR_b.DM = 0;
+      mode &= ~ETHERC_ECMR_DM;
    }
+
+   //Update ETHERC mode register
+   R_ETHERC1->ECMR = mode;
 
    //Successful processing
    return NO_ERROR;
@@ -840,7 +839,7 @@ void s7g2Eth2WriteSmi(uint32_t data, uint_t length)
    data <<= 32 - length;
 
    //Configure MDIO as an output
-   R_ETHERC1->PIR_b.MMD = 1;
+   R_ETHERC1->PIR |= ETHERC_PIR_MMD;
 
    //Write the specified number of bits
    while(length--)
@@ -848,19 +847,19 @@ void s7g2Eth2WriteSmi(uint32_t data, uint_t length)
       //Write MDIO
       if((data & 0x80000000) != 0)
       {
-         R_ETHERC1->PIR_b.MDO = 1;
+         R_ETHERC1->PIR |= ETHERC_PIR_MDO;
       }
       else
       {
-         R_ETHERC1->PIR_b.MDO = 0;
+         R_ETHERC1->PIR &= ~ETHERC_PIR_MDO;
       }
 
       //Assert MDC
       usleep(1);
-      R_ETHERC1->PIR_b.MDC = 1;
+      R_ETHERC1->PIR |= ETHERC_PIR_MDC;
       //Deassert MDC
       usleep(1);
-      R_ETHERC1->PIR_b.MDC = 0;
+      R_ETHERC1->PIR &= ~ETHERC_PIR_MDC;
 
       //Rotate data
       data <<= 1;
@@ -879,7 +878,7 @@ uint32_t s7g2Eth2ReadSmi(uint_t length)
    uint32_t data = 0;
 
    //Configure MDIO as an input
-   R_ETHERC1->PIR_b.MMD = 0;
+   R_ETHERC1->PIR &= ~ETHERC_PIR_MMD;
 
    //Read the specified number of bits
    while(length--)
@@ -888,14 +887,14 @@ uint32_t s7g2Eth2ReadSmi(uint_t length)
       data <<= 1;
 
       //Assert MDC
-      R_ETHERC1->PIR_b.MDC = 1;
+      R_ETHERC1->PIR |= ETHERC_PIR_MDC;
       usleep(1);
       //Deassert MDC
-      R_ETHERC1->PIR_b.MDC = 0;
+      R_ETHERC1->PIR &= ~ETHERC_PIR_MDC;
       usleep(1);
 
       //Check MDIO state
-      if(R_ETHERC1->PIR_b.MDI)
+      if((R_ETHERC1->PIR & ETHERC_PIR_MDI) != 0)
       {
          data |= 0x01;
       }

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -352,7 +352,6 @@ void m487EthEnableIrq(NetInterface *interface)
    NVIC_EnableIRQ(EMAC_TX_IRQn);
    NVIC_EnableIRQ(EMAC_RX_IRQn);
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -381,7 +380,6 @@ void m487EthDisableIrq(NetInterface *interface)
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(EMAC_TX_IRQn);
    NVIC_DisableIRQ(EMAC_RX_IRQn);
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -451,8 +449,8 @@ void EMAC_RX_IRQHandler(void)
    //Packet received?
    if((EMAC->INTSTS & EMAC_INTSTS_RXGDIF_Msk) != 0)
    {
-      //Disable receive interrupts
-      EMAC->INTEN &= ~EMAC_INTEN_RXIEN_Msk;
+      //Clear RXGDIF interrupt flag
+      EMAC->INTSTS = EMAC_INTSTS_RXGDIF_Msk;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -474,25 +472,14 @@ void m487EthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if((EMAC->INTSTS & EMAC_INTSTS_RXGDIF_Msk) != 0)
+   //Process all pending packets
+   do
    {
-      //Clear interrupt flag
-      EMAC->INTSTS = EMAC_INTSTS_RXGDIF_Msk;
+      //Read incoming packet
+      error = m487EthReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = m487EthReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable DMA interrupts
-   EMAC->INTEN = EMAC_INTEN_TXCPIEN_Msk | EMAC_INTEN_TXIEN_Msk |
-      EMAC_INTEN_RXGDIEN_Msk | EMAC_INTEN_RXIEN_Msk;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 

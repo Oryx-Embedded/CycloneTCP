@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -577,8 +577,8 @@ void ETH_IRQHandler(void)
    //Packet received?
    if((status & ETH_DMASR_RS) != 0)
    {
-      //Disable RIE interrupt
-      ETH->DMAIER &= ~ETH_DMAIER_RIE;
+      //Clear RS interrupt flag
+      ETH->DMASR = ETH_DMASR_RS;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -603,24 +603,14 @@ void stm32f1xxEthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if((ETH->DMASR & ETH_DMASR_RS) != 0)
+   //Process all pending packets
+   do
    {
-      //Clear interrupt flag
-      ETH->DMASR = ETH_DMASR_RS;
+      //Read incoming packet
+      error = stm32f1xxEthReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = stm32f1xxEthReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable DMA interrupts
-   ETH->DMAIER = ETH_DMAIER_NISE | ETH_DMAIER_RIE | ETH_DMAIER_TIE;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 

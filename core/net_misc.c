@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -913,6 +913,34 @@ int32_t netGetRandRange(int32_t min, int32_t max)
 
    //Return the random value
    return value;
+}
+
+
+/**
+ * @brief Get a string of random data
+ * @param[out] data Buffer where to store random data
+ * @param[in] length Number of random bytes to generate
+ **/
+
+void netGetRandData(uint8_t *data, size_t length)
+{
+   size_t i;
+   size_t j;
+
+   //Generate a string of random data
+   for(i = 0; i < length; i++)
+   {
+      //Initialize value
+      data[i] = 0;
+
+      //Generate a random 8-bit value
+      for(j = 0; j < 8; j++)
+      {
+         data[i] |= netGetRandBit(&netContext.randState) << j;
+      }
+
+      data[i] += netContext.entropy;
+   }
 }
 
 

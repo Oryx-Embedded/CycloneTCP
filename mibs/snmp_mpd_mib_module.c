@@ -30,7 +30,7 @@
  * dispatching. Refer to RFC 3412 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level

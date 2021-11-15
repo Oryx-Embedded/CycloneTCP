@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -329,7 +329,6 @@ void mcf5225xEthEnableIrq(NetInterface *interface)
    MCF_INTC0_IMRH &= ~(MCF_INTC_IMRH_INT_MASK33 |
       MCF_INTC_IMRH_INT_MASK34 | MCF_INTC_IMRH_INT_MASK35);
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -364,7 +363,6 @@ void mcf5225xEthDisableIrq(NetInterface *interface)
 
    MCF_INTC0_IMRH |= MCF_INTC_IMRH_INT_MASK33 |
       MCF_INTC_IMRH_INT_MASK34 | MCF_INTC_IMRH_INT_MASK35;
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _RA6_ETH_DRIVER_H
@@ -139,7 +139,7 @@ typedef struct
    uint32_t td1;
    uint32_t td2;
    uint32_t padding;
-} Ra6TxDmaDesc;
+} Ra6EthTxDmaDesc;
 
 
 /**
@@ -152,7 +152,7 @@ typedef struct
    uint32_t rd1;
    uint32_t rd2;
    uint32_t padding;
-} Ra6RxDmaDesc;
+} Ra6EthRxDmaDesc;
 
 
 //RA6 Ethernet MAC driver

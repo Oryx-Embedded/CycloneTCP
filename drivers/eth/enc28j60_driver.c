@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -76,10 +76,14 @@ error_t enc28j60Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing ENC28J60 Ethernet controller...\r\n");
 
-   //Initialize SPI
+   //Initialize SPI interface
    interface->spiDriver->init();
-   //Initialize external interrupt line
-   interface->extIntDriver->init();
+
+   //Initialize external interrupt line driver
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->init();
+   }
 
    //Issue a system reset
    enc28j60SoftReset(interface);
@@ -243,7 +247,10 @@ void enc28j60Tick(NetInterface *interface)
 void enc28j60EnableIrq(NetInterface *interface)
 {
    //Enable interrupts
-   interface->extIntDriver->enableIrq();
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -255,7 +262,10 @@ void enc28j60EnableIrq(NetInterface *interface)
 void enc28j60DisableIrq(NetInterface *interface)
 {
    //Disable interrupts
-   interface->extIntDriver->disableIrq();
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->disableIrq();
+   }
 }
 
 

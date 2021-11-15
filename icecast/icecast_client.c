@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -159,17 +159,23 @@ error_t icecastClientInit(IcecastClientContext *context,
 
 error_t icecastClientStart(IcecastClientContext *context)
 {
-   OsTask *task;
-
    //Debug message
    TRACE_INFO("Starting Icecast client...\r\n");
 
-   //Create the Icecast client task
-   task = osCreateTask("Icecast client", icecastClientTask,
-      context, ICECAST_CLIENT_STACK_SIZE, ICECAST_CLIENT_PRIORITY);
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   //Create a task using statically allocated memory
+   context->taskId = osCreateStaticTask("Icecast client",
+      (OsTaskCode) icecastClientTask, context, &context->taskTcb,
+      context->taskStack, ICECAST_CLIENT_STACK_SIZE, ICECAST_CLIENT_PRIORITY);
+#else
+   //Create a task
+   context->taskId = osCreateTask("Icecast client",
+      (OsTaskCode) icecastClientTask, context, ICECAST_CLIENT_STACK_SIZE,
+      ICECAST_CLIENT_PRIORITY);
+#endif
 
-   //Unable to create the task?
-   if(task == OS_INVALID_HANDLE)
+   //Failed to create task?
+   if(context->taskId == OS_INVALID_TASK_ID)
       return ERROR_OUT_OF_RESOURCES;
 
    //Successful processing

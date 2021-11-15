@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -387,7 +387,6 @@ void mkv5xEthEnableIrq(NetInterface *interface)
    NVIC_EnableIRQ(ENET_Receive_IRQn);
    NVIC_EnableIRQ(ENET_Error_IRQn);
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -417,7 +416,6 @@ void mkv5xEthDisableIrq(NetInterface *interface)
    NVIC_DisableIRQ(ENET_Transmit_IRQn);
    NVIC_DisableIRQ(ENET_Receive_IRQn);
    NVIC_DisableIRQ(ENET_Error_IRQn);
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

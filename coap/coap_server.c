@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -207,11 +207,20 @@ error_t coapServerStart(CoapServerContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-      //Create the CoAP server task
-      task = osCreateTask("CoAP Server", (OsTaskCode) coapServerTask,
-         context, COAP_SERVER_STACK_SIZE, COAP_SERVER_PRIORITY);
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+      //Create a task using statically allocated memory
+      context->taskId = osCreateStaticTask("CoAP Server",
+         (OsTaskCode) coapServerTask, context, &context->taskTcb,
+         context->taskStack, COAP_SERVER_STACK_SIZE, COAP_SERVER_PRIORITY);
+#else
+      //Create a task
+      context->taskId = osCreateTask("CoAP Server",
+         (OsTaskCode) coapServerTask, context, COAP_SERVER_STACK_SIZE,
+         COAP_SERVER_PRIORITY);
+#endif
+
       //Failed to create task?
-      if(task == OS_INVALID_HANDLE)
+      if(context->taskId == OS_INVALID_TASK_ID)
       {
          //Report an error
          error = ERROR_OUT_OF_RESOURCES;
@@ -320,8 +329,10 @@ void coapServerTask(CoapServerContext *context)
       {
          //Stop CoAP server operation
          context->running = FALSE;
+         //Task epilogue
+         osExitTask();
          //Kill ourselves
-         osDeleteTask(NULL);
+         osDeleteTask(OS_SELF_TASK_ID);
       }
 
       //Any datagram received?

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -410,7 +410,6 @@ void mpfsxxxEth2EnableIrq(NetInterface *interface)
    //Enable Ethernet MAC interrupts
    PLIC_EnableIRQ(MAC1_INT_PLIC);
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -438,7 +437,6 @@ void mpfsxxxEth2DisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    PLIC_DisableIRQ(MAC1_INT_PLIC);
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

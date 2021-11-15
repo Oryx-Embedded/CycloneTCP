@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -632,7 +632,7 @@ void tc2xxEthIrqHandler(int_t arg)
    //Packet received?
    if((status & ETH_STATUS_RI) != 0)
    {
-      //Disable RI interrupt flag
+      //Clear RI interrupt flag
       MODULE_ETH.STATUS.U = ETH_STATUS_RI;
 
       //Set event flag

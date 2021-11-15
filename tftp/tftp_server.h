@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 #ifndef _TFTP_SERVER_H
@@ -202,6 +202,11 @@ struct _TftpServerContext
    bool_t running;                                               ///<Operational state of the TFTP server
    bool_t stop;                                                  ///<Stop request
    OsEvent event;                                                ///<Event object used to poll the sockets
+   OsTaskId taskId;                                              ///<Task identifier
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+   OsTaskTcb taskTcb;                                            ///<Task control block
+   OsStackType taskStack[TFTP_SERVER_STACK_SIZE];                ///<Task stack
+#endif
    Socket *socket;                                               ///<Listening socket
    TftpClientConnection connection[TFTP_SERVER_MAX_CONNECTIONS]; ///<Client connections
    SocketEventDesc eventDesc[TFTP_SERVER_MAX_CONNECTIONS + 1];   ///<The events the application is interested in

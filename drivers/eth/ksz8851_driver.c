@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -79,12 +79,15 @@ error_t ksz8851Init(NetInterface *interface)
    TRACE_INFO("Initializing KSZ8851 Ethernet controller...\r\n");
 
 #if (KSZ8851_SPI_SUPPORT == ENABLED)
-   //Initialize SPI
+   //Initialize SPI interface
    interface->spiDriver->init();
 #endif
 
-   //Initialize external interrupt line
-   interface->extIntDriver->init();
+   //Initialize external interrupt line driver
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->init();
+   }
 
    //Debug message
    TRACE_DEBUG("CIDER=0x%04" PRIX16 "\r\n", ksz8851ReadReg(interface, KSZ8851_CIDER));
@@ -187,7 +190,10 @@ void ksz8851Tick(NetInterface *interface)
 void ksz8851EnableIrq(NetInterface *interface)
 {
    //Enable interrupts
-   interface->extIntDriver->enableIrq();
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -199,7 +205,10 @@ void ksz8851EnableIrq(NetInterface *interface)
 void ksz8851DisableIrq(NetInterface *interface)
 {
    //Disable interrupts
-   interface->extIntDriver->disableIrq();
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->disableIrq();
+   }
 }
 
 

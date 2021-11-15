@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -497,7 +497,6 @@ void omapl138EthEnableIrq(NetInterface *interface)
    IntSystemEnable(SYS_INT_C0_TX);
    IntSystemEnable(SYS_INT_C0_RX);
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -526,7 +525,6 @@ void omapl138EthDisableIrq(NetInterface *interface)
    //Disable Ethernet MAC interrupts
    IntSystemDisable(SYS_INT_C0_TX);
    IntSystemDisable(SYS_INT_C0_RX);
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -80,8 +80,11 @@ error_t dm9000Init(NetInterface *interface)
    //Debug message
    TRACE_INFO("Initializing DM9000 Ethernet controller...\r\n");
 
-   //Initialize external interrupt line
-   interface->extIntDriver->init();
+   //Initialize external interrupt line driver
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->init();
+   }
 
    //Point to the driver context
    context = (Dm9000Context *) interface->nicContext;
@@ -207,7 +210,10 @@ void dm9000Tick(NetInterface *interface)
 void dm9000EnableIrq(NetInterface *interface)
 {
    //Enable interrupts
-   interface->extIntDriver->enableIrq();
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->enableIrq();
+   }
 }
 
 
@@ -219,7 +225,10 @@ void dm9000EnableIrq(NetInterface *interface)
 void dm9000DisableIrq(NetInterface *interface)
 {
    //Disable interrupts
-   interface->extIntDriver->disableIrq();
+   if(interface->extIntDriver != NULL)
+   {
+      interface->extIntDriver->disableIrq();
+   }
 }
 
 

@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -211,7 +211,6 @@ error_t snmpAgentInit(SnmpAgentContext *context,
 error_t snmpAgentStart(SnmpAgentContext *context)
 {
    error_t error;
-   OsTask *task;
 
    //Make sure the SNMP agent context is valid
    if(context == NULL)
@@ -260,11 +259,19 @@ error_t snmpAgentStart(SnmpAgentContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-      //Start the SNMP agent service
-      task = osCreateTask("SNMP Agent", (OsTaskCode) snmpAgentTask,
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+      //Create a task using statically allocated memory
+      context->taskId = osCreateStaticTask("SNMP Agent",
+         (OsTaskCode) snmpAgentTask, context, &context->taskTcb,
+         context->taskStack, SNMP_AGENT_STACK_SIZE, SNMP_AGENT_PRIORITY);
+#else
+      //Create a task
+      context->taskId = osCreateTask("SNMP Agent", (OsTaskCode) snmpAgentTask,
          context, SNMP_AGENT_STACK_SIZE, SNMP_AGENT_PRIORITY);
+#endif
+
       //Failed to create task?
-      if(task == OS_INVALID_HANDLE)
+      if(context->taskId == OS_INVALID_TASK_ID)
       {
          //Report an error
          error = ERROR_OUT_OF_RESOURCES;
@@ -1959,8 +1966,10 @@ void snmpAgentTask(SnmpAgentContext *context)
       {
          //Stop SNMP agent operation
          context->running = FALSE;
+         //Task epilogue
+         osExitTask();
          //Kill ourselves
-         osDeleteTask(NULL);
+         osDeleteTask(OS_SELF_TASK_ID);
       }
 
       //Any datagram received?

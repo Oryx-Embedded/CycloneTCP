@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.0
+ * @version 2.1.2
  **/
 
 //Switch to the appropriate trace level
@@ -201,7 +201,6 @@ error_t ftpServerInit(FtpServerContext *context,
 error_t ftpServerStart(FtpServerContext *context)
 {
    error_t error;
-   OsTask *task;
 
    //Make sure the FTP server context is valid
    if(context == NULL)
@@ -271,11 +270,19 @@ error_t ftpServerStart(FtpServerContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-      //Create the FTP server task
-      task = osCreateTask("FTP Server", (OsTaskCode) ftpServerTask, context,
-         FTP_SERVER_STACK_SIZE, FTP_SERVER_PRIORITY);
+#if (OS_STATIC_TASK_SUPPORT == ENABLED)
+      //Create a task using statically allocated memory
+      context->taskId = osCreateStaticTask("FTP Server",
+         (OsTaskCode) ftpServerTask, context, &context->taskTcb,
+         context->taskStack, FTP_SERVER_STACK_SIZE, FTP_SERVER_PRIORITY);
+#else
+      //Create a task
+      context->taskId = osCreateTask("FTP Server", (OsTaskCode) ftpServerTask,
+         context, FTP_SERVER_STACK_SIZE, FTP_SERVER_PRIORITY);
+#endif
+
       //Failed to create task?
-      if(task == OS_INVALID_HANDLE)
+      if(context->taskId == OS_INVALID_TASK_ID)
       {
          //Report an error
          error = ERROR_OUT_OF_RESOURCES;
@@ -461,8 +468,10 @@ void ftpServerTask(FtpServerContext *context)
          {
             //Stop FTP server operation
             context->running = FALSE;
+            //Task epilogue
+            osExitTask();
             //Kill ourselves
-            osDeleteTask(NULL);
+            osDeleteTask(OS_SELF_TASK_ID);
          }
 
          //Event-driven processing
