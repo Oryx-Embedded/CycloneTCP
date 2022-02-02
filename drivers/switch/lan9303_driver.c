@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -118,7 +118,7 @@ error_t lan9303Init(NetInterface *interface)
 
    //Configure egress VLAN tagging rules
    lan9303WriteSwitchReg(interface, LAN9303_BM_EGRSS_PORT_TYPE,
-      LAN9303_BM_EGRSS_PORT_TYPE_PORT0_CPU);
+      LAN9303_BM_EGRSS_PORT_TYPE_PORT0_TYPE_CPU);
 #else
    //Disable special VLAN tagging mode
    lan9303WriteSwitchReg(interface, LAN9303_SWE_INGRSS_PORT_TYP, 0);
@@ -134,9 +134,9 @@ error_t lan9303Init(NetInterface *interface)
       //Enable port mirroring
       lan9303WriteSwitchReg(interface, LAN9303_SWE_PORT_MIRROR,
          LAN9303_SWE_PORT_MIRROR_RX_MIRRORING_FILT_EN |
-         LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT0 |
-         LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT2 |
-         LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT1 |
+         LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT_0 |
+         LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT_2 |
+         LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT_1 |
          LAN9303_SWE_PORT_MIRROR_RX_MIRRORING_EN);
 
       //Configure port state
@@ -856,24 +856,24 @@ void lan9303EnableIgmpSnooping(NetInterface *interface, bool_t enable)
    uint32_t temp;
 
    //Read the Switch Engine Global Ingress Configuration register
-   temp = lan9303ReadSwitchReg(interface, LAN9303_SWE_GLB_INGRESS_CFG);
+   temp = lan9303ReadSwitchReg(interface, LAN9303_SWE_GLOBAL_INGRSS_CFG);
 
    //Enable or disable IGMP monitoring
    if(enable)
    {
-      temp |= LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITORING_EN;
+      temp |= LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITORING_EN;
    }
    else
    {
-      temp &= ~LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITORING_EN;
+      temp &= ~LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITORING_EN;
    }
 
    //Set the port bit map where IGMP packets are sent
-   temp = (temp & ~LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITOR_PORT) |
-      LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITOR_PORT_0;
+   temp = (temp & ~LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITOR_PORT) |
+      LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITOR_PORT_0;
 
    //Write the value back to Switch Engine Global Ingress Configuration register
-   lan9303WriteSwitchReg(interface, LAN9303_SWE_GLB_INGRESS_CFG, temp);
+   lan9303WriteSwitchReg(interface, LAN9303_SWE_GLOBAL_INGRSS_CFG, temp);
 }
 
 
@@ -1610,7 +1610,9 @@ void lan9303WriteSwitchReg(NetInterface *interface, uint16_t address,
    lan9303WriteSysReg(interface, LAN9303_SWITCH_CSR_DATA, data);
 
    //Set up a write operation
-   value = LAN9303_SWITCH_CSR_CMD_BUSY | LAN9303_SWITCH_CSR_CMD_BE;
+   value = LAN9303_SWITCH_CSR_CMD_BUSY | LAN9303_SWITCH_CSR_CMD_WRITE |
+      LAN9303_SWITCH_CSR_CMD_BE;
+
    //Set register address
    value |= address & LAN9303_SWITCH_CSR_CMD_ADDR;
 

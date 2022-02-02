@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 #ifndef _IPV6_H
@@ -136,10 +136,6 @@ struct _Ipv6PseudoHeader;
 //Determine whether an IPv6 address is a solicited-node address
 #define ipv6IsSolicitedNodeAddr(ipAddr) \
    ipv6CompPrefix(ipAddr, &IPV6_SOLICITED_NODE_ADDR_PREFIX, 104)
-
-//Get the state of the link-local address
-#define ipv6GetLinkLocalAddrState(interface) \
-   (interface->ipv6Context.addrList[0].state)
 
 //C++ guard
 #ifdef __cplusplus
@@ -494,9 +490,11 @@ error_t ipv6GetMtu(NetInterface *interface, size_t *mtu);
 
 error_t ipv6SetLinkLocalAddr(NetInterface *interface, const Ipv6Addr *addr);
 error_t ipv6GetLinkLocalAddr(NetInterface *interface, Ipv6Addr *addr);
+Ipv6AddrState ipv6GetLinkLocalAddrState(NetInterface *interface);
 
 error_t ipv6SetGlobalAddr(NetInterface *interface, uint_t index, const Ipv6Addr *addr);
 error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index, Ipv6Addr *addr);
+Ipv6AddrState ipv6GetGlobalAddrState(NetInterface *interface, uint_t index);
 
 error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index, const Ipv6Addr *addr);
 error_t ipv6GetAnycastAddr(NetInterface *interface, uint_t index, Ipv6Addr *addr);

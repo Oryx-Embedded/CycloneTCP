@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Dependencies
@@ -1020,7 +1020,9 @@ error_t mibTestAndIncSpinLock(int32_t *spinLock, int32_t value, bool_t commit)
          //if the current value is the maximum value of 2^31-1, then the value
          //held by the instance is wrapped to zero
          if(*spinLock < 0)
+         {
             *spinLock = 0;
+         }
       }
 
       //Successful operation

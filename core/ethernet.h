@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 #ifndef _ETHERNET_H
@@ -108,10 +108,12 @@
 #define ETH_MIN_FRAME_SIZE 64
 //Maximum Ethernet frame size
 #define ETH_MAX_FRAME_SIZE 1518
-//Ethernet maximum transmission unit
-#define ETH_MTU 1500
+//Ethernet header size
+#define ETH_HEADER_SIZE 14
 //Ethernet CRC field size
 #define ETH_CRC_SIZE 4
+//Ethernet maximum transmission unit
+#define ETH_MTU 1500
 
 //VLAN tag control information
 #define VLAN_PCP_POS 13
@@ -166,7 +168,8 @@ typedef enum
    ETH_TYPE_IPV6  = 0x86DD,
    ETH_TYPE_EAPOL = 0x888E,
    ETH_TYPE_VMAN  = 0x88A8,
-   ETH_TYPE_LLDP  = 0x88CC
+   ETH_TYPE_LLDP  = 0x88CC,
+   ETH_TYPE_PTP   = 0x88F7
 } EthType;
 
 

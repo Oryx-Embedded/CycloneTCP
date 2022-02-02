@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -440,7 +440,7 @@ error_t httpClientSetMethod(HttpClientContext *context, const char_t *method)
    //Make room for the new method token
    osMemmove(context->buffer + n, p, context->bufferLen + 1 - m);
    //Copy the new method token
-   osStrncpy(context->buffer, method, n);
+   osMemcpy(context->buffer, method, n);
 
    //Adjust the length of the request header
    context->bufferLen = context->bufferLen + n - m;
@@ -513,7 +513,7 @@ error_t httpClientSetUri(HttpClientContext *context, const char_t *uri)
    //Make room for the new resource name
    osMemmove(p + n, q, context->buffer + context->bufferLen + 1 - q);
    //Copy the new resource name
-   osStrncpy(p, uri, n);
+   osMemcpy(p, uri, n);
 
    //Adjust the length of the request header
    context->bufferLen = context->bufferLen + n - m;
@@ -670,7 +670,7 @@ error_t httpClientSetQueryString(HttpClientContext *context,
       //The question mark is used as a separator
       p[0] = '?';
       //Copy the new query string
-      osStrncpy(p + 1, queryString, n - 1);
+      osMemcpy(p + 1, queryString, n - 1);
    }
 
    //Adjust the length of the request header
@@ -762,7 +762,7 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
       //Multiple query parameters are separated by a delimiter
       p[0] = separator;
       //Copy parameter name
-      osStrncpy(p + 1, name, nameLen);
+      osMemcpy(p + 1, name, nameLen);
 
       //Adjust the length of the request header
       context->bufferLen += nameLen + 1;
@@ -783,11 +783,11 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
       //Multiple query parameters are separated by a delimiter
       p[0] = separator;
       //Copy parameter name
-      osStrncpy(p + 1, name, nameLen);
+      osMemcpy(p + 1, name, nameLen);
       //The field name and value are separated by an equals sign
       p[nameLen + 1] = '=';
       //Copy parameter value
-      osStrncpy(p + nameLen + 2, value, valueLen);
+      osMemcpy(p + nameLen + 2, value, valueLen);
 
       //Adjust the length of the request header
       context->bufferLen += nameLen + valueLen + 2;
@@ -942,8 +942,8 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
 
    //Each header field consists of a case-insensitive field name followed
    //by a colon, optional leading whitespace and the field value
-   osStrncpy(context->buffer + context->bufferLen - 2, name, nameLen);
-   osStrncpy(context->buffer + context->bufferLen + nameLen - 2, ": ", 2);
+   osMemcpy(context->buffer + context->bufferLen - 2, name, nameLen);
+   osMemcpy(context->buffer + context->bufferLen + nameLen - 2, ": ", 2);
 
    //Check header field name
    if(!osStrcasecmp(name, "Connection"))

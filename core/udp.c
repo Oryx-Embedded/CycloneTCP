@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -140,7 +140,7 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
    {
       //Number of received UDP datagrams that could not be delivered for
       //reasons other than the lack of an application at the destination port
-      MIB2_INC_COUNTER32(udpGroup.udpInErrors, 1);
+      MIB2_UDP_INC_COUNTER32(udpInErrors, 1);
       UDP_MIB_INC_COUNTER32(udpInErrors, 1);
 
       //Report an error
@@ -170,7 +170,7 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
 
          //Number of received UDP datagrams that could not be delivered for
          //reasons other than the lack of an application at the destination port
-         MIB2_INC_COUNTER32(udpGroup.udpInErrors, 1);
+         MIB2_UDP_INC_COUNTER32(udpInErrors, 1);
          UDP_MIB_INC_COUNTER32(udpInErrors, 1);
 
          //Report an error
@@ -314,7 +314,7 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
       {
          //Number of inbound packets which were chosen to be discarded even
          //though no errors had been detected
-         MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+         MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
          IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
 
          //Report an error
@@ -345,7 +345,7 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
    {
       //Number of inbound packets which were chosen to be discarded even
       //though no errors had been detected
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
 
       //Report an error
@@ -398,7 +398,7 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
    udpUpdateEvents(socket);
 
    //Total number of UDP datagrams delivered to UDP users
-   MIB2_INC_COUNTER32(udpGroup.udpInDatagrams, 1);
+   MIB2_UDP_INC_COUNTER32(udpInDatagrams, 1);
    UDP_MIB_INC_COUNTER32(udpInDatagrams, 1);
    UDP_MIB_INC_COUNTER64(udpHCInDatagrams, 1);
 
@@ -661,7 +661,7 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
    }
 
    //Total number of UDP datagrams sent from this entity
-   MIB2_INC_COUNTER32(udpGroup.udpOutDatagrams, 1);
+   MIB2_UDP_INC_COUNTER32(udpOutDatagrams, 1);
    UDP_MIB_INC_COUNTER32(udpOutDatagrams, 1);
    UDP_MIB_INC_COUNTER64(udpHCOutDatagrams, 1);
 
@@ -987,13 +987,13 @@ error_t udpInvokeRxCallback(NetInterface *interface,
    {
       //Total number of received UDP datagrams for which there was
       //no application at the destination port
-      MIB2_INC_COUNTER32(udpGroup.udpNoPorts, 1);
+      MIB2_UDP_INC_COUNTER32(udpNoPorts, 1);
       UDP_MIB_INC_COUNTER32(udpNoPorts, 1);
    }
    else
    {
       //Total number of UDP datagrams delivered to UDP users
-      MIB2_INC_COUNTER32(udpGroup.udpInDatagrams, 1);
+      MIB2_UDP_INC_COUNTER32(udpInDatagrams, 1);
       UDP_MIB_INC_COUNTER32(udpInDatagrams, 1);
       UDP_MIB_INC_COUNTER64(udpHCInDatagrams, 1);
    }

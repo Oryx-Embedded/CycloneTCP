@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -290,6 +290,31 @@ error_t ipv6GetLinkLocalAddr(NetInterface *interface, Ipv6Addr *addr)
 
 
 /**
+ * @brief Get the state of the link-local address
+ * @param[in] interface Pointer to the desired network interface
+ * @return Address state
+ **/
+
+Ipv6AddrState ipv6GetLinkLocalAddrState(NetInterface *interface)
+{
+   Ipv6AddrState state;
+
+   //Valid interface?
+   if(interface != NULL)
+   {
+      state = interface->ipv6Context.addrList[0].state;
+   }
+   else
+   {
+      state = IPV6_ADDR_STATE_INVALID;
+   }
+
+   //Return the state of the link-local address
+   return state;
+}
+
+
+/**
  * @brief Assign global address
  * @param[in] interface Pointer to the desired network interface
  * @param[in] index Zero-based index
@@ -377,6 +402,32 @@ error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index, Ipv6Addr *addr)
 
    //Successful processing
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Get the state of the specified global address
+ * @param[in] interface Pointer to the desired network interface
+ * @param[in] index Zero-based index
+ * @return Address state
+ **/
+
+Ipv6AddrState ipv6GetGlobalAddrState(NetInterface *interface, uint_t index)
+{
+   Ipv6AddrState state;
+
+   //Valid interface and index?
+   if(interface != NULL && (index + 1) < IPV6_ADDR_LIST_SIZE)
+   {
+      state = interface->ipv6Context.addrList[index + 1].state;
+   }
+   else
+   {
+      state = IPV6_ADDR_STATE_INVALID;
+   }
+
+   //Return the state of the link-local address
+   return state;
 }
 
 

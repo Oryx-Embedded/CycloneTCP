@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -574,7 +574,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
    error = NO_ERROR;
 
    //Total number of input datagrams received, including those received in error
-   MIB2_INC_COUNTER32(ipGroup.ipInReceives, 1);
+   MIB2_IP_INC_COUNTER32(ipInReceives, 1);
    IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInReceives, 1);
    IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInReceives, 1);
    IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInReceives, 1);
@@ -912,7 +912,7 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    {
       //Total number of input datagrams successfully delivered to IP
       //user-protocols
-      MIB2_INC_COUNTER32(ipGroup.ipInDelivers, 1);
+      MIB2_IP_INC_COUNTER32(ipInDelivers, 1);
       IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInDelivers, 1);
       IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInDelivers, 1);
       IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInDelivers, 1);
@@ -949,7 +949,7 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
 
    //Total number of IP datagrams which local IP user-protocols supplied to IP
    //in requests for transmission
-   MIB2_INC_COUNTER32(ipGroup.ipOutRequests, 1);
+   MIB2_IP_INC_COUNTER32(ipOutRequests, 1);
    IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutRequests, 1);
    IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutRequests, 1);
    IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutRequests, 1);
@@ -1179,7 +1179,7 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
             {
                //Number of IP datagrams discarded because no route could be found
                //to transmit them to their destination
-               MIB2_INC_COUNTER32(ipGroup.ipOutNoRoutes, 1);
+               MIB2_IP_INC_COUNTER32(ipOutNoRoutes, 1);
                IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutNoRoutes, 1);
             }
          }

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 #ifndef _LAN9303_DRIVER_H
@@ -146,7 +146,7 @@
 #define LAN9303_MAC_RX_ALIGN_CNT_0                         0x041F
 #define LAN9303_MAC_RX_PKTLEN_CNT_0                        0x0420
 #define LAN9303_MAC_RX_GOODPKTLEN_CNT_0                    0x0421
-#define LAN9303_MAC_RX_SYMBL_CNT_0                         0x0422
+#define LAN9303_MAC_RX_SYMBOL_CNT_0                        0x0422
 #define LAN9303_MAC_RX_CTLFRM_CNT_0                        0x0423
 #define LAN9303_MAC_TX_CFG_0                               0x0440
 #define LAN9303_MAC_TX_FC_SETTINGS_0                       0x0441
@@ -163,8 +163,8 @@
 #define LAN9303_MAC_TX_PKTLEN_CNT_0                        0x045C
 #define LAN9303_MAC_TX_BRDCST_CNT_0                        0x045D
 #define LAN9303_MAC_TX_MULCST_CNT_0                        0x045E
-#define LAN9303_MAC_TX_LATECOL_0                           0x045F
-#define LAN9303_MAC_TX_EXCOL_CNT_0                         0x0460
+#define LAN9303_MAC_TX_LATECOL_CNT_0                       0x045F
+#define LAN9303_MAC_TX_EXCCOL_CNT_0                        0x0460
 #define LAN9303_MAC_TX_SNGLECOL_CNT_0                      0x0461
 #define LAN9303_MAC_TX_MULTICOL_CNT_0                      0x0462
 #define LAN9303_MAC_TX_TOTALCOL_CNT_0                      0x0463
@@ -190,7 +190,7 @@
 #define LAN9303_MAC_RX_ALIGN_CNT_1                         0x081F
 #define LAN9303_MAC_RX_PKTLEN_CNT_1                        0x0820
 #define LAN9303_MAC_RX_GOODPKTLEN_CNT_1                    0x0821
-#define LAN9303_MAC_RX_SYMBL_CNT_1                         0x0822
+#define LAN9303_MAC_RX_SYMBOL_CNT_1                        0x0822
 #define LAN9303_MAC_RX_CTLFRM_CNT_1                        0x0823
 #define LAN9303_MAC_TX_CFG_1                               0x0840
 #define LAN9303_MAC_TX_FC_SETTINGS_1                       0x0841
@@ -207,8 +207,8 @@
 #define LAN9303_MAC_TX_PKTLEN_CNT_1                        0x085C
 #define LAN9303_MAC_TX_BRDCST_CNT_1                        0x085D
 #define LAN9303_MAC_TX_MULCST_CNT_1                        0x085E
-#define LAN9303_MAC_TX_LATECOL_1                           0x085F
-#define LAN9303_MAC_TX_EXCOL_CNT_1                         0x0860
+#define LAN9303_MAC_TX_LATECOL_CNT_1                       0x085F
+#define LAN9303_MAC_TX_EXCCOL_CNT_1                        0x0860
 #define LAN9303_MAC_TX_SNGLECOL_CNT_1                      0x0861
 #define LAN9303_MAC_TX_MULTICOL_CNT_1                      0x0862
 #define LAN9303_MAC_TX_TOTALCOL_CNT_1                      0x0863
@@ -234,7 +234,7 @@
 #define LAN9303_MAC_RX_ALIGN_CNT_2                         0x0C1F
 #define LAN9303_MAC_RX_PKTLEN_CNT_2                        0x0C20
 #define LAN9303_MAC_RX_GOODPKTLEN_CNT_2                    0x0C21
-#define LAN9303_MAC_RX_SYMBL_CNT_2                         0x0C22
+#define LAN9303_MAC_RX_SYMBOL_CNT_2                        0x0C22
 #define LAN9303_MAC_RX_CTLFRM_CNT_2                        0x0C23
 #define LAN9303_MAC_TX_CFG_2                               0x0C40
 #define LAN9303_MAC_TX_FC_SETTINGS_2                       0x0C41
@@ -251,8 +251,8 @@
 #define LAN9303_MAC_TX_PKTLEN_CNT_2                        0x0C5C
 #define LAN9303_MAC_TX_BRDCST_CNT_2                        0x0C5D
 #define LAN9303_MAC_TX_MULCST_CNT_2                        0x0C5E
-#define LAN9303_MAC_TX_LATECOL_2                           0x0C5F
-#define LAN9303_MAC_TX_EXCOL_CNT_2                         0x0C60
+#define LAN9303_MAC_TX_LATECOL_CNT_2                       0x0C5F
+#define LAN9303_MAC_TX_EXCCOL_CNT_2                        0x0C60
 #define LAN9303_MAC_TX_SNGLECOL_CNT_2                      0x0C61
 #define LAN9303_MAC_TX_MULTICOL_CNT_2                      0x0C62
 #define LAN9303_MAC_TX_TOTALCOL_CNT_2                      0x0C63
@@ -269,12 +269,12 @@
 #define LAN9303_SWE_VLAN_WR_DATA                           0x180C
 #define LAN9303_SWE_VLAN_RD_DATA                           0x180E
 #define LAN9303_SWE_VLAN_CMD_STS                           0x1810
-#define LAN9303_SWE_DIFFSERV_TBL_CMD                       0x1811
+#define LAN9303_SWE_DIFFSERV_TBL_CFG                       0x1811
 #define LAN9303_SWE_DIFFSERV_TBL_WR_DATA                   0x1812
 #define LAN9303_SWE_DIFFSERV_TBL_RD_DATA                   0x1813
 #define LAN9303_SWE_DIFFSERV_TBL_CMD_STS                   0x1814
-#define LAN9303_SWE_GLB_INGRESS_CFG                        0x1840
-#define LAN9303_SWE_PORT_INGRESS_CFG                       0x1841
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG                      0x1840
+#define LAN9303_SWE_PORT_INGRSS_CFG                        0x1841
 #define LAN9303_SWE_ADMT_ONLY_VLAN                         0x1842
 #define LAN9303_SWE_PORT_STATE                             0x1843
 #define LAN9303_SWE_PRI_TO_QUE                             0x1845
@@ -282,17 +282,17 @@
 #define LAN9303_SWE_INGRSS_PORT_TYP                        0x1847
 #define LAN9303_SWE_BCST_THROT                             0x1848
 #define LAN9303_SWE_ADMT_N_MEMBER                          0x1849
-#define LAN9303_SWE_INGRESS_RATE_CFG                       0x184A
-#define LAN9303_SWE_INGRESS_RATE_CMD                       0x184B
-#define LAN9303_SWE_INGRESS_RATE_CMD_STS                   0x184C
-#define LAN9303_SWE_INGRESS_RATE_WR_DATA                   0x184D
-#define LAN9303_SWE_INGRESS_RATE_RD_DATA                   0x184E
+#define LAN9303_SWE_INGRSS_RATE_CFG                        0x184A
+#define LAN9303_SWE_INGRSS_RATE_CMD                        0x184B
+#define LAN9303_SWE_INGRSS_RATE_CMD_STS                    0x184C
+#define LAN9303_SWE_INGRSS_RATE_WR_DATA                    0x184D
+#define LAN9303_SWE_INGRSS_RATE_RD_DATA                    0x184E
 #define LAN9303_SWE_FILTERED_CNT_0                         0x1850
 #define LAN9303_SWE_FILTERED_CNT_1                         0x1851
 #define LAN9303_SWE_FILTERED_CNT_2                         0x1852
-#define LAN9303_SWE_INGRESS_REGEN_TBL_0                    0x1855
-#define LAN9303_SWE_INGRESS_REGEN_TBL_1                    0x1856
-#define LAN9303_SWE_INGRESS_REGEN_TBL_2                    0x1857
+#define LAN9303_SWE_INGRSS_REGEN_TBL_0                     0x1855
+#define LAN9303_SWE_INGRSS_REGEN_TBL_1                     0x1856
+#define LAN9303_SWE_INGRSS_REGEN_TBL_2                     0x1857
 #define LAN9303_SWE_LRN_DISCRD_CNT_0                       0x1858
 #define LAN9303_SWE_LRN_DISCRD_CNT_1                       0x1859
 #define LAN9303_SWE_LRN_DISCRD_CNT_2                       0x185A
@@ -347,7 +347,7 @@
 #define LAN9303_MAC_RX_ALIGN_CNT(port)                     (0x041F + ((port) * 0x0400))
 #define LAN9303_MAC_RX_PKTLEN_CNT(port)                    (0x0420 + ((port) * 0x0400))
 #define LAN9303_MAC_RX_GOODPKTLEN_CNT(port)                (0x0421 + ((port) * 0x0400))
-#define LAN9303_MAC_RX_SYMBL_CNT(port)                     (0x0422 + ((port) * 0x0400))
+#define LAN9303_MAC_RX_SYMBOL_CNT(port)                    (0x0422 + ((port) * 0x0400))
 #define LAN9303_MAC_RX_CTLFRM_CNT(port)                    (0x0423 + ((port) * 0x0400))
 #define LAN9303_MAC_TX_CFG(port)                           (0x0440 + ((port) * 0x0400))
 #define LAN9303_MAC_TX_FC_SETTINGS(port)                   (0x0441 + ((port) * 0x0400))
@@ -364,8 +364,8 @@
 #define LAN9303_MAC_TX_PKTLEN_CNT(port)                    (0x045C + ((port) * 0x0400))
 #define LAN9303_MAC_TX_BRDCST_CNT(port)                    (0x045D + ((port) * 0x0400))
 #define LAN9303_MAC_TX_MULCST_CNT(port)                    (0x045E + ((port) * 0x0400))
-#define LAN9303_MAC_TX_LATECOL(port)                       (0x045F + ((port) * 0x0400))
-#define LAN9303_MAC_TX_EXCOL_CNT(port)                     (0x0460 + ((port) * 0x0400))
+#define LAN9303_MAC_TX_LATECOL_CNT(port)                   (0x045F + ((port) * 0x0400))
+#define LAN9303_MAC_TX_EXCCOL_CNT(port)                    (0x0460 + ((port) * 0x0400))
 #define LAN9303_MAC_TX_SNGLECOL_CNT(port)                  (0x0461 + ((port) * 0x0400))
 #define LAN9303_MAC_TX_MULTICOL_CNT(port)                  (0x0462 + ((port) * 0x0400))
 #define LAN9303_MAC_TX_TOTALCOL_CNT(port)                  (0x0463 + ((port) * 0x0400))
@@ -498,6 +498,7 @@
 
 //Switch Fabric CSR Interface Command register
 #define LAN9303_SWITCH_CSR_CMD_BUSY                        0x80000000
+#define LAN9303_SWITCH_CSR_CMD_WRITE                       0x00000000
 #define LAN9303_SWITCH_CSR_CMD_READ                        0x40000000
 #define LAN9303_SWITCH_CSR_CMD_AUTO_INC                    0x20000000
 #define LAN9303_SWITCH_CSR_CMD_AUTO_DEC                    0x10000000
@@ -616,38 +617,38 @@
 #define LAN9303_SWE_VLAN_CMD_VLAN_PORT                     0x0000000F
 
 //Switch Engine Global Ingress Configuration register
-#define LAN9303_SWE_GLB_INGRESS_CFG_802_1Q_VLAN_DIS        0x00008000
-#define LAN9303_SWE_GLB_INGRESS_CFG_USE_TAG                0x00004000
-#define LAN9303_SWE_GLB_INGRESS_CFG_ALLOW_MONITOR_ECHO     0x00002000
-#define LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITOR_PORT      0x00001C00
-#define LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITOR_PORT_0    0x00000000
-#define LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITOR_PORT_1    0x00000400
-#define LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITOR_PORT_2    0x00000800
-#define LAN9303_SWE_GLB_INGRESS_CFG_USE_IP                 0x00000200
-#define LAN9303_SWE_GLB_INGRESS_CFG_IGMP_MONITORING_EN     0x00000080
-#define LAN9303_SWE_GLB_INGRESS_CFG_SWE_COUNTER_TEST       0x00000040
-#define LAN9303_SWE_GLB_INGRESS_CFG_DA_HIGHEST_PRIORITY    0x00000020
-#define LAN9303_SWE_GLB_INGRESS_CFG_FILTER_MULTICAST       0x00000010
-#define LAN9303_SWE_GLB_INGRESS_CFG_DROP_UNKNOWN           0x00000008
-#define LAN9303_SWE_GLB_INGRESS_CFG_USE_PRECEDENCE         0x00000004
-#define LAN9303_SWE_GLB_INGRESS_CFG_VL_HIGHER_PRIORITY     0x00000002
-#define LAN9303_SWE_GLB_INGRESS_CFG_VLAN_EN                0x00000001
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_802_1Q_VLAN_DIS      0x00008000
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_USE_TAG              0x00004000
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_ALLOW_MONITOR_ECHO   0x00002000
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITOR_PORT    0x00001C00
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITOR_PORT_0  0x00000400
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITOR_PORT_1  0x00000800
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITOR_PORT_2  0x00001000
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_USE_IP               0x00000200
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_IGMP_MONITORING_EN   0x00000080
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_SWE_COUNTER_TEST     0x00000040
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_DA_HIGHEST_PRIORITY  0x00000020
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_FILTER_MULTICAST     0x00000010
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_DROP_UNKNOWN         0x00000008
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_USE_PRECEDENCE       0x00000004
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_VL_HIGHER_PRIORITY   0x00000002
+#define LAN9303_SWE_GLOBAL_INGRSS_CFG_VLAN_EN              0x00000001
 
 //Switch Engine Port Ingress Configuration register
-#define LAN9303_SWE_PORT_INGRESS_CFG_LEARNING_ON_INGRESS   0x00000038
-#define LAN9303_SWE_PORT_INGRESS_CFG_LEARNING_ON_INGRESS_0 0x00000000
-#define LAN9303_SWE_PORT_INGRESS_CFG_LEARNING_ON_INGRESS_1 0x00000008
-#define LAN9303_SWE_PORT_INGRESS_CFG_LEARNING_ON_INGRESS_2 0x00000010
-#define LAN9303_SWE_PORT_INGRESS_CFG_MEMBERSHIP_CHECKING   0x00000007
-#define LAN9303_SWE_PORT_INGRESS_CFG_MEMBERSHIP_CHECKING_0 0x00000000
-#define LAN9303_SWE_PORT_INGRESS_CFG_MEMBERSHIP_CHECKING_1 0x00000001
-#define LAN9303_SWE_PORT_INGRESS_CFG_MEMBERSHIP_CHECKING_2 0x00000002
+#define LAN9303_SWE_PORT_INGRSS_CFG_LEARN_ON_INGRESS       0x00000038
+#define LAN9303_SWE_PORT_INGRSS_CFG_LEARN_ON_INGRESS_PORT0 0x00000000
+#define LAN9303_SWE_PORT_INGRSS_CFG_LEARN_ON_INGRESS_PORT1 0x00000008
+#define LAN9303_SWE_PORT_INGRSS_CFG_LEARN_ON_INGRESS_PORT2 0x00000010
+#define LAN9303_SWE_PORT_INGRSS_CFG_MEMBERSHIP_CHECK       0x00000007
+#define LAN9303_SWE_PORT_INGRSS_CFG_MEMBERSHIP_CHECK_PORT0 0x00000000
+#define LAN9303_SWE_PORT_INGRSS_CFG_MEMBERSHIP_CHECK_PORT1 0x00000001
+#define LAN9303_SWE_PORT_INGRSS_CFG_MEMBERSHIP_CHECK_PORT2 0x00000002
 
 //Switch Engine Admit Only VLAN register
 #define LAN9303_SWE_ADMT_ONLY_VLAN_ADMIT_ONLY_VLAN         0x00000007
-#define LAN9303_SWE_ADMT_ONLY_VLAN_ADMIT_ONLY_VLAN_0       0x00000000
-#define LAN9303_SWE_ADMT_ONLY_VLAN_ADMIT_ONLY_VLAN_1       0x00000001
-#define LAN9303_SWE_ADMT_ONLY_VLAN_ADMIT_ONLY_VLAN_2       0x00000002
+#define LAN9303_SWE_ADMT_ONLY_VLAN_ADMIT_ONLY_VLAN_PORT0   0x00000001
+#define LAN9303_SWE_ADMT_ONLY_VLAN_ADMIT_ONLY_VLAN_PORT1   0x00000002
+#define LAN9303_SWE_ADMT_ONLY_VLAN_ADMIT_ONLY_VLAN_PORT2   0x00000004
 
 //Switch Engine Port State register
 #define LAN9303_SWE_PORT_STATE_PORT2                       0x00000030
@@ -678,14 +679,14 @@
 
 //Switch Engine Port Mirroring register
 #define LAN9303_SWE_PORT_MIRROR_RX_MIRRORING_FILT_EN       0x00000100
-#define LAN9303_SWE_PORT_MIRROR_SNIFFER                    0x000000E0
-#define LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT0              0x00000020
-#define LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT1              0x00000040
-#define LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT2              0x00000080
-#define LAN9303_SWE_PORT_MIRROR_MIRRORED                   0x0000001C
-#define LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT0             0x00000004
-#define LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT1             0x00000008
-#define LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT2             0x00000010
+#define LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT               0x000000E0
+#define LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT_0             0x00000020
+#define LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT_1             0x00000040
+#define LAN9303_SWE_PORT_MIRROR_SNIFFER_PORT_2             0x00000080
+#define LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT              0x0000001C
+#define LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT_0            0x00000004
+#define LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT_1            0x00000008
+#define LAN9303_SWE_PORT_MIRROR_MIRRORED_PORT_2            0x00000010
 #define LAN9303_SWE_PORT_MIRROR_RX_MIRRORING_EN            0x00000002
 #define LAN9303_SWE_PORT_MIRROR_TX_MIRRORING_EN            0x00000001
 
@@ -706,31 +707,31 @@
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_VID_PORT2        0x00100000
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_PRIO_PORT2       0x00080000
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_TAG_PORT2        0x00040000
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2                   0x00030000
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_DUMB              0x00000000
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_ACCESS            0x00010000
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_HYBRID            0x00020000
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_CPU               0x00030000
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_TYPE              0x00030000
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_TYPE_DUMB         0x00000000
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_TYPE_ACCESS       0x00010000
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_TYPE_HYBRID       0x00020000
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT2_TYPE_CPU          0x00030000
 #define LAN9303_BM_EGRSS_PORT_TYPE_VID_SEL_PORT1           0x00004000
 #define LAN9303_BM_EGRSS_PORT_TYPE_INSERT_TAG_PORT1        0x00002000
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_VID_PORT1        0x00001000
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_PRIO_PORT1       0x00000800
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_TAG_PORT1        0x00000400
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1                   0x00000300
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_DUMB              0x00000000
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_ACCESS            0x00000100
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_HYBRID            0x00000200
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_CPU               0x00000300
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_TYPE              0x00000300
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_TYPE_DUMB         0x00000000
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_TYPE_ACCESS       0x00000100
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_TYPE_HYBRID       0x00000200
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT1_TYPE_CPU          0x00000300
 #define LAN9303_BM_EGRSS_PORT_TYPE_VID_SEL_PORT0           0x00000040
 #define LAN9303_BM_EGRSS_PORT_TYPE_INSERT_TAG_PORT0        0x00000020
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_VID_PORT0        0x00000010
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_PRIO_PORT0       0x00000008
 #define LAN9303_BM_EGRSS_PORT_TYPE_CHANGE_TAG_PORT0        0x00000004
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0                   0x00000003
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_DUMB              0x00000000
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_ACCESS            0x00000001
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_HYBRID            0x00000002
-#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_CPU               0x00000003
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_TYPE              0x00000003
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_TYPE_DUMB         0x00000000
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_TYPE_ACCESS       0x00000001
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_TYPE_HYBRID       0x00000002
+#define LAN9303_BM_EGRSS_PORT_TYPE_PORT0_TYPE_CPU          0x00000003
 
 //C++ guard
 #ifdef __cplusplus

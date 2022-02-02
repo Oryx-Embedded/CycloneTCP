@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -206,7 +206,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       {
          //Number of inbound packets which were chosen to be discarded even
          //though no errors had been detected
-         MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+         MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
          IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
 
          //Report an error
@@ -237,7 +237,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
    {
       //Number of inbound packets which were chosen to be discarded even
       //though no errors had been detected
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
 
       //Report an error
@@ -355,7 +355,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
    if(socket->receiveQueue == NULL)
    {
       //Allocate a memory buffer to hold the data and the associated descriptor
-      p = netBufferAlloc(sizeof(SocketQueueItem) + sizeof(EthHeader) + length);
+      p = netBufferAlloc(sizeof(SocketQueueItem) + length);
 
       //Successful memory allocation?
       if(p != NULL)
@@ -388,7 +388,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
       {
          //Number of inbound packets which were chosen to be discarded even
          //though no errors had been detected
-         MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+         MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
          IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
 
          //Exit immediately
@@ -396,7 +396,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
       }
 
       //Allocate a memory buffer to hold the data and the associated descriptor
-      p = netBufferAlloc(sizeof(SocketQueueItem) + sizeof(EthHeader) + length);
+      p = netBufferAlloc(sizeof(SocketQueueItem) + length);
 
       //Successful memory allocation?
       if(p != NULL)
@@ -419,7 +419,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
    {
       //Number of inbound packets which were chosen to be discarded even
       //though no errors had been detected
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
 
       //Exit immediately
@@ -439,13 +439,8 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
    //Offset to the raw datagram
    queueItem->offset = sizeof(SocketQueueItem);
 
-   //Copy the Ethernet header
-   netBufferWrite(queueItem->buffer, queueItem->offset, header,
-      sizeof(EthHeader));
-
    //Copy the payload
-   netBufferWrite(queueItem->buffer, queueItem->offset + sizeof(EthHeader),
-      data, length);
+   netBufferWrite(queueItem->buffer, queueItem->offset, data, length);
 
    //Additional options can be passed to the stack along with the packet
    queueItem->ancillary = *ancillary;
@@ -456,7 +451,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
 
 
 /**
- * @brief Send an raw IP packet
+ * @brief Send a raw IP packet
  * @param[in] socket Handle referencing the socket
  * @param[in] message Pointer to the structure describing the raw packet
  * @param[in] flags Set of flags that influences the behavior of this function
@@ -629,7 +624,7 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
 
 
 /**
- * @brief Send an raw Ethernet packet
+ * @brief Send a raw Ethernet packet
  * @param[in] socket Handle referencing the socket
  * @param[in] message Pointer to the structure describing the raw packet
  * @param[in] flags Set of flags that influences the behavior of this function
@@ -642,7 +637,7 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
    error_t error;
 
 #if (ETH_SUPPORT == ENABLED)
-   size_t length;
+   size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
 
@@ -668,61 +663,13 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
       interface->nicDriver->type == NIC_TYPE_ETHERNET)
    {
       //Allocate a buffer memory to hold the raw Ethernet packet
-      buffer = netBufferAlloc(0);
+      buffer = ethAllocBuffer(0, &offset);
       //Failed to allocate buffer?
       if(buffer == NULL)
          return ERROR_OUT_OF_MEMORY;
 
-      //Get the length of the raw data
-      length = message->length;
-
       //Copy the raw data
-      error = netBufferAppend(buffer, message->data, length);
-
-      //Check status code
-      if(!error)
-      {
-         //Automatic padding not supported by hardware?
-         if(!interface->nicDriver->autoPadding)
-         {
-            //The host controller should manually add padding
-            //to the packet before transmitting it
-            if(length < (ETH_MIN_FRAME_SIZE - ETH_CRC_SIZE))
-            {
-               size_t n;
-
-               //Add padding as necessary
-               n = (ETH_MIN_FRAME_SIZE - ETH_CRC_SIZE) - length;
-
-               //Append padding bytes
-               error = netBufferAppend(buffer, ethPadding, n);
-
-               //Adjust frame length
-               length += n;
-            }
-         }
-      }
-
-      //Check status code
-      if(!error)
-      {
-         //CRC calculation not supported by hardware?
-         if(!interface->nicDriver->autoCrcCalc)
-         {
-            uint32_t crc;
-
-            //Compute CRC over the header and payload
-            crc = ethCalcCrcEx(buffer, 0, length);
-            //Convert from host byte order to little-endian byte order
-            crc = htole32(crc);
-
-            //Append the calculated CRC value
-            error = netBufferAppend(buffer, &crc, sizeof(crc));
-
-            //Adjust frame length
-            length += sizeof(crc);
-         }
-      }
+      error = netBufferAppend(buffer, message->data, message->length);
 
       //Check status code
       if(!error)
@@ -731,6 +678,9 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
 
          //Additional options can be passed to the stack along with the packet
          ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+         //Set source MAC address
+         ancillary.srcMacAddr = message->srcMacAddr;
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
          //Set switch port identifier
@@ -744,8 +694,9 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
          //Debug message
          TRACE_DEBUG("Sending raw Ethernet frame (%" PRIuSIZE " bytes)...\r\n", length);
 
-         //Send the resulting packet over the specified link
-         error = nicSendPacket(interface, buffer, 0, &ancillary);
+         //Send raw Ethernet packet
+         error = ethSendFrame(interface, &message->destMacAddr,
+            message->ethType, buffer, offset, &ancillary);
       }
 
       //Free previously allocated memory block
@@ -920,6 +871,9 @@ error_t rawSocketReceiveEthPacket(Socket *socket, SocketMsg *message,
       //Save source and destination MAC addresses
       message->srcMacAddr = queueItem->ancillary.srcMacAddr;
       message->destMacAddr = queueItem->ancillary.destMacAddr;
+
+      //Save the value of the EtherType field
+      message->ethType = queueItem->ancillary.ethType;
 #endif
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
@@ -982,9 +936,13 @@ void rawSocketUpdateEvents(Socket *socket)
    {
       //Handle link up and link down events
       if(socket->interface->linkState)
+      {
          socket->eventFlags |= SOCKET_EVENT_LINK_UP;
+      }
       else
+      {
          socket->eventFlags |= SOCKET_EVENT_LINK_DOWN;
+      }
    }
 
    //Mask unused events

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -219,7 +219,7 @@ error_t snmpAgentStart(SnmpAgentContext *context)
    //Debug message
    TRACE_INFO("Starting SNMP agent...\r\n");
 
-   //Make sure the Modbus/TCP server is not already running
+   //Make sure the SNMP agent is not already running
    if(context->running)
       return ERROR_ALREADY_RUNNING;
 
@@ -1616,7 +1616,7 @@ error_t snmpAgentSendTrap(SnmpAgentContext *context,
    {
       //Total number of messages which were passed from the SNMP protocol
       //entity to the transport service
-      MIB2_INC_COUNTER32(snmpGroup.snmpOutPkts, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpOutPkts, 1);
 
       //Debug message
       TRACE_INFO("Sending SNMP message to %s port %" PRIu16
@@ -1725,7 +1725,7 @@ error_t snmpAgentSendInform(SnmpAgentContext *context,
          {
             //Total number of messages which were passed from the SNMP protocol
             //entity to the transport service
-            MIB2_INC_COUNTER32(snmpGroup.snmpOutPkts, 1);
+            MIB2_SNMP_INC_COUNTER32(snmpOutPkts, 1);
 
             //Debug message
             TRACE_INFO("Sending SNMP message to %s port %" PRIu16
@@ -1825,7 +1825,7 @@ error_t snmpAgentSendInform(SnmpAgentContext *context,
          {
             //Total number of messages which were passed from the SNMP protocol
             //entity to the transport service
-            MIB2_INC_COUNTER32(snmpGroup.snmpOutPkts, 1);
+            MIB2_SNMP_INC_COUNTER32(snmpOutPkts, 1);
 
             //Debug message
             TRACE_INFO("Sending SNMP message to %s port %" PRIu16

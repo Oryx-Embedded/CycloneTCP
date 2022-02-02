@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,37 +25,43 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
 //Dependencies
-#include "esp_wifi.h"
-#include "esp_wifi_internal.h"
+#include "esp_private/wifi.h"
 #include "core/net.h"
 #include "drivers/wifi/esp32_wifi_driver.h"
 #include "debug.h"
 
-//System event handlers
-extern system_event_handler_t default_event_handlers[SYSTEM_EVENT_MAX];
-
-//Forward declaration of functions
-esp_err_t esp32WifiStaStartEvent(system_event_t *event);
-esp_err_t esp32WifiStaStopEvent(system_event_t *event);
-esp_err_t esp32WifiStaConnectedEvent(system_event_t *event);
-esp_err_t esp32WifiStaDisconnectedEvent(system_event_t *event);
-esp_err_t esp32WifiStaGotIpEvent(system_event_t *event);
-esp_err_t esp32WifiStaLostIpEvent(system_event_t *event);
-esp_err_t esp32WifiApStartEvent(system_event_t *event);
-esp_err_t esp32WifiApStopEvent(system_event_t *event);
-esp_err_t esp32WifiStaRxCallback(void *buffer, uint16_t length, void *eb);
-esp_err_t esp32WifiApRxCallback(void *buffer, uint16_t length, void *eb);
-
 //Underlying network interface
 static NetInterface *esp32WifiStaInterface = NULL;
 static NetInterface *esp32WifiApInterface = NULL;
+
+//Forward declaration of functions
+esp_err_t esp32WifiStaRxCallback(void *buffer, uint16_t length, void *eb);
+esp_err_t esp32WifiApRxCallback(void *buffer, uint16_t length, void *eb);
+
+void esp32WifiStaStartEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData);
+
+void esp32WifiStaStopEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData);
+
+void esp32WifiStaConnectedEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData);
+
+void esp32WifiStaDisconnectedEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData);
+
+void esp32WifiApStartEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData);
+
+void esp32WifiApStopEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData);
 
 
 /**
@@ -141,23 +147,6 @@ error_t esp32WifiInit(NetInterface *interface)
 
       //Initialize Wi-Fi driver
       ret = esp_wifi_init(&config);
-
-      //Check status code
-      if(ret == ESP_OK)
-      {
-         //Register event handlers
-         default_event_handlers[SYSTEM_EVENT_STA_START] = esp32WifiStaStartEvent;
-         default_event_handlers[SYSTEM_EVENT_STA_STOP] = esp32WifiStaStopEvent;
-         default_event_handlers[SYSTEM_EVENT_STA_CONNECTED] = esp32WifiStaConnectedEvent;
-         default_event_handlers[SYSTEM_EVENT_STA_DISCONNECTED] = esp32WifiStaDisconnectedEvent;
-         default_event_handlers[SYSTEM_EVENT_STA_GOT_IP] = esp32WifiStaGotIpEvent;
-         default_event_handlers[SYSTEM_EVENT_STA_LOST_IP] = esp32WifiStaLostIpEvent;
-         default_event_handlers[SYSTEM_EVENT_AP_START] = esp32WifiApStartEvent;
-         default_event_handlers[SYSTEM_EVENT_AP_STOP] = esp32WifiApStopEvent;
-
-         //Register shutdown handler
-         ret = esp_register_shutdown_handler((shutdown_handler_t) esp_wifi_stop);
-      }
    }
 
    //Check status code
@@ -168,6 +157,19 @@ error_t esp32WifiInit(NetInterface *interface)
       {
          //Save underlying network interface (STA mode)
          esp32WifiStaInterface = interface;
+
+         //Register event handlers
+         esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_START,
+            esp32WifiStaStartEvent, NULL);
+
+         esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_STOP,
+            esp32WifiStaStopEvent, NULL);
+
+         esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED,
+            esp32WifiStaConnectedEvent, NULL);
+
+         esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED,
+            esp32WifiStaDisconnectedEvent, NULL);
 
          //Optionally set the MAC address
          if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
@@ -192,6 +194,13 @@ error_t esp32WifiInit(NetInterface *interface)
       {
          //Save underlying network interface (AP mode)
          esp32WifiApInterface = interface;
+
+         //Register event handlers
+         esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_START,
+            esp32WifiApStartEvent, NULL);
+
+         esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STOP,
+            esp32WifiApStopEvent, NULL);
 
          //Optionally set the MAC address
          if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
@@ -337,226 +346,6 @@ error_t esp32WifiUpdateMacAddrFilter(NetInterface *interface)
 
 
 /**
- * @brief Station start (event handler)
- * @param[in] event Event information
- * @return Error code
- **/
-
-esp_err_t esp32WifiStaStartEvent(system_event_t *event)
-{
-   //Debug message
-   TRACE_INFO("ESP32: STA start event\r\n");
-
-   //Successful processing
-   return ESP_OK;
-}
-
-
-/**
- * @brief Station stop (event handler)
- * @param[in] event Event information
- * @return Error code
- **/
-
-esp_err_t esp32WifiStaStopEvent(system_event_t *event)
-{
-   //Debug message
-   TRACE_INFO("ESP32: STA stop event\r\n");
-
-   //Successful processing
-   return ESP_OK;
-}
-
-
-/**
- * @brief Station connected to AP (event handler)
- * @param[in] event Event information
- * @return Error code
- **/
-
-esp_err_t esp32WifiStaConnectedEvent(system_event_t *event)
-{
-   esp_err_t ret;
-
-   //Debug message
-   TRACE_INFO("ESP32: STA connected event\r\n");
-
-   //Register RX callback
-   ret = esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_STA, esp32WifiStaRxCallback);
-
-   //Check status code
-   if(ret == ESP_OK)
-   {
-      //Valid STA interface?
-      if(esp32WifiStaInterface != NULL)
-      {
-         //The link is up
-         esp32WifiStaInterface->linkState = TRUE;
-
-         //Get exclusive access
-         osAcquireMutex(&netMutex);
-         //Process link state change event
-         nicNotifyLinkChange(esp32WifiStaInterface);
-         //Release exclusive access
-         osReleaseMutex(&netMutex);
-      }
-   }
-
-   //Return status code
-   return ret;
-}
-
-
-/**
- * @brief Station disconnected from AP (event handler)
- * @param[in] event Event information
- * @return Error code
- **/
-
-esp_err_t esp32WifiStaDisconnectedEvent(system_event_t *event)
-{
-   esp_err_t ret;
-
-   //Debug message
-   TRACE_INFO("ESP32: STA disconnected event\r\n");
-
-   //Unregister RX callback
-   ret = esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_STA, NULL);
-
-   //Check status code
-   if(ret == ESP_OK)
-   {
-      //Valid STA interface?
-      if(esp32WifiStaInterface != NULL)
-      {
-         //The link is down
-         esp32WifiStaInterface->linkState = FALSE;
-
-         //Get exclusive access
-         osAcquireMutex(&netMutex);
-         //Process link state change event
-         nicNotifyLinkChange(esp32WifiStaInterface);
-         //Release exclusive access
-         osReleaseMutex(&netMutex);
-      }
-   }
-
-   //Return status code
-   return ret;
-}
-
-
-/**
- * @brief Station got IP from connected AP (event handler)
- * @param[in] event Event information
- * @return Error code
- **/
-
-esp_err_t esp32WifiStaGotIpEvent(system_event_t *event)
-{
-   //Debug message
-   TRACE_INFO("ESP32: STA got IP event\r\n");
-
-   //Return status code
-   return ESP_OK;
-}
-
-
-/**
- * @brief Station lost IP (event handler)
- * @param[in] event Event information
- * @return Error code
- **/
-
-esp_err_t esp32WifiStaLostIpEvent(system_event_t *event)
-{
-   //Debug message
-   TRACE_INFO("ESP32: STA lost IP event\r\n");
-
-   //Return status code
-   return ESP_OK;
-}
-
-
-/**
- * @brief Soft-AP start (event handler)
- * @param[in] event Event information
- * @return Error code
- **/
-
-esp_err_t esp32WifiApStartEvent(system_event_t *event)
-{
-   esp_err_t ret;
-
-   //Debug message
-   TRACE_INFO("ESP32: AP start event\r\n");
-
-   //Register RX callback
-   ret = esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_AP, esp32WifiApRxCallback);
-
-   //Check status code
-   if(ret == ESP_OK)
-   {
-      //Valid AP interface?
-      if(esp32WifiApInterface != NULL)
-      {
-         //The link is up
-         esp32WifiApInterface->linkState = TRUE;
-
-         //Get exclusive access
-         osAcquireMutex(&netMutex);
-         //Process link state change event
-         nicNotifyLinkChange(esp32WifiApInterface);
-         //Release exclusive access
-         osReleaseMutex(&netMutex);
-      }
-   }
-
-   //Return status code
-   return ret;
-}
-
-
-/**
- * @brief Soft-AP stop (event handler)
- * @param[in] event Event information
- * @return Error code
- **/
-
-esp_err_t esp32WifiApStopEvent(system_event_t *event)
-{
-   esp_err_t ret;
-
-   //Debug message
-   TRACE_INFO("ESP32: AP stop event\r\n");
-
-   //Unregister RX callback
-   ret = esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_AP, NULL);
-
-   //Check status code
-   if(ret == ESP_OK)
-   {
-      //Valid AP interface?
-      if(esp32WifiApInterface != NULL)
-      {
-         //The link is down
-         esp32WifiApInterface->linkState = FALSE;
-
-         //Get exclusive access
-         osAcquireMutex(&netMutex);
-         //Process link state change event
-         nicNotifyLinkChange(esp32WifiApInterface);
-         //Release exclusive access
-         osReleaseMutex(&netMutex);
-      }
-   }
-
-   //Return status code
-   return ret;
-}
-
-
-/**
  * @brief Process incoming packets (STA interface)
  * @param[in] buffer Incoming packet
  * @param[in] length Length of the packet, in bytes
@@ -584,9 +373,10 @@ esp_err_t esp32WifiStaRxCallback(void *buffer, uint16_t length, void *eb)
       osReleaseMutex(&netMutex);
    }
 
-   //Release buffer
+   //Valid buffer?
    if(eb != NULL)
    {
+      //Release buffer
       esp_wifi_internal_free_rx_buffer(eb);
    }
 
@@ -623,12 +413,201 @@ esp_err_t esp32WifiApRxCallback(void *buffer, uint16_t length, void *eb)
       osReleaseMutex(&netMutex);
    }
 
-   //Release buffer
+   //Valid buffer?
    if(eb != NULL)
    {
+      //Release buffer
       esp_wifi_internal_free_rx_buffer(eb);
    }
 
    //Successful processing
    return ESP_OK;
+}
+
+
+/**
+ * @brief Station start (event handler)
+ * @param[in] arg User-specific parameter
+ * @param[in] eventBase Event base
+ * @param[in] eventId Event identifier
+ * @param[in] eventData Event-specific data
+ **/
+
+void esp32WifiStaStartEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData)
+{
+   //Debug message
+   TRACE_INFO("ESP32: STA start event\r\n");
+}
+
+
+/**
+ * @brief Station stop (event handler)
+ * @param[in] arg User-specific parameter
+ * @param[in] eventBase Event base
+ * @param[in] eventId Event identifier
+ * @param[in] eventData Event-specific data
+ **/
+
+void esp32WifiStaStopEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData)
+{
+   //Debug message
+   TRACE_INFO("ESP32: STA stop event\r\n");
+}
+
+
+/**
+ * @brief Station connected to AP (event handler)
+ * @param[in] arg User-specific parameter
+ * @param[in] eventBase Event base
+ * @param[in] eventId Event identifier
+ * @param[in] eventData Event-specific data
+ **/
+
+void esp32WifiStaConnectedEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData)
+{
+   esp_err_t ret;
+
+   //Debug message
+   TRACE_INFO("ESP32: STA connected event\r\n");
+
+   //Register RX callback
+   ret = esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_STA, esp32WifiStaRxCallback);
+
+   //Check status code
+   if(ret == ESP_OK)
+   {
+      //Valid STA interface?
+      if(esp32WifiStaInterface != NULL)
+      {
+         //The link is up
+         esp32WifiStaInterface->linkState = TRUE;
+
+         //Get exclusive access
+         osAcquireMutex(&netMutex);
+         //Process link state change event
+         nicNotifyLinkChange(esp32WifiStaInterface);
+         //Release exclusive access
+         osReleaseMutex(&netMutex);
+      }
+   }
+}
+
+
+/**
+ * @brief Station disconnected from AP (event handler)
+ * @param[in] arg User-specific parameter
+ * @param[in] eventBase Event base
+ * @param[in] eventId Event identifier
+ * @param[in] eventData Event-specific data
+ **/
+
+void esp32WifiStaDisconnectedEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData)
+{
+   esp_err_t ret;
+
+   //Debug message
+   TRACE_INFO("ESP32: STA disconnected event\r\n");
+
+   //Unregister RX callback
+   ret = esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_STA, NULL);
+
+   //Check status code
+   if(ret == ESP_OK)
+   {
+      //Valid STA interface?
+      if(esp32WifiStaInterface != NULL)
+      {
+         //The link is down
+         esp32WifiStaInterface->linkState = FALSE;
+
+         //Get exclusive access
+         osAcquireMutex(&netMutex);
+         //Process link state change event
+         nicNotifyLinkChange(esp32WifiStaInterface);
+         //Release exclusive access
+         osReleaseMutex(&netMutex);
+      }
+   }
+}
+
+
+/**
+ * @brief Soft-AP start (event handler)
+ * @param[in] arg User-specific parameter
+ * @param[in] eventBase Event base
+ * @param[in] eventId Event identifier
+ * @param[in] eventData Event-specific data
+ **/
+
+void esp32WifiApStartEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData)
+{
+   esp_err_t ret;
+
+   //Debug message
+   TRACE_INFO("ESP32: AP start event\r\n");
+
+   //Register RX callback
+   ret = esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_AP, esp32WifiApRxCallback);
+
+   //Check status code
+   if(ret == ESP_OK)
+   {
+      //Valid AP interface?
+      if(esp32WifiApInterface != NULL)
+      {
+         //The link is up
+         esp32WifiApInterface->linkState = TRUE;
+
+         //Get exclusive access
+         osAcquireMutex(&netMutex);
+         //Process link state change event
+         nicNotifyLinkChange(esp32WifiApInterface);
+         //Release exclusive access
+         osReleaseMutex(&netMutex);
+      }
+   }
+}
+
+
+/**
+ * @brief Soft-AP stop (event handler)
+ * @param[in] arg User-specific parameter
+ * @param[in] eventBase Event base
+ * @param[in] eventId Event identifier
+ * @param[in] eventData Event-specific data
+ **/
+
+void esp32WifiApStopEvent(void *arg, esp_event_base_t eventBase,
+   int32_t eventId, void *eventData)
+{
+   esp_err_t ret;
+
+   //Debug message
+   TRACE_INFO("ESP32: AP stop event\r\n");
+
+   //Unregister RX callback
+   ret = esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_AP, NULL);
+
+   //Check status code
+   if(ret == ESP_OK)
+   {
+      //Valid AP interface?
+      if(esp32WifiApInterface != NULL)
+      {
+         //The link is down
+         esp32WifiApInterface->linkState = FALSE;
+
+         //Get exclusive access
+         osAcquireMutex(&netMutex);
+         //Process link state change event
+         nicNotifyLinkChange(esp32WifiApInterface);
+         //Release exclusive access
+         osReleaseMutex(&netMutex);
+      }
+   }
 }

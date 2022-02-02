@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -307,4 +307,58 @@ void dp83826DumpPhyReg(NetInterface *interface)
 
    //Terminate with a line feed
    TRACE_DEBUG("\r\n");
+}
+
+
+/**
+ * @brief Write MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @param[in] data MMD register value
+ **/
+
+void dp83826WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data)
+{
+   //Select register operation
+   dp83826WritePhyReg(interface, DP83826_REGCR,
+      DP83826_REGCR_CMD_ADDR | (devAddr & DP83826_REGCR_DEVAD));
+
+   //Write MMD register address
+   dp83826WritePhyReg(interface, DP83826_ADDAR, regAddr);
+
+   //Select data operation
+   dp83826WritePhyReg(interface, DP83826_REGCR,
+      DP83826_REGCR_CMD_DATA_NO_POST_INC | (devAddr & DP83826_REGCR_DEVAD));
+
+   //Write the content of the MMD register
+   dp83826WritePhyReg(interface, DP83826_ADDAR, data);
+}
+
+
+/**
+ * @brief Read MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @return MMD register value
+ **/
+
+uint16_t dp83826ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr)
+{
+   //Select register operation
+   dp83826WritePhyReg(interface, DP83826_REGCR,
+      DP83826_REGCR_CMD_ADDR | (devAddr & DP83826_REGCR_DEVAD));
+
+   //Write MMD register address
+   dp83826WritePhyReg(interface, DP83826_ADDAR, regAddr);
+
+   //Select data operation
+   dp83826WritePhyReg(interface, DP83826_REGCR,
+      DP83826_REGCR_CMD_DATA_NO_POST_INC | (devAddr & DP83826_REGCR_DEVAD));
+
+   //Read the content of the MMD register
+   return dp83826ReadPhyReg(interface, DP83826_ADDAR);
 }

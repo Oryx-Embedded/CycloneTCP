@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -872,30 +872,34 @@ void ipv4UpdateErrorStats(NetInterface *interface, error_t error)
    {
    case ERROR_INVALID_HEADER:
       //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_INC_COUNTER32(ipGroup.ipInHdrErrors, 1);
+      MIB2_IP_INC_COUNTER32(ipInHdrErrors, 1);
       IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInHdrErrors, 1);
       IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
       break;
+
    case ERROR_INVALID_ADDRESS:
       //Number of input datagrams discarded because the destination IP address
       //was not a valid address
-      MIB2_INC_COUNTER32(ipGroup.ipInAddrErrors, 1);
+      MIB2_IP_INC_COUNTER32(ipInAddrErrors, 1);
       IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInAddrErrors, 1);
       IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
       break;
+
    case ERROR_PROTOCOL_UNREACHABLE:
       //Number of locally-addressed datagrams received successfully but discarded
       //because of an unknown or unsupported protocol
-      MIB2_INC_COUNTER32(ipGroup.ipInUnknownProtos, 1);
+      MIB2_IP_INC_COUNTER32(ipInUnknownProtos, 1);
       IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInUnknownProtos, 1);
       IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInUnknownProtos, 1);
       break;
+
    case ERROR_INVALID_LENGTH:
       //Number of input IP datagrams discarded because the datagram frame
       //didn't carry enough data
       IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInTruncatedPkts, 1);
       IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInTruncatedPkts, 1);
       break;
+
    default:
       //Just for sanity
       break;

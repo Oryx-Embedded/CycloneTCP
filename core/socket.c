@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,6 +64,7 @@ const SocketMsg SOCKET_DEFAULT_MSG =
 #if (ETH_SUPPORT == ENABLED)
    {{{0}}}, //Source MAC address
    {{{0}}}, //Destination MAC address
+   0,       //Ethernet type field
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    0,       //Switch port identifier
@@ -804,13 +805,11 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
       //Initialize structure
       message = SOCKET_DEFAULT_MSG;
 
-      //Copy data payload
-      message.data = (void *) data;
-      message.length = length;
-
       //Set destination IP address
       if(destIpAddr != NULL)
+      {
          message.destIpAddr = *destIpAddr;
+      }
 
       //Set destination port
       message.destPort = destPort;
@@ -819,6 +818,10 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
       //Connectionless socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
       {
+         //Set data payload
+         message.data = (uint8_t *) data;
+         message.length = length;
+
          //Send UDP datagram
          error = udpSendDatagram(socket, &message, flags);
       }
@@ -828,13 +831,42 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
       //Raw socket?
       if(socket->type == SOCKET_TYPE_RAW_IP)
       {
+         //Set data payload
+         message.data = (uint8_t *) data;
+         message.length = length;
+
          //Send a raw IP packet
          error = rawSocketSendIpPacket(socket, &message, flags);
       }
       else if(socket->type == SOCKET_TYPE_RAW_ETH)
       {
-         //Send a raw Ethernet packet
-         error = rawSocketSendEthPacket(socket, &message, flags);
+         //Sanity check
+         if(length >= sizeof(EthHeader))
+         {
+            EthHeader *header;
+
+            //Point to the Ethernet header
+            header = (EthHeader *) data;
+
+            //Set source and destination MAC addresses
+            message.srcMacAddr = header->srcAddr;
+            message.destMacAddr = header->destAddr;
+
+            //Set the value of the EtherType field
+            message.ethType = ntohs(header->type);
+
+            //Set data payload
+            message.data = (uint8_t *) data + sizeof(EthHeader);
+            message.length = length - sizeof(EthHeader);
+
+            //Send a raw Ethernet packet
+            error = rawSocketSendEthPacket(socket, &message, flags);
+         }
+         else
+         {
+            //Report an error
+            error = ERROR_INVALID_LENGTH;
+         }
       }
       else
 #endif
@@ -996,15 +1028,21 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
 
       //Save the source IP address
       if(srcIpAddr != NULL)
+      {
          *srcIpAddr = socket->remoteIpAddr;
+      }
 
       //Save the source port number
       if(srcPort != NULL)
+      {
          *srcPort = socket->remotePort;
+      }
 
       //Save the destination IP address
       if(destIpAddr != NULL)
+      {
          *destIpAddr = socket->localIpAddr;
+      }
    }
    else
 #endif
@@ -1014,14 +1052,14 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
       //Initialize structure
       message = SOCKET_DEFAULT_MSG;
 
-      //Set data buffer
-      message.data = (void *) data;
-      message.size = size;
-
 #if (UDP_SUPPORT == ENABLED)
       //Connectionless socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
       {
+         //Set data buffer
+         message.data = data;
+         message.size = size;
+
          //Receive UDP datagram
          error = udpReceiveDatagram(socket, &message, flags);
       }
@@ -1031,13 +1069,47 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
       //Raw socket?
       if(socket->type == SOCKET_TYPE_RAW_IP)
       {
+         //Set data buffer
+         message.data = data;
+         message.size = size;
+
          //Receive a raw IP packet
          error = rawSocketReceiveIpPacket(socket, &message, flags);
       }
       else if(socket->type == SOCKET_TYPE_RAW_ETH)
       {
-         //Receive a raw Ethernet packet
-         error = rawSocketReceiveEthPacket(socket, &message, flags);
+         //Sanity check
+         if(size >= sizeof(EthHeader))
+         {
+            //Set data buffer
+            message.data = (uint8_t *) data + sizeof(EthHeader);
+            message.size = size - sizeof(EthHeader);
+
+            //Receive a raw Ethernet packet
+            error = rawSocketReceiveEthPacket(socket, &message, flags);
+            
+            //Check status code
+            if(!error)
+            {
+               EthHeader *header;
+
+               //Point to the Ethernet header
+               header = (EthHeader *) data;
+
+               //Reconstruct Ethernet header
+               header->destAddr = message.destMacAddr;
+               header->srcAddr = message.srcMacAddr;
+               header->type = htons(message.ethType);
+
+               //Ajuste the length of the frame
+               message.length += sizeof(EthHeader);
+            }
+         }
+         else
+         {
+            //Report an error
+            error = ERROR_BUFFER_OVERFLOW;
+         }
       }
       else
 #endif
@@ -1052,15 +1124,21 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
       {
          //Save the source IP address
          if(srcIpAddr != NULL)
+         {
             *srcIpAddr = message.srcIpAddr;
+         }
 
          //Save the source port number
          if(srcPort != NULL)
+         {
             *srcPort = message.srcPort;
+         }
 
          //Save the destination IP address
          if(destIpAddr != NULL)
+         {
             *destIpAddr = message.destIpAddr;
+         }
 
          //Total number of data that have been received
          *received = message.length;
@@ -1150,11 +1228,15 @@ error_t socketGetLocalAddr(Socket *socket, IpAddr *localIpAddr, uint16_t *localP
 
    //Retrieve local IP address
    if(localIpAddr != NULL)
+   {
       *localIpAddr = socket->localIpAddr;
+   }
 
    //Retrieve local port number
    if(localPort != NULL)
+   {
       *localPort = socket->localPort;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -1177,11 +1259,15 @@ error_t socketGetRemoteAddr(Socket *socket, IpAddr *remoteIpAddr, uint16_t *remo
 
    //Retrieve local IP address
    if(remoteIpAddr != NULL)
+   {
       *remoteIpAddr = socket->remoteIpAddr;
+   }
 
    //Retrieve local port number
    if(remotePort != NULL)
+   {
       *remotePort = socket->remotePort;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -1345,21 +1431,38 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
    //Block the current task until an event occurs
    status = osWaitForEvent(event, timeout);
 
+   //Any socket event in the signaled state?
+   if(status)
+   {
+      //Clear flag
+      status = FALSE;
+
+      //Loop through descriptors
+      for(i = 0; i < size; i++)
+      {
+         //Valid socket handle?
+         if(eventDesc[i].socket != NULL)
+         {
+            //Retrieve event flags for the current socket
+            eventDesc[i].eventFlags = socketGetEvents(eventDesc[i].socket);
+            //Clear unnecessary flags
+            eventDesc[i].eventFlags &= eventDesc[i].eventMask;
+
+            //Check whether the socket is ready to perform I/O
+            if(eventDesc[i].eventFlags != 0)
+            {
+               status = TRUE;
+            }
+         }
+      }
+   }
+
    //Loop through descriptors
    for(i = 0; i < size; i++)
    {
       //Valid socket handle?
       if(eventDesc[i].socket != NULL)
       {
-         //Any socket event in the signaled state?
-         if(status)
-         {
-            //Retrieve event flags for the current socket
-            eventDesc[i].eventFlags = socketGetEvents(eventDesc[i].socket);
-            //Clear unnecessary flags
-            eventDesc[i].eventFlags &= eventDesc[i].eventMask;
-         }
-
          //Unsubscribe previously registered events
          socketUnregisterEvents(eventDesc[i].socket);
       }
@@ -1423,7 +1526,9 @@ error_t getHostByName(NetInterface *interface,
 
    //Use default network interface?
    if(interface == NULL)
+   {
       interface = netGetDefaultInterface();
+   }
 
    //The specified name can be either an IP or a host name
    error = ipStringToAddr(name, ipAddr);
@@ -1433,9 +1538,17 @@ error_t getHostByName(NetInterface *interface,
    {
       //The user may provide a hint to choose between IPv4 and IPv6
       if((flags & HOST_TYPE_IPV4) != 0)
+      {
          type = HOST_TYPE_IPV4;
+      }
       else if((flags & HOST_TYPE_IPV6) != 0)
+      {
          type = HOST_TYPE_IPV6;
+      }
+      else
+      {
+         //Just for sanity
+      }
 
       //The user may provide a hint to to select the desired protocol to be used
       if((flags & HOST_NAME_RESOLVER_DNS) != 0)
@@ -1476,6 +1589,9 @@ error_t getHostByName(NetInterface *interface,
 #if (NBNS_CLIENT_SUPPORT == ENABLED)
             //Use NetBIOS Name Service to resolve the specified host name
             protocol = HOST_NAME_RESOLVER_NBNS;
+#elif (LLMNR_CLIENT_SUPPORT == ENABLED)
+            //Use LLMNR to resolve the specified host name
+            protocol = HOST_NAME_RESOLVER_LLMNR;
 #endif
          }
          else if(!osStrchr(name, '.'))

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -36,6 +36,18 @@
    #define BSD_SOCKET_SUPPORT ENABLED
 #elif (BSD_SOCKET_SUPPORT != ENABLED && BSD_SOCKET_SUPPORT != DISABLED)
    #error BSD_SOCKET_SUPPORT parameter is not valid
+#endif
+
+//Maximum number of file descriptors a fd_set object can hold
+#ifndef FD_SETSIZE
+   #define FD_SETSIZE 8
+#elif (FD_SETSIZE < 1)
+   #error FD_SETSIZE parameter is not valid
+#endif
+
+//Set errno variable
+#ifndef BSD_SOCKET_SET_ERRNO
+   #define BSD_SOCKET_SET_ERRNO(e)
 #endif
 
 //Keil RTX port?
@@ -112,6 +124,11 @@
 #define SD_SEND           1
 #define SD_BOTH           2
 
+//Flags used by shutdown function (alias)
+#define SHUT_RD           SD_RECEIVE
+#define SHUT_WR           SD_SEND
+#define SHUT_RDWR         SD_BOTH
+
 //Socket level options
 #define SO_REUSEADDR      0x0004
 #define SO_KEEPALIVE      0x0008
@@ -155,9 +172,39 @@
 //FCNTL flags
 #define O_NONBLOCK        0x0004
 
-//Status codes
+//Flags used by getaddrinfo
+#define AI_PASSIVE        0x01
+#define AI_CANONNAME      0x02
+#define AI_NUMERICHOST    0x04
+#define AI_NUMERICSERV    0x08
+#define AI_ALL            0x10
+#define AI_ADDRCONFIG     0x20
+#define AI_V4MAPPED       0x40
+
+//Flags used by getnameinfo
+#define NI_NOFQDN         0x01
+#define NI_NUMERICHOST    0x02
+#define NI_NAMEREQD       0x04
+#define NI_NUMERICSERV    0x08
+#define NI_DGRAM          0x10
+
+//Return values
 #define SOCKET_SUCCESS    0
 #define SOCKET_ERROR      (-1)
+
+//Return values used by getaddrinfo and getnameinfo
+#define EAI_ADDRFAMILY    1
+#define EAI_AGAIN         2
+#define EAI_BADFLAGS      3
+#define EAI_FAIL          4
+#define EAI_FAMILY        5
+#define EAI_MEMORY        6
+#define EAI_NODATA        7
+#define EAI_NONAME        8
+#define EAI_SERVICE       9
+#define EAI_SOCKTYPE      10
+#define EAI_SYSTEM        11
+#define EAI_OVERFLOW      12
 
 //Error codes
 #define EINTR             4
@@ -165,6 +212,9 @@
 #define EWOULDBLOCK       11
 #define EFAULT            14
 #define EINVAL            22
+#define EINPROGRESS       36
+#define ETIMEDOUT         60
+#define ENAMETOOLONG      63
 #define ENOPROTOOPT       92
 #define ECONNRESET        104
 #define EISCONN           106
@@ -172,7 +222,7 @@
 #define ESHUTDOWN         108
 #define ECONNREFUSED      111
 
-//Host error codes
+//Error codes used by gethostbyname_r
 #define NETDB_SUCCESS  0
 #define HOST_NOT_FOUND 1
 #define TRY_AGAIN      2
@@ -181,13 +231,6 @@
 
 //Return codes
 #define INADDR_NONE ((in_addr_t) (-1))
-
-//Macros for manipulating and checking descriptor sets
-#define FD_SETSIZE 8
-#define FD_ZERO(fds) selectFdZero(fds)
-#define FD_SET(s, fds) selectFdSet(fds, s)
-#define FD_CLR(s, fds) selectFdClr(fds, s)
-#define FD_ISSET(s, fds) selectFdIsSet(fds, s)
 
 //C++ guard
 #ifdef __cplusplus
@@ -299,11 +342,40 @@ typedef struct hostent
 } hostent;
 
 
+/**
+ * @brief Information about address of a service provider
+ **/
+
+typedef struct addrinfo
+{
+   int_t ai_flags;
+   int_t ai_family;
+   int_t ai_socktype;
+   int_t ai_protocol;
+   socklen_t ai_addrlen;
+   sockaddr *ai_addr;
+   char_t *ai_canonname;
+   struct addrinfo *ai_next;
+} addrinfo;
+
+
+//Forward declaration of functions
+void socketFdZero(fd_set *fds);
+void socketFdSet(fd_set *fds, int_t s);
+void socketFdClr(fd_set *fds, int_t s);
+int_t socketFdIsSet(fd_set *fds, int_t s);
+
+//Macros for manipulating and checking descriptor sets
+#define FD_ZERO(fds) socketFdZero(fds)
+#define FD_SET(s, fds) socketFdSet(fds, s)
+#define FD_CLR(s, fds) socketFdClr(fds, s)
+#define FD_ISSET(s, fds) socketFdIsSet(fds, s)
+
 //BSD socket related constants
 extern const in6_addr in6addr_any;
 extern const in6_addr in6addr_loopback;
 
-//BSD socket API
+//BSD socket related functions
 int_t socket(int_t family, int_t type, int_t protocol);
 int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen);
 int_t connect(int_t s, const sockaddr *addr, socklen_t addrlen);
@@ -337,15 +409,19 @@ int_t closesocket(int_t s);
 int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
    fd_set *exceptfds, const timeval *timeout);
 
-void selectFdZero(fd_set *fds);
-void selectFdSet(fd_set *fds, int_t s);
-void selectFdClr(fd_set *fds, int_t s);
-int_t selectFdIsSet(fd_set *fds, int_t s);
-
+int_t gethostname(char_t *name, size_t len);
 hostent *gethostbyname(const char_t *name);
 
 hostent *gethostbyname_r(const char_t *name, hostent *result, char_t *buf,
    size_t buflen, int_t *h_errnop);
+
+int_t getaddrinfo(const char_t *node, const char_t *service,
+   const addrinfo *hints, addrinfo **res);
+
+void freeaddrinfo(addrinfo *res);
+
+int_t getnameinfo(const sockaddr *addr, socklen_t addrlen, char_t *host,
+   size_t hostlen, char_t *serv, size_t servlen, int flags);
 
 in_addr_t inet_addr(const char_t *cp);
 

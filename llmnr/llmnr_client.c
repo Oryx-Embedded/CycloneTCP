@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -317,6 +317,12 @@ error_t llmnrSendQuery(DnsCacheEntry *entry)
 
    //Additional options can be passed to the stack along with the packet
    ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //For UDP queries, the Hop Limit field in the IPv6 header and the TTL
+   //field in the IPV4 header MAY be set to any value. However, it is
+   //recommended that the value 255 be used for compatibility with early
+   //implementations (refer to RFC 4795, section 2.5)
+   ancillary.ttl = LLMNR_DEFAULT_IP_TTL;
 
    //LLMNR queries are sent to and received on port 5355
    error = udpSendBuffer(entry->interface, NULL, entry->port, &destIpAddr,

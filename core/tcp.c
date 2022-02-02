@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -207,7 +207,7 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePo
 
       //Number of times TCP connections have made a direct transition to
       //the SYN-SENT state from the CLOSED state
-      MIB2_INC_COUNTER32(tcpGroup.tcpActiveOpens, 1);
+      MIB2_TCP_INC_COUNTER32(tcpActiveOpens, 1);
       TCP_MIB_INC_COUNTER32(tcpActiveOpens, 1);
    }
 
@@ -409,7 +409,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
 
             //Number of times TCP connections have made a direct transition to
             //the SYN-RECEIVED state from the LISTEN state
-            MIB2_INC_COUNTER32(tcpGroup.tcpPassiveOpens, 1);
+            MIB2_TCP_INC_COUNTER32(tcpPassiveOpens, 1);
             TCP_MIB_INC_COUNTER32(tcpPassiveOpens, 1);
 
             //Send a SYN ACK control segment

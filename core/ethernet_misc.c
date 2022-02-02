@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -389,7 +389,7 @@ void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr)
    if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
    {
       //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInNUcastPkts, 1);
 
       //Number of broadcast packets delivered to a higher-layer protocol
       IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInBroadcastPkts, 1);
@@ -398,7 +398,7 @@ void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr)
    else if(macIsMulticastAddr(destMacAddr))
    {
       //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInNUcastPkts, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInNUcastPkts, 1);
 
       //Number of multicast packets delivered to a higher-layer protocol
       IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInMulticastPkts, 1);
@@ -407,7 +407,7 @@ void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr)
    else
    {
       //Number of unicast packets delivered to a higher-layer protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInUcastPkts, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInUcastPkts, 1);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUcastPkts, 1);
       IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInUcastPkts, 1);
    }
@@ -425,7 +425,7 @@ void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr,
    size_t length)
 {
    //Total number of octets transmitted out of the interface
-   MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutOctets, length);
+   MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
    IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
    IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutOctets, length);
 
@@ -433,7 +433,7 @@ void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr,
    if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
    {
       //Number of non-unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutNUcastPkts, 1);
 
       //Number of broadcast packets that higher-level protocols requested be transmitted
       IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutBroadcastPkts, 1);
@@ -442,7 +442,7 @@ void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr,
    else if(macIsMulticastAddr(destMacAddr))
    {
       //Number of non-unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutNUcastPkts, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutNUcastPkts, 1);
 
       //Number of multicast packets that higher-level protocols requested be transmitted
       IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutMulticastPkts, 1);
@@ -451,7 +451,7 @@ void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr,
    else
    {
       //Number of unicast packets that higher-level protocols requested be transmitted
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifOutUcastPkts, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutUcastPkts, 1);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutUcastPkts, 1);
       IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutUcastPkts, 1);
    }
@@ -473,19 +473,19 @@ void ethUpdateErrorStats(NetInterface *interface, error_t error)
    case ERROR_WRONG_IDENTIFIER:
       //Number of inbound packets which were chosen to be discarded even
       //though no errors had been detected
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInDiscards, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
       break;
    case ERROR_INVALID_LENGTH:
    case ERROR_WRONG_CHECKSUM:
       //Number of inbound packets that contained errors
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInErrors, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInErrors, 1);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInErrors, 1);
       break;
    case ERROR_INVALID_PROTOCOL:
       //Number of packets received via the interface which were discarded
       //because of an unknown or unsupported protocol
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInUnknownProtos, 1);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInUnknownProtos, 1);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUnknownProtos, 1);
       break;
    default:

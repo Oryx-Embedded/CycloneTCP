@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -82,7 +82,7 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
    TcpHeader *segment;
 
    //Total number of segments received, including those received in error
-   MIB2_INC_COUNTER32(tcpGroup.tcpInSegs, 1);
+   MIB2_TCP_INC_COUNTER32(tcpInSegs, 1);
    TCP_MIB_INC_COUNTER32(tcpInSegs, 1);
    TCP_MIB_INC_COUNTER64(tcpHCInSegs, 1);
 
@@ -131,7 +131,7 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
       TRACE_WARNING("TCP segment length is invalid!\r\n");
 
       //Total number of segments received in error
-      MIB2_INC_COUNTER32(tcpGroup.tcpInErrs, 1);
+      MIB2_TCP_INC_COUNTER32(tcpInErrs, 1);
       TCP_MIB_INC_COUNTER32(tcpInErrs, 1);
 
       //Exit immediately
@@ -145,7 +145,7 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
       TRACE_WARNING("TCP header length is invalid!\r\n");
 
       //Total number of segments received in error
-      MIB2_INC_COUNTER32(tcpGroup.tcpInErrs, 1);
+      MIB2_TCP_INC_COUNTER32(tcpInErrs, 1);
       TCP_MIB_INC_COUNTER32(tcpInErrs, 1);
 
       //Exit immediately
@@ -160,7 +160,7 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
       TRACE_WARNING("Wrong TCP header checksum!\r\n");
 
       //Total number of segments received in error
-      MIB2_INC_COUNTER32(tcpGroup.tcpInErrs, 1);
+      MIB2_TCP_INC_COUNTER32(tcpInErrs, 1);
       TCP_MIB_INC_COUNTER32(tcpInErrs, 1);
 
       //Exit immediately
@@ -630,7 +630,7 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
 
          //Number of times TCP connections have made a direct transition to the
          //CLOSED state from either the SYN-SENT state or the SYN-RECEIVED state
-         MIB2_INC_COUNTER32(tcpGroup.tcpAttemptFails, 1);
+         MIB2_TCP_INC_COUNTER32(tcpAttemptFails, 1);
          TCP_MIB_INC_COUNTER32(tcpAttemptFails, 1);
       }
 
@@ -746,7 +746,7 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
 
       //Number of times TCP connections have made a direct transition to the
       //CLOSED state from either the SYN-SENT state or the SYN-RECEIVED state
-      MIB2_INC_COUNTER32(tcpGroup.tcpAttemptFails, 1);
+      MIB2_TCP_INC_COUNTER32(tcpAttemptFails, 1);
       TCP_MIB_INC_COUNTER32(tcpAttemptFails, 1);
 
       //Return immediately
@@ -821,7 +821,7 @@ void tcpStateEstablished(Socket *socket, TcpHeader *segment,
 
       //Number of times TCP connections have made a direct transition to the
       //CLOSED state from either the ESTABLISHED state or the CLOSE-WAIT state
-      MIB2_INC_COUNTER32(tcpGroup.tcpEstabResets, 1);
+      MIB2_TCP_INC_COUNTER32(tcpEstabResets, 1);
       TCP_MIB_INC_COUNTER32(tcpEstabResets, 1);
 
       //Return immediately
@@ -905,7 +905,7 @@ void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
 
       //Number of times TCP connections have made a direct transition to the
       //CLOSED state from either the ESTABLISHED state or the CLOSE-WAIT state
-      MIB2_INC_COUNTER32(tcpGroup.tcpEstabResets, 1);
+      MIB2_TCP_INC_COUNTER32(tcpEstabResets, 1);
       TCP_MIB_INC_COUNTER32(tcpEstabResets, 1);
 
       //Return immediately

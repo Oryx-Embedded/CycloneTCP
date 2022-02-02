@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -62,7 +62,7 @@ void icmpProcessMessage(NetInterface *interface,
    IcmpHeader *header;
 
    //Total number of ICMP messages which the entity received
-   MIB2_INC_COUNTER32(icmpGroup.icmpInMsgs, 1);
+   MIB2_ICMP_INC_COUNTER32(icmpInMsgs, 1);
    IP_MIB_INC_COUNTER32(icmpStats.icmpStatsInMsgs, 1);
 
    //Retrieve the length of the ICMP message
@@ -73,7 +73,7 @@ void icmpProcessMessage(NetInterface *interface,
    {
       //Number of ICMP messages which the entity received but determined
       //as having ICMP-specific errors
-      MIB2_INC_COUNTER32(icmpGroup.icmpInErrors, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInErrors, 1);
       IP_MIB_INC_COUNTER32(icmpStats.icmpStatsInErrors, 1);
 
       //Silently discard incoming message
@@ -99,7 +99,7 @@ void icmpProcessMessage(NetInterface *interface,
 
       //Number of ICMP messages which the entity received but determined
       //as having ICMP-specific errors
-      MIB2_INC_COUNTER32(icmpGroup.icmpInErrors, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInErrors, 1);
       IP_MIB_INC_COUNTER32(icmpStats.icmpStatsInErrors, 1);
 
       //Drop incoming message
@@ -375,48 +375,59 @@ void icmpUpdateInStats(uint8_t type)
    {
    case ICMP_TYPE_DEST_UNREACHABLE:
       //Number of ICMP Destination Unreachable messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInDestUnreachs, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInDestUnreachs, 1);
       break;
+
    case ICMP_TYPE_TIME_EXCEEDED:
       //Number of ICMP Time Exceeded messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInTimeExcds, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInTimeExcds, 1);
       break;
+
    case ICMP_TYPE_PARAM_PROBLEM:
       //Number of ICMP Parameter Problem messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInParmProbs, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInParmProbs, 1);
       break;
+
    case ICMP_TYPE_SOURCE_QUENCH:
       //Number of ICMP Source Quench messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInSrcQuenchs, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInSrcQuenchs, 1);
       break;
+
    case ICMP_TYPE_REDIRECT:
       //Number of ICMP Redirect messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInRedirects, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInRedirects, 1);
       break;
+
    case ICMP_TYPE_ECHO_REQUEST:
       //Number of ICMP Echo Request messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInEchos, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInEchos, 1);
       break;
+
    case ICMP_TYPE_INFO_REPLY:
       //Number of ICMP Echo Reply messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInEchoReps, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInEchoReps, 1);
       break;
+
    case ICMP_TYPE_TIMESTAMP_REQUEST:
       //Number of ICMP Timestamp Request messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInTimestamps, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInTimestamps, 1);
       break;
+
    case ICMP_TYPE_TIMESTAMP_REPLY:
       //Number of ICMP Timestamp Reply messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInTimestampReps, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInTimestampReps, 1);
       break;
+
    case ICMP_TYPE_ADDR_MASK_REQUEST:
       //Number of ICMP Address Mask Request messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInAddrMasks, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInAddrMasks, 1);
       break;
+
    case ICMP_TYPE_ADDR_MASK_REPLY:
       //Number of ICMP Address Mask Reply messages received
-      MIB2_INC_COUNTER32(icmpGroup.icmpInAddrMaskReps, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpInAddrMaskReps, 1);
       break;
+
    default:
       //Just for sanity
       break;
@@ -435,7 +446,7 @@ void icmpUpdateInStats(uint8_t type)
 void icmpUpdateOutStats(uint8_t type)
 {
    //Total number of ICMP messages which this entity attempted to send
-   MIB2_INC_COUNTER32(icmpGroup.icmpOutMsgs, 1);
+   MIB2_ICMP_INC_COUNTER32(icmpOutMsgs, 1);
    IP_MIB_INC_COUNTER32(icmpStats.icmpStatsOutMsgs, 1);
 
    //Check ICMP message type
@@ -443,48 +454,59 @@ void icmpUpdateOutStats(uint8_t type)
    {
    case ICMP_TYPE_DEST_UNREACHABLE:
       //Number of ICMP Destination Unreachable messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutDestUnreachs, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutDestUnreachs, 1);
       break;
+
    case ICMP_TYPE_TIME_EXCEEDED:
       //Number of ICMP Time Exceeded messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutTimeExcds, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutTimeExcds, 1);
       break;
+
    case ICMP_TYPE_PARAM_PROBLEM:
       //Number of ICMP Parameter Problem messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutParmProbs, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutParmProbs, 1);
       break;
+
    case ICMP_TYPE_SOURCE_QUENCH:
       //Number of ICMP Source Quench messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutSrcQuenchs, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutSrcQuenchs, 1);
       break;
+
    case ICMP_TYPE_REDIRECT:
       //Number of ICMP Redirect messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutRedirects, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutRedirects, 1);
       break;
+
    case ICMP_TYPE_ECHO_REQUEST:
       //Number of ICMP Echo Request messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutEchos, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutEchos, 1);
       break;
+
    case ICMP_TYPE_INFO_REPLY:
       //Number of ICMP Echo Reply messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutEchoReps, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutEchoReps, 1);
       break;
+
    case ICMP_TYPE_TIMESTAMP_REQUEST:
       //Number of ICMP Timestamp Request messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutTimestamps, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutTimestamps, 1);
       break;
+
    case ICMP_TYPE_TIMESTAMP_REPLY:
       //Number of ICMP Timestamp Reply messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutTimestampReps, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutTimestampReps, 1);
       break;
+
    case ICMP_TYPE_ADDR_MASK_REQUEST:
       //Number of ICMP Address Mask Request messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutAddrMasks, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutAddrMasks, 1);
       break;
+
    case ICMP_TYPE_ADDR_MASK_REPLY:
       //Number of ICMP Address Mask Reply messages sent
-      MIB2_INC_COUNTER32(icmpGroup.icmpOutAddrMaskReps, 1);
+      MIB2_ICMP_INC_COUNTER32(icmpOutAddrMaskReps, 1);
       break;
+
    default:
       //Just for sanity
       break;

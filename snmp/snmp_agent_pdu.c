@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -118,7 +118,7 @@ error_t snmpProcessPdu(SnmpAgentContext *context)
       {
          //Total number of SNMP Get-Response PDUs which have been generated
          //by the SNMP protocol entity
-         MIB2_INC_COUNTER32(snmpGroup.snmpOutGetResponses, 1);
+         MIB2_SNMP_INC_COUNTER32(snmpOutGetResponses, 1);
 
          //Format PDU header
          error = snmpWritePduHeader(&context->response);
@@ -153,7 +153,7 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
 
       //Total number of SNMP Get-Request PDUs which have been accepted and
       //processed by the SNMP protocol entity
-      MIB2_INC_COUNTER32(snmpGroup.snmpInGetRequests, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInGetRequests, 1);
    }
    else if(context->request.pduType == SNMP_PDU_GET_NEXT_REQUEST)
    {
@@ -162,7 +162,7 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
 
       //Total number of SNMP Get-NextRequest PDUs which have been accepted
       //and processed by the SNMP protocol entity
-      MIB2_INC_COUNTER32(snmpGroup.snmpInGetNexts, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInGetNexts, 1);
    }
 
    //Enforce access policy
@@ -171,7 +171,7 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
    {
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which represented an SNMP operation which was not allowed by the SNMP
-      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInBadCommunityUses, 1);
       SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
 
       //Report an error
@@ -300,7 +300,7 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
          //Total number of MIB objects which have been retrieved successfully
          //by the SNMP protocol entity as the result of receiving valid SNMP
          //Get-Request and Get-NextRequest PDUs
-         MIB2_INC_COUNTER32(snmpGroup.snmpInTotalReqVars, 1);
+         MIB2_SNMP_INC_COUNTER32(snmpInTotalReqVars, 1);
       }
 
       //Append variable binding to the list
@@ -391,7 +391,7 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
    {
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which represented an SNMP operation which was not allowed by the SNMP
-      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInBadCommunityUses, 1);
       SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
 
       //Report an error
@@ -504,7 +504,7 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
          //Total number of MIB objects which have been retrieved successfully
          //by the SNMP protocol entity as the result of receiving valid SNMP
          //Get-Request and Get-NextRequest PDUs
-         MIB2_INC_COUNTER32(snmpGroup.snmpInTotalReqVars, 1);
+         MIB2_SNMP_INC_COUNTER32(snmpInTotalReqVars, 1);
       }
 
       //Append variable binding to the list
@@ -594,7 +594,7 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
 
    //Total number of SNMP Set-Request PDUs which have been accepted and
    //processed by the SNMP protocol entity
-   MIB2_INC_COUNTER32(snmpGroup.snmpInSetRequests, 1);
+   MIB2_SNMP_INC_COUNTER32(snmpInSetRequests, 1);
 
    //Enforce access policy
    if(context->user.mode != SNMP_ACCESS_WRITE_ONLY &&
@@ -602,7 +602,7 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
    {
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which represented an SNMP operation which was not allowed by the SNMP
-      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInBadCommunityUses, 1);
       SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityUses, 1);
 
       //Report an error
@@ -669,7 +669,7 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
          //Total number of MIB objects which have been altered successfully
          //by the SNMP protocol entity as the result of receiving valid
          //SNMP Set-Request PDUs
-         MIB2_INC_COUNTER32(snmpGroup.snmpInTotalSetVars, 1);
+         MIB2_SNMP_INC_COUNTER32(snmpInTotalSetVars, 1);
 
          //Advance data pointer
          p += n;

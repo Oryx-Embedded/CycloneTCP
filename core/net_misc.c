@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -61,6 +61,7 @@
 #include "netbios/nbns_client.h"
 #include "netbios/nbns_responder.h"
 #include "netbios/nbns_common.h"
+#include "llmnr/llmnr_client.h"
 #include "llmnr/llmnr_responder.h"
 #include "mibs/mib2_module.h"
 #include "mibs/if_mib_module.h"
@@ -104,6 +105,7 @@ const NetRxAncillary NET_DEFAULT_RX_ANCILLARY =
 #if (ETH_SUPPORT == ENABLED)
    {{{0}}}, //Source MAC address
    {{{0}}}, //Destination MAC address
+   0,       //Ethernet type field
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    0,       //Ingress port identifier
@@ -246,10 +248,10 @@ void netProcessLinkChange(NetInterface *interface)
    }
 
    //The time at which the interface entered its current operational state
-   MIB2_SET_TIME_TICKS(ifGroup.ifTable[interface->index].ifLastChange,
-      osGetSystemTime() / 10);
+   MIB2_IF_SET_TIME_TICKS(ifTable[interface->index].ifLastChange,
+      osGetSystemTime64() / 10);
    IF_MIB_SET_TIME_TICKS(ifTable[interface->index].ifLastChange,
-      osGetSystemTime() / 10);
+      osGetSystemTime64() / 10);
 
 #if (IPV4_SUPPORT == ENABLED)
    //Notify IPv4 of link state changes
@@ -667,7 +669,7 @@ void netTick(void)
 #endif
 
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
-   NBNS_CLIENT_SUPPORT == ENABLED)
+   NBNS_CLIENT_SUPPORT == ENABLED || LLMNR_CLIENT_SUPPORT == ENABLED)
    //Increment tick counter
    dnsTickCounter += NET_TICK_INTERVAL;
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -463,7 +463,7 @@ error_t ftpClientParsePwdReply(FtpClientContext *context, char_t *path,
    length = MIN(length, maxLen);
 
    //Copy the string
-   osStrncpy(path, p + 1, length);
+   osMemcpy(path, p + 1, length);
    //Properly terminate the string with a NULL character
    path[length] = '\0';
 
@@ -589,7 +589,7 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       n = MIN(n, FTP_CLIENT_MAX_FILENAME_LEN);
 
       //Copy the filename
-      osStrncpy(dirEntry->name, token, n);
+      osMemcpy(dirEntry->name, token, n);
       //Properly terminate the string with a NULL character
       dirEntry->name[n] = '\0';
    }
@@ -699,7 +699,7 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       n = MIN(n, FTP_CLIENT_MAX_FILENAME_LEN);
 
       //Copy the filename
-      osStrncpy(dirEntry->name, token, n);
+      osMemcpy(dirEntry->name, token, n);
       //Properly terminate the string with a NULL character
       dirEntry->name[n] = '\0';
    }

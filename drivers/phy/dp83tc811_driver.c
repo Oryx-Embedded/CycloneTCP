@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -291,14 +291,14 @@ void dp83tc811WriteMmdReg(NetInterface *interface, uint8_t devAddr,
 {
    //Select register operation
    dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_ADDR | (devAddr & DP83TC811_REGCR_DEVAD));
+      DP83TC811_REGCR_CMD_ADDR | (devAddr & DP83TC811_REGCR_DEVAD));
 
    //Write MMD register address
    dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, regAddr);
 
    //Select data operation
    dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_DATA_NO_POST_INC | (devAddr & DP83TC811_REGCR_DEVAD));
+      DP83TC811_REGCR_CMD_DATA_NO_POST_INC | (devAddr & DP83TC811_REGCR_DEVAD));
 
    //Write the content of the MMD register
    dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, data);
@@ -318,14 +318,14 @@ uint16_t dp83tc811ReadMmdReg(NetInterface *interface, uint8_t devAddr,
 {
    //Select register operation
    dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_ADDR | (devAddr & DP83TC811_REGCR_DEVAD));
+      DP83TC811_REGCR_CMD_ADDR | (devAddr & DP83TC811_REGCR_DEVAD));
 
    //Write MMD register address
    dp83tc811WritePhyReg(interface, DP83TC811_ADDAR, regAddr);
 
    //Select data operation
    dp83tc811WritePhyReg(interface, DP83TC811_REGCR,
-      DP83TC811_REGCR_COMMAND_DATA_NO_POST_INC | (devAddr & DP83TC811_REGCR_DEVAD));
+      DP83TC811_REGCR_CMD_DATA_NO_POST_INC | (devAddr & DP83TC811_REGCR_DEVAD));
 
    //Read the content of the MMD register
    return dp83tc811ReadPhyReg(interface, DP83TC811_ADDAR);

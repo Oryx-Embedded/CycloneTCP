@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 #ifndef _LLMNR_COMMON_H
@@ -45,7 +45,7 @@
 //LLMNR port number
 #define LLMNR_PORT 5355
 //Default IP TTL value
-#define LLMNR_DEFAULT_IP_TTL 255
+#define LLMNR_DEFAULT_IP_TTL 1
 
 //LLMNR IPv4 multicast group
 #define LLMNR_IPV4_MULTICAST_ADDR IPV4_ADDR(224, 0, 0, 252)
@@ -98,7 +98,6 @@ typedef __start_packed struct
 #if defined(__CWCC__) || defined(_WIN32)
    #pragma pack(pop)
 #endif
-
 
 //LLMNR IPv6 multicast group
 extern const Ipv6Addr LLMNR_IPV6_MULTICAST_ADDR;

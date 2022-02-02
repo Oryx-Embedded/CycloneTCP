@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -149,7 +149,7 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
       header = (EthHeader *) frame;
 
       //Total number of octets received on the interface
-      MIB2_INC_COUNTER32(ifGroup.ifTable[interface->index].ifInOctets, length);
+      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInOctets, length);
       IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInOctets, length);
       IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInOctets, length);
 
@@ -308,6 +308,9 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
          //Save source and destination MAC addresses
          ancillary->srcMacAddr = header->srcAddr;
          ancillary->destMacAddr = header->destAddr;
+
+         //Save the value of the EtherType field
+         ancillary->ethType = type;
 
          //Update Ethernet statistics
          ethUpdateInStats(virtualInterface, &header->destAddr);

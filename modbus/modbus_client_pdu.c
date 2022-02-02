@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -270,6 +270,7 @@ error_t modbusClientFormatWriteSingleRegReq(ModbusClientContext *context,
 error_t modbusClientFormatWriteMultipleCoilsReq(ModbusClientContext *context,
    uint16_t address, uint_t quantity, const uint8_t *value)
 {
+   uint8_t mask;
    size_t length;
    ModbusWriteMultipleCoilsReq *request;
 
@@ -284,6 +285,13 @@ error_t modbusClientFormatWriteMultipleCoilsReq(ModbusClientContext *context,
 
    //Copy coil values
    osMemcpy(request->outputValue, value, request->byteCount);
+
+   //Unused bits in the last data byte should be zero–filled
+   if((quantity % 8) != 0)
+   {
+      mask = (1 << (quantity % 8)) - 1;
+      request->outputValue[request->byteCount - 1] &= mask;
+   }
 
    //Compute the length of the request PDU
    length = sizeof(ModbusWriteMultipleCoilsReq) + request->byteCount;

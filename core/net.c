@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -490,12 +490,14 @@ error_t netSetInterfaceName(NetInterface *interface, const char_t *name)
    if(interface == NULL || name == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Make sure the length of the interface name is acceptable
+   if(osStrlen(name) > NET_MAX_IF_NAME_LEN)
+      return ERROR_INVALID_LENGTH;
+
    //Get exclusive access
    osAcquireMutex(&netMutex);
-
    //Set interface name
-   strSafeCopy(interface->name, name, NET_MAX_IF_NAME_LEN);
-
+   osStrcpy(interface->name, name);
    //Release exclusive access
    osReleaseMutex(&netMutex);
 
@@ -517,12 +519,14 @@ error_t netSetHostname(NetInterface *interface, const char_t *name)
    if(interface == NULL || name == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Make sure the length of the host name is acceptable
+   if(osStrlen(name) > NET_MAX_HOSTNAME_LEN)
+      return ERROR_INVALID_LENGTH;
+
    //Get exclusive access
    osAcquireMutex(&netMutex);
-
    //Set host name
-   strSafeCopy(interface->hostname, name, NET_MAX_HOSTNAME_LEN);
-
+   osStrcpy(interface->hostname, name);
    //Release exclusive access
    osReleaseMutex(&netMutex);
 
@@ -930,18 +934,110 @@ bool_t netGetLinkState(NetInterface *interface)
    bool_t linkState;
 
    //Make sure the network interface is valid
-   if(interface == NULL)
-      return FALSE;
-
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
-   //Retrieve link state
-   linkState = interface->linkState;
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
+   if(interface != NULL)
+   {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
+      //Retrieve link state
+      linkState = interface->linkState;
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+   }
+   else
+   {
+      //Unknown link state
+      linkState = FALSE;
+   }
 
    //Return link state
    return linkState;
+}
+
+
+/**
+ * @brief Get link speed
+ * @param[in] interface Pointer to the desired network interface
+ * @return Link speed
+ **/
+
+uint_t netGetLinkSpeed(NetInterface *interface)
+{
+   uint_t linkSpeed;
+
+   //Make sure the network interface is valid
+   if(interface != NULL)
+   {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
+      //Retrieve link speed
+      linkSpeed = interface->linkSpeed;
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+   }
+   else
+   {
+      //Unknown link speed
+      linkSpeed = NIC_LINK_SPEED_UNKNOWN;
+   }
+
+   //Return link speed
+   return linkSpeed;
+}
+
+
+/**
+ * @brief Get duplex mode
+ * @param[in] interface Pointer to the desired network interface
+ * @return Duplex mode
+ **/
+
+NicDuplexMode netGetDuplexMode(NetInterface *interface)
+{
+   NicDuplexMode duplexMode;
+
+   //Make sure the network interface is valid
+   if(interface != NULL)
+   {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
+      //Retrieve duplex mode
+      duplexMode = interface->duplexMode;
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+   }
+   else
+   {
+      //Unknown duplex mode
+      duplexMode = NIC_UNKNOWN_DUPLEX_MODE;
+   }
+
+   //Return duplex mode
+   return duplexMode;
+}
+
+
+/**
+ * @brief Enable promiscuous mode
+ * @param[in] interface Pointer to the desired network interface
+ * @param[in] enable Enable or disable promiscuous mode
+ * @return Error code
+ **/
+
+error_t netEnablePromiscuousMode(NetInterface *interface, bool_t enable)
+{
+   //Make sure the network interface is valid
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Enable or disable promiscuous mode
+   interface->promiscuous = enable;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
 }
 
 

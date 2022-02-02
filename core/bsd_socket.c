@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -35,6 +35,7 @@
 #include <string.h>
 #include "core/net.h"
 #include "core/bsd_socket.h"
+#include "core/bsd_socket_misc.h"
 #include "core/socket.h"
 #include "core/socket_misc.h"
 #include "debug.h"
@@ -48,53 +49,6 @@ const in6_addr in6addr_any =
 
 const in6_addr in6addr_loopback =
    {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}};
-
-
-/**
- * @brief Translate error code
- * @param[in] error Error code to be translated
- * @return BSD error code
- **/
-
-int_t socketTranslateErrorCode(error_t error)
-{
-   int_t ret;
-
-   //Translate error code
-   switch(error)
-   {
-   case NO_ERROR:
-      ret = 0;
-      break;
-   case ERROR_TIMEOUT:
-      ret = EWOULDBLOCK;
-      break;
-   case ERROR_INVALID_PARAMETER:
-      ret = EINVAL;
-      break;
-   case ERROR_CONNECTION_RESET:
-      ret = ECONNRESET;
-      break;
-   case ERROR_ALREADY_CONNECTED:
-      ret = EISCONN;
-      break;
-   case ERROR_NOT_CONNECTED:
-      ret = ENOTCONN;
-      break;
-   case ERROR_CONNECTION_CLOSING:
-      ret = ESHUTDOWN;
-      break;
-   case ERROR_CONNECTION_FAILED:
-      ret = ECONNREFUSED;
-      break;
-   default:
-      ret = EFAULT;
-      break;
-   }
-
-   //Return BSD status code
-   return ret;
-}
 
 
 /**
@@ -168,7 +122,7 @@ int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen)
    if(addrlen < (socklen_t) sizeof(sockaddr))
    {
       //Report an error
-      sock->errnoCode = EINVAL;
+      socketSetErrnoCode(sock, EINVAL);
       return SOCKET_ERROR;
    }
 
@@ -221,7 +175,7 @@ int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen)
    //Invalid address?
    {
       //Report an error
-      sock->errnoCode = EINVAL;
+      socketSetErrnoCode(sock, EINVAL);
       return SOCKET_ERROR;
    }
 
@@ -231,7 +185,7 @@ int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen)
    //Any error to report?
    if(error)
    {
-      sock->errnoCode = socketTranslateErrorCode(error);
+      socketTranslateErrorCode(sock, error);
       return SOCKET_ERROR;
    }
 
@@ -268,7 +222,7 @@ int_t connect(int_t s, const sockaddr *addr, socklen_t addrlen)
    //Check the length of the address
    if(addrlen < (socklen_t) sizeof(sockaddr))
    {
-      sock->errnoCode = EINVAL;
+      socketSetErrnoCode(sock, EINVAL);
       return SOCKET_ERROR;
    }
 
@@ -321,22 +275,42 @@ int_t connect(int_t s, const sockaddr *addr, socklen_t addrlen)
    //Invalid address?
    {
       //Report an error
-      sock->errnoCode = EINVAL;
+      socketSetErrnoCode(sock, EINVAL);
       return SOCKET_ERROR;
    }
 
    //Establish connection
    error = socketConnect(sock, &ipAddr, port);
 
-   //Any error to report?
-   if(error)
+   //Check status code
+   if(error == NO_ERROR)
    {
-      sock->errnoCode = socketTranslateErrorCode(error);
+      //Successful processing
+      return SOCKET_SUCCESS;
+   }
+   else if(error == ERROR_TIMEOUT)
+   {
+      //Non-blocking socket?
+      if(sock->timeout == 0)
+      {
+         //The connection cannot be completed immediately
+         socketSetErrnoCode(sock, EINPROGRESS);
+      }
+      else
+      {
+         //Timeout while attempting connection
+         socketSetErrnoCode(sock, ETIMEDOUT);
+      }
+
+      //Report an error
       return SOCKET_ERROR;
    }
-
-   //Successful processing
-   return SOCKET_SUCCESS;
+   else
+   {
+      //Report an error
+      socketTranslateErrorCode(sock, error);
+      return SOCKET_ERROR;
+   }
 }
 
 
@@ -371,7 +345,7 @@ int_t listen(int_t s, int_t backlog)
    //Any error to report?
    if(error)
    {
-      sock->errnoCode = socketTranslateErrorCode(error);
+      socketTranslateErrorCode(sock, error);
       return SOCKET_ERROR;
    }
 
@@ -412,7 +386,7 @@ int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen)
    if(newSock == NULL)
    {
       //Report an error
-      sock->errnoCode = EWOULDBLOCK;
+      socketSetErrnoCode(sock, EWOULDBLOCK);
       return SOCKET_ERROR;
    }
 
@@ -429,6 +403,7 @@ int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen)
          //Set address family and port number
          sa->sin_family = AF_INET;
          sa->sin_port = htons(port);
+
          //Copy IPv4 address
          sa->sin_addr.s_addr = ipAddr.ipv4Addr;
 
@@ -447,6 +422,7 @@ int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen)
          //Set address family and port number
          sa->sin6_family = AF_INET6;
          sa->sin6_port = htons(port);
+
          //Copy IPv6 address
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &ipAddr.ipv6Addr);
 
@@ -459,8 +435,9 @@ int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen)
       {
          //Close socket
          socketClose(newSock);
+
          //Report an error
-         sock->errnoCode = EINVAL;
+         socketSetErrnoCode(sock, EINVAL);
          return SOCKET_ERROR;
       }
    }
@@ -511,14 +488,14 @@ int_t send(int_t s, const void *data, size_t length, int_t flags)
       else
       {
          //If no data has been written, a value of SOCKET_ERROR is returned
-         sock->errnoCode = socketTranslateErrorCode(error);
+         socketTranslateErrorCode(sock, error);
          return SOCKET_ERROR;
       }
    }
    else if(error != NO_ERROR)
    {
       //Otherwise, a value of SOCKET_ERROR is returned
-      sock->errnoCode = socketTranslateErrorCode(error);
+      socketTranslateErrorCode(sock, error);
       return SOCKET_ERROR;
    }
 
@@ -562,7 +539,7 @@ int_t sendto(int_t s, const void *data, size_t length,
    if(addrlen < (socklen_t) sizeof(sockaddr))
    {
       //Report an error
-      sock->errnoCode = EINVAL;
+      socketSetErrnoCode(sock, EINVAL);
       return SOCKET_ERROR;
    }
 
@@ -599,7 +576,7 @@ int_t sendto(int_t s, const void *data, size_t length,
    //Invalid address?
    {
       //Report an error
-      sock->errnoCode = EINVAL;
+      socketSetErrnoCode(sock, EINVAL);
       return SOCKET_ERROR;
    }
 
@@ -618,14 +595,14 @@ int_t sendto(int_t s, const void *data, size_t length,
       else
       {
          //If no data has been written, a value of SOCKET_ERROR is returned
-         sock->errnoCode = socketTranslateErrorCode(error);
+         socketTranslateErrorCode(sock, error);
          return SOCKET_ERROR;
       }
    }
    else if(error != NO_ERROR)
    {
       //Otherwise, a value of SOCKET_ERROR is returned
-      sock->errnoCode = socketTranslateErrorCode(error);
+      socketTranslateErrorCode(sock, error);
       return SOCKET_ERROR;
    }
 
@@ -672,7 +649,7 @@ int_t recv(int_t s, void *data, size_t size, int_t flags)
    else if(error != NO_ERROR)
    {
       //Otherwise, a value of SOCKET_ERROR is returned
-      sock->errnoCode = socketTranslateErrorCode(error);
+      socketTranslateErrorCode(sock, error);
       return SOCKET_ERROR;
    }
 
@@ -724,7 +701,7 @@ int_t recvfrom(int_t s, void *data, size_t size,
    else if(error != NO_ERROR)
    {
       //Otherwise, a value of SOCKET_ERROR is returned
-      sock->errnoCode = socketTranslateErrorCode(error);
+      socketTranslateErrorCode(sock, error);
       return SOCKET_ERROR;
    }
 
@@ -741,6 +718,7 @@ int_t recvfrom(int_t s, void *data, size_t size,
          //Set address family and port number
          sa->sin_family = AF_INET;
          sa->sin_port = htons(port);
+
          //Copy IPv4 address
          sa->sin_addr.s_addr = ipAddr.ipv4Addr;
 
@@ -759,6 +737,7 @@ int_t recvfrom(int_t s, void *data, size_t size,
          //Set address family and port number
          sa->sin6_family = AF_INET6;
          sa->sin6_port = htons(port);
+
          //Copy IPv6 address
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &ipAddr.ipv6Addr);
 
@@ -770,7 +749,7 @@ int_t recvfrom(int_t s, void *data, size_t size,
       //Invalid address?
       {
          //Report an error
-         sock->errnoCode = EINVAL;
+         socketSetErrnoCode(sock, EINVAL);
          return SOCKET_ERROR;
       }
    }
@@ -811,7 +790,8 @@ int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
    {
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 address?
-      if(sock->localIpAddr.length == sizeof(Ipv4Addr) && *addrlen >= (socklen_t) sizeof(sockaddr_in))
+      if(sock->localIpAddr.length == sizeof(Ipv4Addr) &&
+         *addrlen >= (socklen_t) sizeof(sockaddr_in))
       {
          //Point to the IPv4 address information
          sockaddr_in *sa = (sockaddr_in *) addr;
@@ -832,7 +812,8 @@ int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
 #endif
 #if (IPV6_SUPPORT == ENABLED)
       //IPv6 address?
-      if(sock->localIpAddr.length == sizeof(Ipv6Addr) && *addrlen >= (socklen_t) sizeof(sockaddr_in6))
+      if(sock->localIpAddr.length == sizeof(Ipv6Addr) &&
+         *addrlen >= (socklen_t) sizeof(sockaddr_in6))
       {
          //Point to the IPv6 address information
          sockaddr_in6 *sa = (sockaddr_in6 *) addr;
@@ -853,14 +834,14 @@ int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
 #endif
       {
          //The specified length is not valid
-         sock->errnoCode = EINVAL;
+         socketSetErrnoCode(sock, EINVAL);
          ret = SOCKET_ERROR;
       }
    }
    else
    {
       //The socket is not bound to any address
-      sock->errnoCode = ENOTCONN;
+      socketSetErrnoCode(sock, ENOTCONN);
       ret = SOCKET_ERROR;
    }
 
@@ -903,7 +884,8 @@ int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
    {
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 address?
-      if(sock->remoteIpAddr.length == sizeof(Ipv4Addr) && *addrlen >= (socklen_t) sizeof(sockaddr_in))
+      if(sock->remoteIpAddr.length == sizeof(Ipv4Addr) &&
+         *addrlen >= (socklen_t) sizeof(sockaddr_in))
       {
          //Point to the IPv4 address information
          sockaddr_in *sa = (sockaddr_in *) addr;
@@ -924,7 +906,8 @@ int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
 #endif
 #if (IPV6_SUPPORT == ENABLED)
       //IPv6 address?
-      if(sock->remoteIpAddr.length == sizeof(Ipv6Addr) && *addrlen >= (socklen_t) sizeof(sockaddr_in6))
+      if(sock->remoteIpAddr.length == sizeof(Ipv6Addr) &&
+         *addrlen >= (socklen_t) sizeof(sockaddr_in6))
       {
          //Point to the IPv6 address information
          sockaddr_in6 *sa = (sockaddr_in6 *) addr;
@@ -945,14 +928,14 @@ int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
 #endif
       {
          //The specified length is not valid
-         sock->errnoCode = EINVAL;
+         socketSetErrnoCode(sock, EINVAL);
          ret = SOCKET_ERROR;
       }
    }
    else
    {
       //The socket is not connected to any peer
-      sock->errnoCode = ENOTCONN;
+      socketSetErrnoCode(sock, ENOTCONN);
       ret = SOCKET_ERROR;
    }
 
@@ -1034,7 +1017,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1054,7 +1037,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1073,7 +1056,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1094,7 +1077,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1102,7 +1085,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
          else
          {
             //Unknown option
-            sock->errnoCode = ENOPROTOOPT;
+            socketSetErrnoCode(sock, ENOPROTOOPT);
             //Report an error
             ret = SOCKET_ERROR;
          }
@@ -1125,7 +1108,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1144,7 +1127,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1164,7 +1147,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1172,15 +1155,20 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
          else
          {
             //Unknown option
-            sock->errnoCode = ENOPROTOOPT;
+            socketSetErrnoCode(sock, ENOPROTOOPT);
             ret = SOCKET_ERROR;
          }
       }
       else if(level == IPPROTO_TCP)
       {
-#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
          //Check option type
-         if(optname == TCP_KEEPIDLE)
+         if(optname == TCP_NODELAY)
+         {
+            //Disable Nagle algorithm
+            ret = SOCKET_SUCCESS;
+         }
+#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+         else if(optname == TCP_KEEPIDLE)
          {
             //Check the length of the option
             if(optlen >= (socklen_t) sizeof(int_t))
@@ -1195,7 +1183,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1214,7 +1202,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1233,29 +1221,29 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
-         else
 #endif
+         else
          {
             //Unknown option
-            sock->errnoCode = ENOPROTOOPT;
+            socketSetErrnoCode(sock, ENOPROTOOPT);
             ret = SOCKET_ERROR;
          }
       }
       else
       {
          //The specified level is not valid
-         sock->errnoCode = EINVAL;
+         socketSetErrnoCode(sock, EINVAL);
          ret = SOCKET_ERROR;
       }
    }
    else
    {
       //The option is not valid
-      sock->errnoCode = EFAULT;
+      socketSetErrnoCode(sock, EFAULT);
       ret = SOCKET_ERROR;
    }
 
@@ -1330,7 +1318,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1352,7 +1340,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1373,7 +1361,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1394,7 +1382,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1420,14 +1408,14 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
          else
          {
             //Unknown option
-            sock->errnoCode = ENOPROTOOPT;
+            socketSetErrnoCode(sock, ENOPROTOOPT);
             ret = SOCKET_ERROR;
          }
       }
@@ -1452,7 +1440,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1474,7 +1462,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1497,7 +1485,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1505,7 +1493,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
          else
          {
             //Unknown option
-            sock->errnoCode = ENOPROTOOPT;
+            socketSetErrnoCode(sock, ENOPROTOOPT);
             ret = SOCKET_ERROR;
          }
       }
@@ -1528,7 +1516,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1547,7 +1535,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1566,7 +1554,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
             else
             {
                //The option length is not valid
-               sock->errnoCode = EFAULT;
+               socketSetErrnoCode(sock, EFAULT);
                ret = SOCKET_ERROR;
             }
          }
@@ -1574,21 +1562,21 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
 #endif
          {
             //Unknown option
-            sock->errnoCode = ENOPROTOOPT;
+            socketSetErrnoCode(sock, ENOPROTOOPT);
             ret = SOCKET_ERROR;
          }
       }
       else
       {
          //The specified level is not valid
-         sock->errnoCode = EINVAL;
+         socketSetErrnoCode(sock, EINVAL);
          ret = SOCKET_ERROR;
       }
    }
    else
    {
       //The option is not valid
-      sock->errnoCode = EFAULT;
+      socketSetErrnoCode(sock, EFAULT);
       ret = SOCKET_ERROR;
    }
 
@@ -1657,7 +1645,7 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
       //Unknown command?
       default:
          //Report an error
-         sock->errnoCode = EINVAL;
+         socketSetErrnoCode(sock, EINVAL);
          ret = SOCKET_ERROR;
          break;
       }
@@ -1665,7 +1653,7 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
    else
    {
       //The parameter is not valid
-      sock->errnoCode = EFAULT;
+      socketSetErrnoCode(sock, EFAULT);
       ret = SOCKET_ERROR;
    }
 
@@ -1733,7 +1721,7 @@ int_t fcntl(int_t s, int_t cmd, void *arg)
       //Unknown command?
       default:
          //Report an error
-         sock->errnoCode = EINVAL;
+         socketSetErrnoCode(sock, EINVAL);
          ret = SOCKET_ERROR;
          break;
       }
@@ -1741,7 +1729,7 @@ int_t fcntl(int_t s, int_t cmd, void *arg)
    else
    {
       //Report an error
-      sock->errnoCode = EFAULT;
+      socketSetErrnoCode(sock, EFAULT);
       ret = SOCKET_ERROR;
    }
 
@@ -1781,7 +1769,7 @@ int_t shutdown(int_t s, int_t how)
    //Any error to report?
    if(error)
    {
-      sock->errnoCode = socketTranslateErrorCode(error);
+      socketTranslateErrorCode(sock, error);
       return SOCKET_ERROR;
    }
 
@@ -1930,9 +1918,13 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
 
    //Retrieve timeout value
    if(timeout != NULL)
+   {
       time = timeout->tv_sec * 1000 + timeout->tv_usec / 1000;
+   }
    else
+   {
       time = INFINITE_DELAY;
+   }
 
    //Block the current task until an event occurs
    osWaitForEvent(&event, time);
@@ -1987,7 +1979,7 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
             else
             {
                //Remove descriptor from the current set
-               selectFdClr(fds, s);
+               socketFdClr(fds, s);
             }
          }
       }
@@ -2001,98 +1993,44 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
 
 
 /**
- * @brief Initializes a descriptor set
- * @param[in] fds Pointer to a descriptor set
+ * @brief Get system host name
+ * @param[out] name Output buffer where to store the system host name
+ * @param[in] len Length of the buffer, in bytes
+ * @return On success, zero is returned. On error, -1 is returned
  **/
 
-void selectFdZero(fd_set *fds)
+int_t gethostname(char_t *name, size_t len)
 {
-   //Reset the descriptor count
-   fds->fd_count = 0;
-}
+   size_t n;
+   NetInterface *interface;
 
-
-/**
- * @brief Add a descriptor to an existing set
- * @param[in] fds Pointer to a descriptor set
- * @param[in] s Descriptor that identifies the socket to add
- **/
-
-void selectFdSet(fd_set *fds, int_t s)
-{
-   int_t i;
-
-   //Loop through descriptors
-   for(i = 0; i < fds->fd_count; i++)
+   //Check parameter
+   if(name == NULL)
    {
-      //The specified descriptor is already set?
-      if(fds->fd_array[i] == s)
-         return;
+      //Report an error
+      BSD_SOCKET_SET_ERRNO(EINVAL);
+      return -1;
    }
 
-   //Ensure the descriptor set is not full
-   if(i < FD_SETSIZE)
+   //Select the default network interface
+   interface = netGetDefaultInterface();
+
+   //Retrieve the length of the host name
+   n = osStrlen(interface->hostname);
+
+   //Make sure the buffer is large enough to hold the string
+   if(len <= n)
    {
-      //The specified descriptor can be safely added
-      fds->fd_array[i] = s;
-      //Adjust the size of the descriptor set
-      fds->fd_count++;
-   }
-}
-
-
-/**
- * @brief Remove a descriptor from an existing set
- * @param[in] fds Pointer to a descriptor set
- * @param[in] s Descriptor that identifies the socket to remove
- **/
-
-void selectFdClr(fd_set *fds, int_t s)
-{
-   int_t i;
-   int_t j;
-
-   //Loop through descriptors
-   for(i = 0; i < fds->fd_count; i++)
-   {
-      //Specified descriptor found?
-      if(fds->fd_array[i] == s)
-      {
-         //Adjust the size of the descriptor set
-         fds->fd_count--;
-
-         //Remove the entry from the descriptor set
-         for(j = i; j < fds->fd_count; j++)
-            fds->fd_array[j] = fds->fd_array[j + 1];
-
-         //Return immediately
-         return;
-      }
-   }
-}
-
-
-/**
- * @brief Check whether a descriptor is set
- * @param[in] fds Pointer to a descriptor set
- * @param[in] s Descriptor that identifies the socket to test
- * @return Nonzero if s is a member of the set. Otherwise, zero
- **/
-
-int_t selectFdIsSet(fd_set *fds, int_t s)
-{
-   int_t i;
-
-   //Loop through descriptors
-   for(i = 0; i < fds->fd_count; i++)
-   {
-      //Check whether the specified descriptor is set
-      if(fds->fd_array[i] == s)
-         return TRUE;
+      //Report an error
+      BSD_SOCKET_SET_ERRNO(ENAMETOOLONG);
+      return -1;
    }
 
-   //The specified descriptor is not currently set
-   return FALSE;
+   //Copy the host name
+   osStrcpy(name, interface->hostname);
+
+   //Successful processing
+   return 0;
 }
 
 
@@ -2187,6 +2125,372 @@ hostent *gethostbyname_r(const char_t *name, hostent *result, char_t *buf,
 
    //Return a pointer to the hostent structure
    return result;
+}
+
+
+/**
+ * @brief Convert host and service names to socket address
+ * @param[in] node Host name or numerical network address
+ * @param[in] service Service name or decimal number
+ * @param[in] hints Criteria for selecting the socket address structures
+ * @param[out] res Dynamically allocated list of socket address structures
+ * @return On success, zero is returned. On error, a non-zero value is returned
+ **/
+
+int_t getaddrinfo(const char_t *node, const char_t *service,
+   const addrinfo *hints, addrinfo **res)
+{
+   error_t error;
+   size_t n;
+   char_t *p;
+   uint_t flags;
+   uint16_t port;
+   IpAddr ipAddr;
+   addrinfo h;
+   addrinfo *ai;
+
+   //Check whether both node and service name are NULL
+   if(node == NULL && service == NULL)
+      return EAI_NONAME;
+
+   //The hints argument is optional
+   if(hints != NULL)
+   {
+      //If hints is not NULL, it points to an addrinfo structure that specifies
+      //criteria that limit the set of socket addresses that will be returned
+      h = *hints;
+   }
+   else
+   {
+      //If hints is NULL, then default criteria are used
+      osMemset(&h, 0, sizeof(addrinfo));
+      h.ai_family = AF_UNSPEC;
+      h.ai_socktype = 0;
+      h.ai_protocol = 0;
+      h.ai_flags = 0;
+   }
+
+   //The user may provide a hint to choose between IPv4 and IPv6
+   if(h.ai_family == AF_UNSPEC)
+   {
+      //The value AF_UNSPEC indicates that function should return socket
+      //addresses for any address family (either IPv4 or IPv6)
+      flags = 0;
+   }
+#if (IPV4_SUPPORT == ENABLED)
+   else if(h.ai_family == AF_INET)
+   {
+      //The value AF_INET indicates that the function should return an IPv4
+      //address
+      flags = HOST_TYPE_IPV4;
+   }
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   else if(h.ai_family == AF_INET6)
+   {
+      //The value AF_INET6 indicates that the function should return an IPv6
+      //address
+      flags = HOST_TYPE_IPV6;
+   }
+#endif
+   else
+   {
+      //The requested address family is not supported
+      return EAI_FAMILY;
+   }
+
+   //Check whether a host name or numerical network address is specified
+   if(node != NULL)
+   {
+      //If the AI_NUMERICHOST flag, then node must be a numerical network
+      //address
+      if((h.ai_flags & AI_NUMERICHOST) != 0)
+      {
+         //Convert the string representation to a binary IP address
+         error = ipStringToAddr(node, &ipAddr);
+      }
+      else
+      {
+         //Resolve host address
+         error = getHostByName(NULL, node, &ipAddr, flags);
+      }
+
+      //Check status code
+      if(error == NO_ERROR)
+      {
+         //Successful host name resolution
+      }
+      else if(error == ERROR_IN_PROGRESS)
+      {
+         //Host name resolution is in progress
+         return EAI_AGAIN;
+      }
+      else
+      {
+         //Permanent failure indication
+         return EAI_FAIL;
+      }
+   }
+   else
+   {
+      //Check flags
+      if((h.ai_flags & AI_PASSIVE) != 0)
+      {
+#if (IPV4_SUPPORT == ENABLED)
+         //IPv4 address family?
+         if(h.ai_family == AF_INET || h.ai_family == AF_UNSPEC)
+         {
+            ipAddr.length = sizeof(Ipv4Addr);
+            ipAddr.ipv4Addr = IPV4_UNSPECIFIED_ADDR;
+         }
+         else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+         //IPv6 address family?
+         if(h.ai_family == AF_INET6 || h.ai_family == AF_UNSPEC)
+         {
+            ipAddr.length = sizeof(Ipv6Addr);
+            ipAddr.ipv6Addr = IPV6_UNSPECIFIED_ADDR;
+         }
+         else
+#endif
+         //Unknown address family?
+         {
+            //Report an error
+            return EAI_ADDRFAMILY;
+         }
+      }
+      else
+      {
+         //Invalid flags
+         return EAI_BADFLAGS;
+      }
+   }
+
+   //Only service names containing a numeric port number are supported
+   port = strtoul(service, &p, 10);
+   //Invalid service name?
+   if(*p != '\0')
+   {
+      //The requested service is not available
+      return EAI_SERVICE;
+   }
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 address?
+   if(ipAddr.length == sizeof(Ipv4Addr))
+   {
+      //Select the relevant socket family
+      h.ai_family = AF_INET;
+      //Get the length of the corresponding socket address
+      n = sizeof(sockaddr_in);
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 address?
+   if(ipAddr.length == sizeof(Ipv6Addr))
+   {
+      //Select the relevant socket family
+      h.ai_family = AF_INET6;
+      //Get the length of the corresponding socket address
+      n = sizeof(sockaddr_in6);
+   }
+   else
+#endif
+   //Unknown address?
+   {
+      //Report an error
+      return EAI_ADDRFAMILY;
+   }
+
+   //Allocate a memory buffer to hold the address information structure
+   ai = osAllocMem(sizeof(addrinfo) + n);
+   //Failed to allocate memory?
+   if(ai == NULL)
+   {
+      //Out of memory
+      return EAI_MEMORY;
+   }
+
+   //Initialize address information structure
+   osMemset(ai, 0, sizeof(addrinfo) + n);
+   ai->ai_family = h.ai_family;
+   ai->ai_socktype = h.ai_socktype;
+   ai->ai_protocol = h.ai_protocol;
+   ai->ai_addr = (sockaddr *) ((uint8_t *) ai + sizeof(addrinfo));
+   ai->ai_addrlen = n;
+   ai->ai_next = NULL;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 address?
+   if(ipAddr.length == sizeof(Ipv4Addr))
+   {
+      //Point to the IPv4 address information
+      sockaddr_in *sa = (sockaddr_in *) ai->ai_addr;
+
+      //Set address family and port number
+      sa->sin_family = AF_INET;
+      sa->sin_port = htons(port);
+
+      //Copy IPv4 address
+      sa->sin_addr.s_addr = ipAddr.ipv4Addr;
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 address?
+   if(ipAddr.length == sizeof(Ipv6Addr))
+   {
+      //Point to the IPv6 address information
+      sockaddr_in6 *sa = (sockaddr_in6 *) ai->ai_addr;
+
+      //Set address family and port number
+      sa->sin6_family = AF_INET6;
+      sa->sin6_port = htons(port);
+
+      //Copy IPv6 address
+      ipv6CopyAddr(sa->sin6_addr.s6_addr, &ipAddr.ipv6Addr);
+   }
+   else
+#endif
+   //Unknown address?
+   {
+      //Clean up side effects
+      osFreeMem(ai);
+      //Report an error
+      return EAI_ADDRFAMILY;
+   }
+
+   //Return a pointer to the allocated address information
+   *res = ai;
+
+   //Successful processing
+   return 0;
+}
+
+
+/**
+ * @brief Free socket address structures
+ * @param[in] res Dynamically allocated list of socket address structures
+ **/
+
+void freeaddrinfo(addrinfo *res)
+{
+   addrinfo *next;
+
+   //Free the list of socket address structures
+   while(res != NULL)
+   {
+      //Get next entry
+      next = res->ai_next;
+      //Free current socket address structure
+      osFreeMem(res);
+      //Point to the next entry
+      res = next;
+   }
+}
+
+
+/**
+ * @brief Convert a socket address to a corresponding host and service
+ * @param[in] addr Generic socket address structure
+ * @param[in] addrlen Length in bytes of the address
+ * @param[out] host Output buffer where to store the host name
+ * @param[in] hostlen Length of the host name buffer, in bytes
+ * @param[out] serv Output buffer where to store the service name
+ * @param[in] servlen Length of the service name buffer, in bytes
+ * @param[in] flags Set of flags that influences the behavior of this function
+ * @return On success, zero is returned. On error, a non-zero value is returned
+ **/
+
+int_t getnameinfo(const sockaddr *addr, socklen_t addrlen, char_t *host,
+   size_t hostlen, char_t *serv, size_t servlen, int flags)
+{
+   uint16_t port;
+
+   //At least one of hostname or service name must be requested
+   if(host == NULL && serv == NULL)
+      return EAI_NONAME;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 address?
+   if(addr->sa_family == AF_INET &&
+      addrlen >= (socklen_t) sizeof(sockaddr_in))
+   {
+      sockaddr_in *sa;
+      Ipv4Addr ipv4Addr;
+
+      //Point to the IPv4 address information
+      sa = (sockaddr_in *) addr;
+
+      //The caller can specify that no host name is required
+      if(host != NULL)
+      {
+         //Make sure the buffer is large enough to hold the host name
+         if(hostlen < 16)
+            return EAI_OVERFLOW;
+
+         //Copy the binary representation of the IPv4 address
+         ipv4CopyAddr(&ipv4Addr, &sa->sin_addr.s_addr);
+         //Convert the IPv4 address to dot-decimal notation
+         ipv4AddrToString(ipv4Addr, host);
+      }
+
+      //Retrieve port number
+      port = ntohs(sa->sin_port);
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 address?
+   if(addr->sa_family == AF_INET6 &&
+      addrlen >= (socklen_t) sizeof(sockaddr_in6))
+   {
+      sockaddr_in6 *sa;
+      Ipv6Addr ipv6Addr;
+
+      //Point to the IPv6 address information
+      sa = (sockaddr_in6 *) addr;
+
+      //The caller can specify that no host name is required
+      if(host != NULL)
+      {
+         //Make sure the buffer is large enough to hold the host name
+         if(hostlen < 40)
+            return EAI_OVERFLOW;
+
+         //Copy the binary representation of the IPv6 address
+         ipv6CopyAddr(&ipv6Addr, sa->sin6_addr.s6_addr);
+         //Convert the IPv6 address to string representation
+         ipv6AddrToString(&ipv6Addr, host);
+      }
+
+      //Retrieve port number
+      port = ntohs(sa->sin6_port);
+   }
+   else
+#endif
+   //Invalid address?
+   {
+      //The address family was not recognized, or the address length was
+      //invalid for the specified family
+      return EAI_FAMILY;
+   }
+
+   //The caller can specify that no service name is required
+   if(serv != NULL)
+   {
+      //Make sure the buffer is large enough to hold the service name
+      if(servlen < 6)
+         return EAI_OVERFLOW;
+
+      //Convert the port number to string representation
+      osSprintf(serv, "%" PRIu16, ntohs(port));
+   }
+
+   //Successful processing
+   return 0;
 }
 
 
@@ -2393,7 +2697,7 @@ const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size)
       //Copy the binary representation of the IPv4 address
       ipv4CopyAddr(&ipv4Addr, src);
 
-      //Convert the IPv4 address from text to binary form
+      //Convert the IPv4 address to dot-decimal notation
       return ipv4AddrToString(ipv4Addr, dst);
    }
    else
@@ -2407,7 +2711,7 @@ const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size)
       //Copy the binary representation of the IPv6 address
       ipv6CopyAddr(&ipv6Addr, src);
 
-      //Convert the IPv6 address from text to binary form
+      //Convert the IPv6 address to string representation
       return ipv6AddrToString(&ipv6Addr, dst);
    }
    else

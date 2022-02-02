@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -318,7 +318,9 @@ void dhcpClientStateRebooting(DhcpClientContext *context)
 
          //Limit the timeout value to a maximum of 64 seconds
          if(context->retransmitTimeout > DHCP_CLIENT_REQUEST_MAX_RT)
+         {
             context->retransmitTimeout = DHCP_CLIENT_REQUEST_MAX_RT;
+         }
 
          //Save the time at which the message was sent
          context->timestamp = time;
@@ -512,7 +514,9 @@ void dhcpClientStateRenewing(DhcpClientContext *context)
          //The client should wait one-half of the remaining time until T2, down to
          //a minimum of 60 seconds, before retransmitting the DHCPREQUEST message
          if(context->timeout > (2 * DHCP_CLIENT_REQUEST_MIN_DELAY))
+         {
             context->timeout /= 2;
+         }
 
          //Increment retransmission counter
          context->retransmitCount++;

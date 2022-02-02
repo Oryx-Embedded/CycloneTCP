@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -270,7 +270,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
 #endif
 
    //Total number of segments sent
-   MIB2_INC_COUNTER32(tcpGroup.tcpOutSegs, 1);
+   MIB2_TCP_INC_COUNTER32(tcpOutSegs, 1);
    TCP_MIB_INC_COUNTER32(tcpOutSegs, 1);
    TCP_MIB_INC_COUNTER64(tcpHCOutSegs, 1);
 
@@ -278,7 +278,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    if((flags & TCP_FLAG_RST) != 0)
    {
       //Number of TCP segments sent containing the RST flag
-      MIB2_INC_COUNTER32(tcpGroup.tcpOutRsts, 1);
+      MIB2_TCP_INC_COUNTER32(tcpOutRsts, 1);
       TCP_MIB_INC_COUNTER32(tcpOutRsts, 1);
    }
 
@@ -468,12 +468,12 @@ error_t tcpRejectSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
    }
 
    //Total number of segments sent
-   MIB2_INC_COUNTER32(tcpGroup.tcpOutSegs, 1);
+   MIB2_TCP_INC_COUNTER32(tcpOutSegs, 1);
    TCP_MIB_INC_COUNTER32(tcpOutSegs, 1);
    TCP_MIB_INC_COUNTER64(tcpHCOutSegs, 1);
 
    //Number of TCP segments sent containing the RST flag
-   MIB2_INC_COUNTER32(tcpGroup.tcpOutRsts, 1);
+   MIB2_TCP_INC_COUNTER32(tcpOutRsts, 1);
    TCP_MIB_INC_COUNTER32(tcpOutRsts, 1);
 
    //Debug message
@@ -1751,7 +1751,7 @@ error_t tcpRetransmitSegment(Socket *socket)
             break;
 
          //Total number of segments retransmitted
-         MIB2_INC_COUNTER32(tcpGroup.tcpRetransSegs, 1);
+         MIB2_TCP_INC_COUNTER32(tcpRetransSegs, 1);
          TCP_MIB_INC_COUNTER32(tcpRetransSegs, 1);
 
          //Dump TCP header contents for debugging purpose

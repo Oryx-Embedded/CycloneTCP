@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,7 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
 
    //Total number of messages delivered to the SNMP entity from the
    //transport service
-   MIB2_INC_COUNTER32(snmpGroup.snmpInPkts, 1);
+   MIB2_SNMP_INC_COUNTER32(snmpInPkts, 1);
    SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInPkts, 1);
 
 #if (SNMP_V3_SUPPORT == ENABLED)
@@ -122,7 +122,7 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
 
       //Total number of SNMP messages which were delivered to the SNMP
       //protocol entity and were for an unsupported SNMP version
-      MIB2_INC_COUNTER32(snmpGroup.snmpInBadVersions, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInBadVersions, 1);
       SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadVersions, 1);
 
       //Discard incoming SNMP message
@@ -134,13 +134,13 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
    {
       //Total number of messages which were passed from the SNMP protocol
       //entity to the transport service
-      MIB2_INC_COUNTER32(snmpGroup.snmpOutPkts, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpOutPkts, 1);
    }
    else if(error == ERROR_INVALID_TAG)
    {
       //Total number of ASN.1 or BER errors encountered by the SNMP protocol
       //entity when decoding received SNMP messages
-      MIB2_INC_COUNTER32(snmpGroup.snmpInASNParseErrs, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInASNParseErrs, 1);
       SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInASNParseErrs, 1);
    }
    else if(error == ERROR_BUFFER_OVERFLOW)
@@ -187,7 +187,7 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
 
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which used a SNMP community name not known to said entity
-      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityNames, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInBadCommunityNames, 1);
       SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityNames, 1);
 
       //Report an error
@@ -250,7 +250,7 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
 
       //Total number of SNMP messages delivered to the SNMP protocol entity
       //which used a SNMP community name not known to said entity
-      MIB2_INC_COUNTER32(snmpGroup.snmpInBadCommunityNames, 1);
+      MIB2_SNMP_INC_COUNTER32(snmpInBadCommunityNames, 1);
       SNMP_MIB_INC_COUNTER32(snmpGroup.snmpInBadCommunityNames, 1);
 
       //Report an error

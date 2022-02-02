@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2021 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.2
+ * @version 2.1.4
  **/
 
 //Switch to the appropriate trace level
@@ -76,9 +76,13 @@ error_t coapClientProcessEvents(CoapClientContext *context, systime_t timeout)
 #endif
       //Maximum time to wait for an incoming datagram
       if(timeCompare(startTime + timeout, currentTime) > 0)
+      {
          d = startTime + timeout - currentTime;
+      }
       else
+      {
          d = 0;
+      }
 
       //Limit the delay
       d = MIN(d, COAP_CLIENT_TICK_INTERVAL);
