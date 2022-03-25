@@ -122,7 +122,8 @@ typedef struct
 
 typedef struct
 {
-   char_t name[DNS_SD_MAX_SERVICE_NAME_LEN + 1]; ///<Service name
+   char_t serviceName[DNS_SD_MAX_INSTANCE_NAME_LEN + 1]; ///< Service instance name, e.g. FancyWebserver1
+   char_t serviceType[DNS_SD_MAX_SERVICE_NAME_LEN + 1];  ///<Service type and protocol, e.g. _http._tcp
    uint16_t priority;                            ///<Priority of the target host
    uint16_t weight;                              ///<Server selection mechanism
    uint16_t port;                                ///<Port on the target host of this service
@@ -145,7 +146,6 @@ struct _DnsSdContext
    systime_t timestamp;                                   ///<Timestamp to manage retransmissions
    systime_t timeout;                                     ///<Timeout value
    uint_t retransmitCount;                                ///<Retransmission counter
-   char_t instanceName[DNS_SD_MAX_INSTANCE_NAME_LEN + 1]; ///<Service instance name
    DnsSdService serviceList[DNS_SD_SERVICE_LIST_SIZE];    ///<List of registered services
 };
 
@@ -160,12 +160,11 @@ error_t dnsSdStart(DnsSdContext *context);
 error_t dnsSdStop(DnsSdContext *context);
 MdnsState dnsSdGetState(DnsSdContext *context);
 
-error_t dnsSdSetInstanceName(DnsSdContext *context, const char_t *instanceName);
-
 error_t dnsSdRegisterService(DnsSdContext *context, const char_t *serviceName,
+                             const char_t *serviceType,
    uint16_t priority, uint16_t weight, uint16_t port, const char_t *metadata);
 
-error_t dnsSdUnregisterService(DnsSdContext *context, const char_t *serviceName);
+error_t dnsSdUnregisterService(DnsSdContext *context, const char_t *serviceName, const char_t *serviceType);
 
 uint_t dnsSdGetNumServices(DnsSdContext *context);
 error_t dnsSdStartProbing(DnsSdContext *context);
@@ -176,7 +175,7 @@ void dnsSdLinkChangeEvent(DnsSdContext *interface);
 void dnsSdChangeState(DnsSdContext *context,
    MdnsState newState, systime_t delay);
 
-void dnsSdChangeInstanceName(DnsSdContext *context);
+void dnsSdChangeServiceName(DnsSdService *service);
 
 error_t dnsSdSendProbe(DnsSdContext *context);
 error_t dnsSdSendAnnouncement(DnsSdContext *context);
