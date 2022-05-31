@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -594,6 +594,119 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
 
 
 /**
+ * @brief Send DHCPRELEASE message
+ * @param[in] context Pointer to the DHCP client context
+ * @return Error code
+ **/
+
+error_t dhcpClientSendRelease(DhcpClientContext *context)
+{
+   uint_t i;
+   error_t error;
+   size_t offset;
+   size_t length;
+   NetBuffer *buffer;
+   NetInterface *interface;
+   NetInterface *logicalInterface;
+   DhcpMessage *message;
+   IpAddr srcIpAddr;
+   IpAddr destIpAddr;
+   NetTxAncillary ancillary;
+
+   //DHCP message type
+   const uint8_t type = DHCP_MSG_TYPE_RELEASE;
+
+   //Point to the underlying network interface
+   interface = context->settings.interface;
+   //Point to the logical interface
+   logicalInterface = nicGetLogicalInterface(interface);
+
+   //Index of the IP address in the list of addresses assigned to the interface
+   i = context->settings.ipAddrIndex;
+
+   //Allocate a memory buffer to hold the DHCP message
+   buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
+   //Failed to allocate buffer?
+   if(buffer == NULL)
+      return ERROR_OUT_OF_MEMORY;
+
+   //Point to the beginning of the DHCP message
+   message = netBufferAt(buffer, offset);
+   //Clear memory buffer contents
+   osMemset(message, 0, DHCP_MAX_MSG_SIZE);
+
+   //Format DHCP message
+   message->op = DHCP_OPCODE_BOOTREQUEST;
+   message->htype = DHCP_HARDWARE_TYPE_ETH;
+   message->hlen = sizeof(MacAddr);
+   message->xid = htonl(context->transactionId);
+   message->secs = 0;
+   message->flags = 0;
+   message->ciaddr = interface->ipv4Context.addrList[i].addr;
+   message->chaddr = logicalInterface->macAddr;
+
+   //Write magic cookie before setting any option
+   message->magicCookie = HTONL(DHCP_MAGIC_COOKIE);
+   //Properly terminate the options field
+   message->options[0] = DHCP_OPT_END;
+
+   //Total length of the DHCP message
+   length = sizeof(DhcpMessage) + sizeof(uint8_t);
+
+   //DHCP Message Type option
+   dhcpAddOption(message, &length, DHCP_OPT_DHCP_MESSAGE_TYPE,
+      &type, sizeof(type));
+
+   //Server Identifier option
+   dhcpAddOption(message, &length, DHCP_OPT_SERVER_ID,
+      &context->serverIpAddr, sizeof(Ipv4Addr));
+
+   //Any registered callback?
+   if(context->settings.addOptionsCallback != NULL)
+   {
+      //Invoke user callback function
+      context->settings.addOptionsCallback(context, message, &length,
+         DHCP_MSG_TYPE_RELEASE);
+   }
+
+   //The minimum length of BOOTP frames is 300 octets (refer to RFC 951,
+   //section 3)
+   length = MAX(length, DHCP_MIN_MSG_SIZE);
+
+   //Adjust the length of the multi-part buffer
+   netBufferSetLength(buffer, offset + length);
+
+   //Set source IP address
+   srcIpAddr.length = sizeof(Ipv4Addr);
+   srcIpAddr.ipv4Addr = interface->ipv4Context.addrList[i].addr;
+
+   //The client unicasts DHCPRELEASE messages to the server (refer to RFC 2131,
+   //section 4.4.4)
+   destIpAddr.length = sizeof(Ipv4Addr);
+   destIpAddr.ipv4Addr = context->serverIpAddr;
+
+   //Debug message
+   TRACE_DEBUG("\r\n%s: Sending DHCP message (%" PRIuSIZE " bytes)...\r\n",
+      formatSystemTime(osGetSystemTime(), NULL), length);
+
+   //Dump the contents of the message for debugging purpose
+   dhcpDumpMessage(message, length);
+
+   //Additional options can be passed to the stack along with the packet
+   ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+   //Broadcast DHCP message
+   error = udpSendBuffer(interface, &srcIpAddr, DHCP_CLIENT_PORT, &destIpAddr,
+      DHCP_SERVER_PORT, buffer, offset, &ancillary);
+
+   //Free previously allocated memory
+   netBufferFree(buffer);
+   //Return status code
+   return error;
+}
+
+
+/**
  * @brief Process incoming DHCP message
  * @param[in] interface Underlying network interface
  * @param[in] pseudoHeader UDP pseudo header
@@ -696,6 +809,7 @@ void dhcpClientProcessMessage(NetInterface *interface,
 void dhcpClientParseOffer(DhcpClientContext *context,
    const DhcpMessage *message, size_t length)
 {
+   error_t error;
    DhcpOption *serverIdOption;
    NetInterface *interface;
    NetInterface *logicalInterface;
@@ -733,8 +847,11 @@ void dhcpClientParseOffer(DhcpClientContext *context,
    if(context->settings.parseOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.parseOptionsCallback(context, message, length,
+      error = context->settings.parseOptionsCallback(context, message, length,
          DHCP_MSG_TYPE_OFFER);
+      //Check status code
+      if(error)
+         return;
    }
 
    //Record the IP address of the DHCP server
@@ -757,6 +874,7 @@ void dhcpClientParseOffer(DhcpClientContext *context,
 void dhcpClientParseAck(DhcpClientContext *context,
    const DhcpMessage *message, size_t length)
 {
+   error_t error;
    uint_t i;
    uint_t j;
    uint_t n;
@@ -835,6 +953,17 @@ void dhcpClientParseAck(DhcpClientContext *context,
    //Failed to retrieve specified option?
    if(option == NULL || option->length != 4)
       return;
+
+   //Any registered callback?
+   if(context->settings.parseOptionsCallback != NULL)
+   {
+      //Invoke user callback function
+      error = context->settings.parseOptionsCallback(context, message, length,
+         DHCP_MSG_TYPE_ACK);
+      //Check status code
+      if(error)
+         return;
+   }
 
    //Record the lease time
    context->leaseTime = LOAD32BE(option->value);
@@ -945,14 +1074,6 @@ void dhcpClientParseAck(DhcpClientContext *context,
       }
    }
 
-   //Any registered callback?
-   if(context->settings.parseOptionsCallback != NULL)
-   {
-      //Invoke user callback function
-      context->settings.parseOptionsCallback(context, message, length,
-         DHCP_MSG_TYPE_ACK);
-   }
-
    //Record the IP address of the DHCP server
    ipv4CopyAddr(&context->serverIpAddr, serverIdOption->value);
    //Record the IP address assigned to the client
@@ -1001,6 +1122,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
 void dhcpClientParseNak(DhcpClientContext *context,
    const DhcpMessage *message, size_t length)
 {
+   error_t error;
    DhcpOption *serverIdOption;
    NetInterface *interface;
    NetInterface *logicalInterface;
@@ -1048,8 +1170,11 @@ void dhcpClientParseNak(DhcpClientContext *context,
    if(context->settings.parseOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.parseOptionsCallback(context, message, length,
+      error = context->settings.parseOptionsCallback(context, message, length,
          DHCP_MSG_TYPE_NAK);
+      //Check status code
+      if(error)
+         return;
    }
 
    //The host address is no longer appropriate for the link
@@ -1151,7 +1276,7 @@ void dhcpClientChangeState(DhcpClientContext *context,
    if(newState <= DHCP_STATE_REBINDING)
    {
       //DHCP FSM states
-      static const char_t *stateLabel[] =
+      static const char_t *const stateLabel[] =
       {
          "INIT",
          "SELECTING",

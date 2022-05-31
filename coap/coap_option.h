@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _COAP_OPTION_H
@@ -89,26 +89,28 @@ extern "C" {
 
 typedef enum
 {
-   COAP_OPT_IF_MATCH       = 1,  //RFC 7252
-   COAP_OPT_URI_HOST       = 3,  //RFC 7252
-   COAP_OPT_ETAG           = 4,  //RFC 7252
-   COAP_OPT_IF_NONE_MATCH  = 5,  //RFC 7252
-   COAP_OPT_OBSERVE        = 6,  //RFC 7641
-   COAP_OPT_URI_PORT       = 7,  //RFC 7252
-   COAP_OPT_LOCATION_PATH  = 8,  //RFC 7252
-   COAP_OPT_URI_PATH       = 11, //RFC 7252
-   COAP_OPT_CONTENT_FORMAT = 12, //RFC 7252
-   COAP_OPT_MAX_AGE        = 14, //RFC 7252
-   COAP_OPT_URI_QUERY      = 15, //RFC 7252
-   COAP_OPT_ACCEPT         = 17, //RFC 7252
-   COAP_OPT_LOCATION_QUERY = 20, //RFC 7252
-   COAP_OPT_BLOCK2         = 23, //RFC 7959
-   COAP_OPT_BLOCK1         = 27, //RFC 7959
-   COAP_OPT_SIZE2          = 28, //RFC 7959
-   COAP_OPT_PROXY_URI      = 35, //RFC 7252
-   COAP_OPT_PROXY_SCHEME   = 39, //RFC 7252
-   COAP_OPT_SIZE1          = 60, //RFC 7252
-   COAP_OPT_NO_RESPONSE    = 258 //RFC 7967
+   COAP_OPT_IF_MATCH       = 1,   //RFC 7252
+   COAP_OPT_URI_HOST       = 3,   //RFC 7252
+   COAP_OPT_ETAG           = 4,   //RFC 7252
+   COAP_OPT_IF_NONE_MATCH  = 5,   //RFC 7252
+   COAP_OPT_OBSERVE        = 6,   //RFC 7641
+   COAP_OPT_URI_PORT       = 7,   //RFC 7252
+   COAP_OPT_LOCATION_PATH  = 8,   //RFC 7252
+   COAP_OPT_URI_PATH       = 11,  //RFC 7252
+   COAP_OPT_CONTENT_FORMAT = 12,  //RFC 7252
+   COAP_OPT_MAX_AGE        = 14,  //RFC 7252
+   COAP_OPT_URI_QUERY      = 15,  //RFC 7252
+   COAP_OPT_ACCEPT         = 17,  //RFC 7252
+   COAP_OPT_LOCATION_QUERY = 20,  //RFC 7252
+   COAP_OPT_BLOCK2         = 23,  //RFC 7959
+   COAP_OPT_BLOCK1         = 27,  //RFC 7959
+   COAP_OPT_SIZE2          = 28,  //RFC 7959
+   COAP_OPT_PROXY_URI      = 35,  //RFC 7252
+   COAP_OPT_PROXY_SCHEME   = 39,  //RFC 7252
+   COAP_OPT_SIZE1          = 60,  //RFC 7252
+   COAP_OPT_ECHO           = 252, //RFC 9175
+   COAP_OPT_NO_RESPONSE    = 258, //RFC 7967
+   COAP_OPT_REQUEST_TAG    = 292  //RFC 9175
 } CoapOptionNumber;
 
 

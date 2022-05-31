@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _SOCKET_H
@@ -313,6 +313,22 @@ struct _Socket
    uint32_t recover;              ///<NewReno modification to TCP's fast recovery algorithm
 #endif
 
+#if (TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+   bool_t keepAliveEnabled;       ///<Specifies whether TCP keep-alive mechanism is enabled
+   systime_t keepAliveIdle;       ///<Keep-alive idle time
+   systime_t keepAliveInterval;   ///<Time interval between subsequent keep-alive probes
+   uint_t keepAliveMaxProbes;     ///<Number of keep-alive probes
+   uint_t keepAliveProbeCount;    ///<Keep-alive probe counter
+   systime_t keepAliveTimestamp;  ///<Keep-alive timestamp
+#endif
+
+#if (TCP_SACK_SUPPORT == ENABLED)
+   bool_t sackPermitted;          ///<SACK Permitted option received
+#endif
+
+   TcpSackBlock sackBlock[TCP_MAX_SACK_BLOCKS]; ///<List of non-contiguous blocks that have been received
+   uint_t sackBlockCount;                       ///<Number of non-contiguous blocks that have been received
+
    TcpTxBuffer txBuffer;          ///<Send buffer
    size_t txBufferSize;           ///<Size of the send buffer
    TcpRxBuffer rxBuffer;          ///<Receive buffer
@@ -332,19 +348,6 @@ struct _Socket
    NetTimer overrideTimer;        ///<Override timer
    NetTimer finWait2Timer;        ///<FIN-WAIT-2 timer
    NetTimer timeWaitTimer;        ///<2MSL timer
-
-#if (TCP_KEEP_ALIVE_SUPPORT == ENABLED)
-   bool_t keepAliveEnabled;       ///<Specifies whether TCP keep-alive mechanism is enabled
-   systime_t keepAliveIdle;       ///<Keep-alive idle time
-   systime_t keepAliveInterval;   ///<Time interval between subsequent keep-alive probes
-   uint_t keepAliveMaxProbes;     ///<Number of keep-alive probes
-   uint_t keepAliveProbeCount;    ///<Keep-alive probe counter
-   systime_t keepAliveTimestamp;  ///<Keep-alive timestamp
-#endif
-
-   bool_t sackPermitted;                        ///<SACK Permitted option received
-   TcpSackBlock sackBlock[TCP_MAX_SACK_BLOCKS]; ///<List of non-contiguous blocks that have been received
-   uint_t sackBlockCount;                       ///<Number of non-contiguous blocks that have been received
 #endif
 
 //UDP specific variables
@@ -400,10 +403,16 @@ error_t socketSetRxBufferSize(Socket *socket, size_t size);
 error_t socketSetInterface(Socket *socket, NetInterface *interface);
 NetInterface *socketGetInterface(Socket *socket);
 
-error_t socketBind(Socket *socket, const IpAddr *localIpAddr, uint16_t localPort);
-error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePort);
+error_t socketBind(Socket *socket, const IpAddr *localIpAddr,
+   uint16_t localPort);
+
+error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr,
+   uint16_t remotePort);
+
 error_t socketListen(Socket *socket, uint_t backlog);
-Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort);
+
+Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr,
+   uint16_t *clientPort);
 
 error_t socketSend(Socket *socket, const void *data, size_t length,
    size_t *written, uint_t flags);
@@ -424,8 +433,11 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
 
 error_t socketReceiveMsg(Socket *socket, SocketMsg *message, uint_t flags);
 
-error_t socketGetLocalAddr(Socket *socket, IpAddr *localIpAddr, uint16_t *localPort);
-error_t socketGetRemoteAddr(Socket *socket, IpAddr *remoteIpAddr, uint16_t *remotePort);
+error_t socketGetLocalAddr(Socket *socket, IpAddr *localIpAddr,
+   uint16_t *localPort);
+
+error_t socketGetRemoteAddr(Socket *socket, IpAddr *remoteIpAddr,
+   uint16_t *remotePort);
 
 error_t socketShutdown(Socket *socket, uint_t how);
 void socketClose(Socket *socket);

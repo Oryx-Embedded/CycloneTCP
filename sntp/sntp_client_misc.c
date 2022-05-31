@@ -30,7 +30,7 @@
  * in the Internet. Refer to RFC 4330 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -173,15 +173,23 @@ error_t sntpClientReceiveResponse(SntpClientContext *context)
 
    //Compute request timeout
    if(timeCompare(context->startTime + context->timeout, time) > 0)
+   {
       t1 = context->startTime + context->timeout - time;
+   }
    else
+   {
       t1 = 0;
+   }
 
    //Compute retransmission timeout
    if(timeCompare(context->retransmitStartTime + context->retransmitTimeout, time) > 0)
+   {
       t2 = context->retransmitStartTime + context->retransmitTimeout - time;
+   }
    else
+   {
       t2 = 0;
+   }
 
    //Adjust receive timeout
    error = socketSetTimeout(context->socket, MIN(t1, t2));

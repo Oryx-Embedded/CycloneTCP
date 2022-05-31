@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -211,6 +211,62 @@ error_t dhcpClientStop(DhcpClientContext *context)
    //Check whether the DHCP client is running
    if(context->running)
    {
+      //Unregister callback function
+      udpDetachRxCallback(interface, DHCP_CLIENT_PORT);
+
+      //Stop DHCP client
+      context->running = FALSE;
+      //Reinitialize state machine
+      context->state = DHCP_STATE_INIT;
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Release DHCP lease
+ * @param[in] context Pointer to the DHCP client context
+ * @return Error code
+ **/
+
+error_t dhcpClientRelease(DhcpClientContext *context)
+{
+   NetInterface *interface;
+
+   //Check parameter
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Debug message
+   TRACE_INFO("Releasing DHCP lease...\r\n");
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Point to the underlying network interface
+   interface = context->settings.interface;
+
+   //Check whether the DHCP client is running
+   if(context->running)
+   {
+      //Check current state
+      if(context->state == DHCP_STATE_BOUND ||
+         context->state == DHCP_STATE_RENEWING ||
+         context->state == DHCP_STATE_REBINDING)
+      {
+         //The client may choose to relinquish its lease on a network address
+         //by sending a DHCPRELEASE message to the server
+         dhcpClientSendRelease(context);
+
+         //The host address is no longer valid
+         dhcpClientResetConfig(context);
+      }
+
       //Unregister callback function
       udpDetachRxCallback(interface, DHCP_CLIENT_PORT);
 

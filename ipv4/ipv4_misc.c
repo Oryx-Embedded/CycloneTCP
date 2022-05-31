@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -33,7 +33,6 @@
 
 //Dependencies
 #include <string.h>
-#include <ctype.h>
 #include "core/net.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_misc.h"
@@ -595,6 +594,44 @@ bool_t ipv4IsLocalHostAddr(Ipv4Addr ipAddr)
 
    //Return TRUE if the specified address matches any address assigned to the host
    return flag;
+}
+
+
+/**
+ * @brief Compare IPv4 address prefixes
+ * @param[in] ipAddr1 First IPv4 address
+ * @param[in] ipAddr2 Second IPv4 address
+ * @param[in] length Prefix length
+ * @return TRUE if the prefixes match each other, else FALSE
+ **/
+
+bool_t ipv4CompPrefix(Ipv4Addr ipAddr1, Ipv4Addr ipAddr2, size_t length)
+{
+   uint32_t mask;
+
+   //Check prefix length
+   if(length == 0)
+   {
+      return TRUE;
+   }
+   else if(length < 32)
+   {
+      //Calculate the mask to be applied
+      mask = ((1 << length) - 1) << (32 - length);
+      //Convert the mask to network byte order
+      mask = htonl(mask);
+   }
+   else if(length == 32)
+   {
+      mask = IPV4_ADDR(255, 255, 255, 255);
+   }
+   else
+   {
+      return FALSE;
+   }
+
+   //Compare address prefixes
+   return ((ipAddr1 & mask) == (ipAddr2 & mask));
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _KSZ8091_DRIVER_H
@@ -36,7 +36,7 @@
 
 //PHY address
 #ifndef KSZ8091_PHY_ADDR
-   #define KSZ8091_PHY_ADDR 7
+   #define KSZ8091_PHY_ADDR 0
 #elif (KSZ8091_PHY_ADDR < 0 || KSZ8091_PHY_ADDR > 31)
    #error KSZ8091_PHY_ADDR parameter is not valid
 #endif

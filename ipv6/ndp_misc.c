@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -132,7 +132,9 @@ void ndpUpdateAddrList(NetInterface *interface)
                   if(i == 0)
                   {
                      //Delay before transmitting the first solicitation
-                     entry->dadTimeout = netGetRandRange(0, NDP_MAX_RTR_SOLICITATION_DELAY);
+                     entry->dadTimeout = netGenerateRandRange(0,
+                        NDP_MAX_RTR_SOLICITATION_DELAY);
+
                      //Prepare to send the first Neighbor Solicitation message
                      entry->dadRetransmitCount = 1;
                   }
@@ -196,12 +198,8 @@ void ndpUpdateAddrList(NetInterface *interface)
                      entry->state = IPV6_ADDR_STATE_PREFERRED;
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
-                     //Link-local address?
-                     if(i == 0)
-                     {
-                        //Restart mDNS probing process
-                        mdnsResponderStartProbing(interface->mdnsResponderContext);
-                     }
+                     //Restart mDNS probing process
+                     mdnsResponderStartProbing(interface->mdnsResponderContext);
 #endif
                   }
                }

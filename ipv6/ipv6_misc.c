@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -63,7 +63,7 @@ Ipv6AddrState ipv6GetAddrState(NetInterface *interface, const Ipv6Addr *addr)
       //Point to the current entry
       entry = &interface->ipv6Context.addrList[i];
 
-      //Valid IPv6 address
+      //Valid IPv6 address?
       if(entry->state != IPV6_ADDR_STATE_INVALID)
       {
          //Check whether the current entry matches the specified address
@@ -200,12 +200,8 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
    }
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
-   //Link-local address?
-   if(index == 0)
-   {
-      //Restart mDNS probing process
-      mdnsResponderStartProbing(interface->mdnsResponderContext);
-   }
+   //Restart mDNS probing process
+   mdnsResponderStartProbing(interface->mdnsResponderContext);
 #endif
 
    //Return status code

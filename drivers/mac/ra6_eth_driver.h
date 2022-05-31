@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _RA6_ETH_DRIVER_H
@@ -81,6 +81,11 @@
    #define RA6_ETH_IRQ_SUB_PRIORITY 0
 #elif (RA6_ETH_IRQ_SUB_PRIORITY < 0)
    #error RA6_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef RA6_ETH_RAM_SECTION
+   #define RA6_ETH_RAM_SECTION ".ns_buffer"
 #endif
 
 //Ethernet DMA Controller

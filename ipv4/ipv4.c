@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -39,7 +39,6 @@
 
 //Dependencies
 #include <string.h>
-#include <ctype.h>
 #include "core/net.h"
 #include "core/ethernet.h"
 #include "core/ip.h"

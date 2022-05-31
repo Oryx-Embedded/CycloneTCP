@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -43,7 +43,7 @@
 #if (MQTT_CLIENT_SUPPORT == ENABLED)
 
 //MQTT control packets
-static const char_t *packetLabel[16] =
+static const char_t *const packetLabel[16] =
 {
    "Reserved",    //0
    "CONNECT",     //1

@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -321,7 +321,7 @@ void ndpTick(NetInterface *interface)
                //Before a host sends an initial solicitation, it should delay the
                //transmission for a random amount of time in order to alleviate
                //congestion when many hosts start up on a link at the same time
-               context->timeout = netGetRandRange(context->minRtrSolicitationDelay,
+               context->timeout = netGenerateRandRange(context->minRtrSolicitationDelay,
                   context->maxRtrSolicitationDelay);
             }
 

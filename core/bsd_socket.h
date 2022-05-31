@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -162,8 +162,10 @@
 #define IPTOS_RELIABILITY 0x04
 
 //IOCTL commands
-#define FIONREAD          0x400466FF
-#define FIONBIO           0x800466FE
+#define FIONBIO           126
+#define FIONREAD          127
+#define FIONWRITE         121
+#define FIONSPACE         120
 
 //FCNTL commands
 #define F_GETFL           3

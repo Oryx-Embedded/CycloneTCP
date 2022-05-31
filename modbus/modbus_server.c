@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -55,6 +55,13 @@ void modbusServerGetDefaultSettings(ModbusServerSettings *settings)
    settings->port = MODBUS_TCP_PORT;
    //Default unit identifier
    settings->unitId = MODBUS_DEFAULT_UNIT_ID;
+   //Idle connection timeout
+   settings->timeout = MODBUS_SERVER_TIMEOUT;
+
+   //TCP connection open callback function
+   settings->openCallback = NULL;
+   //TCP connection close callback function
+   settings->closeCallback = NULL;
 
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
    //TLS initialization callback function

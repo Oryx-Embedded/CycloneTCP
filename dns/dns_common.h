@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _DNS_COMMON_H
@@ -209,6 +209,34 @@ typedef __start_packed struct
 
 
 /**
+ * @brief A resource record format
+ **/
+
+typedef __start_packed struct
+{
+   uint16_t rtype;    //0-1
+   uint16_t rclass;   //2-3
+   uint32_t ttl;      //4-7
+   uint16_t rdlength; //8-9
+   uint8_t rdata[4];  //10-13
+} __end_packed DnsIpv4AddrResourceRecord;
+
+
+/**
+ * @brief AAAA resource record format
+ **/
+
+typedef __start_packed struct
+{
+   uint16_t rtype;    //0-1
+   uint16_t rclass;   //2-3
+   uint32_t ttl;      //4-7
+   uint16_t rdlength; //8-9
+   uint8_t rdata[16]; //10-25
+} __end_packed DnsIpv6AddrResourceRecord;
+
+
+/**
  * @brief SRV resource record format
  **/
 
@@ -241,6 +269,9 @@ int_t dnsCompareName(const DnsHeader *message, size_t length,
 
 int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t pos1,
    const DnsHeader *message2, size_t length2, size_t pos2, uint_t level);
+
+void dnsGenerateIpv4ReverseName(Ipv4Addr ipv4Addr, char_t *buffer);
+void dnsGenerateIpv6ReverseName(const Ipv6Addr *ipv6Addr, char_t *buffer);
 
 //C++ guard
 #ifdef __cplusplus

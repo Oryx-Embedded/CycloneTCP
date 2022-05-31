@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -118,11 +118,21 @@ error_t ksz8775Init(NetInterface *interface)
       temp = ksz8775ReadSwitchReg(interface, KSZ8775_GLOBAL_CTRL10);
       temp |= KSZ8775_GLOBAL_CTRL10_TAIL_TAG_EN;
       ksz8775WriteSwitchReg(interface, KSZ8775_GLOBAL_CTRL10, temp);
+
+      //Disable packet size check
+      temp = ksz8775ReadSwitchReg(interface, KSZ8775_GLOBAL_CTRL2);
+      temp |= KSZ8775_GLOBAL_CTRL2_MAX_PKT_SIZE_CHECK_DIS;
+      ksz8775WriteSwitchReg(interface, KSZ8775_GLOBAL_CTRL2, temp);
 #else
       //Disable tail tag feature
       temp = ksz8775ReadSwitchReg(interface, KSZ8775_GLOBAL_CTRL10);
       temp &= ~KSZ8775_GLOBAL_CTRL10_TAIL_TAG_EN;
       ksz8775WriteSwitchReg(interface, KSZ8775_GLOBAL_CTRL10, temp);
+
+      //Enable packet size check
+      temp = ksz8775ReadSwitchReg(interface, KSZ8775_GLOBAL_CTRL2);
+      temp &= ~KSZ8775_GLOBAL_CTRL2_MAX_PKT_SIZE_CHECK_DIS;
+      ksz8775WriteSwitchReg(interface, KSZ8775_GLOBAL_CTRL2, temp);
 #endif
 
       //Loop through the ports
@@ -596,8 +606,8 @@ uint32_t ksz8775GetLinkSpeed(NetInterface *interface, uint8_t port)
       }
       else if(port == KSZ8775_PORT4)
       {
-         //Read port status 1 register
-         value = ksz8775ReadSwitchReg(interface, KSZ8775_PORTn_CTRL9(port));
+         //Read port 4 control 9 register
+         value = ksz8775ReadSwitchReg(interface, KSZ8775_PORT4_CTRL9);
 
          //Retrieve current link speed
          if((value & KSZ8775_PORTn_CTRL9_FORCED_SPEED) != 0)
@@ -907,7 +917,23 @@ void ksz8775EnableIgmpSnooping(NetInterface *interface, bool_t enable)
 
 void ksz8775EnableMldSnooping(NetInterface *interface, bool_t enable)
 {
-   //Not implemented
+   uint8_t temp;
+
+   //Read global control 21 register
+   temp = ksz8775ReadSwitchReg(interface, KSZ8775_GLOBAL_CTRL21);
+
+   //Enable or disable MLD snooping
+   if(enable)
+   {
+      temp |= KSZ8775_GLOBAL_CTRL21_MLD_SNOOP_EN;
+   }
+   else
+   {
+      temp &= ~KSZ8775_GLOBAL_CTRL21_MLD_SNOOP_EN;
+   }
+
+   //Write the value back to global control 21 register
+   ksz8775WriteSwitchReg(interface, KSZ8775_GLOBAL_CTRL21, temp);
 }
 
 

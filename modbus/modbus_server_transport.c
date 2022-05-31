@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -49,6 +49,7 @@
 
 void modbusServerAcceptConnection(ModbusServerContext *context)
 {
+   error_t error;
    uint_t i;
    Socket *socket;
    IpAddr clientIpAddr;
@@ -97,32 +98,52 @@ void modbusServerAcceptConnection(ModbusServerContext *context)
          //Initialize time stamp
          connection->timestamp = osGetSystemTime();
 
-#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
-         //TLS-secured connection?
-         if(context->settings.tlsInitCallback != NULL)
+         //Any registered callback?
+         if(context->settings.openCallback != NULL)
          {
-            error_t error;
+            //Invoke callback function
+            error = context->settings.openCallback(connection, clientIpAddr,
+               clientPort);
+         }
+         else
+         {
+            //No callback function registered
+            error = NO_ERROR;
+         }
 
-            //TLS initialization
-            error = modbusServerOpenSecureConnection(context, connection);
-
-            //Check status code
-            if(!error)
+         //Check status code
+         if(!error)
+         {
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+            //TLS-secured connection?
+            if(context->settings.tlsInitCallback != NULL)
             {
-               //Perform TLS handshake
-               connection->state = MODBUS_CONNECTION_STATE_CONNECT_TLS;
+               //TLS initialization
+               error = modbusServerOpenSecureConnection(context, connection);
+
+               //Check status code
+               if(!error)
+               {
+                  //Perform TLS handshake
+                  connection->state = MODBUS_CONNECTION_STATE_CONNECT_TLS;
+               }
+               else
+               {
+                  //Close connection with the client
+                  modbusServerCloseConnection(connection);
+               }
             }
             else
+#endif
             {
-               //Close connection with the client
-               modbusServerCloseConnection(connection);
+               //Wait for incoming Modbus requests
+               connection->state = MODBUS_CONNECTION_STATE_RECEIVE;
             }
          }
          else
-#endif
          {
-            //Wait for incoming Modbus requests
-            connection->state = MODBUS_CONNECTION_STATE_RECEIVE;
+            //Reject the incoming connection request
+            modbusServerCloseConnection(connection);
          }
       }
       else
@@ -214,8 +235,13 @@ error_t modbusServerShutdownConnection(ModbusClientConnection *connection)
 
 void modbusServerCloseConnection(ModbusClientConnection *connection)
 {
+   ModbusServerContext *context;
+
    //Debug message
    TRACE_INFO("Modbus Server: Closing connection...\r\n");
+
+   //Point to the Modbus/TCP server context
+   context = connection->context;
 
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
    //Release TLS context
@@ -231,6 +257,13 @@ void modbusServerCloseConnection(ModbusClientConnection *connection)
    {
       socketClose(connection->socket);
       connection->socket = NULL;
+   }
+
+   //Any registered callback?
+   if(context->settings.closeCallback != NULL)
+   {
+      //Invoke callback function
+      context->settings.closeCallback(connection);
    }
 
    //Mark the connection as closed

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Dependencies
@@ -37,7 +37,7 @@
 #if (PPP_SUPPORT == ENABLED && PPP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
 
 //LCP codes
-static const char_t *lcpCodeLabel[] =
+static const char_t *const lcpCodeLabel[] =
 {
    "",                  //0
    "Configure-Request", //1
@@ -54,7 +54,7 @@ static const char_t *lcpCodeLabel[] =
 };
 
 //NCP codes
-static const char_t *ncpCodeLabel[] =
+static const char_t *const ncpCodeLabel[] =
 {
    "",                  //0
    "Configure-Request", //1
@@ -67,7 +67,7 @@ static const char_t *ncpCodeLabel[] =
 };
 
 //PAP codes
-static const char_t *papCodeLabel[] =
+static const char_t *const papCodeLabel[] =
 {
    "",                     //0
    "Authenticate-Request", //1
@@ -76,7 +76,7 @@ static const char_t *papCodeLabel[] =
 };
 
 //CHAP codes
-static const char_t *chapCodeLabel[] =
+static const char_t *const chapCodeLabel[] =
 {
    "",          //0
    "Challenge", //1
@@ -86,7 +86,7 @@ static const char_t *chapCodeLabel[] =
 };
 
 //LCP options
-static const char_t *lcpOptionLabel[] =
+static const char_t *const lcpOptionLabel[] =
 {
    "",                                      //0
    "Maximum-Receive-Unit",                  //1
@@ -105,7 +105,7 @@ static const char_t *lcpOptionLabel[] =
 };
 
 //IPCP options
-static const char_t *ipcpOptionLabel[] =
+static const char_t *const ipcpOptionLabel[] =
 {
    "",                        //0
    "IP-Addresses",            //1
@@ -114,7 +114,7 @@ static const char_t *ipcpOptionLabel[] =
    "Mobile-IPv4",             //4
 };
 
-static const char_t *ipcpOptionLabel2[] =
+static const char_t *const ipcpOptionLabel2[] =
 {
    "",                             //128
    "Primary-DNS-Server-Address",   //129
@@ -124,7 +124,7 @@ static const char_t *ipcpOptionLabel2[] =
 };
 
 //IPV6CP options
-static const char_t *ipv6cpOptionLabel[] =
+static const char_t *const ipv6cpOptionLabel[] =
 {
    "",                         //0
    "Interface-Identifier",     //1
@@ -156,14 +156,17 @@ error_t pppDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
    case PPP_PROTOCOL_IPV6CP:
       error = ncpDumpPacket(packet, length, protocol);
       break;
+
    //PAP packet?
    case PPP_PROTOCOL_PAP:
       error = papDumpPacket(packet, length);
       break;
+
    //CHAP packet?
    case PPP_PROTOCOL_CHAP:
       error = chapDumpPacket(packet, length);
       break;
+
    //Unknown protocol?
    default:
       error = ERROR_FAILURE;
@@ -202,9 +205,13 @@ error_t lcpDumpPacket(const PppPacket *packet, size_t length)
 
    //Retrieve the name of the LCP packet
    if(packet->code < arraysize(lcpCodeLabel))
+   {
       label = lcpCodeLabel[packet->code];
+   }
    else
+   {
       label = "Unknown";
+   }
 
    //Dump LCP packet header
    TRACE_DEBUG("  Code = %" PRIu8 " (%s)\r\n", packet->code, label);
@@ -360,9 +367,13 @@ error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
 
    //Retrieve the name of the NDP packet
    if(packet->code < arraysize(ncpCodeLabel))
+   {
       label = ncpCodeLabel[packet->code];
+   }
    else
+   {
       label = "Unknown";
+   }
 
    //Dump NDP packet header
    TRACE_DEBUG("  Code = %" PRIu8 " (%s)\r\n", packet->code, label);
@@ -489,9 +500,13 @@ error_t papDumpPacket(const PppPacket *packet, size_t length)
 
    //Retrieve the name of the PAP packet
    if(packet->code < arraysize(papCodeLabel))
+   {
       label = papCodeLabel[packet->code];
+   }
    else
+   {
       label = "Unknown";
+   }
 
    //Dump PAP packet header
    TRACE_DEBUG("  Code = %" PRIu8 " (%s)\r\n", packet->code, label);
@@ -609,9 +624,13 @@ error_t chapDumpPacket(const PppPacket *packet, size_t length)
 
    //Retrieve the name of the CHAP packet
    if(packet->code < arraysize(chapCodeLabel))
+   {
       label = chapCodeLabel[packet->code];
+   }
    else
+   {
       label = "Unknown";
+   }
 
    //Dump CHAP packet header
    TRACE_DEBUG("  Code = %" PRIu8 " (%s)\r\n", packet->code, label);
@@ -718,9 +737,15 @@ error_t lcpDumpOptions(const PppOption *option, size_t length)
 
       //Display the name of the current option
       if(option->type < arraysize(lcpOptionLabel))
-         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n", lcpOptionLabel[option->type], option->length);
+      {
+         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n",
+            lcpOptionLabel[option->type], option->length);
+      }
       else
-         TRACE_DEBUG("  Option %" PRIu8 " (%" PRIu8 " bytes)\r\n", option->type, option->length);
+      {
+         TRACE_DEBUG("  Option %" PRIu8 " (%" PRIu8 " bytes)\r\n",
+            option->type, option->length);
+      }
 
       //Check option code
       switch(option->type)
@@ -793,11 +818,20 @@ error_t ipcpDumpOptions(const PppOption *option, size_t length)
 
       //Display the name of the current option
       if(option->type < arraysize(ipcpOptionLabel))
-         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n", ipcpOptionLabel[option->type], option->length);
+      {
+         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n",
+            ipcpOptionLabel[option->type], option->length);
+      }
       else if(option->type >= 128 && option->type < (128 + arraysize(ipcpOptionLabel2)))
-         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n", ipcpOptionLabel2[option->type - 128], option->length);
+      {
+         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n",
+            ipcpOptionLabel2[option->type - 128], option->length);
+      }
       else
-         TRACE_DEBUG("  Option %" PRIu8 " (%" PRIu8 " bytes)\r\n", option->type, option->length);
+      {
+         TRACE_DEBUG("  Option %" PRIu8 " (%" PRIu8 " bytes)\r\n",
+            option->type, option->length);
+      }
 
       //Check option code
       switch(option->type)
@@ -860,9 +894,15 @@ error_t ipv6cpDumpOptions(const PppOption *option, size_t length)
 
       //Display the name of the current option
       if(option->type < arraysize(ipv6cpOptionLabel))
-         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n", ipv6cpOptionLabel[option->type], option->length);
+      {
+         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n",
+            ipv6cpOptionLabel[option->type], option->length);
+      }
       else
-         TRACE_DEBUG("  Option %" PRIu8 " (%" PRIu8 " bytes)\r\n", option->type, option->length);
+      {
+         TRACE_DEBUG("  Option %" PRIu8 " (%" PRIu8 " bytes)\r\n",
+            option->type, option->length);
+      }
 
       //Check option code
       switch(option->type)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -97,8 +97,8 @@ uint16_t ftpServerGetPassivePort(FtpServerContext *context)
       port > context->settings.passivePortMax)
    {
       //Generate a random port number
-      port = context->settings.passivePortMin + netGetRand() %
-         (context->settings.passivePortMax - context->settings.passivePortMin + 1);
+      port = netGetRandRange(context->settings.passivePortMin,
+         context->settings.passivePortMax);
    }
 
    //Next passive port to use

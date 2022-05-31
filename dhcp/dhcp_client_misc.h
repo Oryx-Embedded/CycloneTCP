@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _DHCP_CLIENT_MISC_H
@@ -50,6 +50,7 @@ void dhcpClientLinkChangeEvent(DhcpClientContext *context);
 error_t dhcpClientSendDiscover(DhcpClientContext *context);
 error_t dhcpClientSendRequest(DhcpClientContext *context);
 error_t dhcpClientSendDecline(DhcpClientContext *context);
+error_t dhcpClientSendRelease(DhcpClientContext *context);
 
 void dhcpClientProcessMessage(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,

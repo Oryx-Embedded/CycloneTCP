@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -1600,7 +1600,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
 int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
 {
    int_t ret;
-   int_t *val;
+   uint_t *val;
    Socket *sock;
 
    //Make sure the socket descriptor is valid
@@ -1621,26 +1621,49 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
       //Check command type
       switch(cmd)
       {
-#if (TCP_SUPPORT == ENABLED)
-      //Get the number of characters waiting to be read
-      case FIONREAD:
-         //Cast the parameter to the relevant type
-         val = (int_t *) arg;
-         //Return the number of characters in the receive buffer
-         *val = sock->rcvUser;
-         //Successful processing
-         ret = SOCKET_SUCCESS;
-         break;
-#endif
       //Enable or disable non-blocking mode
       case FIONBIO:
          //Cast the parameter to the relevant type
-         val = (int_t *) arg;
+         val = (uint_t *) arg;
          //Enable blocking or non-blocking operation
          sock->timeout = (*val != 0) ? 0 : INFINITE_DELAY;
          //Successful processing
          ret = SOCKET_SUCCESS;
          break;
+
+#if (TCP_SUPPORT == ENABLED)
+      //Get the number of bytes that are immediately available for reading
+      case FIONREAD:
+         //Cast the parameter to the relevant type
+         val = (uint_t *) arg;
+         //Return the actual value
+         *val = sock->rcvUser;
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+         break;
+
+      //Get the number of bytes written to the send queue but not yet
+      //acknowledged by the other side of the connection
+      case FIONWRITE:
+         //Cast the parameter to the relevant type
+         val = (uint_t *) arg;
+         //Return the actual value
+         *val = sock->sndUser + sock->sndNxt - sock->sndUna;
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+         break;
+
+      //Get the free space	in the send queue
+      case FIONSPACE:
+         //Cast the parameter to the relevant type
+         val = (uint_t *) arg;
+         //Return the actual value
+         *val = sock->txBufferSize - (sock->sndUser + sock->sndNxt -
+            sock->sndUna);
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+         break;
+#endif
 
       //Unknown command?
       default:
@@ -1812,15 +1835,19 @@ int_t closesocket(int_t s)
  * The select function determines the status of one or more sockets,
  * waiting if necessary, to perform synchronous I/O
  *
- * @param[in] nfds Unused parameter included only for compatibility with Berkeley socket
- * @param[in,out] readfds An optional pointer to a set of sockets to be checked for readability
- * @param[in,out] writefds An optional pointer to a set of sockets to be checked for writability
- * @param[in,out] exceptfds An optional pointer to a set of sockets to be checked for errors
+ * @param[in] nfds Unused parameter included only for compatibility with
+ *   Berkeley socket
+ * @param[in,out] readfds An optional pointer to a set of sockets to be
+ *   checked for readability
+ * @param[in,out] writefds An optional pointer to a set of sockets to be
+ *   checked for writability
+ * @param[in,out] exceptfds An optional pointer to a set of sockets to be
+ *   checked for errors
  * @param[in] timeout The maximum time for select to wait. Set the timeout
  *   parameter to null for blocking operations
  * @return The select function returns the total number of socket handles that
- *   are ready and contained in the fd_set structures, zero if the time
- *   limit expired, or SOCKET_ERROR if an error occurred
+ *   are ready and contained in the fd_set structures, zero if the time limit
+ *   expired, or SOCKET_ERROR if an error occurred
  **/
 
 int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,

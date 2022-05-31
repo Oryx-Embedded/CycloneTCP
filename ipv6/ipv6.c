@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -38,7 +38,6 @@
 
 //Dependencies
 #include <string.h>
-#include <ctype.h>
 #include "core/net.h"
 #include "core/ip.h"
 #include "core/udp.h"

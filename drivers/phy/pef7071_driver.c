@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -299,4 +299,58 @@ void pef7071DumpPhyReg(NetInterface *interface)
 
    //Terminate with a line feed
    TRACE_DEBUG("\r\n");
+}
+
+
+/**
+ * @brief Write MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @param[in] data MMD register value
+ **/
+
+void pef7071WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data)
+{
+   //Select register operation
+   pef7071WritePhyReg(interface, PEF7071_MMDCTRL,
+      PEF7071_MMDCTRL_ACTYPE_ADDR | (devAddr & PEF7071_MMDCTRL_DEVAD));
+
+   //Write MMD register address
+   pef7071WritePhyReg(interface, PEF7071_MMDDATA, regAddr);
+
+   //Select data operation
+   pef7071WritePhyReg(interface, PEF7071_MMDCTRL,
+      PEF7071_MMDCTRL_ACTYPE_DATA | (devAddr & PEF7071_MMDCTRL_DEVAD));
+
+   //Write the content of the MMD register
+   pef7071WritePhyReg(interface, PEF7071_MMDDATA, data);
+}
+
+
+/**
+ * @brief Read MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @return MMD register value
+ **/
+
+uint16_t pef7071ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr)
+{
+   //Select register operation
+   pef7071WritePhyReg(interface, PEF7071_MMDCTRL,
+      PEF7071_MMDCTRL_ACTYPE_ADDR | (devAddr & PEF7071_MMDCTRL_DEVAD));
+
+   //Write MMD register address
+   pef7071WritePhyReg(interface, PEF7071_MMDDATA, regAddr);
+
+   //Select data operation
+   pef7071WritePhyReg(interface, PEF7071_MMDCTRL,
+      PEF7071_MMDCTRL_ACTYPE_DATA | (devAddr & PEF7071_MMDCTRL_DEVAD));
+
+   //Read the content of the MMD register
+   return pef7071ReadPhyReg(interface, PEF7071_MMDDATA);
 }

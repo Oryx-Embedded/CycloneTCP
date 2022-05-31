@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -84,8 +84,8 @@ uint16_t tcpGetDynamicPort(void)
    if(port < SOCKET_EPHEMERAL_PORT_MIN || port > SOCKET_EPHEMERAL_PORT_MAX)
    {
       //Generate a random port number
-      port = SOCKET_EPHEMERAL_PORT_MIN + netGetRand() %
-         (SOCKET_EPHEMERAL_PORT_MAX - SOCKET_EPHEMERAL_PORT_MIN + 1);
+      port = netGenerateRandRange(SOCKET_EPHEMERAL_PORT_MIN,
+         SOCKET_EPHEMERAL_PORT_MAX);
    }
 
    //Next dynamic port to use
@@ -397,12 +397,22 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
             //Default congestion state
             newSocket->congestState = TCP_CONGEST_STATE_IDLE;
+
             //Initial congestion window
-            newSocket->cwnd = MIN(TCP_INITIAL_WINDOW * newSocket->smss, newSocket->txBufferSize);
+            newSocket->cwnd = MIN(TCP_INITIAL_WINDOW * newSocket->smss,
+               newSocket->txBufferSize);
+
             //Slow start threshold should be set arbitrarily high
             newSocket->ssthresh = UINT16_MAX;
             //Recover is set to the initial send sequence number
             newSocket->recover = newSocket->iss;
+#endif
+
+#if (TCP_SACK_SUPPORT == ENABLED)
+            //The SACK Permitted option can be sent in a SYN segment to
+            //indicate that the SACK option can be used once the connection
+            //is established
+            newSocket->sackPermitted = queueItem->sackPermitted;
 #endif
             //The connection state should be changed to SYN-RECEIVED
             tcpChangeState(newSocket, TCP_STATE_SYN_RECEIVED);

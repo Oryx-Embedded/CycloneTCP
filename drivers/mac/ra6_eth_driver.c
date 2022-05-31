@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -45,15 +45,19 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 32
+#pragma location = RA6_ETH_RAM_SECTION
 static uint8_t txBuffer[RA6_ETH_TX_BUFFER_COUNT][RA6_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 32
+#pragma location = RA6_ETH_RAM_SECTION
 static uint8_t rxBuffer[RA6_ETH_RX_BUFFER_COUNT][RA6_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
-#pragma data_alignment = 32
+#pragma data_alignment = 16
+#pragma location = RA6_ETH_RAM_SECTION
 static Ra6EthTxDmaDesc txDmaDesc[RA6_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
-#pragma data_alignment = 32
+#pragma data_alignment = 16
+#pragma location = RA6_ETH_RAM_SECTION
 static Ra6EthRxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT];
 
 //ARM or GCC compiler?
@@ -61,16 +65,16 @@ static Ra6EthRxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer
 static uint8_t txBuffer[RA6_ETH_TX_BUFFER_COUNT][RA6_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(32)));
+   __attribute__((aligned(32), __section__(RA6_ETH_RAM_SECTION)));
 //Receive buffer
 static uint8_t rxBuffer[RA6_ETH_RX_BUFFER_COUNT][RA6_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(32)));
+   __attribute__((aligned(32), __section__(RA6_ETH_RAM_SECTION)));
 //Transmit DMA descriptors
 static Ra6EthTxDmaDesc txDmaDesc[RA6_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(32)));
+   __attribute__((aligned(16), __section__(RA6_ETH_RAM_SECTION)));
 //Receive DMA descriptors
 static Ra6EthRxDmaDesc rxDmaDesc[RA6_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(32)));
+   __attribute__((aligned(16), __section__(RA6_ETH_RAM_SECTION)));
 
 #endif
 

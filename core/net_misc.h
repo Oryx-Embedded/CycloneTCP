@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _NET_MISC_H
@@ -213,10 +213,10 @@ bool_t netTimerRunning(NetTimer *timer);
 bool_t netTimerExpired(NetTimer *timer);
 
 void netInitRand(void);
-uint32_t netGetRand(void);
-int32_t netGetRandRange(int32_t min, int32_t max);
-void netGetRandData(uint8_t *data, size_t length);
-uint32_t netGetRandBit(NetRandState *state);
+uint32_t netGenerateRand(void);
+uint32_t netGenerateRandRange(uint32_t min, uint32_t max);
+void netGenerateRandData(uint8_t *data, size_t length);
+uint32_t netGenerateRandBit(NetRandState *state);
 
 //C++ guard
 #ifdef __cplusplus

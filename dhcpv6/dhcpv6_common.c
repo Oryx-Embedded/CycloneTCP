@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -253,40 +253,6 @@ Dhcpv6Option *dhcpv6GetOption(const uint8_t *options,
 
    //The specified option code was not found
    return NULL;
-}
-
-
-/**
- * @brief Multiplication by a randomization factor
- *
- * Each of the computations of a new RT include a randomization factor
- * RAND, which is a random number chosen with a uniform distribution
- * between -0.1 and +0.1. The randomization factor is included to
- * minimize synchronization of messages transmitted by DHCPv6 clients
- *
- * @param[in] value Input value
- * @return Value resulting from the randomization process
- **/
-
-int32_t dhcpv6Rand(int32_t value)
-{
-   //Use a randomization factor chosen with a uniform
-   //distribution between -0.1 and +0.1
-   return value * dhcpv6RandRange(-100, 100) / 1000;
-}
-
-
-/**
- * @brief Get a random value in the specified range
- * @param[in] min Lower bound
- * @param[in] max Upper bound
- * @return Random value in the specified range
- **/
-
-int32_t dhcpv6RandRange(int32_t min, int32_t max)
-{
-   //Return a random value in the given range
-   return min + netGetRand() % (max - min + 1);
 }
 
 #endif

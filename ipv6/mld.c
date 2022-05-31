@@ -34,7 +34,7 @@
  * - RFC 3810: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -340,7 +340,7 @@ void mldProcessListenerQuery(NetInterface *interface, Ipv6PseudoHeader *pseudoHe
                      if(maxRespDelay < (entry->timer - time))
                      {
                         //Restart delay timer
-                        entry->timer = time + mldRand(maxRespDelay);
+                        entry->timer = time + netGenerateRandRange(0, maxRespDelay);
                      }
                   }
                }
@@ -350,7 +350,7 @@ void mldProcessListenerQuery(NetInterface *interface, Ipv6PseudoHeader *pseudoHe
                   //Switch to the Delaying Listener state
                   entry->state = MLD_STATE_DELAYING_LISTENER;
                   //Delay the response by a random amount of time
-                  entry->timer = time + mldRand(maxRespDelay);
+                  entry->timer = time + netGenerateRandRange(0, maxRespDelay);
                }
             }
          }
@@ -597,19 +597,6 @@ error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr)
    netBufferFree(buffer);
    //Return status code
    return error;
-}
-
-
-/**
- * @brief Get a random value in the specified range
- * @param[in] max Upper bound
- * @return Random value in the specified range
- **/
-
-uint32_t mldRand(uint32_t max)
-{
-   //Return a random value in the given range
-   return netGetRand() % (max + 1);
 }
 
 

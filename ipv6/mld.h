@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _MLD_H
@@ -121,8 +121,6 @@ void mldProcessListenerReport(NetInterface *interface, Ipv6PseudoHeader *pseudoH
 
 error_t mldSendListenerReport(NetInterface *interface, Ipv6Addr *ipAddr);
 error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr);
-
-uint32_t mldRand(uint32_t max);
 
 void mldDumpMessage(const MldMessage *message);
 

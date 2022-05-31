@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _HTTP_CLIENT_H
@@ -291,7 +291,7 @@ struct _HttpClientContext
 };
 
 
-//HTTP related functions
+//HTTP client related functions
 error_t httpClientInit(HttpClientContext *context);
 
 #if (HTTP_CLIENT_TLS_SUPPORT == ENABLED)

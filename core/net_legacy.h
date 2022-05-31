@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _NET_LEGACY_H
@@ -154,8 +154,8 @@
 #define tcpIpStackRxTask netRxTask
 #define tcpIpStackGetDefaultInterface netGetDefaultInterface
 #define tcpIpStackInitRand netInitRand
-#define tcpIpStackGetRand netGetRand
-#define tcpIpStackGetRandRange netGetRandRange
+#define tcpIpStackGetRand netGenerateRand
+#define tcpIpStackGetRandRange netGenerateRandRange
 #define tcpIpStackAttachLinkChangeCallback netAttachLinkChangeCallback
 #define tcpIpStackDetachLinkChangeCallback netDetachLinkChangeCallback
 #define tcpIpStackInvokeLinkChangeCallback netInvokeLinkChangeCallback

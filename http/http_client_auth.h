@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _HTTP_CLIENT_AUTH_H
@@ -65,17 +65,17 @@ extern "C" {
 
 typedef struct
 {
-   HttpAuthMode mode;            ///<Authentication scheme
-   const char_t *realm;          ///<Realm
-   size_t realmLen;              ///<Length of the realm
+   HttpAuthMode mode;         ///<Authentication scheme
+   const char_t *realm;       ///<Realm
+   size_t realmLen;           ///<Length of the realm
 #if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED)
-   HttpAuthQop qop;              ///<Quality of protection
-   const HashAlgo *algorithm;    ///<Digest algorithm
-   const char_t *nonce;          ///<Nonce value
-   size_t nonceLen;              ///<Length of the nonce value
-   const char_t *opaque;         ///<Opaque parameter
-   size_t opaqueLen;             ///<Length of the opaque parameter
-   bool_t stale;                 ///<Stale flag
+   HttpAuthQop qop;           ///<Quality of protection
+   const HashAlgo *algorithm; ///<Digest algorithm
+   const char_t *nonce;       ///<Nonce value
+   size_t nonceLen;           ///<Length of the nonce value
+   const char_t *opaque;      ///<Opaque parameter
+   size_t opaqueLen;          ///<Length of the opaque parameter
+   bool_t stale;              ///<Stale flag
 #endif
 } HttpWwwAuthenticateHeader;
 

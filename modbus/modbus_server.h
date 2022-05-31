@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -68,7 +68,7 @@
    #error MODBUS_SERVER_MAX_CONNECTIONS parameter is not valid
 #endif
 
-//Maximum time the server will wait before closing the connection
+//Idle connection timeout
 #ifndef MODBUS_SERVER_TIMEOUT
    #define MODBUS_SERVER_TIMEOUT 60000
 #elif (MODBUS_SERVER_TIMEOUT < 1000)
@@ -140,6 +140,21 @@ typedef enum
 } ModbusConnectionState;
 
 
+/**
+ * @brief TCP connection open callback function
+ **/
+
+typedef error_t (*ModbusServerOpenCallback)(ModbusClientConnection *connection,
+   IpAddr clientIpAddr, uint16_t clientPort);
+
+
+/**
+ * @brief TCP connection close callback function
+ **/
+
+typedef void (*ModbusServerCloseCallback)(ModbusClientConnection *connection);
+
+
 //TLS supported?
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
 
@@ -147,8 +162,8 @@ typedef enum
  * @brief TLS initialization callback function
  **/
 
-typedef error_t (*ModbusServerTlsInitCallback)(ModbusClientConnection *connection,
-   TlsContext *tlsContext);
+typedef error_t (*ModbusServerTlsInitCallback)
+   (ModbusClientConnection *connection, TlsContext *tlsContext);
 
 #endif
 
@@ -223,6 +238,9 @@ typedef struct
    NetInterface *interface;                                ///<Underlying network interface
    uint16_t port;                                          ///<Modbus/TCP port number
    uint8_t unitId;                                         ///<Unit identifier
+   systime_t timeout;                                      ///<Idle connection timeout
+   ModbusServerOpenCallback openCallback;                  ///<TCP connection open callback function
+   ModbusServerCloseCallback closeCallback;                ///<TCP connection close callback function
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
    ModbusServerTlsInitCallback tlsInitCallback;            ///<TLS initialization callback function
 #endif

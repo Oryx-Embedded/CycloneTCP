@@ -32,7 +32,7 @@
  * - RFC 1213: MIB for Network Management of TCP/IP-based internets (version 2)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level

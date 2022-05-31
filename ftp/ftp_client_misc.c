@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -38,7 +38,6 @@
 #include "ftp/ftp_client_transport.h"
 #include "ftp/ftp_client_misc.h"
 #include "str.h"
-#include "error.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration

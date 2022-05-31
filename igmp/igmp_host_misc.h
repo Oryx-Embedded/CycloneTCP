@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _IGMP_HOST_MISC_H
@@ -52,8 +52,6 @@ void igmpHostProcessMembershipQuery(NetInterface *interface,
 
 void igmpHostProcessMembershipReport(NetInterface *interface,
    const IgmpMessage *message, size_t length);
-
-uint32_t igmpRand(uint32_t max);
 
 //C++ guard
 #ifdef __cplusplus

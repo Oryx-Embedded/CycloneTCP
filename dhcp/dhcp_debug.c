@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -40,7 +40,7 @@
 #if (IPV4_SUPPORT == ENABLED && DHCP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
 
 //DHCP message opcodes
-static const char_t *opcodeLabel[] =
+static const char_t *const opcodeLabel[] =
 {
    "",            //0
    "BOOTREQUEST", //1
@@ -48,7 +48,7 @@ static const char_t *opcodeLabel[] =
 };
 
 //DHCP message types
-static const char_t *messageLabel[] =
+static const char_t *const messageLabel[] =
 {
    "",             //0
    "DHCPDISCOVER", //1
@@ -62,7 +62,7 @@ static const char_t *messageLabel[] =
 };
 
 //DHCP options
-static const char_t *optionLabel[] =
+static const char_t *const optionLabel[] =
 {
    "Pad",                          //0
    "Subnet Mask",                  //1

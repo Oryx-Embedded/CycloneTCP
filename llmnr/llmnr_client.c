@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -35,7 +35,6 @@
 #include "core/net.h"
 #include "ipv4/ipv4_misc.h"
 #include "llmnr/llmnr_client.h"
-#include "llmnr/llmnr_common.h"
 #include "dns/dns_debug.h"
 #include "debug.h"
 
@@ -106,7 +105,7 @@ error_t llmnrResolve(NetInterface *interface, const char_t *name,
 
       //An identifier is used by the LLMNR client to match replies
       //with corresponding requests
-      entry->id = (uint16_t) netGetRand();
+      entry->id = (uint16_t) netGenerateRand();
 
       //Callback function to be called when a LLMNR response is received
       error = udpAttachRxCallback(interface, entry->port, llmnrProcessResponse,
@@ -252,7 +251,7 @@ error_t llmnrSendQuery(DnsCacheEntry *entry)
    }
 
    //Allocate a memory buffer to hold the LLMNR query message
-   buffer = udpAllocBuffer(DNS_MESSAGE_MAX_SIZE, &offset);
+   buffer = udpAllocBuffer(LLMNR_MESSAGE_MAX_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
       return ERROR_OUT_OF_MEMORY;
@@ -322,7 +321,7 @@ error_t llmnrSendQuery(DnsCacheEntry *entry)
    //field in the IPV4 header MAY be set to any value. However, it is
    //recommended that the value 255 be used for compatibility with early
    //implementations (refer to RFC 4795, section 2.5)
-   ancillary.ttl = LLMNR_DEFAULT_IP_TTL;
+   ancillary.ttl = LLMNR_DEFAULT_QUERY_IP_TTL;
 
    //LLMNR queries are sent to and received on port 5355
    error = udpSendBuffer(entry->interface, NULL, entry->port, &destIpAddr,
@@ -368,7 +367,7 @@ void llmnrProcessResponse(NetInterface *interface,
    //Ensure the LLMNR message is valid
    if(length < sizeof(LlmnrHeader))
       return;
-   if(length > DNS_MESSAGE_MAX_SIZE)
+   if(length > LLMNR_MESSAGE_MAX_SIZE)
       return;
 
    //Point to the LLMNR message header

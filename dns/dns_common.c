@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -459,6 +459,59 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t po
 
    //Malformed DNS message
    return -2;
+}
+
+
+/**
+ * @brief Generate domain name for reverse DNS lookup (IPv4)
+ * @param[in] ipv4Addr IPv4 address
+ * @param[out] buffer Output buffer where to store the resulting domain name
+ **/
+
+void dnsGenerateIpv4ReverseName(Ipv4Addr ipv4Addr, char_t *buffer)
+{
+   uint8_t *p;
+
+   //Cast the IPv4 address as byte array
+   p = (uint8_t *) &ipv4Addr;
+
+   //The decimal numbers are concatenated in the reverse order
+   osSprintf(buffer, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+      p[3], p[2], p[1], p[0]);
+}
+
+
+/**
+ * @brief Generate domain name for reverse DNS lookup (IPv6)
+ * @param[in] ipv6Addr IPv6 address
+ * @param[out] buffer Output buffer where to store the resulting domain name
+ **/
+
+void dnsGenerateIpv6ReverseName(const Ipv6Addr *ipv6Addr, char_t *buffer)
+{
+   uint_t i;
+   uint_t m;
+   uint_t n;
+   uint8_t digit;
+
+   //Generate the domain name for reverse DNS lookup
+   for(i = 0; i < 32; i++)
+   {
+      //Calculate the shift count
+      n = (31 - i) / 2;
+      m = (i % 2) * 4;
+
+      //Extract current nibble
+      digit = (ipv6Addr->b[n] >> m) & 0x0F;
+      //The nibbles are concatenated in the reverse order
+      buffer += osSprintf(buffer, "%" PRIx8, digit);
+
+      //Add a delimiter character
+      if(i != 31)
+      {
+         buffer += osSprintf(buffer, ".");
+      }
+   }
 }
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _KSZ8463_DRIVER_H
@@ -1402,8 +1402,8 @@
 #define KSZ8463_PTP_SNS_RATE_H_PTP_SNS_RATE_H               0x3FFF
 
 //PTP Message Configuration 1 register
-#define KSZ8463_PTP_MSG_CFG_1_IEEE_802_1AS_MODE_EN          0x0080
-#define KSZ8463_PTP_MSG_CFG_1_IEEE_1588_PTP_MODE_EN         0x0040
+#define KSZ8463_PTP_MSG_CFG_1_IEEE_802_1AS_MODE             0x0080
+#define KSZ8463_PTP_MSG_CFG_1_IEEE_1588_PTP_MODE            0x0040
 #define KSZ8463_PTP_MSG_CFG_1_ETH_PTP_DETECT                0x0020
 #define KSZ8463_PTP_MSG_CFG_1_IPV4_UDP_PTP_DETECT           0x0010
 #define KSZ8463_PTP_MSG_CFG_1_IPV6_UDP_PTP_DETECT           0x0008

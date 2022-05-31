@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _LLDP_EXT_DOT3_H
@@ -371,11 +371,13 @@ typedef __start_packed struct
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t powerType : 2;      //0
    uint8_t powerSource : 2;
-   uint8_t reserved : 2;
+   uint8_t reserved : 1;
+   uint8_t pd4pid : 1;
    uint8_t powerPriority : 2;
 #else
    uint8_t powerPriority : 2;  //0
-   uint8_t reserved : 2;
+   uint8_t pd4pid : 1;
+   uint8_t reserved : 1;
    uint8_t powerSource : 2;
    uint8_t powerType : 2;
 #endif
@@ -424,7 +426,7 @@ error_t lldpDot3SetLocalMaxFrameSize(LldpAgentContext *context,
    uint_t portIndex, uint16_t maxFrameSize);
 
 error_t lldpDot3SetLocalPowerViaMdiMeas(LldpAgentContext *context,
-   uint_t portIndex, uint8_t measurements[20], uint16_t psePowerPriceIndex); 
+   uint_t portIndex, uint8_t measurements[20], uint16_t psePowerPriceIndex);
 
 error_t lldpDot3DeleteLocalTlv(LldpAgentContext *context,
    LldpDot3Subtype subtype);

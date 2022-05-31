@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _LLMNR_RESPONDER_H
@@ -59,6 +59,12 @@ void llmnrProcessQuery(NetInterface *interface,
 
 error_t llmnrSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
    uint16_t destPort, uint16_t id, uint16_t qtype, uint16_t qclass);
+
+error_t llmnrFormatIpv4AddrRecord(NetInterface *interface,
+   LlmnrHeader *message, size_t *length, Ipv4Addr ipv4Addr);
+
+error_t llmnrFormatIpv6AddrRecord(NetInterface *interface,
+   LlmnrHeader *message, size_t *length, const Ipv6Addr *ipv6Addr);
 
 //C++ guard
 #ifdef __cplusplus

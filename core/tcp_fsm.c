@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -263,7 +263,9 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
    //If no matching socket has been found then try to use the first matching
    //socket in the LISTEN state
    if(i >= SOCKET_MAX_COUNT)
+   {
       socket = passiveSocket;
+   }
 
    //Offset to the first data byte
    offset += segment->dataOffset * 4;
@@ -556,7 +558,7 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
       //Default MSS value
       queueItem->mss = MIN(TCP_DEFAULT_MSS, TCP_MAX_MSS);
 
-      //Get the maximum segment size
+      //Get the Maximum Segment Size option
       option = tcpGetOption(segment, TCP_OPTION_MAX_SEGMENT_SIZE);
 
       //Specified option found?
@@ -574,6 +576,23 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
          queueItem->mss = MIN(queueItem->mss, TCP_MAX_MSS);
          queueItem->mss = MAX(queueItem->mss, TCP_MIN_MSS);
       }
+
+#if (TCP_SACK_SUPPORT == ENABLED)
+      //Get the SACK Permitted option
+      option = tcpGetOption(segment, TCP_OPTION_SACK_PERMITTED);
+
+      //This option can be sent in a SYN segment to indicate that the SACK
+      //option can be used once the connection is established (refer to
+      //RFC 2018, section 1)
+      if(option != NULL && option->length == 2)
+      {
+         queueItem->sackPermitted = TRUE;
+      }
+      else
+      {
+         queueItem->sackPermitted = FALSE;
+      }
+#endif
 
       //Notify user that a connection request is pending
       tcpUpdateEvents(socket);
@@ -655,11 +674,11 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
       //Compute retransmission timeout
       tcpComputeRto(socket);
 
-      //Any segments on the retransmission queue which are thereby
-      //acknowledged should be removed
+      //Any segments on the retransmission queue which are thereby acknowledged
+      //should be removed
       tcpUpdateRetransmitQueue(socket);
 
-      //Get the maximum segment size
+      //Get the Maximum Segment Size option
       option = tcpGetOption(segment, TCP_OPTION_MAX_SEGMENT_SIZE);
 
       //Specified option found?
@@ -677,6 +696,20 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
          socket->smss = MIN(socket->smss, TCP_MAX_MSS);
          socket->smss = MAX(socket->smss, TCP_MIN_MSS);
       }
+
+#if (TCP_SACK_SUPPORT == ENABLED)
+      //Get the SACK Permitted option
+      option = tcpGetOption(segment, TCP_OPTION_SACK_PERMITTED);
+
+      //Specified option found?
+      if(option != NULL && option->length == 2)
+      {
+         //This option can be sent in a SYN segment to indicate that the SACK
+         //option can be used once the connection is established (refer to
+         //RFC 2018, section 1)
+         socket->sackPermitted = TRUE;
+      }
+#endif
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
       //Initial congestion window

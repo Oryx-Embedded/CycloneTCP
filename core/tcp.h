@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _TCP_H
@@ -401,6 +401,9 @@ typedef struct _TcpSynQueueItem
    IpAddr destAddr;
    uint32_t isn;
    uint16_t mss;
+#if (TCP_SACK_SUPPORT == ENABLED)
+   bool_t sackPermitted;
+#endif
 } TcpSynQueueItem;
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -41,7 +41,6 @@
 #include "coap/coap_common.h"
 #include "coap/coap_debug.h"
 #include "debug.h"
-#include "error.h"
 
 //Check TCP/IP stack configuration
 #if (COAP_CLIENT_SUPPORT == ENABLED)
@@ -787,13 +786,8 @@ void coapClientGenerateMessageId(CoapClientContext *context,
 void coapClientGenerateToken(CoapClientContext *context,
    CoapMessageHeader *header)
 {
-   uint8_t i;
-
    //Generate a random token
-   for(i = 0; i < header->tokenLen; i++)
-   {
-      header->token[i] = (uint8_t) netGetRand();
-   }
+   netGetRandData(header->token, header->tokenLen);
 }
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -243,7 +243,7 @@ void igmpHostProcessMembershipQuery(NetInterface *interface,
                      if(maxRespTime < (entry->timer - time))
                      {
                         //Restart delay timer
-                        entry->timer = time + igmpRand(maxRespTime);
+                        entry->timer = time + netGenerateRandRange(0, maxRespTime);
                      }
                   }
                }
@@ -252,7 +252,7 @@ void igmpHostProcessMembershipQuery(NetInterface *interface,
                   //Switch to the "Delaying Member" state
                   entry->state = IGMP_HOST_GROUP_STATE_DELAYING_MEMBER;
                   //Delay the response by a random amount of time
-                  entry->timer = time + igmpRand(maxRespTime);
+                  entry->timer = time + netGenerateRandRange(0, maxRespTime);
                }
                else
                {
@@ -307,19 +307,6 @@ void igmpHostProcessMembershipReport(NetInterface *interface,
          }
       }
    }
-}
-
-
-/**
- * @brief Get a random value in the specified range
- * @param[in] max Upper bound
- * @return Random value in the specified range
- **/
-
-uint32_t igmpRand(uint32_t max)
-{
-   //Return a random value in the given range
-   return netGetRand() % (max + 1);
 }
 
 #endif

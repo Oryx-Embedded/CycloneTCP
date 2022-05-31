@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -812,7 +812,7 @@ bool_t netTimerExpired(NetTimer *timer)
 
 
 /**
- * @brief PRNG initialization
+ * @brief Initialize random number generator
  **/
 
 void netInitRand(void)
@@ -861,7 +861,7 @@ void netInitRand(void)
    //The state is rotated over 4 full cycles, without generating key stream bit
    for(i = 0; i < (4 * 288); i++)
    {
-      netGetRandBit(state);
+      netGenerateRandBit(state);
    }
 }
 
@@ -871,7 +871,7 @@ void netInitRand(void)
  * @return Random value
  **/
 
-uint32_t netGetRand(void)
+uint32_t netGenerateRand(void)
 {
    uint_t i;
    uint32_t value;
@@ -882,30 +882,30 @@ uint32_t netGetRand(void)
    //Generate a random 32-bit value
    for(i = 0; i < 32; i++)
    {
-      value |= netGetRandBit(&netContext.randState) << i;
+      value |= netGenerateRandBit(&netContext.randState) << i;
    }
 
-   //Return the value
+   //Return the random value
    return value + netContext.entropy;
 }
 
 
 /**
- * @brief Get a random value in the specified range
+ * @brief Generate a random value in the specified range
  * @param[in] min Lower bound
  * @param[in] max Upper bound
  * @return Random value in the specified range
  **/
 
-int32_t netGetRandRange(int32_t min, int32_t max)
+uint32_t netGenerateRandRange(uint32_t min, uint32_t max)
 {
-   int32_t value;
+   uint32_t value;
 
    //Valid parameters?
    if(max > min)
    {
       //Pick up a random value in the given range
-      value = min + (netGetRand() % (max - min + 1));
+      value = min + (netGenerateRand() % (max - min + 1));
    }
    else
    {
@@ -924,7 +924,7 @@ int32_t netGetRandRange(int32_t min, int32_t max)
  * @param[in] length Number of random bytes to generate
  **/
 
-void netGetRandData(uint8_t *data, size_t length)
+void netGenerateRandData(uint8_t *data, size_t length)
 {
    size_t i;
    size_t j;
@@ -938,7 +938,7 @@ void netGetRandData(uint8_t *data, size_t length)
       //Generate a random 8-bit value
       for(j = 0; j < 8; j++)
       {
-         data[i] |= netGetRandBit(&netContext.randState) << j;
+         data[i] |= netGenerateRandBit(&netContext.randState) << j;
       }
 
       data[i] += netContext.entropy;
@@ -952,7 +952,7 @@ void netGetRandData(uint8_t *data, size_t length)
  * @return Key stream bit
  **/
 
-uint32_t netGetRandBit(NetRandState *state)
+uint32_t netGenerateRandBit(NetRandState *state)
 {
    uint_t i;
    uint8_t t1;

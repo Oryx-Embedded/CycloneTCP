@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _DHCPV6_COMMON_H
@@ -437,9 +437,6 @@ Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLen,
 
 Dhcpv6Option *dhcpv6GetOption(const uint8_t *options,
    size_t optionsLength, uint16_t optionCode);
-
-int32_t dhcpv6Rand(int32_t value);
-int32_t dhcpv6RandRange(int32_t min, int32_t max);
 
 //C++ guard
 #ifdef __cplusplus

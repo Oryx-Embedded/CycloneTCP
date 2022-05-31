@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _KSZ8563_DRIVER_H
@@ -1118,7 +1118,7 @@
 #define KSZ8563_GLOBAL_PTP_CLK_SUB_NS_RATE_L_PTP_RTC_SUB_NS_15_0     0xFFFF
 
 //Global PTP Message Config 1 register
-#define KSZ8563_GLOBAL_PTP_MSG_CONFIG1_IEEE_1588_PTP_MODE_EN         0x0040
+#define KSZ8563_GLOBAL_PTP_MSG_CONFIG1_IEEE_1588_PTP_MODE            0x0040
 #define KSZ8563_GLOBAL_PTP_MSG_CONFIG1_ETH_PTP_DETECT                0x0020
 #define KSZ8563_GLOBAL_PTP_MSG_CONFIG1_IPV4_UDP_PTP_DETECT           0x0010
 #define KSZ8563_GLOBAL_PTP_MSG_CONFIG1_IPV6_UDP_PTP_DETECT           0x0008

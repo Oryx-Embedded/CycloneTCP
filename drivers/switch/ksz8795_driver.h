@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _KSZ8795_DRIVER_H
@@ -606,6 +606,49 @@
 //Indirect Access Control 1 register
 #define KSZ8795_INDIRECT_CTRL1_ADDR_7_0                      0xFF
 
+//Interrupt Status register
+#define KSZ8795_INT_STAT_PME                                 0x10
+#define KSZ8795_INT_STAT_PORT4                               0x08
+#define KSZ8795_INT_STAT_PORT3                               0x04
+#define KSZ8795_INT_STAT_PORT2                               0x02
+#define KSZ8795_INT_STAT_PORT1                               0x01
+
+//Interrupt Mask register
+#define KSZ8795_INT_MASK_PME                                 0x10
+#define KSZ8795_INT_MASK_PORT4                               0x08
+#define KSZ8795_INT_MASK_PORT3                               0x04
+#define KSZ8795_INT_MASK_PORT2                               0x02
+#define KSZ8795_INT_MASK_PORT1                               0x01
+
+//ACL Interrupt Status register
+#define KSZ8795_ACL_INT_STAT_PORT5                           0x10
+#define KSZ8795_ACL_INT_STAT_PORT4                           0x08
+#define KSZ8795_ACL_INT_STAT_PORT3                           0x04
+#define KSZ8795_ACL_INT_STAT_PORT2                           0x02
+#define KSZ8795_ACL_INT_STAT_PORT1                           0x01
+
+//ACL Interrupt Control register
+#define KSZ8795_ACL_INT_CTRL_PORT5                           0x10
+#define KSZ8795_ACL_INT_CTRL_PORT4                           0x08
+#define KSZ8795_ACL_INT_CTRL_PORT3                           0x04
+#define KSZ8795_ACL_INT_CTRL_PORT2                           0x02
+#define KSZ8795_ACL_INT_CTRL_PORT1                           0x01
+
+//Global Control 12 register
+#define KSZ8795_GLOBAL_CTRL12_TAG3                           0xC0
+#define KSZ8795_GLOBAL_CTRL12_TAG2                           0x30
+#define KSZ8795_GLOBAL_CTRL12_TAG1                           0x0C
+#define KSZ8795_GLOBAL_CTRL12_TAG0                           0x03
+
+//Global Control 13 register
+#define KSZ8795_GLOBAL_CTRL13_TAG7                           0xC0
+#define KSZ8795_GLOBAL_CTRL13_TAG6                           0x30
+#define KSZ8795_GLOBAL_CTRL13_TAG5                           0x0C
+#define KSZ8795_GLOBAL_CTRL13_TAG4                           0x03
+
+//Global Control 14 register
+#define KSZ8795_GLOBAL_CTRL14_PRI_2Q                         0xC0
+
 //Global Control 15 register
 #define KSZ8795_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD            0x20
 #define KSZ8795_GLOBAL_CTRL15_UNKNOWN_UNICAST_FWD_MAP        0x1F
@@ -650,6 +693,38 @@
 #define KSZ8795_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_PORT4 0x08
 #define KSZ8795_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_PORT5 0x10
 #define KSZ8795_GLOBAL_CTRL18_UNKNOWN_IP_MCAST_FWD_MAP_ALL   0x1F
+
+//Global Control 19 register
+#define KSZ8795_GLOBAL_CTRL19_IG_RATE_LIMIT_PERIOD           0x30
+#define KSZ8795_GLOBAL_CTRL19_IG_RATE_LIMIT_PERIOD_16MS      0x00
+#define KSZ8795_GLOBAL_CTRL19_IG_RATE_LIMIT_PERIOD_64MS      0x10
+#define KSZ8795_GLOBAL_CTRL19_IG_RATE_LIMIT_PERIOD_256MS     0x20
+#define KSZ8795_GLOBAL_CTRL19_QUEUE_BASED_EG_RATE_LIMITE_EN  0x08
+#define KSZ8795_GLOBAL_CTRL19_INSERT_SRC_PORT_PVID_TAG_EN    0x04
+
+//Global Control 20 register
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH      0x70
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH_2MA  0x00
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH_4MA  0x10
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH_8MA  0x20
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH_12MA 0x30
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH_16MA 0x40
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH_20MA 0x50
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH_24MA 0x60
+#define KSZ8795_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH_28MA 0x70
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH       0x07
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH_2MA   0x00
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH_4MA   0x01
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH_8MA   0x02
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH_12MA  0x03
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH_16MA  0x04
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH_20MA  0x05
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH_24MA  0x06
+#define KSZ8795_GLOBAL_CTRL20_LOW_SPEED_DRIVE_STRENGTH_28MA  0x07
+
+//Global Control 21 register
+#define KSZ8795_GLOBAL_CTRL21_MLD_SNOOP_OPT                  0x08
+#define KSZ8795_GLOBAL_CTRL21_MLD_SNOOP_EN                   0x04
 
 //C++ guard
 #ifdef __cplusplus

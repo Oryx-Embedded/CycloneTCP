@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -34,7 +34,6 @@
 //Dependencies
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include "core/net.h"
 #include "core/nic.h"
 #include "core/ethernet.h"

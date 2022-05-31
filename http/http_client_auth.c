@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -396,9 +396,13 @@ error_t httpClientParseWwwAuthenticateField(HttpClientContext *context,
                      //the previous request from the client was rejected because
                      //the nonce value was stale
                      if(httpCompareParamValue(&param, "true"))
+                     {
                         authHeader.stale = TRUE;
+                     }
                      else
+                     {
                         authHeader.stale = FALSE;
+                     }
                   }
 #endif
                   //Unknown parameter?

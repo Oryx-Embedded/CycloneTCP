@@ -33,7 +33,7 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level

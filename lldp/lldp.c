@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -396,7 +396,7 @@ error_t lldpStop(LldpAgentContext *context)
  * @brief Set port address
  * @param[in] context Pointer to the LLDP agent context
  * @param[in] portIndex Port index
- * @param[in] value MAC address of the individual MAC entity for the port
+ * @param[in] macAddr MAC address of the individual MAC entity for the port
  * @return Error code
  **/
 

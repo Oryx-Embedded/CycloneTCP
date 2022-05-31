@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _NET_H
@@ -93,13 +93,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.1.4"
+#define CYCLONE_TCP_VERSION_STRING "2.1.6"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 1
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 4
+#define CYCLONE_TCP_REV_NUMBER 6
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -324,7 +324,11 @@ extern NetContext netContext;
 
 //TCP/IP stack related functions
 error_t netInit(void);
+
 error_t netSeedRand(const uint8_t *seed, size_t length);
+uint32_t netGetRand(void);
+uint32_t netGetRandRange(uint32_t min, uint32_t max);
+void netGetRandData(uint8_t *data, size_t length);
 
 NetInterface *netGetDefaultInterface(void);
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -37,7 +37,6 @@
 #include "coap/coap_client.h"
 #include "coap/coap_client_block.h"
 #include "debug.h"
-#include "error.h"
 
 //Check TCP/IP stack configuration
 #if (COAP_CLIENT_SUPPORT == ENABLED && COAP_CLIENT_BLOCK_SUPPORT == ENABLED)

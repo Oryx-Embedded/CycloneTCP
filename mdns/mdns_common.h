@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _MDNS_COMMON_H
@@ -35,7 +35,7 @@
 #include "core/net.h"
 #include "dns/dns_common.h"
 
-//Maximum size of DNS messages
+//Maximum size of mDNS messages
 #ifndef MDNS_MESSAGE_MAX_SIZE
    #define MDNS_MESSAGE_MAX_SIZE 1024
 #elif (MDNS_MESSAGE_MAX_SIZE < 1)
@@ -116,12 +116,13 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
 int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
    const char_t *instance, const char_t *service, const char_t *domain, uint_t level);
 
-int_t mdnsCompareRecord(const MdnsMessage *message1, size_t offset1,
+int_t mdnsCompareRecord(const MdnsMessage *message1,
    const DnsResourceRecord *record1, const MdnsMessage *message2,
-   size_t offset2, const DnsResourceRecord *record2);
+   const DnsResourceRecord *record2);
 
-bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message, const char_t *instance,
-   const char_t *service, const char_t *domain, uint16_t rtype);
+bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message,
+   const char_t *instance, const char_t *service, const char_t *domain,
+   uint16_t rtype, const uint8_t *rdata, size_t rdlength);
 
 //C++ guard
 #ifdef __cplusplus

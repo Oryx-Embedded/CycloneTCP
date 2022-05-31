@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _LLMNR_COMMON_H
@@ -34,6 +34,13 @@
 //Dependencies
 #include "core/net.h"
 #include "dns/dns_common.h"
+
+//Maximum size of LLMNR messages
+#ifndef LLMNR_MESSAGE_MAX_SIZE
+   #define LLMNR_MESSAGE_MAX_SIZE 512
+#elif (LLMNR_MESSAGE_MAX_SIZE < 1)
+   #error LLMNR_MESSAGE_MAX_SIZE parameter is not valid
+#endif
 
 //Default resource record TTL (cache lifetime)
 #ifndef LLMNR_DEFAULT_RESOURCE_RECORD_TTL
@@ -44,8 +51,10 @@
 
 //LLMNR port number
 #define LLMNR_PORT 5355
-//Default IP TTL value
-#define LLMNR_DEFAULT_IP_TTL 1
+//Default IP TTL value for LLMNR queries
+#define LLMNR_DEFAULT_QUERY_IP_TTL 1
+//Default IP TTL value for LLMNR responses
+#define LLMNR_DEFAULT_RESPONSE_IP_TTL 255
 
 //LLMNR IPv4 multicast group
 #define LLMNR_IPV4_MULTICAST_ADDR IPV4_ADDR(224, 0, 0, 252)

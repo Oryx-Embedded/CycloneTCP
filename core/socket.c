@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -593,7 +593,8 @@ NetInterface *socketGetInterface(Socket *socket)
  * @return Error code
  **/
 
-error_t socketBind(Socket *socket, const IpAddr *localIpAddr, uint16_t localPort)
+error_t socketBind(Socket *socket, const IpAddr *localIpAddr,
+   uint16_t localPort)
 {
    //Check input parameters
    if(socket == NULL || localIpAddr == NULL)
@@ -616,11 +617,13 @@ error_t socketBind(Socket *socket, const IpAddr *localIpAddr, uint16_t localPort
  * @brief Establish a connection to a specified socket
  * @param[in] socket Handle to an unconnected socket
  * @param[in] remoteIpAddr IP address of the remote host
- * @param[in] remotePort Remote port number that will be used to establish the connection
+ * @param[in] remotePort Remote port number that will be used to establish
+ *   the connection
  * @return Error code
  **/
 
-error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePort)
+error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr,
+   uint16_t remotePort)
 {
    error_t error;
 
@@ -720,7 +723,8 @@ error_t socketListen(Socket *socket, uint_t backlog)
  * @return Handle to the socket in which the actual connection is made
  **/
 
-Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
+Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr,
+   uint16_t *clientPort)
 {
 #if (TCP_SUPPORT == ENABLED)
    Socket *newSocket;
@@ -1087,7 +1091,7 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
 
             //Receive a raw Ethernet packet
             error = rawSocketReceiveEthPacket(socket, &message, flags);
-            
+
             //Check status code
             if(!error)
             {
@@ -1220,7 +1224,8 @@ error_t socketReceiveMsg(Socket *socket, SocketMsg *message, uint_t flags)
  * @return Error code
  **/
 
-error_t socketGetLocalAddr(Socket *socket, IpAddr *localIpAddr, uint16_t *localPort)
+error_t socketGetLocalAddr(Socket *socket, IpAddr *localIpAddr,
+   uint16_t *localPort)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
@@ -1251,7 +1256,8 @@ error_t socketGetLocalAddr(Socket *socket, IpAddr *localIpAddr, uint16_t *localP
  * @return Error code
  **/
 
-error_t socketGetRemoteAddr(Socket *socket, IpAddr *remoteIpAddr, uint16_t *remotePort)
+error_t socketGetRemoteAddr(Socket *socket, IpAddr *remoteIpAddr,
+   uint16_t *remotePort)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)

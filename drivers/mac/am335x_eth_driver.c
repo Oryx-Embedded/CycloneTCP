@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -189,30 +189,15 @@ error_t am335xEthInitPort1(NetInterface *interface)
    //Save underlying network interface
    nicDriverInterface1 = interface;
 
-   //Valid Ethernet PHY or switch driver?
-   if(interface->phyDriver != NULL)
-   {
-      //Ethernet PHY initialization
-      error = interface->phyDriver->init(interface);
-   }
-   else if(interface->switchDriver != NULL)
-   {
-      //Ethernet switch initialization
-      error = interface->switchDriver->init(interface);
-   }
-   else
-   {
-      //The interface is not properly configured
-      error = ERROR_FAILURE;
-   }
-
+   //PHY transceiver initialization
+   error = interface->phyDriver->init(interface);
    //Any error to report?
    if(error)
    {
       return error;
    }
 
-   //Unspecifield MAC address?
+   //Unspecified MAC address?
    if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
    {
       //Use the factory preprogrammed MAC address
@@ -227,7 +212,7 @@ error_t am335xEthInitPort1(NetInterface *interface)
       macAddrToEui64(&interface->macAddr, &interface->eui64);
    }
 
-   //Set port state to forward
+   //Set port state (forwarding)
    temp = CPSW_ALE_PORTCTL_R(1) & ~CPSW_ALE_PORTCTL_PORT_STATE_MASK;
    CPSW_ALE_PORTCTL_R(1) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
@@ -281,13 +266,13 @@ error_t am335xEthInitPort2(NetInterface *interface)
 
    //PHY transceiver initialization
    error = interface->phyDriver->init(interface);
-   //Failed to initialize PHY transceiver?
+   //Any error to report?
    if(error)
    {
       return error;
    }
 
-   //Unspecifield MAC address?
+   //Unspecified MAC address?
    if(macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
    {
       //Use the factory preprogrammed MAC address
@@ -302,7 +287,7 @@ error_t am335xEthInitPort2(NetInterface *interface)
       macAddrToEui64(&interface->macAddr, &interface->eui64);
    }
 
-   //Set port state to forward
+   //Set port state (forwarding)
    temp = CPSW_ALE_PORTCTL_R(2) & ~CPSW_ALE_PORTCTL_PORT_STATE_MASK;
    CPSW_ALE_PORTCTL_R(2) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
@@ -437,7 +422,7 @@ void am335xEthInitInstance(NetInterface *interface)
       temp = CPSW_PORT0_TX_IN_CTL_R & ~CPSW_PORT_P_TX_IN_CTL_SEL_MASK;
       CPSW_PORT0_TX_IN_CTL_R = temp | CPSW_PORT_P_TX_IN_CTL_SEL_DUAL_MAC;
 
-      //Set port 0 state to forward
+      //Set port state (forwarding)
       temp = CPSW_ALE_PORTCTL_R(0) & ~CPSW_ALE_PORTCTL_PORT_STATE_MASK;
       CPSW_ALE_PORTCTL_R(0) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
@@ -1421,15 +1406,15 @@ error_t am335xEthUpdateMacAddrFilter(NetInterface *interface)
       port = CPSW_PORT0;
    }
 
-   //The MAC address filter contains the list of MAC addresses to accept
-   //when receiving an Ethernet frame
+   //The MAC address filter contains the list of MAC addresses to accept when
+   //receiving an Ethernet frame
    for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
    {
       //Point to the current entry
       entry = &interface->macAddrFilter[i];
 
-      //Check whether the ALE table should be updated for the
-      //current multicast address
+      //Check whether the ALE table should be updated for the current multicast
+      //address
       if(!macCompAddr(&entry->addr, &MAC_UNSPECIFIED_ADDR))
       {
          if(entry->addFlag)

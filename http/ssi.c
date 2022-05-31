@@ -30,7 +30,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -697,17 +697,31 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, siz
       //The information following the "?" in the URL for this request
       osStrcpy(connection->buffer, connection->request.queryString);
    }
+#if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    //User name?
    else if(!osStrcasecmp(value, "AUTH_USER"))
    {
-#if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
       //The username provided by the user to the server
       osStrcpy(connection->buffer, connection->request.auth.user);
-#else
-      //Basic access authentication is not supported
-      connection->buffer[0] = '\0';
-#endif
    }
+   //Authentication method?
+   else if(!osStrcasecmp(value, "AUTH_TYPE"))
+   {
+      //Check the authentication method used in this request
+      if(connection->request.auth.mode == HTTP_AUTH_MODE_BASIC)
+      {
+         osStrcpy(connection->buffer, "Basic");
+      }
+      else if(connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
+      {
+         osStrcpy(connection->buffer, "Digest");
+      }
+      else
+      {
+         osStrcpy(connection->buffer, "None");
+      }
+   }
+#endif
    //GMT time?
    else if(!osStrcasecmp(value, "DATE_GMT"))
    {

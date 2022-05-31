@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -89,8 +89,8 @@ uint16_t udpGetDynamicPort(void)
    if(port < SOCKET_EPHEMERAL_PORT_MIN || port > SOCKET_EPHEMERAL_PORT_MAX)
    {
       //Generate a random port number
-      port = SOCKET_EPHEMERAL_PORT_MIN + netGetRand() %
-         (SOCKET_EPHEMERAL_PORT_MAX - SOCKET_EPHEMERAL_PORT_MIN + 1);
+      port = netGenerateRandRange(SOCKET_EPHEMERAL_PORT_MIN,
+         SOCKET_EPHEMERAL_PORT_MAX);
    }
 
    //Next dynamic port to use

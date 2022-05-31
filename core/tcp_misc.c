@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -107,14 +107,50 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    //SYN flag set?
    if((flags & TCP_FLAG_SYN) != 0)
    {
-      //Append MSS option
+      //Append Maximum Segment Size option
       tcpAddOption(segment, TCP_OPTION_MAX_SEGMENT_SIZE, &mss, sizeof(mss));
+   }
 
 #if (TCP_SACK_SUPPORT == ENABLED)
+   //SYN flag set?
+   if((flags & TCP_FLAG_SYN) != 0)
+   {
       //Append SACK Permitted option
       tcpAddOption(segment, TCP_OPTION_SACK_PERMITTED, NULL, 0);
-#endif
    }
+
+   //ACK flag set?
+   if((flags & TCP_FLAG_ACK) != 0)
+   {
+      //If the data receiver has not received a SACK Permitted option for a
+      //given connection, it must not send SACK options on that connection
+      if(socket->sackPermitted)
+      {
+         //SACK options should be included in all ACKs which do not ACK the
+         //highest sequence number in the data receiver's queue. In this
+         //situation the network has lost or mis-ordered data, such that the
+         //receiver holds non-contiguous data in its queue
+         if(socket->sackBlockCount > 0 &&
+            socket->sackBlockCount <= TCP_MAX_SACK_BLOCKS)
+         {
+            uint_t i;
+            uint32_t data[TCP_MAX_SACK_BLOCKS * 2];
+
+            //This option contains a list of some of the blocks of contiguous
+            //sequence space occupied by data that has been received and queued
+            //within the window
+            for(i = 0; i < socket->sackBlockCount; i++)
+            {
+               data[i * 2] = htonl(socket->sackBlock[i].leftEdge);
+               data[i * 2 + 1] = htonl(socket->sackBlock[i].rightEdge);
+            }
+
+            //Append SACK option
+            tcpAddOption(segment, TCP_OPTION_SACK, data, socket->sackBlockCount * 8);
+         }
+      }
+   }
+#endif
 
    //Adjust the length of the multi-part buffer
    netBufferSetLength(buffer, offset + segment->dataOffset * 4);
@@ -659,7 +695,7 @@ uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
    return isn + netGetSystemTickCount();
 #else
    //Generate a random initial sequence number
-   return netGetRand();
+   return netGenerateRand();
 #endif
 }
 
@@ -1270,6 +1306,7 @@ void tcpProcessSegmentData(Socket *socket, TcpHeader *segment,
       //Ignore the data that falls outside the receive window
       leftEdge = socket->rcvNxt;
    }
+
    if(TCP_CMP_SEQ(rightEdge, socket->rcvNxt + socket->rcvWnd) > 0)
    {
       //Ignore the data that falls outside the receive window
@@ -1279,15 +1316,15 @@ void tcpProcessSegmentData(Socket *socket, TcpHeader *segment,
    //Copy the incoming data to the receive buffer
    tcpWriteRxBuffer(socket, leftEdge, buffer, offset, rightEdge - leftEdge);
 
-   //Update the list of non-contiguous blocks of data that
-   //have been received and queued
+   //Update the list of non-contiguous blocks of data that have been received
+   //and queued
    tcpUpdateSackBlocks(socket, &leftEdge, &rightEdge);
 
    //Check whether the segment was received out of order
    if(TCP_CMP_SEQ(leftEdge, socket->rcvNxt) > 0)
    {
-      //Out of order data segments should be acknowledged immediately, in
-      //order to accelerate loss recovery
+      //Out of order data segments should be acknowledged immediately, in order
+      //to accelerate loss recovery
       tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
          FALSE);
    }
@@ -1520,7 +1557,9 @@ void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge
 
       //Increment the number of non-contiguous blocks
       if(socket->sackBlockCount < TCP_MAX_SACK_BLOCKS)
+      {
          socket->sackBlockCount++;
+      }
    }
 }
 

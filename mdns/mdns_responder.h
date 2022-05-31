@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _MDNS_RESPONDER_H
@@ -58,11 +58,11 @@
    #error MDNS_RESPONDER_MAX_HOSTNAME_LEN parameter is not valid
 #endif
 
-//Maximum waiting delay
-#ifndef MDNS_MAX_WAITING_DELAY
-   #define MDNS_MAX_WAITING_DELAY 10000
-#elif (MDNS_MAX_WAITING_DELAY < 0)
-   #error MDNS_MAX_WAITING_DELAY parameter is not valid
+//Initial delay
+#ifndef MDNS_INIT_DELAY
+   #define MDNS_INIT_DELAY 1000
+#elif (MDNS_INIT_DELAY < 0)
+   #error MDNS_INIT_DELAY parameter is not valid
 #endif
 
 //Initial random delay (minimum value)
@@ -93,11 +93,18 @@
    #error MDNS_PROBE_DELAY parameter is not valid
 #endif
 
+//Delay before probing again after any failed probe attempt
+#ifndef MDNS_PROBE_CONFLICT_DELAY
+   #define MDNS_PROBE_CONFLICT_DELAY 1000
+#elif (MDNS_PROBE_CONFLICT_DELAY < 100)
+   #error MDNS_PROBE_CONFLICT_DELAY parameter is not valid
+#endif
+
 //Delay before probing again when deferring to the winning host
-#ifndef MDNS_PROBE_DEFER
-   #define MDNS_PROBE_DEFER 1000
-#elif (MDNS_PROBE_DEFER < 100)
-   #error MDNS_PROBE_DEFER parameter is not valid
+#ifndef MDNS_PROBE_DEFER_DELAY
+   #define MDNS_PROBE_DEFER_DELAY 1000
+#elif (MDNS_PROBE_DEFER_DELAY < 100)
+   #error MDNS_PROBE_DEFER_DELAY parameter is not valid
 #endif
 
 //Number of announcement packets
@@ -147,6 +154,30 @@ typedef void (*MdnsResponderStateChangeCallback)(MdnsResponderContext *context,
 
 
 /**
+ * @brief IPv4 address entry
+ **/
+
+typedef struct
+{
+   bool_t valid;                                          ///<Valid entry
+   DnsIpv4AddrResourceRecord record;                      ///<A resource record
+   char_t reverseName[DNS_MAX_IPV4_REVERSE_NAME_LEN + 1]; ///<Reverse DNS lookup for IPv4
+} MdnsIpv4AddrEntry;
+
+
+/**
+ * @brief IPv6 address entry
+ **/
+
+typedef struct
+{
+   bool_t valid;                                          ///<Valid entry
+   DnsIpv6AddrResourceRecord record;                      ///<AAAA resource record
+   char_t reverseName[DNS_MAX_IPV6_REVERSE_NAME_LEN + 1]; ///<Reverse DNS lookup for IPv6
+} MdnsIpv6AddrEntry;
+
+
+/**
  * @brief mDNS responder settings
  **/
 
@@ -173,13 +204,15 @@ struct _MdnsResponderContext
    systime_t timestamp;                                       ///<Timestamp to manage retransmissions
    systime_t timeout;                                         ///<Timeout value
    uint_t retransmitCount;                                    ///<Retransmission counter
-   char_t hostname[MDNS_RESPONDER_MAX_HOSTNAME_LEN + 1];      ///<Hostname
+   char_t hostname[MDNS_RESPONDER_MAX_HOSTNAME_LEN + 1];      ///<Host name
+   bool_t ipv4AddrCount;                                      ///<Number of valid IPv4 addresses
+   bool_t ipv6AddrCount;                                      ///<Number of valid IPv6 addresses
 #if (IPV4_SUPPORT == ENABLED)
-   char_t ipv4ReverseName[DNS_MAX_IPV4_REVERSE_NAME_LEN + 1]; ///<Reverse DNS lookup for IPv4
+   MdnsIpv4AddrEntry ipv4AddrList[IPV4_ADDR_LIST_SIZE];       ///<IPv4 address list
    MdnsMessage ipv4Response;                                  ///<IPv4 response message
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-   char_t ipv6ReverseName[DNS_MAX_IPV6_REVERSE_NAME_LEN + 1]; ///<Reverse DNS lookup for IPv6
+   MdnsIpv6AddrEntry ipv6AddrList[IPV6_ADDR_LIST_SIZE];       ///<IPv6 address list
    MdnsMessage ipv6Response;                                  ///<IPv6 response message
 #endif
 };
@@ -201,54 +234,10 @@ MdnsState mdnsResponderGetState(MdnsResponderContext *context);
 error_t mdnsResponderSetHostname(MdnsResponderContext *context,
    const char_t *hostname);
 
-error_t mdnsResponderSetIpv4ReverseName(MdnsResponderContext *context);
-error_t mdnsResponderSetIpv6ReverseName(MdnsResponderContext *context);
-
 error_t mdnsResponderStartProbing(MdnsResponderContext *context);
 
 void mdnsResponderTick(MdnsResponderContext *context);
 void mdnsResponderLinkChangeEvent(MdnsResponderContext *context);
-
-void mdnsResponderChangeState(MdnsResponderContext *context,
-   MdnsState newState, systime_t delay);
-
-void mdnsResponderChangeHostname(MdnsResponderContext *context);
-
-error_t mdnsResponderSendProbe(MdnsResponderContext *context);
-error_t mdnsResponderSendAnnouncement(MdnsResponderContext *context);
-error_t mdnsResponderSendGoodbye(MdnsResponderContext *context);
-
-void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query);
-
-error_t mdnsResponderParseQuestion(NetInterface *interface, const MdnsMessage *query,
-   size_t offset, const DnsQuestion *question, MdnsMessage *response);
-
-void mdnsResponderParseKnownAnRecord(NetInterface *interface, const MdnsMessage *query,
-   size_t queryOffset, const DnsResourceRecord *queryRecord, MdnsMessage *response);
-
-void mdnsResponderParseNsRecord(NetInterface *interface,
-   const MdnsMessage *query, size_t offset, const DnsResourceRecord *record);
-
-void mdnsResponderParseAnRecord(NetInterface *interface,
-   const MdnsMessage *response, size_t offset, const DnsResourceRecord *record);
-
-void mdnsResponderGenerateAdditionalRecords(NetInterface *interface,
-   MdnsMessage *response, bool_t legacyUnicast);
-
-error_t mdnsResponderAddIpv4AddrRecord(NetInterface *interface,
-   MdnsMessage *message, bool_t cacheFlush, uint32_t ttl);
-
-error_t mdnsResponderAddIpv6AddrRecord(NetInterface *interface,
-   MdnsMessage *message, bool_t cacheFlush, uint32_t ttl);
-
-error_t mdnsResponderAddIpv4ReversePtrRecord(NetInterface *interface,
-   MdnsMessage *message, bool_t cacheFlush, uint32_t ttl);
-
-error_t mdnsResponderAddIpv6ReversePtrRecord(NetInterface *interface,
-   MdnsMessage *message, bool_t cacheFlush, uint32_t ttl);
-
-error_t mdnsResponderAddNsecRecord(NetInterface *interface,
-   MdnsMessage *message, bool_t cacheFlush, uint32_t ttl);
 
 //C++ guard
 #ifdef __cplusplus

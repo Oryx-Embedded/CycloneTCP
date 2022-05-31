@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 #ifndef _AM335X_ETH_DRIVER_H
@@ -290,60 +290,60 @@
 #define MDIO_USERPHYSEL_R(n)            HWREG(SOC_CPSW_MDIO_REGS + MDIO_USERPHYSEL(n))
 
 //GMII_SEL register
-#define CONTROL_GMII_SEL_GMII2_SEL_MII        0x00000000
-#define CONTROL_GMII_SEL_GMII2_SEL_RMII       0x00000004
-#define CONTROL_GMII_SEL_GMII2_SEL_RGMII      0x00000008
-#define CONTROL_GMII_SEL_GMII1_SEL_MII        0x00000000
-#define CONTROL_GMII_SEL_GMII1_SEL_RMII       0x00000001
-#define CONTROL_GMII_SEL_GMII1_SEL_RGMII      0x00000002
+#define CONTROL_GMII_SEL_GMII2_SEL_MII         0x00000000
+#define CONTROL_GMII_SEL_GMII2_SEL_RMII        0x00000004
+#define CONTROL_GMII_SEL_GMII2_SEL_RGMII       0x00000008
+#define CONTROL_GMII_SEL_GMII1_SEL_MII         0x00000000
+#define CONTROL_GMII_SEL_GMII1_SEL_RMII        0x00000001
+#define CONTROL_GMII_SEL_GMII1_SEL_RGMII       0x00000002
 
 //CPDMA_EOI_VECTOR register
-#define CPSW_CPDMA_EOI_VECTOR_RX_THRESH_PULSE 0x00000000
-#define CPSW_CPDMA_EOI_VECTOR_RX_PULSE        0x00000001
-#define CPSW_CPDMA_EOI_VECTOR_TX_PULSE        0x00000002
-#define CPSW_CPDMA_EOI_VECTOR_MISC_PULSE      0x00000003
+#define CPSW_CPDMA_EOI_VECTOR_RX_THRESH_PULSE  0x00000000
+#define CPSW_CPDMA_EOI_VECTOR_RX_PULSE         0x00000001
+#define CPSW_CPDMA_EOI_VECTOR_TX_PULSE         0x00000002
+#define CPSW_CPDMA_EOI_VECTOR_MISC_PULSE       0x00000003
 
 //CPSW_PORT_P_TX_IN_CTL register
-#define CPSW_PORT_P_TX_IN_CTL_SEL_DUAL_MAC    0x00010000
+#define CPSW_PORT_P_TX_IN_CTL_SEL_DUAL_MAC     0x00010000
 
 //TX buffer descriptor flags
-#define CPSW_TX_WORD0_NEXT_DESC_POINTER       0xFFFFFFFF
-#define CPSW_TX_WORD1_BUFFER_POINTER          0xFFFFFFFF
-#define CPSW_TX_WORD2_BUFFER_OFFSET           0xFFFF0000
-#define CPSW_TX_WORD2_BUFFER_LENGTH           0x0000FFFF
-#define CPSW_TX_WORD3_SOP                     0x80000000
-#define CPSW_TX_WORD3_EOP                     0x40000000
-#define CPSW_TX_WORD3_OWNER                   0x20000000
-#define CPSW_TX_WORD3_EOQ                     0x10000000
-#define CPSW_TX_WORD3_TDOWN_CMPLT             0x08000000
-#define CPSW_TX_WORD3_PASS_CRC                0x04000000
-#define CPSW_TX_WORD3_TO_PORT_EN              0x00100000
-#define CPSW_TX_WORD3_TO_PORT                 0x00030000
-#define CPSW_TX_WORD3_TO_PORT_1               0x00010000
-#define CPSW_TX_WORD3_TO_PORT_2               0x00020000
-#define CPSW_TX_WORD3_PACKET_LENGTH           0x000007FF
+#define CPSW_TX_WORD0_NEXT_DESC_POINTER        0xFFFFFFFF
+#define CPSW_TX_WORD1_BUFFER_POINTER           0xFFFFFFFF
+#define CPSW_TX_WORD2_BUFFER_OFFSET            0xFFFF0000
+#define CPSW_TX_WORD2_BUFFER_LENGTH            0x0000FFFF
+#define CPSW_TX_WORD3_SOP                      0x80000000
+#define CPSW_TX_WORD3_EOP                      0x40000000
+#define CPSW_TX_WORD3_OWNER                    0x20000000
+#define CPSW_TX_WORD3_EOQ                      0x10000000
+#define CPSW_TX_WORD3_TDOWN_CMPLT              0x08000000
+#define CPSW_TX_WORD3_PASS_CRC                 0x04000000
+#define CPSW_TX_WORD3_TO_PORT_EN               0x00100000
+#define CPSW_TX_WORD3_TO_PORT                  0x00030000
+#define CPSW_TX_WORD3_TO_PORT_1                0x00010000
+#define CPSW_TX_WORD3_TO_PORT_2                0x00020000
+#define CPSW_TX_WORD3_PACKET_LENGTH            0x000007FF
 
 //RX buffer descriptor flags
-#define CPSW_RX_WORD0_NEXT_DESC_POINTER       0xFFFFFFFF
-#define CPSW_RX_WORD1_BUFFER_POINTER          0xFFFFFFFF
-#define CPSW_RX_WORD2_BUFFER_OFFSET           0x07FF0000
-#define CPSW_RX_WORD2_BUFFER_LENGTH           0x000007FF
-#define CPSW_RX_WORD3_SOP                     0x80000000
-#define CPSW_RX_WORD3_EOP                     0x40000000
-#define CPSW_RX_WORD3_OWNER                   0x20000000
-#define CPSW_RX_WORD3_EOQ                     0x10000000
-#define CPSW_RX_WORD3_TDOWN_CMPLT             0x08000000
-#define CPSW_RX_WORD3_PASS_CRC                0x04000000
-#define CPSW_RX_WORD3_LONG                    0x02000000
-#define CPSW_RX_WORD3_SHORT                   0x01000000
-#define CPSW_RX_WORD3_CONTROL                 0x00800000
-#define CPSW_RX_WORD3_OVERRUN                 0x00400000
-#define CPSW_RX_WORD3_PKT_ERROR               0x00300000
-#define CPSW_RX_WORD3_RX_VLAN_ENCAP           0x000C0000
-#define CPSW_RX_WORD3_FROM_PORT               0x00030000
-#define CPSW_RX_WORD3_FROM_PORT_1             0x00010000
-#define CPSW_RX_WORD3_FROM_PORT_2             0x00020000
-#define CPSW_RX_WORD3_PACKET_LENGTH           0x000007FF
+#define CPSW_RX_WORD0_NEXT_DESC_POINTER        0xFFFFFFFF
+#define CPSW_RX_WORD1_BUFFER_POINTER           0xFFFFFFFF
+#define CPSW_RX_WORD2_BUFFER_OFFSET            0x07FF0000
+#define CPSW_RX_WORD2_BUFFER_LENGTH            0x000007FF
+#define CPSW_RX_WORD3_SOP                      0x80000000
+#define CPSW_RX_WORD3_EOP                      0x40000000
+#define CPSW_RX_WORD3_OWNER                    0x20000000
+#define CPSW_RX_WORD3_EOQ                      0x10000000
+#define CPSW_RX_WORD3_TDOWN_CMPLT              0x08000000
+#define CPSW_RX_WORD3_PASS_CRC                 0x04000000
+#define CPSW_RX_WORD3_LONG                     0x02000000
+#define CPSW_RX_WORD3_SHORT                    0x01000000
+#define CPSW_RX_WORD3_CONTROL                  0x00800000
+#define CPSW_RX_WORD3_OVERRUN                  0x00400000
+#define CPSW_RX_WORD3_PKT_ERROR                0x00300000
+#define CPSW_RX_WORD3_RX_VLAN_ENCAP            0x000C0000
+#define CPSW_RX_WORD3_FROM_PORT                0x00030000
+#define CPSW_RX_WORD3_FROM_PORT_1              0x00010000
+#define CPSW_RX_WORD3_FROM_PORT_2              0x00020000
+#define CPSW_RX_WORD3_PACKET_LENGTH            0x000007FF
 
 //Number of entries in the ALE table
 #define CPSW_ALE_MAX_ENTRIES                   1024

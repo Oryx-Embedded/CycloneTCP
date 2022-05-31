@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,7 @@ error_t modbusServerProcessRequest(ModbusClientConnection *connection)
    ModbusExceptionCode exceptionCode;
    ModbusServerContext *context;
 
-   //Point to the Modbus server context
+   //Point to the Modbus/TCP server context
    context = connection->context;
    //Point to the Modbus request PDU
    request = modbusServerGetRequestPdu(connection, &requestLen);
@@ -1052,7 +1052,7 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
 
    //Lock access to Modbus table
    modbusServerLock(connection);
-   
+
    //Read the specified number of registers
    for(i = 0; i < readQuantity && !error; i++)
    {

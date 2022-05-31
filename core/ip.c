@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -150,58 +150,6 @@ error_t ipSelectSourceAddr(NetInterface **interface,
 
 
 /**
- * @brief Compare IP addresses
- * @param[in] ipAddr1 First IP address
- * @param[in] ipAddr2 Second IP address
- * @return Comparison result
- **/
-
-bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
-{
-   bool_t result;
-
-#if (IPV4_SUPPORT == ENABLED)
-   //IPv4 addresses?
-   if(ipAddr1->length == sizeof(Ipv4Addr) && ipAddr2->length == sizeof(Ipv4Addr))
-   {
-      //Compare IPv4 addresses
-      if(ipAddr1->ipv4Addr == ipAddr2->ipv4Addr)
-      {
-         result = TRUE;
-      }
-      else
-      {
-         result = FALSE;
-      }
-   }
-   else
-#endif
-#if (IPV6_SUPPORT == ENABLED)
-   //IPv6 addresses?
-   if(ipAddr1->length == sizeof(Ipv6Addr) && ipAddr2->length == sizeof(Ipv6Addr))
-   {
-      //Compare IPv6 addresses
-      result = ipv6CompAddr(&ipAddr1->ipv6Addr, &ipAddr2->ipv6Addr);
-   }
-   else
-#endif
-   //Unspecified IP addresses?
-   if(ipAddr1->length == 0 && ipAddr2->length == 0)
-   {
-      result = TRUE;
-   }
-   //Invalid IP addresses?
-   else
-   {
-      result = FALSE;
-   }
-
-   //Return TRUE if the IP addresses match, else FALSE
-   return result;
-}
-
-
-/**
  * @brief Compare an IP address against the unspecified address
  * @param[in] ipAddr IP address
  * @return TRUE if the IP address is unspecified, else FALSE
@@ -247,6 +195,44 @@ bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr)
 
 
 /**
+ * @brief Determine whether an IP address is a link-local address
+ * @param[in] ipAddr IP address
+ * @return TRUE if the IP address is a link-local address, else FALSE
+ **/
+
+bool_t ipIsLinkLocalAddr(const IpAddr *ipAddr)
+{
+   bool_t result;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 address?
+   if(ipAddr->length == sizeof(Ipv4Addr))
+   {
+      //Check whether the IPv4 address is a link-local address
+      result = ipv4IsLinkLocalAddr(ipAddr->ipv4Addr);
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 address?
+   if(ipAddr->length == sizeof(Ipv6Addr))
+   {
+      //Check whether the IPv6 address is a link-local address
+      result = ipv6IsLinkLocalUnicastAddr(&ipAddr->ipv6Addr);
+   }
+   else
+#endif
+   //Invalid IP address?
+   {
+      result = FALSE;
+   }
+
+   //Return TRUE if the IP address is a link-local address, else FALSE
+   return result;
+}
+
+
+/**
  * @brief Determine whether an IP address is a multicast address
  * @param[in] ipAddr IP address
  * @return TRUE if the IP address is a multicast address, else FALSE
@@ -280,6 +266,99 @@ bool_t ipIsMulticastAddr(const IpAddr *ipAddr)
    }
 
    //Return TRUE if the IP address is a multicast address, else FALSE
+   return result;
+}
+
+
+/**
+ * @brief Compare IP addresses
+ * @param[in] ipAddr1 First IP address
+ * @param[in] ipAddr2 Second IP address
+ * @return Comparison result
+ **/
+
+bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
+{
+   bool_t result;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 addresses?
+   if(ipAddr1->length == sizeof(Ipv4Addr) && ipAddr2->length == sizeof(Ipv4Addr))
+   {
+      //Compare IPv4 addresses
+      if(ipAddr1->ipv4Addr == ipAddr2->ipv4Addr)
+      {
+         result = TRUE;
+      }
+      else
+      {
+         result = FALSE;
+      }
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 addresses?
+   if(ipAddr1->length == sizeof(Ipv6Addr) && ipAddr2->length == sizeof(Ipv6Addr))
+   {
+      //Compare IPv6 addresses
+      result = ipv6CompAddr(&ipAddr1->ipv6Addr, &ipAddr2->ipv6Addr);
+   }
+   else
+#endif
+   //Unspecified IP addresses?
+   if(ipAddr1->length == 0 && ipAddr2->length == 0)
+   {
+      result = TRUE;
+   }
+   //Inconsistent IP addresses?
+   else
+   {
+      result = FALSE;
+   }
+
+   //Return TRUE if the IP addresses match, else FALSE
+   return result;
+}
+
+
+/**
+ * @brief Compare IP address prefixes
+ * @param[in] ipAddr1 First IP address
+ * @param[in] ipAddr2 Second IP address
+ * @param[in] length Prefix length
+ * @return TRUE if the prefixes match each other, else FALSE
+ **/
+
+bool_t ipCompPrefix(const IpAddr * ipAddr1, const IpAddr * ipAddr2,
+   size_t length)
+{
+   bool_t result;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 addresses?
+   if(ipAddr1->length == sizeof(Ipv4Addr) && ipAddr2->length == sizeof(Ipv4Addr))
+   {
+      //Compare IPv4 address prefixes
+      result = ipv4CompPrefix(ipAddr1->ipv4Addr, ipAddr2->ipv4Addr, length);
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 addresses?
+   if(ipAddr1->length == sizeof(Ipv6Addr) && ipAddr2->length == sizeof(Ipv6Addr))
+   {
+      //Compare IPv6 address prefixes
+      result = ipv6CompPrefix(&ipAddr1->ipv6Addr, &ipAddr2->ipv6Addr, length);
+   }
+   else
+#endif
+   //Inconsistent IP addresses?
+   {
+      result = FALSE;
+   }
+
+   //Return TRUE if the prefixes match each other, else FALSE
    return result;
 }
 

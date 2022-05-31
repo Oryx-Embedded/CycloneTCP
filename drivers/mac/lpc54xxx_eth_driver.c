@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -119,6 +119,7 @@ const NicDriver lpc54xxxEthDriver =
 error_t lpc54xxxEthInit(NetInterface *interface)
 {
    error_t error;
+   uint32_t temp;
 
    //Debug message
    TRACE_INFO("Initializing LPC54xxx Ethernet MAC...\r\n");
@@ -168,7 +169,12 @@ error_t lpc54xxxEthInit(NetInterface *interface)
    }
 
    //Use default MAC configuration
-   ENET->MAC_CONFIG = ENET_MAC_CONFIG_PS_MASK | ENET_MAC_CONFIG_DO_MASK;
+   ENET->MAC_CONFIG = ENET_MAC_CONFIG_GPSLCE_MASK | ENET_MAC_CONFIG_PS_MASK |
+      ENET_MAC_CONFIG_DO_MASK;
+
+   //Set the maximum packet size that can be accepted
+   temp = ENET->MAC_EXT_CONFIG & ~ENET_MAC_EXT_CONFIG_GPSL_MASK;
+   ENET->MAC_EXT_CONFIG = temp | LPC54XXX_ETH_RX_BUFFER_SIZE;
 
    //Set the MAC address of the station
    ENET->MAC_ADDR_LOW = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);

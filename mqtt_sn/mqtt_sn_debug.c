@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -41,7 +41,7 @@
 #if (MQTT_SN_CLIENT_SUPPORT == ENABLED)
 
 //MQTT-SN message types
-const char_t *mqttSnMsgTypeLabel[] =
+const char_t *const mqttSnMsgTypeLabel[] =
 {
    "ADVERTISE",     //0x00
    "SEARCHGW",      //0x01
@@ -76,7 +76,7 @@ const char_t *mqttSnMsgTypeLabel[] =
 };
 
 //MQTT-SN return codes
-const char_t *mqttSnReturnCodeLabel[] =
+const char_t *const mqttSnReturnCodeLabel[] =
 {
    "Accepted",                   //0x00
    "Rejected: congestion",       //0x01

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -444,8 +444,8 @@ error_t slaacGenerateLinkLocalAddr(SlaacContext *context)
    }
    else
    {
-      //A link-local address is formed by combining the well-known
-      //link-local prefix fe80::/10 with the interface identifier
+      //A link-local address is formed by combining the well-known link-local
+      //prefix fe80::/10 with the interface identifier
       ipv6GenerateLinkLocalAddr(&logicalInterface->eui64, &addr);
 
       //Check whether Duplicate Address Detection should be performed

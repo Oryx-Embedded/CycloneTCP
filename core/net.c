@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -285,7 +285,10 @@ error_t netSeedRand(const uint8_t *seed, size_t length)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   if(netTaskRunning)
+   {
+      osAcquireMutex(&netMutex);
+   }
 
    //Save random seed
    for(i = 0, j = 0; i < NET_RAND_SEED_SIZE; i++)
@@ -304,10 +307,98 @@ error_t netSeedRand(const uint8_t *seed, size_t length)
    netInitRand();
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   if(netTaskRunning)
+   {
+      osReleaseMutex(&netMutex);
+   }
 
    //Successful processing
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Generate a random 32-bit value
+ * @return Random value
+ **/
+
+uint32_t netGetRand(void)
+{
+   uint32_t value;
+
+   //Get exclusive access
+   if(netTaskRunning)
+   {
+      osAcquireMutex(&netMutex);
+   }
+
+   //Generate a random 32-bit value
+   value = netGenerateRand();
+
+   //Release exclusive access
+   if(netTaskRunning)
+   {
+      osReleaseMutex(&netMutex);
+   }
+
+   //Return the random value
+   return value;
+}
+
+
+/**
+ * @brief Generate a random value in the specified range
+ * @param[in] min Lower bound
+ * @param[in] max Upper bound
+ * @return Random value in the specified range
+ **/
+
+uint32_t netGetRandRange(uint32_t min, uint32_t max)
+{
+   uint32_t value;
+
+   //Get exclusive access
+   if(netTaskRunning)
+   {
+      osAcquireMutex(&netMutex);
+   }
+
+   //Generate a random value in the specified range
+   value = netGenerateRandRange(min, max);
+
+   //Release exclusive access
+   if(netTaskRunning)
+   {
+      osReleaseMutex(&netMutex);
+   }
+
+   //Return the random value
+   return value;
+}
+
+
+/**
+ * @brief Get a string of random data
+ * @param[out] data Buffer where to store random data
+ * @param[in] length Number of random bytes to generate
+ **/
+
+void netGetRandData(uint8_t *data, size_t length)
+{
+   //Get exclusive access
+   if(netTaskRunning)
+   {
+      osAcquireMutex(&netMutex);
+   }
+
+   //Generate a random value in the specified range
+   netGenerateRandData(data, length);
+
+   //Release exclusive access
+   if(netTaskRunning)
+   {
+      osReleaseMutex(&netMutex);
+   }
 }
 
 
@@ -1029,12 +1120,14 @@ error_t netEnablePromiscuousMode(NetInterface *interface, bool_t enable)
    if(interface == NULL)
       return ERROR_INVALID_PARAMETER;
 
+#if (ETH_SUPPORT == ENABLED)
    //Get exclusive access
    osAcquireMutex(&netMutex);
    //Enable or disable promiscuous mode
    interface->promiscuous = enable;
    //Release exclusive access
    osReleaseMutex(&netMutex);
+#endif
 
    //Successful processing
    return NO_ERROR;

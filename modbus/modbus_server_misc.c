@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -52,6 +52,7 @@ void modbusServerTick(ModbusServerContext *context)
 {
    uint_t i;
    systime_t time;
+   systime_t timeout;
    ModbusClientConnection *connection;
 
    //Get current time
@@ -66,13 +67,20 @@ void modbusServerTick(ModbusServerContext *context)
       //Check the state of the current connection
       if(connection->state != MODBUS_CONNECTION_STATE_CLOSED)
       {
-         //Disconnect inactive client after idle timeout
-         if(timeCompare(time, connection->timestamp + MODBUS_SERVER_TIMEOUT) >= 0)
+         //Retrieve idle connection timeout
+         timeout = context->settings.timeout;
+
+         //A value of zero means no timeout
+         if(timeout != 0)
          {
-            //Debug message
-            TRACE_INFO("Modbus server: Closing inactive connection...\r\n");
-            //Close the Modbus/TCP connection
-            modbusServerCloseConnection(connection);
+            //Disconnect inactive client after idle timeout
+            if(timeCompare(time, connection->timestamp + timeout) >= 0)
+            {
+               //Debug message
+               TRACE_INFO("Modbus server: Closing inactive connection...\r\n");
+               //Close the Modbus/TCP connection
+               modbusServerCloseConnection(connection);
+            }
          }
       }
    }

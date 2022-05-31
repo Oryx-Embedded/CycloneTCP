@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -40,7 +40,7 @@
 #if (IPV6_SUPPORT == ENABLED && DHCPV6_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
 
 //DHCPv6 message types
-static const char_t *messageLabel[] =
+static const char_t *const messageLabel[] =
 {
    "",
    "SOLICIT",
@@ -59,7 +59,7 @@ static const char_t *messageLabel[] =
 };
 
 //DHCPv6 options
-static const char_t *optionLabel[] =
+static const char_t *const optionLabel[] =
 {
    "",
    "Client Identifier",
@@ -89,7 +89,7 @@ static const char_t *optionLabel[] =
 };
 
 //DHCPv6 status codes
-static const char_t *statusLabel[] =
+static const char_t *const statusLabel[] =
 {
    "Success",
    "Unspecified Failure",
@@ -100,7 +100,7 @@ static const char_t *statusLabel[] =
 };
 
 //Prefix used to format the structure
-static const char_t *prefix[8] =
+static const char_t *const prefix[8] =
 {
    "",
    "  ",
@@ -912,11 +912,14 @@ error_t dhcpv6DumpDnsServersOption(const Dhcpv6Option *option, uint_t level)
    n = ntohs(option->length) / sizeof(Ipv6Addr);
 
    //Dump contents
-   TRACE_DEBUG("%sDNS Recursive Name Server option (%" PRIu16 " bytes)\r\n", prefix[level], ntohs(option->length));
+   TRACE_DEBUG("%sDNS Recursive Name Server option (%" PRIu16 " bytes)\r\n",
+      prefix[level], ntohs(option->length));
 
    //Diplay the DNS servers
    for(i = 0; i < n; i++)
+   {
       TRACE_DEBUG("%s%s\r\n", prefix[level + 1], ipv6AddrToString(dnsServersOption->address + i, NULL));
+   }
 
    //No error to report
    return NO_ERROR;

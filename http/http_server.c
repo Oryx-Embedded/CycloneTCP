@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -243,7 +243,7 @@ error_t httpServerStart(HttpServerContext *context)
 
 #if (OS_STATIC_TASK_SUPPORT == ENABLED)
       //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("FTP Server",
+      context->taskId = osCreateStaticTask("HTTP Listener",
          (OsTaskCode) httpListenerTask, context, &context->taskTcb,
          context->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
 #else

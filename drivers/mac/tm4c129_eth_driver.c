@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "inc/hw_emac.h"
+#include "inc/hw_flash.h"
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -123,6 +124,7 @@ const NicDriver tm4c129EthDriver =
 error_t tm4c129EthInit(NetInterface *interface)
 {
    error_t error;
+   uint32_t temp;
 #ifdef ti_sysbios_BIOS___VERS
    Hwi_Params hwiParams;
 #endif
@@ -132,6 +134,13 @@ error_t tm4c129EthInit(NetInterface *interface)
 
    //Save underlying network interface
    nicDriverInterface = interface;
+
+   //Before Ethernet initialization the Flash Prefetch must be turned
+   //off (silicon errata ETH#2)
+   temp = FLASH_CONF_R;
+   temp &= ~FLASH_CONF_FPFON;
+   temp |= FLASH_CONF_FPFOFF;
+   FLASH_CONF_R = temp;
 
    //Enable Ethernet controller clock
    SysCtlPeripheralEnable(SYSCTL_PERIPH_EMAC0);
@@ -283,6 +292,13 @@ error_t tm4c129EthInit(NetInterface *interface)
    EMAC0_CFG_R |= EMAC_CFG_TE | EMAC_CFG_RE;
    //Enable DMA transmission and reception
    EMAC0_DMAOPMODE_R |= EMAC_DMAOPMODE_ST | EMAC_DMAOPMODE_SR;
+
+   //After completing Ethernet initialization, the user code must turn on the
+   //Flash Prefetch to restore system performance (silicon errata ETH#2)
+   temp = FLASH_CONF_R;
+   temp &= ~FLASH_CONF_FPFOFF;
+   temp |= FLASH_CONF_FPFON;
+   FLASH_CONF_R = temp;
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);

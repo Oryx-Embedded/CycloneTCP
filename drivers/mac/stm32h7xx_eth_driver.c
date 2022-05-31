@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.4
+ * @version 2.1.6
  **/
 
 //Switch to the appropriate trace level
@@ -119,6 +119,7 @@ const NicDriver stm32h7xxEthDriver =
 error_t stm32h7xxEthInit(NetInterface *interface)
 {
    error_t error;
+   uint32_t temp;
 
    //Debug message
    TRACE_INFO("Initializing STM32H7 Ethernet MAC...\r\n");
@@ -172,7 +173,11 @@ error_t stm32h7xxEthInit(NetInterface *interface)
    }
 
    //Use default MAC configuration
-   ETH->MACCR = ETH_MACCR_RESERVED15 | ETH_MACCR_DO;
+   ETH->MACCR = ETH_MACCR_GPSLCE | ETH_MACCR_RESERVED15 | ETH_MACCR_DO;
+
+   //Set the maximum packet size that can be accepted
+   temp = ETH->MACECR & ~ETH_MACECR_GPSL;
+   ETH->MACECR = temp | STM32H7XX_ETH_RX_BUFFER_SIZE;
 
    //Configure MAC address filtering
    stm32h7xxEthUpdateMacAddrFilter(interface);
