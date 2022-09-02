@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -338,4 +338,58 @@ void ar8031DumpPhyReg(NetInterface *interface)
 
    //Terminate with a line feed
    TRACE_DEBUG("\r\n");
+}
+
+
+/**
+ * @brief Write MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @param[in] data MMD register value
+ **/
+
+void ar8031WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data)
+{
+   //Select register operation
+   ar8031WritePhyReg(interface, AR8031_MMDACR,
+      AR8031_MMDACR_FUNC_ADDR | (devAddr & AR8031_MMDACR_DEVAD));
+
+   //Write MMD register address
+   ar8031WritePhyReg(interface, AR8031_MMDAADR, regAddr);
+
+   //Select data operation
+   ar8031WritePhyReg(interface, AR8031_MMDACR,
+      AR8031_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & AR8031_MMDACR_DEVAD));
+
+   //Write the content of the MMD register
+   ar8031WritePhyReg(interface, AR8031_MMDAADR, data);
+}
+
+
+/**
+ * @brief Read MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @return MMD register value
+ **/
+
+uint16_t ar8031ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr)
+{
+   //Select register operation
+   ar8031WritePhyReg(interface, AR8031_MMDACR,
+      AR8031_MMDACR_FUNC_ADDR | (devAddr & AR8031_MMDACR_DEVAD));
+
+   //Write MMD register address
+   ar8031WritePhyReg(interface, AR8031_MMDAADR, regAddr);
+
+   //Select data operation
+   ar8031WritePhyReg(interface, AR8031_MMDACR,
+      AR8031_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & AR8031_MMDACR_DEVAD));
+
+   //Read the content of the MMD register
+   return ar8031ReadPhyReg(interface, AR8031_MMDAADR);
 }

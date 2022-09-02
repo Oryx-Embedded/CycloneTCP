@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -399,8 +399,8 @@ void sama5d3EthIrqHandler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //Each time the software reads EMAC_ISR, it has to check the
-   //contents of EMAC_TSR, EMAC_RSR and EMAC_NSR
+   //Each time the software reads EMAC_ISR, it has to check the contents
+   //of EMAC_TSR, EMAC_RSR and EMAC_NSR
    isr = EMAC->EMAC_ISR;
    tsr = EMAC->EMAC_TSR;
    rsr = EMAC->EMAC_RSR;

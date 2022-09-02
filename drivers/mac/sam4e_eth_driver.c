@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -393,8 +393,8 @@ void GMAC_Handler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //Each time the software reads GMAC_ISR, it has to check the
-   //contents of GMAC_TSR, GMAC_RSR and GMAC_NSR
+   //Each time the software reads GMAC_ISR, it has to check the contents
+   //of GMAC_TSR, GMAC_RSR and GMAC_NSR
    isr = GMAC->GMAC_ISR;
    tsr = GMAC->GMAC_TSR;
    rsr = GMAC->GMAC_RSR;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -44,10 +44,10 @@
 #if (BSD_SOCKET_SUPPORT == ENABLED)
 
 //Common IPv6 addresses
-const in6_addr in6addr_any =
+const struct in6_addr in6addr_any =
    {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
-const in6_addr in6addr_loopback =
+const struct in6_addr in6addr_loopback =
    {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}};
 
 
@@ -102,7 +102,7 @@ int_t socket(int_t family, int_t type, int_t protocol)
  *   Otherwise, it returns SOCKET_ERROR
  **/
 
-int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen)
+int_t bind(int_t s, const struct sockaddr *addr, socklen_t addrlen)
 {
    error_t error;
    uint16_t port;
@@ -119,7 +119,7 @@ int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen)
    sock = &socketTable[s];
 
    //Check the length of the address
-   if(addrlen < (socklen_t) sizeof(sockaddr))
+   if(addrlen < (socklen_t) sizeof(SOCKADDR))
    {
       //Report an error
       socketSetErrnoCode(sock, EINVAL);
@@ -128,10 +128,11 @@ int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen)
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
-   if(addr->sa_family == AF_INET && addrlen >= (socklen_t) sizeof(sockaddr_in))
+   if(addr->sa_family == AF_INET &&
+      addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
    {
       //Point to the IPv4 address information
-      sockaddr_in *sa = (sockaddr_in *) addr;
+      SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
       //Get port number
       port = ntohs(sa->sin_port);
 
@@ -151,10 +152,11 @@ int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen)
 #endif
 #if (IPV6_SUPPORT == ENABLED)
    //IPv6 address?
-   if(addr->sa_family == AF_INET6 && addrlen >= (socklen_t) sizeof(sockaddr_in6))
+   if(addr->sa_family == AF_INET6 &&
+      addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
    {
       //Point to the IPv6 address information
-      sockaddr_in6 *sa = (sockaddr_in6 *) addr;
+      SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
       //Get port number
       port = ntohs(sa->sin6_port);
 
@@ -203,7 +205,7 @@ int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen)
  *   Otherwise, it returns SOCKET_ERROR
  **/
 
-int_t connect(int_t s, const sockaddr *addr, socklen_t addrlen)
+int_t connect(int_t s, const struct sockaddr *addr, socklen_t addrlen)
 {
    error_t error;
    uint16_t port;
@@ -220,7 +222,7 @@ int_t connect(int_t s, const sockaddr *addr, socklen_t addrlen)
    sock = &socketTable[s];
 
    //Check the length of the address
-   if(addrlen < (socklen_t) sizeof(sockaddr))
+   if(addrlen < (socklen_t) sizeof(SOCKADDR))
    {
       socketSetErrnoCode(sock, EINVAL);
       return SOCKET_ERROR;
@@ -228,10 +230,11 @@ int_t connect(int_t s, const sockaddr *addr, socklen_t addrlen)
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
-   if(addr->sa_family == AF_INET && addrlen >= (socklen_t) sizeof(sockaddr_in))
+   if(addr->sa_family == AF_INET &&
+      addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
    {
       //Point to the IPv4 address information
-      sockaddr_in *sa = (sockaddr_in *) addr;
+      SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
       //Get port number
       port = ntohs(sa->sin_port);
 
@@ -251,10 +254,11 @@ int_t connect(int_t s, const sockaddr *addr, socklen_t addrlen)
 #endif
 #if (IPV6_SUPPORT == ENABLED)
    //IPv6 address?
-   if(addr->sa_family == AF_INET6 && addrlen >= (socklen_t) sizeof(sockaddr_in6))
+   if(addr->sa_family == AF_INET6 &&
+      addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
    {
       //Point to the IPv6 address information
-      sockaddr_in6 *sa = (sockaddr_in6 *) addr;
+      SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
       //Get port number
       port = ntohs(sa->sin6_port);
 
@@ -363,7 +367,7 @@ int_t listen(int_t s, int_t backlog)
  *   Otherwise, it returns SOCKET_ERROR
  **/
 
-int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen)
+int_t accept(int_t s, struct sockaddr *addr, socklen_t *addrlen)
 {
    uint16_t port;
    IpAddr ipAddr;
@@ -395,10 +399,11 @@ int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen)
    {
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 address?
-      if(ipAddr.length == sizeof(Ipv4Addr) && *addrlen >= (socklen_t) sizeof(sockaddr_in))
+      if(ipAddr.length == sizeof(Ipv4Addr) &&
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
       {
          //Point to the IPv4 address information
-         sockaddr_in *sa = (sockaddr_in *) addr;
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
 
          //Set address family and port number
          sa->sin_family = AF_INET;
@@ -408,16 +413,17 @@ int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen)
          sa->sin_addr.s_addr = ipAddr.ipv4Addr;
 
          //Return the actual length of the address
-         *addrlen = sizeof(sockaddr_in);
+         *addrlen = sizeof(SOCKADDR_IN);
       }
       else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
       //IPv6 address?
-      if(ipAddr.length == sizeof(Ipv6Addr) && *addrlen >= (socklen_t) sizeof(sockaddr_in6))
+      if(ipAddr.length == sizeof(Ipv6Addr) &&
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
       {
          //Point to the IPv6 address information
-         sockaddr_in6 *sa = (sockaddr_in6 *) addr;
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
 
          //Set address family and port number
          sa->sin6_family = AF_INET6;
@@ -427,7 +433,7 @@ int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen)
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &ipAddr.ipv6Addr);
 
          //Return the actual length of the address
-         *addrlen = sizeof(sockaddr_in6);
+         *addrlen = sizeof(SOCKADDR_IN6);
       }
       else
 #endif
@@ -517,8 +523,8 @@ int_t send(int_t s, const void *data, size_t length, int_t flags)
  *   length parameter. Otherwise, a value of SOCKET_ERROR is returned
  **/
 
-int_t sendto(int_t s, const void *data, size_t length,
-   int_t flags, const sockaddr *addr, socklen_t addrlen)
+int_t sendto(int_t s, const void *data, size_t length, int_t flags,
+   const struct sockaddr *addr, socklen_t addrlen)
 {
    error_t error;
    size_t written;
@@ -536,7 +542,7 @@ int_t sendto(int_t s, const void *data, size_t length,
    sock = &socketTable[s];
 
    //Check the length of the address
-   if(addrlen < (socklen_t) sizeof(sockaddr))
+   if(addrlen < (socklen_t) sizeof(SOCKADDR))
    {
       //Report an error
       socketSetErrnoCode(sock, EINVAL);
@@ -545,10 +551,11 @@ int_t sendto(int_t s, const void *data, size_t length,
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
-   if(addr->sa_family == AF_INET && addrlen >= (socklen_t) sizeof(sockaddr_in))
+   if(addr->sa_family == AF_INET &&
+      addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
    {
       //Point to the IPv4 address information
-      sockaddr_in *sa = (sockaddr_in *) addr;
+      SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
 
       //Get port number
       port = ntohs(sa->sin_port);
@@ -560,10 +567,11 @@ int_t sendto(int_t s, const void *data, size_t length,
 #endif
 #if (IPV6_SUPPORT == ENABLED)
    //IPv6 address?
-   if(addr->sa_family == AF_INET6 && addrlen >= (socklen_t) sizeof(sockaddr_in6))
+   if(addr->sa_family == AF_INET6 &&
+      addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
    {
       //Point to the IPv6 address information
-      sockaddr_in6 *sa = (sockaddr_in6 *) addr;
+      SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
 
       //Get port number
       port = ntohs(sa->sin6_port);
@@ -581,7 +589,8 @@ int_t sendto(int_t s, const void *data, size_t length,
    }
 
    //Send data
-   error = socketSendTo(sock, &ipAddr, port, data, length, &written, flags << 8);
+   error = socketSendTo(sock, &ipAddr, port, data, length, &written,
+      flags << 8);
 
    //Any error to report?
    if(error == ERROR_TIMEOUT)
@@ -671,8 +680,8 @@ int_t recv(int_t s, void *data, size_t size, int_t flags)
  *   zero. Otherwise, a value of SOCKET_ERROR is returned
  **/
 
-int_t recvfrom(int_t s, void *data, size_t size,
-   int_t flags, sockaddr *addr, socklen_t *addrlen)
+int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
+   struct sockaddr *addr, socklen_t *addrlen)
 {
    error_t error;
    size_t received;
@@ -690,7 +699,8 @@ int_t recvfrom(int_t s, void *data, size_t size,
    sock = &socketTable[s];
 
    //Receive data
-   error = socketReceiveFrom(sock, &ipAddr, &port, data, size, &received, flags << 8);
+   error = socketReceiveFrom(sock, &ipAddr, &port, data, size, &received,
+      flags << 8);
 
    //Any error to report?
    if(error == ERROR_END_OF_STREAM)
@@ -710,10 +720,11 @@ int_t recvfrom(int_t s, void *data, size_t size,
    {
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 address?
-      if(ipAddr.length == sizeof(Ipv4Addr) && *addrlen >= (socklen_t) sizeof(sockaddr_in))
+      if(ipAddr.length == sizeof(Ipv4Addr) &&
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
       {
          //Point to the IPv4 address information
-         sockaddr_in *sa = (sockaddr_in *) addr;
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
 
          //Set address family and port number
          sa->sin_family = AF_INET;
@@ -723,16 +734,17 @@ int_t recvfrom(int_t s, void *data, size_t size,
          sa->sin_addr.s_addr = ipAddr.ipv4Addr;
 
          //Return the actual length of the address
-         *addrlen = sizeof(sockaddr_in);
+         *addrlen = sizeof(SOCKADDR_IN);
       }
       else
 #endif
 #if (IPV6_SUPPORT == ENABLED)
       //IPv6 address?
-      if(ipAddr.length == sizeof(Ipv6Addr) && *addrlen >= (socklen_t) sizeof(sockaddr_in6))
+      if(ipAddr.length == sizeof(Ipv6Addr) &&
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
       {
          //Point to the IPv6 address information
-         sockaddr_in6 *sa = (sockaddr_in6 *) addr;
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
 
          //Set address family and port number
          sa->sin6_family = AF_INET6;
@@ -742,7 +754,7 @@ int_t recvfrom(int_t s, void *data, size_t size,
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &ipAddr.ipv6Addr);
 
          //Return the actual length of the address
-         *addrlen = sizeof(sockaddr_in6);
+         *addrlen = sizeof(SOCKADDR_IN6);
       }
       else
 #endif
@@ -768,7 +780,7 @@ int_t recvfrom(int_t s, void *data, size_t size,
  *   Otherwise, it returns SOCKET_ERROR
  **/
 
-int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
+int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen)
 {
    int_t ret;
    Socket *sock;
@@ -791,10 +803,10 @@ int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 address?
       if(sock->localIpAddr.length == sizeof(Ipv4Addr) &&
-         *addrlen >= (socklen_t) sizeof(sockaddr_in))
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
       {
          //Point to the IPv4 address information
-         sockaddr_in *sa = (sockaddr_in *) addr;
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
 
          //Set address family and port number
          sa->sin_family = AF_INET;
@@ -804,7 +816,7 @@ int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
          sa->sin_addr.s_addr = sock->localIpAddr.ipv4Addr;
 
          //Return the actual length of the address
-         *addrlen = sizeof(sockaddr_in);
+         *addrlen = sizeof(SOCKADDR_IN);
          //Successful processing
          ret = SOCKET_SUCCESS;
       }
@@ -813,10 +825,10 @@ int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
 #if (IPV6_SUPPORT == ENABLED)
       //IPv6 address?
       if(sock->localIpAddr.length == sizeof(Ipv6Addr) &&
-         *addrlen >= (socklen_t) sizeof(sockaddr_in6))
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
       {
          //Point to the IPv6 address information
-         sockaddr_in6 *sa = (sockaddr_in6 *) addr;
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
 
          //Set address family and port number
          sa->sin6_family = AF_INET6;
@@ -826,7 +838,7 @@ int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &sock->localIpAddr.ipv6Addr);
 
          //Return the actual length of the address
-         *addrlen = sizeof(sockaddr_in6);
+         *addrlen = sizeof(SOCKADDR_IN6);
          //Successful processing
          ret = SOCKET_SUCCESS;
       }
@@ -862,7 +874,7 @@ int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen)
  *   Otherwise, it returns SOCKET_ERROR
  **/
 
-int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
+int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen)
 {
    int_t ret;
    Socket *sock;
@@ -885,10 +897,10 @@ int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 address?
       if(sock->remoteIpAddr.length == sizeof(Ipv4Addr) &&
-         *addrlen >= (socklen_t) sizeof(sockaddr_in))
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
       {
          //Point to the IPv4 address information
-         sockaddr_in *sa = (sockaddr_in *) addr;
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
 
          //Set address family and port number
          sa->sin_family = AF_INET;
@@ -898,7 +910,7 @@ int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
          sa->sin_addr.s_addr = sock->remoteIpAddr.ipv4Addr;
 
          //Return the actual length of the address
-         *addrlen = sizeof(sockaddr_in);
+         *addrlen = sizeof(SOCKADDR_IN);
          //Successful processing
          ret = SOCKET_SUCCESS;
       }
@@ -907,10 +919,10 @@ int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
 #if (IPV6_SUPPORT == ENABLED)
       //IPv6 address?
       if(sock->remoteIpAddr.length == sizeof(Ipv6Addr) &&
-         *addrlen >= (socklen_t) sizeof(sockaddr_in6))
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
       {
          //Point to the IPv6 address information
-         sockaddr_in6 *sa = (sockaddr_in6 *) addr;
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
 
          //Set address family and port number
          sa->sin6_family = AF_INET6;
@@ -920,7 +932,7 @@ int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &sock->remoteIpAddr.ipv6Addr);
 
          //Return the actual length of the address
-         *addrlen = sizeof(sockaddr_in6);
+         *addrlen = sizeof(SOCKADDR_IN6);
          //Successful processing
          ret = SOCKET_SUCCESS;
       }
@@ -958,12 +970,12 @@ int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen)
  *   Otherwise, it returns SOCKET_ERROR
  **/
 
-int_t setsockopt(int_t s, int_t level, int_t optname,
-   const void *optval, socklen_t optlen)
+int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
+   socklen_t optlen)
 {
    int_t ret;
    int_t *val;
-   timeval *t;
+   TIMEVAL *t;
    Socket *sock;
 
    //Make sure the socket descriptor is valid
@@ -995,10 +1007,10 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
          else if(optname == SO_SNDTIMEO || optname == SO_RCVTIMEO)
          {
             //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(timeval))
+            if(optlen >= (socklen_t) sizeof(TIMEVAL))
             {
                //Cast the option value to the relevant type
-               t = (timeval *) optval;
+               t = (TIMEVAL *) optval;
 
                //If the specified value is of zero, I/O operations shall not
                //time out
@@ -1263,12 +1275,12 @@ int_t setsockopt(int_t s, int_t level, int_t optname,
  *   Otherwise, it returns SOCKET_ERROR
  **/
 
-int_t getsockopt(int_t s, int_t level, int_t optname,
-   void *optval, socklen_t *optlen)
+int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
+   socklen_t *optlen)
 {
    int_t ret;
    int_t *val;
-   timeval *t;
+   TIMEVAL *t;
    Socket *sock;
 
    //Make sure the socket descriptor is valid
@@ -1293,10 +1305,10 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
          if(optname == SO_SNDTIMEO || optname == SO_RCVTIMEO)
          {
             //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(timeval))
+            if(*optlen >= (socklen_t) sizeof(TIMEVAL))
             {
                //Cast the option value to the relevant type
-               t = (timeval *) optval;
+               t = (TIMEVAL *) optval;
 
                //Return the timeout value
                if(sock->timeout == INFINITE_DELAY)
@@ -1311,7 +1323,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
                }
 
                //Return the actual length of the option
-               *optlen = sizeof(timeval);
+               *optlen = sizeof(TIMEVAL);
                //Successful processing
                ret = SOCKET_SUCCESS;
             }
@@ -1370,7 +1382,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname,
          else if(optname == SO_KEEPALIVE)
          {
             //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(timeval))
+            if(*optlen >= (socklen_t) sizeof(TIMEVAL))
             {
                //Cast the option value to the relevant type
                val = (int_t *) optval;
@@ -1851,7 +1863,7 @@ int_t closesocket(int_t s)
  **/
 
 int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
-   fd_set *exceptfds, const timeval *timeout)
+   fd_set *exceptfds, const struct timeval *timeout)
 {
    int_t i;
    int_t j;
@@ -2067,10 +2079,10 @@ int_t gethostname(char_t *name, size_t len)
  * @return Pointer to the hostent structure or a NULL if an error occurs
  **/
 
-hostent *gethostbyname(const char_t *name)
+struct hostent *gethostbyname(const char_t *name)
 {
    int_t herrno;
-   static hostent result;
+   static HOSTENT result;
 
    //The hostent structure returned by the function resides in static
    //memory area
@@ -2090,8 +2102,8 @@ hostent *gethostbyname(const char_t *name)
  * @return Pointer to the hostent structure or a NULL if an error occurs
  **/
 
-hostent *gethostbyname_r(const char_t *name, hostent *result, char_t *buf,
-   size_t buflen, int_t *h_errnop)
+struct hostent *gethostbyname_r(const char_t *name, struct hostent *result,
+   char_t *buf, size_t buflen, int_t *h_errnop)
 {
    error_t error;
    IpAddr ipAddr;
@@ -2165,7 +2177,7 @@ hostent *gethostbyname_r(const char_t *name, hostent *result, char_t *buf,
  **/
 
 int_t getaddrinfo(const char_t *node, const char_t *service,
-   const addrinfo *hints, addrinfo **res)
+   const struct addrinfo *hints, struct addrinfo **res)
 {
    error_t error;
    size_t n;
@@ -2173,8 +2185,8 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
    uint_t flags;
    uint16_t port;
    IpAddr ipAddr;
-   addrinfo h;
-   addrinfo *ai;
+   ADDRINFO h;
+   ADDRINFO *ai;
 
    //Check whether both node and service name are NULL
    if(node == NULL && service == NULL)
@@ -2190,7 +2202,7 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
    else
    {
       //If hints is NULL, then default criteria are used
-      osMemset(&h, 0, sizeof(addrinfo));
+      osMemset(&h, 0, sizeof(ADDRINFO));
       h.ai_family = AF_UNSPEC;
       h.ai_socktype = 0;
       h.ai_protocol = 0;
@@ -2310,7 +2322,7 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
       //Select the relevant socket family
       h.ai_family = AF_INET;
       //Get the length of the corresponding socket address
-      n = sizeof(sockaddr_in);
+      n = sizeof(SOCKADDR_IN);
    }
    else
 #endif
@@ -2321,7 +2333,7 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
       //Select the relevant socket family
       h.ai_family = AF_INET6;
       //Get the length of the corresponding socket address
-      n = sizeof(sockaddr_in6);
+      n = sizeof(SOCKADDR_IN6);
    }
    else
 #endif
@@ -2332,7 +2344,7 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
    }
 
    //Allocate a memory buffer to hold the address information structure
-   ai = osAllocMem(sizeof(addrinfo) + n);
+   ai = osAllocMem(sizeof(ADDRINFO) + n);
    //Failed to allocate memory?
    if(ai == NULL)
    {
@@ -2341,11 +2353,11 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
    }
 
    //Initialize address information structure
-   osMemset(ai, 0, sizeof(addrinfo) + n);
+   osMemset(ai, 0, sizeof(ADDRINFO) + n);
    ai->ai_family = h.ai_family;
    ai->ai_socktype = h.ai_socktype;
    ai->ai_protocol = h.ai_protocol;
-   ai->ai_addr = (sockaddr *) ((uint8_t *) ai + sizeof(addrinfo));
+   ai->ai_addr = (SOCKADDR *) ((uint8_t *) ai + sizeof(ADDRINFO));
    ai->ai_addrlen = n;
    ai->ai_next = NULL;
 
@@ -2354,7 +2366,7 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
    if(ipAddr.length == sizeof(Ipv4Addr))
    {
       //Point to the IPv4 address information
-      sockaddr_in *sa = (sockaddr_in *) ai->ai_addr;
+      SOCKADDR_IN *sa = (SOCKADDR_IN *) ai->ai_addr;
 
       //Set address family and port number
       sa->sin_family = AF_INET;
@@ -2370,7 +2382,7 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
    if(ipAddr.length == sizeof(Ipv6Addr))
    {
       //Point to the IPv6 address information
-      sockaddr_in6 *sa = (sockaddr_in6 *) ai->ai_addr;
+      SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) ai->ai_addr;
 
       //Set address family and port number
       sa->sin6_family = AF_INET6;
@@ -2402,9 +2414,9 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
  * @param[in] res Dynamically allocated list of socket address structures
  **/
 
-void freeaddrinfo(addrinfo *res)
+void freeaddrinfo(struct addrinfo *res)
 {
-   addrinfo *next;
+   ADDRINFO *next;
 
    //Free the list of socket address structures
    while(res != NULL)
@@ -2431,8 +2443,8 @@ void freeaddrinfo(addrinfo *res)
  * @return On success, zero is returned. On error, a non-zero value is returned
  **/
 
-int_t getnameinfo(const sockaddr *addr, socklen_t addrlen, char_t *host,
-   size_t hostlen, char_t *serv, size_t servlen, int flags)
+int_t getnameinfo(const struct sockaddr *addr, socklen_t addrlen,
+   char_t *host, size_t hostlen, char_t *serv, size_t servlen, int flags)
 {
    uint16_t port;
 
@@ -2443,13 +2455,13 @@ int_t getnameinfo(const sockaddr *addr, socklen_t addrlen, char_t *host,
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
    if(addr->sa_family == AF_INET &&
-      addrlen >= (socklen_t) sizeof(sockaddr_in))
+      addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
    {
-      sockaddr_in *sa;
+      SOCKADDR_IN *sa;
       Ipv4Addr ipv4Addr;
 
       //Point to the IPv4 address information
-      sa = (sockaddr_in *) addr;
+      sa = (SOCKADDR_IN *) addr;
 
       //The caller can specify that no host name is required
       if(host != NULL)
@@ -2472,13 +2484,13 @@ int_t getnameinfo(const sockaddr *addr, socklen_t addrlen, char_t *host,
 #if (IPV6_SUPPORT == ENABLED)
    //IPv6 address?
    if(addr->sa_family == AF_INET6 &&
-      addrlen >= (socklen_t) sizeof(sockaddr_in6))
+      addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
    {
-      sockaddr_in6 *sa;
+      SOCKADDR_IN6 *sa;
       Ipv6Addr ipv6Addr;
 
       //Point to the IPv6 address information
-      sa = (sockaddr_in6 *) addr;
+      sa = (SOCKADDR_IN6 *) addr;
 
       //The caller can specify that no host name is required
       if(host != NULL)
@@ -2561,7 +2573,7 @@ in_addr_t inet_addr(const char_t *cp)
  * @return The function returns non-zero if the address is valid, zero if not
  **/
 
-int_t inet_aton(const char_t *cp, in_addr *inp)
+int_t inet_aton(const char_t *cp, struct in_addr *inp)
 {
 #if (IPV4_SUPPORT == ENABLED)
    error_t error;
@@ -2596,7 +2608,7 @@ int_t inet_aton(const char_t *cp, in_addr *inp)
  * @return Pointer to the formatted string
  **/
 
-const char_t *inet_ntoa(in_addr in)
+const char_t *inet_ntoa(struct in_addr in)
 {
    static char_t buf[16];
 
@@ -2613,7 +2625,7 @@ const char_t *inet_ntoa(in_addr in)
  * @return Pointer to the formatted string
  **/
 
-const char_t *inet_ntoa_r(in_addr in, char_t *buf, socklen_t buflen)
+const char_t *inet_ntoa_r(struct in_addr in, char_t *buf, socklen_t buflen)
 {
    //Properly terminate the string
    buf[0] = '\0';

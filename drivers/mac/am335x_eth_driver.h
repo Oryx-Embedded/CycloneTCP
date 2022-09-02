@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _AM335X_ETH_DRIVER_H
@@ -366,8 +366,8 @@
 #define CPSW_ALE_WORD1_UNICAST_TYPE(n)         ((n) << 30)
 
 //Multicast address table entry
-#define CPSW_ALE_WORD2_PORT_LIST_MASK          (3 << 2)
-#define CPSW_ALE_WORD2_PORT_LIST(n)            ((n) << 2)
+#define CPSW_ALE_WORD2_PORT_MASK_MASK          (3 << 2)
+#define CPSW_ALE_WORD2_PORT_MASK(n)            ((n) << 2)
 #define CPSW_ALE_WORD2_SUPER                   (1 << 1)
 #define CPSW_ALE_WORD1_MCAST_FWD_STATE_MASK    (3 << 30)
 #define CPSW_ALE_WORD1_MCAST_FWD_STATE(n)      ((n) << 30)

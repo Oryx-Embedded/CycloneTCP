@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -1064,6 +1064,7 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
       //A delimiter character must be specified
       delimiter[0] = param[0];
       delimiter[1] = '\0';
+
       //Skip delimiter character
       param++;
 

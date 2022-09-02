@@ -25,11 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _KSZ8851_DRIVER_H
 #define _KSZ8851_DRIVER_H
+
+//Dependencies
+#include "core/nic.h"
 
 //SPI interface support
 #ifndef KSZ8851_SPI_SUPPORT

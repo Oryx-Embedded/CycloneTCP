@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _KSZ9031_DRIVER_H
@@ -63,6 +63,49 @@
 #define KSZ9031_ICSR                          0x1B
 #define KSZ9031_AUTOMDI                       0x1C
 #define KSZ9031_PHYCON                        0x1F
+
+//KSZ9031 MMD registers
+#define KSZ9031_AN_FLP_BURST_TRANSMIT_LO      0x00, 0x03
+#define KSZ9031_AN_FLP_BURST_TRANSMIT_HI      0x00, 0x04
+#define KSZ9031_1000BASE_T_LINK_UP_TIME_CTRL  0x01, 0x5A
+#define KSZ9031_COMMON_CTRL                   0x02, 0x00
+#define KSZ9031_STRAP_STAT                    0x02, 0x01
+#define KSZ9031_OP_MODE_STRAP_OVERRIDE        0x02, 0x02
+#define KSZ9031_OP_MODE_STRAP_STAT            0x02, 0x03
+#define KSZ9031_RGMII_CTRL_SIGNAL_PAD_SKEW    0x02, 0x04
+#define KSZ9031_RGMII_RX_DATA_PAD_SKEW        0x02, 0x05
+#define KSZ9031_RGMII_TX_DATA_PAD_SKEW        0x02, 0x06
+#define KSZ9031_GMII_CLK_PAD_SKEW             0x02, 0x08
+#define KSZ9031_WOL_CTRL                      0x02, 0x10
+#define KSZ9031_WOL_MAGIC_PKT_MAC_DA0         0x02, 0x11
+#define KSZ9031_WOL_MAGIC_PKT_MAC_DA1         0x02, 0x12
+#define KSZ9031_WOL_MAGIC_PKT_MAC_DA2         0x02, 0x13
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE0_CRC0     0x02, 0x14
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE0_CRC1     0x02, 0x15
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE1_CRC0     0x02, 0x16
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE1_CRC1     0x02, 0x17
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE2_CRC0     0x02, 0x18
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE2_CRC1     0x02, 0x19
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE3_CRC0     0x02, 0x1A
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE3_CRC1     0x02, 0x1B
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE0_MASK0    0x02, 0x1C
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE0_MASK1    0x02, 0x1D
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE0_MASK2    0x02, 0x1E
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE0_MASK3    0x02, 0x1F
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE1_MASK0    0x02, 0x20
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE1_MASK1    0x02, 0x21
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE1_MASK2    0x02, 0x22
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE1_MASK3    0x02, 0x23
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE2_MASK0    0x02, 0x24
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE2_MASK1    0x02, 0x25
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE2_MASK2    0x02, 0x26
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE2_MASK3    0x02, 0x27
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE3_MASK0    0x02, 0x28
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE3_MASK1    0x02, 0x29
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE3_MASK2    0x02, 0x2A
+#define KSZ9031_WOL_CUSTOM_PKT_TYPE3_MASK3    0x02, 0x2B
+#define KSZ9031_ANALOG_CTRL4                  0x1C, 0x04
+#define KSZ9031_EDPD_CTRL                     0x1C, 0x23
 
 //Basic Control register
 #define KSZ9031_BMCR_RESET                    0x8000
@@ -255,6 +298,12 @@ void ksz9031WritePhyReg(NetInterface *interface, uint8_t address,
 uint16_t ksz9031ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ksz9031DumpPhyReg(NetInterface *interface);
+
+void ksz9031WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data);
+
+uint16_t ksz9031ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

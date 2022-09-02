@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -811,7 +811,7 @@ error_t webSocketFormatErrorResponse(WebSocket *webSocket,
       if(statusCodeList[i].value == statusCode)
       {
          //Append the textual phrase to the Status-Line
-         p += osSprintf(p, statusCodeList[i].message);
+         p += osSprintf(p, "%s", statusCodeList[i].message);
          //Break the loop and continue processing
          break;
       }

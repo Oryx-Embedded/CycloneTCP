@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _AR8031_DRIVER_H
@@ -69,6 +69,86 @@
 #define AR8031_DBG_PORT_ADDR_OFFSET                    0x1D
 #define AR8031_DBG_PORT_DATA                           0x1E
 #define AR8031_CHIP_CONF                               0x1F
+
+//AR8031 MMD registers
+#define AR8031_PCS_CTRL                                0x03, 0x0000
+#define AR8031_PCS_STAT                                0x03, 0x0001
+#define AR8031_EEE_CAPABILITY                          0x03, 0x0014
+#define AR8031_EEE_WAKE_ERROR_COUNTER                  0x03, 0x0016
+#define AR8031_P1588_CTRL                              0x03, 0x8012
+#define AR8031_P1588_RX_SEQ_ID                         0x03, 0x8013
+#define AR8031_P1588_RX_SRC_PORT_ID1                   0x03, 0x8014
+#define AR8031_P1588_RX_SRC_PORT_ID2                   0x03, 0x8015
+#define AR8031_P1588_RX_SRC_PORT_ID3                   0x03, 0x8016
+#define AR8031_P1588_RX_SRC_PORT_ID4                   0x03, 0x8017
+#define AR8031_P1588_RX_SRC_PORT_ID5                   0x03, 0x8018
+#define AR8031_P1588_RX_TIMESTAMP1                     0x03, 0x8019
+#define AR8031_P1588_RX_TIMESTAMP2                     0x03, 0x801A
+#define AR8031_P1588_RX_TIMESTAMP3                     0x03, 0x801B
+#define AR8031_P1588_RX_TIMESTAMP4                     0x03, 0x801C
+#define AR8031_P1588_RX_TIMESTAMP5                     0x03, 0x801D
+#define AR8031_P1588_RX_FRAC_NANO1                     0x03, 0x801E
+#define AR8031_P1588_RX_FRAC_NANO0                     0x03, 0x801F
+#define AR8031_P1588_TX_SEQ_ID                         0x03, 0x8020
+#define AR8031_P1588_TX_SRC_PORT_ID1                   0x03, 0x8021
+#define AR8031_P1588_TX_SRC_PORT_ID2                   0x03, 0x8022
+#define AR8031_P1588_TX_SRC_PORT_ID3                   0x03, 0x8023
+#define AR8031_P1588_TX_SRC_PORT_ID4                   0x03, 0x8024
+#define AR8031_P1588_TX_SRC_PORT_ID5                   0x03, 0x8025
+#define AR8031_P1588_TX_TIMESTAMP1                     0x03, 0x8026
+#define AR8031_P1588_TX_TIMESTAMP2                     0x03, 0x8027
+#define AR8031_P1588_TX_TIMESTAMP3                     0x03, 0x8028
+#define AR8031_P1588_TX_TIMESTAMP4                     0x03, 0x8029
+#define AR8031_P1588_TX_TIMESTAMP5                     0x03, 0x802A
+#define AR8031_P1588_TX_FRAC_NANO1                     0x03, 0x802B
+#define AR8031_P1588_TX_FRAC_NANO2                     0x03, 0x802C
+#define AR8031_P1588_ORIGIN_CORRECTION1                0x03, 0x802D
+#define AR8031_P1588_ORIGIN_CORRECTION2                0x03, 0x802E
+#define AR8031_P1588_ORIGIN_CORRECTION3                0x03, 0x802F
+#define AR8031_P1588_ORIGIN_CORRECTION4                0x03, 0x8030
+#define AR8031_P1588_INGRESS_TRIG_TIME1                0x03, 0x8031
+#define AR8031_P1588_INGRESS_TRIG_TIME2                0x03, 0x8032
+#define AR8031_P1588_INGRESS_TRIG_TIME3                0x03, 0x8033
+#define AR8031_P1588_INGRESS_TRIG_TIME4                0x03, 0x8034
+#define AR8031_P1588_TX_LATENCY                        0x03, 0x8035
+#define AR8031_P1588_INC_VALUE1                        0x03, 0x8036
+#define AR8031_P1588_INC_VALUE2                        0x03, 0x8037
+#define AR8031_P1588_NANO_OFFSET1                      0x03, 0x8038
+#define AR8031_P1588_NANO_OFFSET2                      0x03, 0x8039
+#define AR8031_P1588_SEC_OFFSET1                       0x03, 0x803A
+#define AR8031_P1588_SEC_OFFSET2                       0x03, 0x803B
+#define AR8031_P1588_SEC_OFFSET3                       0x03, 0x803C
+#define AR8031_P1588_REAL_TIME1                        0x03, 0x803D
+#define AR8031_P1588_REAL_TIME2                        0x03, 0x803E
+#define AR8031_P1588_REAL_TIME3                        0x03, 0x803F
+#define AR8031_P1588_REAL_TIME4                        0x03, 0x8040
+#define AR8031_P1588_REAL_TIME5                        0x03, 0x8041
+#define AR8031_P1588_REAL_TIME6                        0x03, 0x8042
+#define AR8031_P1588_RTC_FRAC_NANO1                    0x03, 0x8042
+#define AR8031_P1588_RTC_FRAC_NANO2                    0x03, 0x8043
+#define AR8031_WOL_INTERNAL_ADDR1                      0x03, 0x804A
+#define AR8031_WOL_INTERNAL_ADDR2                      0x03, 0x804B
+#define AR8031_WOL_INTERNAL_ADDR3                      0x03, 0x804C
+#define AR8031_REM_PHY_LPBK                            0x03, 0x805A
+#define AR8031_SMART_EEE_CTRL1                         0x03, 0x805B
+#define AR8031_SMART_EEE_CTRL2                         0x03, 0x805C
+#define AR8031_SMART_EEE_CTRL3                         0x03, 0x805D
+#define AR8031_AN_CTRL1                                0x07, 0x0000
+#define AR8031_AN_STAT                                 0x07, 0x0001
+#define AR8031_AN_XNP_TRANSMIT                         0x07, 0x0016
+#define AR8031_AN_XNP_TRANSMIT1                        0x07, 0x0017
+#define AR8031_AN_XNP_TRANSMIT2                        0x07, 0x0018
+#define AR8031_AN_LP_XNP_ABILITY                       0x07, 0x0019
+#define AR8031_AN_LP_XNP_ABILITY1                      0x07, 0x001A
+#define AR8031_AN_LP_XNP_ABILITY2                      0x07, 0x001B
+#define AR8031_EEE_ADV                                 0x07, 0x003C
+#define AR8031_EEE_LP_ADV                              0x07, 0x003D
+#define AR8031_EEE_ABILITY_AN_RES                      0x07, 0x8000
+#define AR8031_SGMII_CTRL1                             0x07, 0x8005
+#define AR8031_SGMII_CTRL2                             0x07, 0x8011
+#define AR8031_SGMII_CTRL3                             0x07, 0x8012
+#define AR8031_CLK_25M_CLK_SEL                         0x07, 0x8016
+#define AR8031_1588_CLK_SEL                            0x07, 0x8017
 
 //Control register
 #define AR8031_BMCR_RESET                              0x8000
@@ -324,6 +404,12 @@ void ar8031WritePhyReg(NetInterface *interface, uint8_t address,
 uint16_t ar8031ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ar8031DumpPhyReg(NetInterface *interface);
+
+void ar8031WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data);
+
+uint16_t ar8031ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

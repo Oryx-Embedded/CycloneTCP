@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _DP83867_DRIVER_H
@@ -174,7 +174,7 @@
 #define DP83867_BMCR_RESTART_AN                            0x0200
 #define DP83867_BMCR_DUPLEX_MODE                           0x0100
 #define DP83867_BMCR_COL_TEST                              0x0080
-#define DP83867_BMCR_SPEED_SEL_MSB                         0x2000
+#define DP83867_BMCR_SPEED_SEL_MSB                         0x0040
 
 //Basic Mode Status register
 #define DP83867_BMSR_100BT4                                0x8000

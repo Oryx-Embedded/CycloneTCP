@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _COAP_COMMON_H
@@ -39,6 +39,8 @@
 //DTLS-secured CoAP port number
 #define COAPS_PORT 5684
 
+//CoAP message header size
+#define COAP_HEADER_SIZE 4
 //Maximum acceptable length for tokens
 #define COAP_MAX_TOKEN_LEN 8
 

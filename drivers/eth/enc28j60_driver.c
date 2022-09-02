@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -360,7 +360,7 @@ void enc28j60EventHandler(NetInterface *interface)
       //Check link state
       if((value & ENC28J60_PHSTAT2_LSTAT) != 0)
       {
-         //Link speed
+         //The PHY is only able to operate in 10 Mbps mode
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
 
 #if (ENC28J60_FULL_DUPLEX_SUPPORT == ENABLED)
@@ -513,8 +513,9 @@ error_t enc28j60ReceivePacket(NetInterface *interface)
       {
          //Limit the number of data to read
          length = MIN(length, ENC28J60_ETH_RX_BUFFER_SIZE);
-         //Read the Ethernet frame
+         //Read packet data
          enc28j60ReadBuffer(interface, temp, length);
+
          //Valid packet received
          error = NO_ERROR;
       }
@@ -876,7 +877,7 @@ void enc28j60WriteBuffer(NetInterface *interface,
 /**
  * @brief Read SRAM buffer
  * @param[in] interface Underlying network interface
- * @param[in] data Buffer where to store the incoming data
+ * @param[out] data Buffer where to store the incoming data
  * @param[in] length Number of data to read
  **/
 

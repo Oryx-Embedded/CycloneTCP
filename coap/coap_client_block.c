@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -338,13 +338,19 @@ error_t coapClientWriteBody(CoapClientRequest *request,
                break;
             }
 
+            //Next block
+            blockPos += COAP_GET_BLOCK_SIZE(blockSzx);
+
             //A server receiving a block-wise PUT or POST may want to indicate a
             //smaller block size preference (late negotiation)
             if(blockSzx > COAP_GET_BLOCK_SZX(value))
+            {
+               //The client should use this block size or a smaller one in all
+               //further requests in the transfer sequence, even if that means
+               //changing the block size (and possibly scaling the block number
+               //accordingly) from now on
                blockSzx = COAP_GET_BLOCK_SZX(value);
-
-            //Next block
-            blockPos += COAP_GET_BLOCK_SIZE(blockSzx);
+            }
 
             //The NUM field in the option value describes what block number
             //is contained in the payload of this message
@@ -502,7 +508,9 @@ error_t coapClientReadBody(CoapClientRequest *request, void *data,
             //If the first request uses a bigger block size than the receiver
             //prefers, subsequent requests will use the preferred block size
             if(blockSzx > COAP_GET_BLOCK_SZX(value))
+            {
                blockSzx = COAP_GET_BLOCK_SZX(value);
+            }
 
             //Next block
             blockPos += COAP_GET_BLOCK_SIZE(value);
@@ -594,17 +602,17 @@ CoapBlockSize coapClientGetMaxBlockSize(void)
    CoapBlockSize blockSize;
 
    //Retrieve maximum block size
-#if (COAP_MAX_MSG_SIZE > 1024)
+#if (COAP_MAX_MSG_SIZE >= (COAP_HEADER_SIZE + 1024))
    blockSize = COAP_BLOCK_SIZE_1024;
-#elif (COAP_MAX_MSG_SIZE > 512)
+#elif (COAP_MAX_MSG_SIZE >= (COAP_HEADER_SIZE + 512))
    blockSize = COAP_BLOCK_SIZE_512;
-#elif (COAP_MAX_MSG_SIZE > 256)
+#elif (COAP_MAX_MSG_SIZE >= (COAP_HEADER_SIZE + 256))
    blockSize = COAP_BLOCK_SIZE_256;
-#elif (COAP_MAX_MSG_SIZE > 128)
+#elif (COAP_MAX_MSG_SIZE >= (COAP_HEADER_SIZE + 128))
    blockSize = COAP_BLOCK_SIZE_128;
-#elif (COAP_MAX_MSG_SIZE > 64)
+#elif (COAP_MAX_MSG_SIZE >= (COAP_HEADER_SIZE + 64))
    blockSize = COAP_BLOCK_SIZE_64;
-#elif (COAP_MAX_MSG_SIZE > 32)
+#elif (COAP_MAX_MSG_SIZE >= (COAP_HEADER_SIZE + 32))
    blockSize = COAP_BLOCK_SIZE_32;
 #else
    blockSize = COAP_BLOCK_SIZE_16;

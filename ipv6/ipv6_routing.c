@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -579,7 +579,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
                error = ethSendFrame(destInterface, NULL, &destMacAddr, ETH_TYPE_IPV6,
                   destBuffer, destOffset, &ancillary);
             }
-            //Address resolution is in progress?
+            //Address resolution in progress?
             else if(error == ERROR_IN_PROGRESS)
             {
                //Debug message

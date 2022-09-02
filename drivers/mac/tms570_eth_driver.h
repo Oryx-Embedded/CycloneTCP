@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _TMS570_ETH_DRIVER_H
@@ -74,13 +74,6 @@
    #define TMS570_ETH_RX_IRQ_CHANNEL 79
 #elif (TMS570_ETH_RX_IRQ_CHANNEL < 0 || TMS570_ETH_RX_IRQ_CHANNEL > 95)
    #error TMS570_ETH_RX_IRQ_CHANNEL parameter is not valid
-#endif
-
-//Byte-swapped read/write accesses to CPPI memory
-#ifndef TMS570_ETH_CPPI_SWAP_SUPPORT
-   #define TMS570_ETH_CPPI_SWAP_SUPPORT ENABLED
-#elif (TMS570_ETH_CPPI_SWAP_SUPPORT != ENABLED && TMS570_ETH_CPPI_SWAP_SUPPORT != DISABLED)
-   #error TMS570_ETH_CPPI_SWAP_SUPPORT parameter is not valid
 #endif
 
 //Name of the section where to place DMA buffers
@@ -342,8 +335,13 @@ void tms570EthTick(NetInterface *interface);
 void tms570EthEnableIrq(NetInterface *interface);
 void tms570EthDisableIrq(NetInterface *interface);
 
-__irq __arm void tms570EthTxIrqHandler(void);
-__irq __arm void tms570EthRxIrqHandler(void);
+#if defined(__ICCARM__)
+   __irq __arm void tms570EthTxIrqHandler(void);
+   __irq __arm void tms570EthRxIrqHandler(void);
+#else
+   void tms570EthTxIrqHandler(void);
+   void tms570EthRxIrqHandler(void);
+#endif
 
 void tms570EthEventHandler(NetInterface *interface);
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _AR8035_DRIVER_H
@@ -66,6 +66,23 @@
 #define AR8035_CDT_STATUS                       0x1C
 #define AR8035_DBG_PORT_ADDR_OFFSET             0x1D
 #define AR8035_DBG_PORT_DATA                    0x1E
+
+//AR8035 MMD registers
+#define AR8035_PCS_CTRL                         0x03, 0x0000
+#define AR8035_PCS_STAT                         0x03, 0x0001
+#define AR8035_EEE_CAPABILITY                   0x03, 0x0014
+#define AR8035_EEE_WAKE_ERROR_COUNTER           0x03, 0x0016
+#define AR8035_AN_CTRL                          0x07, 0x0000
+#define AR8035_AN_STAT                          0x07, 0x0001
+#define AR8035_AN_XNP_TRANSMIT                  0x07, 0x0016
+#define AR8035_AN_XNP_TRANSMIT1                 0x07, 0x0017
+#define AR8035_AN_XNP_TRANSMIT2                 0x07, 0x0018
+#define AR8035_AN_XNP_ABILITY                   0x07, 0x0019
+#define AR8035_AN_XNP_ABILITY1                  0x07, 0x001A
+#define AR8035_AN_XNP_ABILITY2                  0x07, 0x001B
+#define AR8035_EEE_ADV                          0x07, 0x003C
+#define AR8035_EEE_LP_ADV                       0x07, 0x003D
+#define AR8035_EEE_ABILITY_AN_RES               0x07, 0x8000
 
 //Control register
 #define AR8035_BMCR_RESET                       0x8000
@@ -278,6 +295,12 @@ void ar8035WritePhyReg(NetInterface *interface, uint8_t address,
 uint16_t ar8035ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ar8035DumpPhyReg(NetInterface *interface);
+
+void ar8035WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data);
+
+uint16_t ar8035ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _DP83869_DRIVER_H
@@ -131,7 +131,7 @@
 #define DP83869_BMCR_RSTRT_AUTONEG                             0x0200
 #define DP83869_BMCR_DUPLEX_EN                                 0x0100
 #define DP83869_BMCR_COL_TST                                   0x0080
-#define DP83869_BMCR_SPEED_SEL_MSB                             0x2000
+#define DP83869_BMCR_SPEED_SEL_MSB                             0x0040
 
 //BMSR register
 #define DP83869_BMSR_100M_FDUP                                 0x4000

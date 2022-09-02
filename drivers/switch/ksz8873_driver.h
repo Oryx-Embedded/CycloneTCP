@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _KSZ8873_DRIVER_H
@@ -571,7 +571,11 @@
 
 //Fiber Signal Threshold register
 #define KSZ8873_FIBER_SIGNAL_THRESHOLD_P2_THRESHOLD                0x80
+#define KSZ8873_FIBER_SIGNAL_THRESHOLD_P2_THRESHOLD_1_2V           0x00
+#define KSZ8873_FIBER_SIGNAL_THRESHOLD_P2_THRESHOLD_2_0V           0x80
 #define KSZ8873_FIBER_SIGNAL_THRESHOLD_P1_THRESHOLD                0x40
+#define KSZ8873_FIBER_SIGNAL_THRESHOLD_P1_THRESHOLD_1_2V           0x00
+#define KSZ8873_FIBER_SIGNAL_THRESHOLD_P1_THRESHOLD_2_0V           0x40
 
 //Internal 1.8V LDO Control register
 #define KSZ8873_INTERNAL_LDO_CTRL_INTERNAL_LDO_DIS                 0x40

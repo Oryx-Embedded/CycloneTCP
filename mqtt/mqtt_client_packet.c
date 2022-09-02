@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -43,7 +43,7 @@
 #if (MQTT_CLIENT_SUPPORT == ENABLED)
 
 //MQTT control packets
-static const char_t *const packetLabel[16] =
+const char_t *const mqttPacketLabel[16] =
 {
    "Reserved",    //0
    "CONNECT",     //1
@@ -188,7 +188,7 @@ error_t mqttClientProcessPacket(MqttClientContext *context)
 
    //Debug message
    TRACE_INFO("MQTT: %s packet received (%" PRIuSIZE " bytes)...\r\n",
-      packetLabel[type], context->packetLen);
+      mqttPacketLabel[type], context->packetLen);
 
    //Dump the contents of the packet
    TRACE_DEBUG_ARRAY("  ", context->packet, context->packetLen);

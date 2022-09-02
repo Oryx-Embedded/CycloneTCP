@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -808,9 +808,9 @@ error_t httpWriteStream(HttpConnection *connection,
       {
          char_t s[8];
 
-         //The chunk-size field is a string of hex digits
-         //indicating the size of the chunk
-         n = osSprintf(s, "%X\r\n", length);
+         //The chunk-size field is a string of hex digits indicating the size
+         //of the chunk
+         n = osSprintf(s, "%" PRIXSIZE "\r\n", length);
 
          //Send the chunk-size field
          error = httpSend(connection, s, n, HTTP_FLAG_DELAY);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -320,7 +320,7 @@ void dm9000EventHandler(NetInterface *interface)
    //Read interrupt status register
    status = dm9000ReadReg(DM9000_ISR);
 
-   //Check whether the link status has changed?
+   //Link status change?
    if((status & DM9000_ISR_LNKCHG) != 0)
    {
       //Clear interrupt flag
@@ -367,7 +367,7 @@ void dm9000EventHandler(NetInterface *interface)
       nicNotifyLinkChange(interface);
    }
 
-   //Check whether a packet has been received?
+   //Packet received?
    if((status & DM9000_ISR_PR) != 0)
    {
       //Clear interrupt flag
@@ -735,9 +735,11 @@ uint32_t dm9000CalcCrc(const void *data, size_t length)
    {
       //Update CRC value
       crc ^= p[i];
+
       //The message is processed bit by bit
       for(j = 0; j < 8; j++)
       {
+         //Update CRC value
          if((crc & 0x01) != 0)
          {
             crc = (crc >> 1) ^ 0xEDB88320;

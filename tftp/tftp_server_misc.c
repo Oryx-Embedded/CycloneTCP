@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -232,7 +232,7 @@ void tftpServerCloseConnection(TftpClientConnection *connection)
          connection->socket = NULL;
       }
 
-      //Check whether a read or write operation is in progress...
+      //Check whether a read or write operation is in progress
       if(connection->file != NULL)
       {
          //Properly close the file before closing the connection
@@ -436,7 +436,7 @@ void tftpServerProcessRrqPacket(TftpServerContext *context, const IpAddr *client
    //Check if the file was successfully opened
    if(connection->file != NULL)
    {
-      //The read operation is in progress...
+      //The read operation is in progress
       connection->state = TFTP_STATE_READING;
       //Initialize block number
       connection->block = 1;
@@ -527,7 +527,7 @@ void tftpServerProcessWrqPacket(TftpServerContext *context, const IpAddr *client
    //Check if the file was successfully opened
    if(connection->file != NULL)
    {
-      //The write operation is in progress...
+      //The write operation is in progress
       connection->state = TFTP_STATE_WRITING;
       //Initialize block number
       connection->block = 0;

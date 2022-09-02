@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -334,8 +334,8 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
          //Save the security profile associated with the current user
          context->user = *user;
 
-         //Localize the authentication key with the engine ID of the
-         //remote SNMP device
+         //Localize the authentication key with the engine ID of the remote
+         //SNMP device
          if(context->user.authProtocol != SNMP_AUTH_PROTOCOL_NONE)
          {
             //Key localization algorithm
@@ -347,9 +347,8 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
                break;
          }
 
-         //Localize the privacy key with the engine ID of the remote
-         //SNMP device
-         if(context->user.privProtocol != SNMP_AUTH_PROTOCOL_NONE)
+         //Localize the privacy key with the engine ID of the remote SNMP device
+         if(context->user.privProtocol != SNMP_PRIV_PROTOCOL_NONE)
          {
             //Key localization algorithm
             error = snmpLocalizeKey(context->user.authProtocol,

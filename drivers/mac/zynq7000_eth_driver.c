@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -394,8 +394,8 @@ void zynq7000EthIrqHandler(NetInterface *interface)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //Each time the software reads XEMACPS_ISR, it has to check the
-   //contents of XEMACPS_TXSR, XEMACPS_RXSR
+   //Each time the software reads XEMACPS_ISR, it has to check the contents
+   //of XEMACPS_TXSR, XEMACPS_RXSR
    isr = XEMACPS_ISR;
    tsr = XEMACPS_TXSR;
    rsr = XEMACPS_RXSR;

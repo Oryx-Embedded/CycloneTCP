@@ -33,7 +33,7 @@
  * - RFC 2782: A DNS RR for specifying the location of services (DNS SRV)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level

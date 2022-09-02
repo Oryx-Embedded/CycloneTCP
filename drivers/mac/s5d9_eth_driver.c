@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -194,7 +194,7 @@ error_t s5d9EthInit(NetInterface *interface)
    NVIC_SetPriorityGrouping(S5D9_ETH_IRQ_PRIORITY_GROUPING);
 
    //Configure EDMAC interrupt priority
-   NVIC_SetPriority(ETHER_EINT0_IRQn, NVIC_EncodePriority(S5D9_ETH_IRQ_PRIORITY_GROUPING,
+   NVIC_SetPriority(EDMAC0_EINT_IRQn, NVIC_EncodePriority(S5D9_ETH_IRQ_PRIORITY_GROUPING,
       S5D9_ETH_IRQ_GROUP_PRIORITY, S5D9_ETH_IRQ_SUB_PRIORITY));
 
    //Enable transmission and reception
@@ -382,7 +382,7 @@ void s5d9EthTick(NetInterface *interface)
 void s5d9EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
-   NVIC_EnableIRQ(ETHER_EINT0_IRQn);
+   NVIC_EnableIRQ(EDMAC0_EINT_IRQn);
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -410,7 +410,7 @@ void s5d9EthEnableIrq(NetInterface *interface)
 void s5d9EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
-   NVIC_DisableIRQ(ETHER_EINT0_IRQn);
+   NVIC_DisableIRQ(EDMAC0_EINT_IRQn);
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -434,7 +434,7 @@ void s5d9EthDisableIrq(NetInterface *interface)
  * @brief S5D9 Ethernet MAC interrupt service routine
  **/
 
-void ETHER_EINT0_IRQHandler(void)
+void EDMAC0_EINT_IRQHandler(void)
 {
    bool_t flag;
    uint32_t status;
@@ -475,7 +475,7 @@ void ETHER_EINT0_IRQHandler(void)
    }
 
    //Clear IR flag
-   R_ICU->IELSRn_b[ETHER_EINT0_IRQn].IR = 0;
+   R_ICU->IELSRn_b[EDMAC0_EINT_IRQn].IR = 0;
 
    //Interrupt service routine epilogue
    osExitIsr(flag);

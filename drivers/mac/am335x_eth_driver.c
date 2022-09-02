@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -422,7 +422,7 @@ void am335xEthInitInstance(NetInterface *interface)
       temp = CPSW_PORT0_TX_IN_CTL_R & ~CPSW_PORT_P_TX_IN_CTL_SEL_MASK;
       CPSW_PORT0_TX_IN_CTL_R = temp | CPSW_PORT_P_TX_IN_CTL_SEL_DUAL_MAC;
 
-      //Set port state (forwarding)
+      //Set host port state (forwarding)
       temp = CPSW_ALE_PORTCTL_R(0) & ~CPSW_ALE_PORTCTL_PORT_STATE_MASK;
       CPSW_ALE_PORTCTL_R(0) = temp | CPSW_ALE_PORTCTL_PORT_STATE_FORWARD;
 
@@ -1840,8 +1840,8 @@ error_t am335xEthAddVlanAddrEntry(uint_t port, uint_t vlanId, MacAddr *macAddr)
       {
          //Set port mask
          entry.word2 |= CPSW_ALE_WORD2_SUPER |
-            CPSW_ALE_WORD2_PORT_LIST(1 << port) |
-            CPSW_ALE_WORD2_PORT_LIST(1 << CPSW_CH0);
+            CPSW_ALE_WORD2_PORT_MASK(1 << port) |
+            CPSW_ALE_WORD2_PORT_MASK(1 << CPSW_CH0);
 
          //Set multicast forward state
          entry.word1 |= CPSW_ALE_WORD1_MCAST_FWD_STATE(0);

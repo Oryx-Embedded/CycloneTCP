@@ -1,6 +1,6 @@
 /**
- * @file s32k148_eth_driver.h
- * @brief NXP S32K148 Ethernet MAC driver
+ * @file s32k1_eth_driver.h
+ * @brief NXP S32K1 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,59 +25,59 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
-#ifndef _S32K148_ETH_DRIVER_H
-#define _S32K148_ETH_DRIVER_H
+#ifndef _S32K1_ETH_DRIVER_H
+#define _S32K1_ETH_DRIVER_H
 
 //Number of TX buffers
-#ifndef S32K148_ETH_TX_BUFFER_COUNT
-   #define S32K148_ETH_TX_BUFFER_COUNT 3
-#elif (S32K148_ETH_TX_BUFFER_COUNT < 1)
-   #error S32K148_ETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef S32K1_ETH_TX_BUFFER_COUNT
+   #define S32K1_ETH_TX_BUFFER_COUNT 3
+#elif (S32K1_ETH_TX_BUFFER_COUNT < 1)
+   #error S32K1_ETH_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef S32K148_ETH_TX_BUFFER_SIZE
-   #define S32K148_ETH_TX_BUFFER_SIZE 1536
-#elif (S32K148_ETH_TX_BUFFER_SIZE != 1536)
-   #error S32K148_ETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef S32K1_ETH_TX_BUFFER_SIZE
+   #define S32K1_ETH_TX_BUFFER_SIZE 1536
+#elif (S32K1_ETH_TX_BUFFER_SIZE != 1536)
+   #error S32K1_ETH_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef S32K148_ETH_RX_BUFFER_COUNT
-   #define S32K148_ETH_RX_BUFFER_COUNT 6
-#elif (S32K148_ETH_RX_BUFFER_COUNT < 1)
-   #error S32K148_ETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef S32K1_ETH_RX_BUFFER_COUNT
+   #define S32K1_ETH_RX_BUFFER_COUNT 6
+#elif (S32K1_ETH_RX_BUFFER_COUNT < 1)
+   #error S32K1_ETH_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef S32K148_ETH_RX_BUFFER_SIZE
-   #define S32K148_ETH_RX_BUFFER_SIZE 1536
-#elif (S32K148_ETH_RX_BUFFER_SIZE != 1536)
-   #error S32K148_ETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef S32K1_ETH_RX_BUFFER_SIZE
+   #define S32K1_ETH_RX_BUFFER_SIZE 1536
+#elif (S32K1_ETH_RX_BUFFER_SIZE != 1536)
+   #error S32K1_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Interrupt priority grouping
-#ifndef S32K148_ETH_IRQ_PRIORITY_GROUPING
-   #define S32K148_ETH_IRQ_PRIORITY_GROUPING 3
-#elif (S32K148_ETH_IRQ_PRIORITY_GROUPING < 0)
-   #error S32K148_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
+#ifndef S32K1_ETH_IRQ_PRIORITY_GROUPING
+   #define S32K1_ETH_IRQ_PRIORITY_GROUPING 3
+#elif (S32K1_ETH_IRQ_PRIORITY_GROUPING < 0)
+   #error S32K1_ETH_IRQ_PRIORITY_GROUPING parameter is not valid
 #endif
 
 //Ethernet interrupt group priority
-#ifndef S32K148_ETH_IRQ_GROUP_PRIORITY
-   #define S32K148_ETH_IRQ_GROUP_PRIORITY 12
-#elif (S32K148_ETH_IRQ_GROUP_PRIORITY < 0)
-   #error S32K148_ETH_IRQ_GROUP_PRIORITY parameter is not valid
+#ifndef S32K1_ETH_IRQ_GROUP_PRIORITY
+   #define S32K1_ETH_IRQ_GROUP_PRIORITY 12
+#elif (S32K1_ETH_IRQ_GROUP_PRIORITY < 0)
+   #error S32K1_ETH_IRQ_GROUP_PRIORITY parameter is not valid
 #endif
 
 //Ethernet interrupt subpriority
-#ifndef S32K148_ETH_IRQ_SUB_PRIORITY
-   #define S32K148_ETH_IRQ_SUB_PRIORITY 0
-#elif (S32K148_ETH_IRQ_SUB_PRIORITY < 0)
-   #error S32K148_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#ifndef S32K1_ETH_IRQ_SUB_PRIORITY
+   #define S32K1_ETH_IRQ_SUB_PRIORITY 0
+#elif (S32K1_ETH_IRQ_SUB_PRIORITY < 0)
+   #error S32K1_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
 
 //Enhanced transmit buffer descriptor
@@ -141,35 +141,35 @@
 extern "C" {
 #endif
 
-//S32K148 Ethernet MAC driver
-extern const NicDriver s32k148EthDriver;
+//S32K1 Ethernet MAC driver
+extern const NicDriver s32k1EthDriver;
 
-//S32K148 Ethernet MAC related functions
-error_t s32k148EthInit(NetInterface *interface);
-void s32k148EthInitGpio(NetInterface *interface);
-void s32k148EthInitBufferDesc(NetInterface *interface);
+//S32K1 Ethernet MAC related functions
+error_t s32k1EthInit(NetInterface *interface);
+void s32k1EthInitGpio(NetInterface *interface);
+void s32k1EthInitBufferDesc(NetInterface *interface);
 
-void s32k148EthTick(NetInterface *interface);
+void s32k1EthTick(NetInterface *interface);
 
-void s32k148EthEnableIrq(NetInterface *interface);
-void s32k148EthDisableIrq(NetInterface *interface);
-void s32k148EthEventHandler(NetInterface *interface);
+void s32k1EthEnableIrq(NetInterface *interface);
+void s32k1EthDisableIrq(NetInterface *interface);
+void s32k1EthEventHandler(NetInterface *interface);
 
-error_t s32k148EthSendPacket(NetInterface *interface,
+error_t s32k1EthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-error_t s32k148EthReceivePacket(NetInterface *interface);
+error_t s32k1EthReceivePacket(NetInterface *interface);
 
-error_t s32k148EthUpdateMacAddrFilter(NetInterface *interface);
-error_t s32k148EthUpdateMacConfig(NetInterface *interface);
+error_t s32k1EthUpdateMacAddrFilter(NetInterface *interface);
+error_t s32k1EthUpdateMacConfig(NetInterface *interface);
 
-void s32k148EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void s32k1EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data);
 
-uint16_t s32k148EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t s32k1EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr);
 
-uint32_t s32k148EthCalcCrc(const void *data, size_t length);
+uint32_t s32k1EthCalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus

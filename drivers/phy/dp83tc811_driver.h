@@ -1,6 +1,6 @@
 /**
  * @file dp83tc811_driver.h
- * @brief DP83TC811 Ethernet PHY driver
+ * @brief DP83TC811 100Base-T1 Ethernet PHY driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _DP83TC811_DRIVER_H

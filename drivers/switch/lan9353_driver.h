@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _LAN9353_DRIVER_H
@@ -487,8 +487,8 @@
 #define LAN9353_PHYID1_PHY_ID_MSB_DEFAULT                     0x0007
 
 //PHY Identification LSB register
-#define LAN9353_PHYID2_PHY_ID_LSB                             0xFFFF
-#define LAN9353_PHYID2_PHY_ID_LSB_DEFAULT                     0x0030
+#define LAN9353_PHYID2_PHY_ID_LSB                             0xFC00
+#define LAN9353_PHYID2_PHY_ID_LSB_DEFAULT                     0xC000
 #define LAN9353_PHYID2_MODEL_NUM                              0x03F0
 #define LAN9353_PHYID2_MODEL_NUM_DEFAULT                      0x0140
 #define LAN9353_PHYID2_REVISION_NUM                           0x000F

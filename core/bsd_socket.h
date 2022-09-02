@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -262,7 +262,7 @@ typedef struct sockaddr
 {
    uint16_t sa_family;
    uint8_t sa_data[14];
-} sockaddr;
+} SOCKADDR, *PSOCKADDR;
 
 
 /**
@@ -272,7 +272,7 @@ typedef struct sockaddr
 typedef struct in_addr
 {
    in_addr_t s_addr;
-} in_addr;
+} IN_ADDR, *PIN_ADDR;
 
 
 /**
@@ -283,9 +283,9 @@ typedef struct sockaddr_in
 {
    uint16_t sin_family;
    uint16_t sin_port;
-   in_addr sin_addr;
+   struct in_addr sin_addr;
    uint8_t sin_zero[8];
-} sockaddr_in;
+} SOCKADDR_IN, *PSOCKADDR_IN;
 
 
 /**
@@ -295,7 +295,7 @@ typedef struct sockaddr_in
 typedef struct in6_addr
 {
    uint8_t s6_addr[16];
-} in6_addr;
+} IN6_ADDR, *PIN6_ADDR;
 
 
 /**
@@ -306,8 +306,8 @@ typedef struct sockaddr_in6
 {
    uint16_t sin6_family;
    uint16_t sin6_port;
-   in6_addr sin6_addr;
-} sockaddr_in6;
+   struct in6_addr sin6_addr;
+} SOCKADDR_IN6, *PSOCKADDR_IN6;
 
 
 /**
@@ -318,18 +318,7 @@ typedef struct fd_set
 {
    int_t fd_count;
    int_t fd_array[FD_SETSIZE];
-} fd_set;
-
-
-/**
- * @brief Timeout structure
- **/
-
-typedef struct timeval
-{
-   int32_t tv_sec;
-   int32_t tv_usec;
-} timeval;
+} fd_set, FD_SET, *PFD_SET;
 
 
 /**
@@ -341,7 +330,7 @@ typedef struct hostent
    uint16_t h_addrtype;
    uint16_t h_length;
    uint8_t h_addr[16];
-} hostent;
+} HOSTENT, *PHOSTENT;
 
 
 /**
@@ -355,10 +344,25 @@ typedef struct addrinfo
    int_t ai_socktype;
    int_t ai_protocol;
    socklen_t ai_addrlen;
-   sockaddr *ai_addr;
+   struct sockaddr *ai_addr;
    char_t *ai_canonname;
    struct addrinfo *ai_next;
-} addrinfo;
+} ADDRINFO, *PADDRINFO;
+
+
+#ifndef _TIMEVAL_DEFINED
+
+/**
+ * @brief Timeout structure
+ **/
+
+typedef struct timeval
+{
+   int32_t tv_sec;
+   int32_t tv_usec;
+} TIMEVAL, *PTIMEVAL;
+
+#endif
 
 
 //Forward declaration of functions
@@ -374,33 +378,33 @@ int_t socketFdIsSet(fd_set *fds, int_t s);
 #define FD_ISSET(s, fds) socketFdIsSet(fds, s)
 
 //BSD socket related constants
-extern const in6_addr in6addr_any;
-extern const in6_addr in6addr_loopback;
+extern const struct in6_addr in6addr_any;
+extern const struct in6_addr in6addr_loopback;
 
 //BSD socket related functions
 int_t socket(int_t family, int_t type, int_t protocol);
-int_t bind(int_t s, const sockaddr *addr, socklen_t addrlen);
-int_t connect(int_t s, const sockaddr *addr, socklen_t addrlen);
+int_t bind(int_t s, const struct sockaddr *addr, socklen_t addrlen);
+int_t connect(int_t s, const struct sockaddr *addr, socklen_t addrlen);
 int_t listen(int_t s, int_t backlog);
-int_t accept(int_t s, sockaddr *addr, socklen_t *addrlen);
+int_t accept(int_t s, struct sockaddr *addr, socklen_t *addrlen);
 int_t send(int_t s, const void *data, size_t length, int_t flags);
 
-int_t sendto(int_t s, const void *data, size_t length,
-   int_t flags, const sockaddr *addr, socklen_t addrlen);
+int_t sendto(int_t s, const void *data, size_t length, int_t flags,
+   const struct sockaddr *addr, socklen_t addrlen);
 
 int_t recv(int_t s, void *data, size_t size, int_t flags);
 
-int_t recvfrom(int_t s, void *data, size_t size,
-   int_t flags, sockaddr *addr, socklen_t *addrlen);
+int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
+   struct sockaddr *addr, socklen_t *addrlen);
 
-int_t getsockname(int_t s, sockaddr *addr, socklen_t *addrlen);
-int_t getpeername(int_t s, sockaddr *addr, socklen_t *addrlen);
+int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen);
+int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen);
 
-int_t setsockopt(int_t s, int_t level, int_t optname,
-   const void *optval, socklen_t optlen);
+int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
+   socklen_t optlen);
 
-int_t getsockopt(int_t s, int_t level, int_t optname,
-   void *optval, socklen_t *optlen);
+int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
+   socklen_t *optlen);
 
 int_t ioctlsocket(int_t s, uint32_t cmd, void *arg);
 int_t fcntl(int_t s, int_t cmd, void *arg);
@@ -409,27 +413,27 @@ int_t shutdown(int_t s, int_t how);
 int_t closesocket(int_t s);
 
 int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
-   fd_set *exceptfds, const timeval *timeout);
+   fd_set *exceptfds, const struct timeval *timeout);
 
 int_t gethostname(char_t *name, size_t len);
-hostent *gethostbyname(const char_t *name);
+struct hostent *gethostbyname(const char_t *name);
 
-hostent *gethostbyname_r(const char_t *name, hostent *result, char_t *buf,
-   size_t buflen, int_t *h_errnop);
+struct hostent *gethostbyname_r(const char_t *name, struct hostent *result,
+   char_t *buf, size_t buflen, int_t *h_errnop);
 
 int_t getaddrinfo(const char_t *node, const char_t *service,
-   const addrinfo *hints, addrinfo **res);
+   const struct addrinfo *hints, struct addrinfo **res);
 
-void freeaddrinfo(addrinfo *res);
+void freeaddrinfo(struct addrinfo *res);
 
-int_t getnameinfo(const sockaddr *addr, socklen_t addrlen, char_t *host,
-   size_t hostlen, char_t *serv, size_t servlen, int flags);
+int_t getnameinfo(const struct sockaddr *addr, socklen_t addrlen,
+   char_t *host, size_t hostlen, char_t *serv, size_t servlen, int flags);
 
 in_addr_t inet_addr(const char_t *cp);
 
-int_t inet_aton(const char_t *cp, in_addr *inp);
-const char_t *inet_ntoa(in_addr in);
-const char_t *inet_ntoa_r(in_addr in, char_t *buf, socklen_t buflen);
+int_t inet_aton(const char_t *cp, struct in_addr *inp);
+const char_t *inet_ntoa(struct in_addr in);
+const char_t *inet_ntoa_r(struct in_addr in, char_t *buf, socklen_t buflen);
 
 int_t inet_pton(int_t af, const char_t *src, void *dst);
 const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -215,8 +215,17 @@ void icmpProcessEchoRequest(NetInterface *interface,
    requestOffset += sizeof(IcmpEchoMessage);
    requestLength -= sizeof(IcmpEchoMessage);
 
-   //Copy data
-   error = netBufferConcat(reply, request, requestOffset, requestLength);
+   //Check the length of the payload
+   if(requestLength > 0)
+   {
+      //Copy payload data
+      error = netBufferConcat(reply, request, requestOffset, requestLength);
+   }
+   else
+   {
+      //The Echo Request message is empty
+      error = NO_ERROR;
+   }
 
    //Check status code
    if(!error)

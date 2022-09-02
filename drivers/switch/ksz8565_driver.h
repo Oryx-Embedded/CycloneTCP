@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _KSZ8565_DRIVER_H
@@ -1082,6 +1082,13 @@
 #define KSZ8565_SWITCH_MTU_MTU                                       0x3FFF
 #define KSZ8565_SWITCH_MTU_MTU_DEFAULT                               0x07D0
 
+//Switch ISP TPID register
+#define KSZ8565_SWITCH_ISP_TPID_ISP_TAG_TPID                         0xFFFF
+
+//AVB Credit Based Shaper Strategy register
+#define KSZ8565_AVB_CBS_STRATEGY_SHAPING_CREDIT_ACCOUNTING           0x0002
+#define KSZ8565_AVB_CBS_STRATEGY_POLICING_CREDIT_ACCOUNTING          0x0001
+
 //Switch Lookup Engine Control 0 register
 #define KSZ8565_SWITCH_LUE_CTRL0_VLAN_EN                             0x80
 #define KSZ8565_SWITCH_LUE_CTRL0_DROP_INVALID_VID                    0x40
@@ -1209,6 +1216,23 @@
 #define KSZ8565_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_OPT          0x08
 #define KSZ8565_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_EN           0x04
 #define KSZ8565_GLOBAL_PORT_MIRROR_SNOOP_CTRL_SNIFF_MODE_SEL         0x01
+
+//WRED DiffServ Color Mapping register
+#define KSZ8565_WRED_DIFFSERV_COLOR_MAPPING_RED                      0x30
+#define KSZ8565_WRED_DIFFSERV_COLOR_MAPPING_YELLOW                   0x0C
+#define KSZ8565_WRED_DIFFSERV_COLOR_MAPPING_GREEN                    0x03
+
+//PTP Event Message Priority register
+#define KSZ8565_PTP_EVENT_MSG_PRIO_OVERRIDE                          0x80
+#define KSZ8565_PTP_EVENT_MSG_PRIO_PRIORITY                          0x0F
+
+//PTP Non-Event Message Priority register
+#define KSZ8565_PTP_NON_EVENT_MSG_PRIO_OVERRIDE                      0x80
+#define KSZ8565_PTP_NON_EVENT_MSG_PRIO_PRIORITY                      0x0F
+
+//Queue Management Control 0 register
+#define KSZ8565_QUEUE_MGMT_CTRL0_PRIORITY_2Q                         0x000000C0
+#define KSZ8565_QUEUE_MGMT_CTRL0_UNICAST_PORT_VLAN_DISCARD           0x00000002
 
 //VLAN Table Entry 0 register
 #define KSZ8565_VLAN_TABLE_ENTRY0_VALID                              0x80000000
@@ -1578,6 +1602,23 @@
 #define KSZ8565_PORT5_XMII_CTRL1_IF_TYPE_RMII                        0x01
 #define KSZ8565_PORT5_XMII_CTRL1_IF_TYPE_MII                         0x03
 
+//Port N MAC Control 0 register
+#define KSZ8565_PORTn_MAC_CTRL0_BCAST_STORM_PROTECT_EN               0x02
+
+//Port N MAC Control 1 register
+#define KSZ8565_PORTn_MAC_CTRL1_BACK_PRESSURE_EN                     0x08
+#define KSZ8565_PORTn_MAC_CTRL1_PASS_ALL_FRAMES                      0x01
+
+//Port N MIB Control and Status register
+#define KSZ8565_PORTn_MIB_CTRL_STAT_MIB_COUNTER_OVERFLOW             0x80000000
+#define KSZ8565_PORTn_MIB_CTRL_STAT_MIB_READ                         0x02000000
+#define KSZ8565_PORTn_MIB_CTRL_STAT_MIB_FLUSH_FREEZE                 0x01000000
+#define KSZ8565_PORTn_MIB_CTRL_STAT_MIB_INDEX                        0x00FF0000
+#define KSZ8565_PORTn_MIB_CTRL_STAT_MIB_COUNTER_VALUE_35_32          0x0000000F
+
+//Port N MIB Data register
+#define KSZ8565_PORTn_MIB_DATA_MIB_COUNTER_VALUE_31_0                0xFFFFFFFF
+
 //Port N ACL Access Control 0 register
 #define KSZ8565_PORTn_ACL_ACCESS_CTRL0_WRITE_STATUS                  0x40
 #define KSZ8565_PORTn_ACL_ACCESS_CTRL0_READ_STATUS                   0x20
@@ -1601,6 +1642,21 @@
 #define KSZ8565_PORTn_PTR_PORT_INDEX                                 0x00070000
 #define KSZ8565_PORTn_PTR_QUEUE_PTR                                  0x00000003
 
+//Port N Control 1 register
+#define KSZ8565_PORTn_CTRL1_PORT_VLAN_MEMBERSHIP                     0x0000007F
+#define KSZ8565_PORTn_CTRL1_PORT5_VLAN_MEMBERSHIP                    0x00000040
+#define KSZ8565_PORTn_CTRL1_PORT4_VLAN_MEMBERSHIP                    0x00000008
+#define KSZ8565_PORTn_CTRL1_PORT3_VLAN_MEMBERSHIP                    0x00000004
+#define KSZ8565_PORTn_CTRL1_PORT2_VLAN_MEMBERSHIP                    0x00000002
+#define KSZ8565_PORTn_CTRL1_PORT1_VLAN_MEMBERSHIP                    0x00000001
+
+//Port N Control 2 register
+#define KSZ8565_PORTn_CTRL2_NULL_VID_LOOKUP_EN                       0x80
+#define KSZ8565_PORTn_CTRL2_INGRESS_VLAN_FILT                        0x40
+#define KSZ8565_PORTn_CTRL2_DISCARD_NON_PVID_PKT                     0x20
+#define KSZ8565_PORTn_CTRL2_802_1X_EN                                0x10
+#define KSZ8565_PORTn_CTRL2_SELF_ADDR_FILT                           0x08
+
 //Port N MSTP Pointer register
 #define KSZ8565_PORTn_MSTP_PTR_MSTP_PTR                              0x07
 
@@ -1608,6 +1664,20 @@
 #define KSZ8565_PORTn_MSTP_STATE_TRANSMIT_EN                         0x04
 #define KSZ8565_PORTn_MSTP_STATE_RECEIVE_EN                          0x02
 #define KSZ8565_PORTn_MSTP_STATE_LEARNING_DIS                        0x01
+
+//Port N PTP Asymmetry Correction register
+#define KSZ8565_PORTn_PTP_ASYM_CORRECTION_PTP_ASYM_COR_SIGN          0x8000
+#define KSZ8565_PORTn_PTP_ASYM_CORRECTION_PTP_ASYM_COR               0x7FFF
+
+//Port N PTP Timestamp Interrupt Status register
+#define KSZ8565_PORTn_PTP_TS_INT_STAT_TS_SYNC_INT_STATUS             0x8000
+#define KSZ8565_PORTn_PTP_TS_INT_STAT_TS_PDLY_REQ_INT_STATUS         0x4000
+#define KSZ8565_PORTn_PTP_TS_INT_STAT_TS_PDLY_RESP_INT_STATUS        0x2000
+
+//Port N PTP Timestamp Interrupt Enable register
+#define KSZ8565_PORTn_PTP_TS_INT_EN_TS_SYNC_INT_ENB                  0x8000
+#define KSZ8565_PORTn_PTP_TS_INT_EN_TS_PDLY_REQ_INT_ENB              0x4000
+#define KSZ8565_PORTn_PTP_TS_INT_EN_TS_PDLY_RESP_INT_ENB             0x2000
 
 //C++ guard
 #ifdef __cplusplus

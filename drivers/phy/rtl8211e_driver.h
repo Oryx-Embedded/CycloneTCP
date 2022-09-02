@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _RTL8211E_DRIVER_H
@@ -259,6 +259,12 @@ void rtl8211eWritePhyReg(NetInterface *interface, uint8_t address,
 uint16_t rtl8211eReadPhyReg(NetInterface *interface, uint8_t address);
 
 void rtl8211eDumpPhyReg(NetInterface *interface);
+
+void rtl8211eWriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data);
+
+uint16_t rtl8211eReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

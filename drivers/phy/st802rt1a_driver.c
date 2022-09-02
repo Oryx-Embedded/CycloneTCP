@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -179,21 +179,25 @@ void st802rt1aEventHandler(NetInterface *interface)
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
+
       //10BASE-T full-duplex
       case ST802RT1A_XCCNT_CMODE_10BT_FD:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
+
       //100BASE-TX half-duplex
       case ST802RT1A_XCCNT_CMODE_100BTX_HD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
+
       //100BASE-TX full-duplex
       case ST802RT1A_XCCNT_CMODE_100BTX_FD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
+
       //Unknown operation mode
       default:
          //Debug message

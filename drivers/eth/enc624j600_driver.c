@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -476,8 +476,7 @@ error_t enc624j600ReceivePacket(NetInterface *interface)
       {
          //Limit the number of data to read
          length = MIN(length, ENC624J600_ETH_RX_BUFFER_SIZE);
-
-         //Read the Ethernet frame
+         //Read packet data
          enc624j600ReadBuffer(interface, ENC624J600_CMD_RRXDATA, temp, length);
 
          //Valid packet received
@@ -650,15 +649,15 @@ error_t enc624j600SoftReset(NetInterface *interface)
    //Wait at least 25us for the reset to take place
    sleep(1);
 
-   //Read EUDAST to confirm that the system reset took place.
-   //EUDAST should have reverted back to its reset default
+   //Read EUDAST to confirm that the system reset took place. EUDAST should
+   //have reverted back to its reset default
    if(enc624j600ReadReg(interface, ENC624J600_EUDAST) != 0x0000)
    {
       return ERROR_FAILURE;
    }
 
-   //Wait at least 256us for the PHY registers and PHY
-   //status bits to become available
+   //Wait at least 256us for the PHY registers and PHY status bits to become
+   //available
    sleep(1);
 
    //The controller is now ready to accept further commands
@@ -847,7 +846,7 @@ void enc624j600WriteBuffer(NetInterface *interface,
  * @brief Read SRAM buffer
  * @param[in] interface Underlying network interface
  * @param[in] opcode SRAM buffer operation
- * @param[in] data Buffer where to store the incoming data
+ * @param[out] data Buffer where to store the incoming data
  * @param[in] length Number of data to read
  **/
 

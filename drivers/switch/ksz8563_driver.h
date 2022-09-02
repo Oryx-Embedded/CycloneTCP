@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _KSZ8563_DRIVER_H
@@ -1398,6 +1398,7 @@
 #define KSZ8563_PORTn_PTR_QUEUE_PTR                                  0x00000003
 
 //Port N Control 1 register
+#define KSZ8563_PORTn_CTRL1_PORT_VLAN_MEMBERSHIP                     0x00000007
 #define KSZ8563_PORTn_CTRL1_PORT3_VLAN_MEMBERSHIP                    0x00000004
 #define KSZ8563_PORTn_CTRL1_PORT2_VLAN_MEMBERSHIP                    0x00000002
 #define KSZ8563_PORTn_CTRL1_PORT1_VLAN_MEMBERSHIP                    0x00000001
@@ -1423,12 +1424,12 @@
 
 //Port N PTP Timestamp Interrupt Status register
 #define KSZ8563_PORTn_PTP_TS_INT_STAT_TS_SYNC_INT_STATUS             0x8000
-#define KSZ8563_PORTn_PTP_TS_INT_STAT_TS_XDLY_REQ_INT_STATUS         0x4000
+#define KSZ8563_PORTn_PTP_TS_INT_STAT_TS_PDLY_REQ_INT_STATUS         0x4000
 #define KSZ8563_PORTn_PTP_TS_INT_STAT_TS_PDLY_RESP_INT_STATUS        0x2000
 
 //Port N PTP Timestamp Interrupt Enable register
 #define KSZ8563_PORTn_PTP_TS_INT_EN_TS_SYNC_INT_ENB                  0x8000
-#define KSZ8563_PORTn_PTP_TS_INT_EN_TS_XDLY_REQ_INT_ENB              0x4000
+#define KSZ8563_PORTn_PTP_TS_INT_EN_TS_PDLY_REQ_INT_ENB              0x4000
 #define KSZ8563_PORTn_PTP_TS_INT_EN_TS_PDLY_RESP_INT_ENB             0x2000
 
 //C++ guard

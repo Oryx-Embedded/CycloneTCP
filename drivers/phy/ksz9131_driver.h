@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _KSZ9131_DRIVER_H
@@ -69,6 +69,105 @@
 #define KSZ9131_SPDC                              0x1D
 #define KSZ9131_EXT_LOOPBACK                      0x1E
 #define KSZ9131_PHYCON                            0x1F
+
+//KSZ9131 MMD registers
+#define KSZ9131_MEAN_SLICER_ERROR                 0x01, 0xE1
+#define KSZ9131_DCQ_MEAN_SQUARE_ERROR             0x01, 0xE2
+#define KSZ9131_DCQ_MEAN_SQUARE_ERROR_WORST_CASE  0x01, 0xE3
+#define KSZ9131_DCQ_SQI                           0x01, 0xE4
+#define KSZ9131_DCQ_PEAK_MSE                      0x01, 0xE5
+#define KSZ9131_DCQ_CONTROL                       0x01, 0xE6
+#define KSZ9131_DCQ_CONFIG                        0x01, 0xE7
+#define KSZ9131_DCQ_SQI_TABLE                     0x01, 0xE8
+#define KSZ9131_COMMON_CTRL                       0x02, 0x00
+#define KSZ9131_STRAP_STAT                        0x02, 0x01
+#define KSZ9131_OP_MODE_STRAP_OVERRIDE            0x02, 0x02
+#define KSZ9131_OP_MODE_STRAP                     0x02, 0x03
+#define KSZ9131_CLOCK_INV_CTRL_SIGNAL_PAD_SKEW    0x02, 0x04
+#define KSZ9131_RGMII_RX_DATA_PAD_SKEW            0x02, 0x05
+#define KSZ9131_RGMII_TX_DATA_PAD_SKEW            0x02, 0x06
+#define KSZ9131_CLK_PAD_SKEW                      0x02, 0x08
+#define KSZ9131_SELF_TEST_PKT_COUNT_LO            0x02, 0x09
+#define KSZ9131_SELF_TEST_PKT_COUNT_HI            0x02, 0x0A
+#define KSZ9131_SELF_TEST_STAT                    0x02, 0x0B
+#define KSZ9131_SELF_TEST_FRAME_COUNT_EN          0x02, 0x0C
+#define KSZ9131_SELF_TEST_PGEN_EN                 0x02, 0x0D
+#define KSZ9131_SELF_TEST_EN                      0x02, 0x0E
+#define KSZ9131_WOL_CTRL                          0x02, 0x10
+#define KSZ9131_WOL_MAC_LO                        0x02, 0x11
+#define KSZ9131_WOL_MAC_MI                        0x02, 0x12
+#define KSZ9131_WOL_MAC_HI                        0x02, 0x13
+#define KSZ9131_CUSTOM_PKT0_CRC_LO                0x02, 0x14
+#define KSZ9131_CUSTOM_PKT0_CRC_HI                0x02, 0x15
+#define KSZ9131_CUSTOM_PKT1_CRC_LO                0x02, 0x16
+#define KSZ9131_CUSTOM_PKT1_CRC_HI                0x02, 0x17
+#define KSZ9131_CUSTOM_PKT2_CRC_LO                0x02, 0x18
+#define KSZ9131_CUSTOM_PKT2_CRC_HI                0x02, 0x19
+#define KSZ9131_CUSTOM_PKT3_CRC_LO                0x02, 0x1A
+#define KSZ9131_CUSTOM_PKT3_CRC_HI                0x02, 0x1B
+#define KSZ9131_CUSTOM_PKT0_MASK_LL               0x02, 0x1C
+#define KSZ9131_CUSTOM_PKT0_MASK_LH               0x02, 0x1D
+#define KSZ9131_CUSTOM_PKT0_MASK_HL               0x02, 0x1E
+#define KSZ9131_CUSTOM_PKT0_MASK_HH               0x02, 0x1F
+#define KSZ9131_CUSTOM_PKT1_MASK_LL               0x02, 0x20
+#define KSZ9131_CUSTOM_PKT1_MASK_LH               0x02, 0x21
+#define KSZ9131_CUSTOM_PKT1_MASK_HL               0x02, 0x22
+#define KSZ9131_CUSTOM_PKT1_MASK_HH               0x02, 0x23
+#define KSZ9131_CUSTOM_PKT2_MASK_LL               0x02, 0x24
+#define KSZ9131_CUSTOM_PKT2_MASK_LH               0x02, 0x25
+#define KSZ9131_CUSTOM_PKT2_MASK_HL               0x02, 0x26
+#define KSZ9131_CUSTOM_PKT2_MASK_HH               0x02, 0x27
+#define KSZ9131_CUSTOM_PKT3_MASK_LL               0x02, 0x28
+#define KSZ9131_CUSTOM_PKT3_MASK_LH               0x02, 0x29
+#define KSZ9131_CUSTOM_PKT3_MASK_HL               0x02, 0x2A
+#define KSZ9131_CUSTOM_PKT3_MASK_HH               0x02, 0x2B
+#define KSZ9131_WOL_CTRL_STAT                     0x02, 0x2C
+#define KSZ9131_WOL_CUSTOM_PKT_RECEIVE_STAT       0x02, 0x2D
+#define KSZ9131_WOL_MAGIC_PKT_RECEIVE_STAT        0x02, 0x2E
+#define KSZ9131_WOL_DATA_MODULE_STAT              0x02, 0x2F
+#define KSZ9131_CUSTOM_PKT0_RCVD_CRC_L            0x02, 0x30
+#define KSZ9131_CUSTOM_PKT0_RCVD_CRC_H            0x02, 0x31
+#define KSZ9131_CUSTOM_PKT1_RCVD_CRC_L            0x02, 0x32
+#define KSZ9131_CUSTOM_PKT1_RCVD_CRC_H            0x02, 0x33
+#define KSZ9131_CUSTOM_PKT2_RCVD_CRC_L            0x02, 0x34
+#define KSZ9131_CUSTOM_PKT2_RCVD_CRC_H            0x02, 0x35
+#define KSZ9131_CUSTOM_PKT3_RCVD_CRC_L            0x02, 0x36
+#define KSZ9131_CUSTOM_PKT3_RCVD_CRC_H            0x02, 0x37
+#define KSZ9131_SELF_TEST_CORRECT_COUNT_LO        0x02, 0x3C
+#define KSZ9131_SELF_TEST_CORRECT_COUNT_HI        0x02, 0x3D
+#define KSZ9131_SELF_TEST_ERROR_COUNT_LO          0x02, 0x3E
+#define KSZ9131_SELF_TEST_ERROR_COUNT_HI          0x02, 0x3F
+#define KSZ9131_SELF_TEST_BAD_SFD_COUNT_LO        0x02, 0x40
+#define KSZ9131_SELF_TEST_BAD_SFD_COUNT_HI        0x02, 0x41
+#define KSZ9131_RX_DLL_CTRL                       0x02, 0x4C
+#define KSZ9131_TX_DLL_CTRL                       0x02, 0x4D
+#define KSZ9131_PCS_CTRL1                         0x03, 0x00
+#define KSZ9131_PCS_STAT1                         0x03, 0x01
+#define KSZ9131_EEE_QUIET_TIMER                   0x03, 0x08
+#define KSZ9131_EEE_UPDATE_TIMER                  0x03, 0x09
+#define KSZ9131_EEE_LINK_FAIL_TIMER               0x03, 0x0A
+#define KSZ9131_EEE_POST_UPDATE_TIMER             0x03, 0x0B
+#define KSZ9131_EEE_WAIT_WQ_TIMER                 0x03, 0x0C
+#define KSZ9131_EEE_WAKE_TIMER                    0x03, 0x0D
+#define KSZ9131_EEE_WAKE_TX_TIMER                 0x03, 0x0E
+#define KSZ9131_EEE_WAKE_MZ_TIMER                 0x03, 0x0F
+#define KSZ9131_EEE_CTRL_CAPABILITY               0x03, 0x14
+#define KSZ9131_EEE_WAKE_ERROR_COUNTER            0x03, 0x16
+#define KSZ9131_EEE_100_TIMER0                    0x03, 0x18
+#define KSZ9131_EEE_100_TIMER1                    0x03, 0x19
+#define KSZ9131_EEE_100_TIMER2                    0x03, 0x1A
+#define KSZ9131_EEE_100_TIMER3                    0x03, 0x1B
+#define KSZ9131_EEE_ADV                           0x07, 0x3C
+#define KSZ9131_EEE_LP_ABILITY                    0x07, 0x3D
+#define KSZ9131_EEE_LP_ABILITY_OVERRIDE           0x07, 0x3E
+#define KSZ9131_EEE_MSG_CODE                      0x07, 0x3F
+#define KSZ9131_XTAL_CTRL                         0x1C, 0x01
+#define KSZ9131_AFED_CTRL                         0x1C, 0x09
+#define KSZ9131_LDO_CTRL                          0x1C, 0x0E
+#define KSZ9131_EDPD_CTRL                         0x1C, 0x24
+#define KSZ9131_EMITX_CTRL                        0x1C, 0x25
+#define KSZ9131_EMITX_COEFF                       0x1C, 0x26
+#define KSZ9131_MMD31_REG19                       0x1F, 0x13
 
 //Basic Control register
 #define KSZ9131_BMCR_RESET                        0x8000
@@ -306,6 +405,12 @@ void ksz9131WritePhyReg(NetInterface *interface, uint8_t address,
 uint16_t ksz9131ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ksz9131DumpPhyReg(NetInterface *interface);
+
+void ksz9131WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data);
+
+uint16_t ksz9131ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

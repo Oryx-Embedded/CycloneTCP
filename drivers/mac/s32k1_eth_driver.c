@@ -1,6 +1,6 @@
 /**
- * @file s32k148_eth_driver.c
- * @brief NXP S32K148 Ethernet MAC driver
+ * @file s32k1_eth_driver.c
+ * @brief NXP S32K1 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,16 +25,16 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
 //Dependencies
-#include "s32k148.h"
+#include "fsl_device_registers.h"
 #include "core/net.h"
-#include "drivers/mac/s32k148_eth_driver.h"
+#include "drivers/mac/s32k1_eth_driver.h"
 #include "debug.h"
 
 //Underlying network interface
@@ -45,31 +45,31 @@ static NetInterface *nicDriverInterface;
 
 //TX buffer
 #pragma data_alignment = 16
-static uint8_t txBuffer[S32K148_ETH_TX_BUFFER_COUNT][S32K148_ETH_TX_BUFFER_SIZE];
+static uint8_t txBuffer[S32K1_ETH_TX_BUFFER_COUNT][S32K1_ETH_TX_BUFFER_SIZE];
 //RX buffer
 #pragma data_alignment = 16
-static uint8_t rxBuffer[S32K148_ETH_RX_BUFFER_COUNT][S32K148_ETH_RX_BUFFER_SIZE];
+static uint8_t rxBuffer[S32K1_ETH_RX_BUFFER_COUNT][S32K1_ETH_RX_BUFFER_SIZE];
 //TX buffer descriptors
 #pragma data_alignment = 16
-static uint32_t txBufferDesc[S32K148_ETH_TX_BUFFER_COUNT][8];
+static uint32_t txBufferDesc[S32K1_ETH_TX_BUFFER_COUNT][8];
 //RX buffer descriptors
 #pragma data_alignment = 16
-static uint32_t rxBufferDesc[S32K148_ETH_RX_BUFFER_COUNT][8];
+static uint32_t rxBufferDesc[S32K1_ETH_RX_BUFFER_COUNT][8];
 
 //ARM or GCC compiler?
 #else
 
 //TX buffer
-static uint8_t txBuffer[S32K148_ETH_TX_BUFFER_COUNT][S32K148_ETH_TX_BUFFER_SIZE]
+static uint8_t txBuffer[S32K1_ETH_TX_BUFFER_COUNT][S32K1_ETH_TX_BUFFER_SIZE]
    __attribute__((aligned(16)));
 //RX buffer
-static uint8_t rxBuffer[S32K148_ETH_RX_BUFFER_COUNT][S32K148_ETH_RX_BUFFER_SIZE]
+static uint8_t rxBuffer[S32K1_ETH_RX_BUFFER_COUNT][S32K1_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(16)));
 //TX buffer descriptors
-static uint32_t txBufferDesc[S32K148_ETH_TX_BUFFER_COUNT][8]
+static uint32_t txBufferDesc[S32K1_ETH_TX_BUFFER_COUNT][8]
    __attribute__((aligned(16)));
 //RX buffer descriptors
-static uint32_t rxBufferDesc[S32K148_ETH_RX_BUFFER_COUNT][8]
+static uint32_t rxBufferDesc[S32K1_ETH_RX_BUFFER_COUNT][8]
    __attribute__((aligned(16)));
 
 #endif
@@ -81,23 +81,23 @@ static uint_t rxBufferIndex;
 
 
 /**
- * @brief S32K148 Ethernet MAC driver
+ * @brief S32K1 Ethernet MAC driver
  **/
 
-const NicDriver s32k148EthDriver =
+const NicDriver s32k1EthDriver =
 {
    NIC_TYPE_ETHERNET,
    ETH_MTU,
-   s32k148EthInit,
-   s32k148EthTick,
-   s32k148EthEnableIrq,
-   s32k148EthDisableIrq,
-   s32k148EthEventHandler,
-   s32k148EthSendPacket,
-   s32k148EthUpdateMacAddrFilter,
-   s32k148EthUpdateMacConfig,
-   s32k148EthWritePhyReg,
-   s32k148EthReadPhyReg,
+   s32k1EthInit,
+   s32k1EthTick,
+   s32k1EthEnableIrq,
+   s32k1EthDisableIrq,
+   s32k1EthEventHandler,
+   s32k1EthSendPacket,
+   s32k1EthUpdateMacAddrFilter,
+   s32k1EthUpdateMacConfig,
+   s32k1EthWritePhyReg,
+   s32k1EthReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -106,18 +106,18 @@ const NicDriver s32k148EthDriver =
 
 
 /**
- * @brief S32K148 Ethernet MAC initialization
+ * @brief S32K1 Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t s32k148EthInit(NetInterface *interface)
+error_t s32k1EthInit(NetInterface *interface)
 {
    error_t error;
    uint32_t value;
 
    //Debug message
-   TRACE_INFO("Initializing S32K148 Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing S32K1 Ethernet MAC...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -133,7 +133,7 @@ error_t s32k148EthInit(NetInterface *interface)
    PCC->PCCn[PCC_ENET_INDEX] |= PCC_PCCn_CGC_MASK;
 
    //GPIO configuration
-   s32k148EthInitGpio(interface);
+   s32k1EthInitGpio(interface);
 
    //Reset ENET module
    ENET->ECR = ENET_ECR_RESET_MASK;
@@ -143,7 +143,7 @@ error_t s32k148EthInit(NetInterface *interface)
    }
 
    //Receive control register
-   ENET->RCR = ENET_RCR_MAX_FL(S32K148_ETH_RX_BUFFER_SIZE) |
+   ENET->RCR = ENET_RCR_MAX_FL(S32K1_ETH_RX_BUFFER_SIZE) |
       ENET_RCR_RMII_MODE_MASK | ENET_RCR_MII_MODE_MASK;
 
    //Transmit control register
@@ -206,7 +206,7 @@ error_t s32k148EthInit(NetInterface *interface)
    ENET->MIBC = 0;
 
    //Initialize buffer descriptors
-   s32k148EthInitBufferDesc(interface);
+   s32k1EthInitBufferDesc(interface);
 
    //Clear any pending interrupts
    ENET->EIR = 0xFFFFFFFF;
@@ -214,19 +214,19 @@ error_t s32k148EthInit(NetInterface *interface)
    ENET->EIMR = ENET_EIMR_TXF_MASK | ENET_EIMR_RXF_MASK | ENET_EIMR_EBERR_MASK;
 
    //Set priority grouping (4 bits for pre-emption priority, no bits for subpriority)
-   NVIC_SetPriorityGrouping(S32K148_ETH_IRQ_PRIORITY_GROUPING);
+   NVIC_SetPriorityGrouping(S32K1_ETH_IRQ_PRIORITY_GROUPING);
 
    //Configure ENET transmit interrupt priority
-   NVIC_SetPriority(ENET_TX_IRQn, NVIC_EncodePriority(S32K148_ETH_IRQ_PRIORITY_GROUPING,
-      S32K148_ETH_IRQ_GROUP_PRIORITY, S32K148_ETH_IRQ_SUB_PRIORITY));
+   NVIC_SetPriority(ENET_TX_IRQn, NVIC_EncodePriority(S32K1_ETH_IRQ_PRIORITY_GROUPING,
+      S32K1_ETH_IRQ_GROUP_PRIORITY, S32K1_ETH_IRQ_SUB_PRIORITY));
 
    //Configure ENET receive interrupt priority
-   NVIC_SetPriority(ENET_RX_IRQn, NVIC_EncodePriority(S32K148_ETH_IRQ_PRIORITY_GROUPING,
-      S32K148_ETH_IRQ_GROUP_PRIORITY, S32K148_ETH_IRQ_SUB_PRIORITY));
+   NVIC_SetPriority(ENET_RX_IRQn, NVIC_EncodePriority(S32K1_ETH_IRQ_PRIORITY_GROUPING,
+      S32K1_ETH_IRQ_GROUP_PRIORITY, S32K1_ETH_IRQ_SUB_PRIORITY));
 
    //Configure ENET error interrupt priority
-   NVIC_SetPriority(ENET_ERR_IRQn, NVIC_EncodePriority(S32K148_ETH_IRQ_PRIORITY_GROUPING,
-      S32K148_ETH_IRQ_GROUP_PRIORITY, S32K148_ETH_IRQ_SUB_PRIORITY));
+   NVIC_SetPriority(ENET_ERR_IRQn, NVIC_EncodePriority(S32K1_ETH_IRQ_PRIORITY_GROUPING,
+      S32K1_ETH_IRQ_GROUP_PRIORITY, S32K1_ETH_IRQ_SUB_PRIORITY));
 
    //Enable Ethernet MAC
    ENET->ECR |= ENET_ECR_ETHEREN_MASK;
@@ -241,7 +241,7 @@ error_t s32k148EthInit(NetInterface *interface)
 }
 
 
-//S32K148-EVB-Q176 evaluation board?
+//S32K1-EVB-Q176 evaluation board?
 #if defined(USE_S32K148_EVB_Q176)
 
 /**
@@ -249,7 +249,7 @@ error_t s32k148EthInit(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s32k148EthInitGpio(NetInterface *interface)
+void s32k1EthInitGpio(NetInterface *interface)
 {
    //Enable PARTA, PORTB, PORTC and PORTD peripheral clocks
    PCC->PCCn[PCC_PORTA_INDEX] = PCC_PCCn_CGC_MASK;
@@ -298,7 +298,7 @@ void s32k148EthInitGpio(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s32k148EthInitBufferDesc(NetInterface *interface)
+void s32k1EthInitBufferDesc(NetInterface *interface)
 {
    uint_t i;
    uint32_t address;
@@ -308,7 +308,7 @@ void s32k148EthInitBufferDesc(NetInterface *interface)
    osMemset(rxBufferDesc, 0, sizeof(rxBufferDesc));
 
    //Initialize TX buffer descriptors
-   for(i = 0; i < S32K148_ETH_TX_BUFFER_COUNT; i++)
+   for(i = 0; i < S32K1_ETH_TX_BUFFER_COUNT; i++)
    {
       //Calculate the address of the current TX buffer
       address = (uint32_t) txBuffer[i];
@@ -324,7 +324,7 @@ void s32k148EthInitBufferDesc(NetInterface *interface)
    txBufferIndex = 0;
 
    //Initialize RX buffer descriptors
-   for(i = 0; i < S32K148_ETH_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < S32K1_ETH_RX_BUFFER_COUNT; i++)
    {
       //Calculate the address of the current RX buffer
       address = (uint32_t) rxBuffer[i];
@@ -346,12 +346,12 @@ void s32k148EthInitBufferDesc(NetInterface *interface)
    //Start location of the RX descriptor list
    ENET->RDSR = (uint32_t) rxBufferDesc;
    //Maximum receive buffer size
-   ENET->MRBR = S32K148_ETH_RX_BUFFER_SIZE;
+   ENET->MRBR = S32K1_ETH_RX_BUFFER_SIZE;
 }
 
 
 /**
- * @brief S32K148 Ethernet MAC timer handler
+ * @brief S32K1 Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to handle periodic
  * operations such as polling the link state
@@ -359,7 +359,7 @@ void s32k148EthInitBufferDesc(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s32k148EthTick(NetInterface *interface)
+void s32k1EthTick(NetInterface *interface)
 {
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -384,7 +384,7 @@ void s32k148EthTick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s32k148EthEnableIrq(NetInterface *interface)
+void s32k1EthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ENET_TX_IRQn);
@@ -414,7 +414,7 @@ void s32k148EthEnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void s32k148EthDisableIrq(NetInterface *interface)
+void s32k1EthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ENET_TX_IRQn);
@@ -538,11 +538,11 @@ void ENET_ERR_IRQHandler(void)
 
 
 /**
- * @brief S32K148 Ethernet MAC event handler
+ * @brief S32K1 Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 
-void s32k148EthEventHandler(NetInterface *interface)
+void s32k1EthEventHandler(NetInterface *interface)
 {
    error_t error;
    uint32_t status;
@@ -560,7 +560,7 @@ void s32k148EthEventHandler(NetInterface *interface)
       do
       {
          //Read incoming packet
-         error = s32k148EthReceivePacket(interface);
+         error = s32k1EthReceivePacket(interface);
 
          //No more data in the receive buffer?
       } while(error != ERROR_BUFFER_EMPTY);
@@ -575,7 +575,7 @@ void s32k148EthEventHandler(NetInterface *interface)
       //Disable Ethernet MAC
       ENET->ECR &= ~ENET_ECR_ETHEREN_MASK;
       //Reset buffer descriptors
-      s32k148EthInitBufferDesc(interface);
+      s32k1EthInitBufferDesc(interface);
       //Resume normal operation
       ENET->ECR |= ENET_ECR_ETHEREN_MASK;
       //Instruct the DMA to poll the receive descriptor list
@@ -597,7 +597,7 @@ void s32k148EthEventHandler(NetInterface *interface)
  * @return Error code
  **/
 
-error_t s32k148EthSendPacket(NetInterface *interface,
+error_t s32k1EthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
@@ -606,7 +606,7 @@ error_t s32k148EthSendPacket(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > S32K148_ETH_TX_BUFFER_SIZE)
+   if(length > S32K1_ETH_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -627,7 +627,7 @@ error_t s32k148EthSendPacket(NetInterface *interface,
    txBufferDesc[txBufferIndex][4] = 0;
 
    //Check current index
-   if(txBufferIndex < (S32K148_ETH_TX_BUFFER_COUNT - 1))
+   if(txBufferIndex < (S32K1_ETH_TX_BUFFER_COUNT - 1))
    {
       //Give the ownership of the descriptor to the DMA engine
       txBufferDesc[txBufferIndex][0] = ENET_TBD0_R | ENET_TBD0_L |
@@ -667,7 +667,7 @@ error_t s32k148EthSendPacket(NetInterface *interface,
  * @return Error code
  **/
 
-error_t s32k148EthReceivePacket(NetInterface *interface)
+error_t s32k1EthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
@@ -686,7 +686,7 @@ error_t s32k148EthReceivePacket(NetInterface *interface)
             //Retrieve the length of the frame
             n = rxBufferDesc[rxBufferIndex][0] & ENET_RBD0_DATA_LENGTH;
             //Limit the number of data to read
-            n = MIN(n, S32K148_ETH_RX_BUFFER_SIZE);
+            n = MIN(n, S32K1_ETH_RX_BUFFER_SIZE);
 
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -713,7 +713,7 @@ error_t s32k148EthReceivePacket(NetInterface *interface)
       rxBufferDesc[rxBufferIndex][4] = 0;
 
       //Check current index
-      if(rxBufferIndex < (S32K148_ETH_RX_BUFFER_COUNT - 1))
+      if(rxBufferIndex < (S32K1_ETH_RX_BUFFER_COUNT - 1))
       {
          //Give the ownership of the descriptor back to the DMA engine
          rxBufferDesc[rxBufferIndex][0] = ENET_RBD0_E;
@@ -748,7 +748,7 @@ error_t s32k148EthReceivePacket(NetInterface *interface)
  * @return Error code
  **/
 
-error_t s32k148EthUpdateMacAddrFilter(NetInterface *interface)
+error_t s32k1EthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t k;
@@ -792,7 +792,7 @@ error_t s32k148EthUpdateMacAddrFilter(NetInterface *interface)
       if(entry->refCount > 0)
       {
          //Compute CRC over the current MAC address
-         crc = s32k148EthCalcCrc(&entry->addr, sizeof(MacAddr));
+         crc = s32k1EthCalcCrc(&entry->addr, sizeof(MacAddr));
 
          //The upper 6 bits in the CRC register are used to index the
          //contents of the hash table
@@ -837,7 +837,7 @@ error_t s32k148EthUpdateMacAddrFilter(NetInterface *interface)
  * @return Error code
  **/
 
-error_t s32k148EthUpdateMacConfig(NetInterface *interface)
+error_t s32k1EthUpdateMacConfig(NetInterface *interface)
 {
    //Disable Ethernet MAC while modifying configuration registers
    ENET->ECR &= ~ENET_ECR_ETHEREN_MASK;
@@ -871,7 +871,7 @@ error_t s32k148EthUpdateMacConfig(NetInterface *interface)
    }
 
    //Reset buffer descriptors
-   s32k148EthInitBufferDesc(interface);
+   s32k1EthInitBufferDesc(interface);
 
    //Re-enable Ethernet MAC
    ENET->ECR |= ENET_ECR_ETHEREN_MASK;
@@ -891,7 +891,7 @@ error_t s32k148EthUpdateMacConfig(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void s32k148EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void s32k1EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
    uint32_t temp;
@@ -933,7 +933,7 @@ void s32k148EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Register value
  **/
 
-uint16_t s32k148EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t s32k1EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr)
 {
    uint16_t data;
@@ -980,7 +980,7 @@ uint16_t s32k148EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Resulting CRC value
  **/
 
-uint32_t s32k148EthCalcCrc(const void *data, size_t length)
+uint32_t s32k1EthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;
@@ -997,6 +997,7 @@ uint32_t s32k148EthCalcCrc(const void *data, size_t length)
    {
       //Update CRC value
       crc ^= p[i];
+
       //The message is processed bit by bit
       for(j = 0; j < 8; j++)
       {

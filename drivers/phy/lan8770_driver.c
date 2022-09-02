@@ -1,6 +1,6 @@
 /**
  * @file lan8770_driver.c
- * @brief LAN8770 Ethernet PHY driver
+ * @brief LAN8770 100Base-T1 Ethernet PHY driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -226,9 +226,11 @@ void lan8770EventHandler(NetInterface *interface)
    //Link is up?
    if((value & LAN8770_BASIC_STATUS_LINK_STATUS) != 0)
    {
-      //Adjust MAC configuration parameters for proper operation
+      //The PHY is only able to operate in 100 Mbps mode
       interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
       interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+
+      //Adjust MAC configuration parameters for proper operation
       interface->nicDriver->updateMacConfig(interface);
 
       //Update link state

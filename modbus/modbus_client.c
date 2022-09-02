@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -345,7 +345,7 @@ error_t modbusClientReadCoils(ModbusClientContext *context,
  **/
 
 error_t modbusClientReadDiscreteInputs(ModbusClientContext *context,
-   uint8_t address, uint_t quantity, uint8_t *value)
+   uint16_t address, uint_t quantity, uint8_t *value)
 {
    error_t error;
 

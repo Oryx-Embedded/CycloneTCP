@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _IP101_DRIVER_H
@@ -58,6 +58,14 @@
 #define IP101_PHYSMR                       0x12
 #define IP101_IOSCR                        0x1D
 #define IP101_PHYMCSSR                     0x1E
+
+//IP101 MMD registers
+#define IP101_PCS_CTRL1                    0x03, 0x00
+#define IP101_PCS_STAT1                    0x03, 0x01
+#define IP101_EEE_CAPABILITY               0x03, 0x14
+#define IP101_EEE_WAKE_ERROR_COUNT         0x03, 0x16
+#define IP101_EEE_ADV                      0x07, 0x3C
+#define IP101_EEE_LP_ABILITY               0x07, 0x3D
 
 //Control register
 #define IP101_BMCR_RESET                   0x8000
@@ -219,6 +227,12 @@ void ip101WritePhyReg(NetInterface *interface, uint8_t address,
 uint16_t ip101ReadPhyReg(NetInterface *interface, uint8_t address);
 
 void ip101DumpPhyReg(NetInterface *interface);
+
+void ip101WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data);
+
+uint16_t ip101ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr);
 
 //C++ guard
 #ifdef __cplusplus

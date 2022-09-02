@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _SAME70_ETH_DRIVER_H
@@ -99,25 +99,11 @@
    #define SAME70_ETH_RAM_SECTION ".ram_no_cache"
 #endif
 
-//Backward compatibility
-#ifndef PIO_PD9A_GMDIO
-   #define PIO_PD9A_GMDIO PIO_PD9A_GMAC_GMDIO
-   #define PIO_PD8A_GMDC  PIO_PD8A_GMAC_GMDC
-   #define PIO_PD7A_GRXER PIO_PD7A_GMAC_GRXER
-   #define PIO_PD6A_GRX1  PIO_PD6A_GMAC_GRX1
-   #define PIO_PD5A_GRX0  PIO_PD5A_GMAC_GRX0
-   #define PIO_PD4A_GRXDV PIO_PD4A_GMAC_GRXDV
-   #define PIO_PD3A_GTX1  PIO_PD3A_GMAC_GTX1
-   #define PIO_PD2A_GTX0  PIO_PD2A_GMAC_GTX0
-   #define PIO_PD1A_GTXEN PIO_PD1A_GMAC_GTXEN
-   #define PIO_PD0A_GTXCK PIO_PD0A_GMAC_GTXCK
-   #define GMAC_SA        GmacSa
-#endif
-
 //RMII signals
-#define GMAC_RMII_MASK (PIO_PD9A_GMDIO | PIO_PD8A_GMDC | \
-   PIO_PD7A_GRXER | PIO_PD6A_GRX1 | PIO_PD5A_GRX0 | PIO_PD4A_GRXDV | \
-   PIO_PD3A_GTX1 | PIO_PD2A_GTX0 | PIO_PD1A_GTXEN | PIO_PD0A_GTXCK)
+#define GMAC_RMII_MASK (PIO_PD9A_GMAC_GMDIO | PIO_PD8A_GMAC_GMDC | \
+   PIO_PD7A_GMAC_GRXER | PIO_PD6A_GMAC_GRX1 | PIO_PD5A_GMAC_GRX0 | \
+   PIO_PD4A_GMAC_GRXDV | PIO_PD3A_GMAC_GTX1 | PIO_PD2A_GMAC_GTX0 | \
+   PIO_PD1A_GMAC_GTXEN | PIO_PD0A_GMAC_GTXCK)
 
 //TX buffer descriptor flags
 #define GMAC_TX_USED           0x80000000

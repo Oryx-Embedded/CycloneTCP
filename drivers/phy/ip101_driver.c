@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -173,21 +173,25 @@ void ip101EventHandler(NetInterface *interface)
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
+
       //10BASE-T full-duplex
       case IP101_PHYMCSSR_OP_MODE_10M_FD:
          interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
+
       //100BASE-TX half-duplex
       case IP101_PHYMCSSR_OP_MODE_100M_HD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_HALF_DUPLEX_MODE;
          break;
+
       //100BASE-TX full-duplex
       case IP101_PHYMCSSR_OP_MODE_100M_FD:
          interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
          interface->duplexMode = NIC_FULL_DUPLEX_MODE;
          break;
+
       //Unknown operation mode
       default:
          //Debug message
@@ -283,4 +287,58 @@ void ip101DumpPhyReg(NetInterface *interface)
 
    //Terminate with a line feed
    TRACE_DEBUG("\r\n");
+}
+
+
+/**
+ * @brief Write MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @param[in] data MMD register value
+ **/
+
+void ip101WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data)
+{
+   //Select register operation
+   ip101WritePhyReg(interface, IP101_MMDACR,
+      IP101_MMDACR_FUNC_ADDR | (devAddr & IP101_MMDACR_DEVAD));
+
+   //Write MMD register address
+   ip101WritePhyReg(interface, IP101_MMDAADR, regAddr);
+
+   //Select data operation
+   ip101WritePhyReg(interface, IP101_MMDACR,
+      IP101_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & IP101_MMDACR_DEVAD));
+
+   //Write the content of the MMD register
+   ip101WritePhyReg(interface, IP101_MMDAADR, data);
+}
+
+
+/**
+ * @brief Read MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @return MMD register value
+ **/
+
+uint16_t ip101ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr)
+{
+   //Select register operation
+   ip101WritePhyReg(interface, IP101_MMDACR,
+      IP101_MMDACR_FUNC_ADDR | (devAddr & IP101_MMDACR_DEVAD));
+
+   //Write MMD register address
+   ip101WritePhyReg(interface, IP101_MMDAADR, regAddr);
+
+   //Select data operation
+   ip101WritePhyReg(interface, IP101_MMDACR,
+      IP101_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & IP101_MMDACR_DEVAD));
+
+   //Read the content of the MMD register
+   return ip101ReadPhyReg(interface, IP101_MMDAADR);
 }

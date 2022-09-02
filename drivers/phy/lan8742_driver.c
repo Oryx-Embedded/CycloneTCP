@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -216,21 +216,25 @@ void lan8742EventHandler(NetInterface *interface)
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
+
          //10BASE-T full-duplex
          case LAN8742_PSCSR_HCDSPEED_10BT_FD:
             interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
+
          //100BASE-TX half-duplex
          case LAN8742_PSCSR_HCDSPEED_100BTX_HD:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
+
          //100BASE-TX full-duplex
          case LAN8742_PSCSR_HCDSPEED_100BTX_FD:
             interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
+
          //Unknown operation mode
          default:
             //Debug message
@@ -327,4 +331,58 @@ void lan8742DumpPhyReg(NetInterface *interface)
 
    //Terminate with a line feed
    TRACE_DEBUG("\r\n");
+}
+
+
+/**
+ * @brief Write MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @param[in] data MMD register value
+ **/
+
+void lan8742WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr, uint16_t data)
+{
+   //Select register operation
+   lan8742WritePhyReg(interface, LAN8742_MMDACR,
+      LAN8742_MMDACR_FUNC_ADDR | (devAddr & LAN8742_MMDACR_DEVAD));
+
+   //Write MMD register address
+   lan8742WritePhyReg(interface, LAN8742_MMDAADR, regAddr);
+
+   //Select data operation
+   lan8742WritePhyReg(interface, LAN8742_MMDACR,
+      LAN8742_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & LAN8742_MMDACR_DEVAD));
+
+   //Write the content of the MMD register
+   lan8742WritePhyReg(interface, LAN8742_MMDAADR, data);
+}
+
+
+/**
+ * @brief Read MMD register
+ * @param[in] interface Underlying network interface
+ * @param[in] devAddr Device address
+ * @param[in] regAddr Register address
+ * @return MMD register value
+ **/
+
+uint16_t lan8742ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+   uint16_t regAddr)
+{
+   //Select register operation
+   lan8742WritePhyReg(interface, LAN8742_MMDACR,
+      LAN8742_MMDACR_FUNC_ADDR | (devAddr & LAN8742_MMDACR_DEVAD));
+
+   //Write MMD register address
+   lan8742WritePhyReg(interface, LAN8742_MMDAADR, regAddr);
+
+   //Select data operation
+   lan8742WritePhyReg(interface, LAN8742_MMDACR,
+      LAN8742_MMDACR_FUNC_DATA_NO_POST_INC | (devAddr & LAN8742_MMDACR_DEVAD));
+
+   //Read the content of the MMD register
+   return lan8742ReadPhyReg(interface, LAN8742_MMDAADR);
 }

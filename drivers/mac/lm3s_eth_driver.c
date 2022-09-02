@@ -25,16 +25,15 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
-//LM3S6965 device?
+//Device-specific definitions
 #if defined(LM3S6965)
    #include "lm3s6965.h"
-//LM3S9B92 device?
 #elif defined(LM3S9B92)
    #include "lm3s9b92.h"
 #endif

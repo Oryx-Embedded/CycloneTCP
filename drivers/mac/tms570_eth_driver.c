@@ -25,19 +25,30 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
+//Platform-specific dependencies
+#if defined(_TMS570LC43x_)
+  #include "hl_hw_reg_access.h"
+  #include "hl_hw_emac.h"
+  #include "hl_hw_emac_ctrl.h"
+  #include "hl_hw_mdio.h"
+  #include "hl_gio.h"
+  #include "hl_sys_vim.h"
+#else
+  #include "hw_reg_access.h"
+  #include "hw_emac.h"
+  #include "hw_emac_ctrl.h"
+  #include "hw_mdio.h"
+  #include "gio.h"
+  #include "sys_vim.h"
+#endif
+
 //Dependencies
-#include "hl_hw_reg_access.h"
-#include "hl_hw_emac.h"
-#include "hl_hw_emac_ctrl.h"
-#include "hl_hw_mdio.h"
-#include "hl_gio.h"
-#include "hl_sys_vim.h"
 #include "core/net.h"
 #include "drivers/mac/tms570_eth_driver.h"
 #include "debug.h"
@@ -48,7 +59,7 @@
 #define MDIO_OUTPUT_CLK 1000000
 
 //Byte-swapped read/write accesses to CPPI memory?
-#if(TMS570_ETH_CPPI_SWAP_SUPPORT == ENABLED)
+#if defined(_TMS570LC43x_)
    #define CPPI_SWAP(x) swapInt32((uint32_t) (x))
 #else
    #define CPPI_SWAP(x) ((uint32_t) (x))
@@ -271,11 +282,11 @@ error_t tms570EthInit(NetInterface *interface)
       (EMAC_CH0 << EMAC_RXMBPENABLE_RXMULTCH_SHIFT);
 
    //Register TX interrupt handler
-   vimChannelMap(77, TMS570_ETH_TX_IRQ_CHANNEL,
+   vimChannelMap(TMS570_ETH_TX_IRQ_CHANNEL, TMS570_ETH_TX_IRQ_CHANNEL,
       (t_isrFuncPTR) tms570EthTxIrqHandler);
 
    //Register RX interrupt handler
-   vimChannelMap(79, TMS570_ETH_RX_IRQ_CHANNEL,
+   vimChannelMap(TMS570_ETH_RX_IRQ_CHANNEL, TMS570_ETH_RX_IRQ_CHANNEL,
       (t_isrFuncPTR) tms570EthRxIrqHandler);
 
    //Clear all unused channel interrupt bits
@@ -311,8 +322,8 @@ error_t tms570EthInit(NetInterface *interface)
 }
 
 
-//LAUNCHXL2-570LC43 evaluation board?
-#if defined(USE_LAUNCHXL2_570LC43)
+//TMDS570LS31HDK or LAUNCHXL2-570LC43 evaluation board?
+#if defined(USE_TMDS570LS31HDK) || defined(USE_LAUNCHXL2_570LC43)
 
 /**
  * @brief GPIO configuration
@@ -321,6 +332,8 @@ error_t tms570EthInit(NetInterface *interface)
 
 void tms570EthInitGpio(NetInterface *interface)
 {
+//LAUNCHXL2-570LC43 evaluation board?
+#if defined(USE_LAUNCHXL2_570LC43)
    //Configure PHY_INT (PA_3) as an input
    gioPORTA->DIR &= ~(1 << 3);
    gioPORTA->PSL |= (1 << 3);
@@ -335,6 +348,7 @@ void tms570EthInitGpio(NetInterface *interface)
    sleep(10);
    gioPORTA->DSET = (1 << 4);
    sleep(10);
+#endif
 }
 
 #endif
@@ -513,7 +527,14 @@ void tms570EthDisableIrq(NetInterface *interface)
  * @brief Ethernet MAC transmit interrupt
  **/
 
-__irq __arm void tms570EthTxIrqHandler(void)
+#if defined(__ICCARM__)
+   __irq __arm
+#else
+   #pragma CODE_STATE(tms570EthTxIrqHandler, 32)
+   #pragma INTERRUPT(tms570EthTxIrqHandler, IRQ)
+#endif
+
+void tms570EthTxIrqHandler(void)
 {
    bool_t flag;
    uint32_t status;
@@ -575,7 +596,14 @@ __irq __arm void tms570EthTxIrqHandler(void)
  * @brief Ethernet MAC receive interrupt
  **/
 
-__irq __arm void tms570EthRxIrqHandler(void)
+#if defined(__ICCARM__)
+   __irq __arm
+#else
+   #pragma CODE_STATE(tms570EthRxIrqHandler, 32)
+   #pragma INTERRUPT(tms570EthRxIrqHandler, IRQ)
+#endif
+
+void tms570EthRxIrqHandler(void)
 {
    bool_t flag;
    uint32_t status;
@@ -681,7 +709,7 @@ error_t tms570EthSendPacket(NetInterface *interface,
       EMAC_TX_WORD3_OWNER | (length & EMAC_TX_WORD3_PACKET_LENGTH));
 
    //Link the current descriptor to the previous descriptor
-   txCurBufferDesc->prev->word0 = CPPI_SWAP((uint32_t) txCurBufferDesc);
+   txCurBufferDesc->prev->word0 = CPPI_SWAP(txCurBufferDesc);
 
    //Read the status flags of the previous descriptor
    temp = CPPI_SWAP(txCurBufferDesc->prev->word3) & (EMAC_TX_WORD3_SOP |
@@ -761,7 +789,7 @@ error_t tms570EthReceivePacket(NetInterface *interface)
       }
 
       //Mark the end of the queue with a NULL pointer
-      rxCurBufferDesc->word0 = CPPI_SWAP((uint32_t) NULL);
+      rxCurBufferDesc->word0 = CPPI_SWAP(NULL);
       //Restore the length of the buffer
       rxCurBufferDesc->word2 = CPPI_SWAP(TMS570_ETH_RX_BUFFER_SIZE);
       //Give the ownership of the descriptor back to the DMA

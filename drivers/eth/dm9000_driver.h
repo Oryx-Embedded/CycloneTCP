@@ -25,14 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _DM9000_DRIVER_H
 #define _DM9000_DRIVER_H
 
 //Dependencies
-#include "core/ethernet.h"
+#include "core/nic.h"
 
 //Loopback mode
 #ifndef DM9000_LOOPBACK_MODE

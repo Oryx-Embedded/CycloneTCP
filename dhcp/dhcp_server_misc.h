@@ -1,5 +1,5 @@
 /**
- * @file dhcp_server.h
+ * @file dhcp_server_misc.h
  * @brief Helper functions for DHCP server
  *
  * @section License
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _DHCP_SERVER_MISC_H

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
@@ -702,7 +702,7 @@ error_t coapClientRejectResponse(CoapClientContext *context,
 
 error_t coapClientSendAck(CoapClientContext *context, uint16_t mid)
 {
-   CoapMessageHeader message;
+   CoapMessageHeader message = {0};
 
    //Format Acknowledgment message
    message.version = COAP_VERSION_1;
@@ -735,7 +735,7 @@ error_t coapClientSendAck(CoapClientContext *context, uint16_t mid)
 
 error_t coapClientSendReset(CoapClientContext *context, uint16_t mid)
 {
-   CoapMessageHeader message;
+   CoapMessageHeader message = {0};
 
    //Format Reset message
    message.version = COAP_VERSION_1;

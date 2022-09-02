@@ -25,11 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _ENC28J60_DRIVER_H
 #define _ENC28J60_DRIVER_H
+
+//Dependencies
+#include "core/nic.h"
 
 //Full-duplex support
 #ifndef ENC28J60_FULL_DUPLEX_SUPPORT

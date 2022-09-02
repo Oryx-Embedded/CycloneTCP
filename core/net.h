@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 #ifndef _NET_H
@@ -93,13 +93,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.1.6"
+#define CYCLONE_TCP_VERSION_STRING "2.1.8"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 1
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 6
+#define CYCLONE_TCP_REV_NUMBER 8
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT

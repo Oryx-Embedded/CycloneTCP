@@ -34,7 +34,7 @@
  * - RFC 7860: HMAC-SHA-2 Authentication Protocols in the User-based Security Model
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.6
+ * @version 2.1.8
  **/
 
 //Switch to the appropriate trace level
