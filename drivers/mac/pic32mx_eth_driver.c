@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -222,22 +222,14 @@ error_t pic32mxEthInit(NetInterface *interface)
 }
 
 
-//PIC32 Ethernet Starter Kit, PIC32 Ethernet Starter Kit II or
-//chipKIT Pro MX7 evaluation board?
-#if defined(USE_PIC32_ETH_STARTER_KIT) || defined(USE_PIC32_ETH_STARTER_KIT_2) || \
-   defined(USE_CHIPKIT_PRO_MX7)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void pic32mxEthInitGpio(NetInterface *interface)
+__weak_func void pic32mxEthInitGpio(NetInterface *interface)
 {
-   //No analog pins are shared with the alternate RMII interface
 }
-
-#endif
 
 
 /**

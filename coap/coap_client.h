@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _COAP_CLIENT_H
@@ -128,6 +128,11 @@
    #error COAP_CLIENT_DEFAULT_TOKEN_LEN parameter is not valid
 #endif
 
+//Application specific context
+#ifndef COAP_CLIENT_PRIVATE_CONTEXT
+   #define COAP_CLIENT_PRIVATE_CONTEXT
+#endif
+
 //DTLS supported?
 #if (COAP_CLIENT_DTLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
@@ -199,6 +204,7 @@ struct _CoapClientContext
    size_t tokenLen;                               ///<Token length
    CoapClientRequest request[COAP_CLIENT_NSTART]; ///<Outstanding CoAP requests
    CoapMessage response;                          ///<CoAP response message
+   COAP_CLIENT_PRIVATE_CONTEXT                    ///<Application specific context
 };
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -266,16 +266,15 @@ error_t same70EthInit(NetInterface *interface)
 }
 
 
-//SAME70-Xplained or SAME70-Xplained-Ultra evaluation board?
-#if defined(USE_SAME70_XPLAINED) || defined(USE_SAME70_XPLAINED_ULTRA)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void same70EthInitGpio(NetInterface *interface)
+__weak_func void same70EthInitGpio(NetInterface *interface)
 {
+//SAME70-Xplained or SAME70-Xplained-Ultra evaluation board?
+#if defined(USE_SAME70_XPLAINED) || defined(USE_SAME70_XPLAINED_ULTRA)
    //Enable PIO peripheral clocks
    PMC_REGS->PMC_PCER0 = (1 << ID_PIOC) | (1 << ID_PIOD);
 
@@ -301,9 +300,8 @@ void same70EthInitGpio(NetInterface *interface)
    sleep(10);
    PIOC_REGS->PIO_SODR = PIO_PC10;
    sleep(10);
-}
-
 #endif
+}
 
 
 /**

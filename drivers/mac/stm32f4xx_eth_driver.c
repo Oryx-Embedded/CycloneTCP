@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -232,24 +232,17 @@ error_t stm32f4xxEthInit(NetInterface *interface)
 }
 
 
-//STM3240G-EVAL, STM324x9I-EVAL, STM32469I-EVAL, STM32F4-Discovery,
-//Nucleo-F429ZI, MCBSTM32F400, STM32-E407 or STM32-P407 evaluation board?
-#if defined(USE_STM324xG_EVAL) || defined(USE_STM324x9I_EVAL) || \
-   defined(USE_STM32F469I_EVAL) || defined(USE_STM32F4_DISCO) || \
-   defined(USE_STM32F4XX_NUCLEO_144) || defined(USE_MCBSTM32F400) || \
-   defined(USE_STM32_E407) || defined(USE_STM32_P407)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void stm32f4xxEthInitGpio(NetInterface *interface)
+__weak_func void stm32f4xxEthInitGpio(NetInterface *interface)
 {
-   GPIO_InitTypeDef GPIO_InitStructure;
-
 //STM3240G-EVAL evaluation board?
 #if defined(USE_STM324xG_EVAL)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -309,6 +302,8 @@ void stm32f4xxEthInitGpio(NetInterface *interface)
 
 //STM324x9I-EVAL evaluation board?
 #elif defined(USE_STM324x9I_EVAL)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -375,6 +370,8 @@ void stm32f4xxEthInitGpio(NetInterface *interface)
 
 //STM32469I-EVAL evaluation board?
 #elif defined(USE_STM32F469I_EVAL)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -441,6 +438,8 @@ void stm32f4xxEthInitGpio(NetInterface *interface)
 
 //STM32F4-Discovery evaluation board?
 #elif defined(USE_STM32F4_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -486,6 +485,8 @@ void stm32f4xxEthInitGpio(NetInterface *interface)
 
 //Nucleo-F429ZI evaluation board?
 #elif defined(USE_STM32F4XX_NUCLEO_144)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -522,6 +523,8 @@ void stm32f4xxEthInitGpio(NetInterface *interface)
 
 //MCBSTM32F400 evaluation board?
 #elif defined(USE_MCBSTM32F400)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -553,6 +556,8 @@ void stm32f4xxEthInitGpio(NetInterface *interface)
 
 //STM32-E407 evaluation board?
 #elif defined(USE_STM32_E407)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -597,6 +602,8 @@ void stm32f4xxEthInitGpio(NetInterface *interface)
 
 //STM32-P407 evaluation board?
 #elif defined(USE_STM32_P407)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -632,8 +639,6 @@ void stm32f4xxEthInitGpio(NetInterface *interface)
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 #endif
 }
-
-#endif
 
 
 /**

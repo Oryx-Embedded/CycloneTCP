@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -203,16 +203,15 @@ error_t mpc57xxEthInit(NetInterface *interface)
 }
 
 
-//DEVKIT-MPC5748G evaluation board?
-#if defined(USE_DEVKIT_MPC5748G)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void mpc57xxEthInitGpio(NetInterface *interface)
+__weak_func void mpc57xxEthInitGpio(NetInterface *interface)
 {
+//DEVKIT-MPC5748G evaluation board?
+#if defined(USE_DEVKIT_MPC5748G)
    //Configure MII_RMII_0_MDIO (PF14)
    SIUL2->MSCR[94] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
       SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK | SIUL2_MSCR_PUS_MASK |
@@ -254,9 +253,8 @@ void mpc57xxEthInitGpio(NetInterface *interface)
    //Configure MII_RMII_0_RX_DV (PF15)
    SIUL2->MSCR[95] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
    SIUL2->IMCR[457] = SIUL2_IMCR_SSS(1);
-}
-
 #endif
+}
 
 
 /**

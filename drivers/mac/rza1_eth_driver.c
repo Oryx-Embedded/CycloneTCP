@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -244,16 +244,12 @@ error_t rza1EthInit(NetInterface *interface)
 }
 
 
-//RSK-RZ/A1H, Stream it! RZ, Hachiko or VK-RZ/A1H evaluation board?
-#if defined(USE_RSK_RZA1H) || defined(USE_STREAM_IT_RZ) || \
-   defined(USE_HACHIKO) || defined(USE_VK_RZA1H)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void rza1EthInitGpio(NetInterface *interface)
+__weak_func void rza1EthInitGpio(NetInterface *interface)
 {
 //RSK RZ/A1H or Hachiko evaluation board?
 #if defined(USE_RSK_RZA1H) || defined(USE_HACHIKO)
@@ -651,8 +647,6 @@ void rza1EthInitGpio(NetInterface *interface)
    sleep(10);
 #endif
 }
-
-#endif
 
 
 /**

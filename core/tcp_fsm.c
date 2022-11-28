@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -196,9 +196,13 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
             //An IPv4 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv4Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+            if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
+               socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+            {
                continue;
+            }
          }
 
          //Source IP address filtering
@@ -207,9 +211,13 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(socket->remoteIpAddr.ipv4Addr != pseudoHeader->ipv4Data.srcAddr)
+            if(socket->remoteIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
+               socket->remoteIpAddr.ipv4Addr != pseudoHeader->ipv4Data.srcAddr)
+            {
                continue;
+            }
          }
       }
       else
@@ -224,9 +232,13 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
             //An IPv6 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv6Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+            if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
+               !ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+            {
                continue;
+            }
          }
 
          //Source IP address filtering
@@ -235,9 +247,13 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr))
+            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
+               !ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr))
+            {
                continue;
+            }
          }
       }
       else
@@ -448,7 +464,6 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
    uint_t i;
    TcpOption *option;
    TcpSynQueueItem *queueItem;
-   TcpSynQueueItem *firstQueueItem;
 
    //Debug message
    TRACE_DEBUG("TCP FSM: LISTEN state\r\n");
@@ -474,19 +489,11 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
       if(tcpIsDuplicateSyn(socket, pseudoHeader, segment))
          return;
 
-      //Check whether the SYN queue is empty
-      if(socket->synQueue == NULL)
-      {
-         //Allocate memory to save incoming data
-         queueItem = memPoolAlloc(sizeof(TcpSynQueueItem));
-         //Add the newly created item to the queue
-         socket->synQueue = queueItem;
-      }
-      else
+      //Check whether the SYN queue is empty or not
+      if(socket->synQueue != NULL)
       {
          //Point to the very first item
          queueItem = socket->synQueue;
-         firstQueueItem = socket->synQueue;
 
          //Reach the last item in the SYN queue
          for(i = 1; queueItem->next != NULL; i++)
@@ -498,9 +505,30 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
          if(i >= socket->synQueueSize)
          {
             //Remove the first item if the SYN queue runs out of space
-            socket->synQueue = firstQueueItem->next;
+            queueItem = socket->synQueue;
+            socket->synQueue = queueItem->next;
             //Deallocate memory buffer
-            memPoolFree(firstQueueItem);
+            memPoolFree(queueItem);
+         }
+      }
+
+      //Check whether the SYN queue is empty or not
+      if(socket->synQueue == NULL)
+      {
+         //Allocate memory to save incoming data
+         queueItem = memPoolAlloc(sizeof(TcpSynQueueItem));
+         //Add the newly created item to the queue
+         socket->synQueue = queueItem;
+      }
+      else
+      {
+         //Point to the very first item
+         queueItem = socket->synQueue;
+
+         //Reach the last item in the SYN queue
+         for(i = 1; queueItem->next != NULL; i++)
+         {
+            queueItem = queueItem->next;
          }
 
          //Allocate memory to save incoming data

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -197,16 +197,12 @@ error_t esp32EthInit(NetInterface *interface)
 }
 
 
-//ESP32-Ethernet-Kit, EVK-NINA-W10, ESP32-EVB or ESP32-GATEWAY evaluation board?
-#if defined(ESP32_ETHERNET_KIT) || defined(EVK_NINA_W10) || \
-   defined(ESP32_EVB) || defined(ESP32_GATEWAY)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void esp32EthInitGpio(NetInterface *interface)
+__weak_func void esp32EthInitGpio(NetInterface *interface)
 {
 //ESP32-Ethernet-Kit?
 #if defined(ESP32_ETHERNET_KIT)
@@ -321,8 +317,6 @@ void esp32EthInitGpio(NetInterface *interface)
    gpio_matrix_in(18, EMAC_MDI_I_IDX, 0);
 #endif
 }
-
-#endif
 
 
 /**

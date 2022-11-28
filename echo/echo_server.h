@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _ECHO_SERVER_H
@@ -103,6 +103,11 @@
    #error ECHO_SERVER_TICK_INTERVAL parameter is not valid
 #endif
 
+//Application specific context
+#ifndef ECHO_SERVER_PRIVATE_CONTEXT
+   #define ECHO_SERVER_PRIVATE_CONTEXT
+#endif
+
 //Echo service port number
 #define ECHO_PORT 7
 
@@ -172,6 +177,7 @@ typedef struct
    Socket *udpSocket;                             ///<UDP socket
    char_t udpBuffer[ECHO_SERVER_UDP_BUFFER_SIZE]; ///<Memory buffer for input/output operations (UDP)
 #endif
+   ECHO_SERVER_PRIVATE_CONTEXT                    ///<Application specific context
 } EchoServerContext;
 
 

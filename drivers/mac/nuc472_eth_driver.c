@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -206,16 +206,15 @@ error_t nuc472EthInit(NetInterface *interface)
 }
 
 
-//NuTiny-SDK-NUC472 or NuMaker-PFM-NUC472 evaluation board?
-#if defined(USE_NUTINY_SDK_NUC472) || defined(USE_NUMAKER_PFM_NUC472)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void nuc472EthInitGpio(NetInterface *interface)
+__weak_func void nuc472EthInitGpio(NetInterface *interface)
 {
+//NuTiny-SDK-NUC472 or NuMaker-PFM-NUC472 evaluation board?
+#if defined(USE_NUTINY_SDK_NUC472) || defined(USE_NUMAKER_PFM_NUC472)
    uint32_t temp;
 
    //Select RMII interface mode
@@ -248,9 +247,8 @@ void nuc472EthInitGpio(NetInterface *interface)
    //Enable high slew rate on RMII output pins
    PC->SLEWCTL |= GPIO_SLEWCTL_HSREN6_Msk | GPIO_SLEWCTL_HSREN7_Msk |
       GPIO_SLEWCTL_HSREN8_Msk;
-}
-
 #endif
+}
 
 
 /**

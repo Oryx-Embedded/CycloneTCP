@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _IPV4_H
@@ -226,9 +226,31 @@ typedef enum
 
 typedef enum
 {
-   IPV4_OPTION_EEOL   = 0,
-   IPV4_OPTION_NOP    = 1,
-   IPV4_OPTION_RTRALT = 148
+   IPV4_OPTION_EEOL   = 0,   ///<End of Options List
+   IPV4_OPTION_NOP    = 1,   ///<No Operation
+   IPV4_OPTION_RR     = 7,   ///<Record Route
+   IPV4_OPTION_ZSU    = 10,  ///<Experimental Measurement
+   IPV4_OPTION_MTUP   = 11,  ///<MTU Probe
+   IPV4_OPTION_MTUR   = 12,  ///<MTU Reply
+   IPV4_OPTION_ENCODE = 15,  ///<Experimental IP encryption
+   IPV4_OPTION_QS     = 25,  ///<Quick-Start
+   IPV4_OPTION_TS     = 68,  ///<Time Stamp
+   IPV4_OPTION_TR     = 82,  ///<Traceroute
+   IPV4_OPTION_SEC    = 130, ///<Security
+   IPV4_OPTION_LSR    = 131, ///<Loose Source Route
+   IPV4_OPTION_ESEC   = 133, ///<Extended Security
+   IPV4_OPTION_CIPSO  = 134, ///<Commercial Security
+   IPV4_OPTION_SID    = 136, ///<Stream ID
+   IPV4_OPTION_SSR    = 137, ///<Strict Source Route
+   IPV4_OPTION_VISA   = 142, ///<Experimental Access Control
+   IPV4_OPTION_IMITD  = 144, ///<IMI Traffic Descriptor
+   IPV4_OPTION_EIP    = 145, ///<Extended Internet Protocol
+   IPV4_OPTION_ADDEXT = 147, ///<Address Extension
+   IPV4_OPTION_RTRALT = 148, ///<Router Alert
+   IPV4_OPTION_SDB    = 149, ///<Selective Directed Broadcast
+   IPV4_OPTION_DPS    = 151, ///<Dynamic Packet State
+   IPV4_OPTION_UMP    = 152, ///<Upstream Multicast Packet
+   IPV4_OPTION_FINN   = 205  ///<Experimental Flow Control
 } Ipv4OptionType;
 
 
@@ -382,7 +404,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
    size_t length, NetRxAncillary *ancillary);
 
 void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
-   NetRxAncillary *ancillary);
+   size_t offset, NetRxAncillary *ancillary);
 
 error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);

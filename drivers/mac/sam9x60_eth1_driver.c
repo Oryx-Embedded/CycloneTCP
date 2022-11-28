@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -219,16 +219,15 @@ error_t sam9x60Eth1Init(NetInterface *interface)
 }
 
 
-//SAM9X60-EK evaluation board?
-#if defined(USE_SAM9X60_EK)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void sam9x60Eth1InitGpio(NetInterface *interface)
+__weak_func void sam9x60Eth1InitGpio(NetInterface *interface)
 {
+//SAM9X60-EK evaluation board?
+#if defined(USE_SAM9X60_EK)
    uint32_t temp;
 
    //Enable PIO peripheral clock
@@ -248,9 +247,8 @@ void sam9x60Eth1InitGpio(NetInterface *interface)
 
    //Select RMII operation mode and enable transceiver clock
    EMAC0->EMAC_USRIO = EMAC_USRIO_CLKEN | EMAC_USRIO_RMII;
-}
-
 #endif
+}
 
 
 /**

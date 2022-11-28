@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -593,20 +593,8 @@ void ipv6cpThisLayerUp(PppContext *context)
    //Point to the underlying interface
    interface = context->interface;
 
-   //Generate an IPv6 address from the local interface identifier
-   ipv6GenerateLinkLocalAddr(&context->localConfig.interfaceId, &ipAddr);
-
-   //Update IPv6 configuration
-   ipv6SetAddr(interface, 0, &ipAddr, IPV6_ADDR_STATE_PREFERRED,
-      NDP_INFINITE_LIFETIME, NDP_INFINITE_LIFETIME, TRUE);
-
-   //Generate an IPv6 address from the remote interface identifier
-   ipv6GenerateLinkLocalAddr(&context->peerConfig.interfaceId, &ipAddr);
-
-   //Update IPv6 configuration
-   interface->ipv6Context.routerList[0].addr = ipAddr;
-   interface->ipv6Context.routerList[0].permanent = TRUE;
-
+   //Set the EUI-64 interface identifier
+   interface->eui64 = context->localConfig.interfaceId;
    //Link is up
    interface->linkState = TRUE;
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _LAN9355_DRIVER_H
@@ -1248,6 +1248,7 @@ extern const SwitchDriver lan9355SwitchDriver;
 
 //LAN9355 related functions
 error_t lan9355Init(NetInterface *interface);
+void lan9355InitHook(NetInterface *interface);
 
 void lan9355Tick(NetInterface *interface);
 

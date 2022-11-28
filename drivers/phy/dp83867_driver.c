@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -122,6 +122,9 @@ error_t dp83867Init(NetInterface *interface)
    dp83867WritePhyReg(interface, DP83867_MICR,
       DP83867_MICR_LINK_STATUS_CHNG_INT_EN);
 
+   //Perform custom configuration
+   dp83867InitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -129,6 +132,16 @@ error_t dp83867Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief DP83867 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void dp83867InitHook(NetInterface *interface)
+{
 }
 
 

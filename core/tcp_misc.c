@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -535,7 +535,7 @@ error_t tcpRejectSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
 
 
 /**
- * @brief Append an option to a TCP segment
+ * @brief Append an option to the TCP header
  * @param[in] segment Pointer to the TCP header
  * @param[in] kind Option code
  * @param[in] value Option value
@@ -599,7 +599,7 @@ error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
 
 
 /**
- * @brief Find a specified option in a TCP segment
+ * @brief Search the TCP header for a given option
  * @param[in] segment Pointer to the TCP header
  * @param[in] kind Code of the option to find
  * @return If the specified option is found, a pointer to the corresponding
@@ -658,7 +658,7 @@ TcpOption *tcpGetOption(TcpHeader *segment, uint8_t kind)
       }
    }
 
-   //The specified option code does not exist
+   //The specified option code was not found
    return NULL;
 }
 

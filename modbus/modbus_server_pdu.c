@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -1053,16 +1053,6 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
    //Lock access to Modbus table
    modbusServerLock(connection);
 
-   //Read the specified number of registers
-   for(i = 0; i < readQuantity && !error; i++)
-   {
-      //Retrieve the value of the current register
-      error = modbusServerReadHoldingReg(connection, readAddress + i, &value);
-
-      //Convert the value to network byte order
-      response->readRegValue[i] = htons(value);
-   }
-
    //Consistency check (first phase)
    for(i = 0; i < writeQuantity && !error; i++)
    {
@@ -1077,6 +1067,16 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
       //Write the value of the current register
       error = modbusServerWriteReg(connection, writeAddress + i,
          ntohs(request->writeRegValue[i]), TRUE);
+   }
+
+   //Read the specified number of registers
+   for(i = 0; i < readQuantity && !error; i++)
+   {
+      //Retrieve the value of the current register
+      error = modbusServerReadHoldingReg(connection, readAddress + i, &value);
+
+      //Convert the value to network byte order
+      response->readRegValue[i] = htons(value);
    }
 
    //Unlock access to Modbus table

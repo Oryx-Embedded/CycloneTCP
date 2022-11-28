@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -245,25 +245,19 @@ error_t lpc54xxxEthInit(NetInterface *interface)
 }
 
 
-//LPCXpresso54S018, LPCXpresso54S018M, LPCXpresso54608, LPCXpresso54628 or
-//LPC54018-IoT-Module evaluation board?
-#if defined(USE_LPCXPRESSO_54S018) || defined(USE_LPCXPRESSO_54S018M) || \
-   defined(USE_LPCXPRESSO_54608) || defined(USE_LPCXPRESSO_54628) || \
-   defined(USE_LPC54018_IOT_MODULE)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void lpc54xxxEthInitGpio(NetInterface *interface)
+__weak_func void lpc54xxxEthInitGpio(NetInterface *interface)
 {
-   gpio_pin_config_t pinConfig;
-
 //LPCXpresso54S018, LPCXpresso54608, LPCXpresso54628 or LPC54018-IoT-Module
 //evaluation board?
 #if defined(USE_LPCXPRESSO_54S018) || defined(USE_LPCXPRESSO_54608) || \
    defined(USE_LPCXPRESSO_54628) || defined(USE_LPC54018_IOT_MODULE)
+   gpio_pin_config_t pinConfig;
+
    //Select RMII interface mode
    SYSCON->ETHPHYSEL |= SYSCON_ETHPHYSEL_PHY_SEL_MASK;
 
@@ -324,6 +318,8 @@ void lpc54xxxEthInitGpio(NetInterface *interface)
 
 //LPCXpresso54S018M evaluation board?
 #elif defined(USE_LPCXPRESSO_54S018M)
+   gpio_pin_config_t pinConfig;
+
    //Select RMII interface mode
    SYSCON->ETHPHYSEL |= SYSCON_ETHPHYSEL_PHY_SEL_MASK;
 
@@ -384,8 +380,6 @@ void lpc54xxxEthInitGpio(NetInterface *interface)
    sleep(10);
 #endif
 }
-
-#endif
 
 
 /**

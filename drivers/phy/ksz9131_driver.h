@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _KSZ9131_DRIVER_H
@@ -391,6 +391,7 @@ extern const PhyDriver ksz9131PhyDriver;
 
 //KSZ9131 related functions
 error_t ksz9131Init(NetInterface *interface);
+void ksz9131InitHook(NetInterface *interface);
 
 void ksz9131Tick(NetInterface *interface);
 

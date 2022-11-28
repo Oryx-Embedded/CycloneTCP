@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -81,6 +81,9 @@ error_t lan8670Init(NetInterface *interface)
       interface->extIntDriver->init();
    }
 
+   //Dump PHY registers for debugging purpose
+   lan8670DumpPhyReg(interface);
+
    //Configure PHY transceiver
    lan8670ModifyMmdReg(interface, 0x1F, 0x00D0, 0x0E03, 0x0002);
    lan8670ModifyMmdReg(interface, 0x1F, 0x00D1, 0x0300, 0x0000);
@@ -112,8 +115,8 @@ error_t lan8670Init(NetInterface *interface)
    lan8670WriteMmdReg(interface, LAN8670_PLCA_CTRL0, 0);
 #endif
 
-   //Dump PHY registers for debugging purpose
-   lan8670DumpPhyReg(interface);
+   //Perform custom configuration
+   lan8670InitHook(interface);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -122,6 +125,16 @@ error_t lan8670Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief LAN8670 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void lan8670InitHook(NetInterface *interface)
+{
 }
 
 

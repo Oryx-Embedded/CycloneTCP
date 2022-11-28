@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -89,6 +89,9 @@ error_t ar8031Init(NetInterface *interface)
    {
    }
 
+   //Dump PHY registers for debugging purpose
+   ar8031DumpPhyReg(interface);
+
    //Chip configuration register
    ar8031WritePhyReg(interface, AR8031_CHIP_CONF,
       AR8031_CHIP_CONF_BT_BX_REG_SEL | AR8031_CHIP_CONF_PRIORITY_SEL);
@@ -111,12 +114,12 @@ error_t ar8031Init(NetInterface *interface)
       AR8031_FUNC_CTRL_ASSERT_CRS_ON_TX | AR8031_FUNC_CTRL_MDIX_MODE_AUTO |
       AR8031_FUNC_CTRL_POLARITY_REVERSAL);
 
-   //Dump PHY registers for debugging purpose
-   ar8031DumpPhyReg(interface);
-
    //The PHY will generate interrupts when link status changes are detected
    ar8031WritePhyReg(interface, AR8031_INT_EN, AR8031_INT_STATUS_LINK_FAIL |
       AR8031_INT_STATUS_LINK_SUCCESS);
+
+   //Perform custom configuration
+   ar8031InitHook(interface);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -125,6 +128,16 @@ error_t ar8031Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief AR8031 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void ar8031InitHook(NetInterface *interface)
+{
 }
 
 

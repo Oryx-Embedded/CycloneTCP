@@ -1,6 +1,6 @@
 /**
- * @file gd32f307_eth_driver.c
- * @brief GD32F307 Ethernet MAC driver
+ * @file gd32f3xx_eth_driver.c
+ * @brief GD32F3 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -34,7 +34,7 @@
 //Dependencies
 #include "gd32f30x.h"
 #include "core/net.h"
-#include "drivers/mac/gd32f307_eth_driver.h"
+#include "drivers/mac/gd32f3xx_eth_driver.h"
 #include "debug.h"
 
 //Underlying network interface
@@ -45,59 +45,59 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 4
-static uint8_t txBuffer[GD32F307_ETH_TX_BUFFER_COUNT][GD32F307_ETH_TX_BUFFER_SIZE];
+static uint8_t txBuffer[GD32F3XX_ETH_TX_BUFFER_COUNT][GD32F3XX_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 4
-static uint8_t rxBuffer[GD32F307_ETH_RX_BUFFER_COUNT][GD32F307_ETH_RX_BUFFER_SIZE];
+static uint8_t rxBuffer[GD32F3XX_ETH_RX_BUFFER_COUNT][GD32F3XX_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 4
-static Stm32f2xxTxDmaDesc txDmaDesc[GD32F307_ETH_TX_BUFFER_COUNT];
+static Gd32f3xxTxDmaDesc txDmaDesc[GD32F3XX_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 4
-static Stm32f2xxRxDmaDesc rxDmaDesc[GD32F307_ETH_RX_BUFFER_COUNT];
+static Gd32f3xxRxDmaDesc rxDmaDesc[GD32F3XX_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
 #else
 
 //Transmit buffer
-static uint8_t txBuffer[GD32F307_ETH_TX_BUFFER_COUNT][GD32F307_ETH_TX_BUFFER_SIZE]
+static uint8_t txBuffer[GD32F3XX_ETH_TX_BUFFER_COUNT][GD32F3XX_ETH_TX_BUFFER_SIZE]
    __attribute__((aligned(4)));
 //Receive buffer
-static uint8_t rxBuffer[GD32F307_ETH_RX_BUFFER_COUNT][GD32F307_ETH_RX_BUFFER_SIZE]
+static uint8_t rxBuffer[GD32F3XX_ETH_RX_BUFFER_COUNT][GD32F3XX_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(4)));
 //Transmit DMA descriptors
-static Stm32f2xxTxDmaDesc txDmaDesc[GD32F307_ETH_TX_BUFFER_COUNT]
+static Gd32f3xxTxDmaDesc txDmaDesc[GD32F3XX_ETH_TX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 //Receive DMA descriptors
-static Stm32f2xxRxDmaDesc rxDmaDesc[GD32F307_ETH_RX_BUFFER_COUNT]
+static Gd32f3xxRxDmaDesc rxDmaDesc[GD32F3XX_ETH_RX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 
 #endif
 
 //Pointer to the current TX DMA descriptor
-static Stm32f2xxTxDmaDesc *txCurDmaDesc;
+static Gd32f3xxTxDmaDesc *txCurDmaDesc;
 //Pointer to the current RX DMA descriptor
-static Stm32f2xxRxDmaDesc *rxCurDmaDesc;
+static Gd32f3xxRxDmaDesc *rxCurDmaDesc;
 
 
 /**
- * @brief GD32F307 Ethernet MAC driver
+ * @brief GD32F3XX Ethernet MAC driver
  **/
 
-const NicDriver gd32f307EthDriver =
+const NicDriver gd32f3xxEthDriver =
 {
    NIC_TYPE_ETHERNET,
    ETH_MTU,
-   gd32f307EthInit,
-   gd32f307EthTick,
-   gd32f307EthEnableIrq,
-   gd32f307EthDisableIrq,
-   gd32f307EthEventHandler,
-   gd32f307EthSendPacket,
-   gd32f307EthUpdateMacAddrFilter,
-   gd32f307EthUpdateMacConfig,
-   gd32f307EthWritePhyReg,
-   gd32f307EthReadPhyReg,
+   gd32f3xxEthInit,
+   gd32f3xxEthTick,
+   gd32f3xxEthEnableIrq,
+   gd32f3xxEthDisableIrq,
+   gd32f3xxEthEventHandler,
+   gd32f3xxEthSendPacket,
+   gd32f3xxEthUpdateMacAddrFilter,
+   gd32f3xxEthUpdateMacConfig,
+   gd32f3xxEthWritePhyReg,
+   gd32f3xxEthReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -106,23 +106,23 @@ const NicDriver gd32f307EthDriver =
 
 
 /**
- * @brief GD32F307 Ethernet MAC initialization
+ * @brief GD32F3XX Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t gd32f307EthInit(NetInterface *interface)
+error_t gd32f3xxEthInit(NetInterface *interface)
 {
    error_t error;
 
    //Debug message
-   TRACE_INFO("Initializing GD32F307 Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing GD32F3XX Ethernet MAC...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
 
    //GPIO configuration
-   gd32f307EthInitGpio(interface);
+   gd32f3xxEthInitGpio(interface);
 
    //Enable Ethernet MAC clock
    rcu_periph_clock_enable(RCU_ENET);
@@ -177,7 +177,7 @@ error_t gd32f307EthInit(NetInterface *interface)
    ENET_MAC_ADDR1L = 0;
    ENET_MAC_ADDR1H = 0;
    ENET_MAC_ADDR2L = 0;
-   ENET_MAC_ADDR2H = 0;
+   ENET_MAC_ADDT2H = 0;
    ENET_MAC_ADDR3L = 0;
    ENET_MAC_ADDR3H = 0;
 
@@ -197,7 +197,7 @@ error_t gd32f307EthInit(NetInterface *interface)
       ENET_ARBITRATION_RXTX_1_1 | ENET_PGBL_1BEAT | ENET_DMA_BCTL_DFM;
 
    //Initialize DMA descriptor lists
-   gd32f307EthInitDmaDesc(interface);
+   gd32f3xxEthInitDmaDesc(interface);
 
    //Prevent interrupts from being generated when the transmit statistic
    //counters reach half their maximum value
@@ -215,11 +215,11 @@ error_t gd32f307EthInit(NetInterface *interface)
    ENET_DMA_INTEN = ENET_DMA_INTEN_NIE | ENET_DMA_INTEN_RIE | ENET_DMA_INTEN_TIE;
 
    //Set priority grouping (4 bits for pre-emption priority, no bits for subpriority)
-   NVIC_SetPriorityGrouping(GD32F307_ETH_IRQ_PRIORITY_GROUPING);
+   NVIC_SetPriorityGrouping(GD32F3XX_ETH_IRQ_PRIORITY_GROUPING);
 
    //Configure Ethernet interrupt priority
-   NVIC_SetPriority(ENET_IRQn, NVIC_EncodePriority(GD32F307_ETH_IRQ_PRIORITY_GROUPING,
-      GD32F307_ETH_IRQ_GROUP_PRIORITY, GD32F307_ETH_IRQ_SUB_PRIORITY));
+   NVIC_SetPriority(ENET_IRQn, NVIC_EncodePriority(GD32F3XX_ETH_IRQ_PRIORITY_GROUPING,
+      GD32F3XX_ETH_IRQ_GROUP_PRIORITY, GD32F3XX_ETH_IRQ_SUB_PRIORITY));
 
    //Enable MAC transmission and reception
    ENET_MAC_CFG |= ENET_MAC_CFG_TEN | ENET_MAC_CFG_REN;
@@ -234,16 +234,15 @@ error_t gd32f307EthInit(NetInterface *interface)
 }
 
 
-//GD32307C-EVAL-EVAL evaluation board?
-#if defined(USE_GD32307C_EVAL)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void gd32f307EthInitGpio(NetInterface *interface)
+__weak_func void gd32f3xxEthInitGpio(NetInterface *interface)
 {
+//GD32307C-EVAL evaluation board?
+#if defined(USE_GD32307C_EVAL)
    //Enable SYSCFG clock
    rcu_periph_clock_enable(RCU_AF);
 
@@ -255,7 +254,7 @@ void gd32f307EthInitGpio(NetInterface *interface)
    //Configure CKOUT0 (PA8) as an output
    gpio_init(GPIOA, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_8);
 
-   //Configure CKOUT0 pin to output the PLL2 clock (50MHz)
+   //Configure CKOUT0 pin to output the 50MHz reference clock
    rcu_pll2_config(RCU_PLL2_MUL10);
    rcu_osci_on(RCU_PLL2_CK);
    rcu_osci_stab_wait(RCU_PLL2_CK);
@@ -265,28 +264,27 @@ void gd32f307EthInitGpio(NetInterface *interface)
    gpio_ethernet_phy_select(GPIO_ENET_PHY_RMII);
 
    //Configure ETH_RMII_REF_CLK (PA1)
-   gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_1);
+   gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_MAX, GPIO_PIN_1);
    //Configure ETH_MDIO (PA2)
-   gpio_init(GPIOA, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2);
+   gpio_init(GPIOA, GPIO_MODE_AF_PP, GPIO_OSPEED_2MHZ, GPIO_PIN_2);
    //Configure ETH_RMII_CRS_DV (PA7)
-   gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_7);
+   gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_MAX, GPIO_PIN_7);
 
    //Configure ETH_RMII_TX_EN (PB11)
-   gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_11);
+   gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_11);
    //Configure ETH_RMII_TXD0 (PB12)
-   gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_12);
+   gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_12);
    //Configure ETH_RMII_TXD1 (PB13)
-   gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13);
+   gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_MAX, GPIO_PIN_13);
 
    //Configure ETH_MDC (PC1)
-   gpio_init(GPIOC, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_1);
+   gpio_init(GPIOC, GPIO_MODE_AF_PP, GPIO_OSPEED_2MHZ, GPIO_PIN_1);
    //Configure ETH_RMII_RXD0 (PC4)
-   gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_4);
+   gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_MAX, GPIO_PIN_4);
    //Configure ETH_RMII_RXD1 (PC5)
-   gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_5);
-}
-
+   gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_MAX, GPIO_PIN_5);
 #endif
+}
 
 
 /**
@@ -294,12 +292,12 @@ void gd32f307EthInitGpio(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void gd32f307EthInitDmaDesc(NetInterface *interface)
+void gd32f3xxEthInitDmaDesc(NetInterface *interface)
 {
    uint_t i;
 
    //Initialize TX DMA descriptor list
-   for(i = 0; i < GD32F307_ETH_TX_BUFFER_COUNT; i++)
+   for(i = 0; i < GD32F3XX_ETH_TX_BUFFER_COUNT; i++)
    {
       //Use chain structure rather than ring structure
       txDmaDesc[i].tdes0 = ENET_TDES0_INTC | ENET_TDES0_TCHM;
@@ -323,12 +321,12 @@ void gd32f307EthInitDmaDesc(NetInterface *interface)
    txCurDmaDesc = &txDmaDesc[0];
 
    //Initialize RX DMA descriptor list
-   for(i = 0; i < GD32F307_ETH_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < GD32F3XX_ETH_RX_BUFFER_COUNT; i++)
    {
       //The descriptor is initially owned by the DMA
       rxDmaDesc[i].rdes0 = ENET_RDES0_DAV;
       //Use chain structure rather than ring structure
-      rxDmaDesc[i].rdes1 = ENET_RDES1_RCHM | (GD32F307_ETH_RX_BUFFER_SIZE & ENET_RDES1_RB1S);
+      rxDmaDesc[i].rdes1 = ENET_RDES1_RCHM | (GD32F3XX_ETH_RX_BUFFER_SIZE & ENET_RDES1_RB1S);
       //Receive buffer address
       rxDmaDesc[i].rdes2 = (uint32_t) rxBuffer[i];
       //Next descriptor address
@@ -355,7 +353,7 @@ void gd32f307EthInitDmaDesc(NetInterface *interface)
 
 
 /**
- * @brief GD32F307 Ethernet MAC timer handler
+ * @brief GD32F3XX Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to handle periodic
  * operations such as polling the link state
@@ -363,7 +361,7 @@ void gd32f307EthInitDmaDesc(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void gd32f307EthTick(NetInterface *interface)
+void gd32f3xxEthTick(NetInterface *interface)
 {
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -388,7 +386,7 @@ void gd32f307EthTick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void gd32f307EthEnableIrq(NetInterface *interface)
+void gd32f3xxEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
    NVIC_EnableIRQ(ENET_IRQn);
@@ -416,7 +414,7 @@ void gd32f307EthEnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void gd32f307EthDisableIrq(NetInterface *interface)
+void gd32f3xxEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
    NVIC_DisableIRQ(ENET_IRQn);
@@ -440,7 +438,7 @@ void gd32f307EthDisableIrq(NetInterface *interface)
 
 
 /**
- * @brief GD32F307 Ethernet MAC interrupt service routine
+ * @brief GD32F3XX Ethernet MAC interrupt service routine
  **/
 
 void ENET_IRQHandler(void)
@@ -492,11 +490,11 @@ void ENET_IRQHandler(void)
 
 
 /**
- * @brief GD32F307 Ethernet MAC event handler
+ * @brief GD32F3XX Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 
-void gd32f307EthEventHandler(NetInterface *interface)
+void gd32f3xxEthEventHandler(NetInterface *interface)
 {
    error_t error;
 
@@ -504,7 +502,7 @@ void gd32f307EthEventHandler(NetInterface *interface)
    do
    {
       //Read incoming packet
-      error = gd32f307EthReceivePacket(interface);
+      error = gd32f3xxEthReceivePacket(interface);
 
       //No more data in the receive buffer?
    } while(error != ERROR_BUFFER_EMPTY);
@@ -521,7 +519,7 @@ void gd32f307EthEventHandler(NetInterface *interface)
  * @return Error code
  **/
 
-error_t gd32f307EthSendPacket(NetInterface *interface,
+error_t gd32f3xxEthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
@@ -530,7 +528,7 @@ error_t gd32f307EthSendPacket(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > GD32F307_ETH_TX_BUFFER_SIZE)
+   if(length > GD32F3XX_ETH_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -560,7 +558,7 @@ error_t gd32f307EthSendPacket(NetInterface *interface,
    ENET_DMA_TPEN = 0;
 
    //Point to the next descriptor in the list
-   txCurDmaDesc = (Stm32f2xxTxDmaDesc *) txCurDmaDesc->tdes3;
+   txCurDmaDesc = (Gd32f3xxTxDmaDesc *) txCurDmaDesc->tdes3;
 
    //Check whether the next buffer is available for writing
    if((txCurDmaDesc->tdes0 & ENET_TDES0_DAV) == 0)
@@ -580,7 +578,7 @@ error_t gd32f307EthSendPacket(NetInterface *interface,
  * @return Error code
  **/
 
-error_t gd32f307EthReceivePacket(NetInterface *interface)
+error_t gd32f3xxEthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
@@ -599,7 +597,7 @@ error_t gd32f307EthReceivePacket(NetInterface *interface)
             //Retrieve the length of the frame
             n = (rxCurDmaDesc->rdes0 & ENET_RDES0_FRML) >> 16;
             //Limit the number of data to read
-            n = MIN(n, GD32F307_ETH_RX_BUFFER_SIZE);
+            n = MIN(n, GD32F3XX_ETH_RX_BUFFER_SIZE);
 
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -626,7 +624,7 @@ error_t gd32f307EthReceivePacket(NetInterface *interface)
       //Give the ownership of the descriptor back to the DMA
       rxCurDmaDesc->rdes0 = ENET_RDES0_DAV;
       //Point to the next descriptor in the list
-      rxCurDmaDesc = (Stm32f2xxRxDmaDesc *) rxCurDmaDesc->rdes3;
+      rxCurDmaDesc = (Gd32f3xxRxDmaDesc *) rxCurDmaDesc->rdes3;
    }
    else
    {
@@ -650,7 +648,7 @@ error_t gd32f307EthReceivePacket(NetInterface *interface)
  * @return Error code
  **/
 
-error_t gd32f307EthUpdateMacAddrFilter(NetInterface *interface)
+error_t gd32f3xxEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t j;
@@ -690,7 +688,7 @@ error_t gd32f307EthUpdateMacAddrFilter(NetInterface *interface)
          if(macIsMulticastAddr(&entry->addr))
          {
             //Compute CRC over the current MAC address
-            crc = gd32f307EthCalcCrc(&entry->addr, sizeof(MacAddr));
+            crc = gd32f3xxEthCalcCrc(&entry->addr, sizeof(MacAddr));
 
             //The upper 6 bits in the CRC register are used to index the
             //contents of the hash table
@@ -730,13 +728,13 @@ error_t gd32f307EthUpdateMacAddrFilter(NetInterface *interface)
    {
       //When the AE bit is set, the entry is used for perfect filtering
       ENET_MAC_ADDR2L = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
-      ENET_MAC_ADDR2H = unicastMacAddr[1].w[2] | ENET_MAC_ADDR2H_AFE;
+      ENET_MAC_ADDT2H = unicastMacAddr[1].w[2] | ENET_MAC_ADDR2H_AFE;
    }
    else
    {
       //When the AE bit is cleared, the entry is ignored
       ENET_MAC_ADDR2L = 0;
-      ENET_MAC_ADDR2H = 0;
+      ENET_MAC_ADDT2H = 0;
    }
 
    //Configure the third unicast address filter
@@ -772,7 +770,7 @@ error_t gd32f307EthUpdateMacAddrFilter(NetInterface *interface)
  * @return Error code
  **/
 
-error_t gd32f307EthUpdateMacConfig(NetInterface *interface)
+error_t gd32f3xxEthUpdateMacConfig(NetInterface *interface)
 {
    uint32_t config;
 
@@ -815,7 +813,7 @@ error_t gd32f307EthUpdateMacConfig(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void gd32f307EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void gd32f3xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
    uint32_t temp;
@@ -857,7 +855,7 @@ void gd32f307EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Register value
  **/
 
-uint16_t gd32f307EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t gd32f3xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr)
 {
    uint16_t data;
@@ -903,7 +901,7 @@ uint16_t gd32f307EthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Resulting CRC value
  **/
 
-uint32_t gd32f307EthCalcCrc(const void *data, size_t length)
+uint32_t gd32f3xxEthCalcCrc(const void *data, size_t length)
 {
    uint_t i;
    uint_t j;

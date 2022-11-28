@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _SNMP_AGENT_H
@@ -104,6 +104,11 @@ struct _SnmpAgentContext;
    #define SNMP_AGENT_VIEW_TABLE_SIZE 8
 #elif (SNMP_AGENT_VIEW_TABLE_SIZE < 1)
    #error SNMP_AGENT_VIEW_TABLE_SIZE parameter is not valid
+#endif
+
+//Application specific context
+#ifndef SNMP_AGENT_PRIVATE_CONTEXT
+   #define SNMP_AGENT_PRIVATE_CONTEXT
 #endif
 
 //C++ guard
@@ -198,6 +203,7 @@ struct _SnmpAgentContext
    int32_t informMsgId;                                       ///<Message identifier
 #endif
 #endif
+   SNMP_AGENT_PRIVATE_CONTEXT                                 ///<Application specific context
 };
 
 

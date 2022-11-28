@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -191,16 +191,15 @@ error_t f28m35xEthInit(NetInterface *interface)
 }
 
 
-//TMDXCNCDH52C1 evaluation board?
-#if defined(USE_TMDXCNCDH52C1)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void f28m35xEthInitGpio(NetInterface *interface)
+__weak_func void f28m35xEthInitGpio(NetInterface *interface)
 {
+//TMDXCNCDH52C1 evaluation board?
+#if defined(USE_TMDXCNCDH52C1)
    //Enable GPIO clocks
    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
@@ -308,9 +307,8 @@ void f28m35xEthInitGpio(NetInterface *interface)
    GPIODirModeSet(GPIO_PORTJ_BASE, GPIO_PIN_7, GPIO_DIR_MODE_HW);
    GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_7, GPIO_PIN_TYPE_STD);
    GPIOPinConfigure(GPIO_PJ7_MIIPHYRSTn);
-}
-
 #endif
+}
 
 
 /**

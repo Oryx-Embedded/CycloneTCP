@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -233,6 +233,12 @@
 
 //Return codes
 #define INADDR_NONE ((in_addr_t) (-1))
+
+//Maximum length for string representation of IPv4 address
+#define INET_ADDRSTRLEN 16
+
+//Maximum length for string representation of IPv6 address
+#define INET6_ADDRSTRLEN 40
 
 //C++ guard
 #ifdef __cplusplus

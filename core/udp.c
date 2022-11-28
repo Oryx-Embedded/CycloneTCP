@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -207,9 +207,13 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
             //An IPv4 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv4Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+            if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
+               socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+            {
                continue;
+            }
          }
 
          //Source IP address filtering
@@ -218,9 +222,13 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(socket->remoteIpAddr.ipv4Addr != pseudoHeader->ipv4Data.srcAddr)
+            if(socket->remoteIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
+               socket->remoteIpAddr.ipv4Addr != pseudoHeader->ipv4Data.srcAddr)
+            {
                continue;
+            }
          }
       }
       else
@@ -235,9 +243,13 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
             //An IPv6 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv6Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+            if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
+               !ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+            {
                continue;
+            }
          }
 
          //Source IP address filtering
@@ -246,9 +258,13 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr))
+            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
+               !ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr))
+            {
                continue;
+            }
          }
       }
       else

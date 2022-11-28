@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -222,23 +222,17 @@ error_t stm32f7xxEthInit(NetInterface *interface)
 }
 
 
-//STM32756G-EVAL, STM32F769I-EVAL, STM32F746G-Discovery, STM32F7508-DK,
-//STM32F769I-Discovery, Nucleo-F746ZG or Nucleo-F767ZI evaluation board?
-#if defined(USE_STM32756G_EVAL) || defined(USE_STM32F769I_EVAL) || \
-   defined(USE_STM32746G_DISCO) || defined(USE_STM32F7508_DISCO) || \
-   defined(USE_STM32F769I_DISCO) || defined(USE_STM32F7XX_NUCLEO_144)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void stm32f7xxEthInitGpio(NetInterface *interface)
+__weak_func void stm32f7xxEthInitGpio(NetInterface *interface)
 {
-   GPIO_InitTypeDef GPIO_InitStructure;
-
 //STM32756G-EVAL or STM32F769I-EVAL evaluation board?
 #if defined(USE_STM32756G_EVAL) || defined(USE_STM32F769I_EVAL)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -325,6 +319,8 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
 
 //STM32F746G-Discovery or STM32F7508-Discovery evaluation board?
 #elif defined(USE_STM32746G_DISCO) || defined(USE_STM32F7508_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -357,6 +353,8 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
 
 //STM32F769I-Discovery evaluation board?
 #elif defined(USE_STM32F769I_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -393,6 +391,8 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
 
 //Nucleo-F746ZG or Nucleo-F767ZI evaluation board?
 #elif defined(USE_STM32F7XX_NUCLEO_144)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -428,8 +428,6 @@ void stm32f7xxEthInitGpio(NetInterface *interface)
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 #endif
 }
-
-#endif
 
 
 /**

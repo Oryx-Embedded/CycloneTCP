@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _DHCP_CLIENT_H
@@ -114,11 +114,30 @@
    #error DHCP_CLIENT_PROBE_DELAY parameter is not valid
 #endif
 
+//Number of announcement packets
+#ifndef DHCP_CLIENT_ANNOUNCE_NUM
+   #define DHCP_CLIENT_ANNOUNCE_NUM 1
+#elif (DHCP_CLIENT_ANNOUNCE_NUM < 0)
+   #error DHCP_CLIENT_ANNOUNCE_NUM parameter is not valid
+#endif
+
+//Time between announcement packets
+#ifndef DHCP_CLIENT_ANNOUNCE_INTERVAL
+   #define DHCP_CLIENT_ANNOUNCE_INTERVAL 1000
+#elif (DHCP_CLIENT_ANNOUNCE_INTERVAL < 100)
+   #error DHCP_CLIENT_ANNOUNCE_INTERVAL parameter is not valid
+#endif
+
 //Random factor used to determine the delay between retransmissions
 #ifndef DHCP_CLIENT_RAND_FACTOR
    #define DHCP_CLIENT_RAND_FACTOR 1000
 #elif (DHCP_CLIENT_RAND_FACTOR < 100)
    #error DHCP_CLIENT_RAND_FACTOR parameter is not valid
+#endif
+
+//Application specific context
+#ifndef DHCP_CLIENT_PRIVATE_CONTEXT
+   #define DHCP_CLIENT_PRIVATE_CONTEXT
 #endif
 
 //Forward declaration of DhcpClientContext structure
@@ -143,9 +162,10 @@ typedef enum
    DHCP_STATE_INIT_REBOOT = 3,
    DHCP_STATE_REBOOTING   = 4,
    DHCP_STATE_PROBING     = 5,
-   DHCP_STATE_BOUND       = 6,
-   DHCP_STATE_RENEWING    = 7,
-   DHCP_STATE_REBINDING   = 8
+   DHCP_STATE_ANNOUNCING  = 6,
+   DHCP_STATE_BOUND       = 7,
+   DHCP_STATE_RENEWING    = 8,
+   DHCP_STATE_REBINDING   = 9
 } DhcpState;
 
 
@@ -230,6 +250,7 @@ struct _DhcpClientContext
    uint32_t leaseTime;          ///<Lease time
    uint32_t t1;                 ///<Time at which the client enters the RENEWING state
    uint32_t t2;                 ///<Time at which the client enters the REBINDING state
+   DHCP_CLIENT_PRIVATE_CONTEXT  ///<Application specific context
 };
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _IPV6_H
@@ -525,7 +525,7 @@ error_t ipv6ParseDestOptHeader(NetInterface *interface, const NetBuffer *ipPacke
 error_t ipv6ParseRoutingHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
 
-error_t ipv6ParseAuthHeader(NetInterface *interface, const NetBuffer *ipPacket,
+error_t ipv6ParseAhHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
 
 error_t ipv6ParseEspHeader(NetInterface *interface, const NetBuffer *ipPacket,

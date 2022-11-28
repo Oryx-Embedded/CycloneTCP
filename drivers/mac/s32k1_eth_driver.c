@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -241,16 +241,15 @@ error_t s32k1EthInit(NetInterface *interface)
 }
 
 
-//S32K1-EVB-Q176 evaluation board?
-#if defined(USE_S32K148_EVB_Q176)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void s32k1EthInitGpio(NetInterface *interface)
+__weak_func void s32k1EthInitGpio(NetInterface *interface)
 {
+//S32K1-EVB-Q176 evaluation board?
+#if defined(USE_S32K148_EVB_Q176)
    //Enable PARTA, PORTB, PORTC and PORTD peripheral clocks
    PCC->PCCn[PCC_PORTA_INDEX] = PCC_PCCn_CGC_MASK;
    PCC->PCCn[PCC_PORTB_INDEX] = PCC_PCCn_CGC_MASK;
@@ -288,9 +287,8 @@ void s32k1EthInitGpio(NetInterface *interface)
    sleep(10);
    PTA->PSOR |= (1 << 17);
    sleep(10);
-}
-
 #endif
+}
 
 
 /**

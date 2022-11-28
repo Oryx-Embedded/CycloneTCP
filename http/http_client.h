@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _HTTP_CLIENT_H
@@ -170,6 +170,11 @@
    #define HTTP_CLIENT_AUTH_SUPPORT DISABLED
 #endif
 
+//Application specific context
+#ifndef HTTP_CLIENT_PRIVATE_CONTEXT
+   #define HTTP_CLIENT_PRIVATE_CONTEXT
+#endif
+
 //TLS supported?
 #if (HTTP_CLIENT_TLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
@@ -288,6 +293,7 @@ struct _HttpClientContext
    size_t bodyLen;                                ///<Length of the body, in bytes
    size_t bodyPos;                                ///<Current position in the body
    uint_t statusCode;                             ///<HTTP status code
+   HTTP_CLIENT_PRIVATE_CONTEXT                    ///<Application specific context
 };
 
 

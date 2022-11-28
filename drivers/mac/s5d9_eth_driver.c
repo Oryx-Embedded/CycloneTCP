@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -211,16 +211,15 @@ error_t s5d9EthInit(NetInterface *interface)
 }
 
 
-//PK-S5D9 evaluation board?
-#if defined(USE_PK_S5D9)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void s5d9EthInitGpio(NetInterface *interface)
+__weak_func void s5d9EthInitGpio(NetInterface *interface)
 {
+//PK-S5D9 evaluation board?
+#if defined(USE_PK_S5D9)
    //Disable protection
    R_SYSTEM->PRCR = 0xA50B;
    //Disable VBATT channel 0 input (P4_2)
@@ -288,9 +287,8 @@ void s5d9EthInitGpio(NetInterface *interface)
    //Lock PFS registers
    R_PMISC->PWPR_b.PFSWE = 0;
    R_PMISC->PWPR_b.BOWI = 1;
-}
-
 #endif
+}
 
 
 /**

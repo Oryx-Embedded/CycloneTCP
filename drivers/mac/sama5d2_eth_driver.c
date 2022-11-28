@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -258,16 +258,15 @@ error_t sama5d2EthInit(NetInterface *interface)
 }
 
 
-//SAMA5D2-Xplained-Ultra evaluation board?
-#if defined(CONFIG_BOARD_SAMA5D2_XPLAINED)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void sama5d2EthInitGpio(NetInterface *interface)
+__weak_func void sama5d2EthInitGpio(NetInterface *interface)
 {
+//SAMA5D2-Xplained-Ultra evaluation board?
+#if defined(CONFIG_BOARD_SAMA5D2_XPLAINED)
    struct _pin rmiiPins[] = PINS_GMAC_RMII_IOS3;
 
    //Configure RMII pins
@@ -275,9 +274,8 @@ void sama5d2EthInitGpio(NetInterface *interface)
 
    //Select RMII operation mode
    GMAC0->GMAC_UR = GMAC_UR_RMII;
-}
-
 #endif
+}
 
 
 /**

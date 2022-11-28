@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -212,16 +212,15 @@ error_t sam9263EthInit(NetInterface *interface)
 }
 
 
-//SAM9263-EK evaluation board?
-#if defined(USE_SAM9263_EK)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void sam9263EthInitGpio(NetInterface *interface)
+__weak_func void sam9263EthInitGpio(NetInterface *interface)
 {
+//SAM9263-EK evaluation board?
+#if defined(USE_SAM9263_EK)
    //Enable PIO peripheral clocks
    AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_PIOA) | (1 << AT91C_ID_PIOCDE);
 
@@ -240,9 +239,8 @@ void sam9263EthInitGpio(NetInterface *interface)
 
    //Select RMII operation mode and enable transceiver clock
    AT91C_BASE_EMAC->EMAC_USRIO = AT91C_EMAC_CLKEN | AT91C_EMAC_RMII;
-}
-
 #endif
+}
 
 
 /**

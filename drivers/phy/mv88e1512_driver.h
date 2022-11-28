@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _MV88E1512_DRIVER_H
@@ -594,6 +594,7 @@ extern const PhyDriver mv88e1512PhyDriver;
 
 //88E1512 related functions
 error_t mv88e1512Init(NetInterface *interface);
+void mv88e1512InitHook(NetInterface *interface);
 
 void mv88e1512Tick(NetInterface *interface);
 

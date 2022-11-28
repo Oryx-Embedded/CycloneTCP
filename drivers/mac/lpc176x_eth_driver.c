@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -223,16 +223,15 @@ error_t lpc176xEthInit(NetInterface *interface)
 }
 
 
-//LPC1766-STK or LPCXpresso1769 evaluation board?
-#if defined(USE_LPC1766_STK) || defined(USE_LPCXPRESSO_1769)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void lpc176xEthInitGpio(NetInterface *interface)
+__weak_func void lpc176xEthInitGpio(NetInterface *interface)
 {
+//LPC1766-STK or LPCXpresso1769 evaluation board?
+#if defined(USE_LPC1766_STK) || defined(USE_LPCXPRESSO_1769)
    //Configure P1.0 (ENET_TXD0), P1.1 (ENET_TXD1), P1.4 (ENET_TX_EN), P1.8 (ENET_CRS),
    //P1.9 (ENET_RXD0), P1.10 (ENET_RXD1), P1.14 (RX_ER) and P1.15 (ENET_REF_CLK)
    LPC_PINCON->PINSEL2 &= ~(PINSEL2_P1_0_MASK | PINSEL2_P1_1_MASK |
@@ -246,9 +245,8 @@ void lpc176xEthInitGpio(NetInterface *interface)
    //Configure P1.16 (ENET_MDC) and P1.17 (ENET_MDIO)
    LPC_PINCON->PINSEL3 &= ~(PINSEL3_P1_16_MASK | PINSEL3_P1_17_MASK);
    LPC_PINCON->PINSEL3 |= PINSEL3_P1_16_ENET_MDC | PINSEL3_P1_17_ENET_MDIO;
-}
-
 #endif
+}
 
 
 /**

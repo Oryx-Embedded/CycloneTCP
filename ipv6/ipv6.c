@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -1118,15 +1118,15 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
          //Exit immediately
          return;
 
-      //Authentication header?
+      //AH header?
       case IPV6_AH_HEADER:
          //Parse current extension header
-         error = ipv6ParseAuthHeader(interface, ipPacket, ipPacketOffset,
+         error = ipv6ParseAhHeader(interface, ipPacket, ipPacketOffset,
             &i, &nextHeaderOffset);
          //Continue processing
          break;
 
-      //Encapsulating Security Payload header?
+      //ESP header?
       case IPV6_ESP_HEADER:
          //Parse current extension header
          error = ipv6ParseEspHeader(interface, ipPacket, ipPacketOffset,
@@ -1458,7 +1458,7 @@ error_t ipv6ParseRoutingHeader(NetInterface *interface, const NetBuffer *ipPacke
 
 
 /**
- * @brief Parse Authentication header
+ * @brief Parse AH header
  * @param[in] interface Underlying network interface
  * @param[in] ipPacket Multi-part buffer containing the IPv6 packet
  * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
@@ -1467,18 +1467,18 @@ error_t ipv6ParseRoutingHeader(NetInterface *interface, const NetBuffer *ipPacke
  * @brief Error code
  **/
 
-error_t ipv6ParseAuthHeader(NetInterface *interface, const NetBuffer *ipPacket,
+error_t ipv6ParseAhHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset)
 {
    //Debug message
-   TRACE_DEBUG("  Authentication header\r\n");
-   //Authentication not supported
+   TRACE_DEBUG("  AH header\r\n");
+   //IPsec is not supported
    return ERROR_FAILURE;
 }
 
 
 /**
- * @brief Parse Encapsulating Security Payload header
+ * @brief Parse ESP header
  * @param[in] interface Underlying network interface
  * @param[in] ipPacket Multi-part buffer containing the IPv6 packet
  * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
@@ -1491,8 +1491,8 @@ error_t ipv6ParseEspHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset)
 {
    //Debug message
-   TRACE_DEBUG("  Encapsulating Security Payload header\r\n");
-   //Authentication not supported
+   TRACE_DEBUG("  ESP header\r\n");
+   //IPsec is not supported
    return ERROR_FAILURE;
 }
 

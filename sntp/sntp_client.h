@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _SNTP_CLIENT_H
@@ -61,6 +61,11 @@
    #define SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT 15000
 #elif (SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT < 1000)
    #error SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT parameter is not valid
+#endif
+
+//Application specific context
+#ifndef SNTP_CLIENT_PRIVATE_CONTEXT
+   #define SNTP_CLIENT_PRIVATE_CONTEXT
 #endif
 
 //C++ guard
@@ -100,6 +105,7 @@ typedef struct
    uint8_t message[NTP_MAX_MSG_SIZE]; ///<Buffer that holds the NTP request/response
    size_t messageLen;                 ///<Length of the NTP message, in bytes
    uint32_t kissCode;                 ///<Kiss code
+   SNTP_CLIENT_PRIVATE_CONTEXT        ///<Application specific context
 } SntpClientContext;
 
 

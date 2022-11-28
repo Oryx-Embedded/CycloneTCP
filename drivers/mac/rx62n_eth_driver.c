@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -220,16 +220,15 @@ error_t rx62nEthInit(NetInterface *interface)
 }
 
 
-//RDK-RX62N evaluation board?
-#if defined(USE_RDK_RX62N)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void rx62nEthInitGpio(NetInterface *interface)
+__weak_func void rx62nEthInitGpio(NetInterface *interface)
 {
+//RDK-RX62N evaluation board?
+#if defined(USE_RDK_RX62N)
    //Select RMII interface mode
    IOPORT.PFENET.BIT.PHYMODE = 0;
 
@@ -258,9 +257,8 @@ void rx62nEthInitGpio(NetInterface *interface)
    PORTB.ICR.BIT.B3 = 1;
    //Configure RMII_CRS_DV (PB7)
    PORTB.ICR.BIT.B7 = 1;
-}
-
 #endif
+}
 
 
 /**

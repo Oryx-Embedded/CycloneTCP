@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _MV88E6060_DRIVER_H
@@ -555,6 +555,7 @@ extern const SwitchDriver mv88e6060SwitchDriver;
 
 //MV88E6060 related functions
 error_t mv88e6060Init(NetInterface *interface);
+void mv88e6060InitHook(NetInterface *interface);
 
 void mv88e6060Tick(NetInterface *interface);
 

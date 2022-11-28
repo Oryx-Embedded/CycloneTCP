@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -59,6 +59,8 @@ const PhyDriver dp83826PhyDriver =
 
 error_t dp83826Init(NetInterface *interface)
 {
+   uint16_t value;
+
    //Debug message
    TRACE_INFO("Initializing DP83826...\r\n");
 
@@ -93,11 +95,15 @@ error_t dp83826Init(NetInterface *interface)
    dp83826DumpPhyReg(interface);
 
    //Configure PWR_DOWN/INT pin as an interrupt output
-   dp83826WritePhyReg(interface, DP83826_PHYSCR, DP83826_PHYSCR_INT_EN |
-      DP83826_PHYSCR_INT_OE);
+   value = dp83826ReadPhyReg(interface, DP83826_PHYSCR);
+   value |= DP83826_PHYSCR_INT_EN | DP83826_PHYSCR_INT_OE;
+   dp83826WritePhyReg(interface, DP83826_PHYSCR, value);
 
    //The PHY will generate interrupts when link status changes are detected
    dp83826WritePhyReg(interface, DP83826_MISR1, DP83826_MISR1_LINK_INT_EN);
+
+   //Perform custom configuration
+   dp83826InitHook(interface);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
@@ -106,6 +112,16 @@ error_t dp83826Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief DP83826 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void dp83826InitHook(NetInterface *interface)
+{
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _ADIN1200_DRIVER_H
@@ -616,6 +616,7 @@ extern const PhyDriver adin1200PhyDriver;
 
 //ADIN1200 related functions
 error_t adin1200Init(NetInterface *interface);
+void adin1200InitHook(NetInterface *interface);
 
 void adin1200Tick(NetInterface *interface);
 

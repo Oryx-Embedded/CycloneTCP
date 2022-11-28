@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -227,6 +227,9 @@ error_t ksz9477Init(NetInterface *interface)
       ksz9477DumpPhyReg(interface, port);
    }
 
+   //Perform custom configuration
+   ksz9477InitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -234,6 +237,16 @@ error_t ksz9477Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief KSZ9477 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void ksz9477InitHook(NetInterface *interface)
+{
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -208,16 +208,15 @@ error_t avr32EthInit(NetInterface *interface)
 }
 
 
-//EVK1105 evaluation board?
-#if defined(USE_EVK1105)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void avr32EthInitGpio(NetInterface *interface)
+__weak_func void avr32EthInitGpio(NetInterface *interface)
 {
+//EVK1105 evaluation board?
+#if defined(USE_EVK1105)
    //Assign RMII pins to peripheral A function
    AVR32_GPIO.port[1].pmr0c = MACB_RMII_MASK;
    AVR32_GPIO.port[1].pmr1c =MACB_RMII_MASK;
@@ -227,9 +226,8 @@ void avr32EthInitGpio(NetInterface *interface)
 
    //Select RMII operation mode
    AVR32_MACB.usrio &= ~AVR32_MACB_USRIO_RMII_MASK;
-}
-
 #endif
+}
 
 
 /**

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -322,15 +322,12 @@ error_t tms570EthInit(NetInterface *interface)
 }
 
 
-//TMDS570LS31HDK or LAUNCHXL2-570LC43 evaluation board?
-#if defined(USE_TMDS570LS31HDK) || defined(USE_LAUNCHXL2_570LC43)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void tms570EthInitGpio(NetInterface *interface)
+__weak_func void tms570EthInitGpio(NetInterface *interface)
 {
 //LAUNCHXL2-570LC43 evaluation board?
 #if defined(USE_LAUNCHXL2_570LC43)
@@ -350,8 +347,6 @@ void tms570EthInitGpio(NetInterface *interface)
    sleep(10);
 #endif
 }
-
-#endif
 
 
 /**

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -211,16 +211,15 @@ error_t s7g2Eth2Init(NetInterface *interface)
 }
 
 
-//DK-S7G2 or SK-S7G2 evaluation board?
-#if defined(USE_DK_S7G2) || defined(USE_SK_S7G2)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void s7g2Eth2InitGpio(NetInterface *interface)
+__weak_func void s7g2Eth2InitGpio(NetInterface *interface)
 {
+//DK-S7G2 or SK-S7G2 evaluation board?
+#if defined(USE_DK_S7G2) || defined(USE_SK_S7G2)
    //Disable protection
    R_SYSTEM->PRCR = 0xA50B;
 
@@ -292,9 +291,8 @@ void s7g2Eth2InitGpio(NetInterface *interface)
    //Lock PFS registers
    R_PMISC->PWPR_b.PFSWE = 0;
    R_PMISC->PWPR_b.BOWI = 1;
-}
-
 #endif
+}
 
 
 /**

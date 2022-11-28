@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -169,7 +169,7 @@ error_t lldpSetTlv(LldpDataUnit *lldpdu, uint8_t type, uint_t index,
 
       //Format TLV header
       header->type = type;
-      header->lengthH = (length >> 7) & 0x01;
+      header->lengthH = (length >> 8) & 0x01;
       header->lengthL = length & 0xFF;
 
       //Copy the TLV information string
@@ -608,7 +608,7 @@ error_t lldpSetOrgDefTlv(LldpDataUnit *lldpdu, uint32_t oui, uint8_t subtype,
 
       //Format TLV header
       header->type = LLDP_TLV_TYPE_ORG_DEFINED;
-      header->lengthH = (n >> 7) & 0x01;
+      header->lengthH = (n >> 8) & 0x01;
       header->lengthL = n & 0xFF;
 
       //Point to the organizationally specific TLV header

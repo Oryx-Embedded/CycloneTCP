@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _TFTP_SERVER_H
@@ -94,6 +94,11 @@
    #define TFTP_SERVER_BLOCK_SIZE 512
 #elif (TFTP_SERVER_BLOCK_SIZE < 512)
    #error TFTP_SERVER_BLOCK_SIZE parameter is not valid
+#endif
+
+//Application specific context
+#ifndef TFTP_SERVER_PRIVATE_CONTEXT
+   #define TFTP_SERVER_PRIVATE_CONTEXT
 #endif
 
 //Maximum size of TFTP packets
@@ -211,6 +216,7 @@ struct _TftpServerContext
    TftpClientConnection connection[TFTP_SERVER_MAX_CONNECTIONS]; ///<Client connections
    SocketEventDesc eventDesc[TFTP_SERVER_MAX_CONNECTIONS + 1];   ///<The events the application is interested in
    uint8_t packet[TFTP_SERVER_MAX_PACKET_SIZE];                  ///<Incoming TFTP packet
+   TFTP_SERVER_PRIVATE_CONTEXT                                   ///<Application specific context
 };
 
 

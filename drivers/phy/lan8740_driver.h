@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _LAN8740_DRIVER_H
@@ -270,6 +270,7 @@ extern const PhyDriver lan8740PhyDriver;
 
 //LAN8740 related functions
 error_t lan8740Init(NetInterface *interface);
+void lan8740InitHook(NetInterface *interface);
 
 void lan8740Tick(NetInterface *interface);
 

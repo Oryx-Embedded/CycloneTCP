@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -223,16 +223,12 @@ error_t ra6EthInit(NetInterface *interface)
 }
 
 
-//EK-RA6M3, EK-RA6M4, EK-RA6M5 or M13-RA6M3-EK evaluation board?
-#if defined(USE_EK_RA6M3) || defined(USE_EK_RA6M4) || defined(USE_EK_RA6M5) || \
-   defined(USE_M13_RA6M3_EK)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void ra6EthInitGpio(NetInterface *interface)
+__weak_func void ra6EthInitGpio(NetInterface *interface)
 {
 //EK-RA6M3, EK-RA6M4 or EK-RA6M5 evaluation board?
 #if defined(USE_EK_RA6M3) || defined(USE_EK_RA6M4) || defined(USE_EK_RA6M5)
@@ -351,8 +347,6 @@ void ra6EthInitGpio(NetInterface *interface)
    R_PMISC->PWPR |= R_PMISC_PWPR_B0WI_Msk;
 #endif
 }
-
-#endif
 
 
 /**

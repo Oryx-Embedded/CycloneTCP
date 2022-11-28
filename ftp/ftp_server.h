@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _FTP_SERVER_H
@@ -179,6 +179,11 @@
    #define FTP_SERVER_PASSIVE_PORT_MAX 49151
 #elif (FTP_SERVER_PASSIVE_PORT_MAX <= FTP_SERVER_PASSIVE_PORT_MIN || FTP_SERVER_PASSIVE_PORT_MAX > 65535)
    #error FTP_SERVER_PASSIVE_PORT_MAX parameter is not valid
+#endif
+
+//Application specific context
+#ifndef FTP_SERVER_PRIVATE_CONTEXT
+   #define FTP_SERVER_PRIVATE_CONTEXT
 #endif
 
 //TLS supported?
@@ -432,8 +437,9 @@ struct _FtpServerContext
    FtpClientConnection *connections;                              ///<Client connections
    SocketEventDesc eventDesc[2 * FTP_SERVER_MAX_CONNECTIONS + 1]; ///<The events the application is interested in
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
-   TlsTicketContext tlsTicketContext;                            ///<TLS ticket encryption context
+   TlsTicketContext tlsTicketContext;                             ///<TLS ticket encryption context
 #endif
+   FTP_SERVER_PRIVATE_CONTEXT                                     ///<Application specific context
 };
 
 

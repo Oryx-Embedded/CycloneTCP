@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -99,6 +99,9 @@ error_t dp83620Init(NetInterface *interface)
    //The PHY will generate interrupts when link status changes are detected
    dp83620WritePhyReg(interface, DP83620_MISR, DP83620_MISR_LINK_INT_EN);
 
+   //Perform custom configuration
+   dp83620InitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -106,6 +109,16 @@ error_t dp83620Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief DP83620 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void dp83620InitHook(NetInterface *interface)
+{
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -216,16 +216,15 @@ error_t sama5d3GigabitEthInit(NetInterface *interface)
 }
 
 
-//SAMA5D3-Xplained, SAMA5D3-EDS or EVB-KSZ9477 evaluation board?
-#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS) || defined(USE_EVB_KSZ9477)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void sama5d3GigabitEthInitGpio(NetInterface *interface)
+__weak_func void sama5d3GigabitEthInitGpio(NetInterface *interface)
 {
+//SAMA5D3-Xplained, SAMA5D3-EDS or EVB-KSZ9477 evaluation board?
+#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS) || defined(USE_EVB_KSZ9477)
    //Enable PIO peripheral clock
    PMC->PMC_PCER0 = (1 << ID_PIOB);
 
@@ -241,9 +240,8 @@ void sama5d3GigabitEthInitGpio(NetInterface *interface)
 
    //Select RGMII operation mode
    GMAC->GMAC_UR = GMAC_UR_RGMII;
-}
-
 #endif
+}
 
 
 /**

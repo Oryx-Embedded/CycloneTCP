@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _LAN8671_DRIVER_H
@@ -327,6 +327,7 @@ extern const PhyDriver lan8671PhyDriver;
 
 //LAN8671 related functions
 error_t lan8671Init(NetInterface *interface);
+void lan8671InitHook(NetInterface *interface);
 
 void lan8671Tick(NetInterface *interface);
 

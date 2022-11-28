@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -324,10 +324,16 @@ void httpListenerTask(void *param)
                connection->running = TRUE;
                //Service the current connection request
                osSetEvent(&connection->startEvent);
-
-               //We are done
-               break;
             }
+            else
+            {
+               //Just for sanity
+               osReleaseSemaphore(&connection->serverContext->semaphore);
+               
+            }
+
+            //We are done
+            break;
          }
       }
    }

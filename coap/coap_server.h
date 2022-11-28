@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _COAP_SERVER_H
@@ -103,6 +103,11 @@
 //Priority at which the CoAP server should run
 #ifndef COAP_SERVER_PRIORITY
    #define COAP_SERVER_PRIORITY OS_TASK_PRIORITY_NORMAL
+#endif
+
+//Application specific context
+#ifndef COAP_SERVER_PRIVATE_CONTEXT
+   #define COAP_SERVER_PRIVATE_CONTEXT
 #endif
 
 //DTLS supported?
@@ -207,6 +212,7 @@ struct _CoapServerContext
    char_t uri[COAP_SERVER_MAX_URI_LEN + 1];                  ///<Resource identifier
    CoapMessage request;                                      ///<CoAP request message
    CoapMessage response;                                     ///<CoAP response message
+   COAP_SERVER_PRIVATE_CONTEXT                               ///<Application specific context
 };
 
 

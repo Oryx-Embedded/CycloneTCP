@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -312,16 +312,15 @@ error_t omapl138EthInit(NetInterface *interface)
 }
 
 
-//TMDSLCDK138 board?
-#if defined(USE_TMDSLCDK138)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void omapl138EthInitGpio(NetInterface *interface)
+__weak_func void omapl138EthInitGpio(NetInterface *interface)
 {
+//TMDSLCDK138 board?
+#if defined(USE_TMDSLCDK138)
    uint32_t temp;
 
    //Enable GPIO module
@@ -370,9 +369,8 @@ void omapl138EthInitGpio(NetInterface *interface)
 
    //Select MII interface mode
    SYSCFG0_CFGCHIP3_R &= ~SYSCFG_CFGCHIP3_RMII_SEL;
-}
-
 #endif
+}
 
 
 /**

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -206,16 +206,15 @@ error_t m487EthInit(NetInterface *interface)
 }
 
 
-//NuMaker-PFM-M487 or NuMaker-IoT-M487 evaluation board?
-#if defined(USE_NUMAKER_PFM_M487) || defined(USE_NUMAKER_IOT_M487)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void m487EthInitGpio(NetInterface *interface)
+__weak_func void m487EthInitGpio(NetInterface *interface)
 {
+//NuMaker-PFM-M487 or NuMaker-IoT-M487 evaluation board?
+#if defined(USE_NUMAKER_PFM_M487) || defined(USE_NUMAKER_IOT_M487)
    uint32_t temp;
 
    //Select RMII interface mode
@@ -255,9 +254,8 @@ void m487EthInitGpio(NetInterface *interface)
    temp = (temp & ~GPIO_SLEWCTL_HSREN11_Msk) | (GPIO_SLEWCTL_HIGH << GPIO_SLEWCTL_HSREN11_Pos);
    temp = (temp & ~GPIO_SLEWCTL_HSREN12_Msk) | (GPIO_SLEWCTL_HIGH << GPIO_SLEWCTL_HSREN11_Pos);
    PE->SLEWCTL = temp;
-}
-
 #endif
+}
 
 
 /**

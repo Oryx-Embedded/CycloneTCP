@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -216,16 +216,15 @@ error_t sama5d3EthInit(NetInterface *interface)
 }
 
 
-//SAMA5D3-Xplained or SAMA5D3-EDS evaluation board?
-#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void sama5d3EthInitGpio(NetInterface *interface)
+__weak_func void sama5d3EthInitGpio(NetInterface *interface)
 {
+//SAMA5D3-Xplained or SAMA5D3-EDS evaluation board?
+#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS)
    //Enable PIO peripheral clock
    PMC->PMC_PCER0 = (1 << ID_PIOC);
 
@@ -241,9 +240,8 @@ void sama5d3EthInitGpio(NetInterface *interface)
 
    //Select RMII operation mode and enable transceiver clock
    EMAC->EMAC_USRIO = EMAC_USRIO_CLKEN | EMAC_USRIO_RMII;
-}
-
 #endif
+}
 
 
 /**

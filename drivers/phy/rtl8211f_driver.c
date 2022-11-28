@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -96,6 +96,9 @@ error_t rtl8211fInit(NetInterface *interface)
    rtl8211fWritePhyReg(interface, RTL8211F_INER, RTL8211F_INER_AN_COMPLETE |
       RTL8211F_INER_LINK_STATUS);
 
+   //Perform custom configuration
+   rtl8211fInitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -103,6 +106,16 @@ error_t rtl8211fInit(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief RTL8211F custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void rtl8211fInitHook(NetInterface *interface)
+{
 }
 
 

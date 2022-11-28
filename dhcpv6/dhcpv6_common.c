@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -215,7 +215,7 @@ Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLen,
 
 
 /**
- * @brief Find the specified option in a DHCPv6 message
+ * @brief Search a DHCPv6 message for a given option
  * @param[in] options Pointer to the Options field
  * @param[in] optionsLength Length of the Options field
  * @param[in] optionCode Code of the option to find

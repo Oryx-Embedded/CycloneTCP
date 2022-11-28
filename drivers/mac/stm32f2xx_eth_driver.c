@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -232,21 +232,17 @@ error_t stm32f2xxEthInit(NetInterface *interface)
 }
 
 
-//STM3220G-EVAL, Nucleo-F207ZG, or MCBSTM32F200 evaluation board?
-#if defined(USE_STM322xG_EVAL) || defined(USE_STM32F2XX_NUCLEO_144) || \
-   defined(USE_MCBSTM32F200)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void stm32f2xxEthInitGpio(NetInterface *interface)
+__weak_func void stm32f2xxEthInitGpio(NetInterface *interface)
 {
-   GPIO_InitTypeDef GPIO_InitStructure;
-
 //STM3220G-EVAL evaluation board?
 #if defined(USE_STM322xG_EVAL)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -305,6 +301,8 @@ void stm32f2xxEthInitGpio(NetInterface *interface)
 
 //Nucleo-F207ZG evaluation board?
 #elif defined(USE_STM32F2XX_NUCLEO_144)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -341,6 +339,8 @@ void stm32f2xxEthInitGpio(NetInterface *interface)
 
 //MCBSTM32F200 evaluation board?
 #elif defined(USE_MCBSTM32F200)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -371,8 +371,6 @@ void stm32f2xxEthInitGpio(NetInterface *interface)
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 #endif
 }
-
-#endif
 
 
 /**

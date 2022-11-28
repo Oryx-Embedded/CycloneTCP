@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -96,6 +96,9 @@ error_t dm9161Init(NetInterface *interface)
    dm9161WritePhyReg(interface, DM9161_MDINTR, ~(DM9161_MDINTR_LINK_MASK |
       DM9161_MDINTR_INTR_MASK));
 
+   //Perform custom configuration
+   dm9161InitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -103,6 +106,16 @@ error_t dm9161Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief DM9161 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void dm9161InitHook(NetInterface *interface)
+{
 }
 
 

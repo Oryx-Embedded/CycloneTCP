@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _DP83TD510_DRIVER_H
@@ -149,6 +149,7 @@
 #define DP83TD510_DSP_REG_EC                                             0x1F, 0x08EC
 #define DP83TD510_DSP_REG_ED                                             0x1F, 0x08ED
 #define DP83TD510_DSP_REG_EE                                             0x1F, 0x08EE
+#define DP83TD510_MSE_DETECT                                             0x1F, 0x0A85
 #define DP83TD510_ALCD_METRIC                                            0x1F, 0x0A9D
 #define DP83TD510_ALCD_STATUS                                            0x1F, 0x0A9F
 #define DP83TD510_SCAN_2                                                 0x1F, 0x0E01
@@ -795,6 +796,11 @@
 //DSP_REG_EE register
 #define DP83TD510_DSP_REG_EE_CFG_ALCD_CABLE_5                            0x00FF
 
+//MSE_DETECT register
+#define DP83TD510_MSE_DETECT_SQI                                         0xFFFF
+#define DP83TD510_MSE_DETECT_SQI_GOOD                                    0x0320
+#define DP83TD510_MSE_DETECT_SQI_POOR                                    0x0660
+
 //ALCD_METRIC register
 #define DP83TD510_ALCD_METRIC_ALCD_METRIC_VALUE                          0xFFF0
 
@@ -816,6 +822,7 @@ extern const PhyDriver dp83td510PhyDriver;
 
 //DP83TD510 related functions
 error_t dp83td510Init(NetInterface *interface);
+void dp83td510InitHook(NetInterface *interface);
 
 void dp83td510Tick(NetInterface *interface);
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _KSZ8091_DRIVER_H
@@ -311,6 +311,7 @@ extern const PhyDriver ksz8091PhyDriver;
 
 //KSZ8091 related functions
 error_t ksz8091Init(NetInterface *interface);
+void ksz8091InitHook(NetInterface *interface);
 
 void ksz8091Tick(NetInterface *interface);
 

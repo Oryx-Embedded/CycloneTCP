@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -226,16 +226,15 @@ error_t efm32gg11EthInit(NetInterface *interface)
 }
 
 
-//EFM32 Giant Gecko 11 Starter Kit?
-#if defined(USE_EFM32_GIANT_GECKO_11_SK)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void efm32gg11EthInitGpio(NetInterface *interface)
+__weak_func void efm32gg11EthInitGpio(NetInterface *interface)
 {
+//EFM32 Giant Gecko 11 Starter Kit?
+#if defined(USE_EFM32_GIANT_GECKO_11_SK)
    uint32_t temp;
 
    //Enable GPIO clock
@@ -319,9 +318,8 @@ void efm32gg11EthInitGpio(NetInterface *interface)
    sleep(10);
    GPIO_PinOutSet(gpioPortH, 7);
    sleep(10);
-}
-
 #endif
+}
 
 
 /**

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _DHCP_SERVER_H
@@ -67,6 +67,11 @@
    #define DHCP_SERVER_MAX_DNS_SERVERS 2
 #elif (DHCP_SERVER_MAX_DNS_SERVERS < 1)
    #error DHCP_SERVER_MAX_DNS_SERVERS parameter is not valid
+#endif
+
+//Application specific context
+#ifndef DHCP_SERVER_PRIVATE_CONTEXT
+   #define DHCP_SERVER_PRIVATE_CONTEXT
 #endif
 
 //C++ guard
@@ -120,6 +125,7 @@ typedef struct
    bool_t running;                                           ///<This flag tells whether the DHCP server is running or not
    Ipv4Addr nextIpAddr;                                      ///<Next IP address to be assigned
    DhcpServerBinding clientBinding[DHCP_SERVER_MAX_CLIENTS]; ///<List of bindings
+   DHCP_SERVER_PRIVATE_CONTEXT                               ///<Application specific context
 } DhcpServerContext;
 
 

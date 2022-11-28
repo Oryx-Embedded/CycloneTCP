@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -37,6 +37,7 @@
 #include "lldp/lldp_ext_dot1.h"
 #include "lldp/lldp_ext_dot3.h"
 #include "lldp/lldp_ext_med.h"
+#include "lldp/lldp_ext_pno.h"
 #include "lldp/lldp_debug.h"
 #include "debug.h"
 
@@ -63,7 +64,8 @@ const LldpParamName lldpOuiList[] =
 {
    {LLDP_DOT1_OUI, "IEEE 802.1"},
    {LLDP_DOT3_OUI, "IEEE 802.3"},
-   {LLDP_MED_OUI,  "LLDP-MED"}
+   {LLDP_MED_OUI,  "LLDP-MED"},
+   {LLDP_PNO_OUI,  "PROFINET"}
 };
 
 //IEEE 802.1 subtype values
@@ -86,7 +88,7 @@ const LldpParamName lldpDot3SubtypeList[] =
    {LLDP_DOT3_SUBTYPE_MAX_FRAME_SIZE,        "Maximum Frame Size"}
 };
 
-//IEEE-MED subtype values
+//LLDP-MED subtype values
 const LldpParamName lldpMedSubtypeList[] =
 {
    {LLDP_MED_SUBTYPE_RESERVED,          "Reserved"},
@@ -101,6 +103,18 @@ const LldpParamName lldpMedSubtypeList[] =
    {LLDP_MED_SUBTYPE_MANUFACTURER_NAME, "Inventory - Manufacturer Name"},
    {LLDP_MED_SUBTYPE_MODEL_NAME,        "Inventory - Model Name"},
    {LLDP_MED_SUBTYPE_ASSET_ID,          "Inventory - Asset ID"}
+};
+
+//PROFINET subtype values
+const LldpParamName lldpPnoSubtypeList[] =
+{
+   {LLDP_PNO_SUBTYPE_RESERVED,              "Reserved"},
+   {LLDP_PNO_SUBTYPE_MEASURED_DELAY_VALUES, "Measured Delay Values"},
+   {LLDP_PNO_SUBTYPE_PORT_STATUS,           "Port Status"},
+   {LLDP_PNO_SUBTYPE_ALIAS,                 "Alias"},
+   {LLDP_PNO_SUBTYPE_MRP_PORT_STATUS,       "MRP Port Status"},
+   {LLDP_PNO_SUBTYPE_INTERFACE_MAC_ADDR,    "Interface MAC address"},
+   {LLDP_PNO_SUBTYPE_PTCP_STATUS,           "PTCP Status"},
 };
 
 
@@ -186,6 +200,11 @@ void lldpDumpTlv(const LldpTlv *tlv)
          {
             name = lldpGetParamName(orgDefTlv->subtype,
                lldpMedSubtypeList, arraysize(lldpMedSubtypeList));
+         }
+         else if(oui == LLDP_PNO_OUI)
+         {
+            name = lldpGetParamName(orgDefTlv->subtype,
+               lldpPnoSubtypeList, arraysize(lldpPnoSubtypeList));
          }
          else
          {

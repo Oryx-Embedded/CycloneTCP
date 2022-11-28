@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -124,6 +124,11 @@
    #define MQTT_CLIENT_BUFFER_SIZE 1024
 #elif (MQTT_CLIENT_BUFFER_SIZE < 1)
    #error MQTT_CLIENT_BUFFER_SIZE parameter is not valid
+#endif
+
+//Application specific context
+#ifndef MQTT_CLIENT_PRIVATE_CONTEXT
+   #define MQTT_CLIENT_PRIVATE_CONTEXT
 #endif
 
 //TLS supported?
@@ -334,6 +339,7 @@ struct _MqttClientContext
    MqttPacketType packetType;               ///<Control packet type
    uint16_t packetId;                       ///<Packet identifier
    size_t remainingLen;                     ///<Length of the variable header and payload
+   MQTT_CLIENT_PRIVATE_CONTEXT              ///<Application specific context
 };
 
 

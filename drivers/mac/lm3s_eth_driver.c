@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -172,24 +172,22 @@ error_t lm3sEthInit(NetInterface *interface)
 }
 
 
-//EK-LM3S6965 evaluation board?
-#if defined(USE_EK_LM3S6965)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void lm3sEthInitGpio(NetInterface *interface)
+__weak_func void lm3sEthInitGpio(NetInterface *interface)
 {
+//EK-LM3S6965 evaluation board?
+#if defined(USE_EK_LM3S6965)
    //Enable GPIO clock
    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
 
    //Configure status LEDs
    GPIOPinTypeEthernetLED(GPIO_PORTF_BASE, GPIO_PIN_2 | GPIO_PIN_3);
-}
-
 #endif
+}
 
 
 /**

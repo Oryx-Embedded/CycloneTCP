@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -224,22 +224,18 @@ error_t rx63nEthInit(NetInterface *interface)
 }
 
 
-//RDK-RX63N, RSK-RX63N or RSK-RX63N-256K evaluation board?
-#if defined(USE_RDK_RX63N) || defined(USE_RSK_RX63N) || \
-   defined(USE_RSK_RX63N_256K)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void rx63nEthInitGpio(NetInterface *interface)
+__weak_func void rx63nEthInitGpio(NetInterface *interface)
 {
+#if defined(USE_RDK_RX63N)
    //Unlock MPC registers
    MPC.PWPR.BIT.B0WI = 0;
    MPC.PWPR.BIT.PFSWE = 1;
 
-#if defined(USE_RDK_RX63N)
    //Select RMII interface mode
    MPC.PFENET.BIT.PHYMODE = 0;
 
@@ -287,7 +283,15 @@ void rx63nEthInitGpio(NetInterface *interface)
    PORTB.PMR.BIT.B7 = 1;
    MPC.PB7PFS.BYTE = 0x12;
 
+   //Lock MPC registers
+   MPC.PWPR.BIT.PFSWE = 0;
+   MPC.PWPR.BIT.B0WI = 0;
+
 #elif defined(USE_RSK_RX63N) || defined(USE_RSK_RX63N_256K)
+   //Unlock MPC registers
+   MPC.PWPR.BIT.B0WI = 0;
+   MPC.PWPR.BIT.PFSWE = 1;
+
    //Select MII interface mode
    MPC.PFENET.BIT.PHYMODE = 1;
 
@@ -362,14 +366,12 @@ void rx63nEthInitGpio(NetInterface *interface)
    //Configure ET_COL (PC7)
    PORTC.PMR.BIT.B7 = 1;
    MPC.PC7PFS.BYTE = 0x11;
-#endif
 
    //Lock MPC registers
    MPC.PWPR.BIT.PFSWE = 0;
    MPC.PWPR.BIT.B0WI = 0;
-}
-
 #endif
+}
 
 
 /**

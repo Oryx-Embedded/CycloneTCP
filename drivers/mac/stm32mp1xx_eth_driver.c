@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -246,20 +246,17 @@ error_t stm32mp1xxEthInit(NetInterface *interface)
 }
 
 
-//STM32MP157A-EV1 or STM32MP157C-DK2 evaluation board?
-#if defined(USE_STM32MP15XX_EVAL) || defined(USE_STM32MP15XX_DISCO)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void stm32mp1xxEthInitGpio(NetInterface *interface)
+__weak_func void stm32mp1xxEthInitGpio(NetInterface *interface)
 {
-   GPIO_InitTypeDef GPIO_InitStructure;
-
 //STM32MP157A-EV1 evaluation board?
 #if defined(USE_STM32MP15XX_EVAL)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -316,8 +313,11 @@ void stm32mp1xxEthInitGpio(NetInterface *interface)
    //sleep(10);
    //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);
    //sleep(10);
+
 //STM32MP157C-DK2 evaluation board?
 #elif defined(USE_STM32MP15XX_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -375,8 +375,6 @@ void stm32mp1xxEthInitGpio(NetInterface *interface)
    sleep(10);
 #endif
 }
-
-#endif
 
 
 /**

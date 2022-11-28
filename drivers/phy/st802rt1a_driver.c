@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -86,6 +86,9 @@ error_t st802rt1aInit(NetInterface *interface)
    //Dump PHY registers for debugging purpose
    st802rt1aDumpPhyReg(interface);
 
+   //Perform custom configuration
+   st802rt1aInitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -93,6 +96,16 @@ error_t st802rt1aInit(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief ST802RT1A custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void st802rt1aInitHook(NetInterface *interface)
+{
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -96,6 +96,9 @@ error_t ksz9131Init(NetInterface *interface)
    ksz9131WritePhyReg(interface, KSZ9131_ICSR, KSZ9131_ICSR_LINK_DOWN_IE |
       KSZ9131_ICSR_LINK_UP_IE);
 
+   //Perform custom configuration
+   ksz9131InitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -103,6 +106,16 @@ error_t ksz9131Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief KSZ9131 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void ksz9131InitHook(NetInterface *interface)
+{
 }
 
 

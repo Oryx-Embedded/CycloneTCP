@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -233,20 +233,17 @@ error_t stm32f1xxEthInit(NetInterface *interface)
 }
 
 
-//STM3210C-EVAL or STM32-P107 evaluation board?
-#if defined(USE_STM3210C_EVAL) || defined(USE_STM32_P107)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void stm32f1xxEthInitGpio(NetInterface *interface)
+__weak_func void stm32f1xxEthInitGpio(NetInterface *interface)
 {
-   GPIO_InitTypeDef GPIO_InitStructure;
-
 //STM3210C-EVAL evaluation board?
 #if defined(USE_STM3210C_EVAL)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable AFIO clock
    __HAL_RCC_AFIO_CLK_ENABLE();
 
@@ -326,7 +323,7 @@ void stm32f1xxEthInitGpio(NetInterface *interface)
 //STM32-P107 evaluation board?
 #elif defined(USE_STM32_P107)
    uint32_t temp;
-   //RCC_PeriphCLKInitTypeDef RCC_PeriphClkInitStruct;
+   GPIO_InitTypeDef GPIO_InitStructure;
 
    //Enable AFIO clock
    __HAL_RCC_AFIO_CLK_ENABLE();
@@ -401,8 +398,6 @@ void stm32f1xxEthInitGpio(NetInterface *interface)
    __HAL_AFIO_REMAP_ETH_DISABLE();
 #endif
 }
-
-#endif
 
 
 /**

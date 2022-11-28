@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -239,19 +239,12 @@ error_t mk6xEthInit(NetInterface *interface)
 }
 
 
-//FRDM-K64F, FRDM-K66F, TWR-K60N512, TWR-K60D100M, TWR-K60F120M,
-//TWR-K64F120M, TWR-K65F180M or embOS/IP Switch Board?
-#if defined(USE_FRDM_K64F) || defined(USE_FRDM_K66F) || \
-   defined(USE_TWR_K60N512) || defined(USE_TWR_K60D100M) || \
-   defined(USE_TWR_K60F120M) || defined(USE_TWR_K64F120M) || \
-   defined(USE_TWR_K65F180M) || defined(USE_EMBOS_IP_SWITCH_BOARD)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void mk6xEthInitGpio(NetInterface *interface)
+__weak_func void mk6xEthInitGpio(NetInterface *interface)
 {
 //TWR-K60N512, TWR-K60D100M or TWR-K60F120M evaluation board?
 #if defined(USE_TWR_K60N512) || defined(USE_TWR_K60D100M) || \
@@ -394,8 +387,6 @@ void mk6xEthInitGpio(NetInterface *interface)
    SIM->SOPT2 |= SIM_SOPT2_RMIISRC_MASK;
 #endif
 }
-
-#endif
 
 
 /**

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _ADIN1100_DRIVER_H
@@ -745,6 +745,7 @@ extern const PhyDriver adin1100PhyDriver;
 
 //ADIN1100 related functions
 error_t adin1100Init(NetInterface *interface);
+void adin1100InitHook(NetInterface *interface);
 
 void adin1100Tick(NetInterface *interface);
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _KSZ9893_DRIVER_H
@@ -1091,6 +1091,7 @@ extern const SwitchDriver ksz9893SwitchDriver;
 
 //KSZ9893 related functions
 error_t ksz9893Init(NetInterface *interface);
+void ksz9893InitHook(NetInterface *interface);
 
 void ksz9893Tick(NetInterface *interface);
 

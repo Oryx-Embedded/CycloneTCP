@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -757,7 +757,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
          buffer.chunk[0].length = (uint16_t) length;
 
          //Pass the IPv4 datagram to the higher protocol layer
-         ipv4ProcessDatagram(interface, (NetBuffer *) &buffer, ancillary);
+         ipv4ProcessDatagram(interface, (NetBuffer *) &buffer, 0, ancillary);
       }
 
       //End of exception handling block
@@ -776,24 +776,24 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
  * @brief Incoming IPv4 datagram processing
  * @param[in] interface Underlying network interface
  * @param[in] buffer Multi-part buffer that holds the incoming IPv4 datagram
+ * @param[in] offset Offset from the beginning of the buffer
  * @param[in] ancillary Additional options passed to the stack along with
  *   the packet
  **/
 
 void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
-   NetRxAncillary *ancillary)
+   size_t offset, NetRxAncillary *ancillary)
 {
    error_t error;
-   size_t offset;
    size_t length;
    Ipv4Header *header;
    IpPseudoHeader pseudoHeader;
 
    //Retrieve the length of the IPv4 datagram
-   length = netBufferGetLength(buffer);
+   length = netBufferGetLength(buffer) - offset;
 
    //Point to the IPv4 header
-   header = netBufferAt(buffer, 0);
+   header = netBufferAt(buffer, offset);
    //Sanity check
    if(header == NULL)
       return;
@@ -804,7 +804,7 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    ipv4DumpHeader(header);
 
    //Get the offset to the payload
-   offset = header->headerLength * 4;
+   offset += header->headerLength * 4;
    //Compute the length of the payload
    length -= header->headerLength * 4;
 
@@ -823,6 +823,9 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    IPV4_DATAGRAM_FORWARD_HOOK(interface, &pseudoHeader, buffer, offset);
 #endif
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Check the protocol field
    switch(header->protocol)
    {
@@ -837,8 +840,6 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
          ancillary);
 #endif
 
-      //No error to report
-      error = NO_ERROR;
       //Continue processing
       break;
 
@@ -856,8 +857,6 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
          ancillary);
 #endif
 
-      //No error to report
-      error = NO_ERROR;
       //Continue processing
       break;
 #endif
@@ -867,8 +866,6 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    case IPV4_PROTOCOL_TCP:
       //Process incoming TCP segment
       tcpProcessSegment(interface, &pseudoHeader, buffer, offset, ancillary);
-      //No error to report
-      error = NO_ERROR;
       //Continue processing
       break;
 #endif

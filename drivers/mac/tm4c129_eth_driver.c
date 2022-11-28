@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -308,15 +308,12 @@ error_t tm4c129EthInit(NetInterface *interface)
 }
 
 
-//DK-TM4C129X or EK-TM4C1294XL evaluation board?
-#if defined(USE_DK_TM4C129X) || defined(USE_EK_TM4C1294XL)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void tm4c129EthInitGpio(NetInterface *interface)
+__weak_func void tm4c129EthInitGpio(NetInterface *interface)
 {
 //DK-TM4C129X evaluation board?
 #if defined(USE_DK_TM4C129X)
@@ -346,8 +343,6 @@ void tm4c129EthInitGpio(NetInterface *interface)
    GPIOPinTypeEthernetLED(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4);
 #endif
 }
-
-#endif
 
 
 /**

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -239,16 +239,15 @@ error_t mk7xEthInit(NetInterface *interface)
 }
 
 
-//TWR-K70F120M evaluation board?
-#if defined(USE_TWR_K70F120M)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void mk7xEthInitGpio(NetInterface *interface)
+__weak_func void mk7xEthInitGpio(NetInterface *interface)
 {
+//TWR-K70F120M evaluation board?
+#if defined(USE_TWR_K70F120M)
    //Enable PORTA and PORTB peripheral clocks
    SIM->SCGC5 |= SIM_SCGC5_PORTA_MASK | SIM_SCGC5_PORTB_MASK;
 
@@ -271,9 +270,8 @@ void mk7xEthInitGpio(NetInterface *interface)
    PORTB->PCR[0] = PORT_PCR_MUX(4) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK;
    //Configure RMII0_MDC (PTB1)
    PORTB->PCR[1] = PORT_PCR_MUX(4);
-}
-
 #endif
+}
 
 
 /**

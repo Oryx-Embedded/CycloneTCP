@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -218,16 +218,15 @@ error_t same53EthInit(NetInterface *interface)
 }
 
 
-//EVB-LAN9255 evaluation board?
-#if defined(USE_EVB_LAN9255)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void same53EthInitGpio(NetInterface *interface)
+__weak_func void same53EthInitGpio(NetInterface *interface)
 {
+//EVB-LAN9255 evaluation board?
+#if defined(USE_EVB_LAN9255)
    uint32_t temp;
 
    //Enable PORT bus clock (CLK_PORT_APB)
@@ -288,9 +287,8 @@ void same53EthInitGpio(NetInterface *interface)
 
    //Select RMII operation mode
    GMAC_REGS->GMAC_UR &= ~GMAC_UR_MII_Msk;
-}
-
 #endif
+}
 
 
 /**

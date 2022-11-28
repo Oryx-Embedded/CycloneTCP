@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -244,27 +244,18 @@ error_t stm32h7xxEthInit(NetInterface *interface)
 }
 
 
-//STM32F743I-EVAL, STM32F747I-EVAL, STM32H735G-DK, STM32H745I-Discovery,
-//STM32H747I-Discovery, STM32H750B-DK, Nucleo-H723ZG, Nucleo-H743ZI,
-//Nucleo-H743ZI2 or Nucleo-H745ZI-Q evaluation board?
-#if defined(USE_STM32H743I_EVAL) || defined(USE_STM32H747I_EVAL) || \
-   defined(USE_STM32H735G_DK) || defined(USE_STM32H745I_DISCO) || \
-   defined(USE_STM32H747I_DISCO) || defined(USE_STM32H750B_DISCO) || \
-   defined(USE_NUCLEO_H723ZG) || defined(USE_NUCLEO_H743ZI) || \
-   defined(USE_NUCLEO_H743ZI2) || defined(USE_NUCLEO_H745ZI_Q)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void stm32h7xxEthInitGpio(NetInterface *interface)
+__weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
 {
-   GPIO_InitTypeDef GPIO_InitStructure;
-
 //STM32F743I-EVAL, STM32F747I-EVAL or STM32H747I-Discovery evaluation board?
 #if defined(USE_STM32H743I_EVAL) || defined(USE_STM32H747I_EVAL) || \
    defined(USE_STM32H747I_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -296,6 +287,8 @@ void stm32h7xxEthInitGpio(NetInterface *interface)
 
 //STM32H735G-DK evaluation board?
 #elif defined(USE_STM32H735G_DK)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -328,6 +321,8 @@ void stm32h7xxEthInitGpio(NetInterface *interface)
 
 //STM32H745I-Discovery or STM32H750B-DK evaluation board?
 #elif defined(USE_STM32H745I_DISCO) || defined(USE_STM32H750B_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -382,6 +377,8 @@ void stm32h7xxEthInitGpio(NetInterface *interface)
 //board?
 #elif defined(USE_NUCLEO_H723ZG) || defined(USE_NUCLEO_H743ZI) || \
    defined(USE_NUCLEO_H743ZI2) || defined(USE_NUCLEO_H745ZI_Q)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -417,8 +414,6 @@ void stm32h7xxEthInitGpio(NetInterface *interface)
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 #endif
 }
-
-#endif
 
 
 /**

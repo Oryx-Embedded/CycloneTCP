@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -304,16 +304,15 @@ error_t rm57EthInit(NetInterface *interface)
 }
 
 
-//LAUNCHXL2-RM57L evaluation board?
-#if defined(USE_LAUNCHXL2_RM57L)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void rm57EthInitGpio(NetInterface *interface)
+__weak_func void rm57EthInitGpio(NetInterface *interface)
 {
+//LAUNCHXL2-RM57L evaluation board?
+#if defined(USE_LAUNCHXL2_RM57L)
    //Configure PHY_INT (PA_3) as an input
    gioPORTA->DIR &= ~(1 << 3);
    gioPORTA->PSL |= (1 << 3);
@@ -328,9 +327,8 @@ void rm57EthInitGpio(NetInterface *interface)
    sleep(10);
    gioPORTA->DSET = (1 << 4);
    sleep(10);
-}
-
 #endif
+}
 
 
 /**

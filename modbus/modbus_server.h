@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -101,6 +101,11 @@
    #define MODBUS_SERVER_MAX_ROLE_LEN 32
 #elif (MODBUS_SERVER_MAX_ROLE_LEN < 0)
    #error MODBUS_SERVER_MAX_ROLE_LEN parameter is not valid
+#endif
+
+//Application specific context
+#ifndef MODBUS_SERVER_PRIVATE_CONTEXT
+   #define MODBUS_SERVER_PRIVATE_CONTEXT
 #endif
 
 //TLS supported?
@@ -302,6 +307,7 @@ struct _ModbusServerContext
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
    TlsTicketContext tlsTicketContext;                                ///<TLS ticket encryption context
 #endif
+   MODBUS_SERVER_PRIVATE_CONTEXT                                     ///<Application specific context
 };
 
 

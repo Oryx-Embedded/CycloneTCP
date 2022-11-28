@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _KSZ8775_DRIVER_H
@@ -812,6 +812,7 @@ extern const SwitchDriver ksz8775SwitchDriver;
 
 //KSZ8775 related functions
 error_t ksz8775Init(NetInterface *interface);
+void ksz8775InitHook(NetInterface *interface);
 
 void ksz8775Tick(NetInterface *interface);
 

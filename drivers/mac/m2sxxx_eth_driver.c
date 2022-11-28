@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -238,21 +238,19 @@ error_t m2sxxxEthInit(NetInterface *interface)
 }
 
 
-//SF2-STARTER-KIT-ES-2 evaluation board?
-#if defined(USE_SF2_STARTER_KIT_ES_2)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void m2sxxxEthInitGpio(NetInterface *interface)
+__weak_func void m2sxxxEthInitGpio(NetInterface *interface)
 {
+//SF2-STARTER-KIT-ES-2 evaluation board?
+#if defined(USE_SF2_STARTER_KIT_ES_2)
    //Select MII interface mode
    SYSREG->MAC_CR = MAC_CR_ETH_PHY_MODE_MII;
-}
-
 #endif
+}
 
 
 /**

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _DHCPV6_CLIENT_H
@@ -217,6 +217,11 @@
    #error DHCPV6_CLIENT_REC_MAX_RC parameter is not valid
 #endif
 
+//Application specific context
+#ifndef DHCPV6_CLIENT_PRIVATE_CONTEXT
+   #define DHCPV6_CLIENT_PRIVATE_CONTEXT
+#endif
+
 //Forward declaration of Dhcpv6ClientContext structure
 struct _Dhcpv6ClientContext;
 #define Dhcpv6ClientContext struct _Dhcpv6ClientContext
@@ -352,6 +357,7 @@ struct _Dhcpv6ClientContext
    systime_t exchangeStartTime;                     ///<Time at which the client sent the first message
    systime_t leaseStartTime;                        ///<Lease start time
    Dhcpv6ClientIa ia;                               ///<Identity association
+   DHCPV6_CLIENT_PRIVATE_CONTEXT                    ///<Application specific context
 };
 
 

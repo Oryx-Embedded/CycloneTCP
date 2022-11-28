@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -92,6 +92,9 @@ error_t dp83tc811Init(NetInterface *interface)
    //Dump PHY registers for debugging purpose
    dp83tc811DumpPhyReg(interface);
 
+   //Perform custom configuration
+   dp83tc811InitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -99,6 +102,16 @@ error_t dp83tc811Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief DP83TC811 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void dp83tc811InitHook(NetInterface *interface)
+{
 }
 
 

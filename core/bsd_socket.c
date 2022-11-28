@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -137,16 +137,8 @@ int_t bind(int_t s, const struct sockaddr *addr, socklen_t addrlen)
       port = ntohs(sa->sin_port);
 
       //Copy IPv4 address
-      if(sa->sin_addr.s_addr == INADDR_ANY)
-      {
-         ipAddr.length = 0;
-         ipAddr.ipv4Addr = IPV4_UNSPECIFIED_ADDR;
-      }
-      else
-      {
-         ipAddr.length = sizeof(Ipv4Addr);
-         ipAddr.ipv4Addr = sa->sin_addr.s_addr;
-      }
+      ipAddr.length = sizeof(Ipv4Addr);
+      ipAddr.ipv4Addr = sa->sin_addr.s_addr;
    }
    else
 #endif
@@ -239,16 +231,8 @@ int_t connect(int_t s, const struct sockaddr *addr, socklen_t addrlen)
       port = ntohs(sa->sin_port);
 
       //Copy IPv4 address
-      if(sa->sin_addr.s_addr == INADDR_ANY)
-      {
-         ipAddr.length = 0;
-         ipAddr.ipv4Addr = IPV4_UNSPECIFIED_ADDR;
-      }
-      else
-      {
-         ipAddr.length = sizeof(Ipv4Addr);
-         ipAddr.ipv4Addr = sa->sin_addr.s_addr;
-      }
+      ipAddr.length = sizeof(Ipv4Addr);
+      ipAddr.ipv4Addr = sa->sin_addr.s_addr;
    }
    else
 #endif
@@ -2729,7 +2713,7 @@ const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size)
 {
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
-   if(af == AF_INET && size >= 16)
+   if(af == AF_INET && size >= INET_ADDRSTRLEN)
    {
       Ipv4Addr ipv4Addr;
 
@@ -2743,7 +2727,7 @@ const char_t *inet_ntop(int_t af, const void *src, char_t *dst, socklen_t size)
 #endif
 #if (IPV6_SUPPORT == ENABLED)
    //IPv6 address?
-   if(af == AF_INET6 && size >= 40)
+   if(af == AF_INET6 && size >= INET6_ADDRSTRLEN)
    {
       Ipv6Addr ipv6Addr;
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -290,16 +290,15 @@ error_t tc3xxEthInit(NetInterface *interface)
 }
 
 
-//AURIX TC397 TFT Application Kit?
-#if defined(USE_KIT_A2G_TC397_TFT)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void tc3xxEthInitGpio(NetInterface *interface)
+__weak_func void tc3xxEthInitGpio(NetInterface *interface)
 {
+//AURIX TC397 TFT Application Kit?
+#if defined(USE_KIT_A2G_TC397_TFT)
    //Configure GETH_TXD3 (P11.0)
    MODULE_P11.IOCR0.B.PC0 = 22;
 
@@ -411,9 +410,8 @@ void tc3xxEthInitGpio(NetInterface *interface)
    //Set delay for RGMII TX and RX clocks
    MODULE_GETH.SKEWCTL.B.TXCFG = 5;
    MODULE_GETH.SKEWCTL.B.RXCFG = 5;
-}
-
 #endif
+}
 
 
 /**

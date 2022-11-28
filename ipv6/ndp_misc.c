@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -630,7 +630,7 @@ void ndpAddOption(void *message, size_t *messageLen, uint8_t type,
 
 
 /**
- * @brief Find a specified option in a NDP message
+ * @brief Search a NDP message for a given option
  * @param[in] options Pointer to the Options field
  * @param[in] length Length of the Options field
  * @param[in] type Type of the option to find
@@ -668,7 +668,7 @@ void *ndpGetOption(uint8_t *options, size_t length, uint8_t type)
       i += option->length * 8;
    }
 
-   //Specified option type not found
+   //The specified option type was not found
    return NULL;
 }
 

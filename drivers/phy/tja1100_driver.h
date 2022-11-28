@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _TJA1100_DRIVER_H
@@ -298,6 +298,7 @@ extern const PhyDriver tja1100PhyDriver;
 
 //TJA1100 related functions
 error_t tja1100Init(NetInterface *interface);
+void tja1100InitHook(NetInterface *interface);
 
 void tja1100Tick(NetInterface *interface);
 

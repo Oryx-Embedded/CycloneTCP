@@ -33,7 +33,7 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -569,13 +569,19 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
       //If an instance name precedes the service name, then
       //remove the null label
       if(length > 0)
+      {
          length--;
+      }
 
       //Encode service name
       if(dest != NULL)
+      {
          n = dnsEncodeName(service, dest + length);
+      }
       else
+      {
          n = dnsEncodeName(service, NULL);
+      }
 
       //Failed to encode instance name?
       if(!n)
@@ -587,7 +593,9 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
 
    //Skip the separator that may precede the domain name
    if(*domain == '.')
+   {
       domain++;
+   }
 
    //Any domain name to encode?
    if(*domain != '\0')
@@ -595,13 +603,19 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
       //If an instance or a service name precedes the domain name, then
       //remove the null label
       if(length > 0)
+      {
          length--;
+      }
 
       //Encode domain name
       if(dest != NULL)
+      {
          n = dnsEncodeName(domain, dest + length);
+      }
       else
+      {
          n = dnsEncodeName(domain, NULL);
+      }
 
       //Failed to encode instance name?
       if(!n)

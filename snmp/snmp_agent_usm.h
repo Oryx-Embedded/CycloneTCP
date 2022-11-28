@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _SNMP_AGENT_USM_H
@@ -133,13 +133,13 @@
 //Support for DES encryption?
 #if (SNMP_DES_SUPPORT == ENABLED)
    #include "cipher/des.h"
-   #include "cipher_mode/cbc.h"
+   #include "cipher_modes/cbc.h"
 #endif
 
 //Support for AES encryption ?
 #if (SNMP_AES_SUPPORT == ENABLED)
    #include "cipher/aes.h"
-   #include "cipher_mode/cfb.h"
+   #include "cipher_modes/cfb.h"
 #endif
 
 //Maximum size for authentication and privacy keys

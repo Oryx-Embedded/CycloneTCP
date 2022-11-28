@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -136,15 +136,21 @@ void ndpRouterAdvLinkChangeEvent(NdpRouterAdvContext *context)
 
    //Default Hop Limit value
    if(context->settings.curHopLimit != 0)
+   {
       interface->ipv6Context.curHopLimit = context->settings.curHopLimit;
+   }
 
    //The time a node assumes a neighbor is reachable
    if(context->settings.reachableTime != 0)
+   {
       interface->ndpContext.reachableTime = context->settings.reachableTime;
+   }
 
    //The time between retransmissions of NS messages
    if(context->settings.retransTimer != 0)
+   {
       interface->ndpContext.retransTimer = context->settings.retransTimer;
+   }
 }
 
 

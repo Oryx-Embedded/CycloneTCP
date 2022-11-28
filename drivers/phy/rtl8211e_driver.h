@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _RTL8211E_DRIVER_H
@@ -245,6 +245,7 @@ extern const PhyDriver rtl8211ePhyDriver;
 
 //RTL8211E related functions
 error_t rtl8211eInit(NetInterface *interface);
+void rtl8211eInitHook(NetInterface *interface);
 
 void rtl8211eTick(NetInterface *interface);
 

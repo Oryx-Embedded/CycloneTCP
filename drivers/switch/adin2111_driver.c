@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -204,6 +204,9 @@ error_t adin2111Init(NetInterface *interface)
       adin2111WriteMmdReg(interface, port, ADIN2111_CRSM_SFT_PD_CNTRL, value);
    }
 
+   //Perform custom configuration
+   adin2111InitHook(interface);
+
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
 
@@ -214,6 +217,16 @@ error_t adin2111Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief ADIN2111 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void adin2111InitHook(NetInterface *interface)
+{
 }
 
 

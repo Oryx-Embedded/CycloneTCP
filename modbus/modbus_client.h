@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _MODBUS_CLIENT_H
@@ -68,6 +68,11 @@
    #define MODBUS_CLIENT_TLS_RX_BUFFER_SIZE 2048
 #elif (MODBUS_CLIENT_TLS_RX_BUFFER_SIZE < 512)
    #error MODBUS_CLIENT_TLS_RX_BUFFER_SIZE parameter is not valid
+#endif
+
+//Application specific context
+#ifndef MODBUS_CLIENT_PRIVATE_CONTEXT
+   #define MODBUS_CLIENT_PRIVATE_CONTEXT
 #endif
 
 //TLS supported?
@@ -140,6 +145,7 @@ struct _ModbusClientContext
    size_t responseAduLen;                       ///<Length of the response ADU, in bytes
    size_t responseAduPos;                       ///<Current position in the response ADU
    ModbusExceptionCode exceptionCode;           ///<Exception code
+   MODBUS_CLIENT_PRIVATE_CONTEXT                ///<Application specific context
 };
 
 

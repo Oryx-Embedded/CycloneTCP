@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -104,7 +104,7 @@ error_t dhcpAddOption(DhcpMessage *message, size_t *messageLen,
 
 
 /**
- * @brief Find the specified option in a DHCP message
+ * @brief Search a DHCP message for a given option
  * @param[in] message Pointer to the DHCP message
  * @param[in] length Length of the message
  * @param[in] optionCode Code of the option to find
@@ -168,7 +168,7 @@ DhcpOption *dhcpGetOption(const DhcpMessage *message, size_t length,
       }
    }
 
-   //The specified option code does not exist
+   //The specified option code was not found
    return NULL;
 }
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -223,16 +223,15 @@ error_t lpc178xEthInit(NetInterface *interface)
 }
 
 
-//LPC1788-32 Developer's Kit?
-#if defined(USE_LPC1788_32_DEV_KIT)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void lpc178xEthInitGpio(NetInterface *interface)
+__weak_func void lpc178xEthInitGpio(NetInterface *interface)
 {
+//LPC1788-32 Developer's Kit?
+#if defined(USE_LPC1788_32_DEV_KIT)
    //Power up GPIO
    LPC_SC->PCONP |= PCONP_PCGPIO;
 
@@ -256,9 +255,8 @@ void lpc178xEthInitGpio(NetInterface *interface)
    LPC_IOCON->P1_16 = IOCON_MODE_PULL_UP | IOCON_FUNC_1;
    //Configure P1.17 (ENET_MDIO)
    LPC_IOCON->P1_17 = IOCON_MODE_PULL_UP | IOCON_FUNC_1;
-}
-
 #endif
+}
 
 
 /**

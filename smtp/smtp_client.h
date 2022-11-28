@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _SMTP_CLIENT_H
@@ -116,6 +116,11 @@
    #define SMTP_CLIENT_BOUNDARY_MAX_LEN 70
 #elif (SMTP_CLIENT_BOUNDARY_MAX_LEN < 1)
    #error SMTP_CLIENT_BOUNDARY_MAX_LEN parameter is not valid
+#endif
+
+//Application specific context
+#ifndef SMTP_CLIENT_PRIVATE_CONTEXT
+   #define SMTP_CLIENT_PRIVATE_CONTEXT
 #endif
 
 //TLS supported?
@@ -272,6 +277,7 @@ struct _SmtpClientContext
    size_t replyLen;                            ///<Length of the SMTP reply, in bytes
    uint_t replyCode;                           ///<SMTP reply code
    uint_t recipientIndex;                      ///<Index of the current recipient
+   SMTP_CLIENT_PRIVATE_CONTEXT                 ///<Application specific context
 };
 
 

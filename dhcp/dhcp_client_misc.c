@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -118,6 +118,12 @@ void dhcpClientTick(DhcpClientContext *context)
       case DHCP_STATE_PROBING:
          //The client probes the newly received address
          dhcpClientStateProbing(context);
+         break;
+
+      //ANNOUNCING state?
+      case DHCP_STATE_ANNOUNCING:
+         //The client announces its new IP address
+         dhcpClientStateAnnouncing(context);
          break;
 
       //BOUND state?
@@ -1013,7 +1019,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
    //Retrieve Subnet Mask option
    option = dhcpGetOption(message, length, DHCP_OPT_SUBNET_MASK);
 
-   //The specified option has been found?
+   //Option found?
    if(option != NULL && option->length == sizeof(Ipv4Addr))
    {
       //Save subnet mask
@@ -1024,7 +1030,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
    //Retrieve Router option
    option = dhcpGetOption(message, length, DHCP_OPT_ROUTER);
 
-   //The specified option has been found?
+   //Option found?
    if(option != NULL && !(option->length % sizeof(Ipv4Addr)))
    {
       //Save default gateway
@@ -1041,7 +1047,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
       //Retrieve DNS Server option
       option = dhcpGetOption(message, length, DHCP_OPT_DNS_SERVER);
 
-      //The specified option has been found?
+      //Option found?
       if(option != NULL && !(option->length % sizeof(Ipv4Addr)))
       {
          //Get the number of addresses provided in the response
@@ -1060,7 +1066,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
    //Retrieve MTU option
    option = dhcpGetOption(message, length, DHCP_OPT_INTERFACE_MTU);
 
-   //The specified option has been found?
+   //Option found?
    if(option != NULL && option->length == 2)
    {
       //This option specifies the MTU to use on this interface
@@ -1284,6 +1290,7 @@ void dhcpClientChangeState(DhcpClientContext *context,
          "INIT-REBOOT",
          "REBOOTING",
          "PROBING",
+         "ANNOUNCING",
          "BOUND",
          "RENEWING",
          "REBINDING"

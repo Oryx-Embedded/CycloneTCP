@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -228,16 +228,15 @@ error_t mcimx6ulEth2Init(NetInterface *interface)
 }
 
 
-//MCIMX6UL-EVKB or MCIMX6ULL-EVK evaluation board?
-#if defined(USE_MCIMX6UL_EVKB) || defined(USE_MCIMX6ULL_EVK)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void mcimx6ulEth2InitGpio(NetInterface *interface)
+__weak_func void mcimx6ulEth2InitGpio(NetInterface *interface)
 {
+//MCIMX6UL-EVKB or MCIMX6ULL-EVK evaluation board?
+#if defined(USE_MCIMX6UL_EVKB) || defined(USE_MCIMX6ULL_EVK)
    gpio_pin_config_t pinConfig;
 
    //Enable ENET2_TX_CLK output driver
@@ -394,9 +393,8 @@ void mcimx6ulEth2InitGpio(NetInterface *interface)
    pinConfig.outputLogic = 0;
    pinConfig.interruptMode = kGPIO_NoIntmode;
    GPIO_PinInit(GPIO5, 6, &pinConfig);
-}
-
 #endif
+}
 
 
 /**

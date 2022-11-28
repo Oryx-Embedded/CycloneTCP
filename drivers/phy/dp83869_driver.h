@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _DP83869_DRIVER_H
@@ -845,6 +845,7 @@ extern const PhyDriver dp83869PhyDriver;
 
 //DP83869 related functions
 error_t dp83869Init(NetInterface *interface);
+void dp83869InitHook(NetInterface *interface);
 
 void dp83869Tick(NetInterface *interface);
 

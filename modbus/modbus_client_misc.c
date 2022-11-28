@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -395,9 +395,13 @@ void *modbusClientGetResponsePdu(ModbusClientContext *context, size_t *length)
 
    //Retrieve the length of the PDU
    if(context->responseAduLen >= sizeof(ModbusHeader))
+   {
       *length = context->responseAduLen - sizeof(ModbusHeader);
+   }
    else
+   {
       *length = 0;
+   }
 
    //Return a pointer to the response PDU
    return responsePdu;

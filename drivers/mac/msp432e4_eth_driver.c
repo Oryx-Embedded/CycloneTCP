@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -289,16 +289,15 @@ error_t msp432e4EthInit(NetInterface *interface)
 }
 
 
-//MSP-EXP432E401Y evaluation board?
-#if defined(USE_MSP_EXP432E401Y)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void msp432e4EthInitGpio(NetInterface *interface)
+__weak_func void msp432e4EthInitGpio(NetInterface *interface)
 {
+//MSP-EXP432E401Y evaluation board?
+#if defined(USE_MSP_EXP432E401Y)
    //Enable GPIO clock
    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
 
@@ -308,9 +307,8 @@ void msp432e4EthInitGpio(NetInterface *interface)
 
    //Configure Ethernet LED pins for proper operation
    GPIOPinTypeEthernetLED(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4);
-}
-
 #endif
+}
 
 
 /**

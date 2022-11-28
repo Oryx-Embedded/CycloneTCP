@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -237,16 +237,15 @@ error_t lpc43xxEthInit(NetInterface *interface)
 }
 
 
-//LPC4330-Xplorer or LPCXpresso4337 evaluation board?
-#if defined(USE_LPC4330_XPLORER) || defined(USE_LPCXPRESSO_4337)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void lpc43xxEthInitGpio(NetInterface *interface)
+__weak_func void lpc43xxEthInitGpio(NetInterface *interface)
 {
+//LPC4330-Xplorer or LPCXpresso4337 evaluation board?
+#if defined(USE_LPC4330_XPLORER) || defined(USE_LPCXPRESSO_4337)
    //Enable GPIO peripheral clock
    LPC_CCU1->CLK_M4_GPIO_CFG |= CCU1_CLK_M4_GPIO_CFG_RUN_Msk;
    //Wait for completion
@@ -278,9 +277,8 @@ void lpc43xxEthInitGpio(NetInterface *interface)
 
    //Configure P2.0 (ENET_MDC)
    LPC_SCU->SFSP2_0 = (7 & SCU_SFSP2_0_MODE_Msk);
-}
-
 #endif
+}
 
 
 /**

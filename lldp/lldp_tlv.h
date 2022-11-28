@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _LLDP_TLV_H
@@ -188,6 +188,7 @@ typedef enum
    LLDP_DOT1_OUI = 0x0080C2, ///<IEEE 802.1
    LLDP_DOT3_OUI = 0x00120F, ///<IEEE 802.3
    LLDP_MED_OUI  = 0x0012BB, ///<LLDP-MED
+   LLDP_PNO_OUI  = 0x000ECF  ///<PROFIBUS
 } LldpOui;
 
 

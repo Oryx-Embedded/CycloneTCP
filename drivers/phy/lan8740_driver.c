@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -96,6 +96,9 @@ error_t lan8740Init(NetInterface *interface)
    lan8740WritePhyReg(interface, LAN8740_IMR, LAN8740_IMR_AN_COMPLETE |
       LAN8740_IMR_LINK_DOWN);
 
+   //Perform custom configuration
+   lan8740InitHook(interface);
+
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
@@ -103,6 +106,16 @@ error_t lan8740Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief LAN8740 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void lan8740InitHook(NetInterface *interface)
+{
 }
 
 

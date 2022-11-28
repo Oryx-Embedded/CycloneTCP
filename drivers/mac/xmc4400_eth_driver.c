@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -240,16 +240,15 @@ error_t xmc4400EthInit(NetInterface *interface)
 }
 
 
-//XMC4400 Platform2GO Kit?
-#if defined(USE_KIT_XMC4400_PLT2GO)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void xmc4400EthInitGpio(NetInterface *interface)
+__weak_func void xmc4400EthInitGpio(NetInterface *interface)
 {
+//XMC4400 Platform2GO Kit?
+#if defined(USE_KIT_XMC4400_PLT2GO)
    uint32_t temp;
 
    //Configure ETH0.TX_EN (P0.4)
@@ -304,9 +303,8 @@ void xmc4400EthInitGpio(NetInterface *interface)
    //Select RMII operation mode
    ETH0_CON->CON = ETH_CON_INFSEL_Msk | ETH_CON_MDIO_B | ETH_CON_RXER_A |
       ETH_CON_CRS_DV_C | ETH_CON_CLK_RMII_C | ETH_CON_RXD1_A | ETH_CON_RXD0_A;
-}
-
 #endif
+}
 
 
 /**

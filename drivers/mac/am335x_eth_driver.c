@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -492,16 +492,12 @@ void am335xEthInitInstance(NetInterface *interface)
 }
 
 
-//BeagleBone Black, TMDSSK3358, OSD3358-SM-RED or SBC DIVA board?
-#if defined(USE_BEAGLEBONE_BLACK) || defined(USE_TMDSSK3358) || \
-   defined(USE_OSD3358_SM_RED) || defined(USE_SBC_DIVA)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void am335xEthInitGpio(NetInterface *interface)
+__weak_func void am335xEthInitGpio(NetInterface *interface)
 {
 //BeagleBone Black board?
 #if defined(USE_BEAGLEBONE_BLACK)
@@ -709,8 +705,6 @@ void am335xEthInitGpio(NetInterface *interface)
    CONTROL_CONF_MDIO_CLK_R = CONTROL_CONF_PULLUPSEL | CONTROL_CONF_MUXMODE(0);
 #endif
 }
-
-#endif
 
 
 /**

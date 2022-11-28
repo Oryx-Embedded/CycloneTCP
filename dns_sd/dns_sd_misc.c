@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -1133,7 +1133,9 @@ error_t dnsSdFormatSrvRecord(NetInterface *interface, MdnsMessage *message,
 
       //Check whether the cache-flush bit should be set
       if(cacheFlush)
+      {
          record->rclass |= HTONS(MDNS_RCLASS_CACHE_FLUSH);
+      }
 
       //Advance write index
       offset += sizeof(DnsSrvResourceRecord);
@@ -1225,7 +1227,9 @@ error_t dnsSdFormatTxtRecord(NetInterface *interface, MdnsMessage *message,
 
       //Check whether the cache-flush bit should be set
       if(cacheFlush)
+      {
          record->rclass |= HTONS(MDNS_RCLASS_CACHE_FLUSH);
+      }
 
       //Advance write index
       offset += sizeof(DnsResourceRecord);
@@ -1325,7 +1329,9 @@ error_t dnsSdFormatNsecRecord(NetInterface *interface, MdnsMessage *message,
 
       //Check whether the cache-flush bit should be set
       if(cacheFlush)
+      {
          record->rclass |= HTONS(MDNS_RCLASS_CACHE_FLUSH);
+      }
 
       //Advance write index
       offset += sizeof(DnsResourceRecord);

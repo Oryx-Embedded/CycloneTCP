@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _AUTO_IP_MISC_H
@@ -47,8 +47,8 @@ extern systime_t autoIpTickCounter;
 void autoIpTick(AutoIpContext *context);
 void autoIpLinkChangeEvent(AutoIpContext *context);
 
-void autoIpChangeState(AutoIpContext *context,
-   AutoIpState newState, systime_t delay);
+void autoIpChangeState(AutoIpContext *context, AutoIpState newState,
+   systime_t delay);
 
 void autoIpGenerateAddr(Ipv4Addr *ipAddr);
 

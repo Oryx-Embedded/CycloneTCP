@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _AR8031_DRIVER_H
@@ -390,6 +390,7 @@ extern const PhyDriver ar8031PhyDriver;
 
 //AR8031 related functions
 error_t ar8031Init(NetInterface *interface);
+void ar8031InitHook(NetInterface *interface);
 
 void ar8031Tick(NetInterface *interface);
 

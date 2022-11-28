@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -222,20 +222,12 @@ error_t pic32mzEthInit(NetInterface *interface)
 }
 
 
-//PIC32MZ EC Starter Kit, PIC32MZ EF Starter Kit, PIC32MZ DA Starter Kit,
-//PIC32MZ EF Curiosity, PIC32MZ EF Curiosity 2.0, PIC32MZ DA Curiosity or
-//IoT Ethernet Kit?
-#if defined(USE_PIC32MZ_EC_STARTER_KIT) || defined(USE_PIC32MZ_EF_STARTER_KIT) || \
-   defined(USE_PIC32MZ_DA_STARTER_KIT) || defined(USE_PIC32MZ_EF_CURIOSITY) || \
-   defined(USE_PIC32MZ_EF_CURIOSITY_2) || defined(USE_PIC32MZ_DA_CURIOSITY) || \
-   defined(USE_IOT_ETHERNET_KIT)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void pic32mzEthInitGpio(NetInterface *interface)
+__weak_func void pic32mzEthInitGpio(NetInterface *interface)
 {
 //PIC32MZ EC Starter Kit?
 #if defined(USE_PIC32MZ_EC_STARTER_KIT)
@@ -356,8 +348,6 @@ void pic32mzEthInitGpio(NetInterface *interface)
    sleep(10);
 #endif
 }
-
-#endif
 
 
 /**

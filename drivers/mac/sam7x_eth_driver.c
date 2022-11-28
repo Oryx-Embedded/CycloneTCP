@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -212,16 +212,15 @@ error_t sam7xEthInit(NetInterface *interface)
 }
 
 
-//SAM7-EX256 evaluation board?
-#if defined(USE_SAM7_EX256)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void sam7xEthInitGpio(NetInterface *interface)
+__weak_func void sam7xEthInitGpio(NetInterface *interface)
 {
+//SAM7-EX256 evaluation board?
+#if defined(USE_SAM7_EX256)
    //Enable PIO peripheral clock
    AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_PIOB);
 
@@ -236,9 +235,8 @@ void sam7xEthInitGpio(NetInterface *interface)
 
    //Select MII operation mode and enable transceiver clock
    AT91C_BASE_EMAC->EMAC_USRIO = AT91C_EMAC_CLKEN;
-}
-
 #endif
+}
 
 
 /**

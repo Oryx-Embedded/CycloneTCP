@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _FTP_CLIENT_H
@@ -103,6 +103,11 @@
    #define FTP_CLIENT_MAX_FILENAME_LEN 64
 #elif (FTP_CLIENT_MAX_FILENAME_LEN < 16)
    #error FTP_CLIENT_MAX_FILENAME_LEN parameter is not valid
+#endif
+
+//Application specific context
+#ifndef FTP_CLIENT_PRIVATE_CONTEXT
+   #define FTP_CLIENT_PRIVATE_CONTEXT
 #endif
 
 //TLS supported?
@@ -258,6 +263,7 @@ struct _FtpClientContext
    size_t commandLen;                        ///<Length of the FTP command, in bytes
    size_t replyLen;                          ///<Length of the FTP reply, in bytes
    uint_t replyCode;                         ///<FTP reply code
+   FTP_CLIENT_PRIVATE_CONTEXT                ///<Application specific context
 };
 
 

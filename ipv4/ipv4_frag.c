@@ -34,7 +34,7 @@
  * - RFC 815: IP datagram reassembly algorithms
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -203,7 +203,7 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
    offset = ntohs(packet->fragmentOffset);
 
    //Every fragment except the last must contain a multiple of 8 bytes of data
-   if((offset & IPV4_FLAG_MF) && (length % 8))
+   if((offset & IPV4_FLAG_MF) != 0 && (length % 8) != 0)
    {
       //Number of failures detected by the IP reassembly algorithm
       MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
@@ -247,7 +247,7 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
    }
 
    //The very first fragment requires special handling
-   if(!(offset & IPV4_OFFSET_MASK))
+   if((offset & IPV4_OFFSET_MASK) == 0)
    {
       //Calculate the length of the IP header including options
       frag->headerLength = packet->headerLength * 4;
@@ -286,7 +286,7 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       netBufferWrite((NetBuffer *) &frag->buffer, 0, packet, frag->headerLength);
    }
 
-   //It may be necessary to increase the size of the buffer...
+   //It may be necessary to increase the size of the buffer
    if(dataLast > frag->dataLen)
    {
       //Enforce the size of the reconstructed datagram
@@ -341,13 +341,17 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       //some way
       if(dataFirst < holeLast && dataLast > holeFirst)
       {
-         //The current descriptor is no longer valid. We will destroy it, and
-         //in the next two steps, we will determine whether or not it is
-         //necessary to create any new hole descriptors
+         //The current descriptor is no longer valid. We will destroy it, and in
+         //the next two steps, we will determine whether or not it is necessary
+         //to create any new hole descriptors
          if(prevHole != NULL)
+         {
             prevHole->next = hole->next;
+         }
          else
+         {
             frag->firstHole = hole->next;
+         }
 
          //Is there still a hole at the beginning of the segment?
          if(dataFirst > holeFirst)
@@ -374,7 +378,7 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
          }
 
          //Is there still a hole at the end of the segment?
-         if(dataLast < holeLast && (offset & IPV4_FLAG_MF))
+         if(dataLast < holeLast && (offset & IPV4_FLAG_MF) != 0)
          {
             //Create a new entry that describes this hole
             hole = ipv4FindHole(frag, dataLast);
@@ -416,7 +420,7 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
 
    //If the hole descriptor list is empty, the reassembly process is now
    //complete
-   if(!ipv4FindHole(frag, frag->firstHole))
+   if(ipv4FindHole(frag, frag->firstHole) == NULL)
    {
       //Discard the extra hole descriptor that follows the reconstructed
       //datagram
@@ -447,7 +451,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
          IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmOKs, 1);
 
          //Pass the original IPv4 datagram to the higher protocol layer
-         ipv4ProcessDatagram(interface, (NetBuffer *) &frag->buffer, ancillary);
+         ipv4ProcessDatagram(interface, (NetBuffer *) &frag->buffer, 0,
+            ancillary);
       }
 
       //Release previously allocated memory
@@ -514,7 +519,8 @@ void ipv4FragTick(NetInterface *interface)
                {
                   //Send an ICMP Time Exceeded message
                   icmpSendErrorMessage(interface, ICMP_TYPE_TIME_EXCEEDED,
-                     ICMP_CODE_REASSEMBLY_TIME_EXCEEDED, 0, (NetBuffer *) &frag->buffer, 0);
+                     ICMP_CODE_REASSEMBLY_TIME_EXCEEDED, 0,
+                     (NetBuffer *) &frag->buffer, 0);
                }
             }
 
@@ -559,6 +565,7 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
             continue;
          if(datagram->destAddr != packet->destAddr)
             continue;
+
          //Compare identification and protocol fields
          if(datagram->identification != packet->identification)
             continue;

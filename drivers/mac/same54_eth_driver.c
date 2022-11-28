@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -218,20 +218,17 @@ error_t same54EthInit(NetInterface *interface)
 }
 
 
-//SAME54-Xplained-Pro or SAME54-Curiosity-Ultra evaluation board?
-#if defined(USE_SAME54_XPLAINED_PRO) || defined(USE_SAME54_CURIOSITY_ULTRA)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void same54EthInitGpio(NetInterface *interface)
+__weak_func void same54EthInitGpio(NetInterface *interface)
 {
-   uint32_t temp;
-
 //SAME54-Xplained-Pro evaluation board?
 #if defined(USE_SAME54_XPLAINED_PRO)
+   uint32_t temp;
+
    //Enable PORT bus clock (CLK_PORT_APB)
    MCLK_REGS->MCLK_APBBMASK |= MCLK_APBBMASK_PORT_Msk;
 
@@ -302,6 +299,8 @@ void same54EthInitGpio(NetInterface *interface)
 
 //SAME54-Curiosity-Ultra evaluation board?
 #elif defined(USE_SAME54_CURIOSITY_ULTRA)
+   uint32_t temp;
+
    //Enable PORT bus clock (CLK_PORT_APB)
    MCLK_REGS->MCLK_APBBMASK |= MCLK_APBBMASK_PORT_Msk;
 
@@ -371,8 +370,6 @@ void same54EthInitGpio(NetInterface *interface)
    sleep(10);
 #endif
 }
-
-#endif
 
 
 /**

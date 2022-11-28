@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -573,16 +573,15 @@ void am64xEthInitInstance(NetInterface *interface)
 }
 
 
-//TMDS64GPEVM evaluation board?
-#if defined(USE_TMDS64GPEVM)
-
 /**
  * @brief GPIO configuration
  * @param[in] interface Underlying network interface
  **/
 
-void am64xEthInitGpio(NetInterface *interface)
+__weak_func void am64xEthInitGpio(NetInterface *interface)
 {
+//TMDS64GPEVM evaluation board?
+#if defined(USE_TMDS64GPEVM)
    //MDIO/MDC pins
    const Pinmux_PerCfg_t mdioPins[] =
    {
@@ -647,9 +646,8 @@ void am64xEthInitGpio(NetInterface *interface)
 
    //Configure MDIO/MDC pins
    Pinmux_config(mdioPins, PINMUX_DOMAIN_ID_MAIN);
-}
-
 #endif
+}
 
 
 /**

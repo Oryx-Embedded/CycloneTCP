@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 //Switch to the appropriate trace level
@@ -634,7 +634,7 @@ error_t coapGetOption(const CoapMessage *message, uint16_t optionNum,
       length -= n;
    }
 
-   //The specified option number does not exist
+   //The specified option number was not found
    return ERROR_NOT_FOUND;
 }
 

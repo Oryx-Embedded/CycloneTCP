@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.1.8
+ * @version 2.2.0
  **/
 
 #ifndef _IPV6_FRAG_H
@@ -153,7 +153,7 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
 void ipv6FragTick(NetInterface *interface);
 
 Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
-   Ipv6Header *packet, Ipv6FragmentHeader *header);
+   const Ipv6Header *packet, const Ipv6FragmentHeader *header);
 
 void ipv6FlushFragQueue(NetInterface *interface);
 
