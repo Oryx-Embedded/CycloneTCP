@@ -219,6 +219,18 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
    //Calculate the index immediately following the last byte
    dataLast = dataFirst + (uint16_t) length;
 
+   //Check for potential integer overflow
+   if(dataLast < dataFirst)
+   {
+      //Number of failures detected by the IP reassembly algorithm
+      MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
+      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
+      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+
+      //Drop the incoming fragment
+      return;
+   }
+
    //Search for a matching IP datagram being reassembled
    frag = ipv4SearchFragQueue(interface, packet);
 
