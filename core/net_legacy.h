@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.2.2
  **/
 
 #ifndef _NET_LEGACY_H
@@ -35,51 +35,6 @@
 #if !defined(_WIN32)
 
 //Deprecated properties
-#ifdef TCP_IP_MAX_IF_NAME_LEN
-   #warning TCP_IP_MAX_IF_NAME_LEN property is deprecated. NET_MAX_IF_NAME_LEN should be used instead.
-   #define NET_MAX_IF_NAME_LEN TCP_IP_MAX_IF_NAME_LEN
-#endif
-
-#ifdef TCP_IP_MAX_HOSTNAME_LEN
-   #warning TCP_IP_MAX_HOSTNAME_LEN property is deprecated. NET_MAX_HOSTNAME_LEN should be used instead.
-   #define NET_MAX_HOSTNAME_LEN TCP_IP_MAX_HOSTNAME_LEN
-#endif
-
-#ifdef TCP_IP_MAX_PROXY_NAME_LEN
-   #warning TCP_IP_MAX_PROXY_NAME_LEN property is deprecated. NET_MAX_PROXY_NAME_LEN should be used instead.
-   #define NET_MAX_PROXY_NAME_LEN TCP_IP_MAX_PROXY_NAME_LEN
-#endif
-
-#ifdef TCP_IP_STATIC_OS_RESOURCES
-   #warning TCP_IP_STATIC_OS_RESOURCES property is deprecated. NET_STATIC_OS_RESOURCES should be used instead.
-   #define NET_STATIC_OS_RESOURCES TCP_IP_STATIC_OS_RESOURCES
-#endif
-
-#ifdef TCP_IP_TICK_STACK_SIZE
-   #warning TCP_IP_TICK_STACK_SIZE property is deprecated. NET_TICK_STACK_SIZE should be used instead.
-   #define NET_TICK_STACK_SIZE TCP_IP_TICK_STACK_SIZE
-#endif
-
-#ifdef TCP_IP_TICK_PRIORITY
-   #warning TCP_IP_TICK_PRIORITY property is deprecated. NET_TICK_PRIORITY should be used instead.
-   #define NET_TICK_PRIORITY TCP_IP_TICK_PRIORITY
-#endif
-
-#ifdef TCP_IP_TICK_INTERVAL
-   #warning TCP_IP_TICK_INTERVAL property is deprecated. NET_TICK_INTERVAL should be used instead.
-   #define NET_TICK_INTERVAL TCP_IP_TICK_INTERVAL
-#endif
-
-#ifdef TCP_IP_RX_STACK_SIZE
-   #warning TCP_IP_RX_STACK_SIZE property is deprecated. NET_RX_STACK_SIZE should be used instead.
-   #define NET_RX_STACK_SIZE TCP_IP_RX_STACK_SIZE
-#endif
-
-#ifdef TCP_IP_RX_PRIORITY
-   #warning TCP_IP_RX_PRIORITY property is deprecated. NET_RX_PRIORITY should be used instead.
-   #define NET_RX_PRIORITY TCP_IP_RX_PRIORITY
-#endif
-
 #ifdef TCP_SYN_QUEUE_SIZE
    #warning TCP_SYN_QUEUE_SIZE property is deprecated. TCP_DEFAULT_SYN_QUEUE_SIZE should be used instead.
    #define TCP_DEFAULT_SYN_QUEUE_SIZE TCP_SYN_QUEUE_SIZE
@@ -137,32 +92,6 @@
 #define SOCKET_PROTOCOL_TCP SOCKET_IP_PROTO_TCP
 #define SOCKET_PROTOCOL_UDP SOCKET_IP_PROTO_UDP
 #define SOCKET_PROTOCOL_ICMPV6 SOCKET_IP_PROTO_ICMPV6
-
-//Deprecated functions
-#define tcpIpStackInit netInit
-#define tcpIpStackSetInterfaceName netSetInterfaceName
-#define tcpIpStackSetHostname netSetHostname
-#define tcpIpStackSetDriver netSetDriver
-#define tcpIpStackSetPhyDriver netSetPhyDriver
-#define tcpIpStackSetSpiDriver netSetSpiDriver
-#define tcpIpStackSetUartDriver netSetUartDriver
-#define tcpIpStackSetExtIntDriver netSetExtIntDriver
-#define tcpIpStackSetMacAddr netSetMacAddr
-#define tcpIpStackGetLinkState netGetLinkState
-#define tcpIpStackConfigInterface netConfigInterface
-#define tcpIpStackTickTask netTickTask
-#define tcpIpStackRxTask netRxTask
-#define tcpIpStackGetDefaultInterface netGetDefaultInterface
-#define tcpIpStackInitRand netInitRand
-#define tcpIpStackGetRand netGenerateRand
-#define tcpIpStackGetRandRange netGenerateRandRange
-#define tcpIpStackAttachLinkChangeCallback netAttachLinkChangeCallback
-#define tcpIpStackDetachLinkChangeCallback netDetachLinkChangeCallback
-#define tcpIpStackInvokeLinkChangeCallback netInvokeLinkChangeCallback
-
-#define ChunkedBuffer NetBuffer
-#define chunkedBufferGetLength netBufferGetLength
-#define chunkedBufferRead netBufferRead
 
 #ifdef SMTP_DEFAULT_TIMEOUT
    #define SMTP_CLIENT_DEFAULT_TIMEOUT SMTP_DEFAULT_TIMEOUT

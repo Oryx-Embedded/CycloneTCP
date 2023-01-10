@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.2.2
  **/
 
 //Switch to the appropriate trace level
@@ -378,7 +378,7 @@ int_t accept(int_t s, struct sockaddr *addr, socklen_t *addrlen)
       return SOCKET_ERROR;
    }
 
-   //The address is optional
+   //The address parameter is optional
    if(addr != NULL && addrlen != NULL)
    {
 #if (IPV4_SUPPORT == ENABLED)
@@ -660,8 +660,7 @@ int_t recv(int_t s, void *data, size_t size, int_t flags)
  * @param[out] addr Source address upon return (optional)
  * @param[in,out] addrlen Length in bytes of the address (optional)
  * @return If no error occurs, recvfrom returns the number of bytes received.
- *   If the connection has been gracefully closed, the return value is
- *   zero. Otherwise, a value of SOCKET_ERROR is returned
+ *   Otherwise, a value of SOCKET_ERROR is returned
  **/
 
 int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
@@ -699,7 +698,7 @@ int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
       return SOCKET_ERROR;
    }
 
-   //The address is optional
+   //The address parameter is optional
    if(addr != NULL && addrlen != NULL)
    {
 #if (IPV4_SUPPORT == ENABLED)
@@ -752,6 +751,156 @@ int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
 
    //Return the number of bytes received
    return received;
+}
+
+
+/**
+ * @brief Receive a message
+ * @param[in] s Descriptor that identifies a socket
+ * @param[in,out] msg Pointer to the structure describing the message
+ * @param[in] flags Set of flags that influences the behavior of this function
+ * @return If no error occurs, recvfrom returns the number of bytes received.
+ *   Otherwise, a value of SOCKET_ERROR is returned
+ **/
+
+int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
+{
+   error_t error;
+   size_t n;
+   Socket *sock;
+   SocketMsg message;
+
+   //Make sure the socket descriptor is valid
+   if(s < 0 || s >= SOCKET_MAX_COUNT)
+   {
+      return SOCKET_ERROR;
+   }
+
+   //Point to the socket structure
+   sock = &socketTable[s];
+
+   //Check parameters
+   if(msg == NULL || msg->msg_iov == NULL || msg->msg_iovlen != 1)
+   {
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //Point to the receive buffer
+   message = SOCKET_DEFAULT_MSG;
+   message.data = msg->msg_iov[0].iov_base;
+   message.size = msg->msg_iov[0].iov_len;
+
+   //Receive message
+   error = socketReceiveMsg(sock, &message, flags << 8);
+
+   //Any error to report?
+   if(error)
+   {
+      socketTranslateErrorCode(sock, error);
+      return SOCKET_ERROR;
+   }
+
+   //The source address parameter is optional
+   if(msg->msg_name != NULL)
+   {
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(message.srcIpAddr.length == sizeof(Ipv4Addr) &&
+         msg->msg_namelen >= (socklen_t) sizeof(SOCKADDR_IN))
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) msg->msg_name;
+
+         //Set address family and port number
+         sa->sin_family = AF_INET;
+         sa->sin_port = htons(message.srcPort);
+
+         //Copy IPv4 address
+         sa->sin_addr.s_addr = message.srcIpAddr.ipv4Addr;
+
+         //Return the actual length of the address
+         msg->msg_namelen = sizeof(SOCKADDR_IN);
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(message.srcIpAddr.length == sizeof(Ipv6Addr) &&
+         msg->msg_namelen >= (socklen_t) sizeof(SOCKADDR_IN6))
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) msg->msg_name;
+
+         //Set address family and port number
+         sa->sin6_family = AF_INET6;
+         sa->sin6_port = htons(message.srcPort);
+
+         //Copy IPv6 address
+         ipv6CopyAddr(sa->sin6_addr.s6_addr, &message.srcIpAddr.ipv6Addr);
+
+         //Return the actual length of the address
+         msg->msg_namelen = sizeof(SOCKADDR_IN6);
+      }
+      else
+#endif
+      //Invalid address?
+      {
+         //Report an error
+         socketSetErrnoCode(sock, EINVAL);
+         return SOCKET_ERROR;
+      }
+   }
+   else
+   {
+      msg->msg_namelen = 0;
+   }
+
+   //Number of bytes required to store ancillary data
+   n = sizeof(struct cmsghdr) + sizeof(struct in_pktinfo);
+
+   //The ancillary data buffer parameter is optional
+   if(msg->msg_control != NULL && msg->msg_controllen >= n)
+   {
+      struct cmsghdr *cmsg;
+      struct in_pktinfo *pktInfo;
+
+      //Point to the ancillary data header
+      cmsg = (struct cmsghdr *) msg->msg_control;
+
+      //Point to the packet information
+      pktInfo = (struct in_pktinfo *) ((uint8_t *) msg->msg_control +
+         sizeof(struct cmsghdr));
+
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(message.destIpAddr.length == sizeof(Ipv4Addr))
+      {
+         //Format ancillary data header
+         cmsg->cmsg_len = n;
+         cmsg->cmsg_level = IPPROTO_IP;
+         cmsg->cmsg_type = IP_PKTINFO;
+
+         //Save packet information
+         pktInfo->ipi_ifindex = message.interface->index;
+         pktInfo->ipi_addr.s_addr = message.destIpAddr.ipv4Addr;
+
+         //Return the actual length of the ancillary data buffer
+         msg->msg_controllen = n;
+      }
+      else
+#endif
+      {
+         msg->msg_controllen = 0;
+      }
+   }
+   else
+   {
+      msg->msg_controllen = 0;
+   }
+
+   //Return the number of bytes received
+   return message.length;;
 }
 
 
@@ -1098,6 +1247,21 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
                val = (int_t *) optval;
                //Save TTL value
                sock->ttl = *val;
+               //Successful processing
+               ret = SOCKET_SUCCESS;
+            }
+            else
+            {
+               //The option length is not valid
+               socketSetErrnoCode(sock, EFAULT);
+               ret = SOCKET_ERROR;
+            }
+         }
+         else if(optname == IP_PKTINFO)
+         {
+            //Check the length of the option
+            if(optlen >= (socklen_t) sizeof(int_t))
+            {
                //Successful processing
                ret = SOCKET_SUCCESS;
             }
@@ -2167,7 +2331,7 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
    size_t n;
    char_t *p;
    uint_t flags;
-   uint16_t port;
+   uint32_t port;
    IpAddr ipAddr;
    ADDRINFO h;
    ADDRINFO *ai;
@@ -2291,7 +2455,7 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
    }
 
    //Only service names containing a numeric port number are supported
-   port = strtoul(service, &p, 10);
+   port = osStrtoul(service, &p, 10);
    //Invalid service name?
    if(*p != '\0')
    {

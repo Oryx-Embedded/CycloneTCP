@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.2.2
  **/
 
 //Switch to the appropriate trace level
@@ -461,7 +461,8 @@ void ftpServerTask(FtpServerContext *context)
       time = osGetSystemTime();
 
       //Check status code
-      if(error == NO_ERROR || error == ERROR_TIMEOUT)
+      if(error == NO_ERROR || error == ERROR_TIMEOUT ||
+         error == ERROR_WAIT_CANCELED)
       {
          //Stop request?
          if(context->stop)

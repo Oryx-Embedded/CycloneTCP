@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.2.2
  **/
 
 //Switch to the appropriate trace level
@@ -105,9 +105,13 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
             //An IPv4 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv4Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+            if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
+               socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+            {
                continue;
+            }
          }
 
          //Source IP address filtering
@@ -116,9 +120,13 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(socket->remoteIpAddr.ipv4Addr != pseudoHeader->ipv4Data.srcAddr)
+            if(socket->remoteIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
+               socket->remoteIpAddr.ipv4Addr != pseudoHeader->ipv4Data.srcAddr)
+            {
                continue;
+            }
          }
       }
       else
@@ -137,9 +145,13 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
             //An IPv6 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv6Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+            if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
+               !ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+            {
                continue;
+            }
          }
 
          //Source IP address filtering
@@ -148,9 +160,13 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
                continue;
+
             //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr))
+            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
+               !ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr))
+            {
                continue;
+            }
          }
       }
       else
@@ -297,16 +313,16 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
 /**
  * @brief Process incoming Ethernet packet
  * @param[in] interface Underlying network interface
- * @param[in] header Pointer to the Ethernet header
  * @param[in] data Pointer to the payload data
  * @param[in] length Length of the payload data, in bytes
  * @param[in] ancillary Additional options passed to the stack along with
  *   the packet
  **/
 
-void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
-   const uint8_t *data, size_t length, NetRxAncillary *ancillary)
+void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
+   size_t length, NetRxAncillary *ancillary)
 {
+#if (ETH_SUPPORT == ENABLED)
    uint_t i;
    Socket *socket;
    SocketQueueItem *queueItem;
@@ -321,6 +337,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
       //Raw socket found?
       if(socket->type != SOCKET_TYPE_RAW_ETH)
          continue;
+
       //Check whether the socket is bound to a particular interface
       if(socket->interface && socket->interface != interface)
          continue;
@@ -333,13 +350,13 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
       else if(socket->protocol == SOCKET_ETH_PROTO_LLC)
       {
          //Only accept LLC frames
-         if(ntohs(header->type) > ETH_MTU)
+         if(ancillary->ethType > ETH_MTU)
             continue;
       }
       else
       {
          //Only accept frames with the correct EtherType value
-         if(ntohs(header->type) != socket->protocol)
+         if(ancillary->ethType != socket->protocol)
             continue;
       }
 
@@ -447,6 +464,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, EthHeader *header,
 
    //Notify user that data is available
    rawSocketUpdateEvents(socket);
+#endif
 }
 
 

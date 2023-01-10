@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.2.2
  **/
 
 //Switch to the appropriate trace level
@@ -1391,6 +1391,7 @@ void socketClose(Socket *socket)
 error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
    systime_t timeout)
 {
+   error_t error;
    uint_t i;
    bool_t status;
    OsEvent *event;
@@ -1437,7 +1438,7 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
    //Block the current task until an event occurs
    status = osWaitForEvent(event, timeout);
 
-   //Any socket event in the signaled state?
+   //Any event?
    if(status)
    {
       //Clear flag
@@ -1461,6 +1462,21 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
             }
          }
       }
+
+      //Any socket event in the signaled state?
+      if(status)
+      {
+         error = NO_ERROR;
+      }
+      else
+      {
+         error = ERROR_WAIT_CANCELED;
+      }
+   }
+   else
+   {
+      //Report a timeout error
+      error = ERROR_TIMEOUT;
    }
 
    //Loop through descriptors
@@ -1484,7 +1500,7 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
    }
 
    //Return status code
-   return status ? NO_ERROR : ERROR_TIMEOUT;
+   return error;
 }
 
 
@@ -1647,6 +1663,8 @@ error_t getHostByName(NetInterface *interface,
 #endif
       //Invalid protocol?
       {
+         //Just for sanity
+         (void) protocol;
          //Report an error
          error = ERROR_INVALID_PARAMETER;
       }

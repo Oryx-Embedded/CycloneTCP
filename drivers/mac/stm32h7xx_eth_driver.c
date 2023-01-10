@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.2.2
  **/
 
 //Switch to the appropriate trace level
@@ -251,7 +251,7 @@ error_t stm32h7xxEthInit(NetInterface *interface)
 
 __weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
 {
-//STM32F743I-EVAL, STM32F747I-EVAL or STM32H747I-Discovery evaluation board?
+//STM32H743I-EVAL, STM32H747I-EVAL or STM32H747I-Discovery evaluation board?
 #if defined(USE_STM32H743I_EVAL) || defined(USE_STM32H747I_EVAL) || \
    defined(USE_STM32H747I_DISCO)
    GPIO_InitTypeDef GPIO_InitStructure;

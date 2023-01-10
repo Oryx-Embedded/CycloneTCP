@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.2.2
  **/
 
 //Switch to the appropriate trace level
@@ -39,6 +39,91 @@
 
 //Check TCP/IP stack configuration
 #if (BSD_SOCKET_SUPPORT == ENABLED)
+
+
+/**
+ * @brief Get first ancillary data header
+ * @param[in] msg Pointer to the message header
+ * @return Pointer to the first ancillary data header
+ **/
+
+struct cmsghdr *socketCmsgFirstHdr(struct msghdr *msg)
+{
+   struct cmsghdr *p;
+   struct cmsghdr *first;
+
+   //Initialize pointer
+   first = NULL;
+
+   //Check parameter
+   if(msg != NULL)
+   {
+      //Check the length of the ancillary data buffer
+      if(msg->msg_controllen >= sizeof(struct cmsghdr))
+      {
+         //Point to the first ancillary data header
+         p = (struct cmsghdr *) msg->msg_control;
+
+         //Valid ancillary data header?
+         if(p->cmsg_len >= sizeof(struct cmsghdr) &&
+            p->cmsg_len <= msg->msg_controllen)
+         {
+            first = p;
+         }
+      }
+   }
+
+   //Return a pointer to the first ancillary data header
+   return first;
+}
+
+
+/**
+ * @brief Get next ancillary data header
+ * @param[in] msg Pointer to the message header
+ * @param[in] cmsg Pointer to the current ancillary data header
+ * @return Pointer to the next ancillary data header
+ **/
+
+struct cmsghdr *socketCmsgNextHdr(struct msghdr *msg, struct cmsghdr *cmsg)
+{
+   size_t n;
+   struct cmsghdr *p;
+   struct cmsghdr *next;
+
+   //Initialize pointer
+   next = NULL;
+
+   //Check parameters
+   if(msg != NULL && cmsg != NULL)
+   {
+      //Valid ancillary data header?
+      if(cmsg->cmsg_len >= sizeof(struct cmsghdr) &&
+         cmsg->cmsg_len <= msg->msg_controllen)
+      {
+         //Offset to the next ancillary data header
+         n = (uint8_t *) cmsg - (uint8_t *) msg->msg_control +
+            CMSG_ALIGN(cmsg->cmsg_len);
+
+         //Check the length of the ancillary data buffer
+         if((n + sizeof(struct cmsghdr)) <= msg->msg_controllen)
+         {
+            //Point to the next ancillary data header
+            p = (struct cmsghdr *) ((uint8_t *) msg->msg_control + n);
+
+            //Valid ancillary data header?
+            if(p->cmsg_len >= sizeof(struct cmsghdr) &&
+               (n + p->cmsg_len) <= msg->msg_controllen)
+            {
+               next = p;
+            }
+         }
+      }
+   }
+
+   //Return a pointer to the next ancillary data header
+   return next;
+}
 
 
 /**

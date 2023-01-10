@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.2.2
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -147,6 +147,7 @@
 //IP level options
 #define IP_TOS            1
 #define IP_TTL            2
+#define IP_PKTINFO        8
 #define IP_MULTICAST_TTL  33
 
 //TCP level options
@@ -317,6 +318,56 @@ typedef struct sockaddr_in6
 
 
 /**
+ * @brief Scatter/gather array
+ **/
+
+struct iovec
+{
+   void *iov_base;
+   size_t iov_len;
+};
+
+
+/**
+ * @brief Message header
+ **/
+
+struct msghdr
+{
+   void *msg_name;
+   socklen_t msg_namelen;
+   struct iovec *msg_iov;
+   int_t msg_iovlen;
+   void *msg_control;
+   size_t msg_controllen;
+   int_t msg_flags;
+};
+
+
+/**
+ * @brief Ancillary data header
+ **/
+
+struct cmsghdr
+{
+   size_t cmsg_len;
+   int_t cmsg_level;
+   int_t cmsg_type;
+};
+
+
+/**
+ * @brief Packet information
+ **/
+
+struct in_pktinfo
+{
+   int ipi_ifindex;
+   struct in_addr ipi_addr;
+};
+
+
+/**
  * @brief Set of sockets
  **/
 
@@ -372,6 +423,18 @@ typedef struct timeval
 
 
 //Forward declaration of functions
+struct cmsghdr *socketCmsgFirstHdr(struct msghdr *msg);
+struct cmsghdr *socketCmsgNextHdr(struct msghdr *msg, struct cmsghdr *cmsg);
+
+//Macros for manipulating ancillary data object information
+#define CMSG_DATA(cmsg) ((uint8_t *) (cmsg) + sizeof(struct cmsghdr))
+#define CMSG_ALIGN(len) (((len) + sizeof(int_t) - 1) & ~(sizeof(int_t) - 1))
+#define CMSG_SPACE(len) (sizeof(struct cmsghdr) + CMSG_ALIGN(len))
+#define CMSG_LEN(len) (sizeof(struct cmsghdr) + (len))
+#define CMSG_FIRSTHDR(msg)	socketCmsgFirstHdr(msg)
+#define CMSG_NXTHDR(msg, cmsg) socketCmsgNextHdr(msg, cmsg)
+
+//Forward declaration of functions
 void socketFdZero(fd_set *fds);
 void socketFdSet(fd_set *fds, int_t s);
 void socketFdClr(fd_set *fds, int_t s);
@@ -402,6 +465,8 @@ int_t recv(int_t s, void *data, size_t size, int_t flags);
 
 int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
    struct sockaddr *addr, socklen_t *addrlen);
+
+int_t recvmsg(int_t s, struct msghdr *msg, int_t flags);
 
 int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen);
 int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen);
