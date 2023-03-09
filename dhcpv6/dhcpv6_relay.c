@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -507,8 +507,8 @@ error_t dhcpv6ForwardClientMessage(Dhcpv6RelayContext *context, uint_t index)
    //Message received from another relay agent?
    case DHCPV6_MSG_TYPE_RELAY_FORW:
       //If the message received by the relay agent is a Relay-Forward message
-      //and the hop-count in the message is greater than or equal to 32, the
-      //relay agent discards the received message
+      //and the hop-count in the message is greater than or equal to
+      //HOP_COUNT_LIMIT, the relay agent discards the received message
       if(inputMessage->hopCount >= DHCPV6_HOP_COUNT_LIMIT)
          return ERROR_INVALID_MESSAGE;
       //Set the hop-count field to the value of the hop-count field in

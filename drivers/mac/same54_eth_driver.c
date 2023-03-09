@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -197,8 +197,9 @@ error_t same54EthInit(NetInterface *interface)
       GMAC_IER_TCOMP_Msk | GMAC_IER_TFC_Msk | GMAC_IER_RLEX_Msk |
       GMAC_IER_TUR_Msk | GMAC_IER_RXUBR_Msk | GMAC_IER_RCOMP_Msk;
 
-   //Read GMAC ISR register to clear any pending interrupt
+   //Read GMAC_ISR register to clear any pending interrupt
    status = GMAC_REGS->GMAC_ISR;
+   (void) status;
 
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
    NVIC_SetPriorityGrouping(SAME54_ETH_IRQ_PRIORITY_GROUPING);
@@ -528,6 +529,7 @@ void GMAC_Handler(void)
    isr = GMAC_REGS->GMAC_ISR;
    tsr = GMAC_REGS->GMAC_TSR;
    rsr = GMAC_REGS->GMAC_RSR;
+   (void) isr;
 
    //Packet transmitted?
    if((tsr & (GMAC_TSR_HRESP_Msk | GMAC_TSR_UND_Msk |
@@ -684,7 +686,8 @@ error_t same54EthReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

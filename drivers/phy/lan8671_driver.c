@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -160,7 +160,7 @@ void lan8671Tick(NetInterface *interface)
       linkState = (value & LAN8671_PLCA_STS_PST) ? TRUE : FALSE;
 #else
       //Link status indication is not supported
-      linkState = FALSE;
+      linkState = TRUE;
 #endif
 
       //Link up event?
@@ -232,7 +232,7 @@ void lan8671EventHandler(NetInterface *interface)
    linkState = (value & LAN8671_PLCA_STS_PST) ? TRUE : FALSE;
 #else
    //Link status indication is not supported
-   linkState = FALSE;
+   linkState = TRUE;
 #endif
 
    //Link is up?

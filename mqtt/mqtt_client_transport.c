@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -42,6 +42,29 @@
 
 //Check TCP/IP stack configuration
 #if (MQTT_CLIENT_SUPPORT == ENABLED)
+
+#if (MQTT_CLIENT_WS_SUPPORT == ENABLED && MQTT_CLIENT_TLS_SUPPORT == ENABLED)
+
+/**
+ * @brief TLS initialization callback
+ * @param[in] webSocket Handle to a WebSocket
+ * @param[in] tlsContext Pointer to the TLS context
+ * @return Error code
+ **/
+
+error_t mqttClientWebSocketTlsInitCallback(WebSocket *webSocket,
+   TlsContext *tlsContext)
+{
+   MqttClientContext *context;
+
+   //Point to the MQTT client context
+   context = webSocket->tlsInitParam;
+
+   //Invoke user-defined callback
+   return context->callbacks.tlsInitCallback(context, tlsContext);
+}
+
+#endif
 
 
 /**
@@ -178,9 +201,12 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
          //Check status code
          if(!error)
          {
+            //Attach MQTT client context
+            context->webSocket->tlsInitParam = context;
+
             //Register TLS initialization callback
             error = webSocketRegisterTlsInitCallback(context->webSocket,
-               (WebSocketTlsInitCallback) context->callbacks.tlsInitCallback);
+               mqttClientWebSocketTlsInitCallback);
          }
       }
       else

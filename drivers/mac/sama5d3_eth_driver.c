@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -197,8 +197,9 @@ error_t sama5d3EthInit(NetInterface *interface)
    EMAC->EMAC_IER = EMAC_IER_ROVR | EMAC_IER_TCOMP | EMAC_IER_TXERR |
       EMAC_IER_RLE | EMAC_IER_TUND | EMAC_IER_RXUBR | EMAC_IER_RCOMP;
 
-   //Read EMAC ISR register to clear any pending interrupt
+   //Read EMAC_ISR register to clear any pending interrupt
    status = EMAC->EMAC_ISR;
+   (void) status;
 
    //Configure interrupt controller
    AIC->AIC_SSR = ID_EMAC;
@@ -402,6 +403,7 @@ void sama5d3EthIrqHandler(void)
    isr = EMAC->EMAC_ISR;
    tsr = EMAC->EMAC_TSR;
    rsr = EMAC->EMAC_RSR;
+   (void) isr;
 
    //Packet transmitted?
    if((tsr & (EMAC_TSR_UND | EMAC_TSR_COMP | EMAC_TSR_BEX |
@@ -555,7 +557,8 @@ error_t sama5d3EthReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _IPV4_H
@@ -49,6 +49,13 @@ struct _Ipv4PseudoHeader;
    #define IPV4_SUPPORT ENABLED
 #elif (IPV4_SUPPORT != ENABLED && IPV4_SUPPORT != DISABLED)
    #error IPV4_SUPPORT parameter is not valid
+#endif
+
+//IPsec support
+#ifndef IPV4_IPSEC_SUPPORT
+   #define IPV4_IPSEC_SUPPORT DISABLED
+#elif (IPV4_IPSEC_SUPPORT != ENABLED && IPV4_IPSEC_SUPPORT != DISABLED)
+   #error IPV4_IPSEC_SUPPORT parameter is not valid
 #endif
 
 //Default IPv4 time-to-live value
@@ -361,6 +368,7 @@ typedef struct
 {
    size_t linkMtu;                                              ///<Maximum transmission unit
    bool_t isRouter;                                             ///<A flag indicating whether routing is enabled on this interface
+   bool_t enableEchoReq;                                        ///<Support for ICMP Echo Request messages
    bool_t enableBroadcastEchoReq;                               ///<Support for broadcast ICMP Echo Request messages
    uint16_t identification;                                     ///<IPv4 fragment identification field
    Ipv4AddrEntry addrList[IPV4_ADDR_LIST_SIZE];                 ///<IPv4 address list

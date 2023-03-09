@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _ICMP_H
@@ -190,6 +190,9 @@ typedef __start_packed struct
 #endif
 
 //ICMP related functions
+error_t icmpEnableEchoRequest(NetInterface *interface, bool_t enable);
+error_t icmpEnableBroadcastEchoRequest(NetInterface *interface, bool_t enable);
+
 void icmpProcessMessage(NetInterface *interface,
    Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *buffer,
    size_t offset);

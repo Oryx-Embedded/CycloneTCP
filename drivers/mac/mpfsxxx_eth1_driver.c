@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -220,6 +220,7 @@ error_t mpfsxxxEth1Init(NetInterface *interface)
 
    //Read interrupt status register to clear any pending interrupt
    temp = MAC0->INT_STATUS;
+   (void) temp;
 
    //Configure interrupt priority
    PLIC_SetPriority(MAC0_INT_PLIC, MPFSXXX_ETH1_IRQ_PRIORITY);
@@ -479,6 +480,7 @@ uint8_t mac0_int_plic_IRQHandler(void)
    isr = MAC0->INT_STATUS;
    tsr = MAC0->TRANSMIT_STATUS;
    rsr = MAC0->RECEIVE_STATUS;
+   (void) isr;
 
    //Packet transmitted?
    if((tsr & (GEM_TX_RESP_NOT_OK | GEM_STAT_TRANSMIT_UNDER_RUN |
@@ -635,7 +637,8 @@ error_t mpfsxxxEth1ReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

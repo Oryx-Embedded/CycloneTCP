@@ -1,5 +1,5 @@
 /**
- * @file sam9x60_eth_driver.c
+ * @file sam9x60_eth2_driver.c
  * @brief SAM9X60 Ethernet MAC driver (EMAC1 instance)
  *
  * @section License
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -197,8 +197,9 @@ error_t sam9x60Eth2Init(NetInterface *interface)
    EMAC1->EMAC_IER = EMAC_IER_ROVR | EMAC_IER_TCOMP | EMAC_IER_TXERR |
       EMAC_IER_RLE | EMAC_IER_TUND | EMAC_IER_RXUBR | EMAC_IER_RCOMP;
 
-   //Read EMAC ISR register to clear any pending interrupt
+   //Read EMAC_ISR register to clear any pending interrupt
    temp = EMAC1->EMAC_ISR;
+   (void) temp;
 
    //Configure interrupt controller
    AIC->AIC_SSR = ID_EMAC1;
@@ -387,6 +388,7 @@ void sam9x60Eth2IrqHandler(void)
    isr = EMAC1->EMAC_ISR;
    tsr = EMAC1->EMAC_TSR;
    rsr = EMAC1->EMAC_RSR;
+   (void) isr;
 
    //Packet transmitted?
    if((tsr & (EMAC_TSR_UND | EMAC_TSR_COMP | EMAC_TSR_BEX |
@@ -542,7 +544,8 @@ error_t sam9x60Eth2ReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

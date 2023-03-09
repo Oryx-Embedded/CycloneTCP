@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,6 +57,15 @@
 #include "mibs/mib2_module.h"
 #include "mibs/ip_mib_module.h"
 #include "debug.h"
+
+//IPsec supported?
+#if (IPV4_IPSEC_SUPPORT == ENABLED)
+   #include "ipsec/ipsec.h"
+   #include "ipsec/ipsec_inbound.h"
+   #include "ipsec/ipsec_outbound.h"
+   #include "ah/ah.h"
+   #include "esp/esp.h"
+#endif
 
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED)
@@ -86,7 +95,8 @@ error_t ipv4Init(NetInterface *interface)
    context->linkMtu = physicalInterface->nicDriver->mtu;
    context->isRouter = FALSE;
 
-   //Broadcast ICMP Echo Request messages are allowed by default
+   //ICMP Echo Request messages are allowed by default
+   context->enableEchoReq = TRUE;
    context->enableBroadcastEchoReq = TRUE;
 
    //Identification field is primarily used to identify
@@ -826,6 +836,14 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    //Initialize status code
    error = NO_ERROR;
 
+#if (IPV4_IPSEC_SUPPORT == ENABLED)
+   //Process inbound IP traffic (unprotected-to-protected)
+   error = ipsecProcessInboundIpv4Packet(interface, header, buffer, offset);
+   //Any error to report?
+   if(error)
+      return;
+#endif
+
    //Check the protocol field
    switch(header->protocol)
    {
@@ -875,6 +893,26 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    case IPV4_PROTOCOL_UDP:
       //Process incoming UDP datagram
       error = udpProcessDatagram(interface, &pseudoHeader, buffer, offset,
+         ancillary);
+      //Continue processing
+      break;
+#endif
+
+#if (IPV4_IPSEC_SUPPORT == ENABLED && AH_SUPPORT == ENABLED)
+   //AH header?
+   case IPV4_PROTOCOL_AH:
+      //Process AH header
+      error = ipv4ProcessAhHeader(interface, header, buffer, offset,
+         ancillary);
+      //Continue processing
+      break;
+#endif
+
+#if (IPV4_IPSEC_SUPPORT == ENABLED && ESP_SUPPORT == ENABLED)
+   //ESP header?
+   case IPV4_PROTOCOL_ESP:
+      //Process ESP header
+      error = ipv4ProcessEspHeader(interface, header, buffer, offset,
          ancillary);
       //Continue processing
       break;
@@ -951,33 +989,45 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
    IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutRequests, 1);
    IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutRequests, 1);
 
-   //Retrieve the length of payload
-   length = netBufferGetLength(buffer) - offset;
-
    //Identification field is primarily used to identify fragments of an
    //original IP datagram
    id = interface->ipv4Context.identification++;
 
-   //If the payload length is smaller than the network interface MTU then no
-   //fragmentation is needed
-   if((length + sizeof(Ipv4Header)) <= interface->ipv4Context.linkMtu)
-   {
-      //Send data as is
-      error = ipv4SendPacket(interface, pseudoHeader, id, 0, buffer, offset,
-         ancillary);
-   }
-   //If the payload length exceeds the network interface MTU then the device
-   //must fragment the data
-   else
-   {
-#if (IPV4_FRAG_SUPPORT == ENABLED)
-      //Fragment IP datagram into smaller packets
-      error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer, offset,
-         ancillary);
+#if (IPV4_IPSEC_SUPPORT == ENABLED)
+   //Process outbound IP traffic (protected-to-unprotected)
+   error = ipsecProcessOutboundIpv4Packet(interface, pseudoHeader, id, buffer,
+      &offset, ancillary);
 #else
-      //Fragmentation is not supported
-      error = ERROR_MESSAGE_TOO_LONG;
+   //Initialize status code
+   error = NO_ERROR;
 #endif
+
+   //Check status code
+   if(!error)
+   {
+      //Retrieve the length of payload
+      length = netBufferGetLength(buffer) - offset;
+
+      //Check the length of the payload
+      if((length + sizeof(Ipv4Header)) <= interface->ipv4Context.linkMtu)
+      {
+         //If the payload length is smaller than the network interface MTU
+         //then no fragmentation is needed
+         error = ipv4SendPacket(interface, pseudoHeader, id, 0, buffer,
+            offset, ancillary);
+      }
+      else
+      {
+#if (IPV4_FRAG_SUPPORT == ENABLED)
+         //If the payload length exceeds the network interface MTU then the
+         //device must fragment the data
+         error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer,
+            offset, ancillary);
+#else
+         //Fragmentation is not supported
+         error = ERROR_MESSAGE_TOO_LONG;
+#endif
+      }
    }
 
    //Return status code
@@ -1019,7 +1069,7 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
          return error;
    }
 
-   //Is there enough space for the IPv4 header?
+   //Sanity check
    if(offset < sizeof(Ipv4Header))
       return ERROR_INVALID_PARAMETER;
 
@@ -1232,7 +1282,23 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
       }
       else
 #endif
+      //IPv4 interface?
+      if(interface->nicDriver != NULL &&
+         interface->nicDriver->type == NIC_TYPE_IPV4)
+      {
+         //Update IP statistics
+         ipv4UpdateOutStats(interface, pseudoHeader->destAddr, length);
+
+         //Debug message
+         TRACE_INFO("Sending IPv4 packet (%" PRIuSIZE " bytes)...\r\n", length);
+         //Dump IP header contents for debugging purpose
+         ipv4DumpHeader(packet);
+
+         //Send the packet over the specified link
+         error = nicSendPacket(interface, buffer, offset, ancillary);
+      }
       //Unknown interface type?
+      else
       {
          //Report an error
          error = ERROR_INVALID_INTERFACE;

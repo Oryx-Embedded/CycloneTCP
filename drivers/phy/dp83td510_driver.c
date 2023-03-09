@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -91,6 +91,29 @@ error_t dp83td510Init(NetInterface *interface)
    {
    }
 
+   //Dump PHY registers for debugging purpose
+   dp83td510DumpPhyReg(interface);
+
+   //Perform custom configuration
+   dp83td510InitHook(interface);
+
+   //Force the TCP/IP stack to poll the link state at startup
+   interface->phyEvent = TRUE;
+   //Notify the TCP/IP stack of the event
+   osSetEvent(&netEvent);
+
+   //Successful initialization
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief DP83TD510 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void dp83td510InitHook(NetInterface *interface)
+{
    //Errata
    dp83td510WriteMmdReg(interface, 0x1F, 0x0608, 0x003B);
    dp83td510WriteMmdReg(interface, 0x1F, 0x0862, 0x39F8);
@@ -126,30 +149,6 @@ error_t dp83td510Init(NetInterface *interface)
    //Restart auto-negotiation
    dp83td510WriteMmdReg(interface, DP83TD510_AN_CONTROL,
       DP83TD510_AN_CONTROL_MR_AN_ENABLE | DP83TD510_AN_CONTROL_MR_RESTART_AN);
-
-   //Dump PHY registers for debugging purpose
-   dp83td510DumpPhyReg(interface);
-
-   //Perform custom configuration
-   dp83td510InitHook(interface);
-
-   //Force the TCP/IP stack to poll the link state at startup
-   interface->phyEvent = TRUE;
-   //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
-
-   //Successful initialization
-   return NO_ERROR;
-}
-
-
-/**
- * @brief DP83TD510 custom configuration
- * @param[in] interface Underlying network interface
- **/
-
-__weak_func void dp83td510InitHook(NetInterface *interface)
-{
 }
 
 

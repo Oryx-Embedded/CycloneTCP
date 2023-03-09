@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -191,8 +191,9 @@ error_t sam9263EthInit(NetInterface *interface)
    AT91C_BASE_EMAC->EMAC_IER = AT91C_EMAC_ROVR | AT91C_EMAC_TCOMP | AT91C_EMAC_TXERR |
       AT91C_EMAC_RLEX | AT91C_EMAC_TUNDR | AT91C_EMAC_RXUBR | AT91C_EMAC_RCOMP;
 
-   //Read EMAC ISR register to clear any pending interrupt
+   //Read EMAC_ISR register to clear any pending interrupt
    status = AT91C_BASE_EMAC->EMAC_ISR;
+   (void) status;
 
    //Configure interrupt controller
    AT91C_BASE_AIC->AIC_SMR[AT91C_ID_EMAC] = AT91C_AIC_SRCTYPE_INT_HIGH_LEVEL | AT91C_AIC_PRIOR_LOWEST;
@@ -399,6 +400,7 @@ void sam9263EthIrqHandler(void)
    isr = AT91C_BASE_EMAC->EMAC_ISR;
    tsr = AT91C_BASE_EMAC->EMAC_TSR;
    rsr = AT91C_BASE_EMAC->EMAC_RSR;
+   (void) isr;
 
    //Packet transmitted?
    if((tsr & (AT91C_EMAC_UND | AT91C_EMAC_COMP | AT91C_EMAC_BEX |
@@ -552,7 +554,8 @@ error_t sam9263EthReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

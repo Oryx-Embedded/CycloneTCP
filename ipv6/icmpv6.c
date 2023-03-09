@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,6 +57,33 @@
 
 
 /**
+ * @brief Enable support for Echo Request messages
+ * @param[in] interface Underlying network interface
+ * @param[in] enable When the flag is set to TRUE, the host will respond to
+ *   Echo Requests. When the flag is set to FALSE, incoming Echo Request
+ *   messages will be dropped
+ * @return Error code
+ **/
+
+error_t icmpv6EnableEchoRequest(NetInterface *interface, bool_t enable)
+{
+   //Check parameters
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Enable or disable support for Echo Request messages
+   interface->ipv6Context.enableEchoReq = enable;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
  * @brief Enable support for multicast Echo Request messages
  * @param[in] interface Underlying network interface
  * @param[in] enable When the flag is set to TRUE, the host will respond to
@@ -65,7 +92,8 @@
  * @return Error code
  **/
 
-error_t icmpv6EnableMulticastEchoRequest(NetInterface *interface, bool_t enable)
+error_t icmpv6EnableMulticastEchoRequest(NetInterface *interface,
+   bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
@@ -92,8 +120,9 @@ error_t icmpv6EnableMulticastEchoRequest(NetInterface *interface, bool_t enable)
  * @param[in] hopLimit Hop Limit field from IPv6 header
  **/
 
-void icmpv6ProcessMessage(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, uint8_t hopLimit)
+void icmpv6ProcessMessage(NetInterface *interface,
+   Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   uint8_t hopLimit)
 {
    size_t length;
    Icmpv6Header *header;
@@ -335,8 +364,9 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
  * @param[in] requestOffset Offset to the first byte of the ICMPv6 message
  **/
 
-void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *requestPseudoHeader,
-   const NetBuffer *request, size_t requestOffset)
+void icmpv6ProcessEchoRequest(NetInterface *interface,
+   Ipv6PseudoHeader *requestPseudoHeader, const NetBuffer *request,
+   size_t requestOffset)
 {
    error_t error;
    size_t requestLength;
@@ -365,6 +395,11 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
    TRACE_INFO("ICMPv6 Echo Request message received (%" PRIuSIZE " bytes)...\r\n", requestLength);
    //Dump message contents for debugging purpose
    icmpv6DumpEchoMessage(requestHeader);
+
+   //If support for Echo Request messages has been explicitly disabled, then
+   //the host shall not respond to the incoming request
+   if(!interface->ipv6Context.enableEchoReq)
+      return;
 
    //Check whether the destination address of the Echo Request message is
    //a multicast address
@@ -467,8 +502,9 @@ void icmpv6ProcessEchoRequest(NetInterface *interface, Ipv6PseudoHeader *request
  * @return Error code
  **/
 
-error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code,
-   uint32_t parameter, const NetBuffer *ipPacket, size_t ipPacketOffset)
+error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
+   uint8_t code, uint32_t parameter, const NetBuffer *ipPacket,
+   size_t ipPacketOffset)
 {
    error_t error;
    size_t offset;

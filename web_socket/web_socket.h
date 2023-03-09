@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _WEB_SOCKET_H
@@ -442,6 +442,7 @@ struct _WebSocket
    TlsContext *tlsContext;                   ///<TLS context
    TlsSessionState tlsSession;               ///<TLS session state
    WebSocketTlsInitCallback tlsInitCallback; ///<TLS initialization callback function
+   void *tlsInitParam;                       ///<Opaque pointer passed to the TLS initialization callback function
 #endif
 #if (WEB_SOCKET_BASIC_AUTH_SUPPORT == ENABLED || WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
    WebSocketAuthContext authContext;

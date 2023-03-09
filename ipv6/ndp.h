@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _NDP_H
@@ -595,6 +595,11 @@ extern systime_t ndpTickCounter;
 
 //NDP related functions
 error_t ndpInit(NetInterface *interface);
+
+error_t ndpAddStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr,
+   const MacAddr *macAddr);
+
+error_t ndpRemoveStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr);
 
 error_t ndpResolve(NetInterface *interface, const Ipv6Addr *ipAddr,
    MacAddr *macAddr);

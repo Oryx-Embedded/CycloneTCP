@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -207,6 +207,7 @@ error_t efm32gg11EthInit(NetInterface *interface)
 
    //Read ETH_IFCR register to clear any pending interrupt
    status = ETH->IFCR;
+   (void) status;
 
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
    NVIC_SetPriorityGrouping(EFM32GG11_ETH_IRQ_PRIORITY_GROUPING);
@@ -635,7 +636,8 @@ error_t efm32gg11EthReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

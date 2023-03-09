@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -213,7 +213,7 @@ DnsCacheEntry *dnsFindEntry(NetInterface *interface,
          return entry;
    }
 
-   //No matching entry in the DNS cache...
+   //No matching entry in the DNS cache
    return NULL;
 }
 

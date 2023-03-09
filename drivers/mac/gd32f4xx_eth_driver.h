@@ -1,6 +1,6 @@
 /**
  * @file gd32f4xx_eth_driver.h
- * @brief GD32F4 Ethernet MAC driver
+ * @brief GigaDevice GD32F4 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _GD32F4XX_ETH_DRIVER_H

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _NET_H
@@ -93,13 +93,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.2.2"
+#define CYCLONE_TCP_VERSION_STRING "2.2.4"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 2
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 2
+#define CYCLONE_TCP_REV_NUMBER 4
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -316,6 +316,10 @@ typedef struct
    NetInterface interfaces[NET_INTERFACE_COUNT]; ///<Network interfaces
    NetLinkChangeCallbackEntry linkChangeCallbacks[NET_MAX_LINK_CHANGE_CALLBACKS];
    NetTimerCallbackEntry timerCallbacks[NET_MAX_TIMER_CALLBACKS];
+#if (IPV4_IPSEC_SUPPORT == ENABLED)
+   void *ipsecContext;                           ///<IPsec context
+   void *ikeContext;                             ///<IKE context
+#endif
 } NetContext;
 
 

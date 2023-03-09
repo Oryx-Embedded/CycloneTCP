@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _DHCPV6_COMMON_H
@@ -46,7 +46,7 @@
 #define DHCPV6_MAX_DUID_SIZE 130
 
 //Maximum hop count in a relay-forward message
-#define DHCPV6_HOP_COUNT_LIMIT 32
+#define DHCPV6_HOP_COUNT_LIMIT 8
 //Highest server preference value
 #define DHCPV6_MAX_SERVER_PREFERENCE 255
 //Infinite lifetime representation
@@ -109,31 +109,32 @@ typedef enum
 
 typedef enum
 {
-   DHCPV6_OPT_CLIENT_ID      = 1,
-   DHCPV6_OPT_SERVER_ID      = 2,
-   DHCPV6_OPT_IA_NA          = 3,
-   DHCPV6_OPT_IA_TA          = 4,
-   DHCPV6_OPT_IA_ADDR        = 5,
-   DHCPV6_OPT_ORO            = 6,
-   DHCPV6_OPT_PREFERENCE     = 7,
-   DHCPV6_OPT_ELAPSED_TIME   = 8,
-   DHCPV6_OPT_RELAY_MSG      = 9,
-   DHCPV6_OPT_AUTH           = 11,
-   DHCPV6_OPT_UNICAST        = 12,
-   DHCPV6_OPT_STATUS_CODE    = 13,
-   DHCPV6_OPT_RAPID_COMMIT   = 14,
-   DHCPV6_OPT_USER_CLASS     = 15,
-   DHCPV6_OPT_VENDOR_CLASS   = 16,
-   DHCPV6_OPT_VENDOR_OPTS    = 17,
-   DHCPV6_OPT_INTERFACE_ID   = 18,
-   DHCPV6_OPT_RECONF_MSG     = 19,
-   DHCPV6_OPT_RECONF_ACCEPT  = 20,
-   DHCPV6_OPT_DNS_SERVERS    = 23,
-   DHCPV6_OPT_DOMAIN_LIST    = 24,
-   DHCPV6_OPT_IA_PD          = 25,
-   DHCPV6_OPT_IA_PREFIX      = 26,
-   DHCPV6_OPT_FQDN           = 39,
-   DHCPV6_OPT_CAPTIVE_PORTAL = 103
+   DHCPV6_OPT_CLIENT_ID         = 1,
+   DHCPV6_OPT_SERVER_ID         = 2,
+   DHCPV6_OPT_IA_NA             = 3,
+   DHCPV6_OPT_IA_TA             = 4,
+   DHCPV6_OPT_IA_ADDR           = 5,
+   DHCPV6_OPT_ORO               = 6,
+   DHCPV6_OPT_PREFERENCE        = 7,
+   DHCPV6_OPT_ELAPSED_TIME      = 8,
+   DHCPV6_OPT_RELAY_MSG         = 9,
+   DHCPV6_OPT_AUTH              = 11,
+   DHCPV6_OPT_UNICAST           = 12,
+   DHCPV6_OPT_STATUS_CODE       = 13,
+   DHCPV6_OPT_RAPID_COMMIT      = 14,
+   DHCPV6_OPT_USER_CLASS        = 15,
+   DHCPV6_OPT_VENDOR_CLASS      = 16,
+   DHCPV6_OPT_VENDOR_OPTS       = 17,
+   DHCPV6_OPT_INTERFACE_ID      = 18,
+   DHCPV6_OPT_RECONF_MSG        = 19,
+   DHCPV6_OPT_RECONF_ACCEPT     = 20,
+   DHCPV6_OPT_DNS_SERVERS       = 23,
+   DHCPV6_OPT_DOMAIN_LIST       = 24,
+   DHCPV6_OPT_IA_PD             = 25,
+   DHCPV6_OPT_IA_PREFIX         = 26,
+   DHCPV6_OPT_INFO_REFRESH_TIME = 32,
+   DHCPV6_OPT_FQDN              = 39,
+   DHCPV6_OPT_CAPTIVE_PORTAL    = 103
 } Dhcpv6OptionCode;
 
 

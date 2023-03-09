@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -222,6 +222,7 @@ error_t zynq7000EthInit(NetInterface *interface)
 
    //Read interrupt status register to clear any pending interrupt
    temp = XEMACPS_ISR;
+   (void) temp;
 
    //Register interrupt handler
    XScuGic_Connect(&ZYNQ7000_ETH_GIC_INSTANCE, XPS_GEM0_INT_ID,
@@ -399,6 +400,7 @@ void zynq7000EthIrqHandler(NetInterface *interface)
    isr = XEMACPS_ISR;
    tsr = XEMACPS_TXSR;
    rsr = XEMACPS_RXSR;
+   (void) isr;
 
    //Clear interrupt flags
    XEMACPS_ISR = isr;
@@ -560,7 +562,8 @@ error_t zynq7000EthReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

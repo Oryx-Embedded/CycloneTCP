@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _NIC_H
@@ -82,8 +82,10 @@ typedef enum
    NIC_TYPE_UNKNOWN  = 0, ///<Unknown interface type
    NIC_TYPE_ETHERNET = 1, ///<Ethernet interface
    NIC_TYPE_PPP      = 2, ///<PPP interface
-   NIC_TYPE_6LOWPAN  = 3, ///<6LoWPAN interface
-   NIC_TYPE_LOOPBACK = 4  ///<Loopback interface
+   NIC_TYPE_IPV4     = 3, ///<IPv4 interface
+   NIC_TYPE_IPV6     = 4, ///<IPv6 interface
+   NIC_TYPE_6LOWPAN  = 4, ///<6LoWPAN interface
+   NIC_TYPE_LOOPBACK = 5  ///<Loopback interface
 } NicType;
 
 

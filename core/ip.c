@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -40,6 +40,13 @@
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
 #include "debug.h"
+
+//IPsec supported?
+#if (IPV4_IPSEC_SUPPORT == ENABLED)
+   #include "ipsec/ipsec.h"
+   #include "ah/ah.h"
+   #include "esp/esp.h"
+#endif
 
 //Special IP addresses
 const IpAddr IP_ADDR_ANY = {0};
@@ -725,6 +732,11 @@ NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
 #else
    //Maximum overhead when using IPv4
    headerLen = sizeof(Ipv4Header) + sizeof(uint32_t);
+#endif
+
+#if (IPV4_IPSEC_SUPPORT == ENABLED)
+   //Maximum overhead caused by AH and ESP security protocols
+   headerLen += MAX(AH_MAX_OVERHEAD, ESP_MAX_OVERHEAD);
 #endif
 
 #if (ETH_SUPPORT == ENABLED)

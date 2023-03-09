@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -112,7 +112,8 @@ error_t ipv6Init(NetInterface *interface)
    context->isRouter = FALSE;
    context->curHopLimit = IPV6_DEFAULT_HOP_LIMIT;
 
-   //Multicast ICMPv6 Echo Request messages are allowed by default
+   //ICMPv6 Echo Request messages are allowed by default
+   context->enableEchoReq = TRUE;
    context->enableMulticastEchoReq = TRUE;
 
    //Initialize the list of IPv6 addresses assigned to the interface
@@ -1748,7 +1749,7 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    }
    else
    {
-      //Is there enough space for the IPv6 header?
+      //Sanity check
       if(offset < sizeof(Ipv6Header))
          return ERROR_INVALID_PARAMETER;
 
@@ -1978,8 +1979,8 @@ error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
          //Send the packet over the specified link
          error = nicSendPacket(interface, buffer, offset, ancillary);
       }
-      else
       //Unknown interface type?
+      else
       {
          //Report an error
          error = ERROR_INVALID_INTERFACE;

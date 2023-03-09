@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -61,7 +61,7 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
    time = osGetSystemTime();
 
    //Keep track of the oldest entry
-   oldestEntry = &interface->ndpContext.neighborCache[0];
+   oldestEntry = NULL;
 
    //Loop through Neighbor cache entries
    for(i = 0; i < NDP_NEIGHBOR_CACHE_SIZE; i++)
@@ -69,26 +69,40 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
       //Point to the current entry
       entry = &interface->ndpContext.neighborCache[i];
 
-      //Check whether the entry is currently in use or not
+      //Check the state of the Neighbor cache entry
       if(entry->state == NDP_STATE_NONE)
       {
-         //Erase contents
+         //Initialize Neighbor cache entry
          osMemset(entry, 0, sizeof(NdpNeighborCacheEntry));
          //Return a pointer to the Neighbor cache entry
          return entry;
       }
-
-      //Keep track of the oldest entry in the table
-      if((time - entry->timestamp) > (time - oldestEntry->timestamp))
+      else if(entry->state == NDP_STATE_PERMANENT)
       {
-         oldestEntry = entry;
+         //Static Neighbor cache entries are never updated
+      }
+      else
+      {
+         //Keep track of the oldest entry in the table
+         if(oldestEntry == NULL)
+         {
+            oldestEntry = entry;
+         }
+         else if((time - entry->timestamp) > (time - oldestEntry->timestamp))
+         {
+            oldestEntry = entry;
+         }
       }
    }
 
-   //Drop any pending packets
-   ndpFlushQueuedPackets(interface, oldestEntry);
-   //The oldest entry is removed whenever the table runs out of space
-   osMemset(oldestEntry, 0, sizeof(NdpNeighborCacheEntry));
+   //Any entry available in the Neighbor cache?
+   if(oldestEntry != NULL)
+   {
+      //Drop any pending packets
+      ndpFlushQueuedPackets(interface, oldestEntry);
+      //The oldest entry is removed whenever the table runs out of space
+      osMemset(oldestEntry, 0, sizeof(NdpNeighborCacheEntry));
+   }
 
    //Return a pointer to the Neighbor cache entry
    return oldestEntry;
@@ -103,7 +117,8 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
  *   the specified IPv6 address could not be found in the Neighbor cache
  **/
 
-NdpNeighborCacheEntry *ndpFindNeighborCacheEntry(NetInterface *interface, const Ipv6Addr *ipAddr)
+NdpNeighborCacheEntry *ndpFindNeighborCacheEntry(NetInterface *interface,
+   const Ipv6Addr *ipAddr)
 {
    uint_t i;
    NdpNeighborCacheEntry *entry;
@@ -119,11 +134,13 @@ NdpNeighborCacheEntry *ndpFindNeighborCacheEntry(NetInterface *interface, const 
       {
          //Current entry matches the specified address?
          if(ipv6CompAddr(&entry->ipAddr, ipAddr))
+         {
             return entry;
+         }
       }
    }
 
-   //No matching entry in Neighbor cache...
+   //No matching entry in Neighbor cache
    return NULL;
 }
 
@@ -148,8 +165,12 @@ void ndpUpdateNeighborCache(NetInterface *interface)
       //Point to the current entry
       entry = &interface->ndpContext.neighborCache[i];
 
-      //INCOMPLETE state?
-      if(entry->state == NDP_STATE_INCOMPLETE)
+      //Check the state of the Neighbor cache entry
+      if(entry->state == NDP_STATE_PERMANENT)
+      {
+         //Static Neighbor cache entries are never updated
+      }
+      else if(entry->state == NDP_STATE_INCOMPLETE)
       {
          //The Neighbor Solicitation timed out?
          if(timeCompare(time, entry->timestamp + entry->timeout) >= 0)
@@ -177,7 +198,6 @@ void ndpUpdateNeighborCache(NetInterface *interface)
             }
          }
       }
-      //REACHABLE state?
       else if(entry->state == NDP_STATE_REACHABLE)
       {
          //Periodically time out Neighbor cache entries
@@ -189,14 +209,12 @@ void ndpUpdateNeighborCache(NetInterface *interface)
             entry->state = NDP_STATE_STALE;
          }
       }
-      //STALE state?
       else if(entry->state == NDP_STATE_STALE)
       {
          //The neighbor is no longer known to be reachable but until traffic
          //is sent to the neighbor, no attempt should be made to verify its
          //reachability
       }
-      //DELAY state?
       else if(entry->state == NDP_STATE_DELAY)
       {
          //Wait for the specified delay before sending the first probe
@@ -218,7 +236,6 @@ void ndpUpdateNeighborCache(NetInterface *interface)
             ndpSendNeighborSol(interface, &ipAddr, FALSE);
          }
       }
-      //PROBE state?
       else if(entry->state == NDP_STATE_PROBE)
       {
          //The request timed out?
@@ -255,6 +272,11 @@ void ndpUpdateNeighborCache(NetInterface *interface)
             }
          }
       }
+      else
+      {
+         //Just for sanity
+         entry->state = NDP_STATE_NONE;
+      }
    }
 }
 
@@ -275,10 +297,18 @@ void ndpFlushNeighborCache(NetInterface *interface)
       //Point to the current entry
       entry = &interface->ndpContext.neighborCache[i];
 
-      //Drop packets that are waiting for address resolution
-      ndpFlushQueuedPackets(interface, entry);
-      //Release Neighbor cache entry
-      entry->state = NDP_STATE_NONE;
+      //Check the state of the Neighbor cache entry
+      if(entry->state == NDP_STATE_PERMANENT)
+      {
+         //Static Neighbor cache entries are never updated
+      }
+      else
+      {
+         //Drop packets that are waiting for address resolution
+         ndpFlushQueuedPackets(interface, entry);
+         //Delete Neighbor cache entry
+         entry->state = NDP_STATE_NONE;
+      }
    }
 }
 
@@ -304,7 +334,7 @@ uint_t ndpSendQueuedPackets(NetInterface *interface, NdpNeighborCacheEntry *entr
    //Reset packet counter
    i = 0;
 
-   //Check current state
+   //Check the state of the Neighbor cache entry
    if(entry->state == NDP_STATE_INCOMPLETE)
    {
       //Loop through the queued packets
@@ -354,7 +384,7 @@ void ndpFlushQueuedPackets(NetInterface *interface, NdpNeighborCacheEntry *entry
    uint_t i;
    NdpQueueItem *item;
 
-   //Check current state
+   //Check the state of the Neighbor cache entry
    if(entry->state == NDP_STATE_INCOMPLETE)
    {
       //Loop through the queued packets
@@ -443,7 +473,8 @@ NdpDestCacheEntry *ndpCreateDestCacheEntry(NetInterface *interface)
  *   the specified address could not be found in the Destination cache
  **/
 
-NdpDestCacheEntry *ndpFindDestCacheEntry(NetInterface *interface, const Ipv6Addr *destAddr)
+NdpDestCacheEntry *ndpFindDestCacheEntry(NetInterface *interface,
+   const Ipv6Addr *destAddr)
 {
    uint_t i;
    NdpDestCacheEntry *entry;
@@ -456,10 +487,12 @@ NdpDestCacheEntry *ndpFindDestCacheEntry(NetInterface *interface, const Ipv6Addr
 
       //Current entry matches the specified destination address?
       if(ipv6CompAddr(&entry->destAddr, destAddr))
+      {
          return entry;
+      }
    }
 
-   //No matching entry in Destination Cache...
+   //No matching entry in Destination Cache
    return NULL;
 }
 

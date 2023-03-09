@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -191,8 +191,9 @@ error_t avr32EthInit(NetInterface *interface)
    AVR32_MACB.ier = AVR32_MACB_IER_ROVR_MASK | AVR32_MACB_IER_TCOMP_MASK | AVR32_MACB_IER_TXERR_MASK |
       AVR32_MACB_IER_RLE_MASK | AVR32_MACB_IER_TUND_MASK | AVR32_MACB_IER_RXUBR_MASK | AVR32_MACB_IER_RCOMP_MASK;
 
-   //Read EMAC ISR register to clear any pending interrupt
+   //Read EMAC_ISR register to clear any pending interrupt
    status = AVR32_MACB.isr;
+   (void) status;
 
    //Register interrupt handler
    INTC_register_interrupt(avr32EthIrqWrapper, AVR32_MACB_IRQ, AVR32_ETH_IRQ_PRIORITY);
@@ -401,6 +402,7 @@ bool_t avr32EthIrqHandler(void)
    isr = AVR32_MACB.isr;
    tsr = AVR32_MACB.tsr;
    rsr = AVR32_MACB.rsr;
+   (void) isr;
 
    //Packet transmitted?
    if((tsr & (AVR32_MACB_TSR_UND_MASK | AVR32_MACB_TSR_COMP_MASK |
@@ -553,7 +555,8 @@ uint_t avr32EthReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

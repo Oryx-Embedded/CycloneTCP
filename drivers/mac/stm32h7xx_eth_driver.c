@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -702,6 +702,7 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface)
    static uint8_t temp[STM32H7XX_ETH_RX_BUFFER_SIZE];
    error_t error;
    size_t n;
+   uint32_t status;
    NetRxAncillary ancillary;
 
    //Current buffer available for reading?
@@ -711,8 +712,18 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface)
       if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_FD) != 0 &&
          (rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_LD) != 0)
       {
+         //Check error bits
+         status = rxDmaDesc[rxIndex].rdes3 & (ETH_RDES3_CE | ETH_RDES3_GP |
+            ETH_RDES3_RWT | ETH_RDES3_OE | ETH_RDES3_RE | ETH_RDES3_DE);
+
+         //The dribble bit error is valid only in the MII mode
+         if((SYSCFG->PMCR & SYSCFG_PMCR_EPIS_SEL) != SYSCFG_ETH_MII)
+         {
+            status &= ~ETH_RDES3_DE;
+         }
+
          //Make sure no error occurred
-         if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_ES) == 0)
+         if(status == 0)
          {
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_PL;

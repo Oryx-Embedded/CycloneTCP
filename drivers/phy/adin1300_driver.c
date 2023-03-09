@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -84,11 +84,11 @@ error_t adin1300Init(NetInterface *interface)
    }
 
    //Reset PHY transceiver
-   adin1300WritePhyReg(interface,  ADIN1300_MII_CONTROL,
+   adin1300WritePhyReg(interface, ADIN1300_MII_CONTROL,
       ADIN1300_MII_CONTROL_SFT_RST);
 
    //Wait for the reset to complete
-   while(adin1300ReadPhyReg(interface,  ADIN1300_MII_CONTROL) &
+   while(adin1300ReadPhyReg(interface, ADIN1300_MII_CONTROL) &
       ADIN1300_MII_CONTROL_SFT_RST)
    {
    }

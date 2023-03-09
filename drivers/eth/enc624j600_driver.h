@@ -1,6 +1,6 @@
 /**
  * @file enc624j600_driver.h
- * @brief ENC624J600/ENC424J600 Ethernet controller
+ * @brief ENC624J600 Ethernet controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _ENC624J600_DRIVER_H

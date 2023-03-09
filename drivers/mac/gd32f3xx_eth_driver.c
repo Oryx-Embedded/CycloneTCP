@@ -1,6 +1,6 @@
 /**
  * @file gd32f3xx_eth_driver.c
- * @brief GD32F3 Ethernet MAC driver
+ * @brief GigaDevice GD32F3 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level

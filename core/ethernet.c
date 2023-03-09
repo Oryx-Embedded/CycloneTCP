@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -918,15 +918,19 @@ error_t macStringToAddr(const char_t *str, MacAddr *macAddr)
 
 char_t *macAddrToString(const MacAddr *macAddr, char_t *str)
 {
-   static char_t buffer[18];
+   static char_t buffer[24];
 
    //The str parameter is optional
    if(str == NULL)
+   {
       str = buffer;
+   }
 
    //Format MAC address
-   osSprintf(str, "%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8,
-      macAddr->b[0], macAddr->b[1], macAddr->b[2], macAddr->b[3], macAddr->b[4], macAddr->b[5]);
+   osSprintf(str, "%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8
+      "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8,
+      macAddr->b[0], macAddr->b[1], macAddr->b[2],
+      macAddr->b[3], macAddr->b[4], macAddr->b[5]);
 
    //Return a pointer to the formatted string
    return str;
@@ -1002,7 +1006,9 @@ error_t eui64StringToAddr(const char_t *str, Eui64 *eui64)
       {
          //First digit to be decoded?
          if(value < 0)
+         {
             value = 0;
+         }
 
          //Update the value of the current byte
          if(osIsdigit(*str))
@@ -1088,11 +1094,13 @@ error_t eui64StringToAddr(const char_t *str, Eui64 *eui64)
 
 char_t *eui64AddrToString(const Eui64 *eui64, char_t *str)
 {
-   static char_t buffer[24];
+   static char_t buffer[32];
 
    //The str parameter is optional
    if(str == NULL)
+   {
       str = buffer;
+   }
 
    //Format EUI-64 identifier
    osSprintf(str, "%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8 "-%02" PRIX8

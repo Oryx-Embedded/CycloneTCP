@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _IPV6_H
@@ -460,6 +460,7 @@ typedef struct
    size_t linkMtu;                                              ///<Maximum transmission unit
    bool_t isRouter;                                             ///<A flag indicating whether routing is enabled on this interface
    uint8_t curHopLimit;                                         ///<Default value for the Hop Limit field
+   bool_t enableEchoReq;                                        ///<Support for ICMPv6 Echo Request messages
    bool_t enableMulticastEchoReq;                               ///<Support for multicast ICMPv6 Echo Request messages
    Ipv6AddrEntry addrList[IPV6_ADDR_LIST_SIZE];                 ///<IPv6 unicast address list
    Ipv6Addr anycastAddrList[IPV6_ANYCAST_ADDR_LIST_SIZE];       ///<IPv6 anycast address list

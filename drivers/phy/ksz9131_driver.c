@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -116,6 +116,13 @@ error_t ksz9131Init(NetInterface *interface)
 
 __weak_func void ksz9131InitHook(NetInterface *interface)
 {
+   uint16_t value;
+
+   //If MAC does not provide any delay for the TXC, the device may add a fixed
+   //2ns delay to the TXC input
+   value = ksz9131ReadMmdReg(interface, KSZ9131_TX_DLL_CTRL);
+   value &= ~KSZ9131_TX_DLL_CTRL_BYPASS_TXDLL;
+   ksz9131WriteMmdReg(interface, KSZ9131_TX_DLL_CTRL, value);
 }
 
 

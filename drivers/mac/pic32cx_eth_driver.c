@@ -1,6 +1,6 @@
 /**
  * @file pic32cx_eth_driver.c
- * @brief PIC32CX Ethernet MAC driver
+ * @brief PIC32CX SG41/SG60/SG61 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -197,8 +197,9 @@ error_t pic32cxEthInit(NetInterface *interface)
       GMAC_IER_TCOMP_Msk | GMAC_IER_TFC_Msk | GMAC_IER_RLEX_Msk |
       GMAC_IER_TUR_Msk | GMAC_IER_RXUBR_Msk | GMAC_IER_RCOMP_Msk;
 
-   //Read GMAC ISR register to clear any pending interrupt
+   //Read GMAC_ISR register to clear any pending interrupt
    status = GMAC_REGS->GMAC_ISR;
+   (void) status;
 
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
    NVIC_SetPriorityGrouping(PIC32CX_ETH_IRQ_PRIORITY_GROUPING);
@@ -225,6 +226,79 @@ error_t pic32cxEthInit(NetInterface *interface)
 
 __weak_func void pic32cxEthInitGpio(NetInterface *interface)
 {
+//PIC32CX SG41/SG61 Curiosity Ultra evaluation board?
+#if defined(USE_PIC32CX_SG41_CURIOSITY_ULTRA) || \
+   defined(USE_PIC32CX_SG61_CURIOSITY_ULTRA)
+   uint32_t temp;
+
+   //Enable PORT bus clock (CLK_PORT_APB)
+   MCLK_REGS->MCLK_APBBMASK |= MCLK_APBBMASK_PORT_Msk;
+
+   //Configure GRX1 (PA12)
+   PORT_REGS->GROUP[0].PORT_PINCFG[12] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[0].PORT_PMUX[6] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[0].PORT_PMUX[6] = temp | PORT_PMUX_PMUXE(MUX_PA12L_GMAC_GRX1);
+
+   //Configure GRX0 (PA13)
+   PORT_REGS->GROUP[0].PORT_PINCFG[13] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[0].PORT_PMUX[6] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[0].PORT_PMUX[6] = temp | PORT_PMUX_PMUXO(MUX_PA13L_GMAC_GRX0);
+
+   //Configure GTXCK (PA14)
+   PORT_REGS->GROUP[0].PORT_PINCFG[14] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[0].PORT_PMUX[7] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[0].PORT_PMUX[7] = temp | PORT_PMUX_PMUXE(MUX_PA14L_GMAC_GTXCK);
+
+   //Configure GRXER (PA15)
+   PORT_REGS->GROUP[0].PORT_PINCFG[15] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[0].PORT_PMUX[7] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[0].PORT_PMUX[7] = temp | PORT_PMUX_PMUXO(MUX_PA15L_GMAC_GRXER);
+
+   //Configure GTXEN (PA17)
+   PORT_REGS->GROUP[0].PORT_PINCFG[17] |= PORT_PINCFG_DRVSTR_Msk;
+   PORT_REGS->GROUP[0].PORT_PINCFG[17] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[0].PORT_PMUX[8] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[0].PORT_PMUX[8] = temp | PORT_PMUX_PMUXO(MUX_PA17L_GMAC_GTXEN);
+
+   //Configure GTX0 (PA18)
+   PORT_REGS->GROUP[0].PORT_PINCFG[18] |= PORT_PINCFG_DRVSTR_Msk;
+   PORT_REGS->GROUP[0].PORT_PINCFG[18] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[0].PORT_PMUX[9] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[0].PORT_PMUX[9] = temp | PORT_PMUX_PMUXE(MUX_PA18L_GMAC_GTX0);
+
+   //Configure GTX1 (PA19)
+   PORT_REGS->GROUP[0].PORT_PINCFG[19] |= PORT_PINCFG_DRVSTR_Msk;
+   PORT_REGS->GROUP[0].PORT_PINCFG[19] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[0].PORT_PMUX[9] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[0].PORT_PMUX[9] = temp | PORT_PMUX_PMUXO(MUX_PA19L_GMAC_GTX1);
+
+   //Configure GRXDV (PC20)
+   PORT_REGS->GROUP[2].PORT_PINCFG[20] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[10] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[10] = temp | PORT_PMUX_PMUXE(MUX_PC20L_GMAC_GRXDV);
+
+   //Configure GMDC (PC22)
+   PORT_REGS->GROUP[2].PORT_PINCFG[22] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[11] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[11] = temp | PORT_PMUX_PMUXE(MUX_PC22L_GMAC_GMDC);
+
+   //Configure GMDIO (PC23)
+   PORT_REGS->GROUP[2].PORT_PINCFG[23] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[11] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[11] = temp | PORT_PMUX_PMUXO(MUX_PC23L_GMAC_GMDIO);
+
+   //Select RMII operation mode
+   GMAC_REGS->GMAC_UR &= ~GMAC_UR_MII_Msk;
+
+   //Configure PHY_RESET (PC18) as an output
+   PORT_REGS->GROUP[2].PORT_DIRSET = PORT_PC18;
+
+   //Reset PHY transceiver
+   PORT_REGS->GROUP[2].PORT_OUTCLR = PORT_PC18;
+   sleep(10);
+   PORT_REGS->GROUP[2].PORT_OUTSET = PORT_PC18;
+   sleep(10);
+#endif
 }
 
 
@@ -384,6 +458,7 @@ void GMAC_Handler(void)
    isr = GMAC_REGS->GMAC_ISR;
    tsr = GMAC_REGS->GMAC_TSR;
    rsr = GMAC_REGS->GMAC_RSR;
+   (void) isr;
 
    //Packet transmitted?
    if((tsr & (GMAC_TSR_HRESP_Msk | GMAC_TSR_UND_Msk |
@@ -540,7 +615,8 @@ error_t pic32cxEthReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

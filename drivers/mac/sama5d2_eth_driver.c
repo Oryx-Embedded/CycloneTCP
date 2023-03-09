@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -237,8 +237,9 @@ error_t sama5d2EthInit(NetInterface *interface)
    GMAC0->GMAC_IER = GMAC_IER_HRESP | GMAC_IER_ROVR | GMAC_IER_TCOMP | GMAC_IER_TFC |
       GMAC_IER_RLEX | GMAC_IER_TUR | GMAC_IER_RXUBR | GMAC_IER_RCOMP;
 
-   //Read GMAC ISR register to clear any pending interrupt
+   //Read GMAC_ISR register to clear any pending interrupt
    status = GMAC0->GMAC_ISR;
+   (void) status;
 
    //Register interrupt handler
    aic_set_source_vector(ID_GMAC0, sama5d2EthIrqHandler);
@@ -469,6 +470,7 @@ void sama5d2EthIrqHandler(void)
    isr = GMAC0->GMAC_ISR;
    tsr = GMAC0->GMAC_TSR;
    rsr = GMAC0->GMAC_RSR;
+   (void) isr;
 
    //Packet transmitted?
    if((tsr & (GMAC_TSR_HRESP | GMAC_TSR_TXCOMP | GMAC_TSR_TFC |
@@ -625,7 +627,8 @@ error_t sama5d2EthReceivePacket(NetInterface *interface)
    size_t size;
    size_t length;
 
-   //Initialize SOF and EOF indices
+   //Initialize variables
+   size = 0;
    sofIndex = UINT_MAX;
    eofIndex = UINT_MAX;
 

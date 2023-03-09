@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -87,6 +87,122 @@ error_t ndpInit(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Add a static entry in the Neighbor cache
+ * @param[in] interface Underlying network interface
+ * @param[in] ipAddr IPv6 address
+ * @param[in] macAddr MAC address
+ * @return Error code
+ **/
+
+error_t ndpAddStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr,
+   const MacAddr *macAddr)
+{
+   error_t error;
+   NdpNeighborCacheEntry *entry;
+
+   //Check parameters
+   if(interface == NULL || ipAddr == NULL || macAddr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Search the Neighbor cache for the specified IPv6 address
+   entry = ndpFindNeighborCacheEntry(interface, ipAddr);
+
+   //Check whether a static entry already exists in the ARP cache
+   if(entry != NULL && entry->state == NDP_STATE_PERMANENT)
+   {
+      //The entry already exists
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Create a new entry in the Neighbor cache
+      entry = ndpCreateNeighborCacheEntry(interface);
+
+      //ARP cache entry successfully created?
+      if(entry != NULL)
+      {
+         //Record the IPv6 address and the corresponding MAC address
+         entry->ipAddr = *ipAddr;
+         entry->macAddr = *macAddr;
+
+         //Save the time at which the entry was created
+         entry->timestamp = osGetSystemTime();
+
+         //Unused parameters
+         entry->isRouter = FALSE;
+         entry->timeout = 0;
+         entry->retransmitCount = 0;
+         entry->queueSize = 0;
+
+         //Update entry state
+         entry->state = NDP_STATE_PERMANENT;
+
+         //Successful processing
+         error = NO_ERROR;
+      }
+      else
+      {
+         //Failed to create ARP cache entry
+         error = ERROR_OUT_OF_RESOURCES;
+      }
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Remove a static entry from the Neighbor cache
+ * @param[in] interface Underlying network interface
+ * @param[in] ipAddr IPv6 address
+ * @return Error code
+ **/
+
+error_t ndpRemoveStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr)
+{
+   error_t error;
+   NdpNeighborCacheEntry *entry;
+
+   //Check parameters
+   if(interface == NULL || ipAddr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Search the Neighbor cache for the specified IPv6 address
+   entry = ndpFindNeighborCacheEntry(interface, ipAddr);
+
+   //Check whether a matching entry has been found
+   if(entry != NULL && entry->state == NDP_STATE_PERMANENT)
+   {
+      //Delete Neighbor cache entry
+      entry->state = NDP_STATE_NONE;
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //No matching entry in Neighbor cache
+      error = ERROR_NOT_FOUND;
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
 }
 
 
@@ -171,7 +287,7 @@ error_t ndpResolve(NetInterface *interface, const Ipv6Addr *ipAddr,
       }
       else
       {
-         //Failed to create Neighbor Cache entry...
+         //Failed to create Neighbor Cache entry
          error = ERROR_OUT_OF_RESOURCES;
       }
    }
@@ -211,7 +327,7 @@ error_t ndpEnqueuePacket(NetInterface *srcInterface,
    //Check whether a matching entry exists
    if(entry != NULL)
    {
-      //Check current state
+      //Check the state of the Neighbor cache entry
       if(entry->state == NDP_STATE_INCOMPLETE)
       {
          //Check whether the packet queue is full
@@ -579,8 +695,12 @@ void ndpProcessRouterAdv(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
       //Check if the advertisement contains a Source Link-Layer Address option
       if(linkLayerAddrOption)
       {
-         //INCOMPLETE state?
-         if(entry->state == NDP_STATE_INCOMPLETE)
+         //Check the state of the Neighbor cache entry
+         if(entry->state == NDP_STATE_PERMANENT)
+         {
+            //Static Neighbor cache entries are never updated
+         }
+         else if(entry->state == NDP_STATE_INCOMPLETE)
          {
             //Record link-layer address
             entry->macAddr = linkLayerAddrOption->linkLayerAddr;
@@ -603,7 +723,6 @@ void ndpProcessRouterAdv(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
                entry->state = NDP_STATE_STALE;
             }
          }
-         //REACHABLE, STALE, DELAY or PROBE state?
          else
          {
             //Different link-layer address than cached?
@@ -834,13 +953,13 @@ void ndpProcessNeighborSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHead
       neighborCacheEntry = ndpFindNeighborCacheEntry(interface, &pseudoHeader->srcAddr);
 
       //No matching entry has been found?
-      if(!neighborCacheEntry)
+      if(neighborCacheEntry == NULL)
       {
          //Create an entry
          neighborCacheEntry = ndpCreateNeighborCacheEntry(interface);
 
          //Neighbor Cache entry successfully created?
-         if(neighborCacheEntry)
+         if(neighborCacheEntry != NULL)
          {
             //Record the IPv6 and the corresponding MAC address
             neighborCacheEntry->ipAddr = pseudoHeader->srcAddr;
@@ -853,8 +972,12 @@ void ndpProcessNeighborSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHead
       }
       else
       {
-         //INCOMPLETE state?
-         if(neighborCacheEntry->state == NDP_STATE_INCOMPLETE)
+         //Check the state of the Neighbor cache entry
+         if(neighborCacheEntry->state == NDP_STATE_PERMANENT)
+         {
+            //Static Neighbor cache entries are never updated
+         }
+         else if(neighborCacheEntry->state == NDP_STATE_INCOMPLETE)
          {
             //Record link-layer address
             neighborCacheEntry->macAddr = option->linkLayerAddr;
@@ -877,7 +1000,6 @@ void ndpProcessNeighborSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHead
                neighborCacheEntry->state = NDP_STATE_STALE;
             }
          }
-         //REACHABLE, STALE, DELAY or PROBE state?
          else
          {
             //Different link-layer address than cached?
@@ -1023,7 +1145,7 @@ void ndpProcessNeighborAdv(NetInterface *interface, Ipv6PseudoHeader *pseudoHead
    neighborCacheEntry = ndpFindNeighborCacheEntry(interface, &message->targetAddr);
 
    //If no entry exists, the advertisement should be silently discarded
-   if(neighborCacheEntry)
+   if(neighborCacheEntry != NULL)
    {
       //This flag tells whether the supplied link-layer
       //address differs from that in the cache
@@ -1045,8 +1167,12 @@ void ndpProcessNeighborAdv(NetInterface *interface, Ipv6PseudoHeader *pseudoHead
             differentLinkLayerAddr = TRUE;
       }
 
-      //INCOMPLETE state?
-      if(neighborCacheEntry->state == NDP_STATE_INCOMPLETE)
+      //Check the state of the Neighbor cache entry
+      if(neighborCacheEntry->state == NDP_STATE_PERMANENT)
+      {
+         //Static Neighbor cache entries are never updated
+      }
+      else if(neighborCacheEntry->state == NDP_STATE_INCOMPLETE)
       {
          //If no Target Link-Layer Address option is included, the receiving
          //node should silently discard the received advertisement
@@ -1085,7 +1211,6 @@ void ndpProcessNeighborAdv(NetInterface *interface, Ipv6PseudoHeader *pseudoHead
             }
          }
       }
-      //REACHABLE, STALE, DELAY or PROBE state?
       else
       {
          //Check whether the Override flag is clear and the supplied
@@ -1249,7 +1374,7 @@ void ndpProcessRedirect(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
    destCacheEntry = ndpFindDestCacheEntry(interface, &message->destAddr);
 
    //Check whether a corresponding Destination cache entry exists
-   if(destCacheEntry)
+   if(destCacheEntry != NULL)
    {
       //The entry is updated with information learned from Redirect messages
       destCacheEntry->nextHop = message->targetAddr;
@@ -1263,7 +1388,7 @@ void ndpProcessRedirect(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
       destCacheEntry = ndpCreateDestCacheEntry(interface);
 
       //Destination cache entry successfully created?
-      if(destCacheEntry)
+      if(destCacheEntry != NULL)
       {
          //Destination address
          destCacheEntry->destAddr = message->destAddr;
@@ -1295,13 +1420,13 @@ void ndpProcessRedirect(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
       neighborCacheEntry = ndpFindNeighborCacheEntry(interface, &message->targetAddr);
 
       //No matching entry has been found?
-      if(!neighborCacheEntry)
+      if(neighborCacheEntry == NULL)
       {
          //Create an entry for the target
          neighborCacheEntry = ndpCreateNeighborCacheEntry(interface);
 
          //Neighbor cache entry successfully created?
-         if(neighborCacheEntry)
+         if(neighborCacheEntry != NULL)
          {
             //Record the Target address
             neighborCacheEntry->ipAddr = message->targetAddr;
@@ -1322,8 +1447,12 @@ void ndpProcessRedirect(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
          if(!ipv6CompAddr(&message->targetAddr, &message->destAddr))
             neighborCacheEntry->isRouter = TRUE;
 
-         //INCOMPLETE state?
-         if(neighborCacheEntry->state == NDP_STATE_INCOMPLETE)
+         //Check the state of the Neighbor cache entry
+         if(neighborCacheEntry->state == NDP_STATE_PERMANENT)
+         {
+            //Static Neighbor cache entries are never updated
+         }
+         else if(neighborCacheEntry->state == NDP_STATE_INCOMPLETE)
          {
             //Record link-layer address
             neighborCacheEntry->macAddr = option->linkLayerAddr;
@@ -1346,7 +1475,6 @@ void ndpProcessRedirect(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
                neighborCacheEntry->state = NDP_STATE_STALE;
             }
          }
-         //REACHABLE, STALE, DELAY or PROBE state?
          else
          {
             //Different link-layer address than cached?

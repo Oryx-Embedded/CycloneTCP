@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 //Switch to the appropriate trace level
@@ -44,6 +44,60 @@
 
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED)
+
+
+/**
+ * @brief Enable support for Echo Request messages
+ * @param[in] interface Underlying network interface
+ * @param[in] enable When the flag is set to TRUE, the host will respond to
+ *   Echo Requests. When the flag is set to FALSE, incoming Echo Request
+ *   messages will be dropped
+ * @return Error code
+ **/
+
+error_t icmpEnableEchoRequest(NetInterface *interface, bool_t enable)
+{
+   //Check parameters
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Enable or disable support for Echo Request messages
+   interface->ipv4Context.enableEchoReq = enable;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Enable support for broadcast Echo Request messages
+ * @param[in] interface Underlying network interface
+ * @param[in] enable When the flag is set to TRUE, the host will respond to
+ *   broadcast Echo Requests. When the flag is set to FALSE, incoming Echo
+ *   Request messages destined to a broadcast address will be dropped
+ * @return Error code
+ **/
+
+error_t icmpEnableBroadcastEchoRequest(NetInterface *interface, bool_t enable)
+{
+   //Check parameters
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Enable or disable support for broadcast Echo Request messages
+   interface->ipv4Context.enableBroadcastEchoReq = enable;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
 
 
 /**
@@ -165,6 +219,11 @@ void icmpProcessEchoRequest(NetInterface *interface,
    TRACE_INFO("ICMP Echo Request message received (%" PRIuSIZE " bytes)...\r\n", requestLength);
    //Dump message contents for debugging purpose
    icmpDumpEchoMessage(requestHeader);
+
+   //If support for Echo Request messages has been explicitly disabled, then
+   //the host shall not respond to the incoming request
+   if(!interface->ipv4Context.enableEchoReq)
+      return;
 
    //Check whether the destination address of the Echo Request message is
    //a broadcast or a multicast address

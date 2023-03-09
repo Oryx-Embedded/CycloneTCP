@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _ARP_H
@@ -199,6 +199,12 @@ extern systime_t arpTickCounter;
 
 //ARP related functions
 error_t arpInit(NetInterface *interface);
+
+error_t arpAddStaticEntry(NetInterface *interface, Ipv4Addr ipAddr,
+   const MacAddr *macAddr);
+
+error_t arpRemoveStaticEntry(NetInterface *interface, Ipv4Addr ipAddr);
+
 void arpFlushCache(NetInterface *interface);
 
 ArpCacheEntry *arpCreateEntry(NetInterface *interface);

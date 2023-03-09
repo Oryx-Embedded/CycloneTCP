@@ -1,5 +1,5 @@
 /**
- * @file sam9x60_eth_driver.h
+ * @file sam9x60_eth2_driver.h
  * @brief SAM9X60 Ethernet MAC driver (EMAC1 instance)
  *
  * @section License
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.2
+ * @version 2.2.4
  **/
 
 #ifndef _SAM9X60_ETH2_DRIVER_H
