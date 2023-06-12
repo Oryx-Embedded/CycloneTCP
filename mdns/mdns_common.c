@@ -33,15 +33,13 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL MDNS_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
-#include <string.h>
 #include "core/net.h"
 #include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6_misc.h"
@@ -145,7 +143,7 @@ void mdnsProcessMessage(NetInterface *interface,
 
    //mDNS messages received with non-zero response codes must be silently
    //ignored
-   if(dnsHeader->rcode != DNS_RCODE_NO_ERROR)
+   if(dnsHeader->rcode != DNS_RCODE_NOERROR)
       return;
 
    //Save mDNS message
@@ -204,7 +202,8 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
    for(i = 0; i < ntohs(response->dnsHeader->qdcount); i++)
    {
       //Parse domain name
-      offset = dnsParseName(response->dnsHeader, response->length, offset, NULL, 0);
+      offset = dnsParseName(response->dnsHeader, response->length, offset,
+         NULL, 0);
       //Invalid name?
       if(!offset)
          break;
@@ -378,7 +377,7 @@ error_t mdnsCreateMessage(MdnsMessage *message, bool_t queryResponse)
          message->dnsHeader->rd = 0;
          message->dnsHeader->ra = 0;
          message->dnsHeader->z = 0;
-         message->dnsHeader->rcode = DNS_RCODE_NO_ERROR;
+         message->dnsHeader->rcode = DNS_RCODE_NOERROR;
          message->dnsHeader->qdcount = 0;
          message->dnsHeader->ancount = 0;
          message->dnsHeader->nscount = 0;

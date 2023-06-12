@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -386,9 +386,13 @@ error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module)
       {
          //Invoke user callback, if any
          if(module->load != NULL)
+         {
             error = module->load(context);
+         }
          else
+         {
             error = NO_ERROR;
+         }
 
          //Check status code
          if(!error)

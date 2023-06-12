@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _MIB_COMMON_H
@@ -177,9 +177,9 @@ typedef enum
  * @brief Variant data type
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
-   __start_packed union
+   __packed_union
    {
       int32_t integer;
       uint8_t octetString[1];
@@ -191,7 +191,7 @@ typedef __start_packed struct
       uint32_t timeTicks;
       uint64_t counter64;
    };
-} __end_packed MibVariant;
+} MibVariant;
 
 
 //CodeWarrior or Win32 compiler?

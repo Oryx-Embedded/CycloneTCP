@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _MQTT_COMMON_H
@@ -167,7 +167,7 @@ typedef enum
  * @brief Fixed header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t type : 4;   //0
@@ -181,18 +181,18 @@ typedef __start_packed struct
    uint8_t type : 4;
 #endif
    uint8_t length[];   //1
-} __end_packed MqttPacketHeader;
+} MqttPacketHeader;
 
 
 /**
  * @brief UTF-8 encoded string
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t length; //0-1
    uint8_t data[];  //2
-} __end_packed MqttString;
+} MqttString;
 
 
 //CodeWarrior or Win32 compiler?

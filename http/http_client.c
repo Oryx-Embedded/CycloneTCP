@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -218,13 +218,12 @@ error_t httpClientSetAuthInfo(HttpClientContext *context,
    if(osStrlen(username) > HTTP_CLIENT_MAX_USERNAME_LEN)
       return ERROR_INVALID_LENGTH;
 
-   //Save user name
-   osStrcpy(context->authParams.username, username);
-
    //Make sure the length of the password is acceptable
    if(osStrlen(password) > HTTP_CLIENT_MAX_PASSWORD_LEN)
       return ERROR_INVALID_LENGTH;
 
+   //Save user name
+   osStrcpy(context->authParams.username, username);
    //Save password
    osStrcpy(context->authParams.password, password);
 

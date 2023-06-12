@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -114,7 +114,7 @@ error_t coapServerGetOpaqueOption(CoapServerContext *context, uint16_t optionNum
    uint_t optionIndex, const uint8_t **optionValue, size_t *optionLen)
 {
    //Check parameters
-   if(context == NULL|| optionValue == NULL || optionLen == NULL)
+   if(context == NULL || optionValue == NULL || optionLen == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Search the CoAP message for the specified option number
@@ -137,7 +137,7 @@ error_t coapServerGetStringOption(CoapServerContext *context, uint16_t optionNum
    uint_t optionIndex, const char_t **optionValue, size_t *optionLen)
 {
    //Check parameters
-   if(context == NULL|| optionValue == NULL || optionLen == NULL)
+   if(context == NULL || optionValue == NULL || optionLen == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Search the CoAP message for the specified option number
@@ -159,7 +159,7 @@ error_t coapServerGetUintOption(CoapServerContext *context, uint16_t optionNum,
    uint_t optionIndex, uint32_t *optionValue)
 {
    //Check parameters
-   if(context == NULL|| optionValue == NULL)
+   if(context == NULL || optionValue == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Search the CoAP message for the specified option number
@@ -180,7 +180,7 @@ error_t coapServerGetPayload(CoapServerContext *context, const uint8_t **payload
    size_t *payloadLen)
 {
    //Check parameters
-   if(context == NULL|| payload == NULL || payloadLen == NULL)
+   if(context == NULL || payload == NULL || payloadLen == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Get response payload
@@ -201,7 +201,7 @@ error_t coapServerReadPayload(CoapServerContext *context, void *data, size_t siz
    size_t *length)
 {
    //Check parameters
-   if(context == NULL|| data == NULL)
+   if(context == NULL || data == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Read payload data
@@ -238,7 +238,7 @@ error_t coapServerSetLocationPath(CoapServerContext *context,
    const char_t *path)
 {
    //Check parameters
-   if(context == NULL|| path == NULL)
+   if(context == NULL || path == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Encode the path component into multiple Location-Path options
@@ -258,7 +258,7 @@ error_t coapServerSetLocationQuery(CoapServerContext *context,
    const char_t *queryString)
 {
    //Check parameters
-   if(context == NULL|| queryString == NULL)
+   if(context == NULL || queryString == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Encode the query string into multiple Location-Query options
@@ -309,7 +309,7 @@ error_t coapServerSetStringOption(CoapServerContext *context, uint16_t optionNum
    size_t n;
 
    //Check parameters
-   if(context == NULL|| optionValue == NULL)
+   if(context == NULL || optionValue == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Retrieve the length of the string
@@ -399,7 +399,7 @@ error_t coapServerWritePayload(CoapServerContext *context, const void *data,
    size_t length)
 {
    //Check parameters
-   if(context == NULL|| data == NULL)
+   if(context == NULL || data == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Write payload data

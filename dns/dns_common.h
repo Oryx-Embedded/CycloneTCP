@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _DNS_COMMON_H
@@ -78,27 +78,41 @@ extern "C" {
 
 typedef enum
 {
-   DNS_OPCODE_QUERY         = 0,
-   DNS_OPCODE_INVERSE_QUERY = 1,
-   DNS_OPCODE_STATUS        = 2,
-   DNS_OPCODE_NOTIFY        = 4,
-   DNS_OPCODE_UPDATE        = 5
+   DNS_OPCODE_QUERY  = 0, ///<Query
+   DNS_OPCODE_IQUERY = 1, ///<Inverse query
+   DNS_OPCODE_STATUS = 2, ///<Status
+   DNS_OPCODE_NOTIFY = 4, ///<Notify
+   DNS_OPCODE_UPDATE = 5  ///<Update
 } DnsOpcode;
 
 
 /**
- * @brief DNS return codes
+ * @brief DNS response codes
  **/
 
 typedef enum
 {
-   DNS_RCODE_NO_ERROR        = 0,
-   DNS_RCODE_FORMAT_ERROR    = 1,
-   DNS_RCODE_SERVER_FAILURE  = 2,
-   DNS_RCODE_NAME_ERROR      = 3,
-   DNS_RCODE_NOT_IMPLEMENTED = 4,
-   DNS_RCODE_QUERY_REFUSED   = 5
-} DnsReturnCode;
+   DNS_RCODE_NOERROR   = 0,  ///<No error
+   DNS_RCODE_FORMERR   = 1,  ///<Format error
+   DNS_RCODE_SERVFAIL  = 2,  ///<Server failure
+   DNS_RCODE_NXDOMAIN  = 3,  ///<Non-existent domain
+   DNS_RCODE_NOTIMP    = 4,  ///<Not implemented
+   DNS_RCODE_REFUSED   = 5,  ///<Query refused
+   DNS_RCODE_YXDOMAIN  = 6,  ///<Name exists when it should not
+   DNS_RCODE_YXRRSET   = 7,  ///<RR set exists when it should not
+   DNS_RCODE_NXRRSET   = 8,  ///<RR set that should exist does not
+   DNS_RCODE_NOTAUTH   = 9,  ///<Server not authoritative for zone
+   DNS_RCODE_NOTZONE   = 10, ///<Name not contained in zone
+   DNS_RCODE_BADVERS   = 16, ///<Bad OPT version
+   DNS_RCODE_BADSIG    = 16, ///<TSIG signature failure
+   DNS_RCODE_BADKEY    = 17, ///<Key not recognized
+   DNS_RCODE_BADTIME   = 18, ///<Signature out of time window
+   DNS_RCODE_BADMODE   = 19, ///<Bad TKEY mode
+   DNS_RCODE_BADNAME   = 20, ///<Duplicate key name
+   DNS_RCODE_BADALG    = 21, ///<Algorithm not supported
+   DNS_RCODE_BADTRUC   = 22, ///<Bad truncation
+   DNS_RCODE_BADCOOKIE = 23  ///<Bad server cookie
+} DnsResponseCode;
 
 
 /**
@@ -153,7 +167,7 @@ typedef enum
  * @brief DNS message header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t id;         //0-1
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
@@ -180,67 +194,67 @@ typedef __start_packed struct
    uint16_t nscount;    //8-9
    uint16_t arcount;    //10-11
    uint8_t questions[]; //12
-} __end_packed DnsHeader;
+} DnsHeader;
 
 
 /**
  * @brief Question format
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t qtype;
    uint16_t qclass;
-} __end_packed DnsQuestion;
+} DnsQuestion;
 
 
 /**
  * @brief Resource record format
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t rtype;    //0-1
    uint16_t rclass;   //2-3
    uint32_t ttl;      //4-7
    uint16_t rdlength; //8-9
    uint8_t rdata[];   //10
-} __end_packed DnsResourceRecord;
+} DnsResourceRecord;
 
 
 /**
  * @brief A resource record format
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t rtype;    //0-1
    uint16_t rclass;   //2-3
    uint32_t ttl;      //4-7
    uint16_t rdlength; //8-9
    uint8_t rdata[4];  //10-13
-} __end_packed DnsIpv4AddrResourceRecord;
+} DnsIpv4AddrResourceRecord;
 
 
 /**
  * @brief AAAA resource record format
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t rtype;    //0-1
    uint16_t rclass;   //2-3
    uint32_t ttl;      //4-7
    uint16_t rdlength; //8-9
    uint8_t rdata[16]; //10-25
-} __end_packed DnsIpv6AddrResourceRecord;
+} DnsIpv6AddrResourceRecord;
 
 
 /**
  * @brief SRV resource record format
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t rtype;    //0-1
    uint16_t rclass;   //2-3
@@ -250,7 +264,7 @@ typedef __start_packed struct
    uint16_t weight;   //12-13
    uint16_t port;     //14-15
    uint8_t target[];  //16
-} __end_packed DnsSrvResourceRecord;
+} DnsSrvResourceRecord;
 
 
 //CodeWarrior or Win32 compiler?
@@ -261,14 +275,15 @@ typedef __start_packed struct
 //DNS related functions
 size_t dnsEncodeName(const char_t *src, uint8_t *dest);
 
-size_t dnsParseName(const DnsHeader *message,
-   size_t length, size_t pos, char_t *dest, uint_t level);
+size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
+   char_t *dest, uint_t level);
 
-int_t dnsCompareName(const DnsHeader *message, size_t length,
-   size_t pos, const char_t *name, uint_t level);
+int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
+   const char_t *name, uint_t level);
 
-int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t pos1,
-   const DnsHeader *message2, size_t length2, size_t pos2, uint_t level);
+int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
+   size_t pos1, const DnsHeader *message2, size_t length2, size_t pos2,
+   uint_t level);
 
 void dnsGenerateIpv4ReverseName(Ipv4Addr ipv4Addr, char_t *buffer);
 void dnsGenerateIpv6ReverseName(const Ipv6Addr *ipv6Addr, char_t *buffer);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _LLDP_EXT_DOT1_H
@@ -87,44 +87,44 @@ typedef enum
  * @brief Port VLAN ID TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t pvid;  //0-2
-} __end_packed LldpDot1PortVlanIdTlv;
+} LldpDot1PortVlanIdTlv;
 
 
 /**
  * @brief Port And Protocol VLAN ID TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t flags;  //0
    uint16_t ppvid; //1-2
-} __end_packed LldpDot1PortProtoVlanIdTlv;
+} LldpDot1PortProtoVlanIdTlv;
 
 
 /**
  * @brief VLAN Name TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t vlanId;        //0
    uint8_t vlanNameLen; //1
    char_t vlanName[];   //2
-} __end_packed LldpDot1VlanNameTlv;
+} LldpDot1VlanNameTlv;
 
 
 /**
  * @brief Protocol Identity TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t protocolIdLen; //0
    uint8_t protocolId[];  //1
-} __end_packed LldpDot1ProtocolIdTlv;
+} LldpDot1ProtocolIdTlv;
 
 
 //CodeWarrior or Win32 compiler?

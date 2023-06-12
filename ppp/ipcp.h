@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _IPCP_H
@@ -70,86 +70,86 @@ typedef enum
  * @brief IP-Addresses option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;        //0
    uint8_t length;      //1
    Ipv4Addr srcIpAddr;  //2-5
    Ipv4Addr destIpAddr; //6-9
-} __end_packed IpcpIpAddressesOption;
+} IpcpIpAddressesOption;
 
 
 /**
  * @brief IP-Compression-Protocol option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t length;    //1
    uint16_t protocol; //2-3
    uint8_t data[];    //4
-} __end_packed IpcpIpCompProtocolOption;
+} IpcpIpCompProtocolOption;
 
 
 /**
  * @brief IP-Address option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;    //0
    uint8_t length;  //1
    Ipv4Addr ipAddr; //2-5
-} __end_packed IpcpIpAddressOption;
+} IpcpIpAddressOption;
 
 
 /**
  * @brief Primary-DNS-Server-Address option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;    //0
    uint8_t length;  //1
    Ipv4Addr ipAddr; //2-5
-} __end_packed IpcpPrimaryDnsOption;
+} IpcpPrimaryDnsOption;
 
 
 /**
  * @brief Primary-NBNS-Server-Address option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;    //0
    uint8_t length;  //1
    Ipv4Addr ipAddr; //2-5
-} __end_packed IpcpPrimaryNbnsOption;
+} IpcpPrimaryNbnsOption;
 
 
 /**
  * @brief Secondary-DNS-Server-Address option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;    //0
    uint8_t length;  //1
    Ipv4Addr ipAddr; //2-5
-} __end_packed IpcpSecondaryDnsOption;
+} IpcpSecondaryDnsOption;
 
 
 /**
  * @brief Secondary-NBNS-Server-Address option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;    //0
    uint8_t length;  //1
    Ipv4Addr ipAddr; //2-5
-} __end_packed IpcpSecondaryNbnsOption;
+} IpcpSecondaryNbnsOption;
 
 
 //CodeWarrior or Win32 compiler?

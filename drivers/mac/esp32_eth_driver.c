@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -35,8 +35,11 @@
 #include "esp_intr_alloc.h"
 #include "soc/dport_reg.h"
 #include "soc/dport_access.h"
+#include "soc/io_mux_reg.h"
+#include "soc/gpio_sig_map.h"
 #include "driver/gpio.h"
-#include "driver/periph_ctrl.h"
+#include "rom/gpio.h"
+#include "esp_private/periph_ctrl.h"
 #include "core/net.h"
 #include "drivers/mac/esp32_eth_driver.h"
 #include "debug.h"

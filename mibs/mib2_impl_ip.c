@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -33,6 +33,7 @@
 
 //Dependencies
 #include "core/net.h"
+#include "ipv4/arp_cache.h"
 #include "mibs/mib_common.h"
 #include "mibs/mib2_module.h"
 #include "mibs/mib2_impl.h"

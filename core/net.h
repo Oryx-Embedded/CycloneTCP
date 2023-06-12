@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _NET_H
@@ -93,13 +93,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.2.4"
+#define CYCLONE_TCP_VERSION_STRING "2.3.0"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
-#define CYCLONE_TCP_MINOR_VERSION 2
+#define CYCLONE_TCP_MINOR_VERSION 3
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 4
+#define CYCLONE_TCP_REV_NUMBER 0
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -210,6 +210,7 @@ struct _NetInterface
    uint32_t linkSpeed;                            ///<Link speed
    NicDuplexMode duplexMode;                      ///<Duplex mode
    bool_t configured;                             ///<Configuration done
+   systime_t initialRto;                          ///<TCP initial retransmission timeout
 
 #if (ETH_SUPPORT == ENABLED)
    const PhyDriver *phyDriver;                    ///<Ethernet PHY driver
@@ -243,6 +244,7 @@ struct _NetInterface
 #if (IPV4_SUPPORT == ENABLED)
    Ipv4Context ipv4Context;                       ///<IPv4 context
 #if (ETH_SUPPORT == ENABLED)
+   bool_t enableArp;                              ///<Enable address resolution using ARP
    ArpCacheEntry arpCache[ARP_CACHE_SIZE];        ///<ARP cache
 #endif
 #if (IGMP_HOST_SUPPORT == ENABLED)

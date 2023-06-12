@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -285,8 +285,12 @@ error_t webSocketSetHost(WebSocket *webSocket, const char_t *host)
    if(webSocket == NULL || host == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Save the hostname
-   strSafeCopy(webSocket->host, host, WEB_SOCKET_HOST_MAX_LEN);
+   //Make sure the length of the hostname is acceptable
+   if(osStrlen(host) > WEB_SOCKET_HOST_MAX_LEN)
+      return ERROR_INVALID_LENGTH;
+
+   //Save hostname
+   osStrcpy(webSocket->host, host);
 
    //Successful processing
    return NO_ERROR;
@@ -306,8 +310,12 @@ error_t webSocketSetOrigin(WebSocket *webSocket, const char_t *origin)
    if(webSocket == NULL || origin == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Make sure the length of the origin is acceptable
+   if(osStrlen(origin) > WEB_SOCKET_ORIGIN_MAX_LEN)
+      return ERROR_INVALID_LENGTH;
+
    //Save origin
-   strSafeCopy(webSocket->origin, origin, WEB_SOCKET_ORIGIN_MAX_LEN);
+   osStrcpy(webSocket->origin, origin);
 
    //Successful processing
    return NO_ERROR;
@@ -327,8 +335,12 @@ error_t webSocketSetSubProtocol(WebSocket *webSocket, const char_t *subProtocol)
    if(webSocket == NULL || subProtocol == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Make sure the length of the sub-protocol is acceptable
+   if(osStrlen(subProtocol) > WEB_SOCKET_SUB_PROTOCOL_MAX_LEN)
+      return ERROR_INVALID_LENGTH;
+
    //Save sub-protocol
-   strSafeCopy(webSocket->subProtocol, subProtocol, WEB_SOCKET_SUB_PROTOCOL_MAX_LEN);
+   osStrcpy(webSocket->subProtocol, subProtocol);
 
    //Successful processing
    return NO_ERROR;
@@ -354,15 +366,21 @@ error_t webSocketSetAuthInfo(WebSocket *webSocket, const char_t *username,
    if(webSocket == NULL || username == NULL || password == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Make sure the length of the user name is acceptable
+   if(osStrlen(username) > WEB_SOCKET_USERNAME_MAX_LEN)
+      return ERROR_INVALID_LENGTH;
+
+   //Make sure the length of the password is acceptable
+   if(osStrlen(password) > WEB_SOCKET_PASSWORD_MAX_LEN)
+      return ERROR_INVALID_LENGTH;
+
    //Point to the authentication context
    authContext = &webSocket->authContext;
 
    //Save user name
-   strSafeCopy(authContext->username, username, WEB_SOCKET_USERNAME_MAX_LEN);
+   osStrcpy(authContext->username, username);
    //Save password
-   strSafeCopy(authContext->password, password, WEB_SOCKET_PASSWORD_MAX_LEN);
-   //Save the list of allowed HTTP authentication schemes
-   authContext->allowedAuthModes = allowedAuthModes;
+   osStrcpy(authContext->password, password);
 #endif
 
    //Successful processing
@@ -1226,9 +1244,13 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
          {
             //Check the Payload Length field
             if(frame->payloadLen == 126)
+            {
                rxContext->bufferLen += sizeof(uint16_t);
+            }
             else if(frame->payloadLen == 127)
+            {
                rxContext->bufferLen += sizeof(uint64_t);
+            }
 
             //Check whether the masking key is present
             if(frame->mask)
@@ -1326,9 +1348,13 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
             {
                //Compute the number of remaining data bytes in the UTF-8 stream
                if(rxContext->fin)
+               {
                   k = rxContext->payloadLen - rxContext->payloadPos;
+               }
                else
+               {
                   k = 0;
+               }
 
                //Invalid UTF-8 sequence?
                if(!webSocketCheckUtf8Stream(&webSocket->utf8Context,
@@ -1390,9 +1416,13 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
       {
          //Control or data frame?
          if(rxContext->controlFrameType != WS_FRAME_TYPE_CONTINUATION)
+         {
             *type = rxContext->controlFrameType;
+         }
          else
+         {
             *type = rxContext->dataFrameType;
+         }
       }
    }
 
@@ -1491,9 +1521,13 @@ error_t webSocketShutdown(WebSocket *webSocket)
          {
             //Check whether a Close frame has been received from the peer
             if(webSocket->handshakeContext.closingFrameReceived)
+            {
                webSocket->state = WS_STATE_SHUTDOWN;
+            }
             else
+            {
                webSocket->state = WS_STATE_CLOSING_RX;
+            }
          }
       }
       else if(webSocket->state == WS_STATE_CLOSING_RX)

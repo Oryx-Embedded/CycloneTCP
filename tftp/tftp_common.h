@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _TFTP_COMMON_H
@@ -85,57 +85,57 @@ typedef enum
  * @brief Read request packet (RRQ)
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t opcode;   //0-1
    char_t filename[]; //2
-} __end_packed TftpRrqPacket;
+} TftpRrqPacket;
 
 
 /**
  * @brief Write request packet (WRQ)
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t opcode;   //0-1
    char_t filename[]; //2
-} __end_packed TftpWrqPacket;
+} TftpWrqPacket;
 
 
 /**
  * @brief Data packet (DATA)
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t opcode; //0-1
    uint16_t block;  //2-3
    uint8_t data[];  //4
-} __end_packed TftpDataPacket;
+} TftpDataPacket;
 
 
 /**
  * @brief Acknowledgment packet (ACK)
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t opcode; //0-1
    uint16_t block;  //2-3
-} __end_packed TftpAckPacket;
+} TftpAckPacket;
 
 
 /**
  * @brief Error packet (ERROR)
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t opcode;    //0-1
    uint16_t errorCode; //2-3
    char_t errorMsg[];  //4
-} __end_packed TftpErrorPacket;
+} TftpErrorPacket;
 
 
 //CodeWarrior or Win32 compiler?

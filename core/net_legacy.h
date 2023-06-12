@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _NET_LEGACY_H
@@ -265,5 +265,10 @@
 #ifdef TFTP_SERVER_PRIORITY
    #define TFTP_SERVER_TASK_PRIORITY TFTP_SERVER_PRIORITY
 #endif
+
+#define icmpEnableEchoRequest icmpEnableEchoRequests
+#define icmpEnableBroadcastEchoRequest icmpEnableBroadcastEchoRequests
+#define icmpv6EnableEchoRequest icmpv6EnableEchoRequests
+#define icmpv6EnableMulticastEchoRequest icmpv6EnableMulticastEchoRequests
 
 #endif

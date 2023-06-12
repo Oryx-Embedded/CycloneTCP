@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -473,9 +473,13 @@ uint16_t mqttSnClientGenerateMessageId(MqttSnClientContext *context)
 {
    //Increment message identifier and wrap around if necessary
    if(context->msgId < UINT16_MAX)
+   {
       context->msgId++;
+   }
    else
+   {
       context->msgId = 1;
+   }
 
    //Return current value
    return context->msgId;

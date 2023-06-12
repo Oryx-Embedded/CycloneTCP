@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL IPV4_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_misc.h"
@@ -820,7 +819,8 @@ bool_t ipv4TrapIgmpPacket(Ipv4Header *header)
 void ipv4UpdateInStats(NetInterface *interface, Ipv4Addr destIpAddr,
    size_t length)
 {
-   //Check whether the destination address is a unicast, broadcast or multicast address
+   //Check whether the destination address is a unicast, broadcast or multicast
+   //address
    if(ipv4IsBroadcastAddr(interface, destIpAddr))
    {
       //Number of IP broadcast datagrams transmitted
@@ -843,6 +843,10 @@ void ipv4UpdateInStats(NetInterface *interface, Ipv4Addr destIpAddr,
       IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInMcastOctets, length);
       IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInMcastOctets, length);
    }
+   else
+   {
+      //The destination address is a unicast address
+   }
 }
 
 
@@ -856,7 +860,8 @@ void ipv4UpdateInStats(NetInterface *interface, Ipv4Addr destIpAddr,
 void ipv4UpdateOutStats(NetInterface *interface, Ipv4Addr destIpAddr,
    size_t length)
 {
-   //Check whether the destination address is a unicast, broadcast or multicast address
+   //Check whether the destination address is a unicast, broadcast or multicast
+   //address
    if(ipv4IsBroadcastAddr(interface, destIpAddr))
    {
       //Number of IP broadcast datagrams transmitted
@@ -878,6 +883,10 @@ void ipv4UpdateOutStats(NetInterface *interface, Ipv4Addr destIpAddr,
       IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutMcastOctets, length);
       IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutMcastOctets, length);
       IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutMcastOctets, length);
+   }
+   else
+   {
+      //The destination address is a unicast address
    }
 
    //Total number of IP datagrams that this entity supplied to the lower

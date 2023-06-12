@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _MQTT_SN_COMMON_H
@@ -144,12 +144,12 @@ typedef enum
  * @brief MQTT-SN flags
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
-   __start_packed union
+   __packed_union
    {
       uint8_t all;
-      __start_packed struct
+      __packed_struct
       {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
          uint8_t dup : 1;
@@ -168,87 +168,87 @@ typedef __start_packed struct
 #endif
       };
    };
-} __end_packed MqttSnFlags;
+} MqttSnFlags;
 
 
 /**
  * @brief Message header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t length;
    uint8_t msgType;
    uint8_t data[];
-} __end_packed MqttSnHeader;
+} MqttSnHeader;
 
 
 /**
  * @brief Extended message header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t prefix;
    uint16_t length;
    uint8_t msgType;
    uint8_t data[];
-} __end_packed MqttSnExtHeader;
+} MqttSnExtHeader;
 
 
 /**
  * @brief ADVERTISE message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t gwId;
    uint16_t duration;
-} __end_packed MqttSnAdvertise;
+} MqttSnAdvertise;
 
 
 /**
  * @brief SEARCHGW message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t radius;
-} __end_packed MqttSnSearchGw;
+} MqttSnSearchGw;
 
 
 /**
  * @brief GWINFO message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t gwId;
    uint8_t gwAdd[];
-} __end_packed MqttSnGwInfo;
+} MqttSnGwInfo;
 
 
 /**
  * @brief CONNECT message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    MqttSnFlags flags;
    uint8_t protocolId;
    uint16_t duration;
    char_t clientId[];
-} __end_packed MqttSnConnect;
+} MqttSnConnect;
 
 
 /**
  * @brief CONNACK message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t returnCode;
-} __end_packed MqttSnConnAck;
+} MqttSnConnAck;
 
 
 /**
@@ -262,11 +262,11 @@ typedef void MqttSnWillTopicReq;
  * @brief WILLTOPIC message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    MqttSnFlags flags;
    char_t willTopic[];
-} __end_packed MqttSnWillTopic;
+} MqttSnWillTopic;
 
 
 /**
@@ -287,126 +287,126 @@ typedef void MqttSnWillMsg;
  * @brief REGISTER message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t topicId;
    uint16_t msgId;
    char_t topicName[];
-} __end_packed MqttSnRegister;
+} MqttSnRegister;
 
 
 /**
  * @brief REGACK message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t topicId;
    uint16_t msgId;
    uint8_t returnCode;
-} __end_packed MqttSnRegAck;
+} MqttSnRegAck;
 
 
 /**
  * @brief PUBLISH message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    MqttSnFlags flags;
    uint16_t topicId;
    uint16_t msgId;
    uint8_t data[];
-} __end_packed MqttSnPublish;
+} MqttSnPublish;
 
 
 /**
  * @brief PUBACK message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t topicId;
    uint16_t msgId;
    uint8_t returnCode;
-} __end_packed MqttSnPubAck;
+} MqttSnPubAck;
 
 
 /**
  * @brief PUBREC message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t msgId;
-} __end_packed MqttSnPubRec;
+} MqttSnPubRec;
 
 
 /**
  * @brief PUBREL message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t msgId;
-} __end_packed MqttSnPubRel;
+} MqttSnPubRel;
 
 
 /**
  * @brief PUBCOMP message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t msgId;
-} __end_packed MqttSnPubComp;
+} MqttSnPubComp;
 
 
 /**
  * @brief SUBSCRIBE message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    MqttSnFlags flags;
    uint16_t msgId;
    char_t topicName[];
-} __end_packed MqttSnSubscribe;
+} MqttSnSubscribe;
 
 
 /**
  * @brief SUBACK message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    MqttSnFlags flags;
    uint16_t topicId;
    uint16_t msgId;
    uint8_t returnCode;
-} __end_packed MqttSnSubAck;
+} MqttSnSubAck;
 
 
 /**
  * @brief UNSUBSCRIBE message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    MqttSnFlags flags;
    uint16_t msgId;
    char_t topicName[];
-} __end_packed MqttSnUnsubscribe;
+} MqttSnUnsubscribe;
 
 
 /**
  * @brief UNSUBACK message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t msgId;
-} __end_packed MqttSnUnsubAck;
+} MqttSnUnsubAck;
 
 
 /**
@@ -427,31 +427,31 @@ typedef void MqttSnPingResp;
  * @brief DISCONNECT message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t duration;
-} __end_packed MqttSnDisconnect;
+} MqttSnDisconnect;
 
 
 /**
  * @brief WILLTOPICUPD message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    MqttSnFlags flags;
    char_t willTopic[];
-} __end_packed MqttSnWillTopicUpd;
+} MqttSnWillTopicUpd;
 
 
 /**
  * @brief WILLTOPICRESP message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t returnCode;
-} __end_packed MqttSnWillTopicResp;
+} MqttSnWillTopicResp;
 
 
 /**
@@ -465,10 +465,10 @@ typedef void MqttSnWillMsgUpd;
  * @brief WILLMSGRESP message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t returnCode;
-} __end_packed MqttSnWillMsgResp;
+} MqttSnWillMsgResp;
 
 
 //CodeWarrior or Win32 compiler?

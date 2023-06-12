@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL SOCKET_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/socket.h"
 #include "core/socket_misc.h"
@@ -173,6 +172,9 @@ Socket *socketAllocate(uint_t type, uint_t protocol)
 #endif
 
 #if (TCP_SUPPORT == ENABLED)
+         //Default MSS value
+         socket->mss = TCP_MAX_MSS;
+
          //Default TX and RX buffer size
          socket->txBufferSize = MIN(TCP_DEFAULT_TX_BUFFER_SIZE, TCP_MAX_TX_BUFFER_SIZE);
          socket->rxBufferSize = MIN(TCP_DEFAULT_RX_BUFFER_SIZE, TCP_MAX_RX_BUFFER_SIZE);

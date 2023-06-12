@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _DHCPV6_COMMON_H
@@ -163,32 +163,32 @@ typedef enum
  * @brief DUID-LLT structure
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t type;           //0-1
    uint16_t hardwareType;   //2-3
    uint32_t time;           //4-7
    MacAddr linkLayerAddr;   //8-13
-} __end_packed Dhcpv6DuidLlt;
+} Dhcpv6DuidLlt;
 
 
 /**
  * @brief DUID-EN structure
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t type;             //0-1
    uint32_t enterpriseNumber; //2-5
    uint8_t identifier[];      //6
-} __end_packed Dhcpv6DuidEn;
+} Dhcpv6DuidEn;
 
 
 /**
  * @brief DUID-LL structure
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t type;         //0-1
    uint16_t hardwareType; //2-3
@@ -197,65 +197,65 @@ typedef __start_packed struct
 #else
    Eui64 linkLayerAddr;   //4-11
 #endif
-} __end_packed Dhcpv6DuidLl;
+} Dhcpv6DuidLl;
 
 
 /**
  * @brief DHCPv6 message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t msgType;          //0
    uint8_t transactionId[3]; //1-3
    uint8_t options[];        //4
-} __end_packed Dhcpv6Message;
+} Dhcpv6Message;
 
 
 /**
  * @brief DHCPv6 relay agent message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t msgType;      //0
    uint8_t hopCount;     //1
    Ipv6Addr linkAddress; //2-17
    Ipv6Addr peerAddress; //18-33
    uint8_t options[];    //34
-} __end_packed Dhcpv6RelayMessage;
+} Dhcpv6RelayMessage;
 
 
 /**
  * @brief DHCPv6 option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t code;   //0-1
    uint16_t length; //2-3
    uint8_t value[]; //4
-} __end_packed Dhcpv6Option;
+} Dhcpv6Option;
 
 
 /**
  * @brief Identity Association for Non-temporary Addresses option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint32_t iaId;     //0-3
    uint32_t t1;       //4-7
    uint32_t t2;       //8-11
    uint8_t options[]; //12
-} __end_packed Dhcpv6IaNaOption;
+} Dhcpv6IaNaOption;
 
 
 /**
  * @brief Identity Association for Temporary Addresses option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint32_t iaId;     //0-3
    uint8_t options[]; //4
@@ -266,142 +266,142 @@ typedef __start_packed struct
  * @brief IA Address option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    Ipv6Addr address;           //0-15
    uint32_t preferredLifetime; //16-19
    uint32_t validLifetime;     //20-23
    uint8_t options[];          //24
-} __end_packed Dhcpv6IaAddrOption;
+} Dhcpv6IaAddrOption;
 
 
 /**
  * @brief Option Request option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t requestedOption[1]; //0-1
-} __end_packed Dhcpv6OroOption;
+} Dhcpv6OroOption;
 
 
 /**
  * @brief Preference option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t value; //0
-} __end_packed Dhcpv6PreferenceOption;
+} Dhcpv6PreferenceOption;
 
 
 /**
  * @brief Elapsed Time option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t value; //0-1
-} __end_packed Dhcpv6ElapsedTimeOption;
+} Dhcpv6ElapsedTimeOption;
 
 
 /**
  * @brief Authentication option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t protocol;           //0
    uint8_t algorithm;          //1
    uint8_t rdm;                //2
    uint8_t replayDetection[8]; //3-10
    uint8_t authInfo[];         //11
-} __end_packed Dhcpv6AuthOption;
+} Dhcpv6AuthOption;
 
 
 /**
  * @brief Server Unicast option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    Ipv6Addr serverAddr; //0-15
-} __end_packed Dhcpv6ServerUnicastOption;
+} Dhcpv6ServerUnicastOption;
 
 
 /**
  * @brief Status Code option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t statusCode;    //0-1
    char_t statusMessage[]; //2
-} __end_packed Dhcpv6StatusCodeOption;
+} Dhcpv6StatusCodeOption;
 
 
 /**
  * @brief Reconfigure Message option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t msgType; //0
-} __end_packed Dhcpv6ReconfMessageOption;
+} Dhcpv6ReconfMessageOption;
 
 
 /**
  * @brief DNS Recursive Name Server option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    Ipv6Addr address[1]; //0-15
-} __end_packed Dhcpv6DnsServersOption;
+} Dhcpv6DnsServersOption;
 
 
 /**
  * @brief Domain Search List option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t searchList[1]; //0
-} __end_packed Dhcpv6DomainListOption;
+} Dhcpv6DomainListOption;
 
 
 /**
  * @brief Identity Association for Prefix Delegation Option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint32_t iaId;     //0-3
    uint32_t t1;       //4-7
    uint32_t t2;       //8-11
    uint8_t options[]; //12
-} __end_packed Dhcpv6IaPdOption;
+} Dhcpv6IaPdOption;
 
 
 /**
  * @brief IA_PD Prefix option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint32_t preferredLifetime; //0-3
    uint32_t validLifetime;     //4-7
    uint8_t prefixLen;          //8
    Ipv6Addr prefix;            //9-24
    uint8_t options[];          //25
-} __end_packed Dhcpv6IaPrefixOption;
+} Dhcpv6IaPrefixOption;
 
 
 /**
  * @brief Fully Qualified Domain Name option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t mbz : 5;      //0
@@ -415,7 +415,7 @@ typedef __start_packed struct
    uint8_t mbz : 5;
 #endif
    uint8_t domainName[]; //1
-} __end_packed Dhcpv6FqdnOption;
+} Dhcpv6FqdnOption;
 
 
 //CodeWarrior or Win32 compiler?

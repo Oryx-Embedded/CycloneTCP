@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -54,7 +54,7 @@ const uint8_t MODBUS_ROLE_OID[11] = {0x2B, 0x06, 0x01, 0x04, 0x01, 0x83, 0x89, 0
  **/
 
 error_t modbusServerParseCertificate(TlsContext *tlsContext,
-   const X509CertificateInfo *certInfo, uint_t pathLen, void *param)
+   const X509CertInfo *certInfo, uint_t pathLen, void *param)
 {
    error_t error;
    size_t n;
@@ -71,8 +71,8 @@ error_t modbusServerParseCertificate(TlsContext *tlsContext,
    {
       //The X.509 v3 certificate format also allows communities to define
       //private extensions to carry information unique to those communities
-      data = certInfo->tbsCert.extensions.rawData;
-      length = certInfo->tbsCert.extensions.rawDataLen;
+      data = certInfo->tbsCert.extensions.raw.value;
+      length = certInfo->tbsCert.extensions.raw.length;
 
       //Loop through the extensions
       while(length > 0)

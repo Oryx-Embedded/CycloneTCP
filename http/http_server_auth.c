@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -441,9 +441,13 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
 
       //Generate a random value
       if(connection->settings->randCallback != NULL)
+      {
          error = connection->settings->randCallback(opaque, 16);
+      }
       else
+      {
          error = ERROR_FAILURE;
+      }
 
       //Random number generation failed?
       if(error)
@@ -531,9 +535,13 @@ error_t httpGenerateNonce(HttpServerContext *context,
 
    //Generate a new nonce
    if(context->settings.randCallback != NULL)
+   {
       error = context->settings.randCallback(nonce, HTTP_SERVER_NONCE_SIZE);
+   }
    else
+   {
       error = ERROR_FAILURE;
+   }
 
    //Check status code
    if(!error)
@@ -624,9 +632,13 @@ error_t httpVerifyNonce(HttpServerContext *context,
 
    //Check whether the nonce is valid
    if(i < HTTP_SERVER_NONCE_CACHE_SIZE)
+   {
       error = NO_ERROR;
+   }
    else
+   {
       error = ERROR_NOT_FOUND;
+   }
 
    //Release exclusive access to the nonce cache
    osReleaseMutex(&context->nonceCacheMutex);

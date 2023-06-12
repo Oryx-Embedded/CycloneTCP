@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,7 @@ systime_t ipv6FragTickCounter;
  **/
 
 error_t ipv6FragmentDatagram(NetInterface *interface,
-   Ipv6PseudoHeader *pseudoHeader, const NetBuffer *payload,
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *payload,
    size_t payloadOffset, size_t pathMtu, NetTxAncillary *ancillary)
 {
    error_t error;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _BSD_SOCKET_MISC_H
@@ -33,6 +33,12 @@
 
 //Dependencies
 #include "core/net.h"
+#include "core/bsd_socket.h"
+
+//C++ guard
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //BSD socket related functions
 void socketSetErrnoCode(Socket *socket, uint_t errnoCode);

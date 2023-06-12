@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL TCP_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/socket.h"
 #include "core/socket_misc.h"
@@ -64,6 +63,37 @@ error_t tcpInit(void)
    tcpDynamicPort = 0;
 
    //Successful initialization
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Set TCP initial retransmission timeout
+ * @param[in] interface Underlying network interface
+ * @param[in] initialRto TCP initial RTO value, in milliseconds
+ * @return Error code
+ **/
+
+error_t tcpSetInitialRto(NetInterface *interface, systime_t initialRto)
+{
+   //Check parameters
+   if(interface == NULL || initialRto == 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //TCP imposes its minimum and maximum bounds over the value provided
+   initialRto = MIN(initialRto, TCP_MAX_RTO);
+   initialRto = MAX(initialRto, TCP_MIN_RTO);
+
+   //Set TCP initial retransmission timeout
+   interface->initialRto = initialRto;
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -113,7 +143,8 @@ uint16_t tcpGetDynamicPort(void)
  * @return Error code
  **/
 
-error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePort)
+error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
+   uint16_t remotePort)
 {
    error_t error;
    uint_t event;
@@ -125,8 +156,8 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePo
       socket->remoteIpAddr = *remoteIpAddr;
       socket->remotePort = remotePort;
 
-      //Select the source address and the relevant network interface
-      //to use when establishing the connection
+      //Select the source address and the relevant network interface to use
+      //when establishing the connection
       error = ipSelectSourceAddr(&socket->interface,
          &socket->remoteIpAddr, &socket->localIpAddr);
       //Any error to report?
@@ -166,11 +197,11 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePo
 
       //The SMSS is the size of the largest segment that the sender can
       //transmit
-      socket->smss = MIN(TCP_DEFAULT_MSS, TCP_MAX_MSS);
+      socket->smss = MIN(socket->mss, TCP_DEFAULT_MSS);
 
       //The RMSS is the size of the largest segment the receiver is willing
       //to accept
-      socket->rmss = MIN(socket->rxBufferSize, TCP_MAX_MSS);
+      socket->rmss = MIN(socket->mss, socket->rxBufferSize);
 
       //Generate the initial sequence number
       socket->iss = tcpGenerateInitialSeqNum(&socket->localIpAddr,
@@ -182,8 +213,8 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePo
       socket->rcvUser = 0;
       socket->rcvWnd = socket->rxBufferSize;
 
-      //Default retransmission timeout
-      socket->rto = TCP_INITIAL_RTO;
+      //Set initial retransmission timeout
+      socket->rto = socket->interface->initialRto;
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
       //Default congestion state
@@ -215,15 +246,22 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr, uint16_t remotePo
    event = tcpWaitForEvents(socket, SOCKET_EVENT_CONNECTED |
       SOCKET_EVENT_CLOSED, socket->timeout);
 
-   //Connection successfully established?
+   //Return status code
    if(event == SOCKET_EVENT_CONNECTED)
+   {
+      //Connection successfully established
       return NO_ERROR;
-   //Failed to establish connection?
+   }
    else if(event == SOCKET_EVENT_CLOSED)
+   {
+      //Failed to establish connection
       return ERROR_CONNECTION_FAILED;
-   //Timeout exception?
+   }
    else
+   {
+      //Timeout exception
       return ERROR_TIMEOUT;
+   }
 }
 
 
@@ -331,6 +369,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
          newSocket->ownedFlag = TRUE;
 
          //Inherit parameters from the listening socket
+         newSocket->mss = socket->mss;
          newSocket->txBufferSize = socket->txBufferSize;
          newSocket->rxBufferSize = socket->rxBufferSize;
 
@@ -377,11 +416,12 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
 
             //The RMSS is the size of the largest segment the receiver is
             //willing to accept
-            newSocket->rmss = MIN(newSocket->rxBufferSize, TCP_MAX_MSS);
+            newSocket->rmss = MIN(newSocket->mss, newSocket->rxBufferSize);
 
             //Generate the initial sequence number
-            newSocket->iss = tcpGenerateInitialSeqNum(&socket->localIpAddr,
-               socket->localPort, &socket->remoteIpAddr, socket->remotePort);
+            newSocket->iss = tcpGenerateInitialSeqNum(&newSocket->localIpAddr,
+               newSocket->localPort, &newSocket->remoteIpAddr,
+               newSocket->remotePort);
 
             //Initialize TCP control block
             newSocket->irs = queueItem->isn;
@@ -391,8 +431,8 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
             newSocket->rcvUser = 0;
             newSocket->rcvWnd = newSocket->rxBufferSize;
 
-            //Default retransmission timeout
-            newSocket->rto = TCP_INITIAL_RTO;
+            //Set initial retransmission timeout
+            newSocket->rto = newSocket->interface->initialRto;
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
             //Default congestion state
@@ -474,8 +514,8 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
  * @return Error code
  **/
 
-error_t tcpSend(Socket *socket, const uint8_t *data,
-   size_t length, size_t *written, uint_t flags)
+error_t tcpSend(Socket *socket, const uint8_t *data, size_t length,
+   size_t *written, uint_t flags)
 {
    uint_t n;
    uint_t totalLength;
@@ -601,8 +641,8 @@ error_t tcpSend(Socket *socket, const uint8_t *data,
  * @return Error code
  **/
 
-error_t tcpReceive(Socket *socket, uint8_t *data,
-   size_t size, size_t *received, uint_t flags)
+error_t tcpReceive(Socket *socket, uint8_t *data, size_t size,
+   size_t *received, uint_t flags)
 {
    uint_t i;
    uint_t n;
@@ -652,9 +692,13 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
          if(socket->rcvUser == 0)
          {
             if(*received > 0)
+            {
                return NO_ERROR;
+            }
             else
+            {
                return ERROR_END_OF_STREAM;
+            }
          }
 
          //Sequence number of the first byte to read
@@ -667,6 +711,7 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
          //The connection was reset by remote side?
          if(socket->resetFlag)
             return ERROR_CONNECTION_RESET;
+
          //The connection has not yet been established?
          if(!socket->closedFlag)
             return ERROR_NOT_CONNECTED;
@@ -675,9 +720,13 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
          if(socket->rcvUser == 0)
          {
             if(*received > 0)
+            {
                return NO_ERROR;
+            }
             else
+            {
                return ERROR_END_OF_STREAM;
+            }
          }
 
          //Sequence number of the first byte to read
@@ -699,7 +748,10 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
       if((flags & SOCKET_FLAG_BREAK_CHAR) != 0)
       {
          //Search for the specified break character
-         for(i = 0; i < n && data[i] != c; i++);
+         for(i = 0; i < n && data[i] != c; i++)
+         {
+         }
+
          //Adjust the number of data to read
          n = MIN(n, i + 1);
       }
@@ -745,7 +797,8 @@ error_t tcpReceive(Socket *socket, uint8_t *data,
  * to the socket will not be freed until socketClose() is invoked
  *
  * @param[in] socket Handle to a socket
- * @param[in] how Flag that describes what types of operation will no longer be allowed
+ * @param[in] how Flag that describes what types of operation will no longer
+ *   be allowed
  * @return Error code
  **/
 
@@ -754,143 +807,130 @@ error_t tcpShutdown(Socket *socket, uint_t how)
    error_t error;
    uint_t event;
 
-   //Disable transmission?
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Check whether transmission should be disabled
    if(how == SOCKET_SD_SEND || how == SOCKET_SD_BOTH)
    {
-      //Check current state
-      switch(socket->state)
+      //Shutdown TX path
+      while(!error)
       {
-      //CLOSED or LISTEN state?
-      case TCP_STATE_CLOSED:
-      case TCP_STATE_LISTEN:
-         //The connection does not exist
-         return ERROR_NOT_CONNECTED;
+         //LISTEN state?
+         if(socket->state == TCP_STATE_LISTEN)
+         {
+            //The connection does not exist
+            error = ERROR_NOT_CONNECTED;
+         }
+         //SYN-RECEIVED, ESTABLISHED or CLOSE-WAIT state?
+         else if(socket->state == TCP_STATE_SYN_RECEIVED ||
+            socket->state == TCP_STATE_ESTABLISHED ||
+            socket->state == TCP_STATE_CLOSE_WAIT)
+         {
+            //Any data pending in the send buffer?
+            if(socket->sndUser > 0)
+            {
+               //Flush the send buffer
+               tcpNagleAlgo(socket, SOCKET_FLAG_NO_DELAY);
 
-      //SYN-RECEIVED or ESTABLISHED state?
-      case TCP_STATE_SYN_RECEIVED:
-      case TCP_STATE_ESTABLISHED:
-         //Flush the send buffer
-         error = tcpSend(socket, NULL, 0, NULL, SOCKET_FLAG_NO_DELAY);
-         //Any error to report?
-         if(error)
-            return error;
+               //Make sure all the data has been sent out
+               event = tcpWaitForEvents(socket, SOCKET_EVENT_TX_DONE,
+                  socket->timeout);
 
-         //Make sure all the data has been sent out
-         event = tcpWaitForEvents(socket, SOCKET_EVENT_TX_DONE, socket->timeout);
-         //Timeout error?
-         if(event != SOCKET_EVENT_TX_DONE)
-            return ERROR_TIMEOUT;
+               //Timeout error?
+               if(event != SOCKET_EVENT_TX_DONE)
+               {
+                  error = ERROR_TIMEOUT;
+               }
+            }
+            else
+            {
+               //Send a FIN segment
+               error = tcpSendSegment(socket, TCP_FLAG_FIN | TCP_FLAG_ACK,
+                  socket->sndNxt, socket->rcvNxt, 0, TRUE);
 
-         //Send a FIN segment
-         error = tcpSendSegment(socket, TCP_FLAG_FIN | TCP_FLAG_ACK,
-            socket->sndNxt, socket->rcvNxt, 0, TRUE);
-         //Failed to send FIN segment?
-         if(error)
-            return error;
+               //Check status code
+               if(!error)
+               {
+                  //Sequence number expected to be received
+                  socket->sndNxt++;
 
-         //Sequence number expected to be received
-         socket->sndNxt++;
-         //Switch to the FIN-WAIT1 state
-         tcpChangeState(socket, TCP_STATE_FIN_WAIT_1);
+                  //Switch to the FIN-WAIT1 or LAST-ACK state
+                  if(socket->state == TCP_STATE_SYN_RECEIVED ||
+                     socket->state == TCP_STATE_ESTABLISHED)
+                  {
+                     tcpChangeState(socket, TCP_STATE_FIN_WAIT_1);
+                  }
+                  else
+                  {
+                     tcpChangeState(socket, TCP_STATE_LAST_ACK);
+                  }
+               }
+            }
+         }
+         //FIN-WAIT-1, CLOSING or LAST-ACK state?
+         else if(socket->state == TCP_STATE_FIN_WAIT_1 ||
+            socket->state == TCP_STATE_CLOSING ||
+            socket->state == TCP_STATE_LAST_ACK)
+         {
+            //Wait for the FIN to be acknowledged
+            event = tcpWaitForEvents(socket, SOCKET_EVENT_TX_SHUTDOWN,
+               socket->timeout);
 
-         //Wait for the FIN to be acknowledged
-         event = tcpWaitForEvents(socket, SOCKET_EVENT_TX_SHUTDOWN, socket->timeout);
-         //Timeout interval elapsed?
-         if(event != SOCKET_EVENT_TX_SHUTDOWN)
-            return ERROR_TIMEOUT;
-
-         //Continue processing
-         break;
-
-      //CLOSE-WAIT state?
-      case TCP_STATE_CLOSE_WAIT:
-         //Flush the send buffer
-         error = tcpSend(socket, NULL, 0, NULL, SOCKET_FLAG_NO_DELAY);
-         //Any error to report?
-         if(error)
-            return error;
-
-         //Make sure all the data has been sent out
-         event = tcpWaitForEvents(socket, SOCKET_EVENT_TX_DONE, socket->timeout);
-         //Timeout error?
-         if(event != SOCKET_EVENT_TX_DONE)
-            return ERROR_TIMEOUT;
-
-         //Send a FIN segment
-         error = tcpSendSegment(socket, TCP_FLAG_FIN | TCP_FLAG_ACK,
-            socket->sndNxt, socket->rcvNxt, 0, TRUE);
-         //Failed to send FIN segment?
-         if(error)
-            return error;
-
-         //Sequence number expected to be received
-         socket->sndNxt++;
-         //Switch to the LAST-ACK state
-         tcpChangeState(socket, TCP_STATE_LAST_ACK);
-
-         //Wait for the FIN to be acknowledged
-         event = tcpWaitForEvents(socket, SOCKET_EVENT_TX_SHUTDOWN, socket->timeout);
-         //Timeout interval elapsed?
-         if(event != SOCKET_EVENT_TX_SHUTDOWN)
-            return ERROR_TIMEOUT;
-
-         //Continue processing
-         break;
-
-      //FIN-WAIT-1, CLOSING or LAST-ACK state?
-      case TCP_STATE_FIN_WAIT_1:
-      case TCP_STATE_CLOSING:
-      case TCP_STATE_LAST_ACK:
-         //Wait for the FIN to be acknowledged
-         event = tcpWaitForEvents(socket, SOCKET_EVENT_TX_SHUTDOWN, socket->timeout);
-         //Timeout interval elapsed?
-         if(event != SOCKET_EVENT_TX_SHUTDOWN)
-            return ERROR_TIMEOUT;
-
-         //Continue processing
-         break;
-
-      //SYN-SENT, FIN-WAIT-2 or TIME-WAIT state?
-      default:
-         //Continue processing
-         break;
+            //Timeout interval elapsed?
+            if(event != SOCKET_EVENT_TX_SHUTDOWN)
+            {
+               error = ERROR_TIMEOUT;
+            }
+         }
+         //SYN-SENT, FIN-WAIT-2, TIME-WAIT or CLOSED state?
+         else
+         {
+            //The TX path is shutdown
+            break;
+         }
       }
    }
 
-   //Disable reception?
-   if(how == SOCKET_SD_RECEIVE || how == SOCKET_SD_BOTH)
+   //Check status code
+   if(!error)
    {
-      //Check current state
-      switch(socket->state)
+      //Check whether reception should be disabled
+      if(how == SOCKET_SD_RECEIVE || how == SOCKET_SD_BOTH)
       {
-      //LISTEN state?
-      case TCP_STATE_LISTEN:
-         //The connection does not exist
-         return ERROR_NOT_CONNECTED;
+         //LISTEN state?
+         if(socket->state == TCP_STATE_LISTEN)
+         {
+            //The connection does not exist
+            error = ERROR_NOT_CONNECTED;
+         }
+         //SYN-SENT, SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1 or FIN-WAIT-2 state?
+         else if(socket->state == TCP_STATE_SYN_SENT ||
+            socket->state == TCP_STATE_SYN_RECEIVED ||
+            socket->state == TCP_STATE_ESTABLISHED ||
+            socket->state == TCP_STATE_FIN_WAIT_1 ||
+            socket->state == TCP_STATE_FIN_WAIT_2)
+         {
+            //Wait for a FIN to be received
+            event = tcpWaitForEvents(socket, SOCKET_EVENT_RX_SHUTDOWN,
+               socket->timeout);
 
-      //SYN-SENT, SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1 or FIN-WAIT-2 state?
-      case TCP_STATE_SYN_SENT:
-      case TCP_STATE_SYN_RECEIVED:
-      case TCP_STATE_ESTABLISHED:
-      case TCP_STATE_FIN_WAIT_1:
-      case TCP_STATE_FIN_WAIT_2:
-         //Wait for a FIN to be received
-         event = tcpWaitForEvents(socket, SOCKET_EVENT_RX_SHUTDOWN, socket->timeout);
-         //Timeout interval elapsed?
-         if(event != SOCKET_EVENT_RX_SHUTDOWN)
-            return ERROR_TIMEOUT;
-         //A FIN segment has been received
-         break;
-
-      //CLOSING, TIME-WAIT, CLOSE-WAIT, LAST-ACK or CLOSED state?
-      default:
-         //A FIN segment has already been received
-         break;
+            //Timeout interval elapsed?
+            if(event != SOCKET_EVENT_RX_SHUTDOWN)
+            {
+               error = ERROR_TIMEOUT;
+            }
+         }
+         //CLOSING, TIME-WAIT, CLOSE-WAIT, LAST-ACK or CLOSED state?
+         else
+         {
+            //The RX path is shutdown
+         }
       }
    }
 
-   //Successful operation
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 
@@ -907,8 +947,7 @@ error_t tcpAbort(Socket *socket)
    //Check current state
    switch(socket->state)
    {
-   //SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1
-   //FIN-WAIT-2 or CLOSE-WAIT state?
+   //SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2 or CLOSE-WAIT state?
    case TCP_STATE_SYN_RECEIVED:
    case TCP_STATE_ESTABLISHED:
    case TCP_STATE_FIN_WAIT_1:

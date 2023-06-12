@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -206,9 +206,13 @@ error_t modbusClientFormatWriteSingleCoilReq(ModbusClientContext *context,
    //A value of 0xFF00 requests the output to be ON. A value of 0x0000
    //requests it to be OFF
    if(value)
+   {
       request->outputValue = HTONS(MODBUS_COIL_STATE_ON);
+   }
    else
+   {
       request->outputValue = HTONS(MODBUS_COIL_STATE_OFF);
+   }
 
    //Compute the length of the request PDU
    length = sizeof(ModbusWriteSingleCoilReq);

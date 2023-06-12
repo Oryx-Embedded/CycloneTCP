@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -247,6 +247,11 @@ error_t same70EthInit(NetInterface *interface)
 
    //Read GMAC_ISR register to clear any pending interrupt
    status = GMAC_REGS->GMAC_ISR;
+   status = GMAC_REGS->GMAC_ISRPQ[0];
+   status = GMAC_REGS->GMAC_ISRPQ[1];
+   status = GMAC_REGS->GMAC_ISRPQ[2];
+   status = GMAC_REGS->GMAC_ISRPQ[3];
+   status = GMAC_REGS->GMAC_ISRPQ[4];
    (void) status;
 
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)

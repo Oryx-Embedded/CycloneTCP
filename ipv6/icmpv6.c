@@ -32,14 +32,13 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL ICMPV6_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/ip.h"
 #include "ipv6/ipv6.h"
@@ -57,15 +56,15 @@
 
 
 /**
- * @brief Enable support for Echo Request messages
+ * @brief Enable support for ICMPv6 Echo Request messages
  * @param[in] interface Underlying network interface
- * @param[in] enable When the flag is set to TRUE, the host will respond to
- *   Echo Requests. When the flag is set to FALSE, incoming Echo Request
- *   messages will be dropped
+ * @param[in] enable This flag specifies whether the host will respond to
+ *   ICMPv6 Echo Requests. When the flag is set to FALSE, incoming ICMPv6 Echo
+ *   Request messages will be dropped
  * @return Error code
  **/
 
-error_t icmpv6EnableEchoRequest(NetInterface *interface, bool_t enable)
+error_t icmpv6EnableEchoRequests(NetInterface *interface, bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
@@ -84,15 +83,16 @@ error_t icmpv6EnableEchoRequest(NetInterface *interface, bool_t enable)
 
 
 /**
- * @brief Enable support for multicast Echo Request messages
+ * @brief Enable support for multicast ICMPv6 Echo Request messages
  * @param[in] interface Underlying network interface
- * @param[in] enable When the flag is set to TRUE, the host will respond to
- *   multicast Echo Requests. When the flag is set to FALSE, incoming Echo
- *   Request messages destined to a multicast address will be dropped
+ * @param[in] enable This flag specifies whether the host will respond to
+ *   multicast ICMPv6 Echo Requests. When the flag is set to FALSE, incoming
+ *   ICMPv6 Echo Request messages destined to a multicast address will be
+ *   dropped
  * @return Error code
  **/
 
-error_t icmpv6EnableMulticastEchoRequest(NetInterface *interface,
+error_t icmpv6EnableMulticastEchoRequests(NetInterface *interface,
    bool_t enable)
 {
    //Check parameters
@@ -121,8 +121,8 @@ error_t icmpv6EnableMulticastEchoRequest(NetInterface *interface,
  **/
 
 void icmpv6ProcessMessage(NetInterface *interface,
-   Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
-   uint8_t hopLimit)
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, uint8_t hopLimit)
 {
    size_t length;
    Icmpv6Header *header;
@@ -266,7 +266,8 @@ void icmpv6ProcessMessage(NetInterface *interface,
  **/
 
 void icmpv6ProcessDestUnreachable(NetInterface *interface,
-   Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset)
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset)
 {
    size_t length;
    Icmpv6DestUnreachableMessage *icmpHeader;
@@ -301,7 +302,8 @@ void icmpv6ProcessDestUnreachable(NetInterface *interface,
  **/
 
 void icmpv6ProcessPacketTooBig(NetInterface *interface,
-   Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset)
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset)
 {
    size_t length;
    Icmpv6PacketTooBigMessage *icmpHeader;
@@ -365,7 +367,7 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
  **/
 
 void icmpv6ProcessEchoRequest(NetInterface *interface,
-   Ipv6PseudoHeader *requestPseudoHeader, const NetBuffer *request,
+   const Ipv6PseudoHeader *requestPseudoHeader, const NetBuffer *request,
    size_t requestOffset)
 {
    error_t error;
@@ -585,10 +587,10 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
    if(ipv6IsAnycastAddr(interface, &ipHeader->srcAddr))
       return ERROR_INVALID_ADDRESS;
 
-   //Return as much of invoking IPv6 packet as possible without
-   //the ICMPv6 packet exceeding the minimum IPv6 MTU
-   length = MIN(length, IPV6_DEFAULT_MTU -
-      sizeof(Ipv6Header) - sizeof(Icmpv6ErrorMessage));
+   //Return as much of invoking IPv6 packet as possible without the ICMPv6
+   //packet exceeding the minimum IPv6 MTU
+   length = MIN(length, IPV6_DEFAULT_MTU - sizeof(Ipv6Header) -
+      sizeof(Icmpv6ErrorMessage));
 
    //Allocate a memory buffer to hold the ICMPv6 message
    icmpMessage = ipAllocBuffer(sizeof(Icmpv6ErrorMessage), &offset);

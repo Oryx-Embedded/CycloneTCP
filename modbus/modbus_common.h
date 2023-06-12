@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _MODBUS_COMMON_H
@@ -134,243 +134,243 @@ typedef enum
  * @brief MBAP header (Modbus Application Protocol)
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t transactionId; //0-1
    uint16_t protocolId;    //2-3
    uint16_t length;        //4-5
    uint8_t unitId;         //6
    uint8_t pdu[];          //7
-} __end_packed ModbusHeader;
+} ModbusHeader;
 
 
 /**
  * @brief Read Coils request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;     //0
    uint16_t startingAddr;    //1-2
    uint16_t quantityOfCoils; //3-4
-} __end_packed ModbusReadCoilsReq;
+} ModbusReadCoilsReq;
 
 
 /**
  * @brief Read Coils response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode; //0
    uint8_t byteCount;    //1
    uint8_t coilStatus[]; //2
-} __end_packed ModbusReadCoilsResp;
+} ModbusReadCoilsResp;
 
 
 /**
  * @brief Read Discrete Inputs request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;      //0
    uint16_t startingAddr;     //1-2
    uint16_t quantityOfInputs; //3-4
-} __end_packed ModbusReadDiscreteInputsReq;
+} ModbusReadDiscreteInputsReq;
 
 
 /**
  * @brief Read Discrete Inputs response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;  //0
    uint8_t byteCount;     //1
    uint8_t inputStatus[]; //2
-} __end_packed ModbusReadDiscreteInputsResp;
+} ModbusReadDiscreteInputsResp;
 
 
 /**
  * @brief Read Holding Registers request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;    //0
    uint16_t startingAddr;   //1-2
    uint16_t quantityOfRegs; //3-4
-} __end_packed ModbusReadHoldingRegsReq;
+} ModbusReadHoldingRegsReq;
 
 
 /**
  * @brief Read Holding Registers response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode; //0
    uint8_t byteCount;    //1
    uint16_t regValue[];  //2
-} __end_packed ModbusReadHoldingRegsResp;
+} ModbusReadHoldingRegsResp;
 
 
 /**
  * @brief Read Holding Input request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;    //0
    uint16_t startingAddr;   //1-2
    uint16_t quantityOfRegs; //3-4
-} __end_packed ModbusReadInputRegsReq;
+} ModbusReadInputRegsReq;
 
 
 /**
  * @brief Read Holding Input response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode; //0
    uint8_t byteCount;    //1
    uint16_t regValue[];  //2
-} __end_packed ModbusReadInputRegsResp;
+} ModbusReadInputRegsResp;
 
 
 /**
  * @brief Write Single Coil request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;  //0
    uint16_t outputAddr;   //1-2
    uint16_t outputValue;  //3-4
-} __end_packed ModbusWriteSingleCoilReq;
+} ModbusWriteSingleCoilReq;
 
 
 /**
  * @brief Write Single Coil response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;  //0
    uint16_t outputAddr;   //1-2
    uint16_t outputValue;  //3-4
-} __end_packed ModbusWriteSingleCoilResp;
+} ModbusWriteSingleCoilResp;
 
 
 /**
  * @brief Write Single Register request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode; //0
    uint16_t regAddr;     //1-2
    uint16_t regValue;    //3-4
-} __end_packed ModbusWriteSingleRegReq;
+} ModbusWriteSingleRegReq;
 
 
 /**
  * @brief Write Single Register response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode; //0
    uint16_t regAddr;     //1-2
    uint16_t regValue;    //3-4
-} __end_packed ModbusWriteSingleRegResp;
+} ModbusWriteSingleRegResp;
 
 
 /**
  * @brief Write Multiple Coils request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;       //0
    uint16_t startingAddr;      //1-2
    uint16_t quantityOfOutputs; //3-4
    uint8_t byteCount;          //5
    uint8_t outputValue[];      //6
-} __end_packed ModbusWriteMultipleCoilsReq;
+} ModbusWriteMultipleCoilsReq;
 
 
 /**
  * @brief Write Multiple Coils response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;       //0
    uint16_t startingAddr;      //1-2
    uint16_t quantityOfOutputs; //3-4
-} __end_packed ModbusWriteMultipleCoilsResp;
+} ModbusWriteMultipleCoilsResp;
 
 
 /**
  * @brief Write Multiple Registers request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;    //0
    uint16_t startingAddr;   //1-2
    uint16_t quantityOfRegs; //3-4
    uint8_t byteCount;       //5
    uint16_t regValue[];     //6
-} __end_packed ModbusWriteMultipleRegsReq;
+} ModbusWriteMultipleRegsReq;
 
 
 /**
  * @brief Write Multiple Registers response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;     //0
    uint16_t startingAddr;    //1-2
    uint16_t quantityOfRegs;  //3-4
-} __end_packed ModbusWriteMultipleRegsResp;
+} ModbusWriteMultipleRegsResp;
 
 
 /**
  * @brief Mask Write Register request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;   //0
    uint16_t referenceAddr; //1-2
    uint16_t andMask;       //3-4
    uint16_t orMask;        //5-6
-} __end_packed ModbusMaskWriteRegReq;
+} ModbusMaskWriteRegReq;
 
 
 /**
  * @brief Mask Write Register response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;   //0
    uint16_t referenceAddr; //1-2
    uint16_t andMask;       //3-4
    uint16_t orMask;        //5-6
-} __end_packed ModbusMaskWriteRegResp;
+} ModbusMaskWriteRegResp;
 
 
 /**
  * @brief Read/Write Multiple Registers request PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;       //0
    uint16_t readStartingAddr;  //1-2
@@ -379,30 +379,30 @@ typedef __start_packed struct
    uint16_t quantityToWrite;   //7-8
    uint8_t writeByteCount;     //9
    uint16_t writeRegValue[];   //10
-} __end_packed ModbusReadWriteMultipleRegsReq;
+} ModbusReadWriteMultipleRegsReq;
 
 
 /**
  * @brief Read/Write Multiple Registers response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;    //0
    uint8_t readByteCount;   //1
    uint16_t readRegValue[]; //2
-} __end_packed ModbusReadWriteMultipleRegsResp;
+} ModbusReadWriteMultipleRegsResp;
 
 
 /**
  * @brief Exception response PDU
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t functionCode;  //0
    uint8_t exceptionCode; //1
-} __end_packed ModbusExceptionResp;
+} ModbusExceptionResp;
 
 
 //CodeWarrior or Win32 compiler?

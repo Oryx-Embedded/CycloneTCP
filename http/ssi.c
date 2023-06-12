@@ -30,7 +30,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -71,13 +71,13 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
 
 #if (HTTP_SERVER_FS_SUPPORT == ENABLED)
    bool_t more;
-   uint_t pos;
-   uint_t n;
+   size_t n;
+   size_t pos;
    char_t *buffer;
    FsFile *file;
 #else
-   uint_t i;
-   uint_t j;
+   size_t i;
+   size_t j;
    const char_t *data;
 #endif
 
@@ -485,9 +485,13 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
 
       //Remove the filename from the path if applicable
       if(p)
+      {
          osStrcpy(p + 1, value);
+      }
       else
+      {
          osStrcpy(path, value);
+      }
    }
    //The virtual parameter defines the included file as relative to the document root
    else if(!osStrcasecmp(attribute, "virtual"))
@@ -595,7 +599,8 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
  * @return Error code
  **/
 
-error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, size_t length)
+error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
+   size_t length)
 {
    error_t error;
    char_t *separator;
@@ -768,7 +773,8 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, siz
  * @return Error code
  **/
 
-error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, size_t length)
+error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag,
+   size_t length)
 {
    char_t *separator;
    char_t *attribute;
@@ -802,7 +808,9 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, siz
 
    //Remove leading simple or double quote
    if(value[0] == '\'' || value[0] == '\"')
+   {
       value++;
+   }
 
    //Get the length of the attribute value
    length = osStrlen(value);
@@ -811,12 +819,18 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, siz
    if(length > 0)
    {
       if(value[length - 1] == '\'' || value[length - 1] == '\"')
+      {
          value[length - 1] = '\0';
+      }
    }
 
    //Enforce attribute name
-   if(osStrcasecmp(attribute, "cgi") && osStrcasecmp(attribute, "cmd") && osStrcasecmp(attribute, "cmd_argument"))
+   if(osStrcasecmp(attribute, "cgi") && osStrcasecmp(attribute, "cmd") &&
+      osStrcasecmp(attribute, "cmd_argument"))
+   {
       return ERROR_INVALID_TAG;
+   }
+
    //Check the length of the CGI parameter
    if(osStrlen(value) > HTTP_SERVER_CGI_PARAM_MAX_LEN)
       return ERROR_INVALID_TAG;
@@ -842,10 +856,11 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, siz
  * @retval ERROR_NO_MATCH if the tag does not appear in the string
  **/
 
-error_t ssiSearchTag(const char_t *s, size_t sLen, const char_t *tag, size_t tagLen, uint_t *pos)
+error_t ssiSearchTag(const char_t *s, size_t sLen, const char_t *tag,
+   size_t tagLen, size_t *pos)
 {
-   uint_t i;
-   uint_t j;
+   size_t i;
+   size_t j;
 
    //Parse the input string
    for(i = 0; i <= sLen; i++)

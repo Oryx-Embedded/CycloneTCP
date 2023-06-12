@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _NDP_CACHE_H
@@ -41,6 +41,8 @@ extern "C" {
 #endif
 
 //NDP related functions
+void ndpChangeState(NdpNeighborCacheEntry *entry, NdpState newState);
+
 NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface);
 
 NdpNeighborCacheEntry *ndpFindNeighborCacheEntry(NetInterface *interface,

@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL ICMP_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/ip.h"
 #include "ipv4/ipv4.h"
@@ -47,15 +46,15 @@
 
 
 /**
- * @brief Enable support for Echo Request messages
+ * @brief Enable support for ICMP Echo Request messages
  * @param[in] interface Underlying network interface
- * @param[in] enable When the flag is set to TRUE, the host will respond to
- *   Echo Requests. When the flag is set to FALSE, incoming Echo Request
- *   messages will be dropped
+ * @param[in] enable This flag specifies whether the host will respond to
+ *   ICMP Echo Requests. When the flag is set to FALSE, incoming ICMP Echo
+ *   Request messages will be dropped
  * @return Error code
  **/
 
-error_t icmpEnableEchoRequest(NetInterface *interface, bool_t enable)
+error_t icmpEnableEchoRequests(NetInterface *interface, bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
@@ -74,15 +73,16 @@ error_t icmpEnableEchoRequest(NetInterface *interface, bool_t enable)
 
 
 /**
- * @brief Enable support for broadcast Echo Request messages
+ * @brief Enable support for broadcast ICMP Echo Request messages
  * @param[in] interface Underlying network interface
- * @param[in] enable When the flag is set to TRUE, the host will respond to
- *   broadcast Echo Requests. When the flag is set to FALSE, incoming Echo
- *   Request messages destined to a broadcast address will be dropped
+ * @param[in] enable This flag specifies whether the host will respond to
+ *   broadcast ICMP Echo Requests. When the flag is set to FALSE, incoming ICMP
+ *   Echo Request messages destined to a broadcast address will be dropped
  * @return Error code
  **/
 
-error_t icmpEnableBroadcastEchoRequest(NetInterface *interface, bool_t enable)
+error_t icmpEnableBroadcastEchoRequests(NetInterface *interface,
+   bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
@@ -109,7 +109,7 @@ error_t icmpEnableBroadcastEchoRequest(NetInterface *interface, bool_t enable)
  **/
 
 void icmpProcessMessage(NetInterface *interface,
-   Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *buffer,
+   const Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *buffer,
    size_t offset)
 {
    size_t length;
@@ -171,6 +171,7 @@ void icmpProcessMessage(NetInterface *interface,
       //Process Echo Request message
       icmpProcessEchoRequest(interface, requestPseudoHeader, buffer, offset);
       break;
+
    //Unknown type?
    default:
       //Debug message
@@ -190,7 +191,7 @@ void icmpProcessMessage(NetInterface *interface,
  **/
 
 void icmpProcessEchoRequest(NetInterface *interface,
-   Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *request,
+   const Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *request,
    size_t requestOffset)
 {
    error_t error;
@@ -334,8 +335,9 @@ void icmpProcessEchoRequest(NetInterface *interface,
  * @return Error code
  **/
 
-error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code,
-   uint8_t parameter, const NetBuffer *ipPacket, size_t ipPacketOffset)
+error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
+   uint8_t code, uint8_t parameter, const NetBuffer *ipPacket,
+   size_t ipPacketOffset)
 {
    error_t error;
    size_t offset;

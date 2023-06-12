@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -102,7 +102,8 @@ void ndpRouterAdvTick(NdpRouterAdvContext *context)
                //For the first few advertisements sent from an interface when it
                //becomes an advertising interface, the randomly chosen interval
                //should not be greater than MAX_INITIAL_RTR_ADVERT_INTERVAL
-               context->timeout = MIN(context->timeout, NDP_MAX_INITIAL_RTR_ADVERT_INTERVAL);
+               context->timeout = MIN(context->timeout,
+                  NDP_MAX_INITIAL_RTR_ADVERT_INTERVAL);
             }
 
             //Increment counter
@@ -163,8 +164,9 @@ void ndpRouterAdvLinkChangeEvent(NdpRouterAdvContext *context)
  * @param[in] hopLimit Hop Limit field from IPv6 header
  **/
 
-void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, uint8_t hopLimit)
+void ndpProcessRouterSol(NetInterface *interface,
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, uint8_t hopLimit)
 {
    error_t error;
    uint_t n;
@@ -244,23 +246,27 @@ void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
       entry = ndpFindNeighborCacheEntry(interface, &pseudoHeader->srcAddr);
 
       //No matching entry has been found?
-      if(!entry)
+      if(entry == NULL)
       {
-         //Create an entry
-         entry = ndpCreateNeighborCacheEntry(interface);
-
-         //Neighbor Cache entry successfully created?
-         if(entry)
+         //Check whether Neighbor Discovery protocol is enabled
+         if(interface->ndpContext.enable)
          {
-            //Record the IPv6 and the corresponding MAC address
-            entry->ipAddr = pseudoHeader->srcAddr;
-            entry->macAddr = option->linkLayerAddr;
-            //The IsRouter flag must be set to FALSE
-            entry->isRouter = FALSE;
-            //Save current time
-            entry->timestamp = time;
-            //Enter the STALE state
-            entry->state = NDP_STATE_STALE;
+            //Create an entry
+            entry = ndpCreateNeighborCacheEntry(interface);
+
+            //Neighbor Cache entry successfully created?
+            if(entry != NULL)
+            {
+               //Record the IPv6 and the corresponding MAC address
+               entry->ipAddr = pseudoHeader->srcAddr;
+               entry->macAddr = option->linkLayerAddr;
+
+               //The IsRouter flag must be set to FALSE
+               entry->isRouter = FALSE;
+
+               //Enter the STALE state
+               ndpChangeState(entry, NDP_STATE_STALE);
+            }
          }
       }
       else
@@ -274,10 +280,9 @@ void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
          {
             //Record link-layer address
             entry->macAddr = option->linkLayerAddr;
+
             //Send all the packets that are pending for transmission
             n = ndpSendQueuedPackets(interface, entry);
-            //Save current time
-            entry->timestamp = time;
 
             //Check whether any packets have been sent
             if(n > 0)
@@ -285,12 +290,12 @@ void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
                //Start delay timer
                entry->timeout = NDP_DELAY_FIRST_PROBE_TIME;
                //Switch to the DELAY state
-               entry->state = NDP_STATE_DELAY;
+               ndpChangeState(entry, NDP_STATE_DELAY);
             }
             else
             {
                //Enter the STALE state
-               entry->state = NDP_STATE_STALE;
+               ndpChangeState(entry, NDP_STATE_STALE);
             }
          }
          //REACHABLE, STALE, DELAY or PROBE state?
@@ -301,10 +306,9 @@ void ndpProcessRouterSol(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader
             {
                //Update link-layer address
                entry->macAddr = option->linkLayerAddr;
-               //Save current time
-               entry->timestamp = time;
+
                //Enter the STALE state
-               entry->state = NDP_STATE_STALE;
+               ndpChangeState(entry, NDP_STATE_STALE);
             }
          }
       }
@@ -381,15 +385,7 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
       return error;
 
    //Compute the maximum size of the Router Advertisement message
-   length = sizeof(NdpRouterAdvMessage) +
-      sizeof(NdpLinkLayerAddrOption) + sizeof(NdpMtuOption) +
-      settings->prefixListLength * sizeof(NdpPrefixInfoOption) +
-      settings->routeListLength * sizeof(NdpRouteInfoOption) +
-      settings->contextListLength * sizeof(NdpContextOption);
-
-   //Sanity check
-   if((length + sizeof(Ipv6Header)) > IPV6_DEFAULT_MTU)
-      return ERROR_FAILURE;
+   length = IPV6_DEFAULT_MTU - sizeof(Ipv6Header);
 
    //Allocate a memory buffer to hold the Router Advertisement message
    buffer = ipAllocBuffer(length, &offset);
@@ -515,6 +511,13 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
       //Add 6LoWPAN Context option (6CO)
       ndpAddOption(message, &length, NDP_OPT_6LOWPAN_CONTEXT,
          (uint8_t *) &contextOption + sizeof(NdpOption), n - sizeof(NdpOption));
+   }
+
+   //Any registered callback?
+   if(context->settings.addOptionsCallback != NULL)
+   {
+      //Invoke user callback function
+      context->settings.addOptionsCallback(context, message, &length);
    }
 
    //Adjust the length of the multi-part buffer

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _ICMP_H
@@ -102,20 +102,20 @@ typedef enum
  * @brief ICMP header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t code;      //1
    uint16_t checksum; //2-3
    uint8_t data[];    //4
-} __end_packed IcmpHeader;
+} IcmpHeader;
 
 
 /**
  * @brief ICMP Error message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t code;      //1
@@ -123,42 +123,42 @@ typedef __start_packed struct
    uint8_t parameter; //4
    uint8_t unused[3]; //5-7
    uint8_t data[];    //8
-} __end_packed IcmpErrorMessage;
+} IcmpErrorMessage;
 
 
 /**
  * @brief ICMP Destination Unreachable message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t code;      //1
    uint16_t checksum; //2-3
    uint32_t unused;   //4-7
    uint8_t data[];    //8
-} __end_packed IcmpDestUnreachableMessage;
+} IcmpDestUnreachableMessage;
 
 
 /**
  * @brief ICMP Time Exceeded message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t code;      //1
    uint16_t checksum; //2-3
    uint32_t unused;   //4-7
    uint8_t data[];    //8
-} __end_packed IcmpTimeExceededMessage;
+} IcmpTimeExceededMessage;
 
 
 /**
  * @brief ICMP Parameter Problem message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t code;      //1
@@ -166,14 +166,14 @@ typedef __start_packed struct
    uint8_t pointer;   //4
    uint8_t unused[3]; //5-7
    uint8_t data[];    //8
-} __end_packed IcmpParamProblemMessage;
+} IcmpParamProblemMessage;
 
 
 /**
  * @brief ICMP Echo Request and Echo Reply messages
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;            //0
    uint8_t code;            //1
@@ -181,7 +181,7 @@ typedef __start_packed struct
    uint16_t identifier;     //4-5
    uint16_t sequenceNumber; //6-7
    uint8_t data[];          //8
-} __end_packed IcmpEchoMessage;
+} IcmpEchoMessage;
 
 
 //CodeWarrior or Win32 compiler?
@@ -190,19 +190,22 @@ typedef __start_packed struct
 #endif
 
 //ICMP related functions
-error_t icmpEnableEchoRequest(NetInterface *interface, bool_t enable);
-error_t icmpEnableBroadcastEchoRequest(NetInterface *interface, bool_t enable);
+error_t icmpEnableEchoRequests(NetInterface *interface, bool_t enable);
+
+error_t icmpEnableBroadcastEchoRequests(NetInterface *interface,
+   bool_t enable);
 
 void icmpProcessMessage(NetInterface *interface,
-   Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *buffer,
+   const Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *buffer,
    size_t offset);
 
 void icmpProcessEchoRequest(NetInterface *interface,
-   Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *request,
+   const Ipv4PseudoHeader *requestPseudoHeader, const NetBuffer *request,
    size_t requestOffset);
 
-error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type, uint8_t code,
-   uint8_t parameter, const NetBuffer *ipPacket, size_t ipPacketOffset);
+error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
+   uint8_t code, uint8_t parameter, const NetBuffer *ipPacket,
+   size_t ipPacketOffset);
 
 void icmpUpdateInStats(uint8_t type);
 void icmpUpdateOutStats(uint8_t type);

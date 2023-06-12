@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -51,60 +51,60 @@ void ndpRouterAdvGetDefaultSettings(NdpRouterAdvSettings *settings)
    //Underlying network interface
    settings->interface = netGetDefaultInterface();
 
-   //The maximum time allowed between sending unsolicited multicast
-   //Router Advertisements from the interface
+   //The maximum time allowed between sending unsolicited multicast Router
+   //Advertisements from the interface
    settings->maxRtrAdvInterval = NDP_MAX_RTR_ADVERT_INTERVAL;
 
-   //The minimum time allowed between sending unsolicited multicast
-   //Router Advertisements from the interface
+   //The minimum time allowed between sending unsolicited multicast Router
+   //Advertisements from the interface
    settings->minRtrAdvInterval = NDP_MAX_RTR_ADVERT_INTERVAL / 3;
 
-   //The default value to be placed in the Cur Hop Limit field in the
-   //Router Advertisement messages sent by the router
+   //The default value to be placed in the Cur Hop Limit field in the Router
+   //Advertisement messages sent by the router
    settings->curHopLimit = 0;
 
-   //The value to be placed in the Managed Address Configuration
-   //flag in the Router Advertisement
+   //The value to be placed in the Managed Address Configuration flag in the
+   //Router Advertisement
    settings->managedFlag = FALSE;
 
-   //The value to be placed in the Other Configuration flag
-   //in the Router Advertisement
+   //The value to be placed in the Other Configuration flag in the Router
+   //Advertisement
    settings->otherConfigFlag = FALSE;
 
-   //The value to be placed in the Mobile IPv6 Home Agent
-   //flag in the Router Advertisement
+   //The value to be placed in the Mobile IPv6 Home Agent flag in the Router
+   //Advertisement
    settings->homeAgentFlag = FALSE;
 
-   //The value to be placed in the Router Selection Preferences
-   //field in the Router Advertisement
+   //The value to be placed in the Router Selection Preferences field in the
+   //Router Advertisement
    settings->preference = NDP_ROUTER_SEL_PREFERENCE_MEDIUM;
 
-   //The value to be placed in the Neighbor Discovery Proxy
-   //flag in the Router Advertisement
+   //The value to be placed in the Neighbor Discovery Proxy flag in the Router
+   //Advertisement
    settings->proxyFlag = FALSE;
 
-   //The value to be placed in the Router Lifetime field of
-   //Router Advertisements sent from the interface
+   //The value to be placed in the Router Lifetime field of Router
+   //Advertisements sent from the interface
    settings->defaultLifetime = 3 * (NDP_MAX_RTR_ADVERT_INTERVAL / 1000);
 
-   //The value to be placed in the Reachable Time field in the
-   //Router Advertisement messages sent by the router
+   //The value to be placed in the Reachable Time field in the Router
+   //Advertisement messages sent by the router
    settings->reachableTime = 0;
 
-   //The value to be placed in the Retrans Timer field in the
-   //Router Advertisement messages sent by the router
+   //The value to be placed in the Retrans Timer field in the Router
+   //Advertisement messages sent by the router
    settings->retransTimer = 0;
 
    //The value to be placed in the MTU option sent by the router
    settings->linkMtu = 0;
 
-   //A list of prefixes to be placed in Prefix Information options (PIO)
-   //in Router Advertisement messages sent from the interface
+   //A list of prefixes to be placed in Prefix Information options (PIO) in
+   //Router Advertisement messages sent from the interface
    settings->prefixList = NULL;
    settings->prefixListLength = 0;
 
-   //A list of routes to be placed in Route Information options (RIO)
-   //in Router Advertisement messages sent from the interface
+   //A list of routes to be placed in Route Information options (RIO) in
+   //Router Advertisement messages sent from the interface
    settings->routeList = NULL;
    settings->routeListLength = 0;
 
@@ -112,6 +112,9 @@ void ndpRouterAdvGetDefaultSettings(NdpRouterAdvSettings *settings)
    //options (6CO) in Router Advertisement messages sent from the interface
    settings->contextList = NULL;
    settings->contextListLength = 0;
+
+   //Add Router Advertisement options callback
+   settings->addOptionsCallback = NULL;
 }
 
 
@@ -190,7 +193,8 @@ error_t ndpRouterAdvStart(NdpRouterAdvContext *context)
       interface = context->settings.interface;
 
       //Join the All-Routers multicast address
-      error = ipv6JoinMulticastGroup(interface, &IPV6_LINK_LOCAL_ALL_ROUTERS_ADDR);
+      error = ipv6JoinMulticastGroup(interface,
+         &IPV6_LINK_LOCAL_ALL_ROUTERS_ADDR);
 
       //Successful membership registration?
       if(!error)
@@ -271,10 +275,11 @@ error_t ndpRouterAdvStop(NdpRouterAdvContext *context)
       ndpSendRouterAdv(context, 0);
 
       //Leave the All-Routers multicast address
-      error = ipv6LeaveMulticastGroup(interface, &IPV6_LINK_LOCAL_ALL_ROUTERS_ADDR);
+      error = ipv6LeaveMulticastGroup(interface,
+         &IPV6_LINK_LOCAL_ALL_ROUTERS_ADDR);
 
       //Restore default parameters
-      interface->ipv6Context.curHopLimit = IPV6_DEFAULT_HOP_LIMIT;
+      interface->ipv6Context.curHopLimit = interface->ipv6Context.defaultHopLimit;
       interface->ndpContext.reachableTime = NDP_REACHABLE_TIME;
       interface->ndpContext.retransTimer = NDP_RETRANS_TIMER;
 

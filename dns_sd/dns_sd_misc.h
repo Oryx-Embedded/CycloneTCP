@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _DNS_SD_MISC_H
@@ -65,8 +65,8 @@ void dnsSdGenerateAdditionalRecords(NetInterface *interface,
 error_t dnsSdFormatServiceEnumPtrRecord(NetInterface *interface,
    MdnsMessage *message, const DnsSdService *service, uint32_t ttl);
 
-error_t dnsSdFormatPtrRecord(NetInterface *interface,
-   MdnsMessage *message, const DnsSdService *service, uint32_t ttl);
+error_t dnsSdFormatPtrRecord(NetInterface *interface, MdnsMessage *message,
+   const DnsSdService *service, uint32_t ttl);
 
 error_t dnsSdFormatSrvRecord(NetInterface *interface, MdnsMessage *message,
    const DnsSdService *service, bool_t cacheFlush, uint32_t ttl);

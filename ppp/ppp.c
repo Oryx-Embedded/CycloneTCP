@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -203,6 +203,7 @@ error_t pppSetTimeout(NetInterface *interface, systime_t timeout)
    //Check parameters
    if(interface == NULL)
       return ERROR_INVALID_PARAMETER;
+
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
       return ERROR_NOT_CONFIGURED;
@@ -232,14 +233,23 @@ error_t pppSetTimeout(NetInterface *interface, systime_t timeout)
  * @return Error code
  **/
 
-error_t pppSetAuthInfo(NetInterface *interface,
-   const char_t *username, const char_t *password)
+error_t pppSetAuthInfo(NetInterface *interface, const char_t *username,
+   const char_t *password)
 {
    PppContext *context;
 
    //Check parameters
    if(interface == NULL || username == NULL || password == NULL)
       return ERROR_INVALID_PARAMETER;
+
+   //Make sure the length of the user name is acceptable
+   if(osStrlen(username) > PPP_MAX_USERNAME_LEN)
+      return ERROR_INVALID_LENGTH;
+
+   //Make sure the length of the password is acceptable
+   if(osStrlen(password) > PPP_MAX_PASSWORD_LEN)
+      return ERROR_INVALID_LENGTH;
+
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
       return ERROR_NOT_CONFIGURED;
@@ -251,9 +261,9 @@ error_t pppSetAuthInfo(NetInterface *interface,
    osAcquireMutex(&netMutex);
 
    //Save user name
-   strSafeCopy(context->username, username, PPP_MAX_USERNAME_LEN);
+   osStrcpy(context->username, username);
    //Save password
-   strSafeCopy(context->password, password, PPP_MAX_PASSWORD_LEN);
+   osStrcpy(context->password, password);
 
    //Release exclusive access
    osReleaseMutex(&netMutex);
@@ -326,6 +336,7 @@ error_t pppSendAtCommand(NetInterface *interface, const char_t *data)
    //Check parameters
    if(interface == NULL)
       return ERROR_INVALID_PARAMETER;
+
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
       return ERROR_NOT_CONFIGURED;
@@ -473,6 +484,7 @@ error_t pppConnect(NetInterface *interface)
    //Check parameters
    if(interface == NULL)
       return ERROR_INVALID_PARAMETER;
+
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
       return ERROR_NOT_CONFIGURED;
@@ -741,6 +753,7 @@ error_t pppClose(NetInterface *interface)
    //Check parameters
    if(interface == NULL)
       return ERROR_INVALID_PARAMETER;
+
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
       return ERROR_NOT_CONFIGURED;
@@ -1019,8 +1032,8 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
  * @return Error code
  **/
 
-error_t pppSendFrame(NetInterface *interface,
-   NetBuffer *buffer, size_t offset, uint16_t protocol)
+error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
+   uint16_t protocol)
 {
    error_t error;
    size_t length;

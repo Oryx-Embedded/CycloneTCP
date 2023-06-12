@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -106,8 +106,8 @@ void dhcpClientStateSelecting(DhcpClientContext *context)
       //Check retransmission counter
       if(context->retransmitCount == 0)
       {
-         //A transaction identifier is used by the client to match incoming
-         //DHCP messages with pending requests
+         //The client generates and records a random transaction identifier
+         //(refer to RFC 2131, section 4.4.1)
          context->transactionId = netGenerateRand();
 
          //Send a DHCPDISCOVER message
@@ -152,8 +152,8 @@ void dhcpClientStateSelecting(DhcpClientContext *context)
 /**
  * @brief REQUESTING state
  *
- * The client is waiting to hear back from the server
- * to which it sent its request
+ * The client is waiting to hear back from the server to which it sent its
+ * request
  *
  * @param[in] context Pointer to the DHCP client context
  **/
@@ -171,11 +171,8 @@ void dhcpClientStateRequesting(DhcpClientContext *context)
       //Check retransmission counter
       if(context->retransmitCount == 0)
       {
-         //A transaction identifier is used by the client to match incoming
-         //DHCP messages with pending requests
-         context->transactionId = netGenerateRand();
-
-         //Send a DHCPREQUEST message
+         //The DHCPREQUEST message contains the same transaction identifier as
+         //the DHCPOFFER message (refer to RFC 2131, section 4.4.1)
          dhcpClientSendRequest(context);
 
          //Initial timeout value
@@ -235,8 +232,8 @@ void dhcpClientStateRequesting(DhcpClientContext *context)
 /**
  * @brief INIT-REBOOT state
  *
- * When a client that already has a valid lease starts up after a
- * power-down or reboot, it starts here instead of the INIT state
+ * When a client that already has a valid lease starts up after a power-down
+ * or reboot, it starts here instead of the INIT state
  *
  * @param[in] context Pointer to the DHCP client context
  **/
@@ -275,8 +272,8 @@ void dhcpClientStateInitReboot(DhcpClientContext *context)
 /**
  * @brief REBOOTING state
  *
- * A client that has rebooted with an assigned address is
- * waiting for a confirming reply from a server
+ * A client that has rebooted with an assigned address is waiting for a
+ * confirming reply from a server
  *
  * @param[in] context Pointer to the DHCP client context
  **/
@@ -294,8 +291,8 @@ void dhcpClientStateRebooting(DhcpClientContext *context)
       //Check retransmission counter
       if(context->retransmitCount == 0)
       {
-         //A transaction identifier is used by the client to match incoming
-         //DHCP messages with pending requests
+         //The client generates and records a random transaction identifier
+         //(refer to RFC 2131, section 4.4.2)
          context->transactionId = netGenerateRand();
 
          //Send a DHCPREQUEST message
@@ -383,6 +380,9 @@ void dhcpClientStateProbing(DhcpClientContext *context)
       //The address is already in use?
       if(interface->ipv4Context.addrList[i].conflict)
       {
+         //Select a new transaction identifier
+         context->transactionId = netGenerateRand();
+
          //If the client detects that the address is already in use, the
          //client must send a DHCPDECLINE message to the server and
          //restarts the configuration process
@@ -525,9 +525,9 @@ void dhcpClientStateBound(DhcpClientContext *context)
 /**
  * @brief RENEWING state
  *
- * Client is trying to renew its lease. It regularly sends
- * DHCPREQUEST messages with the server that gave it its current
- * lease specified, and waits for a reply
+ * Client is trying to renew its lease. It regularly sends DHCPREQUEST
+ * messages with the server that gave it its current lease specified, and
+ * waits for a reply
  *
  * @param[in] context Pointer to the DHCP client context
  **/
@@ -596,8 +596,8 @@ void dhcpClientStateRenewing(DhcpClientContext *context)
  * @brief REBINDING state
  *
  * The client has failed to renew its lease with the server that originally
- * granted it, and now seeks a lease extension with any server that can
- * hear it. It periodically sends DHCPREQUEST messages with no server specified
+ * granted it, and now seeks a lease extension with any server that can hear
+ * it. It periodically sends DHCPREQUEST messages with no server specified
  * until it gets a reply or the lease ends
  *
  * @param[in] context Pointer to the DHCP client context

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _LLDP_EXT_DOT3_H
@@ -310,63 +310,63 @@ typedef enum
  * @brief MAC/PHY Configuration/Status TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t autoNegSupportStatus; //0
    uint16_t pmdAutoNegAdvCap;    //1-2
    uint16_t operationalMauType;  //3-4
-} __end_packed LldpDot3MacPhyConfigStatusTlv;
+} LldpDot3MacPhyConfigStatusTlv;
 
 
 /**
  * @brief Power Via MDI TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t mdiPowerSupport; //0
    uint8_t psePowerPair;    //1
    uint8_t powerClass;      //2
-} __end_packed LldpDot3PowerViaMdiTlv;
+} LldpDot3PowerViaMdiTlv;
 
 
 /**
  * @brief Link Aggregation TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t aggregationStatus; //0
    uint32_t aggregatedPortId; //2-5
-} __end_packed LldpDot3LinkAggregationTlv;
+} LldpDot3LinkAggregationTlv;
 
 
 /**
  * @brief Maximum Frame Size TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t maxFrameSize; //0-1
-} __end_packed LldpDot3MaxFrameSizeTlv;
+} LldpDot3MaxFrameSizeTlv;
 
 
 /**
  * @brief Power Via MDI Measurements TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t measurements[20];    //0-19
    uint16_t psePowerPriceIndex; //20-21
-} __end_packed LldpDot3PowerViaMdiMeasTlv;
+} LldpDot3PowerViaMdiMeasTlv;
 
 
 /**
  * @brief DLL Classification extension
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t powerType : 2;      //0
@@ -383,14 +383,14 @@ typedef __start_packed struct
 #endif
    uint16_t pdRequestedPower;  //1-2
    uint16_t pseAllocatedPower; //3-4
-} __end_packed LldpDot3DllClassExt;
+} LldpDot3DllClassExt;
 
 
 /**
  * @brief Type 3 and Type 4 extension
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t pdRequestedPowerA;    //0-1
    uint16_t pdRequestedPowerB;    //2-3
@@ -401,7 +401,7 @@ typedef __start_packed struct
    uint16_t pseMaxAvailablePower; //11-12
    uint8_t autoclass;             //13
    uint8_t powerDown[3];          //14-16
-} __end_packed LldpDot3Type34Ext;
+} LldpDot3Type34Ext;
 
 
 //CodeWarrior or Win32 compiler?

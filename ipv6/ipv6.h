@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _IPV6_H
@@ -42,7 +42,6 @@ struct _Ipv6PseudoHeader;
 #define Ipv6PseudoHeader struct _Ipv6PseudoHeader
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/ethernet.h"
 #include "ipv6/ipv6_frag.h"
@@ -239,22 +238,22 @@ typedef enum
  * @brief IPv6 network address
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
-   __start_packed union
+   __packed_union
    {
       uint8_t b[16];
       uint16_t w[8];
       uint32_t dw[4];
    };
-} __end_packed Ipv6Addr;
+} Ipv6Addr;
 
 
 /**
  * @brief IPv6 header
  **/
 
-__start_packed struct _Ipv6Header
+__packed_struct _Ipv6Header
 {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t version : 4;       //0
@@ -274,38 +273,38 @@ __start_packed struct _Ipv6Header
    Ipv6Addr srcAddr;          //8-23
    Ipv6Addr destAddr;         //24-39
    uint8_t payload[];         //40
-} __end_packed;
+};
 
 
 /**
  * @brief IPv6 Hop-by-Hop Options header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t nextHeader; //0
    uint8_t hdrExtLen;  //1
    uint8_t options[];  //2
-} __end_packed Ipv6HopByHopOptHeader;
+} Ipv6HopByHopOptHeader;
 
 
 /**
  * @brief IPv6 Destination Options header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t nextHeader; //0
    uint8_t hdrExtLen;  //1
    uint8_t options[];  //2
-} __end_packed Ipv6DestOptHeader;
+} Ipv6DestOptHeader;
 
 
 /**
  * @brief IPv6 Type 0 Routing header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t nextHeader;   //0
    uint8_t hdrExtLen;    //1
@@ -313,27 +312,27 @@ typedef __start_packed struct
    uint8_t segmentsLeft; //3
    uint32_t reserved;    //4-7
    Ipv6Addr address[];   //8
-} __end_packed Ipv6RoutingHeader;
+} Ipv6RoutingHeader;
 
 
 /**
  * @brief IPv6 Fragment header
  **/
 
-__start_packed struct _Ipv6FragmentHeader
+__packed_struct _Ipv6FragmentHeader
 {
    uint8_t nextHeader;      //0
    uint8_t reserved;        //1
    uint16_t fragmentOffset; //2-3
    uint32_t identification; //4-7
-} __end_packed;
+};
 
 
 /**
  * @brief IPv6 Authentication header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t nextHeader;          //0
    uint8_t payloadLen;          //1
@@ -341,45 +340,45 @@ typedef __start_packed struct
    uint32_t securityParamIndex; //4-7
    uint32_t sequenceNumber;     //8-11
    uint8_t authData[];          //12
-} __end_packed Ipv6AuthHeader;
+} Ipv6AuthHeader;
 
 
 /**
  * @brief IPv6 Encapsulating Security Payload header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint32_t securityParamIndex; //0-3
    uint32_t sequenceNumber;     //4-7
    uint8_t payloadData[];       //8
-} __end_packed Ipv6EspHeader;
+} Ipv6EspHeader;
 
 
 /**
  * @brief IPv6 option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;   //0
    uint8_t length; //1
    uint8_t data[]; //2
-} __end_packed Ipv6Option;
+} Ipv6Option;
 
 
 /**
  * @brief IPv6 pseudo header
  **/
 
-__start_packed struct _Ipv6PseudoHeader
+__packed_struct _Ipv6PseudoHeader
 {
    Ipv6Addr srcAddr;    //0-15
    Ipv6Addr destAddr;   //16-31
    uint32_t length;     //32-35
    uint8_t reserved[3]; //36-38
    uint8_t nextHeader;  //39
-} __end_packed;
+};
 
 
 //CodeWarrior or Win32 compiler?
@@ -459,7 +458,8 @@ typedef struct
 {
    size_t linkMtu;                                              ///<Maximum transmission unit
    bool_t isRouter;                                             ///<A flag indicating whether routing is enabled on this interface
-   uint8_t curHopLimit;                                         ///<Default value for the Hop Limit field
+   uint8_t defaultHopLimit;                                     ///<Default Hop Limit value
+   uint8_t curHopLimit;                                         ///<Current Hop Limit value
    bool_t enableEchoReq;                                        ///<Support for ICMPv6 Echo Request messages
    bool_t enableMulticastEchoReq;                               ///<Support for multicast ICMPv6 Echo Request messages
    Ipv6AddrEntry addrList[IPV6_ADDR_LIST_SIZE];                 ///<IPv6 unicast address list
@@ -488,6 +488,8 @@ error_t ipv6Init(NetInterface *interface);
 
 error_t ipv6SetMtu(NetInterface *interface, size_t mtu);
 error_t ipv6GetMtu(NetInterface *interface, size_t *mtu);
+
+error_t ipv6SetDefaultHopLimit(NetInterface *interface, uint8_t hopLimit);
 
 error_t ipv6SetLinkLocalAddr(NetInterface *interface, const Ipv6Addr *addr);
 error_t ipv6GetLinkLocalAddr(NetInterface *interface, Ipv6Addr *addr);
@@ -535,12 +537,13 @@ error_t ipv6ParseEspHeader(NetInterface *interface, const NetBuffer *ipPacket,
 error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t optionOffset, size_t optionLen);
 
-error_t ipv6SendDatagram(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
-
-error_t ipv6SendPacket(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   uint32_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
+error_t ipv6SendDatagram(NetInterface *interface,
+   const Ipv6PseudoHeader *pseudoHeader, NetBuffer *buffer, size_t offset,
    NetTxAncillary *ancillary);
+
+error_t ipv6SendPacket(NetInterface *interface,
+   const Ipv6PseudoHeader *pseudoHeader, uint32_t fragId, size_t fragOffset,
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
 error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);

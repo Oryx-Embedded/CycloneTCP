@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _SOCKET_H
@@ -46,6 +46,13 @@ struct _Socket;
    #define SOCKET_MAX_COUNT 16
 #elif (SOCKET_MAX_COUNT < 1)
    #error SOCKET_MAX_COUNT parameter is not valid
+#endif
+
+//Maximum number of multicast groups joined
+#ifndef SOCKET_MAX_MULTICAST_GROUPS
+   #define SOCKET_MAX_MULTICAST_GROUPS 1
+#elif (SOCKET_MAX_MULTICAST_GROUPS < 1)
+   #error SOCKET_MAX_MULTICAST_GROUPS parameter is not valid
 #endif
 
 //Dynamic port range (lower limit)
@@ -167,6 +174,27 @@ typedef enum
 
 
 /**
+ * @brief Socket options
+ **/
+
+typedef enum
+{
+   SOCKET_OPTION_REUSE_ADDR              = 0x0001,
+   SOCKET_OPTION_BROADCAST               = 0x0002,
+   SOCKET_OPTION_IPV4_MULTICAST_LOOP     = 0x0004,
+   SOCKET_OPTION_IPV4_PKT_INFO           = 0x0008,
+   SOCKET_OPTION_IPV4_RECV_TOS           = 0x0010,
+   SOCKET_OPTION_IPV4_RECV_TTL           = 0x0020,
+   SOCKET_OPTION_IPV6_MULTICAST_LOOP     = 0x0040,
+   SOCKET_OPTION_IPV6_ONLY               = 0x0080,
+   SOCKET_OPTION_IPV6_PKT_INFO           = 0x0100,
+   SOCKET_OPTION_IPV6_RECV_TRAFFIC_CLASS = 0x0200,
+   SOCKET_OPTION_IPV6_RECV_HOP_LIMIT     = 0x0400,
+   SOCKET_OPTION_TCP_NO_DELAY            = 0x0800
+} SocketOptions;
+
+
+/**
  * @brief Host types
  **/
 
@@ -202,6 +230,7 @@ typedef struct
    size_t size;             ///<Size of the payload, in bytes
    size_t length;           ///<Actual length of the payload, in bytes
    uint8_t ttl;             ///<Time-to-live value
+   uint8_t tos;             ///<Type-of-service value
    NetInterface *interface; ///<Underlying network interface
    IpAddr srcIpAddr;        ///<Source IP address
    uint16_t srcPort;        ///<Source port
@@ -253,12 +282,12 @@ struct _Socket
    uint16_t localPort;
    IpAddr remoteIpAddr;
    uint16_t remotePort;
+   uint32_t options;              ///<Socket options
    systime_t timeout;
+   uint8_t tos;                   ///<Type-of-service value
    uint8_t ttl;                   ///<Time-to-live value for unicast datagrams
    uint8_t multicastTtl;          ///<Time-to-live value for multicast datagrams
-#if (IP_DIFF_SERV_SUPPORT == ENABLED)
-   uint8_t dscp;                  ///<Differentiated services codepoint
-#endif
+   IpAddr multicastGroups[SOCKET_MAX_MULTICAST_GROUPS]; ///<Multicast groups
 #if (ETH_VLAN_SUPPORT == ENABLED)
    int8_t vlanPcp;                ///<VLAN priority (802.1Q)
    int8_t vlanDei;                ///<Drop eligible indicator
@@ -280,6 +309,7 @@ struct _Socket
    bool_t closedFlag;             ///<The connection has been closed properly
    bool_t resetFlag;              ///<The connection has been reset
 
+   uint16_t mss;                  ///<Maximum segment size
    uint16_t smss;                 ///<Sender maximum segment size
    uint16_t rmss;                 ///<Receiver maximum segment size
    uint32_t iss;                  ///<Initial send sequence number
@@ -392,10 +422,16 @@ error_t socketSetVlanDei(Socket *socket, bool_t dei);
 error_t socketSetVmanPcp(Socket *socket, uint8_t pcp);
 error_t socketSetVmanDei(Socket *socket, bool_t dei);
 
+error_t socketEnableBroadcast(Socket *socket, bool_t enabled);
+error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr);
+error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr);
+
 error_t socketEnableKeepAlive(Socket *socket, bool_t enabled);
 
 error_t socketSetKeepAliveParams(Socket *socket, systime_t idle,
    systime_t interval, uint_t maxProbes);
+
+error_t socketSetMaxSegmentSize(Socket *socket, size_t mss);
 
 error_t socketSetTxBufferSize(Socket *socket, size_t size);
 error_t socketSetRxBufferSize(Socket *socket, size_t size);
@@ -445,8 +481,8 @@ void socketClose(Socket *socket);
 error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
    systime_t timeout);
 
-error_t getHostByName(NetInterface *interface,
-   const char_t *name, IpAddr *ipAddr, uint_t flags);
+error_t getHostByName(NetInterface *interface, const char_t *name,
+   IpAddr *ipAddr, uint_t flags);
 
 //C++ guard
 #ifdef __cplusplus

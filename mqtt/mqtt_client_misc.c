@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -111,9 +111,13 @@ error_t mqttClientProcessEvents(MqttClientContext *context, systime_t timeout)
             if(context->state == MQTT_CLIENT_STATE_RECEIVING_PACKET)
             {
                if(context->packetType == MQTT_PACKET_TYPE_INVALID)
+               {
                   mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
+               }
                else
+               {
                   mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_SENT);
+               }
             }
          }
       }
@@ -136,9 +140,13 @@ error_t mqttClientProcessEvents(MqttClientContext *context, systime_t timeout)
 
             //Update MQTT client state
             if(context->packetType == MQTT_PACKET_TYPE_INVALID)
+            {
                mqttClientChangeState(context, MQTT_CLIENT_STATE_IDLE);
+            }
             else
+            {
                mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_SENT);
+            }
          }
       }
    }
@@ -232,15 +240,25 @@ error_t mqttSerializeHeader(uint8_t *buffer, size_t *pos, MqttPacketType type,
 
    //The Remaining Length is encoded using a variable length encoding scheme
    if(remainingLen < 128)
+   {
       k = 1;
+   }
    else if(remainingLen < 16384)
+   {
       k = 2;
+   }
    else if(remainingLen < 2097152)
+   {
       k = 3;
+   }
    else if(remainingLen < 268435456)
+   {
       k = 4;
+   }
    else
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Sanity check
    if(n < (sizeof(MqttPacketHeader) + k))

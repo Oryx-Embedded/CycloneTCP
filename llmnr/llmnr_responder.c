@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -173,7 +173,7 @@ void llmnrProcessQuery(NetInterface *interface,
 
    //LLMNR messages received with non-zero response codes must be silently
    //ignored
-   if(message->rcode != DNS_RCODE_NO_ERROR)
+   if(message->rcode != DNS_RCODE_NOERROR)
       return;
 
    //LLMNR responders must silently discard LLMNR queries with QDCOUNT not
@@ -269,7 +269,7 @@ error_t llmnrSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
    message->tc = 0;
    message->t = 0;
    message->z = 0;
-   message->rcode = DNS_RCODE_NO_ERROR;
+   message->rcode = DNS_RCODE_NOERROR;
    message->qdcount = HTONS(1);
    message->ancount = 0;
    message->nscount = 0;

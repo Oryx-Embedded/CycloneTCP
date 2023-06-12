@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -97,7 +97,9 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings 
 
    //Save all the client-facing interfaces
    for(i = 0; i < context->clientInterfaceCount; i++)
+   {
       context->clientInterface[i] = settings->clientInterface[i];
+   }
 
    //Save the address to be used when relaying client messages to the server
    context->serverAddress = settings->serverAddress;
@@ -657,9 +659,13 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
 
          //Select the relevant port number to use
          if(outputMessage->msgType == DHCPV6_MSG_TYPE_RELAY_REPL)
+         {
             port = DHCPV6_SERVER_PORT;
+         }
          else
+         {
             port = DHCPV6_CLIENT_PORT;
+         }
 
          //Relay the DHCPv6 message to the client on the link
          //identified by the Interface ID option

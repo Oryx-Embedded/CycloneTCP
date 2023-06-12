@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -35,8 +35,8 @@
 #include "core/net.h"
 #include "core/nic.h"
 #include "core/ethernet.h"
-#include "ipv4/ipv4.h"
-#include "ipv6/ipv6.h"
+#include "ipv4/ipv4_misc.h"
+#include "ipv6/ipv6_misc.h"
 #include "debug.h"
 
 //Tick counter to handle periodic operations
@@ -432,7 +432,8 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
       if(type == NIC_TYPE_IPV4)
       {
          //Process incoming IPv4 packet
-         ipv4ProcessPacket(interface, (Ipv4Header *) packet, 0, ancillary);
+         ipv4ProcessPacket(interface, (Ipv4Header *) packet, length,
+            ancillary);
       }
       else
 #endif

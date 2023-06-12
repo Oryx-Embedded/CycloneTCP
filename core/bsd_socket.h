@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -75,162 +75,187 @@
 #include "os_port.h"
 
 //Address families
-#define AF_UNSPEC         0
-#define AF_INET           2
-#define AF_INET6          10
-#define AF_PACKET         17
+#define AF_UNSPEC            0
+#define AF_INET              2
+#define AF_INET6             10
+#define AF_PACKET            17
 
 //Protocol families
-#define PF_UNSPEC         AF_UNSPEC
-#define PF_INET           AF_INET
-#define PF_INET6          AF_INET6
-#define PF_PACKET         AF_PACKET
+#define PF_UNSPEC            AF_UNSPEC
+#define PF_INET              AF_INET
+#define PF_INET6             AF_INET6
+#define PF_PACKET            AF_PACKET
 
 //Socket types
-#define SOCK_STREAM       1
-#define SOCK_DGRAM        2
-#define SOCK_RAW          3
+#define SOCK_STREAM          1
+#define SOCK_DGRAM           2
+#define SOCK_RAW             3
 
 //IP protocol identifiers
-#define IPPROTO_IP        0
-#define IPPROTO_ICMP      1
-#define IPPROTO_IGMP      2
-#define IPPROTO_TCP       6
-#define IPPROTO_UDP       17
-#define IPPROTO_ICMPV6    58
+#define IPPROTO_IP           0
+#define IPPROTO_ICMP         1
+#define IPPROTO_IGMP         2
+#define IPPROTO_TCP          6
+#define IPPROTO_UDP          17
+#define IPPROTO_IPV6         41
+#define IPPROTO_ESP          50
+#define IPPROTO_AH           51
+#define IPPROTO_ICMPV6       58
 
 //Ethernet protocol identifiers
-#define ETH_P_ALL         0x0000
-#define ETH_P_IP          0x0800
-#define ETH_P_ARP         0x0806
-#define ETH_P_IPV6        0x86DD
+#define ETH_P_ALL            0x0000
+#define ETH_P_IP             0x0800
+#define ETH_P_ARP            0x0806
+#define ETH_P_IPV6           0x86DD
 
 //Option levels
-#define SOL_SOCKET        0xFFFF
+#define SOL_SOCKET           0xFFFF
 
 //Common addresses
-#define INADDR_ANY        0x00000000
-#define INADDR_LOOPBACK   0x7F000001
-#define INADDR_BROADCAST  0xFFFFFFFF
+#define INADDR_ANY           0x00000000
+#define INADDR_LOOPBACK      0x7F000001
+#define INADDR_BROADCAST     0xFFFFFFFF
 
 //Flags used by I/O functions
-#define MSG_PEEK          0x02
-#define MSG_DONTROUTE     0x04
-#define MSG_WAITALL       0x08
-#define MSG_DONTWAIT      0x01
+#define MSG_PEEK             0x0002
+#define MSG_DONTROUTE        0x0004
+#define MSG_CTRUNC           0x0008
+#define MSG_DONTWAIT         0x0040
+#define MSG_WAITALL          0x0100
 
 //Flags used by shutdown function
-#define SD_RECEIVE        0
-#define SD_SEND           1
-#define SD_BOTH           2
+#define SD_RECEIVE           0
+#define SD_SEND              1
+#define SD_BOTH              2
 
 //Flags used by shutdown function (alias)
-#define SHUT_RD           SD_RECEIVE
-#define SHUT_WR           SD_SEND
-#define SHUT_RDWR         SD_BOTH
+#define SHUT_RD              SD_RECEIVE
+#define SHUT_WR              SD_SEND
+#define SHUT_RDWR            SD_BOTH
 
 //Socket level options
-#define SO_REUSEADDR      0x0004
-#define SO_KEEPALIVE      0x0008
-#define SO_DONTROUTE      0x0010
-#define SO_BROADCAST      0x0020
-#define SO_LINGER         0x0080
-#define SO_SNDBUF         0x1001
-#define SO_RCVBUF         0x1002
-#define SO_SNDTIMEO       0x1005
-#define SO_RCVTIMEO       0x1006
-#define SO_ERROR          0x1007
-#define SO_TYPE           0x1008
-#define SO_MAX_MSG_SIZE   0x2003
-#define SO_BINDTODEVICE   0x3000
+#define SO_REUSEADDR         0x0004
+#define SO_KEEPALIVE         0x0008
+#define SO_DONTROUTE         0x0010
+#define SO_BROADCAST         0x0020
+#define SO_LINGER            0x0080
+#define SO_SNDBUF            0x1001
+#define SO_RCVBUF            0x1002
+#define SO_SNDTIMEO          0x1005
+#define SO_RCVTIMEO          0x1006
+#define SO_ERROR             0x1007
+#define SO_TYPE              0x1008
+#define SO_MAX_MSG_SIZE      0x2003
+#define SO_BINDTODEVICE      0x3000
 
 //IP level options
-#define IP_TOS            1
-#define IP_TTL            2
-#define IP_PKTINFO        8
-#define IP_MULTICAST_TTL  33
+#define IP_TOS               1
+#define IP_TTL               2
+#define IP_ROUTER_ALERT      5
+#define IP_PKTINFO           8
+#define IP_RECVTTL           12
+#define IP_RECVTOS           13
+#define IP_MULTICAST_IF      32
+#define IP_MULTICAST_TTL     33
+#define IP_MULTICAST_LOOP    34
+#define IP_ADD_MEMBERSHIP    35
+#define IP_DROP_MEMBERSHIP   36
+
+//IPv6 level options
+#define IPV6_UNICAST_HOPS    16
+#define IPV6_MULTICAST_IF    17
+#define IPV6_MULTICAST_HOPS  18
+#define IPV6_MULTICAST_LOOP  19
+#define IPV6_ADD_MEMBERSHIP  20
+#define IPV6_DROP_MEMBERSHIP 21
+#define IPV6_V6ONLY          26
+#define IPV6_PKTINFO         50
+#define IPV6_RECVHOPLIMIT    51
+#define IPV6_HOPLIMIT        52
+#define IPV6_RECVTCLASS      66
+#define IPV6_TCLASS          67
 
 //TCP level options
-#define TCP_NODELAY       0x0001
-#define TCP_MAXSEG        0x0002
-#define TCP_KEEPIDLE      0x0004
-#define TCP_KEEPINTVL     0x0005
-#define TCP_KEEPCNT       0x0006
+#define TCP_NODELAY          0x0001
+#define TCP_MAXSEG           0x0002
+#define TCP_KEEPIDLE         0x0004
+#define TCP_KEEPINTVL        0x0005
+#define TCP_KEEPCNT          0x0006
 
 //IP TOS option
-#define IPTOS_LOWDELAY    0x10
-#define IPTOS_THROUGHPUT  0x08
-#define IPTOS_RELIABILITY 0x04
+#define IPTOS_LOWDELAY       0x10
+#define IPTOS_THROUGHPUT     0x08
+#define IPTOS_RELIABILITY    0x04
 
 //IOCTL commands
-#define FIONBIO           126
-#define FIONREAD          127
-#define FIONWRITE         121
-#define FIONSPACE         120
+#define FIONBIO              126
+#define FIONREAD             127
+#define FIONWRITE            121
+#define FIONSPACE            120
 
 //FCNTL commands
-#define F_GETFL           3
-#define F_SETFL           4
+#define F_GETFL              3
+#define F_SETFL              4
 
 //FCNTL flags
-#define O_NONBLOCK        0x0004
+#define O_NONBLOCK           0x0004
 
 //Flags used by getaddrinfo
-#define AI_PASSIVE        0x01
-#define AI_CANONNAME      0x02
-#define AI_NUMERICHOST    0x04
-#define AI_NUMERICSERV    0x08
-#define AI_ALL            0x10
-#define AI_ADDRCONFIG     0x20
-#define AI_V4MAPPED       0x40
+#define AI_PASSIVE           0x01
+#define AI_CANONNAME         0x02
+#define AI_NUMERICHOST       0x04
+#define AI_NUMERICSERV       0x08
+#define AI_ALL               0x10
+#define AI_ADDRCONFIG        0x20
+#define AI_V4MAPPED          0x40
 
 //Flags used by getnameinfo
-#define NI_NOFQDN         0x01
-#define NI_NUMERICHOST    0x02
-#define NI_NAMEREQD       0x04
-#define NI_NUMERICSERV    0x08
-#define NI_DGRAM          0x10
+#define NI_NOFQDN            0x01
+#define NI_NUMERICHOST       0x02
+#define NI_NAMEREQD          0x04
+#define NI_NUMERICSERV       0x08
+#define NI_DGRAM             0x10
 
 //Return values
-#define SOCKET_SUCCESS    0
-#define SOCKET_ERROR      (-1)
+#define SOCKET_SUCCESS       0
+#define SOCKET_ERROR         (-1)
 
 //Return values used by getaddrinfo and getnameinfo
-#define EAI_ADDRFAMILY    1
-#define EAI_AGAIN         2
-#define EAI_BADFLAGS      3
-#define EAI_FAIL          4
-#define EAI_FAMILY        5
-#define EAI_MEMORY        6
-#define EAI_NODATA        7
-#define EAI_NONAME        8
-#define EAI_SERVICE       9
-#define EAI_SOCKTYPE      10
-#define EAI_SYSTEM        11
-#define EAI_OVERFLOW      12
+#define EAI_ADDRFAMILY       1
+#define EAI_AGAIN            2
+#define EAI_BADFLAGS         3
+#define EAI_FAIL             4
+#define EAI_FAMILY           5
+#define EAI_MEMORY           6
+#define EAI_NODATA           7
+#define EAI_NONAME           8
+#define EAI_SERVICE          9
+#define EAI_SOCKTYPE         10
+#define EAI_SYSTEM           11
+#define EAI_OVERFLOW         12
 
 //Error codes
-#define EINTR             4
-#define EAGAIN            11
-#define EWOULDBLOCK       11
-#define EFAULT            14
-#define EINVAL            22
-#define EINPROGRESS       36
-#define ETIMEDOUT         60
-#define ENAMETOOLONG      63
-#define ENOPROTOOPT       92
-#define ECONNRESET        104
-#define EISCONN           106
-#define ENOTCONN          107
-#define ESHUTDOWN         108
-#define ECONNREFUSED      111
+#define EINTR                4
+#define EAGAIN               11
+#define EWOULDBLOCK          11
+#define EFAULT               14
+#define EINVAL               22
+#define EINPROGRESS          36
+#define ETIMEDOUT            60
+#define ENAMETOOLONG         63
+#define ENOPROTOOPT          92
+#define ECONNRESET           104
+#define EISCONN              106
+#define ENOTCONN             107
+#define ESHUTDOWN            108
+#define ECONNREFUSED         111
 
 //Error codes used by gethostbyname_r
-#define NETDB_SUCCESS  0
-#define HOST_NOT_FOUND 1
-#define TRY_AGAIN      2
-#define NO_RECOVERY    3
-#define NO_ADDRESS     4
+#define NETDB_SUCCESS        0
+#define HOST_NOT_FOUND       1
+#define TRY_AGAIN            2
+#define NO_RECOVERY          3
+#define NO_ADDRESS           4
 
 //Return codes
 #define INADDR_NONE ((in_addr_t) (-1))
@@ -270,6 +295,17 @@ typedef struct sockaddr
    uint16_t sa_family;
    uint8_t sa_data[14];
 } SOCKADDR, *PSOCKADDR;
+
+
+/**
+ * @brief Socket address storage
+ **/
+
+typedef struct sockaddr_storage
+{
+   uint16_t ss_family;
+   uint8_t ss_pad[26];
+} SOCKADDR_STORAGE, *PSOCKADDR_STORAGE;
 
 
 /**
@@ -313,8 +349,43 @@ typedef struct sockaddr_in6
 {
    uint16_t sin6_family;
    uint16_t sin6_port;
+   uint32_t sin6_flowinfo;
    struct in6_addr sin6_addr;
+   uint32_t sin6_scope_id;
 } SOCKADDR_IN6, *PSOCKADDR_IN6;
+
+
+/**
+ * @brief Multicast group information for IPv4 addresses
+ **/
+
+typedef struct ip_mreq
+{
+   struct in_addr imr_multiaddr;
+   struct in_addr imr_interface;
+} IP_MREQ, *PIP_MREQ;
+
+
+/**
+ * @brief Multicast group information for IPv6 addresses
+ **/
+
+typedef struct ipv6_mreq
+{
+   struct in6_addr ipv6mr_multiaddr;
+   int_t ipv6mr_interface;
+} IPV6_MREQ, *PIPV6_MREQ;
+
+
+/**
+ * @brief Linger structure
+ **/
+
+typedef struct linger
+{
+   int_t l_onoff;
+   int_t l_linger;
+} LINGER, *PLINGER;
 
 
 /**
@@ -332,7 +403,7 @@ struct iovec
  * @brief Message header
  **/
 
-struct msghdr
+typedef struct msghdr
 {
    void *msg_name;
    socklen_t msg_namelen;
@@ -341,30 +412,41 @@ struct msghdr
    void *msg_control;
    size_t msg_controllen;
    int_t msg_flags;
-};
+} MSGHDR, *PMSGHDR;
 
 
 /**
  * @brief Ancillary data header
  **/
 
-struct cmsghdr
+typedef struct cmsghdr
 {
    size_t cmsg_len;
    int_t cmsg_level;
    int_t cmsg_type;
-};
+} CMSGHDR, *PCMSGHDR;
 
 
 /**
- * @brief Packet information
+ * @brief IPv4 packet information
  **/
 
-struct in_pktinfo
+typedef struct in_pktinfo
 {
    int ipi_ifindex;
    struct in_addr ipi_addr;
-};
+} IN_PKTINFO, *PIN_PKTINFO;
+
+
+/**
+ * @brief IPv6 packet information
+ **/
+
+typedef struct in6_pktinfo
+{
+   int ipi6_ifindex;
+   struct in6_addr ipi6_addr;
+} IN6_PKTINFO, *PIN6_PKTINFO;
 
 
 /**
@@ -431,7 +513,7 @@ struct cmsghdr *socketCmsgNextHdr(struct msghdr *msg, struct cmsghdr *cmsg);
 #define CMSG_ALIGN(len) (((len) + sizeof(int_t) - 1) & ~(sizeof(int_t) - 1))
 #define CMSG_SPACE(len) (sizeof(struct cmsghdr) + CMSG_ALIGN(len))
 #define CMSG_LEN(len) (sizeof(struct cmsghdr) + (len))
-#define CMSG_FIRSTHDR(msg)	socketCmsgFirstHdr(msg)
+#define CMSG_FIRSTHDR(msg) socketCmsgFirstHdr(msg)
 #define CMSG_NXTHDR(msg, cmsg) socketCmsgNextHdr(msg, cmsg)
 
 //Forward declaration of functions
@@ -460,6 +542,8 @@ int_t send(int_t s, const void *data, size_t length, int_t flags);
 
 int_t sendto(int_t s, const void *data, size_t length, int_t flags,
    const struct sockaddr *addr, socklen_t addrlen);
+
+int_t sendmsg(int_t s, struct msghdr *msg, int_t flags);
 
 int_t recv(int_t s, void *data, size_t size, int_t flags);
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _CHAP_H
@@ -116,54 +116,54 @@ typedef enum
  * @brief Challenge packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t valueSize;  //4
    uint8_t value[];    //5
-} __end_packed ChapChallengePacket;
+} ChapChallengePacket;
 
 
 /**
  * @brief Response packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t valueSize;  //4
    uint8_t value[];    //5
-} __end_packed ChapResponsePacket;
+} ChapResponsePacket;
 
 
 /**
  * @brief Success packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t message[];  //4
-} __end_packed ChapSuccessPacket;
+} ChapSuccessPacket;
 
 
 /**
  * @brief Failure packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t message[];  //4
-} __end_packed ChapFailurePacket;
+} ChapFailurePacket;
 
 
 //CodeWarrior or Win32 compiler?

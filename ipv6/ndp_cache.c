@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,6 +42,25 @@
 
 //Check TCP/IP stack configuration
 #if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
+
+
+/**
+ * @brief Update Neighbor cache entry state
+ * @param[in] entry Pointer to a Neighbor cache entry
+ * @param[in] newState New state to switch to
+ **/
+
+void ndpChangeState(NdpNeighborCacheEntry *entry, NdpState newState)
+{
+#if defined(NDP_CHANGE_STATE_HOOK)
+   NDP_CHANGE_STATE_HOOK(entry, newState);
+#endif
+
+   //Save current time
+   entry->timestamp = osGetSystemTime();
+   //Switch to the new state
+   entry->state = newState;
+}
 
 
 /**
@@ -74,6 +93,7 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
       {
          //Initialize Neighbor cache entry
          osMemset(entry, 0, sizeof(NdpNeighborCacheEntry));
+
          //Return a pointer to the Neighbor cache entry
          return entry;
       }
@@ -88,9 +108,21 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
          {
             oldestEntry = entry;
          }
+         else if(entry->state == NDP_STATE_STALE &&
+            oldestEntry->state != NDP_STATE_STALE)
+         {
+            oldestEntry = entry;
+         }
+         else if(entry->state != NDP_STATE_STALE &&
+            oldestEntry->state == NDP_STATE_STALE)
+         {
+         }
          else if((time - entry->timestamp) > (time - oldestEntry->timestamp))
          {
             oldestEntry = entry;
+         }
+         else
+         {
          }
       }
    }
@@ -193,8 +225,9 @@ void ndpUpdateNeighborCache(NetInterface *interface)
             {
                //Drop packets that are waiting for address resolution
                ndpFlushQueuedPackets(interface, entry);
+
                //The entry should be deleted since address resolution has failed
-               entry->state = NDP_STATE_NONE;
+               ndpChangeState(entry, NDP_STATE_NONE);
             }
          }
       }
@@ -203,10 +236,8 @@ void ndpUpdateNeighborCache(NetInterface *interface)
          //Periodically time out Neighbor cache entries
          if(timeCompare(time, entry->timestamp + entry->timeout) >= 0)
          {
-            //Save current time
-            entry->timestamp = osGetSystemTime();
             //Enter STALE state
-            entry->state = NDP_STATE_STALE;
+            ndpChangeState(entry, NDP_STATE_STALE);
          }
       }
       else if(entry->state == NDP_STATE_STALE)
@@ -220,20 +251,16 @@ void ndpUpdateNeighborCache(NetInterface *interface)
          //Wait for the specified delay before sending the first probe
          if(timeCompare(time, entry->timestamp + entry->timeout) >= 0)
          {
-            Ipv6Addr ipAddr;
+            //Reset retransmission counter
+            entry->retransmitCount = 0;
 
-            //Save the time at which the message was sent
-            entry->timestamp = time;
+            //Send a unicast Neighbor Solicitation message
+            ndpSendNeighborSol(interface, &entry->ipAddr, FALSE);
+
             //Set timeout value
             entry->timeout = interface->ndpContext.retransTimer;
             //Switch to the PROBE state
-            entry->state = NDP_STATE_PROBE;
-
-            //Target address
-            ipAddr = entry->ipAddr;
-
-            //Send a unicast Neighbor Solicitation message
-            ndpSendNeighborSol(interface, &ipAddr, FALSE);
+            ndpChangeState(entry, NDP_STATE_PROBE);
          }
       }
       else if(entry->state == NDP_STATE_PROBE)
@@ -244,30 +271,27 @@ void ndpUpdateNeighborCache(NetInterface *interface)
             //Increment retransmission counter
             entry->retransmitCount++;
 
-            //Check whether the maximum number of retransmissions has been exceeded
+            //Check whether the maximum number of retransmissions has been
+            //exceeded
             if(entry->retransmitCount < NDP_MAX_UNICAST_SOLICIT)
             {
-               Ipv6Addr ipAddr;
+               //Send a unicast Neighbor Solicitation message
+               ndpSendNeighborSol(interface, &entry->ipAddr, FALSE);
 
                //Save the time at which the packet was sent
                entry->timestamp = time;
                //Set timeout value
                entry->timeout = interface->ndpContext.retransTimer;
-
-               //Target address
-               ipAddr = entry->ipAddr;
-
-               //Send a unicast Neighbor Solicitation message
-               ndpSendNeighborSol(interface, &ipAddr, FALSE);
             }
             else
             {
-               //The entry should be deleted since the host is not reachable anymore
-               entry->state = NDP_STATE_NONE;
+               //The entry should be deleted since the host is not reachable
+               //anymore
+               ndpChangeState(entry, NDP_STATE_NONE);
 
                //If at some point communication ceases to proceed, as determined
                //by the Neighbor Unreachability Detection algorithm, next-hop
-               //determination may need to be performed again...
+               //determination may need to be performed again
                ndpUpdateNextHop(interface, &entry->ipAddr);
             }
          }
@@ -275,7 +299,7 @@ void ndpUpdateNeighborCache(NetInterface *interface)
       else
       {
          //Just for sanity
-         entry->state = NDP_STATE_NONE;
+         ndpChangeState(entry, NDP_STATE_NONE);
       }
    }
 }
@@ -306,8 +330,9 @@ void ndpFlushNeighborCache(NetInterface *interface)
       {
          //Drop packets that are waiting for address resolution
          ndpFlushQueuedPackets(interface, entry);
+
          //Delete Neighbor cache entry
-         entry->state = NDP_STATE_NONE;
+         ndpChangeState(entry, NDP_STATE_NONE);
       }
    }
 }

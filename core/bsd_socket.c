@@ -25,23 +25,25 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL BSD_SOCKET_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/bsd_socket.h"
-#include "core/bsd_socket_misc.h"
 #include "core/socket.h"
 #include "core/socket_misc.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
 #if (BSD_SOCKET_SUPPORT == ENABLED)
+
+//Dependencies
+#include "core/bsd_socket_options.h"
+#include "core/bsd_socket_misc.h"
 
 //Common IPv6 addresses
 const struct in6_addr in6addr_any =
@@ -133,6 +135,7 @@ int_t bind(int_t s, const struct sockaddr *addr, socklen_t addrlen)
    {
       //Point to the IPv4 address information
       SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
+
       //Get port number
       port = ntohs(sa->sin_port);
 
@@ -149,6 +152,7 @@ int_t bind(int_t s, const struct sockaddr *addr, socklen_t addrlen)
    {
       //Point to the IPv6 address information
       SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
+
       //Get port number
       port = ntohs(sa->sin6_port);
 
@@ -227,6 +231,7 @@ int_t connect(int_t s, const struct sockaddr *addr, socklen_t addrlen)
    {
       //Point to the IPv4 address information
       SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
+
       //Get port number
       port = ntohs(sa->sin_port);
 
@@ -243,6 +248,7 @@ int_t connect(int_t s, const struct sockaddr *addr, socklen_t addrlen)
    {
       //Point to the IPv6 address information
       SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
+
       //Get port number
       port = ntohs(sa->sin6_port);
 
@@ -412,6 +418,8 @@ int_t accept(int_t s, struct sockaddr *addr, socklen_t *addrlen)
          //Set address family and port number
          sa->sin6_family = AF_INET6;
          sa->sin6_port = htons(port);
+         sa->sin6_flowinfo = 0;
+         sa->sin6_scope_id = 0;
 
          //Copy IPv6 address
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &ipAddr.ipv6Addr);
@@ -452,6 +460,7 @@ int_t send(int_t s, const void *data, size_t length, int_t flags)
 {
    error_t error;
    size_t written;
+   uint_t socketFlags;
    Socket *sock;
 
    //Make sure the socket descriptor is valid
@@ -463,8 +472,24 @@ int_t send(int_t s, const void *data, size_t length, int_t flags)
    //Point to the socket structure
    sock = &socketTable[s];
 
+   //The flags parameter can be used to influence the behavior of the function
+   socketFlags = 0;
+
+   //The MSG_DONTROUTE flag specifies that the data should not be subject
+   //to routing
+   if((flags & MSG_DONTROUTE) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_DONT_ROUTE;
+   }
+
+   //The TCP_NODELAY option disables the Nagle algorithm for TCP sockets
+   if((sock->options & SOCKET_OPTION_TCP_NO_DELAY) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_NO_DELAY;
+   }
+
    //Send data
-   error = socketSend(sock, data, length, &written, flags << 8);
+   error = socketSend(sock, data, length, &written, socketFlags);
 
    //Any error to report?
    if(error == ERROR_TIMEOUT)
@@ -512,6 +537,7 @@ int_t sendto(int_t s, const void *data, size_t length, int_t flags,
 {
    error_t error;
    size_t written;
+   uint_t socketFlags;
    uint16_t port;
    IpAddr ipAddr;
    Socket *sock;
@@ -524,6 +550,22 @@ int_t sendto(int_t s, const void *data, size_t length, int_t flags,
 
    //Point to the socket structure
    sock = &socketTable[s];
+
+   //The flags parameter can be used to influence the behavior of the function
+   socketFlags = 0;
+
+   //The MSG_DONTROUTE flag specifies that the data should not be subject
+   //to routing
+   if((flags & MSG_DONTROUTE) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_DONT_ROUTE;
+   }
+
+   //The TCP_NODELAY option disables the Nagle algorithm for TCP sockets
+   if((sock->options & SOCKET_OPTION_TCP_NO_DELAY) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_NO_DELAY;
+   }
 
    //Check the length of the address
    if(addrlen < (socklen_t) sizeof(SOCKADDR))
@@ -543,6 +585,7 @@ int_t sendto(int_t s, const void *data, size_t length, int_t flags,
 
       //Get port number
       port = ntohs(sa->sin_port);
+
       //Copy IPv4 address
       ipAddr.length = sizeof(Ipv4Addr);
       ipAddr.ipv4Addr = sa->sin_addr.s_addr;
@@ -559,6 +602,7 @@ int_t sendto(int_t s, const void *data, size_t length, int_t flags,
 
       //Get port number
       port = ntohs(sa->sin6_port);
+
       //Copy IPv6 address
       ipAddr.length = sizeof(Ipv6Addr);
       ipv6CopyAddr(&ipAddr.ipv6Addr, sa->sin6_addr.s6_addr);
@@ -574,7 +618,7 @@ int_t sendto(int_t s, const void *data, size_t length, int_t flags,
 
    //Send data
    error = socketSendTo(sock, &ipAddr, port, data, length, &written,
-      flags << 8);
+      socketFlags);
 
    //Any error to report?
    if(error == ERROR_TIMEOUT)
@@ -605,6 +649,241 @@ int_t sendto(int_t s, const void *data, size_t length, int_t flags,
 
 
 /**
+ * @brief Send a message
+ * @param[in] s Descriptor that identifies a socket
+ * @param[in] msg Pointer to the structure describing the message
+ * @param[in] flags Set of flags that influences the behavior of this function
+ * @return If no error occurs, sendmsg returns the total number of bytes sent,
+ *   which can be less than the number requested to be sent in the
+ *   length parameter. Otherwise, a value of SOCKET_ERROR is returned
+ **/
+
+int_t sendmsg(int_t s, struct msghdr *msg, int_t flags)
+{
+   error_t error;
+   uint_t socketFlags;
+   Socket *sock;
+   SocketMsg message;
+   SOCKADDR *addr;
+
+   //Make sure the socket descriptor is valid
+   if(s < 0 || s >= SOCKET_MAX_COUNT)
+   {
+      return SOCKET_ERROR;
+   }
+
+   //Point to the socket structure
+   sock = &socketTable[s];
+
+   //Check parameters
+   if(msg == NULL || msg->msg_iov == NULL || msg->msg_iovlen != 1)
+   {
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //Point to the message to be transmitted
+   message = SOCKET_DEFAULT_MSG;
+   message.data = msg->msg_iov[0].iov_base;
+   message.length = msg->msg_iov[0].iov_len;
+
+   //Check the length of the address
+   if(msg->msg_namelen < (socklen_t) sizeof(SOCKADDR))
+   {
+      //Report an error
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //Point to the destination address
+   addr = (SOCKADDR *) msg->msg_name;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 address?
+   if(addr->sa_family == AF_INET &&
+      msg->msg_namelen >= (socklen_t) sizeof(SOCKADDR_IN))
+   {
+      //Point to the IPv4 address information
+      SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
+
+      //Get port number
+      message.destPort = ntohs(sa->sin_port);
+
+      //Copy IPv4 address
+      message.destIpAddr.length = sizeof(Ipv4Addr);
+      message.destIpAddr.ipv4Addr = sa->sin_addr.s_addr;
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 address?
+   if(addr->sa_family == AF_INET6 &&
+      msg->msg_namelen >= (socklen_t) sizeof(SOCKADDR_IN6))
+   {
+      //Point to the IPv6 address information
+      SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
+
+      //Get port number
+      message.destPort = ntohs(sa->sin6_port);
+
+      //Copy IPv6 address
+      message.destIpAddr.length = sizeof(Ipv6Addr);
+      ipv6CopyAddr(&message.destIpAddr.ipv6Addr, sa->sin6_addr.s6_addr);
+   }
+   else
+#endif
+   //Invalid address?
+   {
+      //Report an error
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //The ancillary data buffer parameter is optional
+   if(msg->msg_control != NULL)
+   {
+      uint_t n;
+      int_t *val;
+      CMSGHDR *cmsg;
+
+      //Point to the first control message
+      n = 0;
+
+      //Loop through control messages
+      while((n + sizeof(CMSGHDR)) <= msg->msg_controllen)
+      {
+         //Point to the ancillary data header
+         cmsg = (CMSGHDR *) ((uint8_t *) msg->msg_control + n);
+
+         //Check the length of the control message
+         if(cmsg->cmsg_len >= sizeof(CMSGHDR) &&
+            cmsg->cmsg_len <= (msg->msg_controllen - n))
+         {
+#if (IPV4_SUPPORT == ENABLED)
+            //IPv4 protocol?
+            if(addr->sa_family == AF_INET && cmsg->cmsg_level == IPPROTO_IP)
+            {
+               //Check control message type
+               if(cmsg->cmsg_type == IP_PKTINFO &&
+                  cmsg->cmsg_len >= CMSG_LEN(sizeof(IN_PKTINFO)))
+               {
+                  //Point to the ancillary data value
+                  IN_PKTINFO *pktInfo = (IN_PKTINFO *) CMSG_DATA(cmsg);
+
+                  //Specify source IPv4 address
+                  message.srcIpAddr.length = sizeof(Ipv4Addr);
+                  message.srcIpAddr.ipv4Addr = pktInfo->ipi_addr.s_addr;
+               }
+               else if(cmsg->cmsg_type == IP_TOS &&
+                  cmsg->cmsg_len >= CMSG_LEN(sizeof(int_t)))
+               {
+                  //Point to the ancillary data value
+                  val = (int_t *) CMSG_DATA(cmsg);
+                  //Specify ToS value
+                  message.tos = (uint8_t) *val;
+               }
+               else if(cmsg->cmsg_type == IP_TTL &&
+                  cmsg->cmsg_len >= CMSG_LEN(sizeof(int_t)))
+               {
+                  //Point to the ancillary data value
+                  val = (int_t *) CMSG_DATA(cmsg);
+                  //Specify TTL value
+                  message.ttl = (uint8_t) *val;
+               }
+               else
+               {
+                  //Unknown control message type
+               }
+            }
+            else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+            //IPv6 protocol?
+            if(addr->sa_family == AF_INET6 && cmsg->cmsg_level == IPPROTO_IPV6)
+            {
+               //Check control message type
+               if(cmsg->cmsg_type == IPV6_PKTINFO &&
+                  cmsg->cmsg_len >= CMSG_LEN(sizeof(IN_PKTINFO)))
+               {
+                  //Point to the ancillary data value
+                  IN6_PKTINFO *pktInfo = (IN6_PKTINFO *) CMSG_DATA(cmsg);
+
+                  //Specify source IPv6 address
+                  message.srcIpAddr.length = sizeof(Ipv6Addr);
+                  ipv6CopyAddr(&message.srcIpAddr.ipv6Addr, pktInfo->ipi6_addr.s6_addr);
+               }
+               else if(cmsg->cmsg_type == IPV6_TCLASS &&
+                  cmsg->cmsg_len >= CMSG_LEN(sizeof(int_t)))
+               {
+                  //Point to the ancillary data value
+                  val = (int_t *) CMSG_DATA(cmsg);
+                  //Specify Traffic Class value
+                  message.tos = (uint8_t) *val;
+               }
+               else if(cmsg->cmsg_type == IPV6_HOPLIMIT &&
+                  cmsg->cmsg_len >= CMSG_LEN(sizeof(int_t)))
+               {
+                  //Point to the ancillary data value
+                  val = (int_t *) CMSG_DATA(cmsg);
+                  //Specify Hop Limit value
+                  message.ttl = (uint8_t) *val;
+               }
+               else
+               {
+                  //Unknown control message type
+               }
+            }
+            //Unknown protocol?
+            else
+#endif
+            {
+               //Discard control message
+            }
+
+            //Next control message
+            n += cmsg->cmsg_len;
+         }
+         else
+         {
+            //Malformed control message
+            break;
+         }
+      }
+   }
+
+   //The flags parameter can be used to influence the behavior of the function
+   socketFlags = 0;
+
+   //The MSG_DONTROUTE flag specifies that the data should not be subject
+   //to routing
+   if((flags & MSG_DONTROUTE) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_DONT_ROUTE;
+   }
+
+   //The TCP_NODELAY option disables the Nagle algorithm for TCP sockets
+   if((sock->options & SOCKET_OPTION_TCP_NO_DELAY) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_NO_DELAY;
+   }
+
+   //Send message
+   error = socketSendMsg(sock, &message, socketFlags);
+
+   //Any error to report?
+   if(error != NO_ERROR)
+   {
+      //Otherwise, a value of SOCKET_ERROR is returned
+      socketTranslateErrorCode(sock, error);
+      return SOCKET_ERROR;
+   }
+
+   //Return the number of bytes transferred so far
+   return message.length;
+}
+
+
+/**
  * @brief Receive data from a connected socket
  * @param[in] s Descriptor that identifies a connected socket
  * @param[out] data Buffer where to store the incoming data
@@ -619,6 +898,7 @@ int_t recv(int_t s, void *data, size_t size, int_t flags)
 {
    error_t error;
    size_t received;
+   uint_t socketFlags;
    Socket *sock;
 
    //Make sure the socket descriptor is valid
@@ -630,8 +910,31 @@ int_t recv(int_t s, void *data, size_t size, int_t flags)
    //Point to the socket structure
    sock = &socketTable[s];
 
+   //The flags parameter can be used to influence the behavior of the function
+   socketFlags = 0;
+
+   //When the MSG_PEEK flag is specified, the data is copied into the buffer,
+   //but is not removed from the input queue
+   if((flags & MSG_PEEK) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_PEEK;
+   }
+
+   //When the MSG_WAITALL flag is specified, the receive request will complete
+   //when the buffer supplied by the caller is completely full
+   if((flags & MSG_WAITALL) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_WAIT_ALL;
+   }
+
+   //The MSG_DONTWAIT flag enables non-blocking operation
+   if((flags & MSG_DONTWAIT) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_DONT_WAIT;
+   }
+
    //Receive data
-   error = socketReceive(sock, data, size, &received, flags << 8);
+   error = socketReceive(sock, data, size, &received, socketFlags);
 
    //Any error to report?
    if(error == ERROR_END_OF_STREAM)
@@ -668,6 +971,7 @@ int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
 {
    error_t error;
    size_t received;
+   uint_t socketFlags;
    uint16_t port;
    IpAddr ipAddr;
    Socket *sock;
@@ -681,9 +985,32 @@ int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
    //Point to the socket structure
    sock = &socketTable[s];
 
+   //The flags parameter can be used to influence the behavior of the function
+   socketFlags = 0;
+
+   //When the MSG_PEEK flag is specified, the data is copied into the buffer,
+   //but is not removed from the input queue
+   if((flags & MSG_PEEK) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_PEEK;
+   }
+
+   //When the MSG_WAITALL flag is specified, the receive request will complete
+   //when the buffer supplied by the caller is completely full
+   if((flags & MSG_WAITALL) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_WAIT_ALL;
+   }
+
+   //The MSG_DONTWAIT flag enables non-blocking operation
+   if((flags & MSG_DONTWAIT) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_DONT_WAIT;
+   }
+
    //Receive data
    error = socketReceiveFrom(sock, &ipAddr, &port, data, size, &received,
-      flags << 8);
+      socketFlags);
 
    //Any error to report?
    if(error == ERROR_END_OF_STREAM)
@@ -732,6 +1059,8 @@ int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
          //Set address family and port number
          sa->sin6_family = AF_INET6;
          sa->sin6_port = htons(port);
+         sa->sin6_flowinfo = 0;
+         sa->sin6_scope_id = 0;
 
          //Copy IPv6 address
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &ipAddr.ipv6Addr);
@@ -759,7 +1088,7 @@ int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
  * @param[in] s Descriptor that identifies a socket
  * @param[in,out] msg Pointer to the structure describing the message
  * @param[in] flags Set of flags that influences the behavior of this function
- * @return If no error occurs, recvfrom returns the number of bytes received.
+ * @return If no error occurs, recvmsg returns the number of bytes received.
  *   Otherwise, a value of SOCKET_ERROR is returned
  **/
 
@@ -767,6 +1096,7 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
 {
    error_t error;
    size_t n;
+   uint_t socketFlags;
    Socket *sock;
    SocketMsg message;
 
@@ -791,8 +1121,31 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
    message.data = msg->msg_iov[0].iov_base;
    message.size = msg->msg_iov[0].iov_len;
 
+   //The flags parameter can be used to influence the behavior of the function
+   socketFlags = 0;
+
+   //When the MSG_PEEK flag is specified, the data is copied into the buffer,
+   //but is not removed from the input queue
+   if((flags & MSG_PEEK) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_PEEK;
+   }
+
+   //When the MSG_WAITALL flag is specified, the receive request will complete
+   //when the buffer supplied by the caller is completely full
+   if((flags & MSG_WAITALL) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_WAIT_ALL;
+   }
+
+   //The MSG_DONTWAIT flag enables non-blocking operation
+   if((flags & MSG_DONTWAIT) != 0)
+   {
+      socketFlags |= SOCKET_FLAG_DONT_WAIT;
+   }
+
    //Receive message
-   error = socketReceiveMsg(sock, &message, flags << 8);
+   error = socketReceiveMsg(sock, &message, socketFlags);
 
    //Any error to report?
    if(error)
@@ -835,6 +1188,8 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
          //Set address family and port number
          sa->sin6_family = AF_INET6;
          sa->sin6_port = htons(message.srcPort);
+         sa->sin6_flowinfo = 0;
+         sa->sin6_scope_id = 0;
 
          //Copy IPv6 address
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &message.srcIpAddr.ipv6Addr);
@@ -856,51 +1211,236 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
       msg->msg_namelen = 0;
    }
 
-   //Number of bytes required to store ancillary data
-   n = sizeof(struct cmsghdr) + sizeof(struct in_pktinfo);
+   //Clear flags
+   msg->msg_flags = 0;
+
+   //Length of the ancillary data buffer
+   n = 0;
 
    //The ancillary data buffer parameter is optional
-   if(msg->msg_control != NULL && msg->msg_controllen >= n)
+   if(msg->msg_control != NULL)
    {
-      struct cmsghdr *cmsg;
-      struct in_pktinfo *pktInfo;
-
-      //Point to the ancillary data header
-      cmsg = (struct cmsghdr *) msg->msg_control;
-
-      //Point to the packet information
-      pktInfo = (struct in_pktinfo *) ((uint8_t *) msg->msg_control +
-         sizeof(struct cmsghdr));
-
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 address?
       if(message.destIpAddr.length == sizeof(Ipv4Addr))
       {
-         //Format ancillary data header
-         cmsg->cmsg_len = n;
-         cmsg->cmsg_level = IPPROTO_IP;
-         cmsg->cmsg_type = IP_PKTINFO;
+         int_t *val;
+         CMSGHDR *cmsg;
+         IN_PKTINFO *pktInfo;
 
-         //Save packet information
-         pktInfo->ipi_ifindex = message.interface->index;
-         pktInfo->ipi_addr.s_addr = message.destIpAddr.ipv4Addr;
+         //The IP_PKTINFO option allows an application to enable or disable
+         //the return of IPv4 packet information
+         if((sock->options & SOCKET_OPTION_IPV4_PKT_INFO) != 0)
+         {
+            //Make sure there is enough room to add the control message
+            if((n + CMSG_SPACE(sizeof(IN_PKTINFO))) <= msg->msg_controllen)
+            {
+               //Point to the ancillary data header
+               cmsg = (CMSGHDR *) ((uint8_t *) msg->msg_control + n);
 
-         //Return the actual length of the ancillary data buffer
-         msg->msg_controllen = n;
+               //Format ancillary data header
+               cmsg->cmsg_len = CMSG_LEN(sizeof(IN_PKTINFO));
+               cmsg->cmsg_level = IPPROTO_IP;
+               cmsg->cmsg_type = IP_PKTINFO;
+
+               //Point to the ancillary data value
+               pktInfo = (IN_PKTINFO *) CMSG_DATA(cmsg);
+
+               //Format packet information
+               pktInfo->ipi_ifindex = message.interface->index;
+               pktInfo->ipi_addr.s_addr = message.destIpAddr.ipv4Addr;
+
+               //Adjust the actual length of the ancillary data buffer
+               n += CMSG_SPACE(sizeof(IN_PKTINFO));
+            }
+            else
+            {
+               //When the control message buffer is too short to store all
+               //messages, the MSG_CTRUNC flag must be set
+               msg->msg_flags |= MSG_CTRUNC;
+            }
+         }
+
+         //The IP_RECVTOS option allows an application to enable or disable
+         //the return of ToS header field on received datagrams
+         if((sock->options & SOCKET_OPTION_IPV4_RECV_TOS) != 0)
+         {
+            //Make sure there is enough room to add the control message
+            if((n + CMSG_SPACE(sizeof(int_t))) <= msg->msg_controllen)
+            {
+               //Point to the ancillary data header
+               cmsg = (CMSGHDR *) ((uint8_t *) msg->msg_control + n);
+
+               //Format ancillary data header
+               cmsg->cmsg_len = CMSG_LEN(sizeof(int_t));
+               cmsg->cmsg_level = IPPROTO_IP;
+               cmsg->cmsg_type = IP_TOS;
+
+               //Point to the ancillary data value
+               val = (int_t *) CMSG_DATA(cmsg);
+               //Set ancillary data value
+               *val = message.tos;
+
+               //Adjust the actual length of the ancillary data buffer
+               n += CMSG_SPACE(sizeof(int_t));
+            }
+            else
+            {
+               //When the control message buffer is too short to store all
+               //messages, the MSG_CTRUNC flag must be set
+               msg->msg_flags |= MSG_CTRUNC;
+            }
+         }
+
+         //The IP_RECVTTL option allows an application to enable or disable
+         //the return of TTL header field on received datagrams
+         if((sock->options & SOCKET_OPTION_IPV4_RECV_TTL) != 0)
+         {
+            //Make sure there is enough room to add the control message
+            if((n + CMSG_SPACE(sizeof(int_t))) <= msg->msg_controllen)
+            {
+               //Point to the ancillary data header
+               cmsg = (CMSGHDR *) ((uint8_t *) msg->msg_control + n);
+
+               //Format ancillary data header
+               cmsg->cmsg_len = CMSG_LEN(sizeof(int_t));
+               cmsg->cmsg_level = IPPROTO_IP;
+               cmsg->cmsg_type = IP_TTL;
+
+               //Point to the ancillary data value
+               val = (int_t *) CMSG_DATA(cmsg);
+               //Set ancillary data value
+               *val = message.ttl;
+
+               //Adjust the actual length of the ancillary data buffer
+               n += CMSG_SPACE(sizeof(int_t));
+            }
+            else
+            {
+               //When the control message buffer is too short to store all
+               //messages, the MSG_CTRUNC flag must be set
+               msg->msg_flags |= MSG_CTRUNC;
+            }
+         }
       }
       else
 #endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(message.destIpAddr.length == sizeof(Ipv6Addr))
       {
-         msg->msg_controllen = 0;
+         int_t *val;
+         CMSGHDR *cmsg;
+         IN6_PKTINFO *pktInfo;
+
+         //The IPV6_PKTINFO option allows an application to enable or disable
+         //the return of IPv6 packet information
+         if((sock->options & SOCKET_OPTION_IPV6_PKT_INFO) != 0)
+         {
+            //Make sure there is enough room to add the control message
+            if((n + CMSG_SPACE(sizeof(IN6_PKTINFO))) <= msg->msg_controllen)
+            {
+               //Point to the ancillary data header
+               cmsg = (CMSGHDR *) ((uint8_t *) msg->msg_control + n);
+
+               //Format ancillary data header
+               cmsg->cmsg_len = CMSG_LEN(sizeof(IN6_PKTINFO));
+               cmsg->cmsg_level = IPPROTO_IPV6;
+               cmsg->cmsg_type = IPV6_PKTINFO;
+
+               //Point to the ancillary data value
+               pktInfo = (IN6_PKTINFO *) CMSG_DATA(cmsg);
+
+               //Format packet information
+               pktInfo->ipi6_ifindex = message.interface->index;
+               ipv6CopyAddr(pktInfo->ipi6_addr.s6_addr, &message.destIpAddr.ipv6Addr);
+
+               //Adjust the actual length of the ancillary data buffer
+               n += CMSG_SPACE(sizeof(IN6_PKTINFO));
+            }
+            else
+            {
+               //When the control message buffer is too short to store all
+               //messages, the MSG_CTRUNC flag must be set
+               msg->msg_flags |= MSG_CTRUNC;
+            }
+         }
+
+         //The IPV6_RECVTCLASS option allows an application to enable or disable
+         //the return of Traffic Class header field on received datagrams
+         if((sock->options & SOCKET_OPTION_IPV6_RECV_TRAFFIC_CLASS) != 0)
+         {
+            //Make sure there is enough room to add the control message
+            if((n + CMSG_SPACE(sizeof(int_t))) <= msg->msg_controllen)
+            {
+               //Point to the ancillary data header
+               cmsg = (CMSGHDR *) ((uint8_t *) msg->msg_control + n);
+
+               //Format ancillary data header
+               cmsg->cmsg_len = CMSG_LEN(sizeof(int_t));
+               cmsg->cmsg_level = IPPROTO_IPV6;
+               cmsg->cmsg_type = IPV6_TCLASS;
+
+               //Point to the ancillary data value
+               val = (int_t *) CMSG_DATA(cmsg);
+               //Set ancillary data value
+               *val = message.tos;
+
+               //Adjust the actual length of the ancillary data buffer
+               n += CMSG_SPACE(sizeof(int_t));
+            }
+            else
+            {
+               //When the control message buffer is too short to store all
+               //messages, the MSG_CTRUNC flag must be set
+               msg->msg_flags |= MSG_CTRUNC;
+            }
+         }
+
+         //The IPV6_RECVHOPLIMIT option allows an application to enable or
+         //disable the return of Hop Limit header field on received datagrams
+         if((sock->options & SOCKET_OPTION_IPV6_RECV_HOP_LIMIT) != 0)
+         {
+            //Make sure there is enough room to add the control message
+            if((n + CMSG_SPACE(sizeof(int_t))) <= msg->msg_controllen)
+            {
+               //Point to the ancillary data header
+               cmsg = (CMSGHDR *) ((uint8_t *) msg->msg_control + n);
+
+               //Format ancillary data header
+               cmsg->cmsg_len = CMSG_LEN(sizeof(int_t));
+               cmsg->cmsg_level = IPPROTO_IPV6;
+               cmsg->cmsg_type = IPV6_HOPLIMIT;
+
+               //Point to the ancillary data value
+               val = (int_t *) CMSG_DATA(cmsg);
+               //Set ancillary data value
+               *val = message.ttl;
+
+               //Adjust the actual length of the ancillary data buffer
+               n += CMSG_SPACE(sizeof(int_t));
+            }
+            else
+            {
+               //When the control message buffer is too short to store all
+               //messages, the MSG_CTRUNC flag must be set
+               msg->msg_flags |= MSG_CTRUNC;
+            }
+         }
+      }
+      else
+#endif
+      //Invalid address?
+      {
+         //Just for sanity
       }
    }
-   else
-   {
-      msg->msg_controllen = 0;
-   }
+
+   //Length of the actual length of the ancillary data buffer
+   msg->msg_controllen = n;
 
    //Return the number of bytes received
-   return message.length;;
+   return message.length;
 }
 
 
@@ -966,6 +1506,8 @@ int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen)
          //Set address family and port number
          sa->sin6_family = AF_INET6;
          sa->sin6_port = htons(sock->localPort);
+         sa->sin6_flowinfo = 0;
+         sa->sin6_scope_id = 0;
 
          //Copy IPv6 address
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &sock->localIpAddr.ipv6Addr);
@@ -1060,6 +1602,8 @@ int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen)
          //Set address family and port number
          sa->sin6_family = AF_INET6;
          sa->sin6_port = htons(sock->remotePort);
+         sa->sin6_flowinfo = 0;
+         sa->sin6_scope_id = 0;
 
          //Copy IPv6 address
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &sock->remoteIpAddr.ipv6Addr);
@@ -1097,8 +1641,10 @@ int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen)
  * @param[in] s Descriptor that identifies a socket
  * @param[in] level The level at which the option is defined
  * @param[in] optname The socket option for which the value is to be set
- * @param[in] optval A pointer to the buffer in which the value for the requested option is specified
- * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval parameter
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
  * @return If no error occurs, setsockopt returns SOCKET_SUCCESS
  *   Otherwise, it returns SOCKET_ERROR
  **/
@@ -1107,8 +1653,6 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
    socklen_t optlen)
 {
    int_t ret;
-   int_t *val;
-   TIMEVAL *t;
    Socket *sock;
 
    //Make sure the socket descriptor is valid
@@ -1123,110 +1667,45 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
    //Make sure the option is valid
    if(optval != NULL)
    {
-      //Level at which the option is defined?
+      //Check option level
       if(level == SOL_SOCKET)
       {
          //Check option type
          if(optname == SO_REUSEADDR)
          {
-            //The socket can be bound to an address which is already in use
-            ret = SOCKET_SUCCESS;
+            //Set SO_REUSEADDR option
+            ret = socketSetSoReuseAddrOption(sock, optval, optlen);
          }
          else if(optname == SO_BROADCAST)
          {
-            //Allow transmission and receipt of broadcast messages
-            ret = SOCKET_SUCCESS;
+            //Set SO_BROADCAST option
+            ret = socketSetSoBroadcastOption(sock, optval, optlen);
          }
-         else if(optname == SO_SNDTIMEO || optname == SO_RCVTIMEO)
+         else if(optname == SO_SNDTIMEO)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(TIMEVAL))
-            {
-               //Cast the option value to the relevant type
-               t = (TIMEVAL *) optval;
-
-               //If the specified value is of zero, I/O operations shall not
-               //time out
-               if(t->tv_sec == 0 && t->tv_usec == 0)
-               {
-                  socketSetTimeout(sock, INFINITE_DELAY);
-               }
-               else
-               {
-                  socketSetTimeout(sock, t->tv_sec * 1000 + t->tv_usec / 1000);
-               }
-
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set SO_SNDTIMEO option
+            ret = socketSetSoSndTimeoOption(sock, optval, optlen);
          }
-#if (TCP_SUPPORT == ENABLED)
+         else if(optname == SO_RCVTIMEO)
+         {
+            //Set SO_RCVTIMEO option
+            ret = socketSetSoRcvTimeoOption(sock, optval, optlen);
+         }
          else if(optname == SO_SNDBUF)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Adjust the size of the send buffer
-               socketSetTxBufferSize(sock, *val);
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set SO_SNDBUF option
+            ret = socketSetSoSndBufOption(sock, optval, optlen);
          }
          else if(optname == SO_RCVBUF)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Adjust the size of the receive buffer
-               socketSetRxBufferSize(sock, *val);
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set SO_RCVBUF option
+            ret = socketSetSoRcvBufOption(sock, optval, optlen);
          }
-#endif
-#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
          else if(optname == SO_KEEPALIVE)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //This option specifies whether TCP keep-alive is enabled
-               socketEnableKeepAlive(sock, *val);
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set SO_KEEPALIVE option
+            ret = socketSetSoKeepAliveOption(sock, optval, optlen);
          }
-#endif
          else
          {
             //Unknown option
@@ -1238,80 +1717,121 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
       else if(level == IPPROTO_IP)
       {
          //Check option type
-         if(optname == IP_TTL)
+         if(optname == IP_TOS)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Save TTL value
-               sock->ttl = *val;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set IP_TOS option
+            ret = socketSetIpTosOption(sock, optval, optlen);
          }
-         else if(optname == IP_PKTINFO)
+         else if(optname == IP_TTL)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set IP_TTL option
+            ret = socketSetIpTtlOption(sock, optval, optlen);
+         }
+         else if(optname == IP_MULTICAST_IF)
+         {
+            //Set IP_MULTICAST_IF option
+            ret = socketSetIpMulticastIfOption(sock, optval, optlen);
          }
          else if(optname == IP_MULTICAST_TTL)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Save TTL value for multicast packets
-               sock->multicastTtl = *val;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set IP_MULTICAST_TTL option
+            ret = socketSetIpMulticastTtlOption(sock, optval, optlen);
          }
-#if (IP_DIFF_SERV_SUPPORT == ENABLED)
-         else if(optname == IP_TOS)
+         else if(optname == IP_MULTICAST_LOOP)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Save DSCP value
-               sock->dscp = (*val & 0xFF) >> 2;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set IP_MULTICAST_LOOP option
+            ret = socketSetIpMulticastLoopOption(sock, optval, optlen);
          }
-#endif
+         else if(optname == IP_ADD_MEMBERSHIP)
+         {
+            //Set IP_ADD_MEMBERSHIP option
+            ret = socketSetIpAddMembershipOption(sock, optval, optlen);
+         }
+         else if(optname == IP_DROP_MEMBERSHIP)
+         {
+            //Set IP_DROP_MEMBERSHIP option
+            ret = socketSetIpDropMembershipOption(sock, optval, optlen);
+         }
+         else if(optname == IP_PKTINFO)
+         {
+            //Set IP_PKTINFO option
+            ret = socketSetIpPktInfoOption(sock, optval, optlen);
+         }
+         else if(optname == IP_RECVTOS)
+         {
+            //Set IP_RECVTOS option
+            ret = socketSetIpRecvTosOption(sock, optval, optlen);
+         }
+         else if(optname == IP_RECVTTL)
+         {
+            //Set IP_RECVTTL option
+            ret = socketSetIpRecvTtlOption(sock, optval, optlen);
+         }
+         else
+         {
+            //Unknown option
+            socketSetErrnoCode(sock, ENOPROTOOPT);
+            ret = SOCKET_ERROR;
+         }
+      }
+      else if(level == IPPROTO_IPV6)
+      {
+         //Check option type
+         if(optname == IPV6_TCLASS)
+         {
+            //Set IPV6_TCLASS option
+            ret = socketSetIpv6TrafficClassOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_UNICAST_HOPS)
+         {
+            //Set IPV6_UNICAST_HOPS option
+            ret = socketSetIpv6UnicastHopsOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_MULTICAST_IF)
+         {
+            //Set IPV6_MULTICAST_IF option
+            ret = socketSetIpv6MulticastIfOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_MULTICAST_HOPS)
+         {
+            //Set IPV6_MULTICAST_HOPS option
+            ret = socketSetIpv6MulticastHopsOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_MULTICAST_LOOP)
+         {
+            //Set IPV6_MULTICAST_LOOP option
+            ret = socketSetIpv6MulticastLoopOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_ADD_MEMBERSHIP)
+         {
+            //Set IPV6_ADD_MEMBERSHIP option
+            ret = socketSetIpv6AddMembershipOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_DROP_MEMBERSHIP)
+         {
+            //Set IPV6_DROP_MEMBERSHIP option
+            ret = socketSetIpv6DropMembershipOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_V6ONLY)
+         {
+            //Set IPV6_V6ONLY option
+            ret = socketSetIpv6OnlyOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_PKTINFO)
+         {
+            //Set IPV6_PKTINFO option
+            ret = socketSetIpv6PktInfoOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_RECVTCLASS)
+         {
+            //Set IPV6_RECVTCLASS option
+            ret = socketSetIpv6RecvTrafficClassOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_RECVHOPLIMIT)
+         {
+            //Set IPV6_RECVHOPLIMIT option
+            ret = socketSetIpv6RecvHopLimitOption(sock, optval, optlen);
+         }
          else
          {
             //Unknown option
@@ -1324,68 +1844,29 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
          //Check option type
          if(optname == TCP_NODELAY)
          {
-            //Disable Nagle algorithm
-            ret = SOCKET_SUCCESS;
+            //Set TCP_NODELAY option
+            ret = socketSetTcpNoDelayOption(sock, optval, optlen);
          }
-#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
+         else if(optname == TCP_MAXSEG)
+         {
+            //Set TCP_MAXSEG option
+            ret = socketSetTcpMaxSegOption(sock, optval, optlen);
+         }
          else if(optname == TCP_KEEPIDLE)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Convert the time interval to milliseconds
-               sock->keepAliveIdle = *val * 1000;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set TCP_KEEPIDLE option
+            ret = socketSetTcpKeepIdleOption(sock, optval, optlen);
          }
          else if(optname == TCP_KEEPINTVL)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Convert the time interval to milliseconds
-               sock->keepAliveInterval = *val * 1000;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set TCP_KEEPINTVL option
+            ret = socketSetTcpKeepIntvlOption(sock, optval, optlen);
          }
          else if(optname == TCP_KEEPCNT)
          {
-            //Check the length of the option
-            if(optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Save parameter value
-               sock->keepAliveMaxProbes = *val;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Set TCP_KEEPCNT option
+            ret = socketSetTcpKeepCntOption(sock, optval, optlen);
          }
-#endif
          else
          {
             //Unknown option
@@ -1417,8 +1898,10 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
  * @param[in] s Descriptor that identifies a socket
  * @param[in] level The level at which the option is defined
  * @param[in] optname The socket option for which the value is to be retrieved
- * @param[out] optval A pointer to the buffer in which the value for the requested option is to be returned
- * @param[in,out] optlen The size, in bytes, of the buffer pointed to by the optval parameter
+ * @param[out] optval A pointer to the buffer in which the value for the
+ *   requested option is to be returned
+ * @param[in,out] optlen The size, in bytes, of the buffer pointed to by the
+ *   optval parameter
  * @return If no error occurs, getsockopt returns SOCKET_SUCCESS
  *   Otherwise, it returns SOCKET_ERROR
  **/
@@ -1427,8 +1910,6 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
    socklen_t *optlen)
 {
    int_t ret;
-   int_t *val;
-   TIMEVAL *t;
    Socket *sock;
 
    //Make sure the socket descriptor is valid
@@ -1446,131 +1927,49 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
    //Make sure the option is valid
    if(optval != NULL)
    {
-      //Level at which the option is defined?
+      //Check option level
       if(level == SOL_SOCKET)
       {
          //Check option type
-         if(optname == SO_SNDTIMEO || optname == SO_RCVTIMEO)
+         if(optname == SO_REUSEADDR)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(TIMEVAL))
-            {
-               //Cast the option value to the relevant type
-               t = (TIMEVAL *) optval;
-
-               //Return the timeout value
-               if(sock->timeout == INFINITE_DELAY)
-               {
-                  t->tv_sec = 0;
-                  t->tv_usec = 0;
-               }
-               else
-               {
-                  t->tv_sec = sock->timeout / 1000;
-                  t->tv_usec = (sock->timeout % 1000) * 1000;
-               }
-
-               //Return the actual length of the option
-               *optlen = sizeof(TIMEVAL);
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get SO_REUSEADDR option
+            ret = socketGetSoReuseAddrOption(sock, optval, optlen);
          }
-#if (TCP_SUPPORT == ENABLED)
+         else if(optname == SO_BROADCAST)
+         {
+            //Get SO_BROADCAST option
+            ret = socketGetSoBroadcastOption(sock, optval, optlen);
+         }
+         else if(optname == SO_SNDTIMEO)
+         {
+            //Get SO_SNDTIMEO option
+            ret = socketGetSoSndTimeoOption(sock, optval, optlen);
+         }
+         else if(optname == SO_RCVTIMEO)
+         {
+            //Get SO_RCVTIMEO option
+            ret = socketGetSoRcvTimeoOption(sock, optval, optlen);
+         }
          else if(optname == SO_SNDBUF)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return the size of the send buffer
-               *val = sock->txBufferSize;
-               //Return the actual length of the option
-               *optlen = sizeof(int_t);
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get SO_SNDBUF option
+            ret = socketGetSoSndBufOption(sock, optval, optlen);
          }
          else if(optname == SO_RCVBUF)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return the size of the receive buffer
-               *val = sock->rxBufferSize;
-               //Return the actual length of the option
-               *optlen = sizeof(int_t);
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get SO_RCVBUF option
+            ret = socketGetSoRcvBufOption(sock, optval, optlen);
          }
-#endif
-#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
          else if(optname == SO_KEEPALIVE)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(TIMEVAL))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //This option specifies whether TCP keep-alive is enabled
-               *val = sock->keepAliveEnabled;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get SO_KEEPALIVE option
+            ret = socketGetSoKeepAliveOption(sock, optval, optlen);
          }
-#endif
          else if(optname == SO_ERROR)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return the error code
-               *val = sock->errnoCode;
-               //Return the actual length of the option
-               *optlen = sizeof(int_t);
-
-               //Clear error status
-               sock->errnoCode = 0;
-
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get SO_ERROR option
+            ret = socketGetSoErrorOption(sock, optval, optlen);
          }
          else
          {
@@ -1582,74 +1981,91 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
       else if(level == IPPROTO_IP)
       {
          //Check option type
-         if(optname == IP_TTL)
+         if(optname == IP_TOS)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return TTL value
-               *val = sock->ttl;
-               //Return the actual length of the option
-               *optlen = sizeof(int_t);
-
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get IP_TOS option
+            ret = socketGetIpTosOption(sock, optval, optlen);
+         }
+         else if(optname == IP_TTL)
+         {
+            //Get IP_TTL option
+            ret = socketGetIpTtlOption(sock, optval, optlen);
          }
          else if(optname == IP_MULTICAST_TTL)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return TTL value for multicast packets
-               *val = sock->multicastTtl;
-               //Return the actual length of the option
-               *optlen = sizeof(int_t);
-
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get IP_MULTICAST_TTL option
+            ret = socketGetIpMulticastTtlOption(sock, optval, optlen);
          }
-#if (IP_DIFF_SERV_SUPPORT == ENABLED)
-         else if(optname == IP_TOS)
+         else if(optname == IP_MULTICAST_LOOP)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return DSCP value
-               *val = sock->dscp << 2;
-               //Return the actual length of the option
-               *optlen = sizeof(int_t);
-
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get IP_MULTICAST_LOOP option
+            ret = socketGetIpMulticastLoopOption(sock, optval, optlen);
          }
-#endif
+         else if(optname == IP_PKTINFO)
+         {
+            //Get IP_PKTINFO option
+            ret = socketGetIpPktInfoOption(sock, optval, optlen);
+         }
+         else if(optname == IP_RECVTOS)
+         {
+            //Get IP_RECVTOS option
+            ret = socketGetIpRecvTosOption(sock, optval, optlen);
+         }
+         else if(optname == IP_RECVTTL)
+         {
+            //Get IP_RECVTTL option
+            ret = socketGetIpRecvTtlOption(sock, optval, optlen);
+         }
+         else
+         {
+            //Unknown option
+            socketSetErrnoCode(sock, ENOPROTOOPT);
+            ret = SOCKET_ERROR;
+         }
+      }
+      else if(level == IPPROTO_IPV6)
+      {
+         //Check option type
+         if(optname == IPV6_TCLASS)
+         {
+            //Get IPV6_TCLASS option
+            ret = socketGetIpv6TrafficClassOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_UNICAST_HOPS)
+         {
+            //Get IPV6_UNICAST_HOPS option
+            ret = socketGetIpv6UnicastHopsOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_MULTICAST_HOPS)
+         {
+            //Get IPV6_MULTICAST_HOPS option
+            ret = socketGetIpv6MulticastHopsOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_MULTICAST_LOOP)
+         {
+            //Get IPV6_MULTICAST_LOOP option
+            ret = socketGetIpv6MulticastLoopOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_V6ONLY)
+         {
+            //Get IPV6_V6ONLY option
+            ret = socketGetIpv6OnlyOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_PKTINFO)
+         {
+            //Get IPV6_PKTINFO option
+            ret = socketGetIpv6PktInfoOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_RECVTCLASS)
+         {
+            //Get IPV6_RECVTCLASS option
+            ret = socketGetIpv6RecvTrafficClassOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_RECVHOPLIMIT)
+         {
+            //Get IPV6_RECVHOPLIMIT option
+            ret = socketGetIpv6RecvHopLimitOption(sock, optval, optlen);
+         }
          else
          {
             //Unknown option
@@ -1659,67 +2075,33 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
       }
       else if(level == IPPROTO_TCP)
       {
-#if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
          //Check option type
-         if(optname == TCP_KEEPIDLE)
+         if(optname == TCP_NODELAY)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Convert the time interval to seconds
-               *val = sock->keepAliveIdle / 1000;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get TCP_NODELAY option
+            ret = socketGetTcpNoDelayOption(sock, optval, optlen);
+         }
+         else if(optname == TCP_MAXSEG)
+         {
+            //Get TCP_MAXSEG option
+            ret = socketGetTcpMaxSegOption(sock, optval, optlen);
+         }
+         else if(optname == TCP_KEEPIDLE)
+         {
+            //Get TCP_KEEPIDLE option
+            ret = socketGetTcpKeepIdleOption(sock, optval, optlen);
          }
          else if(optname == TCP_KEEPINTVL)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Convert the time interval to seconds
-               *val = sock->keepAliveInterval / 1000;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get TCP_KEEPINTVL option
+            ret = socketGetTcpKeepIntvlOption(sock, optval, optlen);
          }
          else if(optname == TCP_KEEPCNT)
          {
-            //Check the length of the option
-            if(*optlen >= (socklen_t) sizeof(int_t))
-            {
-               //Cast the option value to the relevant type
-               val = (int_t *) optval;
-               //Return parameter value
-               *val = sock->keepAliveMaxProbes;
-               //Successful processing
-               ret = SOCKET_SUCCESS;
-            }
-            else
-            {
-               //The option length is not valid
-               socketSetErrnoCode(sock, EFAULT);
-               ret = SOCKET_ERROR;
-            }
+            //Get TCP_KEEPCNT option
+            ret = socketGetTcpKeepCntOption(sock, optval, optlen);
          }
          else
-#endif
          {
             //Unknown option
             socketSetErrnoCode(sock, ENOPROTOOPT);
@@ -2033,10 +2415,12 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
          //Set of sockets to be checked for readability
          fds = readfds;
          break;
+
       case 1:
          //Set of sockets to be checked for writability
          fds = writefds;
          break;
+
       default:
          //Set of sockets to be checked for errors
          fds = exceptfds;
@@ -2077,11 +2461,13 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
          fds = readfds;
          eventMask = SOCKET_EVENT_RX_READY;
          break;
+
       case 1:
          //Set of sockets to be checked for writability
          fds = writefds;
          eventMask = SOCKET_EVENT_TX_READY;
          break;
+
       default:
          //Set of sockets to be checked for errors
          fds = exceptfds;
@@ -2130,11 +2516,13 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
          fds = readfds;
          eventMask = SOCKET_EVENT_RX_READY;
          break;
+
       case 1:
          //Set of sockets to be checked for writability
          fds = writefds;
          eventMask = SOCKET_EVENT_TX_READY;
          break;
+
       default:
          //Set of sockets to be checked for errors
          fds = exceptfds;
@@ -2535,6 +2923,8 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
       //Set address family and port number
       sa->sin6_family = AF_INET6;
       sa->sin6_port = htons(port);
+      sa->sin6_flowinfo = 0;
+      sa->sin6_scope_id = 0;
 
       //Copy IPv6 address
       ipv6CopyAddr(sa->sin6_addr.s6_addr, &ipAddr.ipv6Addr);

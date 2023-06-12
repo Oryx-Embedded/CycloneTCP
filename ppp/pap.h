@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _PAP_H
@@ -101,42 +101,42 @@ typedef enum
  * @brief Authenticate-Request packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;         //0
    uint8_t identifier;   //1
    uint16_t length;      //2-3
    uint8_t peerIdLength; //4
    uint8_t peerId[];     //5
-} __end_packed PapAuthReqPacket;
+} PapAuthReqPacket;
 
 
 /**
  * @brief Authenticate-Ack packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t msgLength;  //4
    uint8_t message[];  //5
-} __end_packed PapAuthAckPacket;
+} PapAuthAckPacket;
 
 
 /**
  * @brief Authenticate-Nak packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t msgLength;  //4
    uint8_t message[];  //5
-} __end_packed PapAuthNakPacket;
+} PapAuthNakPacket;
 
 
 //CodeWarrior or Win32 compiler?

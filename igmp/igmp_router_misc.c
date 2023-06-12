@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -134,7 +134,8 @@ error_t igmpRouterSendMembershipQuery(IgmpRouterContext *context,
  **/
 
 void igmpRouterProcessMessage(IgmpRouterContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message, size_t length)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length)
 {
    //Check IGMP message type
    if(message->type == IGMP_TYPE_MEMBERSHIP_QUERY)
@@ -169,7 +170,8 @@ void igmpRouterProcessMessage(IgmpRouterContext *context,
  **/
 
 void igmpRouterProcessMembershipQuery(IgmpRouterContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message, size_t length)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length)
 {
    systime_t maxRespTime;
    IgmpRouterGroup *group;
@@ -276,7 +278,8 @@ void igmpRouterProcessMembershipQuery(IgmpRouterContext *context,
  **/
 
 void igmpRouterProcessMembershipReport(IgmpRouterContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message, size_t length)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length)
 {
    IgmpRouterGroup *group;
 
@@ -336,7 +339,8 @@ void igmpRouterProcessMembershipReport(IgmpRouterContext *context,
  **/
 
 void igmpRouterProcessLeaveGroup(IgmpRouterContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message, size_t length)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length)
 {
    IgmpRouterGroup *group;
 

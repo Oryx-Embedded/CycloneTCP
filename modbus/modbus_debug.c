@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -837,9 +837,13 @@ error_t modbusDumpExceptionResp(const ModbusExceptionResp *response,
 
    //Get the description of the exception code
    if(response->exceptionCode < arraysize(modbusExceptionCodeLabel))
+   {
       label = modbusExceptionCodeLabel[response->exceptionCode];
+   }
    else
+   {
       label = "";
+   }
 
    //Dump response PDU
    TRACE_DEBUG("  Function Code = %" PRIu8 " (Exception)\r\n", response->functionCode);

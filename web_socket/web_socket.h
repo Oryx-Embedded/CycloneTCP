@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _WEB_SOCKET_H
@@ -301,7 +301,7 @@ typedef enum
  * @brief WebSocket frame
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t fin : 1;         //0
@@ -317,7 +317,7 @@ typedef __start_packed struct
    uint8_t mask : 1;
 #endif
    uint8_t extPayloadLen[]; //2
-} __end_packed WebSocketFrame;
+} WebSocketFrame;
 
 
 //CodeWarrior or Win32 compiler?

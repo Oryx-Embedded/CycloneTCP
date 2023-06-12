@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _COAP_SERVER_TRANSPORT_H
@@ -37,7 +37,7 @@
 
 //C++ guard
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif
 
 //CoAP server related functions
@@ -50,7 +50,7 @@ void coapServerDeleteSession(CoapDtlsSession *session);
 
 //C++ guard
 #ifdef __cplusplus
-   }
+}
 #endif
 
 #endif

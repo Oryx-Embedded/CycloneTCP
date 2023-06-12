@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -257,11 +257,11 @@ error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
  **/
 
 void igmpProcessMessage(NetInterface *interface,
-   Ipv4PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, NetRxAncillary *ancillary)
+   const Ipv4PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, const NetRxAncillary *ancillary)
 {
    size_t length;
-   IgmpMessage *message;
+   const IgmpMessage *message;
 
    //Retrieve the length of the IGMP message
    length = netBufferGetLength(buffer) - offset;

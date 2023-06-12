@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _LCP_H
@@ -67,84 +67,84 @@ typedef enum
  * @brief Maximum-Receive-Unit option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;   //0
    uint8_t length; //1
    uint16_t mru;   //2-3
-} __end_packed LcpMruOption;
+} LcpMruOption;
 
 
 /**
  * @brief Async-Control-Character-Map option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;   //0
    uint8_t length; //1
    uint32_t accm;  //2-5
-} __end_packed LcpAccmOption;
+} LcpAccmOption;
 
 
 /**
  * @brief Authentication-Protocol option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t length;    //1
    uint16_t protocol; //2-3
    uint8_t data[];    //4
-} __end_packed LcpAuthProtocolOption;
+} LcpAuthProtocolOption;
 
 
 /**
  * @brief Quality-Protocol option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t length;    //1
    uint16_t protocol; //2-3
    uint8_t data[];    //4
-} __end_packed LcpQualityProtocolOption;
+} LcpQualityProtocolOption;
 
 
 /**
  * @brief Magic-Number option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;         //0
    uint8_t length;       //1
    uint32_t magicNumber; //2-5
-} __end_packed LcpMagicNumberOption;
+} LcpMagicNumberOption;
 
 
 /**
  * @brief Protocol-Field-Compression option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;   //0
    uint8_t length; //1
-} __end_packed LcpPfcOption;
+} LcpPfcOption;
 
 
 /**
  * @brief Address-and-Control-Field-Compression option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;   //0
    uint8_t length; //1
-} __end_packed LcpAcfcOption;
+} LcpAcfcOption;
 
 
 //CodeWarrior or Win32 compiler?

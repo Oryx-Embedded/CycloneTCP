@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -45,7 +45,6 @@
 #if (IPV4_IPSEC_SUPPORT == ENABLED)
    #include "ipsec/ipsec.h"
    #include "ah/ah.h"
-   #include "esp/esp.h"
 #endif
 
 //Special IP addresses
@@ -64,8 +63,9 @@ const IpAddr IP_ADDR_UNSPECIFIED = {0};
  * @return Error code
  **/
 
-error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
+error_t ipSendDatagram(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, NetBuffer *buffer, size_t offset,
+   NetTxAncillary *ancillary)
 {
    error_t error;
 
@@ -114,8 +114,8 @@ error_t ipSendDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
  * @return Error code
  **/
 
-error_t ipSelectSourceAddr(NetInterface **interface,
-   const IpAddr *destAddr, IpAddr *srcAddr)
+error_t ipSelectSourceAddr(NetInterface **interface, const IpAddr *destAddr,
+   IpAddr *srcAddr)
 {
    error_t error;
 
@@ -337,7 +337,7 @@ bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2)
  * @return TRUE if the prefixes match each other, else FALSE
  **/
 
-bool_t ipCompPrefix(const IpAddr * ipAddr1, const IpAddr * ipAddr2,
+bool_t ipCompPrefix(const IpAddr *ipAddr1, const IpAddr *ipAddr2,
    size_t length)
 {
    bool_t result;
@@ -383,10 +383,9 @@ error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
 
    //Use default network interface?
    if(interface == NULL)
+   {
       interface = netGetDefaultInterface();
-
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 multicast address?
@@ -412,9 +411,6 @@ error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
       error = ERROR_INVALID_ADDRESS;
    }
 
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
-
    //Return status code
    return error;
 }
@@ -433,10 +429,9 @@ error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
 
    //Use default network interface?
    if(interface == NULL)
+   {
       interface = netGetDefaultInterface();
-
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 multicast address?
@@ -460,9 +455,6 @@ error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
    {
       error = ERROR_INVALID_ADDRESS;
    }
-
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
 
    //Return status code
    return error;
@@ -734,9 +726,9 @@ NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
    headerLen = sizeof(Ipv4Header) + sizeof(uint32_t);
 #endif
 
-#if (IPV4_IPSEC_SUPPORT == ENABLED)
-   //Maximum overhead caused by AH and ESP security protocols
-   headerLen += MAX(AH_MAX_OVERHEAD, ESP_MAX_OVERHEAD);
+#if (IPV4_IPSEC_SUPPORT == ENABLED && AH_SUPPORT == ENABLED)
+   //Maximum overhead caused by AH security protocol
+   headerLen += AH_MAX_OVERHEAD;
 #endif
 
 #if (ETH_SUPPORT == ENABLED)

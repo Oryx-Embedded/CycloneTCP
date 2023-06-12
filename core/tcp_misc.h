@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _TCP_MISC_H
@@ -45,31 +45,32 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
 
 error_t tcpSendResetSegment(Socket *socket, uint32_t seqNum);
 
-error_t tcpRejectSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   TcpHeader *segment, size_t length);
+error_t tcpRejectSegment(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const TcpHeader *segment, size_t length);
 
 error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
    uint8_t length);
 
-TcpOption *tcpGetOption(TcpHeader *segment, uint8_t kind);
+const TcpOption *tcpGetOption(const TcpHeader *segment, uint8_t kind);
 
 uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
    uint16_t localPort, const IpAddr *remoteIpAddr, uint16_t remotePort);
 
-error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length);
-error_t tcpCheckSyn(Socket *socket, TcpHeader *segment, size_t length);
-error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length);
+error_t tcpCheckSeqNum(Socket *socket, const TcpHeader *segment, size_t length);
+error_t tcpCheckSyn(Socket *socket, const TcpHeader *segment, size_t length);
+error_t tcpCheckAck(Socket *socket, const TcpHeader *segment, size_t length);
 
-bool_t tcpIsDuplicateSyn(Socket *socket, IpPseudoHeader *pseudoHeader,
-   TcpHeader *segment);
+bool_t tcpIsDuplicateSyn(Socket *socket, const IpPseudoHeader *pseudoHeader,
+   const TcpHeader *segment);
 
-bool_t tcpIsDuplicateAck(Socket *socket, TcpHeader *segment, size_t length);
+bool_t tcpIsDuplicateAck(Socket *socket, const TcpHeader *segment,
+   size_t length);
 
 void tcpFastRetransmit(Socket *socket);
-void tcpFastRecovery(Socket *socket, TcpHeader *segment, uint_t n);
-void tcpFastLossRecovery(Socket *socket, TcpHeader *segment);
+void tcpFastRecovery(Socket *socket, const TcpHeader *segment, uint_t n);
+void tcpFastLossRecovery(Socket *socket, const TcpHeader *segment);
 
-void tcpProcessSegmentData(Socket *socket, TcpHeader *segment,
+void tcpProcessSegmentData(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length);
 
 void tcpDeleteControlBlock(Socket *socket);
@@ -80,7 +81,7 @@ void tcpFlushRetransmitQueue(Socket *socket);
 void tcpFlushSynQueue(Socket *socket);
 
 void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge);
-void tcpUpdateSendWindow(Socket *socket, TcpHeader *segment);
+void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment);
 void tcpUpdateReceiveWindow(Socket *socket);
 
 bool_t tcpComputeRto(Socket *socket);

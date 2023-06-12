@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -230,7 +230,7 @@ error_t coapClientSendRequest(CoapClientRequest *request,
                      //Exit immediately
                      error = ERROR_WOULD_BLOCK;
                   }
-              }
+               }
 #endif
             }
             else if(request->state == COAP_REQ_STATE_OBSERVE ||

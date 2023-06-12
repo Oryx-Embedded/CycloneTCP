@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _IGMP_ROUTER_MISC_H
@@ -50,16 +50,20 @@ error_t igmpRouterSendMembershipQuery(IgmpRouterContext *context,
    Ipv4Addr destAddr, Ipv4Addr groupAddr, systime_t maxRespTime);
 
 void igmpRouterProcessMessage(IgmpRouterContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message, size_t length);
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length);
 
 void igmpRouterProcessMembershipQuery(IgmpRouterContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message, size_t length);
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length);
 
 void igmpRouterProcessMembershipReport(IgmpRouterContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message, size_t length);
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length);
 
 void igmpRouterProcessLeaveGroup(IgmpRouterContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message, size_t length);
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length);
 
 IgmpRouterGroup *igmpRouterCreateGroup(IgmpRouterContext *context,
    Ipv4Addr groupAddr);

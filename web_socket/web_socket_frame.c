@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -337,9 +337,13 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
          //When sending a Close frame in response, the endpoint typically
          //echos the status code it received
          if(webSocketCheckStatusCode(statusCode))
+         {
             webSocket->statusCode = statusCode;
+         }
          else
+         {
             webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+         }
 
          //The body may contain UTF-8-encoded data
          if(rxContext->payloadLen > 2)
@@ -417,13 +421,21 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
 
    //Check status code
    if(webSocket->statusCode == WS_STATUS_CODE_NO_STATUS_RCVD)
+   {
       return NO_ERROR;
+   }
    else if(webSocket->statusCode == WS_STATUS_CODE_NORMAL_CLOSURE)
+   {
       return ERROR_END_OF_STREAM;
+   }
    else if(webSocket->statusCode == WS_STATUS_CODE_PROTOCOL_ERROR)
+   {
       return ERROR_INVALID_FRAME;
+   }
    else
+   {
       return ERROR_FAILURE;
+   }
 }
 
 

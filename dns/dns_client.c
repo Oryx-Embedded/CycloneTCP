@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -71,7 +71,7 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
    entry = dnsFindEntry(interface, name, type, HOST_NAME_RESOLVER_DNS);
 
    //Check whether a matching entry has been found
-   if(entry)
+   if(entry != NULL)
    {
       //Host name already resolved?
       if(entry->state == DNS_STATE_RESOLVED ||
@@ -100,14 +100,15 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
       entry->type = type;
       entry->protocol = HOST_NAME_RESOLVER_DNS;
       entry->interface = interface;
+
       //Select primary DNS server
       entry->dnsServerIndex = 0;
 
       //Get an ephemeral port number
       entry->port = udpGetDynamicPort();
 
-      //An identifier is used by the DNS client to match replies
-      //with corresponding requests
+      //An identifier is used by the DNS client to match replies with
+      //corresponding requests
       entry->id = (uint16_t) netGenerateRand();
 
       //Callback function to be called when a DNS response is received
@@ -166,7 +167,7 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
       entry = dnsFindEntry(interface, name, type, HOST_NAME_RESOLVER_DNS);
 
       //Check whether a matching entry has been found
-      if(entry)
+      if(entry != NULL)
       {
          //Host name successfully resolved?
          if(entry->state == DNS_STATE_RESOLVED)
@@ -305,7 +306,7 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
    message->rd = 1;
    message->ra = 0;
    message->z = 0;
-   message->rcode = DNS_RCODE_NO_ERROR;
+   message->rcode = DNS_RCODE_NOERROR;
 
    //The DNS query contains one question
    message->qdcount = HTONS(1);
@@ -461,16 +462,23 @@ void dnsProcessResponse(NetInterface *interface,
                break;
 
             //Check the type of the query
-            if(entry->type == HOST_TYPE_IPV4 && ntohs(question->qtype) != DNS_RR_TYPE_A)
-               break;
-            if(entry->type == HOST_TYPE_IPV6 && ntohs(question->qtype) != DNS_RR_TYPE_AAAA)
-               break;
-
-            //Check return code
-            if(message->rcode != DNS_RCODE_NO_ERROR)
+            if(entry->type == HOST_TYPE_IPV4 &&
+               ntohs(question->qtype) != DNS_RR_TYPE_A)
             {
-               //The entry should be deleted since name resolution has failed
-               dnsDeleteEntry(entry);
+               break;
+            }
+
+            if(entry->type == HOST_TYPE_IPV6 &&
+               ntohs(question->qtype) != DNS_RR_TYPE_AAAA)
+            {
+               break;
+            }
+
+            //Check response code
+            if(message->rcode != DNS_RCODE_NOERROR)
+            {
+               //Select the next DNS server
+               dnsSelectNextServer(entry);
                //Exit immediately
                break;
             }
@@ -570,6 +578,49 @@ void dnsProcessResponse(NetInterface *interface,
             break;
          }
       }
+   }
+}
+
+
+/**
+ * @brief Select the next DNS server
+ * @param[in] entry Pointer to a valid DNS cache entry
+ **/
+
+void dnsSelectNextServer(DnsCacheEntry *entry)
+{
+   error_t error;
+
+#if defined(DNS_SELECT_NEXT_SERVER_HOOK)
+   DNS_SELECT_NEXT_SERVER_HOOK(entry);
+#endif
+
+   //Select the next DNS server
+   entry->dnsServerIndex++;
+
+   //An identifier is used by the DNS client to match replies with
+   //corresponding requests
+   entry->id = (uint16_t) netGenerateRand();
+
+   //Initialize retransmission counter
+   entry->retransmitCount = DNS_CLIENT_MAX_RETRIES;
+   //Send DNS query
+   error = dnsSendQuery(entry);
+
+   //DNS message successfully sent?
+   if(!error)
+   {
+      //Save the time at which the query message was sent
+      entry->timestamp = osGetSystemTime();
+      //Set timeout value
+      entry->timeout = DNS_CLIENT_INIT_TIMEOUT;
+      //Decrement retransmission counter
+      entry->retransmitCount--;
+   }
+   else
+   {
+      //The entry should be deleted since name resolution has failed
+      dnsDeleteEntry(entry);
    }
 }
 

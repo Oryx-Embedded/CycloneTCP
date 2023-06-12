@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -160,9 +160,13 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
 
       //Address of the next hop
       if(nextHop != NULL)
+      {
          entry->nextHop = *nextHop;
+      }
       else
+      {
          entry->nextHop = IPV6_UNSPECIFIED_ADDR;
+      }
 
       //Metric value
       entry->metric = metric;
@@ -395,9 +399,13 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
 
                //Next hop
                if(!ipv6CompAddr(&entry->nextHop, &IPV6_UNSPECIFIED_ADDR))
+               {
                   destIpAddr = entry->nextHop;
+               }
                else
+               {
                   destIpAddr = ipHeader->destAddr;
+               }
             }
          }
       }

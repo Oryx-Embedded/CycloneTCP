@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -788,7 +788,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
       //Total number of packets received by the SNMP engine which were dropped
       //because they requested a securityLevel that was unknown to the SNMP
       //engine or otherwise unavailable
-      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnsupportedSecLevels , 1);
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnsupportedSecLevels, 1);
       SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsUnsupportedSecLevels);
 
       //Add the usmStatsUnsupportedSecLevels counter in the varBindList
@@ -799,7 +799,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    case ERROR_NOT_IN_TIME_WINDOW:
       //Total number of packets received by the SNMP engine which were dropped
       //because they appeared outside of the authoritative SNMP engine's window
-      SNMP_USM_MIB_INC_COUNTER32(usmStatsNotInTimeWindows , 1);
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsNotInTimeWindows, 1);
       SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsNotInTimeWindows);
 
       //Add the usmStatsNotInTimeWindows counter in the varBindList
@@ -810,7 +810,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    case ERROR_UNKNOWN_USER_NAME:
       //Total number of packets received by the SNMP engine which were dropped
       //because they referenced a user that was not known to the SNMP engine
-      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnknownUserNames , 1);
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnknownUserNames, 1);
       SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsUnknownUserNames);
 
       //Add the usmStatsUnknownUserNames counter in the varBindList
@@ -822,7 +822,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
       //Total number of packets received by the SNMP engine which were dropped
       //because they referenced an snmpEngineID that was not known to the SNMP
       //engine
-      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnknownEngineIDs , 1);
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsUnknownEngineIDs, 1);
       SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsUnknownEngineIDs);
 
       //Add the usmStatsUnknownEngineIDs counter in the varBindList
@@ -833,7 +833,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    case ERROR_AUTHENTICATION_FAILED:
       //Total number of packets received by the SNMP engine which were dropped
       //because they didn't contain the expected digest value
-      SNMP_USM_MIB_INC_COUNTER32(usmStatsWrongDigests , 1);
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsWrongDigests, 1);
       SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsWrongDigests);
 
       //Add the usmStatsWrongDigests counter in the varBindList
@@ -844,7 +844,7 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    case ERROR_DECRYPTION_FAILED:
       //Total number of packets received by the SNMP engine which were dropped
       //because they could not be decrypted
-      SNMP_USM_MIB_INC_COUNTER32(usmStatsDecryptionErrors , 1);
+      SNMP_USM_MIB_INC_COUNTER32(usmStatsDecryptionErrors, 1);
       SNMP_USM_MIB_GET_COUNTER32(counter, usmStatsDecryptionErrors);
 
       //Add the usmStatsDecryptionErrors counter in the varBindList

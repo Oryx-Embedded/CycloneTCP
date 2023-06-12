@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _KSZ8851_DRIVER_H
@@ -489,22 +489,22 @@ extern "C" {
  * @brief TX packet header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t controlWord;
    uint16_t byteCount;
-} __end_packed Ksz8851TxHeader;
+} Ksz8851TxHeader;
 
 
 /**
  * @brief RX packet header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t statusWord;
    uint16_t byteCount;
-} __end_packed Ksz8851RxHeader;
+} Ksz8851RxHeader;
 
 
 /**

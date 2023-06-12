@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -195,6 +195,8 @@ error_t at32f4xxEthInit(NetInterface *interface)
    EMAC->htl = 0;
    EMAC->hth = 0;
 
+   //Configure the receive filter
+   EMAC->frmf = EMAC_FRMF_HPF | EMAC_FRMF_HMC;
    //Disable flow control
    EMAC->fctrl = 0;
    //Enable store and forward mode
@@ -380,7 +382,7 @@ __weak_func void at32f4xxEthInitGpio(NetInterface *interface)
    gpio_init_struct.gpio_pins = GPIO_PINS_11 | GPIO_PINS_13 | GPIO_PINS_14;
    gpio_init(GPIOG, &gpio_init_struct);
 
-   //Remap EMAC pins
+   //Remap Ethernet pins
    gpio_pin_mux_config(GPIOA, GPIO_PINS_SOURCE1, GPIO_MUX_11);
    gpio_pin_mux_config(GPIOA, GPIO_PINS_SOURCE2, GPIO_MUX_11);
    gpio_pin_mux_config(GPIOC, GPIO_PINS_SOURCE1, GPIO_MUX_11);
@@ -869,9 +871,6 @@ error_t at32f4xxEthUpdateMacAddrFilter(NetInterface *interface)
       EMAC->a3l = 0;
       EMAC->a3h = 0;
    }
-
-   //Configure the receive filter
-   EMAC->frmf = EMAC_FRMF_HPF | EMAC_FRMF_HMC;
 
    //Configure the multicast hash table
    EMAC->htl = hashTable[0];

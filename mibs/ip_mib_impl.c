@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -35,7 +35,7 @@
 #include "core/net.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_misc.h"
-#include "ipv4/arp.h"
+#include "ipv4/arp_cache.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
 #include "ipv6/ndp_cache.h"
@@ -461,7 +461,7 @@ error_t ipMibGetIpSystemStatsEntry(const MibObject *object, const uint8_t *oid,
    //IPv6 version?
    if(version == INET_VERSION_IPV6)
    {
-      //Point to the IPV6 statistics table entry
+      //Point to the IPv6 statistics table entry
       entry = &ipMibBase.ipv6SystemStats;
    }
    else

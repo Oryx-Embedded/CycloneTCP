@@ -31,21 +31,20 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL IPV4_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/ethernet.h"
 #include "core/ip.h"
 #include "core/udp.h"
 #include "core/tcp_fsm.h"
 #include "core/raw_socket.h"
-#include "ipv4/arp.h"
+#include "ipv4/arp_cache.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_misc.h"
 #include "ipv4/ipv4_routing.h"
@@ -94,6 +93,7 @@ error_t ipv4Init(NetInterface *interface)
    //Initialize interface specific variables
    context->linkMtu = physicalInterface->nicDriver->mtu;
    context->isRouter = FALSE;
+   context->defaultTtl = IPV4_DEFAULT_TTL;
 
    //ICMP Echo Request messages are allowed by default
    context->enableEchoReq = TRUE;
@@ -114,6 +114,31 @@ error_t ipv4Init(NetInterface *interface)
 #endif
 
    //Successful initialization
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Set default TTL value for outgoing IPv4 packets
+ * @param[in] interface Underlying network interface
+ * @param[in] ttl Default time-to-live value
+ * @return Error code
+ **/
+
+error_t ipv4SetDefaultTtl(NetInterface *interface, uint8_t ttl)
+{
+   //Check parameters
+   if(interface == NULL || ttl == 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+   //Set default time-to-live value
+   interface->ipv4Context.defaultTtl = ttl;
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -828,6 +853,8 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
 
    //Save TTL value
    ancillary->ttl = header->timeToLive;
+   //Save ToS value
+   ancillary->tos = header->typeOfService;
 
 #if defined(IPV4_DATAGRAM_FORWARD_HOOK)
    IPV4_DATAGRAM_FORWARD_HOOK(interface, &pseudoHeader, buffer, offset);
@@ -974,12 +1001,15 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
  * @return Error code
  **/
 
-error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
+error_t ipv4SendDatagram(NetInterface *interface,
+   const Ipv4PseudoHeader *pseudoHeader, NetBuffer *buffer, size_t offset,
+   NetTxAncillary *ancillary)
 {
    error_t error;
-   size_t length;
    uint16_t id;
+#if (IPV4_IPSEC_SUPPORT == DISABLED)
+   size_t length;
+#endif
 
    //Total number of IP datagrams which local IP user-protocols supplied to IP
    //in requests for transmission
@@ -996,39 +1026,39 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
 #if (IPV4_IPSEC_SUPPORT == ENABLED)
    //Process outbound IP traffic (protected-to-unprotected)
    error = ipsecProcessOutboundIpv4Packet(interface, pseudoHeader, id, buffer,
-      &offset, ancillary);
-#else
-   //Initialize status code
-   error = NO_ERROR;
-#endif
+      offset, ancillary);
 
    //Check status code
-   if(!error)
+   if(error == ERROR_IN_PROGRESS)
    {
-      //Retrieve the length of payload
-      length = netBufferGetLength(buffer) - offset;
-
-      //Check the length of the payload
-      if((length + sizeof(Ipv4Header)) <= interface->ipv4Context.linkMtu)
-      {
-         //If the payload length is smaller than the network interface MTU
-         //then no fragmentation is needed
-         error = ipv4SendPacket(interface, pseudoHeader, id, 0, buffer,
-            offset, ancillary);
-      }
-      else
-      {
-#if (IPV4_FRAG_SUPPORT == ENABLED)
-         //If the payload length exceeds the network interface MTU then the
-         //device must fragment the data
-         error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer,
-            offset, ancillary);
-#else
-         //Fragmentation is not supported
-         error = ERROR_MESSAGE_TOO_LONG;
-#endif
-      }
+      //The establishment of the SA pair is in progress
+      error = NO_ERROR;
    }
+#else
+   //Retrieve the length of payload
+   length = netBufferGetLength(buffer) - offset;
+
+   //Check the length of the payload
+   if((length + sizeof(Ipv4Header)) <= interface->ipv4Context.linkMtu)
+   {
+      //If the payload length is smaller than the network interface MTU
+      //then no fragmentation is needed
+      error = ipv4SendPacket(interface, pseudoHeader, id, 0, buffer,
+         offset, ancillary);
+   }
+   else
+   {
+#if (IPV4_FRAG_SUPPORT == ENABLED)
+      //If the payload length exceeds the network interface MTU then the
+      //device must fragment the data
+      error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer,
+         offset, ancillary);
+#else
+      //Fragmentation is not supported
+      error = ERROR_MESSAGE_TOO_LONG;
+#endif
+   }
+#endif
 
    //Return status code
    return error;
@@ -1048,9 +1078,9 @@ error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader
  * @return Error code
  **/
 
-error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
-   NetTxAncillary *ancillary)
+error_t ipv4SendPacket(NetInterface *interface,
+   const Ipv4PseudoHeader *pseudoHeader, uint16_t fragId, size_t fragOffset,
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    error_t error;
    size_t length;
@@ -1084,7 +1114,7 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    //Format IPv4 header
    packet->version = IPV4_VERSION;
    packet->headerLength = 5;
-   packet->typeOfService = 0;
+   packet->typeOfService = ancillary->tos;
    packet->totalLength = htons(length);
    packet->identification = htons(fragId);
    packet->fragmentOffset = htons(fragOffset);
@@ -1105,14 +1135,9 @@ error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
    //Check whether the TTL value is zero
    if(packet->timeToLive == 0)
    {
-      //Use default Time-To-Live value
-      packet->timeToLive = IPV4_DEFAULT_TTL;
+      //Use default time-to-live value
+      packet->timeToLive = interface->ipv4Context.defaultTtl;
    }
-
-#if (IP_DIFF_SERV_SUPPORT == ENABLED)
-   //Set DSCP field
-   packet->typeOfService = (ancillary->dscp << 2) & 0xFC;
-#endif
 
    //Calculate IP header checksum
    packet->headerChecksum = ipCalcChecksumEx(buffer, offset,

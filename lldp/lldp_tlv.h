@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _LLDP_TLV_H
@@ -215,7 +215,7 @@ typedef struct
  * @brief TLV header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t type : 7;    //0
@@ -228,87 +228,87 @@ typedef __start_packed struct
    uint8_t lengthL;     //1
    uint8_t value[];     //2
 #endif
-} __end_packed LldpTlvHeader;
+} LldpTlvHeader;
 
 
 /**
  * @brief Chassis ID TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t chassisIdSubtype; //0
    uint8_t chassisId[];      //1
-} __end_packed LldpChassisIdTlv;
+} LldpChassisIdTlv;
 
 
 /**
  * @brief Port ID TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t portIdSubtype; //0
    uint8_t portId[];      //1
-} __end_packed LldpPortIdTlv;
+} LldpPortIdTlv;
 
 
 /**
  * @brief Time To Live TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t ttl; //0-1
-} __end_packed LldpTimeToLiveTlv;
+} LldpTimeToLiveTlv;
 
 
 /**
  * @brief System Capabilities TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint16_t supportedCap; //0-1
    uint16_t enabledCap;   //2-3
-} __end_packed LldpSysCapTlv;
+} LldpSysCapTlv;
 
 
 /**
  * @brief Management Address TLV (part 1)
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t mgmtAddrLen;     //0
    uint8_t mgmtAddrSubtype; //1
    uint8_t mgmtAddr[];      //2
-} __end_packed LldpMgmtAddrTlv1;
+} LldpMgmtAddrTlv1;
 
 
 /**
  * @brief Management Address TLV (part 2)
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t ifNumSubtype; //0
    uint32_t ifNum;       //1-4
    uint8_t oidLen;       //5
    uint8_t oid[];        //6
-} __end_packed LldpMgmtAddrTlv2;
+} LldpMgmtAddrTlv2;
 
 
 /**
  * @brief Organizationally Specific TLV
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t oui[LLDP_OUI_SIZE]; //0-2
    uint8_t subtype;            //3
    uint8_t value[];            //4
-} __end_packed LldpOrgDefTlv;
+} LldpOrgDefTlv;
 
 
 //CodeWarrior or Win32 compiler?

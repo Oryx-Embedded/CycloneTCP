@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _RAW_SOCKET_H
@@ -57,11 +57,11 @@ extern "C" {
 
 //Raw socket related functions
 error_t rawSocketProcessIpPacket(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
-   NetRxAncillary *ancillary);
+   const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   const NetRxAncillary *ancillary);
 
 void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
-   size_t length, NetRxAncillary *ancillary);
+   size_t length, const NetRxAncillary *ancillary);
 
 error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
    uint_t flags);

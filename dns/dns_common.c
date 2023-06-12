@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL DNS_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "dns/dns_client.h"
 #include "dns/dns_common.h"
@@ -130,8 +129,8 @@ size_t dnsEncodeName(const char_t *src, uint8_t *dest)
  * @return The position of the resource record that immediately follows the domain name
  **/
 
-size_t dnsParseName(const DnsHeader *message,
-   size_t length, size_t pos, char_t *dest, uint_t level)
+size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
+   char_t *dest, uint_t level)
 {
    size_t n;
    size_t pointer;
@@ -240,8 +239,8 @@ size_t dnsParseName(const DnsHeader *message,
  *   second domain name lexicographically precedes the first name
  **/
 
-int_t dnsCompareName(const DnsHeader *message, size_t length,
-   size_t pos, const char_t *name, uint_t level)
+int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
+   const char_t *name, uint_t level)
 {
    int_t res;
    size_t n;
@@ -339,8 +338,9 @@ int_t dnsCompareName(const DnsHeader *message, size_t length,
  *   second domain name lexicographically precedes the first name
  **/
 
-int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t pos1,
-   const DnsHeader *message2, size_t length2, size_t pos2, uint_t level)
+int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
+   size_t pos1, const DnsHeader *message2, size_t length2, size_t pos2,
+   uint_t level)
 {
    int_t res;
    size_t n;
@@ -372,9 +372,13 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t po
          //The domain name which still has remaining data is deemed
          //lexicographically later
          if(n1 < n2)
+         {
             return -1;
+         }
          else if(n1 > n2)
+         {
             return 1;
+         }
 
          //The domain names match each other
          return 0;
@@ -447,9 +451,13 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1, size_t po
          //The domain name which still has remaining data is deemed
          //lexicographically later
          if(n1 < n2)
+         {
             return -1;
+         }
          else if(n1 > n2)
+         {
             return 1;
+         }
 
          //Advance data pointer
          pos1 += n1;

@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -81,7 +81,14 @@ void dhcpServerGetDefaultSettings(DhcpServerSettings *settings)
 
    //DNS servers
    for(i = 0; i < DHCP_SERVER_MAX_DNS_SERVERS; i++)
+   {
       settings->dnsServer[i] = IPV4_UNSPECIFIED_ADDR;
+   }
+
+   //Add DHCP options callback
+   settings->addOptionsCallback = NULL;
+   //Parse DHCP options callback
+   settings->parseOptionsCallback = NULL;
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _NTP_COMMON_H
@@ -128,18 +128,18 @@ typedef enum
  * @brief NTP timestamp representation
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint32_t seconds;
    uint32_t fraction;
-} __end_packed NtpTimestamp;
+} NtpTimestamp;
 
 
 /**
  * @brief NTP packet header
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t li : 2;                  //0
@@ -160,18 +160,18 @@ typedef __start_packed struct
    NtpTimestamp originateTimestamp; //24-31
    NtpTimestamp receiveTimestamp;   //32-39
    NtpTimestamp transmitTimestamp;  //40-47
-} __end_packed NtpHeader;
+} NtpHeader;
 
 
 /**
  * @brief NTP authenticator
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint32_t keyId;            //0-3
    uint8_t messageDigest[16]; //4-19
-} __end_packed NtpAuthenticator;
+} NtpAuthenticator;
 
 
 //CodeWarrior or Win32 compiler?

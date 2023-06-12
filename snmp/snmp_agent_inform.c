@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -265,11 +265,17 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
 
       //Length of the privacy parameters
       if(context->user.privProtocol == SNMP_PRIV_PROTOCOL_DES)
+      {
          message->msgPrivParametersLen = 8;
+      }
       else if(context->user.privProtocol == SNMP_PRIV_PROTOCOL_AES)
+      {
          message->msgPrivParametersLen = 8;
+      }
       else
+      {
          message->msgPrivParametersLen = 0;
+      }
 
       //Context engine identifier
       message->contextEngineId = context->contextEngine;

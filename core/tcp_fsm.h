@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _TCP_FSM_H
@@ -40,36 +40,37 @@ extern "C" {
 #endif
 
 //TCP FSM related functions
-void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, NetRxAncillary *ancillary);
+void tcpProcessSegment(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   const NetRxAncillary *ancillary);
 
-void tcpStateClosed(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, TcpHeader *segment, size_t length);
+void tcpStateClosed(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
+   const TcpHeader *segment, size_t length);
 
 void tcpStateListen(Socket *socket, NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, TcpHeader *segment, size_t length);
+   const IpPseudoHeader *pseudoHeader, const TcpHeader *segment, size_t length);
 
-void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length);
+void tcpStateSynSent(Socket *socket, const TcpHeader *segment, size_t length);
 
-void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
+void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length);
 
-void tcpStateEstablished(Socket *socket, TcpHeader *segment,
+void tcpStateEstablished(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length);
 
-void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length);
+void tcpStateCloseWait(Socket *socket, const TcpHeader *segment, size_t length);
 
-void tcpStateLastAck(Socket *socket, TcpHeader *segment, size_t length);
+void tcpStateLastAck(Socket *socket, const TcpHeader *segment, size_t length);
 
-void tcpStateFinWait1(Socket *socket, TcpHeader *segment,
+void tcpStateFinWait1(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length);
 
-void tcpStateFinWait2(Socket *socket, TcpHeader *segment,
+void tcpStateFinWait2(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length);
 
-void tcpStateClosing(Socket *socket, TcpHeader *segment, size_t length);
+void tcpStateClosing(Socket *socket, const TcpHeader *segment, size_t length);
 
-void tcpStateTimeWait(Socket *socket, TcpHeader *segment, size_t length);
+void tcpStateTimeWait(Socket *socket, const TcpHeader *segment, size_t length);
 
 //C++ guard
 #ifdef __cplusplus

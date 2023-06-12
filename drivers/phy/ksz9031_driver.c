@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -59,6 +59,8 @@ const PhyDriver ksz9031PhyDriver =
 
 error_t ksz9031Init(NetInterface *interface)
 {
+   uint16_t value;
+
    //Debug message
    TRACE_INFO("Initializing KSZ9031...\r\n");
 
@@ -91,6 +93,19 @@ error_t ksz9031Init(NetInterface *interface)
 
    //Dump PHY registers for debugging purpose
    ksz9031DumpPhyReg(interface);
+
+   //Select single-LED mode
+   value = ksz9031ReadMmdReg(interface, KSZ9031_COMMON_CTRL);
+   value |= KSZ9031_COMMON_CTRL_LED_MODE_OVERRIDE;
+   ksz9031WriteMmdReg(interface, KSZ9031_COMMON_CTRL, value);
+
+   //Change the FLP interval to 16ms (silicon errata workaround 5)
+   ksz9031WriteMmdReg(interface, KSZ9031_AN_FLP_BURST_TRANSMIT_HI, 0x0006);
+   ksz9031WriteMmdReg(interface, KSZ9031_AN_FLP_BURST_TRANSMIT_LO, 0x1A80);
+
+   //Restart auto-negotiation for the 16ms FLP interval setting to take effect
+   ksz9031WritePhyReg(interface, KSZ9031_BMCR, KSZ9031_BMCR_AN_EN |
+      KSZ9031_BMCR_RESTART_AN);
 
    //The PHY will generate interrupts when link status changes are detected
    ksz9031WritePhyReg(interface, KSZ9031_ICSR, KSZ9031_ICSR_LINK_DOWN_IE |

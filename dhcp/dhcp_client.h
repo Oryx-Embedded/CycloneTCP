@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _DHCP_CLIENT_H
@@ -173,7 +173,7 @@ typedef enum
  * @brief DHCP configuration timeout callback
  **/
 
-typedef void (*DhcpTimeoutCallback)(DhcpClientContext *context,
+typedef void (*DhcpClientTimeoutCallback)(DhcpClientContext *context,
    NetInterface *interface);
 
 
@@ -181,7 +181,7 @@ typedef void (*DhcpTimeoutCallback)(DhcpClientContext *context,
  * @brief Link state change callback
  **/
 
-typedef void (*DhcpLinkChangeCallback)(DhcpClientContext *context,
+typedef void (*DhcpClientLinkChangeCallback)(DhcpClientContext *context,
    NetInterface *interface, bool_t linkState);
 
 
@@ -189,7 +189,7 @@ typedef void (*DhcpLinkChangeCallback)(DhcpClientContext *context,
  * @brief FSM state change callback
  **/
 
-typedef void (*DhcpStateChangeCallback)(DhcpClientContext *context,
+typedef void (*DhcpClientStateChangeCallback)(DhcpClientContext *context,
    NetInterface *interface, DhcpState state);
 
 
@@ -197,7 +197,7 @@ typedef void (*DhcpStateChangeCallback)(DhcpClientContext *context,
  * @brief Add DHCP options callback
  **/
 
-typedef void (*DhcpAddOptionsCallback)(DhcpClientContext *context,
+typedef void (*DhcpClientAddOptionsCallback)(DhcpClientContext *context,
    DhcpMessage *message, size_t *length, DhcpMessageType type);
 
 
@@ -205,7 +205,7 @@ typedef void (*DhcpAddOptionsCallback)(DhcpClientContext *context,
  * @brief Parse DHCP options callback
  **/
 
-typedef error_t (*DhcpParseOptionsCallback)(DhcpClientContext *context,
+typedef error_t (*DhcpClientParseOptionsCallback)(DhcpClientContext *context,
    const DhcpMessage *message, size_t length, DhcpMessageType type);
 
 
@@ -215,16 +215,16 @@ typedef error_t (*DhcpParseOptionsCallback)(DhcpClientContext *context,
 
 typedef struct
 {
-   NetInterface *interface;                       ///<Network interface to configure
-   uint_t ipAddrIndex;                            ///<Index of the IP address to be configured
-   bool_t rapidCommit;                            ///<Quick configuration using rapid commit
-   bool_t manualDnsConfig;                        ///<Force manual DNS configuration
-   systime_t timeout;                             ///<DHCP configuration timeout
-   DhcpTimeoutCallback timeoutEvent;              ///<DHCP configuration timeout event
-   DhcpLinkChangeCallback linkChangeEvent;        ///<Link state change event
-   DhcpStateChangeCallback stateChangeEvent;      ///<FSM state change event
-   DhcpAddOptionsCallback addOptionsCallback;     ///<Add DHCP options callback
-   DhcpParseOptionsCallback parseOptionsCallback; ///<Parse DHCP options callback
+   NetInterface *interface;                             ///<Network interface to configure
+   uint_t ipAddrIndex;                                  ///<Index of the IP address to be configured
+   bool_t rapidCommit;                                  ///<Quick configuration using rapid commit
+   bool_t manualDnsConfig;                              ///<Force manual DNS configuration
+   systime_t timeout;                                   ///<DHCP configuration timeout
+   DhcpClientTimeoutCallback timeoutEvent;              ///<DHCP configuration timeout event
+   DhcpClientLinkChangeCallback linkChangeEvent;        ///<Link state change event
+   DhcpClientStateChangeCallback stateChangeEvent;      ///<FSM state change event
+   DhcpClientAddOptionsCallback addOptionsCallback;     ///<Add DHCP options callback
+   DhcpClientParseOptionsCallback parseOptionsCallback; ///<Parse DHCP options callback
 } DhcpClientSettings;
 
 

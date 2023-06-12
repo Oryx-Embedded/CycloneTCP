@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -134,8 +134,8 @@ void slaacParseRouterAdv(SlaacContext *context,
    while(1)
    {
       //Search the Options field for any Prefix Information options
-      prefixInfoOption = ndpGetOption(message->options + n,
-         length - n, NDP_OPT_PREFIX_INFORMATION);
+      prefixInfoOption = ndpGetOption(message->options + n, length - n,
+         NDP_OPT_PREFIX_INFORMATION);
 
       //No more option of the specified type?
       if(prefixInfoOption == NULL)
@@ -330,9 +330,13 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
             //Compute the remaining time to the valid lifetime expiration
             //of the previously autoconfigured address
             if(timeCompare(time, entry->timestamp + entry->validLifetime) < 0)
+            {
                remainingLifetime = entry->timestamp + entry->validLifetime - time;
+            }
             else
+            {
                remainingLifetime = 0;
+            }
 
             //The specific action to perform for the valid lifetime of the
             //address depends on the Valid Lifetime in the received Router

@@ -34,15 +34,13 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL TCP_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
-#include <string.h>
 #include "core/net.h"
 #include "core/ip.h"
 #include "core/socket.h"
@@ -72,8 +70,9 @@
  *   the packet
  **/
 
-void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, NetRxAncillary *ancillary)
+void tcpProcessSegment(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   const NetRxAncillary *ancillary)
 {
    uint_t i;
    size_t length;
@@ -95,6 +94,7 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
       //Ensure the destination address is not a broadcast address
       if(ipv4IsBroadcastAddr(interface, pseudoHeader->ipv4Data.destAddr))
          return;
+
       //Ensure the destination address is not a multicast address
       if(ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
          return;
@@ -179,9 +179,11 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
       //TCP socket found?
       if(socket->type != SOCKET_TYPE_STREAM)
          continue;
+
       //Check whether the socket is bound to a particular interface
       if(socket->interface && socket->interface != interface)
          continue;
+
       //Check destination port number
       if(socket->localPort == 0 || socket->localPort != ntohs(segment->destPort))
          continue;
@@ -190,6 +192,10 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
       //IPv4 packet received?
       if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
       {
+         //Check whether the socket is restricted to IPv6 communications only
+         if((socket->options & SOCKET_OPTION_IPV6_ONLY) != 0)
+            continue;
+
          //Destination IP address filtering
          if(socket->localIpAddr.length != 0)
          {
@@ -430,8 +436,8 @@ void tcpProcessSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateClosed(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, TcpHeader *segment, size_t length)
+void tcpStateClosed(NetInterface *interface, const IpPseudoHeader *pseudoHeader,
+   const TcpHeader *segment, size_t length)
 {
    //Debug message
    TRACE_DEBUG("TCP FSM: CLOSED state\r\n");
@@ -459,10 +465,10 @@ void tcpStateClosed(NetInterface *interface,
  **/
 
 void tcpStateListen(Socket *socket, NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, TcpHeader *segment, size_t length)
+   const IpPseudoHeader *pseudoHeader, const TcpHeader *segment, size_t length)
 {
    uint_t i;
-   TcpOption *option;
+   const TcpOption *option;
    TcpSynQueueItem *queueItem;
 
    //Debug message
@@ -583,8 +589,6 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
       queueItem->srcPort = segment->srcPort;
       //Save the initial sequence number
       queueItem->isn = segment->seqNum;
-      //Default MSS value
-      queueItem->mss = MIN(TCP_DEFAULT_MSS, TCP_MAX_MSS);
 
       //Get the Maximum Segment Size option
       option = tcpGetOption(segment, TCP_OPTION_MAX_SEGMENT_SIZE);
@@ -593,16 +597,19 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
       if(option != NULL && option->length == 4)
       {
          //Retrieve MSS value
-         osMemcpy(&queueItem->mss, option->value, 2);
-         //Convert from network byte order to host byte order
-         queueItem->mss = ntohs(queueItem->mss);
+         queueItem->mss = LOAD16BE(option->value);
 
          //Debug message
          TRACE_DEBUG("Remote host MSS = %" PRIu16 "\r\n", queueItem->mss);
 
          //Make sure that the MSS advertised by the peer is acceptable
-         queueItem->mss = MIN(queueItem->mss, TCP_MAX_MSS);
+         queueItem->mss = MIN(queueItem->mss, socket->mss);
          queueItem->mss = MAX(queueItem->mss, TCP_MIN_MSS);
+      }
+      else
+      {
+         //If the option is not received, TCP must assume the default MSS
+         queueItem->mss = MIN(socket->mss, TCP_DEFAULT_MSS);
       }
 
 #if (TCP_SACK_SUPPORT == ENABLED)
@@ -642,9 +649,9 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
+void tcpStateSynSent(Socket *socket, const TcpHeader *segment, size_t length)
 {
-   TcpOption *option;
+   const TcpOption *option;
 
    //Debug message
    TRACE_DEBUG("TCP FSM: SYN-SENT state\r\n");
@@ -713,15 +720,13 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
       if(option != NULL && option->length == 4)
       {
          //Retrieve MSS value
-         osMemcpy(&socket->smss, option->value, 2);
-         //Convert from network byte order to host byte order
-         socket->smss = ntohs(socket->smss);
+         socket->smss = LOAD16BE(option->value);
 
          //Debug message
          TRACE_DEBUG("Remote host MSS = %" PRIu16 "\r\n", socket->smss);
 
          //Make sure that the MSS advertised by the peer is acceptable
-         socket->smss = MIN(socket->smss, TCP_MAX_MSS);
+         socket->smss = MIN(socket->smss, socket->mss);
          socket->smss = MAX(socket->smss, TCP_MIN_MSS);
       }
 
@@ -741,7 +746,8 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
       //Initial congestion window
-      socket->cwnd = MIN(TCP_INITIAL_WINDOW * socket->smss, socket->txBufferSize);
+      socket->cwnd = MIN(TCP_INITIAL_WINDOW * socket->smss,
+         socket->txBufferSize);
 #endif
 
       //Check whether our SYN has been acknowledged (SND.UNA > ISS)
@@ -757,8 +763,8 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
          socket->maxSndWnd = segment->window;
 
          //Form an ACK segment and send it
-         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0,
-            FALSE);
+         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt,
+            0, FALSE);
 
          //Switch to the ESTABLISHED state
          tcpChangeState(socket, TCP_STATE_ESTABLISHED);
@@ -789,14 +795,30 @@ void tcpStateSynSent(Socket *socket, TcpHeader *segment, size_t length)
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
+void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length)
 {
+   TcpHeader segment2;
+
    //Debug message
    TRACE_DEBUG("TCP FSM: SYN-RECEIVED state\r\n");
 
+   //Make a copy of the TCP header
+   segment2 = *segment;
+   //Discard TCP options
+   segment2.dataOffset = sizeof(TcpHeader) / 4;
+
+   //Simultaneous open attempt?
+   if((segment->flags & TCP_FLAG_SYN) != 0 &&
+      segment->seqNum == socket->irs)
+   {
+      //When a SYN is present, then SEG.SEQ is the sequence number of the SYN
+      segment2.flags &= ~TCP_FLAG_SYN;
+      segment2.seqNum++;
+   }
+
    //First check sequence number
-   if(tcpCheckSeqNum(socket, segment, length))
+   if(tcpCheckSeqNum(socket, &segment2, length))
       return;
 
    //Check the RST bit
@@ -815,7 +837,7 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
    }
 
    //Check the SYN bit
-   if(tcpCheckSyn(socket, segment, length))
+   if(tcpCheckSyn(socket, &segment2, length))
       return;
 
    //If the ACK bit is off drop the segment and return
@@ -845,7 +867,7 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
    //Enter ESTABLISHED state
    tcpChangeState(socket, TCP_STATE_ESTABLISHED);
    //And continue processing...
-   tcpStateEstablished(socket, segment, buffer, offset, length);
+   tcpStateEstablished(socket, &segment2, buffer, offset, length);
 }
 
 
@@ -862,7 +884,7 @@ void tcpStateSynReceived(Socket *socket, TcpHeader *segment,
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateEstablished(Socket *socket, TcpHeader *segment,
+void tcpStateEstablished(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length)
 {
    uint_t flags = 0;
@@ -892,6 +914,7 @@ void tcpStateEstablished(Socket *socket, TcpHeader *segment,
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
       return;
+
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
       return;
@@ -947,7 +970,7 @@ void tcpStateEstablished(Socket *socket, TcpHeader *segment,
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
+void tcpStateCloseWait(Socket *socket, const TcpHeader *segment, size_t length)
 {
    uint_t flags = 0;
 
@@ -976,6 +999,7 @@ void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
       return;
+
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
       return;
@@ -988,8 +1012,8 @@ void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
    }
 #endif
 
-   //The Nagle algorithm should be implemented to coalesce
-   //short segments (refer to RFC 1122 4.2.3.4)
+   //The Nagle algorithm should be implemented to coalesce short segments (refer
+   //to RFC 1122 4.2.3.4)
    tcpNagleAlgo(socket, flags);
 }
 
@@ -1005,7 +1029,7 @@ void tcpStateCloseWait(Socket *socket, TcpHeader *segment, size_t length)
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateLastAck(Socket *socket, TcpHeader *segment, size_t length)
+void tcpStateLastAck(Socket *socket, const TcpHeader *segment, size_t length)
 {
    //Debug message
    TRACE_DEBUG("TCP FSM: LAST-ACK state\r\n");
@@ -1026,6 +1050,7 @@ void tcpStateLastAck(Socket *socket, TcpHeader *segment, size_t length)
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
       return;
+
    //If the ACK bit is off drop the segment and return
    if((segment->flags & TCP_FLAG_ACK) == 0)
       return;
@@ -1053,7 +1078,7 @@ void tcpStateLastAck(Socket *socket, TcpHeader *segment, size_t length)
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateFinWait1(Socket *socket, TcpHeader *segment,
+void tcpStateFinWait1(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length)
 {
    //Debug message
@@ -1075,6 +1100,7 @@ void tcpStateFinWait1(Socket *socket, TcpHeader *segment,
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
       return;
+
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
       return;
@@ -1143,7 +1169,7 @@ void tcpStateFinWait1(Socket *socket, TcpHeader *segment,
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateFinWait2(Socket *socket, TcpHeader *segment,
+void tcpStateFinWait2(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length)
 {
    //Debug message
@@ -1165,6 +1191,7 @@ void tcpStateFinWait2(Socket *socket, TcpHeader *segment,
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
       return;
+
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
       return;
@@ -1211,7 +1238,7 @@ void tcpStateFinWait2(Socket *socket, TcpHeader *segment,
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateClosing(Socket *socket, TcpHeader *segment, size_t length)
+void tcpStateClosing(Socket *socket, const TcpHeader *segment, size_t length)
 {
    //Debug message
    TRACE_DEBUG("TCP FSM: CLOSING state\r\n");
@@ -1232,6 +1259,7 @@ void tcpStateClosing(Socket *socket, TcpHeader *segment, size_t length)
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
       return;
+
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
       return;
@@ -1263,7 +1291,7 @@ void tcpStateClosing(Socket *socket, TcpHeader *segment, size_t length)
  * @param[in] length Length of the segment data
  **/
 
-void tcpStateTimeWait(Socket *socket, TcpHeader *segment, size_t length)
+void tcpStateTimeWait(Socket *socket, const TcpHeader *segment, size_t length)
 {
    //Debug message
    TRACE_DEBUG("TCP FSM: TIME-WAIT state\r\n");
@@ -1294,6 +1322,7 @@ void tcpStateTimeWait(Socket *socket, TcpHeader *segment, size_t length)
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
       return;
+
    //If the ACK bit is off drop the segment and return
    if((segment->flags & TCP_FLAG_ACK) == 0)
       return;

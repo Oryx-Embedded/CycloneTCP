@@ -25,16 +25,16 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL BSD_SOCKET_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/bsd_socket.h"
+#include "core/bsd_socket_misc.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -49,8 +49,7 @@
 
 struct cmsghdr *socketCmsgFirstHdr(struct msghdr *msg)
 {
-   struct cmsghdr *p;
-   struct cmsghdr *first;
+   CMSGHDR *first;
 
    //Initialize pointer
    first = NULL;
@@ -59,17 +58,10 @@ struct cmsghdr *socketCmsgFirstHdr(struct msghdr *msg)
    if(msg != NULL)
    {
       //Check the length of the ancillary data buffer
-      if(msg->msg_controllen >= sizeof(struct cmsghdr))
+      if(msg->msg_controllen >= sizeof(CMSGHDR))
       {
          //Point to the first ancillary data header
-         p = (struct cmsghdr *) msg->msg_control;
-
-         //Valid ancillary data header?
-         if(p->cmsg_len >= sizeof(struct cmsghdr) &&
-            p->cmsg_len <= msg->msg_controllen)
-         {
-            first = p;
-         }
+         first = (CMSGHDR *) msg->msg_control;
       }
    }
 
@@ -88,8 +80,7 @@ struct cmsghdr *socketCmsgFirstHdr(struct msghdr *msg)
 struct cmsghdr *socketCmsgNextHdr(struct msghdr *msg, struct cmsghdr *cmsg)
 {
    size_t n;
-   struct cmsghdr *p;
-   struct cmsghdr *next;
+   CMSGHDR *next;
 
    //Initialize pointer
    next = NULL;
@@ -98,7 +89,7 @@ struct cmsghdr *socketCmsgNextHdr(struct msghdr *msg, struct cmsghdr *cmsg)
    if(msg != NULL && cmsg != NULL)
    {
       //Valid ancillary data header?
-      if(cmsg->cmsg_len >= sizeof(struct cmsghdr) &&
+      if(cmsg->cmsg_len >= sizeof(CMSGHDR) &&
          cmsg->cmsg_len <= msg->msg_controllen)
       {
          //Offset to the next ancillary data header
@@ -106,17 +97,10 @@ struct cmsghdr *socketCmsgNextHdr(struct msghdr *msg, struct cmsghdr *cmsg)
             CMSG_ALIGN(cmsg->cmsg_len);
 
          //Check the length of the ancillary data buffer
-         if((n + sizeof(struct cmsghdr)) <= msg->msg_controllen)
+         if((n + sizeof(CMSGHDR)) <= msg->msg_controllen)
          {
             //Point to the next ancillary data header
-            p = (struct cmsghdr *) ((uint8_t *) msg->msg_control + n);
-
-            //Valid ancillary data header?
-            if(p->cmsg_len >= sizeof(struct cmsghdr) &&
-               (n + p->cmsg_len) <= msg->msg_controllen)
-            {
-               next = p;
-            }
+            next = (CMSGHDR *) ((uint8_t *) msg->msg_control + n);
          }
       }
    }

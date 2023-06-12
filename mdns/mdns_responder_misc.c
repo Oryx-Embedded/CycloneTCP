@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -481,16 +481,16 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
          question = DNS_GET_QUESTION(query->dnsHeader, n);
 
          //Parse question
-         error = mdnsResponderParseQuestion(interface, query,
-            offset, question, response);
+         error = mdnsResponderParseQuestion(interface, query, offset, question,
+            response);
          //Any error to report?
          if(error)
             break;
 
 #if (DNS_SD_SUPPORT == ENABLED)
          //Parse resource record
-         error = dnsSdParseQuestion(interface, query, offset,
-            question, response);
+         error = dnsSdParseQuestion(interface, query, offset, question,
+            response);
          //Any error to report?
          if(error)
             break;
@@ -524,8 +524,8 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
             break;
 
          //Parse resource record
-         mdnsResponderParseKnownAnRecord(interface, query, offset,
-            record, response);
+         mdnsResponderParseKnownAnRecord(interface, query, offset, record,
+            response);
 
          //Point to the next resource record
          offset = n + ntohs(record->rdlength);
@@ -581,8 +581,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
    //Should a mDNS message be send in response to the query?
    if(response->dnsHeader->ancount > 0)
    {
-      //If the source UDP port in a received Multicast DNS query is not port 5353,
-      //this indicates that the querier originating the query is a simple resolver
+      //If the source UDP port in a received Multicast DNS query is not port
+      //5353, this indicates that the querier originating the query is a simple
+      //resolver
       if(ntohs(query->udpHeader->srcPort) != MDNS_PORT)
       {
 #if (DNS_SD_SUPPORT == ENABLED)
@@ -605,10 +606,11 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
          //Check whether the answer should be delayed
          if(query->dnsHeader->tc)
          {
-            //In the case where the query has the TC (truncated) bit set, indicating
-            //that subsequent Known-Answer packets will follow, responders should
-            //delay their responses by a random amount of time selected with uniform
-            //random distribution in the range 400-500 ms
+            //In the case where the query has the TC (truncated) bit set,
+            //indicating that subsequent Known-Answer packets will follow,
+            //responders should delay their responses by a random amount of
+            //time selected with uniform random distribution in the range
+            //400-500 ms
             response->timeout = netGenerateRandRange(400, 500);
 
             //Save current time
@@ -739,7 +741,7 @@ error_t mdnsResponderParseQuestion(NetInterface *interface,
             //Update the length of the mDNS response message
             response->length += sizeof(DnsQuestion);
             //Number of questions in the Question Section
-            response->dnsHeader->qdcount++; 
+            response->dnsHeader->qdcount++;
          }
 
 #if (IPV4_SUPPORT == ENABLED)
@@ -928,6 +930,13 @@ void mdnsResponderParseKnownAnRecord(NetInterface *interface,
                   //Update the number of resource records in the Answer Section
                   response->dnsHeader->ancount--;
 
+                  //Update the number of shared resource records
+                  if(ntohs(queryRecord->rclass) == DNS_RR_TYPE_PTR &&
+                     response->sharedRecordCount > 0)
+                  {
+                     response->sharedRecordCount--;
+                  }
+
                   //Keep at the same position
                   n = responseOffset;
                   i--;
@@ -954,12 +963,125 @@ void mdnsResponderParseAnRecord(NetInterface *interface,
    const MdnsMessage *response, size_t offset, const DnsResourceRecord *record)
 {
    uint_t i;
+   size_t n;
+   size_t offset2;
    bool_t conflict;
    uint16_t rclass;
+   DnsResourceRecord *record2;
    MdnsResponderContext *context;
+   MdnsMessage *response2;
 
    //Point to the mDNS responder context
    context = interface->mdnsResponderContext;
+   //Make sure the mDNS responder has been properly instantiated
+   if(context == NULL)
+      return;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 message received?
+   if(response->pseudoHeader->length == sizeof(Ipv4PseudoHeader))
+   {
+      //Point to the pending mDNS response
+      response2 = &context->ipv4Response;
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 message received?
+   if(response->pseudoHeader->length == sizeof(Ipv6PseudoHeader))
+   {
+      //Point to the pending mDNS response
+      response2 = &context->ipv6Response;
+   }
+   else
+#endif
+   //Invalid message received?
+   {
+      //Discard the mDNS message
+      return;
+   }
+
+   //Any pending mDNS response?
+   if(response2->buffer != NULL)
+   {
+      //Point to the first resource record
+      offset2 = sizeof(DnsHeader);
+
+      //Parse the Answer Section of the response
+      for(i = 0; i < response2->dnsHeader->ancount; i++)
+      {
+         //Parse resource record name
+         n = dnsParseName(response2->dnsHeader, response2->length, offset2,
+            NULL, 0);
+         //Invalid name?
+         if(!n)
+            break;
+
+         //Point to the associated resource record
+         record2 = DNS_GET_RESOURCE_RECORD(response2->dnsHeader, n);
+         //Point to the resource data
+         n += sizeof(DnsResourceRecord);
+
+         //Make sure the resource record is valid
+         if(n > response2->length)
+            break;
+
+         //Point to the end of the resource record
+         n += ntohs(record2->rdlength);
+
+         //Make sure the resource record is valid
+         if(n > response2->length)
+            break;
+
+         //Compare resource record names
+         if(!dnsCompareEncodedName(response->dnsHeader, response->length, offset,
+            response2->dnsHeader, response2->length, offset2, 0))
+         {
+            //Compare the contents of the resource records
+            if(!mdnsCompareRecord(response, record, response2, record2))
+            {
+               //If a host is planning to send an answer, and it sees another
+               //host on the network send a response message containing the same
+               //answer record, and the TTL in that record is not less than the
+               //TTL this host would have given, then this host should treat its
+               //own answer as having been sent, and not also send an identical
+               //answer itself
+               if(ntohl(record->ttl) >= ntohl(record2->ttl))
+               {
+                  //Perform Duplicate Answer Suppression
+                  osMemmove((uint8_t *) response2->dnsHeader + offset2,
+                     (uint8_t *) response2->dnsHeader + n, response2->length - n);
+
+                  //Update the length of the mDNS response2 message
+                  response2->length -= (n - offset2);
+                  //Update the number of resource records in the Answer Section
+                  response2->dnsHeader->ancount--;
+
+                  //Update the number of shared resource records
+                  if(ntohs(record->rclass) == DNS_RR_TYPE_PTR &&
+                     response2->sharedRecordCount > 0)
+                  {
+                     response2->sharedRecordCount--;
+                  }
+
+                  //Keep at the same position
+                  n = offset2;
+                  i--;
+               }
+            }
+         }
+
+         //Point to the next resource record
+         offset2 = n;
+      }
+
+      //When multiple responders on the network have the same data, there is no
+      //need for all of them to respond
+      if(response2->dnsHeader->ancount == 0)
+      {
+          mdnsDeleteMessage(response2);
+      }
+   }
 
    //Check for conflicts
    if(!mdnsCompareName(response->dnsHeader, response->length, offset,

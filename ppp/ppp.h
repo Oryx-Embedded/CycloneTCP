@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _PPP_H
@@ -250,106 +250,106 @@ typedef enum
  * @brief LCP/NCP packet header
  **/
 
-__start_packed struct _PppPacket
+__packed_struct _PppPacket
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t data[];     //4
-} __end_packed;
+};
 
 
 /**
  * @brief Configure-Request, Configure-Ack, Configure-Nak and Configure-Reject packets
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t options[];  //4
-} __end_packed PppConfigurePacket;
+} PppConfigurePacket;
 
 
 /**
  * @brief Terminate-Request and Terminate-Ack packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;       //0
    uint8_t identifier; //1
    uint16_t length;    //2-3
    uint8_t data[];     //4
-} __end_packed PppTerminatePacket;
+} PppTerminatePacket;
 
 
 /**
  * @brief Code-Reject packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;             //0
    uint8_t identifier;       //1
    uint16_t length;          //2-3
    uint8_t rejectedPacket[]; //4
-} __end_packed PppCodeRejPacket;
+} PppCodeRejPacket;
 
 
 /**
  * @brief Protocol-Reject packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;              //0
    uint8_t identifier;        //1
    uint16_t length;           //2-3
    uint16_t rejectedProtocol; //4-5
    uint8_t rejectedInfo[];    //6
-} __end_packed PppProtocolRejPacket;
+} PppProtocolRejPacket;
 
 
 /**
  * @brief Echo-Request and Echo-Reply packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;         //0
    uint8_t identifier;   //1
    uint16_t length;      //2-3
    uint32_t magicNumber; //4-7
    uint8_t data[];       //8
-} __end_packed PppEchoPacket;
+} PppEchoPacket;
 
 
 /**
  * @brief PPP Discard-Request packet
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;         //0
    uint8_t identifier;   //1
    uint16_t length;      //2-3
    uint32_t magicNumber; //4-7
    uint8_t data[];       //8
-} __end_packed PppDiscardReqPacket;
+} PppDiscardReqPacket;
 
 
 /**
  * @brief LCP/NCP option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;   //0
    uint8_t length; //1
    uint8_t data[]; //2
-} __end_packed PppOption;
+} PppOption;
 
 
 //CodeWarrior or Win32 compiler?
@@ -496,8 +496,8 @@ error_t pppInit(PppContext *context, const PppSettings *settings);
 
 error_t pppSetTimeout(NetInterface *interface, systime_t timeout);
 
-error_t pppSetAuthInfo(NetInterface *interface,
-   const char_t *username, const char_t *password);
+error_t pppSetAuthInfo(NetInterface *interface, const char_t *username,
+   const char_t *password);
 
 bool_t pppCheckPassword(NetInterface *interface, const char_t *password);
 
@@ -512,8 +512,8 @@ void pppTick(NetInterface *interface);
 void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
    NetRxAncillary *ancillary);
 
-error_t pppSendFrame(NetInterface *interface,
-   NetBuffer *buffer, size_t offset, uint16_t protocol);
+error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
+   uint16_t protocol);
 
 size_t pppParseFrameHeader(const uint8_t *frame, size_t length, uint16_t *protocol);
 

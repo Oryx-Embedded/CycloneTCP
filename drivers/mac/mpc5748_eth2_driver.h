@@ -1,6 +1,6 @@
 /**
- * @file mpc57xx_eth_driver.h
- * @brief NXP MPC57xx Ethernet MAC driver
+ * @file mpc5748_eth2_driver.h
+ * @brief NXP MPC5748 Ethernet MAC driver (ENET1 instance)
  *
  * @section License
  *
@@ -25,45 +25,45 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
-#ifndef _MPC57XX_ETH_DRIVER_H
-#define _MPC57XX_ETH_DRIVER_H
+#ifndef _MPC5748_ETH2_DRIVER_H
+#define _MPC5748_ETH2_DRIVER_H
 
 //Number of TX buffers
-#ifndef MPC57XX_ETH_TX_BUFFER_COUNT
-   #define MPC57XX_ETH_TX_BUFFER_COUNT 3
-#elif (MPC57XX_ETH_TX_BUFFER_COUNT < 1)
-   #error MPC57XX_ETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef MPC5748_ETH2_TX_BUFFER_COUNT
+   #define MPC5748_ETH2_TX_BUFFER_COUNT 3
+#elif (MPC5748_ETH2_TX_BUFFER_COUNT < 1)
+   #error MPC5748_ETH2_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef MPC57XX_ETH_TX_BUFFER_SIZE
-   #define MPC57XX_ETH_TX_BUFFER_SIZE 1536
-#elif (MPC57XX_ETH_TX_BUFFER_SIZE != 1536)
-   #error MPC57XX_ETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef MPC5748_ETH2_TX_BUFFER_SIZE
+   #define MPC5748_ETH2_TX_BUFFER_SIZE 1536
+#elif (MPC5748_ETH2_TX_BUFFER_SIZE != 1536)
+   #error MPC5748_ETH2_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef MPC57XX_ETH_RX_BUFFER_COUNT
-   #define MPC57XX_ETH_RX_BUFFER_COUNT 6
-#elif (MPC57XX_ETH_RX_BUFFER_COUNT < 1)
-   #error MPC57XX_ETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef MPC5748_ETH2_RX_BUFFER_COUNT
+   #define MPC5748_ETH2_RX_BUFFER_COUNT 6
+#elif (MPC5748_ETH2_RX_BUFFER_COUNT < 1)
+   #error MPC5748_ETH2_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef MPC57XX_ETH_RX_BUFFER_SIZE
-   #define MPC57XX_ETH_RX_BUFFER_SIZE 1536
-#elif (MPC57XX_ETH_RX_BUFFER_SIZE != 1536)
-   #error MPC57XX_ETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef MPC5748_ETH2_RX_BUFFER_SIZE
+   #define MPC5748_ETH2_RX_BUFFER_SIZE 1536
+#elif (MPC5748_ETH2_RX_BUFFER_SIZE != 1536)
+   #error MPC5748_ETH2_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Ethernet interrupt priority
-#ifndef MPC57XX_ETH_IRQ_PRIORITY
-   #define MPC57XX_ETH_IRQ_PRIORITY 10
-#elif (MPC57XX_ETH_IRQ_PRIORITY < 0)
-   #error MPC57XX_ETH_IRQ_PRIORITY parameter is not valid
+#ifndef MPC5748_ETH2_IRQ_PRIORITY
+   #define MPC5748_ETH2_IRQ_PRIORITY 10
+#elif (MPC5748_ETH2_IRQ_PRIORITY < 0)
+   #error MPC5748_ETH2_IRQ_PRIORITY parameter is not valid
 #endif
 
 //Enhanced transmit buffer descriptor
@@ -127,35 +127,35 @@
 extern "C" {
 #endif
 
-//MPC57xx Ethernet MAC driver
-extern const NicDriver mpc57xxEthDriver;
+//MPC5748 Ethernet MAC driver (ENET1 instance)
+extern const NicDriver mpc5748Eth2Driver;
 
-//MPC57xx Ethernet MAC related functions
-error_t mpc57xxEthInit(NetInterface *interface);
-void mpc57xxEthInitGpio(NetInterface *interface);
-void mpc57xxEthInitBufferDesc(NetInterface *interface);
+//MPC5748 Ethernet MAC related functions
+error_t mpc5748Eth2Init(NetInterface *interface);
+void mpc5748Eth2InitGpio(NetInterface *interface);
+void mpc5748Eth2InitBufferDesc(NetInterface *interface);
 
-void mpc57xxEthTick(NetInterface *interface);
+void mpc5748Eth2Tick(NetInterface *interface);
 
-void mpc57xxEthEnableIrq(NetInterface *interface);
-void mpc57xxEthDisableIrq(NetInterface *interface);
-void mpc57xxEthEventHandler(NetInterface *interface);
+void mpc5748Eth2EnableIrq(NetInterface *interface);
+void mpc5748Eth2DisableIrq(NetInterface *interface);
+void mpc5748Eth2EventHandler(NetInterface *interface);
 
-error_t mpc57xxEthSendPacket(NetInterface *interface,
+error_t mpc5748Eth2SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-error_t mpc57xxEthReceivePacket(NetInterface *interface);
+error_t mpc5748Eth2ReceivePacket(NetInterface *interface);
 
-error_t mpc57xxEthUpdateMacAddrFilter(NetInterface *interface);
-error_t mpc57xxEthUpdateMacConfig(NetInterface *interface);
+error_t mpc5748Eth2UpdateMacAddrFilter(NetInterface *interface);
+error_t mpc5748Eth2UpdateMacConfig(NetInterface *interface);
 
-void mpc57xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void mpc5748Eth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data);
 
-uint16_t mpc57xxEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t mpc5748Eth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr);
 
-uint32_t mpc57xxEthCalcCrc(const void *data, size_t length);
+uint32_t mpc5748Eth2CalcCrc(const void *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus

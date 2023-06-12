@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -1049,9 +1049,13 @@ const char_t *mqttSnGetMessageName(uint16_t msgType)
 
    //Get the name associated with the message type
    if(msgType < arraysize(mqttSnMsgTypeLabel))
+   {
       return mqttSnMsgTypeLabel[msgType];
+   }
    else
+   {
       return defaultLabel;
+   }
 }
 
 
@@ -1068,9 +1072,13 @@ const char_t *mqttSnGetReturnCodeDesc(uint16_t returnCode)
 
    //Get the description associated with the return code
    if(returnCode < arraysize(mqttSnReturnCodeLabel))
+   {
       return mqttSnReturnCodeLabel[returnCode];
+   }
    else
+   {
       return defaultLabel;
+   }
 }
 
 #endif

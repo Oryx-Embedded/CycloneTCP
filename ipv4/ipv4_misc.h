@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _IPV4_MISC_H
 #define _IPV4_MISC_H
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "ipv4/ipv4.h"
 

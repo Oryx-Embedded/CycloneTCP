@@ -25,15 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NBNS_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
-#include <string.h>
 #include "core/net.h"
 #include "netbios/nbns_client.h"
 #include "netbios/nbns_responder.h"
@@ -118,7 +116,7 @@ void nbnsProcessMessage(NetInterface *interface,
 
    //NBNS messages received with non-zero response codes must be silently
    //ignored
-   if(message->rcode != DNS_RCODE_NO_ERROR)
+   if(message->rcode != DNS_RCODE_NOERROR)
       return;
 
    //NBNS query received?

@@ -30,14 +30,13 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL RAW_SOCKET_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/socket.h"
 #include "core/raw_socket.h"
@@ -66,8 +65,8 @@
  **/
 
 error_t rawSocketProcessIpPacket(NetInterface *interface,
-   IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
-   NetRxAncillary *ancillary)
+   const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   const NetRxAncillary *ancillary)
 {
    uint_t i;
    size_t length;
@@ -87,6 +86,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       //Raw socket found?
       if(socket->type != SOCKET_TYPE_RAW_IP)
          continue;
+
       //Check whether the socket is bound to a particular interface
       if(socket->interface && socket->interface != interface)
          continue;
@@ -95,22 +95,60 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       //IPv4 packet received?
       if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
       {
+         //Check whether the socket is restricted to IPv6 communications only
+         if((socket->options & SOCKET_OPTION_IPV6_ONLY) != 0)
+            continue;
+
          //Check protocol field
          if(socket->protocol != pseudoHeader->ipv4Data.protocol)
             continue;
 
-         //Destination IP address filtering
-         if(socket->localIpAddr.length != 0)
+         //Check whether the destination address is a unicast, broadcast or
+         //multicast address
+         if(ipv4IsBroadcastAddr(interface, pseudoHeader->ipv4Data.destAddr))
          {
-            //An IPv4 address is expected
-            if(socket->localIpAddr.length != sizeof(Ipv4Addr))
+            //Check whether broadcast datagrams are accepted or not
+            if((socket->options & SOCKET_OPTION_BROADCAST) == 0)
                continue;
+         }
+         else if(ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
+         {
+            uint_t j;
+            IpAddr *group;
 
-            //Filter out non-matching addresses
-            if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
-               socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+            //Loop through multicast groups
+            for(j = 0; j < SOCKET_MAX_MULTICAST_GROUPS; j++)
             {
+               //Point to the current multicast group
+               group = &socket->multicastGroups[j];
+
+               //Matching multicast address?
+               if(group->length == sizeof(Ipv4Addr) &&
+                  group->ipv4Addr == pseudoHeader->ipv4Data.destAddr)
+               {
+                  break;
+               }
+            }
+
+            //Filter out non-matching multicast addresses
+            if(j >= SOCKET_MAX_MULTICAST_GROUPS)
                continue;
+         }
+         else
+         {
+            //Destination IP address filtering
+            if(socket->localIpAddr.length != 0)
+            {
+               //An IPv4 address is expected
+               if(socket->localIpAddr.length != sizeof(Ipv4Addr))
+                  continue;
+
+               //Filter out non-matching addresses
+               if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
+                  socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+               {
+                  continue;
+               }
             }
          }
 
@@ -320,7 +358,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
  **/
 
 void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
-   size_t length, NetRxAncillary *ancillary)
+   size_t length, const NetRxAncillary *ancillary)
 {
 #if (ETH_SUPPORT == ENABLED)
    uint_t i;
@@ -496,7 +534,7 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
       interface = socket->interface;
    }
 
-   //Allocate a buffer memory to hold the raw IP datagram
+   //Allocate a buffer to hold the raw IP datagram
    buffer = ipAllocBuffer(0, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -590,10 +628,15 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
          ancillary.dontRoute = TRUE;
       }
 
-#if (IP_DIFF_SERV_SUPPORT == ENABLED)
-      //Set DSCP field
-      ancillary.dscp = socket->dscp;
-#endif
+      //Set ToS field
+      if(message->tos != 0)
+      {
+         ancillary.tos = message->tos;
+      }
+      else
+      {
+         ancillary.tos = socket->tos;
+      }
 
 #if (ETH_SUPPORT == ENABLED)
       //Set source and destination MAC addresses
@@ -680,7 +723,7 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
    if(interface->nicDriver != NULL &&
       interface->nicDriver->type == NIC_TYPE_ETHERNET)
    {
-      //Allocate a buffer memory to hold the raw Ethernet packet
+      //Allocate a buffer to hold the raw Ethernet packet
       buffer = ethAllocBuffer(0, &offset);
       //Failed to allocate buffer?
       if(buffer == NULL)
@@ -789,6 +832,8 @@ error_t rawSocketReceiveIpPacket(Socket *socket, SocketMsg *message,
 
       //Save TTL value
       message->ttl = queueItem->ancillary.ttl;
+      //Save ToS field
+      message->tos = queueItem->ancillary.tos;
 
 #if (ETH_SUPPORT == ENABLED)
       //Save source and destination MAC addresses

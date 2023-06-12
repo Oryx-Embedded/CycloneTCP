@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -66,10 +66,11 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
    osAcquireMutex(&netMutex);
 
    //Search the DNS cache for the specified host name
-   entry = dnsFindEntry(interface, name, HOST_TYPE_IPV4, HOST_NAME_RESOLVER_NBNS);
+   entry = dnsFindEntry(interface, name, HOST_TYPE_IPV4,
+      HOST_NAME_RESOLVER_NBNS);
 
    //Check whether a matching entry has been found
-   if(entry)
+   if(entry != NULL)
    {
       //Host name already resolved?
       if(entry->state == DNS_STATE_RESOLVED ||
@@ -139,10 +140,11 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
       osAcquireMutex(&netMutex);
 
       //Search the DNS cache for the specified host name
-      entry = dnsFindEntry(interface, name, HOST_TYPE_IPV4, HOST_NAME_RESOLVER_NBNS);
+      entry = dnsFindEntry(interface, name, HOST_TYPE_IPV4,
+         HOST_NAME_RESOLVER_NBNS);
 
       //Check whether a matching entry has been found
-      if(entry)
+      if(entry != NULL)
       {
          //Host name successfully resolved?
          if(entry->state == DNS_STATE_RESOLVED)
@@ -220,7 +222,7 @@ error_t nbnsSendQuery(DnsCacheEntry *entry)
    message->ra = 0;
    message->z = 0;
    message->b = 1;
-   message->rcode = DNS_RCODE_NO_ERROR;
+   message->rcode = DNS_RCODE_NOERROR;
 
    //The NBNS query contains one question
    message->qdcount = HTONS(1);

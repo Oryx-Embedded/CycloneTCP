@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _MLD_H
@@ -86,7 +86,7 @@ typedef enum
  * @brief MLD message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;           //0
    uint8_t code;           //1
@@ -94,7 +94,7 @@ typedef __start_packed struct
    uint16_t maxRespDelay;  //4-5
    uint16_t reserved;      //6-7
    Ipv6Addr multicastAddr; //8-23
-} __end_packed MldMessage;
+} MldMessage;
 
 
 //CodeWarrior or Win32 compiler?
@@ -113,11 +113,13 @@ error_t mldStopListening(NetInterface *interface, Ipv6FilterEntry *entry);
 void mldTick(NetInterface *interface);
 void mldLinkChangeEvent(NetInterface *interface);
 
-void mldProcessListenerQuery(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, uint8_t hopLimit);
+void mldProcessListenerQuery(NetInterface *interface,
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, uint8_t hopLimit);
 
-void mldProcessListenerReport(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, uint8_t hopLimit);
+void mldProcessListenerReport(NetInterface *interface,
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, uint8_t hopLimit);
 
 error_t mldSendListenerReport(NetInterface *interface, Ipv6Addr *ipAddr);
 error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr);

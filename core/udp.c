@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL UDP_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/ip.h"
 #include "core/udp.h"
@@ -121,8 +120,9 @@ uint16_t udpGetDynamicPort(void)
  * @return Error code
  **/
 
-error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, NetRxAncillary *ancillary)
+error_t udpProcessDatagram(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   const NetRxAncillary *ancillary)
 {
    error_t error;
    uint_t i;
@@ -158,8 +158,25 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
    //Dump UDP header contents for debugging purpose
    udpDumpHeader(header);
 
+   //Make sure the length field is correct
+   if(ntohs(header->length) < sizeof(UdpHeader) ||
+      ntohs(header->length) > length)
+   {
+      //Number of received UDP datagrams that could not be delivered for
+      //reasons other than the lack of an application at the destination port
+      MIB2_UDP_INC_COUNTER32(udpInErrors, 1);
+      UDP_MIB_INC_COUNTER32(udpInErrors, 1);
+
+      //Report an error
+      return ERROR_INVALID_HEADER;
+   }
+
+   //Convert the length field from network byte order
+   length = ntohs(header->length);
+
    //When UDP runs over IPv6, the checksum is mandatory
-   if(header->checksum != 0x0000 || pseudoHeader->length == sizeof(Ipv6PseudoHeader))
+   if(header->checksum != 0x0000 ||
+      pseudoHeader->length == sizeof(Ipv6PseudoHeader))
    {
       //Verify UDP checksum
       if(ipCalcUpperLayerChecksumEx(pseudoHeader->data,
@@ -187,12 +204,15 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
       //UDP socket found?
       if(socket->type != SOCKET_TYPE_DGRAM)
          continue;
+
       //Check whether the socket is bound to a particular interface
       if(socket->interface && socket->interface != interface)
          continue;
+
       //Check destination port number
       if(socket->localPort == 0 || socket->localPort != ntohs(header->destPort))
          continue;
+
       //Source port number filtering
       if(socket->remotePort != 0 && socket->remotePort != ntohs(header->srcPort))
          continue;
@@ -201,18 +221,56 @@ error_t udpProcessDatagram(NetInterface *interface, IpPseudoHeader *pseudoHeader
       //IPv4 packet received?
       if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
       {
-         //Destination IP address filtering
-         if(socket->localIpAddr.length != 0)
-         {
-            //An IPv4 address is expected
-            if(socket->localIpAddr.length != sizeof(Ipv4Addr))
-               continue;
+         //Check whether the socket is restricted to IPv6 communications only
+         if((socket->options & SOCKET_OPTION_IPV6_ONLY) != 0)
+            continue;
 
-            //Filter out non-matching addresses
-            if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
-               socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
-            {
+         //Check whether the destination address is a unicast, broadcast or
+         //multicast address
+         if(ipv4IsBroadcastAddr(interface, pseudoHeader->ipv4Data.destAddr))
+         {
+            //Check whether broadcast datagrams are accepted or not
+            if((socket->options & SOCKET_OPTION_BROADCAST) == 0)
                continue;
+         }
+         else if(ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
+         {
+            uint_t j;
+            IpAddr *group;
+
+            //Loop through multicast groups
+            for(j = 0; j < SOCKET_MAX_MULTICAST_GROUPS; j++)
+            {
+               //Point to the current multicast group
+               group = &socket->multicastGroups[j];
+
+               //Matching multicast address?
+               if(group->length == sizeof(Ipv4Addr) &&
+                  group->ipv4Addr == pseudoHeader->ipv4Data.destAddr)
+               {
+                  break;
+               }
+            }
+
+            //Filter out non-matching multicast addresses
+            if(j >= SOCKET_MAX_MULTICAST_GROUPS)
+               continue;
+         }
+         else
+         {
+            //Destination IP address filtering
+            if(socket->localIpAddr.length != 0)
+            {
+               //An IPv4 address is expected
+               if(socket->localIpAddr.length != sizeof(Ipv4Addr))
+                  continue;
+
+               //Filter out non-matching addresses
+               if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
+                  socket->localIpAddr.ipv4Addr != pseudoHeader->ipv4Data.destAddr)
+               {
+                  continue;
+               }
             }
          }
 
@@ -478,17 +536,22 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
          ancillary.ttl = socket->ttl;
       }
 
+      //Set ToS field
+      if(message->tos != 0)
+      {
+         ancillary.tos = message->tos;
+      }
+      else
+      {
+         ancillary.tos = socket->tos;
+      }
+
       //This flag tells the stack that the destination is on a locally attached
       //network and not to perform a lookup of the routing table
       if((flags & SOCKET_FLAG_DONT_ROUTE) != 0)
       {
          ancillary.dontRoute = TRUE;
       }
-
-#if (IP_DIFF_SERV_SUPPORT == ENABLED)
-      //Set DSCP field
-      ancillary.dscp = socket->dscp;
-#endif
 
 #if (ETH_SUPPORT == ENABLED)
       //Set source and destination MAC addresses
@@ -578,6 +641,12 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
       //Valid source IP address?
       if(srcIpAddr != NULL && srcIpAddr->length == sizeof(Ipv4Addr))
       {
+         //Use default network interface?
+         if(interface == NULL)
+         {
+            interface = netGetDefaultInterface();
+         }
+
          //Copy the source IP address
          pseudoHeader.ipv4Data.srcAddr = srcIpAddr->ipv4Addr;
       }
@@ -633,6 +702,12 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
       //Valid source IP address?
       if(srcIpAddr != NULL && srcIpAddr->length == sizeof(Ipv6Addr))
       {
+         //Use default network interface?
+         if(interface == NULL)
+         {
+            interface = netGetDefaultInterface();
+         }
+
          //Copy the source IP address
          pseudoHeader.ipv6Data.srcAddr = srcIpAddr->ipv6Addr;
       }
@@ -749,6 +824,8 @@ error_t udpReceiveDatagram(Socket *socket, SocketMsg *message, uint_t flags)
 
       //Save TTL value
       message->ttl = queueItem->ancillary.ttl;
+      //Save ToS field
+      message->tos = queueItem->ancillary.tos;
 
 #if (ETH_SUPPORT == ENABLED)
       //Save source and destination MAC addresses
@@ -842,9 +919,13 @@ void udpUpdateEvents(Socket *socket)
    {
       //Handle link up and link down events
       if(socket->interface->linkState)
+      {
          socket->eventFlags |= SOCKET_EVENT_LINK_UP;
+      }
       else
+      {
          socket->eventFlags |= SOCKET_EVENT_LINK_DOWN;
+      }
    }
 
    //Mask unused events
@@ -963,7 +1044,7 @@ error_t udpDetachRxCallback(NetInterface *interface, uint16_t port)
 
 error_t udpInvokeRxCallback(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *header,
-   const NetBuffer *buffer, size_t offset, NetRxAncillary *ancillary)
+   const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary)
 {
    error_t error;
    uint_t i;

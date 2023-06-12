@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -71,11 +71,9 @@
 const NetTxAncillary NET_DEFAULT_TX_ANCILLARY =
 {
    0,       //Time-to-live value
+   0,       //Type-of-service value
    FALSE,   //Do not send the packet via a router
    FALSE,   //Do not add an IP Router Alert option
-#if (IP_DIFF_SERV_SUPPORT == ENABLED)
-   0,       //Differentiated services codepoint
-#endif
 #if (ETH_SUPPORT == ENABLED)
    {{{0}}}, //Source MAC address
    {{{0}}}, //Destination MAC address
@@ -102,6 +100,7 @@ const NetTxAncillary NET_DEFAULT_TX_ANCILLARY =
 const NetRxAncillary NET_DEFAULT_RX_ANCILLARY =
 {
    0,       //Time-to-live value
+   0,       //Type-of-service value
 #if (ETH_SUPPORT == ENABLED)
    {{{0}}}, //Source MAC address
    {{{0}}}, //Destination MAC address
@@ -523,7 +522,9 @@ void netTick(void)
    {
       //Loop through network interfaces
       for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
          autoIpTick(netInterface[i].autoIpContext);
+      }
 
       //Reset tick counter
       autoIpTickCounter = 0;
@@ -539,7 +540,9 @@ void netTick(void)
    {
       //Loop through network interfaces
       for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
          dhcpClientTick(netInterface[i].dhcpClientContext);
+      }
 
       //Reset tick counter
       dhcpClientTickCounter = 0;
@@ -555,7 +558,9 @@ void netTick(void)
    {
       //Loop through network interfaces
       for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
          dhcpServerTick(netInterface[i].dhcpServerContext);
+      }
 
       //Reset tick counter
       dhcpServerTickCounter = 0;
@@ -631,7 +636,9 @@ void netTick(void)
    {
       //Loop through network interfaces
       for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
          ndpRouterAdvTick(netInterface[i].ndpRouterAdvContext);
+      }
 
       //Reset tick counter
       ndpRouterAdvTickCounter = 0;
@@ -647,7 +654,9 @@ void netTick(void)
    {
       //Loop through network interfaces
       for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
          dhcpv6ClientTick(netInterface[i].dhcpv6ClientContext);
+      }
 
       //Reset tick counter
       dhcpv6ClientTickCounter = 0;
@@ -692,7 +701,9 @@ void netTick(void)
    {
       //Loop through network interfaces
       for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
          mdnsResponderTick(netInterface[i].mdnsResponderContext);
+      }
 
       //Reset tick counter
       mdnsResponderTickCounter = 0;
@@ -708,7 +719,9 @@ void netTick(void)
    {
       //Loop through network interfaces
       for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
          dnsSdTick(netInterface[i].dnsSdContext);
+      }
 
       //Reset tick counter
       dnsSdTickCounter = 0;

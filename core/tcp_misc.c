@@ -25,15 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL TCP_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
-#include <string.h>
 #include "core/net.h"
 #include "core/socket.h"
 #include "core/tcp.h"
@@ -71,6 +69,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    uint32_t ackNum, size_t length, bool_t addToQueue)
 {
    error_t error;
+   uint16_t mss;
    size_t offset;
    size_t totalLength;
    NetBuffer *buffer;
@@ -80,7 +79,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    NetTxAncillary ancillary;
 
    //Maximum segment size
-   uint16_t mss = HTONS(socket->rmss);
+   mss = HTONS(socket->rmss);
 
    //Allocate a memory buffer to hold the TCP segment
    buffer = ipAllocBuffer(TCP_MAX_HEADER_LENGTH, &offset);
@@ -97,7 +96,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    segment->seqNum = htonl(seqNum);
    segment->ackNum = (flags & TCP_FLAG_ACK) ? htonl(ackNum) : 0;
    segment->reserved1 = 0;
-   segment->dataOffset = 5;
+   segment->dataOffset = sizeof(TcpHeader) / 4;
    segment->flags = flags;
    segment->reserved2 = 0;
    segment->window = htons(socket->rcvWnd);
@@ -234,8 +233,13 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
       {
          //Point to the very first item
          queueItem = socket->retransmitQueue;
+
          //Reach the last item of the retransmission queue
-         while(queueItem->next) queueItem = queueItem->next;
+         while(queueItem->next != NULL)
+         {
+            queueItem = queueItem->next;
+         }
+
          //Create a new item
          queueItem->next = memPoolAlloc(sizeof(TcpQueueItem));
          //Point to the newly created item
@@ -255,6 +259,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
       queueItem->next = NULL;
       queueItem->length = length;
       queueItem->sacked = FALSE;
+
       //Save TCP header
       osMemcpy(queueItem->header, segment, segment->dataOffset * 4);
       //Save pseudo header
@@ -343,14 +348,14 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
 #endif
 
    //Send TCP segment
-   error = ipSendDatagram(socket->interface, &pseudoHeader, buffer, offset,
+   (void) ipSendDatagram(socket->interface, &pseudoHeader, buffer, offset,
       &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
 
-   //Return error code
-   return error;
+   //Successful processing
+   return NO_ERROR;
 }
 
 
@@ -369,7 +374,8 @@ error_t tcpSendResetSegment(Socket *socket, uint32_t seqNum)
    error = NO_ERROR;
 
    //Check current state
-   if(socket->state == TCP_STATE_SYN_RECEIVED ||
+   if(socket->state == TCP_STATE_SYN_SENT ||
+      socket->state == TCP_STATE_SYN_RECEIVED ||
       socket->state == TCP_STATE_ESTABLISHED ||
       socket->state == TCP_STATE_FIN_WAIT_1 ||
       socket->state == TCP_STATE_FIN_WAIT_2 ||
@@ -393,8 +399,8 @@ error_t tcpSendResetSegment(Socket *socket, uint32_t seqNum)
  * @return Error code
  **/
 
-error_t tcpRejectSegment(NetInterface *interface, IpPseudoHeader *pseudoHeader,
-   TcpHeader *segment, size_t length)
+error_t tcpRejectSegment(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const TcpHeader *segment, size_t length)
 {
    error_t error;
    size_t offset;
@@ -606,7 +612,7 @@ error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
  *   option is returned. Otherwise NULL pointer is returned
  **/
 
-TcpOption *tcpGetOption(TcpHeader *segment, uint8_t kind)
+const TcpOption *tcpGetOption(const TcpHeader *segment, uint8_t kind)
 {
    size_t i;
    size_t length;
@@ -708,7 +714,7 @@ uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
  * @return NO_ERROR if the incoming segment is acceptable, ERROR_FAILURE otherwise
  **/
 
-error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length)
+error_t tcpCheckSeqNum(Socket *socket, const TcpHeader *segment, size_t length)
 {
    bool_t acceptable;
 
@@ -799,7 +805,7 @@ error_t tcpCheckSeqNum(Socket *socket, TcpHeader *segment, size_t length)
  * @return ERROR_FAILURE if the SYN is in the window, NO_ERROR otherwise
  **/
 
-error_t tcpCheckSyn(Socket *socket, TcpHeader *segment, size_t length)
+error_t tcpCheckSyn(Socket *socket, const TcpHeader *segment, size_t length)
 {
    //Check whether the SYN bit is set
    if((segment->flags & TCP_FLAG_SYN) != 0)
@@ -833,13 +839,15 @@ error_t tcpCheckSyn(Socket *socket, TcpHeader *segment, size_t length)
  * @return NO_ERROR if the acknowledgment is acceptable, ERROR_FAILURE otherwise
  **/
 
-error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
+error_t tcpCheckAck(Socket *socket, const TcpHeader *segment, size_t length)
 {
+   bool_t duplicateFlag;
+   bool_t updateFlag;
+#if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
    uint_t n;
    uint_t ownd;
    uint_t thresh;
-   bool_t duplicateFlag;
-   bool_t updateFlag;
+#endif
 
    //If the ACK bit is off drop the segment and return
    if((segment->flags & TCP_FLAG_ACK) == 0)
@@ -874,6 +882,7 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
 
    //Check whether the ACK is a duplicate
    duplicateFlag = tcpIsDuplicateAck(socket, segment, length);
+   (void) duplicateFlag;
 
    //The send window should be updated
    tcpUpdateSendWindow(socket, segment);
@@ -899,9 +908,10 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
 
       //Compute retransmission timeout
       updateFlag = tcpComputeRto(socket);
+      (void) updateFlag;
 
-      //Any segments on the retransmission queue which are thereby
-      //entirely acknowledged are removed
+      //Any segments on the retransmission queue which are thereby entirely
+      //acknowledged are removed
       tcpUpdateRetransmitQueue(socket);
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
@@ -1043,8 +1053,8 @@ error_t tcpCheckAck(Socket *socket, TcpHeader *segment, size_t length)
  * @return TRUE if the SYN segment is duplicate, else FALSE
  **/
 
-bool_t tcpIsDuplicateSyn(Socket *socket, IpPseudoHeader *pseudoHeader,
-   TcpHeader *segment)
+bool_t tcpIsDuplicateSyn(Socket *socket, const IpPseudoHeader *pseudoHeader,
+   const TcpHeader *segment)
 {
    bool_t flag;
    TcpSynQueueItem *queueItem;
@@ -1119,7 +1129,8 @@ bool_t tcpIsDuplicateSyn(Socket *socket, IpPseudoHeader *pseudoHeader,
  * @return TRUE if the ACK is duplicate, else FALSE
  **/
 
-bool_t tcpIsDuplicateAck(Socket *socket, TcpHeader *segment, size_t length)
+bool_t tcpIsDuplicateAck(Socket *socket, const TcpHeader *segment,
+   size_t length)
 {
    bool_t flag;
 
@@ -1200,7 +1211,7 @@ void tcpFastRetransmit(Socket *socket)
  * @param[in] n Number of bytes acknowledged by the incoming ACK
  **/
 
-void tcpFastRecovery(Socket *socket, TcpHeader *segment, uint_t n)
+void tcpFastRecovery(Socket *socket, const TcpHeader *segment, uint_t n)
 {
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
    //Check whether this ACK acknowledges all of the data up to and including
@@ -1249,7 +1260,7 @@ void tcpFastRecovery(Socket *socket, TcpHeader *segment, uint_t n)
  * @param[in] segment Pointer to the incoming TCP segment
  **/
 
-void tcpFastLossRecovery(Socket *socket, TcpHeader *segment)
+void tcpFastLossRecovery(Socket *socket, const TcpHeader *segment)
 {
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
    //Check whether this ACK acknowledges all of the data up to and
@@ -1287,7 +1298,7 @@ void tcpFastLossRecovery(Socket *socket, TcpHeader *segment)
  * @param[in] length Length of the segment data
  **/
 
-void tcpProcessSegmentData(Socket *socket, TcpHeader *segment,
+void tcpProcessSegmentData(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length)
 {
    uint32_t leftEdge;
@@ -1570,7 +1581,7 @@ void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge
  * @param[in] segment Pointer to the incoming TCP segment
  **/
 
-void tcpUpdateSendWindow(Socket *socket, TcpHeader *segment)
+void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment)
 {
    //Case where neither the sequence nor the acknowledgment number is increased
    if(segment->seqNum == socket->sndWl1 && segment->ackNum == socket->sndWl2)
@@ -1639,8 +1650,10 @@ void tcpUpdateReceiveWindow(Socket *socket)
 
          //Update the receive window
          socket->rcvWnd += reduction;
+
          //Send an ACK segment to advertise the new window size
-         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt, 0, FALSE);
+         tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt,
+            0, FALSE);
       }
       else
       {
@@ -1852,6 +1865,9 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
    uint32_t n;
    uint32_t u;
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //The amount of data that can be sent at any given time is limited by the
    //receiver window and the congestion window
    n = MIN(socket->sndWnd, socket->txBufferSize);
@@ -1866,7 +1882,7 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
 
    //The Nagle algorithm discourages sending tiny segments when the data to be
    //sent increases in small increments
-   while(socket->sndUser > 0)
+   while(socket->sndUser > 0 && !error)
    {
       //The usable window size may become zero or negative, preventing packet
       //transmission
@@ -1886,13 +1902,10 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
             //Send TCP segment
             error = tcpSendSegment(socket, TCP_FLAG_PSH | TCP_FLAG_ACK,
                socket->sndNxt, socket->rcvNxt, n, TRUE);
-            //Failed to send TCP segment?
-            if(error)
-               return error;
          }
          else
          {
-            //We are done...
+            //We are done
             break;
          }
       }
@@ -1904,13 +1917,10 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
             //Send TCP segment
             error = tcpSendSegment(socket, TCP_FLAG_PSH | TCP_FLAG_ACK,
                socket->sndNxt, socket->rcvNxt, n, TRUE);
-            //Failed to send TCP segment?
-            if(error)
-               return error;
          }
          else
          {
-            //Prevent the sender from sending tiny segments...
+            //Prevent the sender from sending tiny segments
             break;
          }
       }
@@ -1922,9 +1932,6 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
             //Send TCP segment
             error = tcpSendSegment(socket, TCP_FLAG_PSH | TCP_FLAG_ACK,
                socket->sndNxt, socket->rcvNxt, n, TRUE);
-            //Failed to send TCP segment?
-            if(error)
-               return error;
          }
          //Or if all queued data can be sent now
          else if(socket->sndNxt == socket->sndUna && socket->sndUser <= u)
@@ -1932,9 +1939,6 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
             //Send TCP segment
             error = tcpSendSegment(socket, TCP_FLAG_PSH | TCP_FLAG_ACK,
                socket->sndNxt, socket->rcvNxt, n, TRUE);
-            //Failed to send TCP segment?
-            if(error)
-               return error;
          }
          //Or if at least a fraction of the maximum window can be sent
          else if(MIN(socket->sndUser, u) >= (socket->maxSndWnd / 2))
@@ -1942,30 +1946,31 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
             //Send TCP segment
             error = tcpSendSegment(socket, TCP_FLAG_PSH | TCP_FLAG_ACK,
                socket->sndNxt, socket->rcvNxt, n, TRUE);
-            //Failed to send TCP segment?
-            if(error)
-               return error;
          }
          else
          {
-            //Prevent the sender from sending tiny segments...
+            //Prevent the sender from sending tiny segments
             break;
          }
       }
 
-      //Advance SND.NXT pointer
-      socket->sndNxt += n;
-      //Update the number of data buffered but not yet sent
-      socket->sndUser -= n;
-      //Update the size of the usable window
-      u -= n;
+      //Check status code
+      if(!error)
+      {
+         //Advance SND.NXT pointer
+         socket->sndNxt += n;
+         //Update the number of data buffered but not yet sent
+         socket->sndUser -= n;
+         //Update the size of the usable window
+         u -= n;
+      }
    }
 
    //Check whether the transmitter can accept more data
    tcpUpdateEvents(socket);
 
-   //No error to report
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 

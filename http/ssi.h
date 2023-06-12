@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _SSI_H
@@ -48,10 +48,14 @@ error_t ssiProcessCommand(HttpConnection *connection,
 error_t ssiProcessIncludeCommand(HttpConnection *connection,
    const char_t *tag, size_t length, const char_t *uri, uint_t level);
 
-error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag, size_t length);
-error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag, size_t length);
+error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
+   size_t length);
 
-error_t ssiSearchTag(const char_t *s, size_t sLen, const char_t *tag, size_t tagLen, uint_t *pos);
+error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag,
+   size_t length);
+
+error_t ssiSearchTag(const char_t *s, size_t sLen, const char_t *tag,
+   size_t tagLen, size_t *pos);
 
 //C++ guard
 #ifdef __cplusplus

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _IPV6CP_H
@@ -62,25 +62,25 @@ typedef enum
  * @brief Interface-Identifier option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;       //0
    uint8_t length;     //1
    Eui64 interfaceId;  //2-9
-} __end_packed Ipv6cpInterfaceIdOption;
+} Ipv6cpInterfaceIdOption;
 
 
 /**
  * @brief IPv6-Compression-Protocol option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;      //0
    uint8_t length;    //1
    uint16_t protocol; //2-3
    uint8_t data[];    //4
-} __end_packed Ipv6cpIpCompProtocolOption;
+} Ipv6cpIpCompProtocolOption;
 
 
 //CodeWarrior or Win32 compiler?

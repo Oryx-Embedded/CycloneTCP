@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -259,6 +259,9 @@ error_t dhcpClientRelease(DhcpClientContext *context)
          context->state == DHCP_STATE_RENEWING ||
          context->state == DHCP_STATE_REBINDING)
       {
+         //Select a new transaction identifier
+         context->transactionId = netGenerateRand();
+
          //The client may choose to relinquish its lease on a network address
          //by sending a DHCPRELEASE message to the server
          dhcpClientSendRelease(context);

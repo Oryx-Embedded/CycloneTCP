@@ -1,6 +1,6 @@
 /**
  * @file snmp_agent_misc.c
-  * @brief Helper functions for SNMP agent
+ * @brief Helper functions for SNMP agent
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -70,7 +70,7 @@ error_t llmnrResolve(NetInterface *interface, const char_t *name,
    entry = dnsFindEntry(interface, name, type, HOST_NAME_RESOLVER_LLMNR);
 
    //Check whether a matching entry has been found
-   if(entry)
+   if(entry != NULL)
    {
       //Host name already resolved?
       if(entry->state == DNS_STATE_RESOLVED ||
@@ -103,8 +103,8 @@ error_t llmnrResolve(NetInterface *interface, const char_t *name,
       //Get an ephemeral port number
       entry->port = udpGetDynamicPort();
 
-      //An identifier is used by the LLMNR client to match replies
-      //with corresponding requests
+      //An identifier is used by the LLMNR client to match replies with
+      //corresponding requests
       entry->id = (uint16_t) netGenerateRand();
 
       //Callback function to be called when a LLMNR response is received
@@ -163,7 +163,7 @@ error_t llmnrResolve(NetInterface *interface, const char_t *name,
       entry = dnsFindEntry(interface, name, type, HOST_NAME_RESOLVER_LLMNR);
 
       //Check whether a matching entry has been found
-      if(entry)
+      if(entry != NULL)
       {
          //Host name successfully resolved?
          if(entry->state == DNS_STATE_RESOLVED)
@@ -267,7 +267,7 @@ error_t llmnrSendQuery(DnsCacheEntry *entry)
    message->tc = 0;
    message->t = 0;
    message->z = 0;
-   message->rcode = DNS_RCODE_NO_ERROR;
+   message->rcode = DNS_RCODE_NOERROR;
 
    //The LLMNR query contains one question
    message->qdcount = HTONS(1);
@@ -392,7 +392,7 @@ void llmnrProcessResponse(NetInterface *interface,
 
    //LLMNR messages received with non-zero response codes must be silently
    //ignored
-   if(message->rcode != DNS_RCODE_NO_ERROR)
+   if(message->rcode != DNS_RCODE_NOERROR)
       return;
 
    //LLMNR senders must silently discard LLMNR responses with QDCOUNT not
@@ -444,10 +444,17 @@ void llmnrProcessResponse(NetInterface *interface,
                break;
 
             //Check the type of the query
-            if(entry->type == HOST_TYPE_IPV4 && ntohs(question->qtype) != DNS_RR_TYPE_A)
+            if(entry->type == HOST_TYPE_IPV4 &&
+               ntohs(question->qtype) != DNS_RR_TYPE_A)
+            {
                break;
-            if(entry->type == HOST_TYPE_IPV6 && ntohs(question->qtype) != DNS_RR_TYPE_AAAA)
+            }
+
+            if(entry->type == HOST_TYPE_IPV6 &&
+               ntohs(question->qtype) != DNS_RR_TYPE_AAAA)
+            {
                break;
+            }
 
             //Point to the first answer
             pos += sizeof(DnsQuestion);

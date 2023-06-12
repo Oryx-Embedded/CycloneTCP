@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _IPV4_H
@@ -39,7 +39,6 @@ struct _Ipv4PseudoHeader;
 #define Ipv4PseudoHeader struct _Ipv4PseudoHeader
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/ethernet.h"
 #include "ipv4/ipv4_frag.h"
@@ -278,7 +277,7 @@ typedef uint32_t Ipv4Addr;
  * @brief IPv4 header
  **/
 
-__start_packed struct _Ipv4Header
+__packed_struct _Ipv4Header
 {
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
    uint8_t version : 4;      //0
@@ -297,33 +296,33 @@ __start_packed struct _Ipv4Header
    Ipv4Addr srcAddr;         //12-15
    Ipv4Addr destAddr;        //16-19
    uint8_t options[];        //20
-} __end_packed;
+};
 
 
 /**
  * @brief IPv4 pseudo header
  **/
 
-__start_packed struct _Ipv4PseudoHeader
+__packed_struct _Ipv4PseudoHeader
 {
    Ipv4Addr srcAddr;  //0-3
    Ipv4Addr destAddr; //4-7
    uint8_t reserved;  //8
    uint8_t protocol;  //9
    uint16_t length;   //10-11
-} __end_packed;
+};
 
 
 /**
  * @brief IPv4 option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;    //0
    uint8_t length;  //1
    uint8_t value[]; //2
-} __end_packed Ipv4Option;
+} Ipv4Option;
 
 
 //CodeWarrior or Win32 compiler?
@@ -368,6 +367,7 @@ typedef struct
 {
    size_t linkMtu;                                              ///<Maximum transmission unit
    bool_t isRouter;                                             ///<A flag indicating whether routing is enabled on this interface
+   uint8_t defaultTtl;                                          ///<Default time-to-live value
    bool_t enableEchoReq;                                        ///<Support for ICMP Echo Request messages
    bool_t enableBroadcastEchoReq;                               ///<Support for broadcast ICMP Echo Request messages
    uint16_t identification;                                     ///<IPv4 fragment identification field
@@ -382,6 +382,8 @@ typedef struct
 
 //IPv4 related functions
 error_t ipv4Init(NetInterface *interface);
+
+error_t ipv4SetDefaultTtl(NetInterface *interface, uint8_t ttl);
 
 error_t ipv4SetHostAddr(NetInterface *interface, Ipv4Addr addr);
 error_t ipv4SetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr addr);
@@ -414,12 +416,13 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
 void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    size_t offset, NetRxAncillary *ancillary);
 
-error_t ipv4SendDatagram(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
-
-error_t ipv4SendPacket(NetInterface *interface, Ipv4PseudoHeader *pseudoHeader,
-   uint16_t fragId, size_t fragOffset, NetBuffer *buffer, size_t offset,
+error_t ipv4SendDatagram(NetInterface *interface,
+   const Ipv4PseudoHeader *pseudoHeader, NetBuffer *buffer, size_t offset,
    NetTxAncillary *ancillary);
+
+error_t ipv4SendPacket(NetInterface *interface,
+   const Ipv4PseudoHeader *pseudoHeader, uint16_t fragId, size_t fragOffset,
+   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
 error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
 error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);

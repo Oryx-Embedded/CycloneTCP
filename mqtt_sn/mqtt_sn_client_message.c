@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -348,9 +348,13 @@ error_t mqttSnClientProcessRegister(MqttSnClientContext *context,
 
       //Check status code
       if(!error)
+      {
          returnCode = MQTT_SN_RETURN_CODE_ACCEPTED;
+      }
       else
+      {
          returnCode = MQTT_SN_RETURN_CODE_REJECTED_CONGESTION;
+      }
 
       //The client sends a REGACK message to acknowledge the receipt and
       //processing of a REGISTER message

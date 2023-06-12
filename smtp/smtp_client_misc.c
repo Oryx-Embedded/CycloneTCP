@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -105,11 +105,17 @@ error_t smtpClientSendCommand(SmtpClientContext *context,
       {
          //Determine whether more data should be collected
          if(context->replyLen != 0 && reply[context->replyLen - 1] == '\n')
+         {
             more = FALSE;
+         }
          else if(context->replyLen == (SMTP_CLIENT_BUFFER_SIZE - 1))
+         {
             more = FALSE;
+         }
          else
+         {
             more = TRUE;
+         }
 
          //Receive SMTP response
          if(more)

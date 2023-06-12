@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -41,17 +41,20 @@
 
 //Dependencies
 #include "core/net.h"
+#include "dhcpv6/dhcpv6_client.h"
+#include "dhcpv6/dhcpv6_relay.h"
 #include "dhcpv6/dhcpv6_common.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
-#if (IPV6_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && (DHCPV6_CLIENT_SUPPORT == ENABLED || \
+   DHCPV6_RELAY_SUPPORT == ENABLED))
 
-//All DHCPv6 relay agents and servers (FF02::1:2)
+//All DHCPv6 relay agents and servers (ff02::1:2)
 const Ipv6Addr DHCPV6_ALL_RELAY_AGENTS_AND_SERVERS_ADDR =
    IPV6_ADDR(0xFF02, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001, 0x0002);
 
-//All DHCPv6 servers (FF05::1:3)
+//All DHCPv6 servers (ff05::1:3)
 const Ipv6Addr DHCPV6_ALL_SERVERS_ADDR =
    IPV6_ADDR(0xFF05, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001, 0x0003);
 

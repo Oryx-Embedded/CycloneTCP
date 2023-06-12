@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -54,8 +54,8 @@
  **/
 
 void igmpSnoopingProcessMessage(IgmpSnoopingContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
-   size_t length, NetRxAncillary *ancillary)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length, const NetRxAncillary *ancillary)
 {
    //Check the ingress port the IGMP message was received on
    if(ancillary->port == 0)
@@ -110,8 +110,8 @@ void igmpSnoopingProcessMessage(IgmpSnoopingContext *context,
  **/
 
 void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
-   size_t length, NetRxAncillary *ancillary)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length, const NetRxAncillary *ancillary)
 {
    uint_t i;
    uint32_t portMap;
@@ -235,8 +235,8 @@ void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
  **/
 
 void igmpSnoopingProcessMembershipReport(IgmpSnoopingContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
-   size_t length, NetRxAncillary *ancillary)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length, const NetRxAncillary *ancillary)
 {
    uint32_t portMap;
    IgmpSnoopingGroup *group;
@@ -300,8 +300,8 @@ void igmpSnoopingProcessMembershipReport(IgmpSnoopingContext *context,
  **/
 
 void igmpSnoopingProcessLeaveGroup(IgmpSnoopingContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
-   size_t length, NetRxAncillary *ancillary)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length, const NetRxAncillary *ancillary)
 {
    uint32_t portMap;
    IgmpSnoopingGroup *group;
@@ -354,8 +354,8 @@ void igmpSnoopingProcessLeaveGroup(IgmpSnoopingContext *context,
  **/
 
 void igmpSnoopingProcessUnknownMessage(IgmpSnoopingContext *context,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
-   size_t length, NetRxAncillary *ancillary)
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length, const NetRxAncillary *ancillary)
 {
    uint32_t portMap;
 
@@ -385,7 +385,7 @@ void igmpSnoopingProcessUnknownMessage(IgmpSnoopingContext *context,
 
 error_t igmpSnoopingForwardMessage(IgmpSnoopingContext *context,
    uint32_t forwardPorts, const MacAddr *destMacAddr,
-   Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
    size_t length)
 {
    error_t error;

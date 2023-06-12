@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -191,7 +191,7 @@ error_t modbusServerStart(ModbusServerContext *context)
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket,
-        context->settings.interface);
+         context->settings.interface);
       //Any error to report?
       if(error)
          break;
@@ -285,8 +285,12 @@ error_t modbusServerStop(ModbusServerContext *context)
       //Loop through the connection table
       for(i = 0; i < MODBUS_SERVER_MAX_CONNECTIONS; i++)
       {
-         //Close client connection
-         modbusServerCloseConnection(&context->connection[i]);
+         //Check the state of the current connection
+         if(context->connection[i].state != MODBUS_CONNECTION_STATE_CLOSED)
+         {
+            //Close client connection
+            modbusServerCloseConnection(&context->connection[i]);
+         }
       }
 
       //Close listening socket

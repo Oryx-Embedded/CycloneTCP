@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -114,41 +114,6 @@ error_t dp83td510Init(NetInterface *interface)
 
 __weak_func void dp83td510InitHook(NetInterface *interface)
 {
-   //Errata
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0608, 0x003B);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0862, 0x39F8);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x081A, 0x67C0);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x081C, 0xFB62);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0830, 0x05A3);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0855, 0x1B55);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0831, 0x0403);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0856, 0x1800);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0857, 0x8FA0);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0871, 0x000C);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0883, 0x022E);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0402, 0x1800);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0878, 0x2248);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x010C, 0x0008);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0112, 0x1212);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0809, 0x5C80);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0803, 0x1529);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0804, 0x1A33);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0805, 0x1F3D);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0850, 0x045B);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0874, 0x6967);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0852, 0x7800);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0806, 0x1E1E);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0807, 0x2525);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0808, 0x2C2C);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0850, 0x0590);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0827, 0x4000);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0849, 0x0FE4);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x084B, 0x04B5);
-   dp83td510WriteMmdReg(interface, 0x1F, 0x0018, 0x0043);
-
-   //Restart auto-negotiation
-   dp83td510WriteMmdReg(interface, DP83TD510_AN_CONTROL,
-      DP83TD510_AN_CONTROL_MR_AN_ENABLE | DP83TD510_AN_CONTROL_MR_RESTART_AN);
 }
 
 

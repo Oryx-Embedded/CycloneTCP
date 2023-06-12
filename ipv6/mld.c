@@ -34,7 +34,7 @@
  * - RFC 3810: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -78,7 +78,7 @@ error_t mldInit(NetInterface *interface)
 
 error_t mldStartListening(NetInterface *interface, Ipv6FilterEntry *entry)
 {
-   //The link-scope all-nodes address (FF02::1) is handled as a special
+   //The link-scope all-nodes address (ff02::1) is handled as a special
    //case. The host starts in Idle Listener state for that address on
    //every interface and never transitions to another state
    if(ipv6CompAddr(&entry->addr, &IPV6_LINK_LOCAL_ALL_NODES_ADDR))
@@ -216,7 +216,7 @@ void mldLinkChangeEvent(NetInterface *interface)
          //Valid entry?
          if(entry->refCount > 0)
          {
-            //The link-scope all-nodes address (FF02::1) is handled as a special
+            //The link-scope all-nodes address (ff02::1) is handled as a special
             //case. The host starts in Idle Listener state for that address on
             //every interface and never transitions to another state
             if(!ipv6CompAddr(&entry->addr, &IPV6_LINK_LOCAL_ALL_NODES_ADDR))
@@ -265,8 +265,9 @@ void mldLinkChangeEvent(NetInterface *interface)
  * @param[in] hopLimit Hop Limit field from IPv6 header
  **/
 
-void mldProcessListenerQuery(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, uint8_t hopLimit)
+void mldProcessListenerQuery(NetInterface *interface,
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, uint8_t hopLimit)
 {
    uint_t i;
    size_t length;
@@ -317,7 +318,7 @@ void mldProcessListenerQuery(NetInterface *interface, Ipv6PseudoHeader *pseudoHe
       //Valid entry?
       if(entry->refCount > 0)
       {
-         //The link-scope all-nodes address (FF02::1) is handled as a special
+         //The link-scope all-nodes address (ff02::1) is handled as a special
          //case. The host starts in Idle Listener state for that address on
          //every interface and never transitions to another state
          if(!ipv6CompAddr(&entry->addr, &IPV6_LINK_LOCAL_ALL_NODES_ADDR))
@@ -368,8 +369,9 @@ void mldProcessListenerQuery(NetInterface *interface, Ipv6PseudoHeader *pseudoHe
  * @param[in] hopLimit Hop Limit field from IPv6 header
  **/
 
-void mldProcessListenerReport(NetInterface *interface, Ipv6PseudoHeader *pseudoHeader,
-   const NetBuffer *buffer, size_t offset, uint8_t hopLimit)
+void mldProcessListenerReport(NetInterface *interface,
+   const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, uint8_t hopLimit)
 {
    uint_t i;
    size_t length;
@@ -448,7 +450,7 @@ error_t mldSendListenerReport(NetInterface *interface, Ipv6Addr *ipAddr)
    if(!ipv6IsMulticastAddr(ipAddr))
       return ERROR_INVALID_ADDRESS;
 
-   //The link-scope all-nodes address (FF02::1) is handled as a special
+   //The link-scope all-nodes address (ff02::1) is handled as a special
    //case. The host never sends a report for that address
    if(ipv6CompAddr(ipAddr, &IPV6_LINK_LOCAL_ALL_NODES_ADDR))
       return ERROR_INVALID_ADDRESS;
@@ -534,7 +536,7 @@ error_t mldSendListenerDone(NetInterface *interface, Ipv6Addr *ipAddr)
    if(!ipv6IsMulticastAddr(ipAddr))
       return ERROR_INVALID_ADDRESS;
 
-   //The link-scope all-nodes address (FF02::1) is handled as a special
+   //The link-scope all-nodes address (ff02::1) is handled as a special
    //case. The host never sends a report for that address
    if(ipv6CompAddr(ipAddr, &IPV6_LINK_LOCAL_ALL_NODES_ADDR))
       return ERROR_INVALID_ADDRESS;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _IGMP_COMMON_H
@@ -161,13 +161,13 @@ typedef enum
  * @brief General IGMP message format
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t type;        //0
    uint8_t maxRespTime; //1
    uint16_t checksum;   //2-3
    Ipv4Addr groupAddr;  //4-7
-} __end_packed IgmpMessage;
+} IgmpMessage;
 
 
 //CodeWarrior or Win32 compiler?
@@ -187,8 +187,8 @@ error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
    const IgmpMessage *message, size_t length);
 
 void igmpProcessMessage(NetInterface *interface,
-   Ipv4PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, NetRxAncillary *ancillary);
+   const Ipv4PseudoHeader *pseudoHeader, const NetBuffer *buffer,
+   size_t offset, const NetRxAncillary *ancillary);
 
 void igmpDumpMessage(const IgmpMessage *message);
 

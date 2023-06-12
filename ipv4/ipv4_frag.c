@@ -34,7 +34,7 @@
  * - RFC 815: IP datagram reassembly algorithms
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -70,7 +70,7 @@ systime_t ipv4FragTickCounter;
  **/
 
 error_t ipv4FragmentDatagram(NetInterface *interface,
-   Ipv4PseudoHeader *pseudoHeader, uint16_t id, const NetBuffer *payload,
+   const Ipv4PseudoHeader *pseudoHeader, uint16_t id, const NetBuffer *payload,
    size_t payloadOffset, NetTxAncillary *ancillary)
 {
    error_t error;
@@ -341,6 +341,21 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       //some way
       if(dataFirst < holeLast && dataLast > holeFirst)
       {
+#if (IPV4_OVERLAPPING_FRAG_SUPPORT == DISABLED)
+         //Prevent overlapping fragment attacks (refer to RFC 8900, section 3.7)
+         if(dataFirst < holeFirst || dataLast > holeLast)
+         {
+            //Number of failures detected by the IP reassembly algorithm
+            MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
+            IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
+            IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+
+            //Drop the reconstructed datagram
+            netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+            //Exit immediately
+            return;
+         }
+#endif
          //The current descriptor is no longer valid. We will destroy it, and in
          //the next two steps, we will determine whether or not it is necessary
          //to create any new hole descriptors

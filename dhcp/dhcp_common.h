@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 #ifndef _DHCP_COMMON_H
@@ -202,7 +202,7 @@ typedef enum
  * @brief DHCP message
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t op;           //0
    uint8_t htype;        //1
@@ -221,19 +221,19 @@ typedef __start_packed struct
    uint8_t file[128];    //108-235
    uint32_t magicCookie; //236-239
    uint8_t options[];    //240
-} __end_packed DhcpMessage;
+} DhcpMessage;
 
 
 /**
  * @brief DHCP option
  **/
 
-typedef __start_packed struct
+typedef __packed_struct
 {
    uint8_t code;    //0
    uint8_t length;  //1
    uint8_t value[]; //2
-} __end_packed DhcpOption;
+} DhcpOption;
 
 
 //CodeWarrior or Win32 compiler?

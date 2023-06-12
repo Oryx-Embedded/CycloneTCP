@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -134,6 +134,10 @@ error_t netInit(void)
 #if (ETH_SUPPORT == ENABLED)
       //Default PHY address
       interface->phyAddr = UINT8_MAX;
+#endif
+#if (TCP_SUPPORT == ENABLED)
+      //Default TCP initial retransmission timeout
+      interface->initialRto = TCP_INITIAL_RTO;
 #endif
    }
 

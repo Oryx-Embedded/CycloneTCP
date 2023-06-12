@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -162,7 +162,7 @@ error_t pic32czEthInit(NetInterface *interface)
       GCLK_PCHCTRL_CHEN_Msk;
 
    //Wait for synchronization
-   while ((GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TX] & GCLK_PCHCTRL_CHEN_Msk) == 0)
+   while((GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TX] & GCLK_PCHCTRL_CHEN_Msk) == 0)
    {
    }
 
@@ -171,13 +171,21 @@ error_t pic32czEthInit(NetInterface *interface)
       GCLK_PCHCTRL_CHEN_Msk;
 
    //Wait for synchronization
-   while ((GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TSU] & GCLK_PCHCTRL_CHEN_Msk) == 0)
+   while((GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TSU] & GCLK_PCHCTRL_CHEN_Msk) == 0)
    {
    }
 
    //Enable ETH bus clocks (CLK_GMAC_APB and CLK_GMAC_AXI)
    MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_APB / 32]  |= (1U << (ETH_MCLK_ID_APB % 32));
    MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_AXI / 32]  |= (1U << (ETH_MCLK_ID_AXI % 32));
+
+   //Enable ETH module
+   ETH_REGS->ETH_CTRLA = ETH_CTRLA_ENABLE_Msk;
+
+   //Wait for synchronization
+   while(ETH_REGS->ETH_SYNCB != 0)
+   {
+   }
 
    //Disable transmit and receive circuits
    ETH_REGS->ETH_NCR = 0;
@@ -186,7 +194,7 @@ error_t pic32czEthInit(NetInterface *interface)
    pic32czEthInitGpio(interface);
 
    //Configure MDC clock speed
-   ETH_REGS->ETH_NCFGR = ETH_NCFGR_CLK(6);
+   ETH_REGS->ETH_NCFGR = ETH_NCFGR_DBW_Msk | ETH_NCFGR_CLK(6);
    //Enable management port (MDC and MDIO)
    ETH_REGS->ETH_NCR |= ETH_NCR_MPE_Msk;
 
@@ -266,6 +274,11 @@ error_t pic32czEthInit(NetInterface *interface)
 
    //Read ETH_ISR register to clear any pending interrupt
    status = ETH_REGS->ETH_ISR;
+   status = ETH_REGS->ETH_ISRQ[0];
+   status = ETH_REGS->ETH_ISRQ[1];
+   status = ETH_REGS->ETH_ISRQ[2];
+   status = ETH_REGS->ETH_ISRQ[3];
+   status = ETH_REGS->ETH_ISRQ[4];
    (void) status;
 
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
@@ -298,6 +311,10 @@ __weak_func void pic32czEthInitGpio(NetInterface *interface)
    defined(USE_PIC32CZ_CA90_CURIOSITY_ULTRA)
    uint32_t temp;
 
+   //Enable PORT bus clocks (CLK_PORT_APB and CLK_PORT_AHB)
+   MCLK_REGS->MCLK_CLKMSK[PORT_MCLK_ID_APB / 32]  |= (1U << (PORT_MCLK_ID_APB % 32));
+   MCLK_REGS->MCLK_CLKMSK[PORT_MCLK_ID_AHB / 32]  |= (1U << (PORT_MCLK_ID_AHB % 32));
+
    //Configure GTX1 (PA0)
    PORT_REGS->GROUP[0].PORT_PINCFG[0] |= PORT_PINCFG_PMUXEN_Msk;
    temp = PORT_REGS->GROUP[0].PORT_PMUX[0] & ~PORT_PMUX_PMUXE_Msk;
@@ -311,7 +328,7 @@ __weak_func void pic32czEthInitGpio(NetInterface *interface)
    //Configure GTXEN (PA2)
    PORT_REGS->GROUP[0].PORT_PINCFG[2] |= PORT_PINCFG_PMUXEN_Msk;
    temp = PORT_REGS->GROUP[0].PORT_PMUX[1] & ~PORT_PMUX_PMUXE_Msk;
-   PORT_REGS->GROUP[0].PORT_PMUX[1] = temp | PORT_PMUX_PMUXE(MUX_PA01K_ETH_TXD0);
+   PORT_REGS->GROUP[0].PORT_PMUX[1] = temp | PORT_PMUX_PMUXE(MUX_PA02K_ETH_TXEN);
 
    //Configure GMDC (PA3)
    PORT_REGS->GROUP[0].PORT_PINCFG[3] |= PORT_PINCFG_PMUXEN_Msk;
@@ -356,7 +373,7 @@ __weak_func void pic32czEthInitGpio(NetInterface *interface)
    //Configure GTXCK (PD5)
    PORT_REGS->GROUP[3].PORT_PINCFG[5] |= PORT_PINCFG_PMUXEN_Msk;
    temp = PORT_REGS->GROUP[3].PORT_PMUX[2] & ~PORT_PMUX_PMUXO_Msk;
-   PORT_REGS->GROUP[3].PORT_PMUX[2] = temp | PORT_PMUX_PMUXO(MUX_PD05K_ETH_TX_CLK);
+   PORT_REGS->GROUP[3].PORT_PMUX[2] = temp | PORT_PMUX_PMUXO(MUX_PD05L_ETH_GTX_CLK);
 
    //Configure GRX3 (PD6)
    PORT_REGS->GROUP[3].PORT_PINCFG[6] |= PORT_PINCFG_PMUXEN_Msk;
@@ -440,6 +457,30 @@ __weak_func void pic32czEthInitGpio(NetInterface *interface)
    while(ETH_REGS->ETH_SYNCB != 0)
    {
    }
+
+   //Configure CLK125_EN strapping pin
+   PORT_REGS->GROUP[0].PORT_PINCFG[5] |= PORT_PINCFG_PULLEN_Msk;
+   PORT_REGS->GROUP[0].PORT_OUTCLR = PORT_PA05;
+
+   //Configure MODE3 strapping pin
+   PORT_REGS->GROUP[3].PORT_PINCFG[6] |= PORT_PINCFG_PULLEN_Msk;
+   PORT_REGS->GROUP[3].PORT_OUTCLR = PORT_PD06;
+
+   //Configure MODE2 strapping pin
+   PORT_REGS->GROUP[3].PORT_PINCFG[7] |= PORT_PINCFG_PULLEN_Msk;
+   PORT_REGS->GROUP[3].PORT_OUTCLR = PORT_PD07;
+
+   //Configure MODE1 strapping pin
+   PORT_REGS->GROUP[3].PORT_PINCFG[10] |= PORT_PINCFG_PULLEN_Msk;
+   PORT_REGS->GROUP[3].PORT_OUTCLR = PORT_PD10;
+
+   //Configure MODE0 strapping pin
+   PORT_REGS->GROUP[3].PORT_PINCFG[11] |= PORT_PINCFG_PULLEN_Msk;
+   PORT_REGS->GROUP[3].PORT_OUTSET = PORT_PD11;
+
+   //Configure PHYAD2 strapping pin
+   PORT_REGS->GROUP[3].PORT_PINCFG[12] |= PORT_PINCFG_PULLEN_Msk;
+   PORT_REGS->GROUP[3].PORT_OUTSET = PORT_PD12;
 
    //Configure PHY_RESET (PB23) as an output
    PORT_REGS->GROUP[1].PORT_DIRSET = PORT_PB23;
@@ -645,15 +686,12 @@ void ETH_PRI_Q_0_Handler(void)
 
    //Each time the software reads ETH_ISR, it has to check the contents
    //of ETH_TSR, ETH_RSR and ETH_NSR
-   isr = ETH_REGS->ETH_ISRQ[0];
-   isr = ETH_REGS->ETH_ISRQ[1];
-   isr = ETH_REGS->ETH_ISRQ[2];
-   isr = ETH_REGS->ETH_ISRQ[3];
-   isr = ETH_REGS->ETH_ISRQ[4];
    isr = ETH_REGS->ETH_ISR;
    tsr = ETH_REGS->ETH_TSR;
    rsr = ETH_REGS->ETH_RSR;
-   (void) isr;
+
+   //Clear interrupt flags
+   ETH_REGS->ETH_ISR = isr;
 
    //Packet transmitted?
    if((tsr & (ETH_TSR_HRESP_Msk | ETH_TSR_UND_Msk |

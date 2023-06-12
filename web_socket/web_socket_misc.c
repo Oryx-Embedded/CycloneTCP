@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -679,9 +679,13 @@ error_t webSocketFormatClientHandshake(WebSocket *webSocket, uint16_t serverPort
 
    //Add Origin header field
    if(webSocket->origin[0] != '\0')
+   {
       p += osSprintf(p, "Origin: %s\r\n", webSocket->origin);
+   }
    else
+   {
       p += osSprintf(p, "Origin: null\r\n");
+   }
 
    //Add Upgrade header field
    p += osSprintf(p, "Upgrade: websocket\r\n");

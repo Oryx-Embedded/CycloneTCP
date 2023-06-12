@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -728,9 +728,13 @@ bool_t chapCheckPassword(PppContext *context, const char_t *password)
 
    //Check the resulting digest value
    if(!osMemcmp(md5Context.digest, context->chapFsm.response, MD5_DIGEST_SIZE))
+   {
       return TRUE;
+   }
    else
+   {
       return FALSE;
+   }
 }
 
 #endif

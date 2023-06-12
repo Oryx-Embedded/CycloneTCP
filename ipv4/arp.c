@@ -30,18 +30,18 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.4
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL ARP_TRACE_LEVEL
 
 //Dependencies
-#include <string.h>
 #include "core/net.h"
 #include "core/ethernet.h"
-#include "ipv4/ipv4_misc.h"
 #include "ipv4/arp.h"
+#include "ipv4/arp_cache.h"
+#include "ipv4/ipv4_misc.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -59,10 +59,49 @@ systime_t arpTickCounter;
 
 error_t arpInit(NetInterface *interface)
 {
+   //Enable ARP protocol
+   interface->enableArp = TRUE;
+
    //Initialize the ARP cache
    osMemset(interface->arpCache, 0, sizeof(interface->arpCache));
 
    //Successful initialization
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Enable address resolution using ARP
+ * @param[in] interface Underlying network interface
+ * @param[in] enable This flag specifies whether the host is allowed to send
+ *   ARP requests and respond to incoming ARP requests. When the flag is set
+ *   to FALSE, the host relies exclusively on static ARP entries to map IPv4
+ *   addresses into MAC addresses and silently drop incoming ARP requests
+ * @return Error code
+ **/
+
+error_t arpEnable(NetInterface *interface, bool_t enable)
+{
+   //Check parameters
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Enable or disable ARP protocol
+   interface->enableArp = enable;
+
+   //If ARP is disabled then flush dynamic entries from the ARP cache
+   if(!enable)
+   {
+      arpFlushCache(interface);
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -91,43 +130,46 @@ error_t arpAddStaticEntry(NetInterface *interface, Ipv4Addr ipAddr,
    //Search the ARP cache for the specified IPv4 address
    entry = arpFindEntry(interface, ipAddr);
 
-   //Check whether a static entry already exists in the ARP cache
-   if(entry != NULL && entry->state == ARP_STATE_PERMANENT)
+   //Check whether a matching entry exists
+   if(entry != NULL)
    {
-      //The entry already exists
-      error = NO_ERROR;
+      //Check the state of the ARP entry
+      if(entry->state == ARP_STATE_INCOMPLETE)
+      {
+         //Record the corresponding MAC address
+         entry->macAddr = *macAddr;
+         //Send all the packets that are pending for transmission
+         arpSendQueuedPackets(interface, entry);
+      }
    }
    else
    {
       //Create a new entry in the ARP cache
       entry = arpCreateEntry(interface);
+   }
 
-      //ARP cache entry successfully created?
-      if(entry != NULL)
-      {
-         //Record the IPv4 address and the corresponding MAC address
-         entry->ipAddr = ipAddr;
-         entry->macAddr = *macAddr;
+   //ARP cache entry successfully created?
+   if(entry != NULL)
+   {
+      //Record the IPv4 address and the corresponding MAC address
+      entry->ipAddr = ipAddr;
+      entry->macAddr = *macAddr;
 
-         //Save the time at which the entry was created
-         entry->timestamp = osGetSystemTime();
+      //Unused parameters
+      entry->timeout = 0;
+      entry->retransmitCount = 0;
+      entry->queueSize = 0;
 
-         //Unused parameters
-         entry->timeout = 0;
-         entry->retransmitCount = 0;
-         entry->queueSize = 0;
+      //Update entry state
+      arpChangeState(entry, ARP_STATE_PERMANENT);
 
-         //Update entry state
-         entry->state = ARP_STATE_PERMANENT;
-
-         //Successful processing
-         error = NO_ERROR;
-      }
-      else
-      {
-         //Failed to create ARP cache entry
-         error = ERROR_OUT_OF_RESOURCES;
-      }
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Failed to create ARP cache entry
+      error = ERROR_OUT_OF_RESOURCES;
    }
 
    //Release exclusive access
@@ -164,7 +206,7 @@ error_t arpRemoveStaticEntry(NetInterface *interface, Ipv4Addr ipAddr)
    if(entry != NULL && entry->state == ARP_STATE_PERMANENT)
    {
       //Delete ARP entry
-      entry->state = ARP_STATE_NONE;
+      arpChangeState(entry, ARP_STATE_NONE);
       //Successful processing
       error = NO_ERROR;
    }
@@ -179,204 +221,6 @@ error_t arpRemoveStaticEntry(NetInterface *interface, Ipv4Addr ipAddr)
 
    //Return status code
    return error;
-}
-
-
-/**
- * @brief Flush ARP cache
- * @param[in] interface Underlying network interface
- **/
-
-void arpFlushCache(NetInterface *interface)
-{
-   uint_t i;
-   ArpCacheEntry *entry;
-
-   //Loop through ARP cache entries
-   for(i = 0; i < ARP_CACHE_SIZE; i++)
-   {
-      //Point to the current entry
-      entry = &interface->arpCache[i];
-
-      //Check the state of the ARP entry
-      if(entry->state == ARP_STATE_PERMANENT)
-      {
-         //Static ARP entries are never updated
-      }
-      else
-      {
-         //Drop packets that are waiting for address resolution
-         arpFlushQueuedPackets(interface, entry);
-         //Delete ARP entry
-         entry->state = ARP_STATE_NONE;
-      }
-   }
-}
-
-
-/**
- * @brief Create a new entry in the ARP cache
- * @param[in] interface Underlying network interface
- * @return Pointer to the newly created entry
- **/
-
-ArpCacheEntry *arpCreateEntry(NetInterface *interface)
-{
-   uint_t i;
-   systime_t time;
-   ArpCacheEntry *entry;
-   ArpCacheEntry *oldestEntry;
-
-   //Get current time
-   time = osGetSystemTime();
-
-   //Keep track of the oldest entry
-   oldestEntry = NULL;
-
-   //Loop through ARP cache entries
-   for(i = 0; i < ARP_CACHE_SIZE; i++)
-   {
-      //Point to the current entry
-      entry = &interface->arpCache[i];
-
-      //Check the state of the ARP entry
-      if(entry->state == ARP_STATE_NONE)
-      {
-         //Initialize ARP entry
-         osMemset(entry, 0, sizeof(ArpCacheEntry));
-         //Return a pointer to the ARP entry
-         return entry;
-      }
-      else if(entry->state == ARP_STATE_PERMANENT)
-      {
-         //Static ARP entries are never updated
-      }
-      else
-      {
-         //Keep track of the oldest entry in the table
-         if(oldestEntry == NULL)
-         {
-            oldestEntry = entry;
-         }
-         else if((time - entry->timestamp) > (time - oldestEntry->timestamp))
-         {
-            oldestEntry = entry;
-         }
-      }
-   }
-
-   //Any entry available in the ARP cache?
-   if(oldestEntry != NULL)
-   {
-      //Drop any pending packets
-      arpFlushQueuedPackets(interface, oldestEntry);
-      //The oldest entry is removed whenever the table runs out of space
-      osMemset(oldestEntry, 0, sizeof(ArpCacheEntry));
-   }
-
-   //Return a pointer to the ARP entry
-   return oldestEntry;
-}
-
-
-/**
- * @brief Search the ARP cache for a given IPv4 address
- * @param[in] interface Underlying network interface
- * @param[in] ipAddr IPv4 address
- * @return A pointer to the matching ARP entry is returned. NULL is returned
- *   if the specified IPv4 address could not be found in ARP cache
- **/
-
-ArpCacheEntry *arpFindEntry(NetInterface *interface, Ipv4Addr ipAddr)
-{
-   uint_t i;
-   ArpCacheEntry *entry;
-
-   //Loop through ARP cache entries
-   for(i = 0; i < ARP_CACHE_SIZE; i++)
-   {
-      //Point to the current entry
-      entry = &interface->arpCache[i];
-
-      //Check whether the entry is currently in use
-      if(entry->state != ARP_STATE_NONE)
-      {
-         //Current entry matches the specified address?
-         if(entry->ipAddr == ipAddr)
-         {
-            return entry;
-         }
-      }
-   }
-
-   //No matching entry in ARP cache
-   return NULL;
-}
-
-
-/**
- * @brief Send packets that are waiting for address resolution
- * @param[in] interface Underlying network interface
- * @param[in] entry Pointer to a ARP cache entry
- **/
-
-void arpSendQueuedPackets(NetInterface *interface, ArpCacheEntry *entry)
-{
-   uint_t i;
-   size_t length;
-   ArpQueueItem *item;
-
-   //Check current state
-   if(entry->state == ARP_STATE_INCOMPLETE)
-   {
-      //Loop through the queued packets
-      for(i = 0; i < entry->queueSize; i++)
-      {
-         //Point to the current queue item
-         item = &entry->queue[i];
-
-         //Retrieve the length of the IPv4 packet
-         length = netBufferGetLength(item->buffer) - item->offset;
-         //Update IP statistics
-         ipv4UpdateOutStats(interface, entry->ipAddr, length);
-
-         //Send the IPv4 packet
-         ethSendFrame(interface, &entry->macAddr, ETH_TYPE_IPV4, item->buffer,
-            item->offset, &item->ancillary);
-
-         //Release memory buffer
-         netBufferFree(item->buffer);
-      }
-   }
-
-   //The queue is now empty
-   entry->queueSize = 0;
-}
-
-
-/**
- * @brief Flush packet queue
- * @param[in] interface Underlying network interface
- * @param[in] entry Pointer to a ARP cache entry
- **/
-
-void arpFlushQueuedPackets(NetInterface *interface, ArpCacheEntry *entry)
-{
-   uint_t i;
-
-   //Check current state
-   if(entry->state == ARP_STATE_INCOMPLETE)
-   {
-      //Drop packets that are waiting for address resolution
-      for(i = 0; i < entry->queueSize; i++)
-      {
-         //Release memory buffer
-         netBufferFree(entry->queue[i].buffer);
-      }
-   }
-
-   //The queue is now empty
-   entry->queueSize = 0;
 }
 
 
@@ -410,12 +254,10 @@ error_t arpResolve(NetInterface *interface, Ipv4Addr ipAddr, MacAddr *macAddr)
          //Copy the MAC address associated with the specified IPv4 address
          *macAddr = entry->macAddr;
 
-         //Start delay timer
-         entry->timestamp = osGetSystemTime();
          //Delay before sending the first probe
          entry->timeout = ARP_DELAY_FIRST_PROBE_TIME;
          //Switch to the DELAY state
-         entry->state = ARP_STATE_DELAY;
+         arpChangeState(entry, ARP_STATE_DELAY);
 
          //Successful address resolution
          error = NO_ERROR;
@@ -431,37 +273,44 @@ error_t arpResolve(NetInterface *interface, Ipv4Addr ipAddr, MacAddr *macAddr)
    }
    else
    {
-      //If no entry exists, then create a new one
-      entry = arpCreateEntry(interface);
-
-      //ARP cache entry successfully created?
-      if(entry != NULL)
+      //Check whether ARP is enabled
+      if(interface->enableArp)
       {
-         //Record the IPv4 address whose MAC address is unknown
-         entry->ipAddr = ipAddr;
+         //If no entry exists, then create a new one
+         entry = arpCreateEntry(interface);
 
-         //Reset retransmission counter
-         entry->retransmitCount = 0;
-         //No packet are pending in the transmit queue
-         entry->queueSize = 0;
+         //ARP cache entry successfully created?
+         if(entry != NULL)
+         {
+            //Record the IPv4 address whose MAC address is unknown
+            entry->ipAddr = ipAddr;
 
-         //Send an ARP request
-         arpSendRequest(interface, entry->ipAddr, &MAC_BROADCAST_ADDR);
+            //Reset retransmission counter
+            entry->retransmitCount = 0;
+            //No packet are pending in the transmit queue
+            entry->queueSize = 0;
 
-         //Save the time at which the packet was sent
-         entry->timestamp = osGetSystemTime();
-         //Set timeout value
-         entry->timeout = ARP_REQUEST_TIMEOUT;
-         //Enter INCOMPLETE state
-         entry->state = ARP_STATE_INCOMPLETE;
+            //Send an ARP request
+            arpSendRequest(interface, entry->ipAddr, &MAC_BROADCAST_ADDR);
 
-         //The address resolution is in progress
-         error = ERROR_IN_PROGRESS;
+            //Set timeout value
+            entry->timeout = ARP_REQUEST_TIMEOUT;
+            //Enter INCOMPLETE state
+            arpChangeState(entry, ARP_STATE_INCOMPLETE);
+
+            //The address resolution is in progress
+            error = ERROR_IN_PROGRESS;
+         }
+         else
+         {
+            //Failed to create ARP cache entry
+            error = ERROR_OUT_OF_RESOURCES;
+         }
       }
       else
       {
-         //Failed to create ARP cache entry
-         error = ERROR_OUT_OF_RESOURCES;
+         //ARP is disabled
+         error = ERROR_INVALID_ADDRESS;
       }
    }
 
@@ -612,8 +461,9 @@ void arpTick(NetInterface *interface)
             {
                //Drop packets that are waiting for address resolution
                arpFlushQueuedPackets(interface, entry);
+
                //The entry should be deleted since address resolution has failed
-               entry->state = ARP_STATE_NONE;
+               arpChangeState(entry, ARP_STATE_NONE);
             }
          }
       }
@@ -622,26 +472,31 @@ void arpTick(NetInterface *interface)
          //Periodically time out ARP cache entries
          if(timeCompare(time, entry->timestamp + entry->timeout) >= 0)
          {
-            //Save current time
-            entry->timestamp = osGetSystemTime();
             //Enter STALE state
-            entry->state = ARP_STATE_STALE;
+            arpChangeState(entry, ARP_STATE_STALE);
          }
+      }
+      else if(entry->state == ARP_STATE_STALE)
+      {
+         //The neighbor is no longer known to be reachable but until traffic
+         //is sent to the neighbor, no attempt should be made to verify its
+         //reachability
       }
       else if(entry->state == ARP_STATE_DELAY)
       {
          //Wait for the specified delay before sending the first probe
          if(timeCompare(time, entry->timestamp + entry->timeout) >= 0)
          {
+            //Reset retransmission counter
+            entry->retransmitCount = 0;
+
             //Send a point-to-point ARP request to the host
             arpSendRequest(interface, entry->ipAddr, &entry->macAddr);
 
-            //Save the time at which the packet was sent
-            entry->timestamp = time;
             //Set timeout value
             entry->timeout = ARP_PROBE_TIMEOUT;
             //Switch to the PROBE state
-            entry->state = ARP_STATE_PROBE;
+            arpChangeState(entry, ARP_STATE_PROBE);
          }
       }
       else if(entry->state == ARP_STATE_PROBE)
@@ -652,7 +507,8 @@ void arpTick(NetInterface *interface)
             //Increment retransmission counter
             entry->retransmitCount++;
 
-            //Check whether the maximum number of retransmissions has been exceeded
+            //Check whether the maximum number of retransmissions has been
+            //exceeded
             if(entry->retransmitCount < ARP_MAX_PROBES)
             {
                //Send a point-to-point ARP request to the host
@@ -665,15 +521,16 @@ void arpTick(NetInterface *interface)
             }
             else
             {
-               //The entry should be deleted since the host is not reachable anymore
-               entry->state = ARP_STATE_NONE;
+               //The entry should be deleted since the host is not reachable
+               //anymore
+               arpChangeState(entry, ARP_STATE_NONE);
             }
          }
       }
       else
       {
          //Just for sanity
-         entry->state = ARP_STATE_NONE;
+         arpChangeState(entry, ARP_STATE_NONE);
       }
    }
 }
@@ -860,7 +717,7 @@ void arpProcessRequest(NetInterface *interface, ArpPacket *arpRequest)
 
    //In all cases, the host must not respond to an ARP request for an address
    //being probed for
-   if(validTarget)
+   if(validTarget && interface->enableArp)
    {
       //Send ARP reply
       arpSendReply(interface, arpRequest->tpa, arpRequest->spa,
@@ -917,12 +774,10 @@ void arpProcessReply(NetInterface *interface, ArpPacket *arpReply)
          //Send all the packets that are pending for transmission
          arpSendQueuedPackets(interface, entry);
 
-         //Save current time
-         entry->timestamp = osGetSystemTime();
          //The validity of the ARP entry is limited in time
          entry->timeout = ARP_REACHABLE_TIME;
          //Switch to the REACHABLE state
-         entry->state = ARP_STATE_REACHABLE;
+         arpChangeState(entry, ARP_STATE_REACHABLE);
       }
       else if(entry->state == ARP_STATE_REACHABLE)
       {
@@ -930,7 +785,7 @@ void arpProcessReply(NetInterface *interface, ArpPacket *arpReply)
          if(!macCompAddr(&arpReply->sha, &entry->macAddr))
          {
             //Enter STALE state
-            entry->state = ARP_STATE_STALE;
+            arpChangeState(entry, ARP_STATE_STALE);
          }
       }
       else if(entry->state == ARP_STATE_PROBE)
@@ -939,12 +794,10 @@ void arpProcessReply(NetInterface *interface, ArpPacket *arpReply)
          entry->ipAddr = arpReply->spa;
          entry->macAddr = arpReply->sha;
 
-         //Save current time
-         entry->timestamp = osGetSystemTime();
          //The validity of the ARP entry is limited in time
          entry->timeout = ARP_REACHABLE_TIME;
          //Switch to the REACHABLE state
-         entry->state = ARP_STATE_REACHABLE;
+         arpChangeState(entry, ARP_STATE_REACHABLE);
       }
       else
       {
