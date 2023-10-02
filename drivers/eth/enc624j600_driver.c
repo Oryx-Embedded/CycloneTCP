@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -165,6 +165,9 @@ error_t enc624j600Init(NetInterface *interface)
    //Set RXEN to enable reception
    enc624j600SetBit(interface, ENC624J600_ECON1, ENC624J600_ECON1_RXEN);
 
+   //Perform custom configuration
+   enc624j600InitHook(interface);
+
    //Dump registers for debugging purpose
    enc624j600DumpReg(interface);
    enc624j600DumpPhyReg(interface);
@@ -179,6 +182,16 @@ error_t enc624j600Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief ENC624J600 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void enc624j600InitHook(NetInterface *interface)
+{
 }
 
 

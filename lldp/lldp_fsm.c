@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -128,7 +128,7 @@ void lldpFsm(LldpAgentContext *context)
 void lldpFsmError(LldpAgentContext *context)
 {
    //Debug message
-   TRACE_ERROR("LLDP finite state machine error!\r\n");
+   TRACE_ERROR("LLDP state machine error!\r\n");
 }
 
 #endif

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _AT32F4XX_ETH_DRIVER_H
@@ -210,7 +210,7 @@
 #define EMAC_DMA_STS_NIS        0x00010000
 #define EMAC_DMA_STS_AIS        0x00008000
 #define EMAC_DMA_STS_ERI        0x00004000
-#define EMAC_DMA_STS_BEI        0x00002000
+#define EMAC_DMA_STS_FBEI       0x00002000
 #define EMAC_DMA_STS_ETI        0x00000400
 #define EMAC_DMA_STS_RWT        0x00000200
 #define EMAC_DMA_STS_RPS        0x00000100

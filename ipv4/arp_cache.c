@@ -30,7 +30,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -135,6 +135,8 @@ ArpCacheEntry *arpCreateEntry(NetInterface *interface)
       //Drop any pending packets
       arpFlushQueuedPackets(interface, oldestEntry);
       //The oldest entry is removed whenever the table runs out of space
+      arpChangeState(oldestEntry, ARP_STATE_NONE);
+      //Initialize ARP entry
       osMemset(oldestEntry, 0, sizeof(ArpCacheEntry));
    }
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -168,6 +168,9 @@ error_t w6100Init(NetInterface *interface)
    w6100WriteReg8(interface, W6100_CTRL_BSB_COMMON_REG, W6100_SYCR1,
       W6100_SYCR1_IEN);
 
+   //Perform custom configuration
+   w6100InitHook(interface);
+
    //Dump registers for debugging purpose
    w6100DumpReg(interface);
 
@@ -181,6 +184,16 @@ error_t w6100Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief W6100 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void w6100InitHook(NetInterface *interface)
+{
 }
 
 

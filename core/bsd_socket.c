@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -1966,6 +1966,11 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
             //Get SO_KEEPALIVE option
             ret = socketGetSoKeepAliveOption(sock, optval, optlen);
          }
+         else if(optname == SO_TYPE)
+         {
+            //Get SO_TYPE option
+            ret = socketGetSoTypeOption(sock, optval, optlen);
+         }
          else if(optname == SO_ERROR)
          {
             //Get SO_ERROR option
@@ -2392,8 +2397,8 @@ int_t closesocket(int_t s)
  *   expired, or SOCKET_ERROR if an error occurred
  **/
 
-int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
-   fd_set *exceptfds, const struct timeval *timeout)
+int_t select(int_t nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+   const struct timeval *timeout)
 {
    int_t i;
    int_t j;

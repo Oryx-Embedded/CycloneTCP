@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -51,10 +51,10 @@ static uint8_t txBuffer[PIC32CK_ETH_TX_BUFFER_COUNT][PIC32CK_ETH_TX_BUFFER_SIZE]
 #pragma data_alignment = 8
 static uint8_t rxBuffer[PIC32CK_ETH_RX_BUFFER_COUNT][PIC32CK_ETH_RX_BUFFER_SIZE];
 //TX buffer descriptors
-#pragma data_alignment = 4
+#pragma data_alignment = 8
 static Pic32ckTxBufferDesc txBufferDesc[PIC32CK_ETH_TX_BUFFER_COUNT];
 //RX buffer descriptors
-#pragma data_alignment = 4
+#pragma data_alignment = 8
 static Pic32ckRxBufferDesc rxBufferDesc[PIC32CK_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
@@ -68,10 +68,10 @@ static uint8_t rxBuffer[PIC32CK_ETH_RX_BUFFER_COUNT][PIC32CK_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(8)));
 //TX buffer descriptors
 static Pic32ckTxBufferDesc txBufferDesc[PIC32CK_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(8)));
 //RX buffer descriptors
 static Pic32ckRxBufferDesc rxBufferDesc[PIC32CK_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(8)));
 
 #endif
 
@@ -123,9 +123,35 @@ error_t pic32ckEthInit(NetInterface *interface)
    //Save underlying network interface
    nicDriverInterface = interface;
 
+   //Enable CLK_ETH_TX core clock
+   GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TX] = GCLK_PCHCTRL_GEN_GCLK0 |
+      GCLK_PCHCTRL_CHEN_Msk;
+
+   //Wait for synchronization
+   while((GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TX] & GCLK_PCHCTRL_CHEN_Msk) == 0)
+   {
+   }
+
+   //Enable CLK_ETH_TSU core clock
+   GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TSU] = GCLK_PCHCTRL_GEN_GCLK0 |
+      GCLK_PCHCTRL_CHEN_Msk;
+
+   //Wait for synchronization
+   while((GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TSU] & GCLK_PCHCTRL_CHEN_Msk) == 0)
+   {
+   }
+
    //Enable ETH bus clocks (CLK_ETH_APB and CLK_ETH_AHB)
-   MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_APB / 32]  |= (1U << (ETH_MCLK_ID_APB % 32));
-   MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_AHB / 32]  |= (1U << (ETH_MCLK_ID_AHB % 32));
+   MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_APB / 32] |= (1U << (ETH_MCLK_ID_APB % 32));
+   MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_AHB / 32] |= (1U << (ETH_MCLK_ID_AHB % 32));
+
+   //Enable ETH module
+   ETH_REGS->ETH_CTRLA = ETH_CTRLA_ENABLE_Msk;
+
+   //Wait for synchronization
+   while(ETH_REGS->ETH_SYNCB != 0)
+   {
+   }
 
    //Disable transmit and receive circuits
    ETH_REGS->ETH_NCR = 0;
@@ -134,7 +160,7 @@ error_t pic32ckEthInit(NetInterface *interface)
    pic32ckEthInitGpio(interface);
 
    //Configure MDC clock speed
-   ETH_REGS->ETH_NCFGR = ETH_NCFGR_CLK(5);
+   ETH_REGS->ETH_NCFGR = ETH_NCFGR_DBW(1) | ETH_NCFGR_CLK(5);
    //Enable management port (MDC and MDIO)
    ETH_REGS->ETH_NCR |= ETH_NCR_MPE_Msk;
 
@@ -229,6 +255,72 @@ __weak_func void pic32ckEthInitGpio(NetInterface *interface)
 //PIC32CK GC01/SG01 Curiosity Ultra evaluation board?
 #if defined(USE_PIC32CK_GC01_CURIOSITY_ULTRA) || \
    defined(USE_PIC32CK_SG01_CURIOSITY_ULTRA)
+   uint32_t temp;
+
+   //Enable PORT bus clock (CLK_PORT_APB)
+   MCLK_REGS->MCLK_CLKMSK[PORT_MCLK_ID_APB / 32] |= (1U << (PORT_MCLK_ID_APB % 32));
+
+   //Configure ETH_REF_CLK (PC0)
+   PORT_REGS->GROUP[2].PORT_PINCFG[0] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[0] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[0] = temp | PORT_PMUX_PMUXE(MUX_PC00L_ETH_REF_CLK);
+
+   //Configure ETH_MDC (PC3)
+   PORT_REGS->GROUP[2].PORT_PINCFG[3] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[1] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[1] = temp | PORT_PMUX_PMUXO(MUX_PC03L_ETH_MDC);
+
+   //Configure ETH_MDIO (PC4)
+   PORT_REGS->GROUP[2].PORT_PINCFG[4] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[2] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[2] = temp | PORT_PMUX_PMUXE(MUX_PC04L_ETH_MDIO);
+
+   //Configure ETH_RXD1 (PC6)
+   PORT_REGS->GROUP[2].PORT_PINCFG[6] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[3] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[3] = temp | PORT_PMUX_PMUXE(MUX_PC06L_ETH_RXD1);
+
+   //Configure ETH_RXD0 (PC7)
+   PORT_REGS->GROUP[2].PORT_PINCFG[7] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[3] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[3] = temp | PORT_PMUX_PMUXO(MUX_PC07L_ETH_RXD0);
+
+   //Configure ETH_RXER (PC9)
+   PORT_REGS->GROUP[2].PORT_PINCFG[9] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[4] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[4] = temp | PORT_PMUX_PMUXO(MUX_PC09L_ETH_RXER);
+
+   //Configure ETH_RXDV (PC10)
+   PORT_REGS->GROUP[2].PORT_PINCFG[10] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[5] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[5] = temp | PORT_PMUX_PMUXE(MUX_PC10L_ETH_RXDV);
+
+   //Configure ETH_TXEN (PC11)
+   PORT_REGS->GROUP[2].PORT_PINCFG[11] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[5] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[5] = temp | PORT_PMUX_PMUXO(MUX_PC11L_ETH_TXEN);
+
+   //Configure ETH_TXD0 (PC12)
+   PORT_REGS->GROUP[2].PORT_PINCFG[12] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[6] & ~PORT_PMUX_PMUXE_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[6] = temp | PORT_PMUX_PMUXE(MUX_PC12L_ETH_TXD0);
+
+   //Configure ETH_TXD1 (PC13)
+   PORT_REGS->GROUP[2].PORT_PINCFG[13] |= PORT_PINCFG_PMUXEN_Msk;
+   temp = PORT_REGS->GROUP[2].PORT_PMUX[6] & ~PORT_PMUX_PMUXO_Msk;
+   PORT_REGS->GROUP[2].PORT_PMUX[6] = temp | PORT_PMUX_PMUXO(MUX_PC13L_ETH_TXD1);
+
+   //Select RMII operation mode
+   ETH_REGS->ETH_UR &= ~ETH_UR_MII_Msk;
+
+   //Configure PHY_RESET (PD21) as an output
+   PORT_REGS->GROUP[3].PORT_DIRSET = PORT_PD21;
+
+   //Reset PHY transceiver
+   PORT_REGS->GROUP[3].PORT_OUTCLR = PORT_PD21;
+   sleep(10);
+   PORT_REGS->GROUP[3].PORT_OUTSET = PORT_PD21;
+   sleep(10);
 #endif
 }
 
@@ -389,7 +481,9 @@ void ETH_Handler(void)
    isr = ETH_REGS->ETH_ISR;
    tsr = ETH_REGS->ETH_TSR;
    rsr = ETH_REGS->ETH_RSR;
-   (void) isr;
+
+   //Clear interrupt flags
+   ETH_REGS->ETH_ISR = isr;
 
    //Packet transmitted?
    if((tsr & (ETH_TSR_HRESP_Msk | ETH_TSR_UND_Msk |

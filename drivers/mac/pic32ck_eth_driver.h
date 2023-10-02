@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _PIC32CK_ETH_DRIVER_H
@@ -78,6 +78,11 @@
    #define PIC32CK_ETH_IRQ_SUB_PRIORITY 0
 #elif (PIC32CK_ETH_IRQ_SUB_PRIORITY < 0)
    #error PIC32CK_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#endif
+
+//ETH_UR register
+#ifndef ETH_UR_MII_Msk
+   #define ETH_UR_MII_Msk 0x00000001
 #endif
 
 //TX buffer descriptor flags

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -782,8 +782,12 @@ error_t socketBind(Socket *socket, const IpAddr *localIpAddr,
       return ERROR_INVALID_PARAMETER;
 
    //Make sure the socket type is correct
-   if(socket->type != SOCKET_TYPE_STREAM && socket->type != SOCKET_TYPE_DGRAM)
+   if(socket->type != SOCKET_TYPE_STREAM &&
+      socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
       return ERROR_INVALID_SOCKET;
+   }
 
    //Associate the specified IP address and port number
    socket->localIpAddr = *localIpAddr;

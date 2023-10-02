@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _IP_H
@@ -118,6 +118,7 @@ error_t ipSelectSourceAddr(NetInterface **interface, const IpAddr *destAddr,
 bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr);
 bool_t ipIsLinkLocalAddr(const IpAddr *ipAddr);
 bool_t ipIsMulticastAddr(const IpAddr *ipAddr);
+bool_t ipIsBroadcastAddr(const IpAddr *ipAddr);
 
 bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
 

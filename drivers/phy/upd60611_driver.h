@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _UPD60611_DRIVER_H
@@ -49,7 +49,7 @@
 #define UPD60611_ANAR                          0x04
 #define UPD60611_ANLPAR                        0x05
 #define UPD60611_ANER                          0x06
-#define UPD60611_ANNPR                         0x07
+#define UPD60611_ANNPTR                        0x07
 #define UPD60611_SRR                           0x10
 #define UPD60611_MCSR                          0x11
 #define UPD60611_SMR                           0x12
@@ -131,11 +131,11 @@
 #define UPD60611_ANER_LP_AN_ABLE               0x0001
 
 //Auto-Negotiation Next Page Transmit register
-#define UPD60611_ANNPR_NEXT_PAGE               0x8000
-#define UPD60611_ANNPR_MSG_PAGE                0x2000
-#define UPD60611_ANNPR_ACK2                    0x1000
-#define UPD60611_ANNPR_TOGGLE                  0x0800
-#define UPD60611_ANNPR_MESSAGE                 0x07FF
+#define UPD60611_ANNPTR_NEXT_PAGE              0x8000
+#define UPD60611_ANNPTR_MSG_PAGE               0x2000
+#define UPD60611_ANNPTR_ACK2                   0x1000
+#define UPD60611_ANNPTR_TOGGLE                 0x0800
+#define UPD60611_ANNPTR_MESSAGE                0x07FF
 
 //Silicon Revision register
 #define UPD60611_SRR_SILICON_REV               0x03C0

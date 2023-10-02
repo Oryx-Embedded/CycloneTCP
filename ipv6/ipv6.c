@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -2226,7 +2226,9 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
       {
          //First digit to be decoded?
          if(value < 0)
+         {
             value = 0;
+         }
 
          //Update the value of the current 16-bit word
          if(osIsdigit(*str))
@@ -2315,7 +2317,9 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
       {
          //Save the last 16-bit word of the IPv6 address
          if(value >= 0)
+         {
             ipAddr->w[i++] = htons(value);
+         }
 
          //Move the part of the address that follows the "::" symbol
          for(k = 0; k < (i - j); k++)

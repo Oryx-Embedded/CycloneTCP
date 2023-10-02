@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _LAN9250_DRIVER_H
@@ -765,6 +765,7 @@ extern const NicDriver lan9250Driver;
 
 //LAN9250 related functions
 error_t lan9250Init(NetInterface *interface);
+void lan9250InitHook(NetInterface *interface);
 
 void lan9250Tick(NetInterface *interface);
 

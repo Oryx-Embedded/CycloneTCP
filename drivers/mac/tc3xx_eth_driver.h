@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _TC3XX_ETH_DRIVER_H
@@ -100,6 +100,13 @@
 #define ETH_DMA_CH_INTERRUPT_ENABLE_TBUE 0x00000004
 #define ETH_DMA_CH_INTERRUPT_ENABLE_TXSE 0x00000002
 #define ETH_DMA_CH_INTERRUPT_ENABLE_TIE  0x00000001
+
+//MAC_ADDRESSi_HIGH register
+#define ETH_MAC_ADDRESS_HIGH_AE          0x80000000
+#define ETH_MAC_ADDRESS_HIGH_SA          0x40000000
+#define ETH_MAC_ADDRESS_HIGH_MBC         0x3F000000
+#define ETH_MAC_ADDRESS_HIGH_DCS         0x00030000
+#define ETH_MAC_ADDRESS_HIGH_ADDRHI      0x0000FFFF
 
 //Transmit normal descriptor (read format)
 #define ETH_TDES0_BUF1AP                 0xFFFFFFFF

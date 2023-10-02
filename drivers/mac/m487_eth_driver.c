@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -51,10 +51,10 @@ static uint8_t txBuffer[M487_ETH_TX_BUFFER_COUNT][M487_ETH_TX_BUFFER_SIZE];
 static uint8_t rxBuffer[M487_ETH_RX_BUFFER_COUNT][M487_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 4
-static Nuc472TxDmaDesc txDmaDesc[M487_ETH_TX_BUFFER_COUNT];
+static M487TxDmaDesc txDmaDesc[M487_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 4
-static Nuc472RxDmaDesc rxDmaDesc[M487_ETH_RX_BUFFER_COUNT];
+static M487RxDmaDesc rxDmaDesc[M487_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
 #else
@@ -66,10 +66,10 @@ static uint8_t txBuffer[M487_ETH_TX_BUFFER_COUNT][M487_ETH_TX_BUFFER_SIZE]
 static uint8_t rxBuffer[M487_ETH_RX_BUFFER_COUNT][M487_ETH_RX_BUFFER_SIZE]
    __attribute__((aligned(4)));
 //Transmit DMA descriptors
-static Nuc472TxDmaDesc txDmaDesc[M487_ETH_TX_BUFFER_COUNT]
+static M487TxDmaDesc txDmaDesc[M487_ETH_TX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 //Receive DMA descriptors
-static Nuc472RxDmaDesc rxDmaDesc[M487_ETH_RX_BUFFER_COUNT]
+static M487RxDmaDesc rxDmaDesc[M487_ETH_RX_BUFFER_COUNT]
    __attribute__((aligned(4)));
 
 #endif
@@ -237,7 +237,7 @@ __weak_func void m487EthInitGpio(NetInterface *interface)
    temp = (temp & ~SYS_GPC_MFPH_PC8MFP_Msk) | SYS_GPC_MFPH_PC8MFP_EMAC_RMII_REFCLK;
    SYS->GPC_MFPH = temp;
 
-   //Configure EMAC_RMII_MDC (PE.8) and EMAC_RMII_MDIO (PE.9),
+   //Configure EMAC_RMII_MDC (PE.8), EMAC_RMII_MDIO (PE.9),
    //EMAC_RMII_TXD0 (PE.10), EMAC_RMII_TXD1 (PE.11) and
    //EMAC_RMII_TXEN (PE.12)
    temp = SYS->GPE_MFPH;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _LAN8841_DRIVER_H
@@ -49,8 +49,8 @@
 #define LAN8841_ANAR                                       0x04
 #define LAN8841_ANLPAR                                     0x05
 #define LAN8841_ANER                                       0x06
-#define LAN8841_ANNPR                                      0x07
-#define LAN8841_ANLPNPR                                    0x08
+#define LAN8841_ANNPTR                                     0x07
+#define LAN8841_ANNPRR                                     0x08
 #define LAN8841_GBCR                                       0x09
 #define LAN8841_GBSR                                       0x0A
 #define LAN8841_MMDACR                                     0x0D
@@ -457,19 +457,19 @@
 #define LAN8841_ANER_LP_AN_ABLE                            0x0001
 
 //Auto-Negotiation Next Page TX register
-#define LAN8841_ANNPR_NEXT_PAGE                            0x8000
-#define LAN8841_ANNPR_MSG_PAGE                             0x2000
-#define LAN8841_ANNPR_ACK2                                 0x1000
-#define LAN8841_ANNPR_TOGGLE                               0x0800
-#define LAN8841_ANNPR_MESSAGE                              0x07FF
+#define LAN8841_ANNPTR_NEXT_PAGE                           0x8000
+#define LAN8841_ANNPTR_MSG_PAGE                            0x2000
+#define LAN8841_ANNPTR_ACK2                                0x1000
+#define LAN8841_ANNPTR_TOGGLE                              0x0800
+#define LAN8841_ANNPTR_MESSAGE                             0x07FF
 
 //Auto-Negotiation Next Page RX register
-#define LAN8841_ANLPNPR_NEXT_PAGE                          0x8000
-#define LAN8841_ANLPNPR_ACK                                0x4000
-#define LAN8841_ANLPNPR_MSG_PAGE                           0x2000
-#define LAN8841_ANLPNPR_ACK2                               0x1000
-#define LAN8841_ANLPNPR_TOGGLE                             0x0800
-#define LAN8841_ANLPNPR_MESSAGE                            0x07FF
+#define LAN8841_ANNPRR_NEXT_PAGE                           0x8000
+#define LAN8841_ANNPRR_ACK                                 0x4000
+#define LAN8841_ANNPRR_MSG_PAGE                            0x2000
+#define LAN8841_ANNPRR_ACK2                                0x1000
+#define LAN8841_ANNPRR_TOGGLE                              0x0800
+#define LAN8841_ANNPRR_MESSAGE                             0x07FF
 
 //Auto-Negotiation Master Slave Control register
 #define LAN8841_GBCR_TEST_MODE                             0xE000

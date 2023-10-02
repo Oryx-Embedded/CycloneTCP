@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -179,6 +179,9 @@ error_t dm9000Init(NetInterface *interface)
    dm9000WriteReg(DM9000_RCR, DM9000_RCR_DIS_LONG | DM9000_RCR_DIS_CRC |
       DM9000_RCR_RXEN);
 
+   //Perform custom configuration
+   dm9000InitHook(interface);
+
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
 
@@ -189,6 +192,16 @@ error_t dm9000Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief DM9000 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void dm9000InitHook(NetInterface *interface)
+{
 }
 
 

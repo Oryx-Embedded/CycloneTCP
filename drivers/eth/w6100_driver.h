@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _W6100_DRIVER_H
@@ -678,6 +678,7 @@ extern const NicDriver w6100Driver;
 
 //W6100 related functions
 error_t w6100Init(NetInterface *interface);
+void w6100InitHook(NetInterface *interface);
 
 void w6100Tick(NetInterface *interface);
 

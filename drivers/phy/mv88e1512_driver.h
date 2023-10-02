@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _MV88E1512_DRIVER_H
@@ -49,7 +49,7 @@
 #define MV88E1512_COPPER_ANAR                                 0x04
 #define MV88E1512_COPPER_ANLPAR                               0x05
 #define MV88E1512_COPPER_ANER                                 0x06
-#define MV88E1512_COPPER_ANNPR                                0x07
+#define MV88E1512_COPPER_ANNPTR                               0x07
 #define MV88E1512_COPPER_ANLPNPR                              0x08
 #define MV88E1512_GBCR                                        0x09
 #define MV88E1512_GBSR                                        0x0A
@@ -71,7 +71,7 @@
 #define MV88E1512_FIBER_ANAR                                  0x04
 #define MV88E1512_FIBER_ANLPAR                                0x05
 #define MV88E1512_FIBER_ANER                                  0x06
-#define MV88E1512_FIBER_ANNPR                                 0x07
+#define MV88E1512_FIBER_ANNPTR                                0x07
 #define MV88E1512_FIBER_ANLPNPR                               0x08
 #define MV88E1512_EXTENDED_STATUS                             0x0F
 #define MV88E1512_FIBER_CTRL1                                 0x10
@@ -187,11 +187,11 @@
 #define MV88E1512_COPPER_ANER_LP_AN_ABLE                      0x0001
 
 //Copper Next Page Transmit register
-#define MV88E1512_COPPER_ANNPR_NEXT_PAGE                      0x8000
-#define MV88E1512_COPPER_ANNPR_MSG_PAGE                       0x2000
-#define MV88E1512_COPPER_ANNPR_ACK2                           0x1000
-#define MV88E1512_COPPER_ANNPR_TOGGLE                         0x0800
-#define MV88E1512_COPPER_ANNPR_MESSAGE                        0x07FF
+#define MV88E1512_COPPER_ANNPTR_NEXT_PAGE                     0x8000
+#define MV88E1512_COPPER_ANNPTR_MSG_PAGE                      0x2000
+#define MV88E1512_COPPER_ANNPTR_ACK2                          0x1000
+#define MV88E1512_COPPER_ANNPTR_TOGGLE                        0x0800
+#define MV88E1512_COPPER_ANNPTR_MESSAGE                       0x07FF
 
 //Copper Link Partner Next Page register
 #define MV88E1512_COPPER_ANLPNPR_NEXT_PAGE                    0x8000
@@ -366,11 +366,11 @@
 #define MV88E1512_FIBER_ANER_LP_AN_ABLE                       0x0001
 
 //Fiber Next Page Transmit register
-#define MV88E1512_FIBER_ANNPR_NEXT_PAGE                       0x8000
-#define MV88E1512_FIBER_ANNPR_MSG_PAGE                        0x2000
-#define MV88E1512_FIBER_ANNPR_ACK2                            0x1000
-#define MV88E1512_FIBER_ANNPR_TOGGLE                          0x0800
-#define MV88E1512_FIBER_ANNPR_MESSAGE                         0x07FF
+#define MV88E1512_FIBER_ANNPTR_NEXT_PAGE                      0x8000
+#define MV88E1512_FIBER_ANNPTR_MSG_PAGE                       0x2000
+#define MV88E1512_FIBER_ANNPTR_ACK2                           0x1000
+#define MV88E1512_FIBER_ANNPTR_TOGGLE                         0x0800
+#define MV88E1512_FIBER_ANNPTR_MESSAGE                        0x07FF
 
 //Fiber Link Partner Next Page register
 #define MV88E1512_FIBER_ANLPNPR_NEXT_PAGE                     0x8000

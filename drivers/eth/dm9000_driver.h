@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _DM9000_DRIVER_H
@@ -550,6 +550,7 @@ extern const NicDriver dm9000Driver;
 
 //DM9000 related functions
 error_t dm9000Init(NetInterface *interface);
+void dm9000InitHook(NetInterface *interface);
 
 void dm9000Tick(NetInterface *interface);
 

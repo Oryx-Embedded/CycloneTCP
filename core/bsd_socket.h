@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -567,8 +567,8 @@ int_t fcntl(int_t s, int_t cmd, void *arg);
 int_t shutdown(int_t s, int_t how);
 int_t closesocket(int_t s);
 
-int_t select(int_t nfds, fd_set *readfds, fd_set *writefds,
-   fd_set *exceptfds, const struct timeval *timeout);
+int_t select(int_t nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+   const struct timeval *timeout);
 
 int_t gethostname(char_t *name, size_t len);
 struct hostent *gethostbyname(const char_t *name);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -218,12 +218,11 @@ error_t tc3xxEthInit(NetInterface *interface)
    MODULE_GETH.MAC_CONFIGURATION.B.PS = 1;
    MODULE_GETH.MAC_CONFIGURATION.B.DO = 1;
 
-   //Set the MAC address of the station
-   MODULE_GETH.MAC_ADDRESS_LOW0.U = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   MODULE_GETH.MAC_ADDRESS_HIGH0.U = interface->macAddr.w[2];
-
    //Configure the receive filter
    MODULE_GETH.MAC_PACKET_FILTER.U = 0;
+
+   //Configure MAC address filtering
+   tc3xxEthUpdateMacAddrFilter(interface);
 
    //Disable flow control
    MODULE_GETH.MAC_Q0_TX_FLOW_CTRL.U = 0;
@@ -582,8 +581,8 @@ void tc3xxEthIrqHandler(int_t arg)
    //Packet received?
    if((status & ETH_DMA_CH_STATUS_RI) != 0)
    {
-      //Disable RIE interrupt
-      MODULE_GETH.DMA_CH[0].INTERRUPT_ENABLE.B.RIE = 0;
+      //Clear RI interrupt flag
+      MODULE_GETH.DMA_CH[0].STATUS.U = ETH_DMA_CH_STATUS_RI;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -608,25 +607,14 @@ void tc3xxEthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if((MODULE_GETH.DMA_CH[0].STATUS.U & ETH_DMA_CH_STATUS_RI) != 0)
+   //Process all pending packets
+   do
    {
-      //Clear interrupt flag
-      MODULE_GETH.DMA_CH[0].STATUS.U = ETH_DMA_CH_STATUS_RI;
+      //Read incoming packet
+      error = tc3xxEthReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = tc3xxEthReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable DMA interrupts
-   MODULE_GETH.DMA_CH[0].INTERRUPT_ENABLE.U = ETH_DMA_CH_INTERRUPT_ENABLE_NIE |
-      ETH_DMA_CH_INTERRUPT_ENABLE_RIE | ETH_DMA_CH_INTERRUPT_ENABLE_TIE;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 
@@ -788,7 +776,10 @@ error_t tc3xxEthReceivePacket(NetInterface *interface)
 error_t tc3xxEthUpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
-   bool_t acceptMulticast;
+   uint_t j;
+   MacFilterEntry *entry;
+   volatile Ifx_GETH_MAC_ADDRESS_LOW *macAddressLow;
+   volatile Ifx_GETH_MAC_ADDRESS_HIGH *macAddressHigh;
 
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
@@ -797,31 +788,44 @@ error_t tc3xxEthUpdateMacAddrFilter(NetInterface *interface)
    MODULE_GETH.MAC_ADDRESS_LOW0.U = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
    MODULE_GETH.MAC_ADDRESS_HIGH0.U = interface->macAddr.w[2];
 
-   //This flag will be set if multicast addresses should be accepted
-   acceptMulticast = FALSE;
-
    //The MAC address filter contains the list of MAC addresses to accept
    //when receiving an Ethernet frame
-   for(i = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE && j < 31; i++)
    {
+      //Point to the current entry
+      entry = &interface->macAddrFilter[i];
+
       //Valid entry?
-      if(interface->macAddrFilter[i].refCount > 0)
+      if(entry->refCount > 0)
       {
-         //Accept multicast addresses
-         acceptMulticast = TRUE;
-         //We are done
-         break;
+         //The MAC_ADDRESSi_LOW register holds the lower 32 bits of the MAC address
+         macAddressLow = &MODULE_GETH.MAC_ADDRESS_LOW1 + 2 * j;
+         //The MAC_ADDRESSi_HIGH register holds the upper 16 bits of the MAC address
+         macAddressHigh = &MODULE_GETH.MAC_ADDRESS_HIGH1 + 2 * j;
+
+         //When the AE bit is set, the entry is used for perfect filtering
+         macAddressLow->U = entry->addr.w[0] | (entry->addr.w[1] << 16);
+         macAddressHigh->U = entry->addr.w[2] | ETH_MAC_ADDRESS_HIGH_AE;
+
+         //Next entry
+         j++;
       }
    }
 
-   //Enable or disable the reception of multicast frames
-   if(acceptMulticast)
+   //Clear unused entries
+   while(j < 31)
    {
-      MODULE_GETH.MAC_PACKET_FILTER.B.PM = 1;
-   }
-   else
-   {
-      MODULE_GETH.MAC_PACKET_FILTER.B.PM = 0;
+      //The MAC_ADDRESSi_LOW register holds the lower 32 bits of the MAC address
+      macAddressLow = &MODULE_GETH.MAC_ADDRESS_LOW1 + 2 * j;
+      //The MAC_ADDRESSi_HIGH register holds the upper 16 bits of the MAC address
+      macAddressHigh = &MODULE_GETH.MAC_ADDRESS_HIGH1 + 2 * j;
+
+      //When the AE bit is cleared, the entry is ignored
+      macAddressLow->U = 0;
+      macAddressHigh->U = 0;
+
+      //Next entry
+      j++;
    }
 
    //Successful processing

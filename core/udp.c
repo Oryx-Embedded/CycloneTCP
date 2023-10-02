@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -621,6 +621,10 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
    offset -= sizeof(UdpHeader);
    //Retrieve the length of the datagram
    length = netBufferGetLength(buffer) - offset;
+
+   //Check the length of the payload
+   if(length > UINT16_MAX)
+      return ERROR_INVALID_LENGTH;
 
    //Point to the UDP header
    header = netBufferAt(buffer, offset);

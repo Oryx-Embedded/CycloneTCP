@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _LAN8740_DRIVER_H
@@ -49,8 +49,8 @@
 #define LAN8740_ANAR                           0x04
 #define LAN8740_ANLPAR                         0x05
 #define LAN8740_ANER                           0x06
-#define LAN8740_ANNPR                          0x07
-#define LAN8740_ANLPNPR                        0x08
+#define LAN8740_ANNPTR                         0x07
+#define LAN8740_ANNPRR                         0x08
 #define LAN8740_MMDACR                         0x0D
 #define LAN8740_MMDAADR                        0x0E
 #define LAN8740_ENCTECR                        0x10
@@ -166,19 +166,19 @@
 #define LAN8740_ANER_LP_AN_ABLE                0x0001
 
 //Auto Negotiation Next Page TX register
-#define LAN8740_ANNPR_NEXT_PAGE                0x8000
-#define LAN8740_ANNPR_MSG_PAGE                 0x2000
-#define LAN8740_ANNPR_ACK2                     0x1000
-#define LAN8740_ANNPR_TOGGLE                   0x0800
-#define LAN8740_ANNPR_MESSAGE                  0x07FF
+#define LAN8740_ANNPTR_NEXT_PAGE               0x8000
+#define LAN8740_ANNPTR_MSG_PAGE                0x2000
+#define LAN8740_ANNPTR_ACK2                    0x1000
+#define LAN8740_ANNPTR_TOGGLE                  0x0800
+#define LAN8740_ANNPTR_MESSAGE                 0x07FF
 
 //Auto Negotiation Next Page RX register
-#define LAN8740_ANLPNPR_NEXT_PAGE              0x8000
-#define LAN8740_ANLPNPR_ACK                    0x4000
-#define LAN8740_ANLPNPR_MSG_PAGE               0x2000
-#define LAN8740_ANLPNPR_ACK2                   0x1000
-#define LAN8740_ANLPNPR_TOGGLE                 0x0800
-#define LAN8740_ANLPNPR_MESSAGE                0x07FF
+#define LAN8740_ANNPRR_NEXT_PAGE               0x8000
+#define LAN8740_ANNPRR_ACK                     0x4000
+#define LAN8740_ANNPRR_MSG_PAGE                0x2000
+#define LAN8740_ANNPRR_ACK2                    0x1000
+#define LAN8740_ANNPRR_TOGGLE                  0x0800
+#define LAN8740_ANNPRR_MESSAGE                 0x07FF
 
 //MMD Access Control register
 #define LAN8740_MMDACR_FUNC                    0xC000

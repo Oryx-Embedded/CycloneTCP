@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -1541,7 +1541,9 @@ error_t ipv4StringToAddr(const char_t *str, Ipv4Addr *ipAddr)
       {
          //First digit to be decoded?
          if(value < 0)
+         {
             value = 0;
+         }
 
          //Update the value of the current byte
          value = (value * 10) + (*str - '0');

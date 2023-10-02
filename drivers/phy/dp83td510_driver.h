@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _DP83TD510_DRIVER_H
@@ -171,6 +171,7 @@
 #define DP83TD510_MII_REG_3_MODEL_NUMBER                                 0x03E0
 #define DP83TD510_MII_REG_3_MODEL_NUMBER_DEFAULT                         0x0180
 #define DP83TD510_MII_REG_3_REVISION_NUMBER                              0x001F
+#define DP83TD510_MII_REG_3_REVISION_NUMBER_DEFAULT                      0x0001
 
 //Register Control register
 #define DP83TD510_REGCR_CMD                                              0xC000

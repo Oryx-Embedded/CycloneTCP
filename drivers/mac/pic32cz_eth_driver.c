@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -53,11 +53,11 @@ static uint8_t txBuffer[PIC32CZ_ETH_TX_BUFFER_COUNT][PIC32CZ_ETH_TX_BUFFER_SIZE]
 #pragma location = PIC32CZ_ETH_RAM_SECTION
 static uint8_t rxBuffer[PIC32CZ_ETH_RX_BUFFER_COUNT][PIC32CZ_ETH_RX_BUFFER_SIZE];
 //TX buffer descriptors
-#pragma data_alignment = 4
+#pragma data_alignment = 8
 #pragma location = PIC32CZ_ETH_RAM_SECTION
 static Pic32czTxBufferDesc txBufferDesc[PIC32CZ_ETH_TX_BUFFER_COUNT];
 //RX buffer descriptors
-#pragma data_alignment = 4
+#pragma data_alignment = 8
 #pragma location = PIC32CZ_ETH_RAM_SECTION
 static Pic32czRxBufferDesc rxBufferDesc[PIC32CZ_ETH_RX_BUFFER_COUNT];
 
@@ -70,11 +70,11 @@ static uint8_t dummyTxBuffer[PIC32CZ_ETH_DUMMY_BUFFER_COUNT][PIC32CZ_ETH_DUMMY_B
 #pragma location = PIC32CZ_ETH_RAM_SECTION
 static uint8_t dummyRxBuffer[PIC32CZ_ETH_DUMMY_BUFFER_COUNT][PIC32CZ_ETH_DUMMY_BUFFER_SIZE];
 //Dummy TX buffer descriptors
-#pragma data_alignment = 4
+#pragma data_alignment = 8
 #pragma location = PIC32CZ_ETH_RAM_SECTION
 static Pic32czTxBufferDesc dummyTxBufferDesc[PIC32CZ_ETH_DUMMY_BUFFER_COUNT];
 //Dummy RX buffer descriptors
-#pragma data_alignment = 4
+#pragma data_alignment = 8
 #pragma location = PIC32CZ_ETH_RAM_SECTION
 static Pic32czRxBufferDesc dummyRxBufferDesc[PIC32CZ_ETH_DUMMY_BUFFER_COUNT];
 
@@ -176,8 +176,8 @@ error_t pic32czEthInit(NetInterface *interface)
    }
 
    //Enable ETH bus clocks (CLK_GMAC_APB and CLK_GMAC_AXI)
-   MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_APB / 32]  |= (1U << (ETH_MCLK_ID_APB % 32));
-   MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_AXI / 32]  |= (1U << (ETH_MCLK_ID_AXI % 32));
+   MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_APB / 32] |= (1U << (ETH_MCLK_ID_APB % 32));
+   MCLK_REGS->MCLK_CLKMSK[ETH_MCLK_ID_AXI / 32] |= (1U << (ETH_MCLK_ID_AXI % 32));
 
    //Enable ETH module
    ETH_REGS->ETH_CTRLA = ETH_CTRLA_ENABLE_Msk;
@@ -194,7 +194,7 @@ error_t pic32czEthInit(NetInterface *interface)
    pic32czEthInitGpio(interface);
 
    //Configure MDC clock speed
-   ETH_REGS->ETH_NCFGR = ETH_NCFGR_DBW_Msk | ETH_NCFGR_CLK(6);
+   ETH_REGS->ETH_NCFGR = ETH_NCFGR_DBW(1) | ETH_NCFGR_CLK(6);
    //Enable management port (MDC and MDIO)
    ETH_REGS->ETH_NCR |= ETH_NCR_MPE_Msk;
 
@@ -312,8 +312,8 @@ __weak_func void pic32czEthInitGpio(NetInterface *interface)
    uint32_t temp;
 
    //Enable PORT bus clocks (CLK_PORT_APB and CLK_PORT_AHB)
-   MCLK_REGS->MCLK_CLKMSK[PORT_MCLK_ID_APB / 32]  |= (1U << (PORT_MCLK_ID_APB % 32));
-   MCLK_REGS->MCLK_CLKMSK[PORT_MCLK_ID_AHB / 32]  |= (1U << (PORT_MCLK_ID_AHB % 32));
+   MCLK_REGS->MCLK_CLKMSK[PORT_MCLK_ID_APB / 32] |= (1U << (PORT_MCLK_ID_APB % 32));
+   MCLK_REGS->MCLK_CLKMSK[PORT_MCLK_ID_AHB / 32] |= (1U << (PORT_MCLK_ID_AHB % 32));
 
    //Configure GTX1 (PA0)
    PORT_REGS->GROUP[0].PORT_PINCFG[0] |= PORT_PINCFG_PMUXEN_Msk;

@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -808,13 +808,26 @@ void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
    //Discard TCP options
    segment2.dataOffset = sizeof(TcpHeader) / 4;
 
-   //Simultaneous open attempt?
+   //Check the SYN bit
    if((segment->flags & TCP_FLAG_SYN) != 0 &&
       segment->seqNum == socket->irs)
    {
-      //When a SYN is present, then SEG.SEQ is the sequence number of the SYN
-      segment2.flags &= ~TCP_FLAG_SYN;
-      segment2.seqNum++;
+      //Check the ACK bit
+      if((segment->flags & TCP_FLAG_ACK) != 0)
+      {
+         //Simultaneous open attempt
+         segment2.flags &= ~TCP_FLAG_SYN;
+         segment2.seqNum++;
+      }
+      else
+      {
+         //A retransmitted SYN means our SYN ACK was lost
+         tcpSendSegment(socket, TCP_FLAG_SYN | TCP_FLAG_ACK, socket->iss,
+            socket->rcvNxt, 0, FALSE);
+
+         //We are done
+         return;
+      }
    }
 
    //First check sequence number

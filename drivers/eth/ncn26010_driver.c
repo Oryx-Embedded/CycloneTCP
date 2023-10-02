@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -112,6 +112,12 @@ error_t ncn26010Init(NetInterface *interface)
    TRACE_DEBUG("MMS0 registers:\r\n");
    ncn26010DumpReg(interface, NCN26010_MMS_STD, 0, 16);
 
+   //Configure DIO LEDs
+   ncn26010WriteReg(interface, NCN26010_DIOCFG,
+      NCN26010_DIOCFG_SLEW_RATE_1 | NCN26010_DIOCFG_FN1_LED_RX |
+      NCN26010_DIOCFG_VAL1 | NCN26010_DIOCFG_SLEW_RATE_0 |
+      NCN26010_DIOCFG_FN0_LED_TX | NCN26010_DIOCFG_VAL0);
+
 #if (NCN26010_PLCA_SUPPORT == ENABLED)
    //Set PLCA burst
    ncn26010WriteReg(interface, NCN26010_PLCABURST,
@@ -128,6 +134,9 @@ error_t ncn26010Init(NetInterface *interface)
    //Disable PLCA
    ncn26010WriteReg(interface, NCN26010_PLCACTRL0, 0);
 #endif
+
+   //Perform custom configuration
+   ncn26010InitHook(interface);
 
    //Configure the MAC for calculating and appending the FCS
    value = ncn26010ReadReg(interface, NCN26010_MACCTRL0);
@@ -178,12 +187,6 @@ error_t ncn26010Init(NetInterface *interface)
    value |= NCN26010_CONFIG0_SYNC;
    ncn26010WriteReg(interface, NCN26010_CONFIG0, value);
 
-   //Configure DIO LEDs
-   ncn26010WriteReg(interface, NCN26010_DIOCFG,
-      NCN26010_DIOCFG_SLEW_RATE_1 | NCN26010_DIOCFG_FN1_LED_RX |
-      NCN26010_DIOCFG_VAL1 | NCN26010_DIOCFG_SLEW_RATE_0 |
-      NCN26010_DIOCFG_FN0_LED_TX | NCN26010_DIOCFG_VAL0);
-
    //Enable TX and RX
    value = ncn26010ReadReg(interface, NCN26010_MACCTRL0);
    value |= NCN26010_MACCTRL0_TXEN | NCN26010_MACCTRL0_RXEN;
@@ -203,6 +206,16 @@ error_t ncn26010Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief NCN26010 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void ncn26010InitHook(NetInterface *interface)
+{
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -340,7 +340,7 @@ error_t lldpStart(LldpAgentContext *context)
       //Remove the LLDP multicast address from the static MAC table
       lldpDropMulticastAddr(context);
 
-      //Close the UDP socket
+      //Close the raw socket
       socketClose(context->socket);
       context->socket = NULL;
    }
@@ -382,7 +382,7 @@ error_t lldpStop(LldpAgentContext *context)
       //Remove the LLDP multicast address from the static MAC table
       lldpDropMulticastAddr(context);
 
-      //Close the UDP socket
+      //Close the raw socket
       socketClose(context->socket);
       context->socket = NULL;
    }

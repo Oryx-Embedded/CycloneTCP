@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _W5100S_DRIVER_H
@@ -604,6 +604,7 @@ extern const NicDriver w5100sDriver;
 
 //W5100S related functions
 error_t w5100sInit(NetInterface *interface);
+void w5100sInitHook(NetInterface *interface);
 
 void w5100sTick(NetInterface *interface);
 

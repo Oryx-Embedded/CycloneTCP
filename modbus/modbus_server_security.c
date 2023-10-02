@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -84,12 +84,12 @@ error_t modbusServerParseCertificate(TlsContext *tlsContext,
             return error;
 
          //Role OID extension found?
-         if(!oidComp(extension.oid, extension.oidLen, MODBUS_ROLE_OID,
+         if(!oidComp(extension.oid.value, extension.oid.length, MODBUS_ROLE_OID,
             sizeof(MODBUS_ROLE_OID)))
          {
             //Extract the client role OID from the certificate
-            error = modbusServerParseRoleOid(connection, extension.value,
-               extension.valueLen);
+            error = modbusServerParseRoleOid(connection, extension.data.value,
+               extension.data.length);
             //Any error to report?
             if(error)
                return error;

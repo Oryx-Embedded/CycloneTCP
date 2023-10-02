@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -152,21 +152,35 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
    //Check current TCP state
    if(socket->state == TCP_STATE_CLOSED && !socket->resetFlag)
    {
+      //Make sure the destination address is a valid unicast address
+      if(ipIsUnspecifiedAddr(remoteIpAddr) || ipIsMulticastAddr(remoteIpAddr) ||
+         ipIsBroadcastAddr(remoteIpAddr))
+      {
+         return ERROR_INVALID_ADDRESS;
+      }
+
+      //Broadcast and multicast addresses must not be used as source address
+      if(ipIsMulticastAddr(&socket->localIpAddr) ||
+         ipIsBroadcastAddr(&socket->localIpAddr))
+      {
+         return ERROR_INVALID_ADDRESS;
+      }
+
       //Save port number and IP address of the remote host
       socket->remoteIpAddr = *remoteIpAddr;
       socket->remotePort = remotePort;
 
-      //Select the source address and the relevant network interface to use
-      //when establishing the connection
-      error = ipSelectSourceAddr(&socket->interface,
-         &socket->remoteIpAddr, &socket->localIpAddr);
-      //Any error to report?
-      if(error)
-         return error;
-
-      //Make sure the source address is valid
+      //Unspecified source address?
       if(ipIsUnspecifiedAddr(&socket->localIpAddr))
-         return ERROR_NOT_CONFIGURED;
+      {
+         //Select the source address and the relevant network interface to use
+         //when establishing the connection
+         error = ipSelectSourceAddr(&socket->interface, &socket->remoteIpAddr,
+            &socket->localIpAddr);
+         //Any error to report?
+         if(error)
+            return error;
+      }
 
       //The user owns the socket
       socket->ownedFlag = TRUE;

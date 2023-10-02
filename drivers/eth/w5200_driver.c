@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -150,6 +150,9 @@ error_t w5200Init(NetInterface *interface)
    //Enable socket 0 interrupts
    w5200WriteReg8(interface, W5200_IMR, W5200_IMR_S0_IMR);
 
+   //Perform custom configuration
+   w5200InitHook(interface);
+
    //Dump registers for debugging purpose
    w5200DumpReg(interface);
 
@@ -163,6 +166,16 @@ error_t w5200Init(NetInterface *interface)
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief W5200 custom configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void w5200InitHook(NetInterface *interface)
+{
 }
 
 

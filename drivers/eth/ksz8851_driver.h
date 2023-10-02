@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _KSZ8851_DRIVER_H
@@ -522,6 +522,7 @@ extern const NicDriver ksz8851Driver;
 
 //KSZ8851 related functions
 error_t ksz8851Init(NetInterface *interface);
+void ksz8851InitHook(NetInterface *interface);
 
 void ksz8851Tick(NetInterface *interface);
 

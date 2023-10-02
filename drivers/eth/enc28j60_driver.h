@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _ENC28J60_DRIVER_H
@@ -484,6 +484,7 @@ extern const NicDriver enc28j60Driver;
 
 //ENC28J60 related functions
 error_t enc28j60Init(NetInterface *interface);
+void enc28j60InitHook(NetInterface *interface);
 
 void enc28j60Tick(NetInterface *interface);
 

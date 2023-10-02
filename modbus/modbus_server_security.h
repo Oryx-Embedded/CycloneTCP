@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _MODBUS_SERVER_SECURITY_H
@@ -41,6 +41,7 @@
    #include "encoding/asn1.h"
    #include "encoding/oid.h"
    #include "pkix/x509_cert_parse.h"
+   #include "pkix/x509_cert_ext_parse.h"
 #endif
 
 //C++ guard

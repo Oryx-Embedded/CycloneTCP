@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -55,7 +55,6 @@ Socket *socketAllocate(uint_t type, uint_t protocol)
    uint_t i;
    uint16_t port;
    Socket *socket;
-   OsEvent event;
 
    //Initialize socket handle
    socket = NULL;
@@ -134,12 +133,11 @@ Socket *socketAllocate(uint_t type, uint_t protocol)
          //Save socket descriptor
          i = socket->descriptor;
 
-         //Save event object instance
-         osMemcpy(&event, &socket->event, sizeof(OsEvent));
-         //Clear associated structure
-         osMemset(socket, 0, sizeof(Socket));
-         //Reuse event objects and avoid recreating them whenever possible
-         osMemcpy(&socket->event, &event, sizeof(OsEvent));
+         //Clear the structure keeping the event field untouched
+         osMemset(socket, 0, offsetof(Socket, event));
+
+         osMemset((uint8_t *) socket + offsetof(Socket, event) + sizeof(OsEvent),
+            0, sizeof(Socket) - offsetof(Socket, event) - sizeof(OsEvent));
 
          //Save socket characteristics
          socket->descriptor = i;

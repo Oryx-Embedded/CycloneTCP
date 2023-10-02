@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _W5200_DRIVER_H
@@ -592,6 +592,7 @@ extern const NicDriver w5200Driver;
 
 //W5200 related functions
 error_t w5200Init(NetInterface *interface);
+void w5200InitHook(NetInterface *interface);
 
 void w5200Tick(NetInterface *interface);
 

@@ -1,6 +1,6 @@
 /**
- * @file lan8561_driver.c
- * @brief LAN8561 10Base-T1S Ethernet controller
+ * @file lan8651_driver.c
+ * @brief LAN8651 10Base-T1S Ethernet controller
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -33,25 +33,25 @@
 
 //Dependencies
 #include "core/net.h"
-#include "drivers/eth/lan8561_driver.h"
+#include "drivers/eth/lan8651_driver.h"
 #include "debug.h"
 
 
 /**
- * @brief LAN8561 driver
+ * @brief LAN8651 driver
  **/
 
-const NicDriver lan8561Driver =
+const NicDriver lan8651Driver =
 {
    NIC_TYPE_ETHERNET,
    ETH_MTU,
-   lan8561Init,
-   lan8561Tick,
-   lan8561EnableIrq,
-   lan8561DisableIrq,
-   lan8561EventHandler,
-   lan8561SendPacket,
-   lan8561UpdateMacAddrFilter,
+   lan8651Init,
+   lan8651Tick,
+   lan8651EnableIrq,
+   lan8651DisableIrq,
+   lan8651EventHandler,
+   lan8651SendPacket,
+   lan8651UpdateMacAddrFilter,
    NULL,
    NULL,
    NULL,
@@ -63,17 +63,17 @@ const NicDriver lan8561Driver =
 
 
 /**
- * @brief LAN8561 controller initialization
+ * @brief LAN8651 controller initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t lan8561Init(NetInterface *interface)
+error_t lan8651Init(NetInterface *interface)
 {
    uint32_t value;
 
    //Debug message
-   TRACE_INFO("Initializing LAN8561 Ethernet controller...\r\n");
+   TRACE_INFO("Initializing LAN8651 Ethernet controller...\r\n");
 
    //Initialize SPI interface
    interface->spiDriver->init();
@@ -85,75 +85,78 @@ error_t lan8561Init(NetInterface *interface)
    }
 
    //Issue a device reset
-   lan8561WriteReg(interface, LAN8561_OA_RESET, LAN8561_OA_RESET_SWRESET);
+   lan8651WriteReg(interface, LAN8651_OA_RESET, LAN8651_OA_RESET_SWRESET);
 
    //Wait for the reset to complete
    do
    {
       //Read reset control and status register
-      value = lan8561ReadReg(interface, LAN8561_OA_RESET);
+      value = lan8651ReadReg(interface, LAN8651_OA_RESET);
 
       //The SWRESET self-clears when the reset finishes
-   } while((value & LAN8561_OA_RESET_SWRESET) != 0);
+   } while((value & LAN8651_OA_RESET_SWRESET) != 0);
 
    //Read the STATUS0 register and confirm that the RESETC field is 1
    do
    {
       //Read the status register 0
-      value = lan8561ReadReg(interface, LAN8561_OA_STATUS0);
+      value = lan8651ReadReg(interface, LAN8651_OA_STATUS0);
 
       //Check the value of the RESETC bit
-   } while((value & LAN8561_OA_STATUS0_RESETC) == 0);
+   } while((value & LAN8651_OA_STATUS0_RESETC) == 0);
 
    //Write 1 to the RESETC field in the STATUS0 register to clear this field
-   lan8561WriteReg(interface, LAN8561_OA_STATUS0, LAN8561_OA_STATUS0_RESETC);
+   lan8651WriteReg(interface, LAN8651_OA_STATUS0, LAN8651_OA_STATUS0_RESETC);
 
    //Dump MMS0 registers for debugging purpose
    TRACE_DEBUG("MMS0 registers:\r\n");
-   lan8561DumpReg(interface, LAN8561_MMS_STD, 0, 16);
+   lan8651DumpReg(interface, LAN8651_MMS_STD, 0, 16);
 
    //Configuration process
-   lan8561Config(interface);
+   lan8651Config(interface);
 
-#if (LAN8561_PLCA_SUPPORT == ENABLED)
+#if (LAN8651_PLCA_SUPPORT == ENABLED)
    //Set PLCA burst
-   lan8561WriteReg(interface, LAN8561_PLCA_BURST,
-      LAN8561_PLCA_BURST_MAXBC_DEFAULT | LAN8561_PLCA_BURST_BTMR_DEFAULT);
+   lan8651WriteReg(interface, LAN8651_PLCA_BURST,
+      LAN8651_PLCA_BURST_MAXBC_DEFAULT | LAN8651_PLCA_BURST_BTMR_DEFAULT);
 
    //Set PLCA node count and local ID
-   lan8561WriteReg(interface, LAN8561_PLCA_CTRL1,
-      ((LAN8561_NODE_COUNT << 8) & LAN8561_PLCA_CTRL1_NCNT) |
-      (LAN8561_LOCAL_ID & LAN8561_PLCA_CTRL1_ID));
+   lan8651WriteReg(interface, LAN8651_PLCA_CTRL1,
+      ((LAN8651_NODE_COUNT << 8) & LAN8651_PLCA_CTRL1_NCNT) |
+      (LAN8651_LOCAL_ID & LAN8651_PLCA_CTRL1_ID));
 
    //Enable PLCA
-   lan8561WriteReg(interface, LAN8561_PLCA_CTRL0, LAN8561_PLCA_CTRL0_EN);
+   lan8651WriteReg(interface, LAN8651_PLCA_CTRL0, LAN8651_PLCA_CTRL0_EN);
 #else
    //Disable PLCA
-   lan8561WriteReg(interface, LAN8561_PLCA_CTRL0, 0);
+   lan8651WriteReg(interface, LAN8651_PLCA_CTRL0, 0);
 #endif
 
+   //Perform custom configuration
+   lan8651InitHook(interface);
+
    //Configure MAC address filtering
-   lan8561UpdateMacAddrFilter(interface);
+   lan8651UpdateMacAddrFilter(interface);
 
    //Configure the receive filter
-   lan8561WriteReg(interface, LAN8561_MAC_NCFGR, LAN8561_MAC_NCFGR_MAXFS |
-      LAN8561_MAC_NCFGR_MTIHEN);
+   lan8651WriteReg(interface, LAN8651_MAC_NCFGR, LAN8651_MAC_NCFGR_MAXFS |
+      LAN8651_MAC_NCFGR_MTIHEN);
 
    //Configure the SPI protocol engine
-   lan8561WriteReg(interface, LAN8561_OA_CONFIG0,
-      LAN8561_OA_CONFIG0_RFA_CSARFE | LAN8561_OA_CONFIG0_TXCTHRESH_16_CREDITS |
-      LAN8561_OA_CONFIG0_CPS_64_BYTES);
+   lan8651WriteReg(interface, LAN8651_OA_CONFIG0,
+      LAN8651_OA_CONFIG0_RFA_CSARFE | LAN8651_OA_CONFIG0_TXCTHRESH_16_CREDITS |
+      LAN8651_OA_CONFIG0_CPS_64_BYTES);
 
    //When the MAC is configured, write 1 to the SYNC field in the CONFIG0
    //register to indicate that the MAC configuration is complete
-   value = lan8561ReadReg(interface, LAN8561_OA_CONFIG0);
-   value |= LAN8561_OA_CONFIG0_SYNC;
-   lan8561WriteReg(interface, LAN8561_OA_CONFIG0, value);
+   value = lan8651ReadReg(interface, LAN8651_OA_CONFIG0);
+   value |= LAN8651_OA_CONFIG0_SYNC;
+   lan8651WriteReg(interface, LAN8651_OA_CONFIG0, value);
 
    //Enable TX and RX
-   value = lan8561ReadReg(interface, LAN8561_MAC_NCR);
-   value |= LAN8561_MAC_NCR_TXEN | LAN8561_MAC_NCR_RXEN;
-   lan8561WriteReg(interface, LAN8561_MAC_NCR, value);
+   value = lan8651ReadReg(interface, LAN8651_MAC_NCR);
+   value |= LAN8651_MAC_NCR_TXEN | LAN8651_MAC_NCR_RXEN;
+   lan8651WriteReg(interface, LAN8651_MAC_NCR, value);
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -169,11 +172,21 @@ error_t lan8561Init(NetInterface *interface)
 
 
 /**
- * @brief LAN8561 controller configuration
+ * @brief LAN8651 custom configuration
  * @param[in] interface Underlying network interface
  **/
 
-void lan8561Config(NetInterface *interface)
+__weak_func void lan8651InitHook(NetInterface *interface)
+{
+}
+
+
+/**
+ * @brief LAN8651 controller configuration
+ * @param[in] interface Underlying network interface
+ **/
+
+void lan8651Config(NetInterface *interface)
 {
    int8_t value1;
    int8_t value2;
@@ -191,13 +204,13 @@ void lan8561Config(NetInterface *interface)
    uint16_t param5;
 
    //The configuration process begins with reading some registers
-   value1 = lan8561ReadIndirectReg(interface, 0x04);
-   value2 = lan8561ReadIndirectReg(interface, 0x08);
-   value3 = lan8561ReadReg(interface, 0x04, 0x0084);
-   value4 = lan8561ReadReg(interface, 0x04, 0x008A);
-   value5 = lan8561ReadReg(interface, 0x04, 0x00AD);
-   value6 = lan8561ReadReg(interface, 0x04, 0x00AE);
-   value7 = lan8561ReadReg(interface, 0x04, 0x00AF);
+   value1 = lan8651ReadIndirectReg(interface, 0x04);
+   value2 = lan8651ReadIndirectReg(interface, 0x08);
+   value3 = lan8651ReadReg(interface, 0x04, 0x0084);
+   value4 = lan8651ReadReg(interface, 0x04, 0x008A);
+   value5 = lan8651ReadReg(interface, 0x04, 0x00AD);
+   value6 = lan8651ReadReg(interface, 0x04, 0x00AE);
+   value7 = lan8651ReadReg(interface, 0x04, 0x00AF);
 
    //Calculation of configuration offset 1
    if((value1 & 0x10) != 0)
@@ -228,60 +241,60 @@ void lan8561Config(NetInterface *interface)
 
    //The configuration parameters, along with other constant values are then
    //written to the device
-   lan8561WriteReg(interface, 0x04, 0x0091, 0x9660);
-   lan8561WriteReg(interface, 0x04, 0x0081, 0x00C0);
-   lan8561WriteReg(interface, 0x01, 0x0077, 0x0028);
-   lan8561WriteReg(interface, 0x04, 0x0043, 0x00FF);
-   lan8561WriteReg(interface, 0x04, 0x0044, 0xFFFF);
-   lan8561WriteReg(interface, 0x04, 0x0045, 0x0000);
-   lan8561WriteReg(interface, 0x04, 0x0053, 0x00FF);
-   lan8561WriteReg(interface, 0x04, 0x0054, 0xFFFF);
-   lan8561WriteReg(interface, 0x04, 0x0055, 0x0000);
-   lan8561WriteReg(interface, 0x04, 0x0040, 0x0002);
-   lan8561WriteReg(interface, 0x04, 0x0050, 0x0002);
-   lan8561WriteReg(interface, 0x04, 0x00D0, 0x5F21);
-   lan8561WriteReg(interface, 0x04, 0x0084, param1);
-   lan8561WriteReg(interface, 0x04, 0x008A, param2);
-   lan8561WriteReg(interface, 0x04, 0x00E9, 0x9E50);
-   lan8561WriteReg(interface, 0x04, 0x00F5, 0x1CF8);
-   lan8561WriteReg(interface, 0x04, 0x00F4, 0xC020);
-   lan8561WriteReg(interface, 0x04, 0x00F8, 0x9B00);
-   lan8561WriteReg(interface, 0x04, 0x00F9, 0x4E53);
-   lan8561WriteReg(interface, 0x04, 0x00AD, param3);
-   lan8561WriteReg(interface, 0x04, 0x00AE, param4);
-   lan8561WriteReg(interface, 0x04, 0x00AF, param5);
-   lan8561WriteReg(interface, 0x04, 0x00B0, 0x0103);
-   lan8561WriteReg(interface, 0x04, 0x00B1, 0x0910);
-   lan8561WriteReg(interface, 0x04, 0x00B2, 0x1D26);
-   lan8561WriteReg(interface, 0x04, 0x00B3, 0x002A);
-   lan8561WriteReg(interface, 0x04, 0x00B4, 0x0103);
-   lan8561WriteReg(interface, 0x04, 0x00B5, 0x070D);
-   lan8561WriteReg(interface, 0x04, 0x00B6, 0x1720);
-   lan8561WriteReg(interface, 0x04, 0x00B7, 0x0027);
-   lan8561WriteReg(interface, 0x04, 0x00B8, 0x0509);
-   lan8561WriteReg(interface, 0x04, 0x00B9, 0x0E13);
-   lan8561WriteReg(interface, 0x04, 0x00BA, 0x1C25);
-   lan8561WriteReg(interface, 0x04, 0x00BB, 0x002B);
+   lan8651WriteReg(interface, 0x04, 0x0091, 0x9660);
+   lan8651WriteReg(interface, 0x04, 0x0081, 0x00C0);
+   lan8651WriteReg(interface, 0x01, 0x0077, 0x0028);
+   lan8651WriteReg(interface, 0x04, 0x0043, 0x00FF);
+   lan8651WriteReg(interface, 0x04, 0x0044, 0xFFFF);
+   lan8651WriteReg(interface, 0x04, 0x0045, 0x0000);
+   lan8651WriteReg(interface, 0x04, 0x0053, 0x00FF);
+   lan8651WriteReg(interface, 0x04, 0x0054, 0xFFFF);
+   lan8651WriteReg(interface, 0x04, 0x0055, 0x0000);
+   lan8651WriteReg(interface, 0x04, 0x0040, 0x0002);
+   lan8651WriteReg(interface, 0x04, 0x0050, 0x0002);
+   lan8651WriteReg(interface, 0x04, 0x00D0, 0x5F21);
+   lan8651WriteReg(interface, 0x04, 0x0084, param1);
+   lan8651WriteReg(interface, 0x04, 0x008A, param2);
+   lan8651WriteReg(interface, 0x04, 0x00E9, 0x9E50);
+   lan8651WriteReg(interface, 0x04, 0x00F5, 0x1CF8);
+   lan8651WriteReg(interface, 0x04, 0x00F4, 0xC020);
+   lan8651WriteReg(interface, 0x04, 0x00F8, 0x9B00);
+   lan8651WriteReg(interface, 0x04, 0x00F9, 0x4E53);
+   lan8651WriteReg(interface, 0x04, 0x00AD, param3);
+   lan8651WriteReg(interface, 0x04, 0x00AE, param4);
+   lan8651WriteReg(interface, 0x04, 0x00AF, param5);
+   lan8651WriteReg(interface, 0x04, 0x00B0, 0x0103);
+   lan8651WriteReg(interface, 0x04, 0x00B1, 0x0910);
+   lan8651WriteReg(interface, 0x04, 0x00B2, 0x1D26);
+   lan8651WriteReg(interface, 0x04, 0x00B3, 0x002A);
+   lan8651WriteReg(interface, 0x04, 0x00B4, 0x0103);
+   lan8651WriteReg(interface, 0x04, 0x00B5, 0x070D);
+   lan8651WriteReg(interface, 0x04, 0x00B6, 0x1720);
+   lan8651WriteReg(interface, 0x04, 0x00B7, 0x0027);
+   lan8651WriteReg(interface, 0x04, 0x00B8, 0x0509);
+   lan8651WriteReg(interface, 0x04, 0x00B9, 0x0E13);
+   lan8651WriteReg(interface, 0x04, 0x00BA, 0x1C25);
+   lan8651WriteReg(interface, 0x04, 0x00BB, 0x002B);
 }
 
 
 /**
- * @brief LAN8561 timer handler
+ * @brief LAN8651 timer handler
  * @param[in] interface Underlying network interface
  **/
 
-void lan8561Tick(NetInterface *interface)
+void lan8651Tick(NetInterface *interface)
 {
    uint32_t value;
    bool_t linkState;
 
-#if (LAN8561_PLCA_SUPPORT == ENABLED)
+#if (LAN8651_PLCA_SUPPORT == ENABLED)
    //Read PLCA status register
-   value = lan8561ReadReg(interface, LAN8561_PLCA_STS);
+   value = lan8651ReadReg(interface, LAN8651_PLCA_STS);
 
    //The PST field indicates that the PLCA reconciliation sublayer is active
    //and a BEACON is being regularly transmitted or received
-   linkState = (value & LAN8561_PLCA_STS_PST) ? TRUE : FALSE;
+   linkState = (value & LAN8651_PLCA_STS_PST) ? TRUE : FALSE;
 #else
    //Link status indication is not supported
    linkState = TRUE;
@@ -317,7 +330,7 @@ void lan8561Tick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void lan8561EnableIrq(NetInterface *interface)
+void lan8651EnableIrq(NetInterface *interface)
 {
    //Enable interrupts
    if(interface->extIntDriver != NULL)
@@ -332,7 +345,7 @@ void lan8561EnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void lan8561DisableIrq(NetInterface *interface)
+void lan8651DisableIrq(NetInterface *interface)
 {
    //Disable interrupts
    if(interface->extIntDriver != NULL)
@@ -343,12 +356,12 @@ void lan8561DisableIrq(NetInterface *interface)
 
 
 /**
- * @brief LAN8561 interrupt service routine
+ * @brief LAN8651 interrupt service routine
  * @param[in] interface Underlying network interface
  * @return TRUE if a higher priority task must be woken. Else FALSE is returned
  **/
 
-bool_t lan8561IrqHandler(NetInterface *interface)
+bool_t lan8651IrqHandler(NetInterface *interface)
 {
    //When the SPI host detects an asserted IRQn from the MACPHY, it should
    //initiate a data chunk transfer to obtain the current data footer
@@ -360,11 +373,11 @@ bool_t lan8561IrqHandler(NetInterface *interface)
 
 
 /**
- * @brief LAN8561 event handler
+ * @brief LAN8651 event handler
  * @param[in] interface Underlying network interface
  **/
 
-void lan8561EventHandler(NetInterface *interface)
+void lan8651EventHandler(NetInterface *interface)
 {
    uint32_t status;
 
@@ -372,13 +385,13 @@ void lan8561EventHandler(NetInterface *interface)
    do
    {
       //Read incoming packet
-      lan8561ReceivePacket(interface);
+      lan8651ReceivePacket(interface);
 
       //Read buffer status register
-      status = lan8561ReadReg(interface, LAN8561_OA_BUFSTS);
+      status = lan8651ReadReg(interface, LAN8651_OA_BUFSTS);
 
       //Any data chunk available to the host MCU for reading?
-   } while((status & LAN8561_OA_BUFSTS_RCA) != 0);
+   } while((status & LAN8651_OA_BUFSTS_RCA) != 0);
 }
 
 
@@ -392,10 +405,10 @@ void lan8561EventHandler(NetInterface *interface)
  * @return Error code
  **/
 
-error_t lan8561SendPacket(NetInterface *interface,
+error_t lan8651SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint8_t chunk[LAN8561_CHUNK_PAYLOAD_SIZE + 4];
+   static uint8_t chunk[LAN8651_CHUNK_PAYLOAD_SIZE + 4];
    size_t i;
    size_t j;
    size_t n;
@@ -408,22 +421,22 @@ error_t lan8561SendPacket(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Read buffer status register
-   status = lan8561ReadReg(interface, LAN8561_OA_BUFSTS);
+   status = lan8651ReadReg(interface, LAN8651_OA_BUFSTS);
    //Get the number of data chunks available in the transmit buffer
-   n = (status & LAN8561_OA_BUFSTS_TXC) >> 8;
+   n = (status & LAN8651_OA_BUFSTS_TXC) >> 8;
 
    //Check the number of transmit credits available
-   if(length <= (n * LAN8561_CHUNK_PAYLOAD_SIZE))
+   if(length <= (n * LAN8651_CHUNK_PAYLOAD_SIZE))
    {
       //A data transaction consists of multiple chunks
       for(i = 0; i < length; i += n)
       {
          //The default size of the data chunk payload is 64 bytes
-         n = MIN(length - i, LAN8561_CHUNK_PAYLOAD_SIZE);
+         n = MIN(length - i, LAN8651_CHUNK_PAYLOAD_SIZE);
 
          //Set up a data transfer
-         header = LAN8561_TX_HEADER_DNC | LAN8561_TX_HEADER_NORX |
-            LAN8561_TX_HEADER_DV;
+         header = LAN8651_TX_HEADER_DNC | LAN8651_TX_HEADER_NORX |
+            LAN8651_TX_HEADER_DV;
 
          //Start of packet?
          if(i == 0)
@@ -431,7 +444,7 @@ error_t lan8561SendPacket(NetInterface *interface,
             //The SPI host shall set the SV bit when the beginning of an
             //Ethernet frame is present in the current transmit data chunk
             //payload
-            header |= LAN8561_TX_HEADER_SV;
+            header |= LAN8651_TX_HEADER_SV;
          }
 
          //End of packet?
@@ -439,18 +452,18 @@ error_t lan8561SendPacket(NetInterface *interface,
          {
             //The SPI host shall set the EV bit when the end of an Ethernet
             //frame is present in the current transmit data chunk payload
-            header |= LAN8561_TX_HEADER_EV;
+            header |= LAN8651_TX_HEADER_EV;
 
             //When EV is 1, the EBO field shall contain the byte offset into
             //the transmit data chunk payload that points to the last byte of
             //the Ethernet frame to transmit
-            header |= ((n - 1) << 8) & LAN8561_TX_HEADER_EBO;
+            header |= ((n - 1) << 8) & LAN8651_TX_HEADER_EBO;
          }
 
          //The parity bit is calculated over the transmit data header
-         if(lan8561CalcParity(header) != 0)
+         if(lan8651CalcParity(header) != 0)
          {
-            header |= LAN8561_CTRL_HEADER_P;
+            header |= LAN8651_CTRL_HEADER_P;
          }
 
          //A chunk is composed of 4 bytes of overhead plus the configured
@@ -461,16 +474,16 @@ error_t lan8561SendPacket(NetInterface *interface,
          netBufferRead(chunk + 4, buffer, offset + i, n);
 
          //Pad frames shorter than the data chunk payload
-         if(n < LAN8561_CHUNK_PAYLOAD_SIZE)
+         if(n < LAN8651_CHUNK_PAYLOAD_SIZE)
          {
-            osMemset(chunk + 4 + n, 0, LAN8561_CHUNK_PAYLOAD_SIZE - n);
+            osMemset(chunk + 4 + n, 0, LAN8651_CHUNK_PAYLOAD_SIZE - n);
          }
 
          //Pull the CS pin low
          interface->spiDriver->assertCs();
 
          //Perform data transfer
-         for(j = 0; j < (LAN8561_CHUNK_PAYLOAD_SIZE + 4); j++)
+         for(j = 0; j < (LAN8651_CHUNK_PAYLOAD_SIZE + 4); j++)
          {
             chunk[j] = interface->spiDriver->transfer(chunk[j]);
          }
@@ -480,10 +493,10 @@ error_t lan8561SendPacket(NetInterface *interface,
 
          //Receive data chunks consist of the receive data chunk payload followed
          //by a 4-byte footer
-         footer = LOAD32BE(chunk + LAN8561_CHUNK_PAYLOAD_SIZE);
+         footer = LOAD32BE(chunk + LAN8651_CHUNK_PAYLOAD_SIZE);
 
          //The RCA field indicates the number of receive data chunks available
-         if((footer & LAN8561_RX_FOOTER_RCA) != 0)
+         if((footer & LAN8651_RX_FOOTER_RCA) != 0)
          {
             //Some data chunks are available for reading
             interface->nicEvent = TRUE;
@@ -511,10 +524,10 @@ error_t lan8561SendPacket(NetInterface *interface,
  * @return Error code
  **/
 
-error_t lan8561ReceivePacket(NetInterface *interface)
+error_t lan8651ReceivePacket(NetInterface *interface)
 {
-   static uint8_t buffer[LAN8561_ETH_RX_BUFFER_SIZE];
-   static uint8_t chunk[LAN8561_CHUNK_PAYLOAD_SIZE + 4];
+   static uint8_t buffer[LAN8651_ETH_RX_BUFFER_SIZE];
+   static uint8_t chunk[LAN8651_CHUNK_PAYLOAD_SIZE + 4];
    error_t error;
    size_t i;
    size_t n;
@@ -529,7 +542,7 @@ error_t lan8561ReceivePacket(NetInterface *interface)
    while(1)
    {
       //Check the length of the received packet
-      if((length + LAN8561_CHUNK_PAYLOAD_SIZE) > LAN8561_ETH_RX_BUFFER_SIZE)
+      if((length + LAN8651_CHUNK_PAYLOAD_SIZE) > LAN8651_ETH_RX_BUFFER_SIZE)
       {
          error = ERROR_BUFFER_OVERFLOW;
          break;
@@ -537,12 +550,12 @@ error_t lan8561ReceivePacket(NetInterface *interface)
 
       //The SPI host sets NORX to 0 to indicate that it accepts and process
       //any receive frame data within the current chunk
-      header = LAN8561_TX_HEADER_DNC;
+      header = LAN8651_TX_HEADER_DNC;
 
       //The parity bit is calculated over the transmit data header
-      if(lan8561CalcParity(header) != 0)
+      if(lan8651CalcParity(header) != 0)
       {
-         header |= LAN8561_CTRL_HEADER_P;
+         header |= LAN8651_CTRL_HEADER_P;
       }
 
       //Transmit data chunks consist of a 4-byte header followed by the
@@ -550,13 +563,13 @@ error_t lan8561ReceivePacket(NetInterface *interface)
       STORE32BE(header, chunk);
 
       //Clear data chunk payload
-      osMemset(chunk + 4, 0, LAN8561_CHUNK_PAYLOAD_SIZE);
+      osMemset(chunk + 4, 0, LAN8651_CHUNK_PAYLOAD_SIZE);
 
       //Pull the CS pin low
       interface->spiDriver->assertCs();
 
       //Perform data transfer
-      for(i = 0; i < (LAN8561_CHUNK_PAYLOAD_SIZE + 4); i++)
+      for(i = 0; i < (LAN8651_CHUNK_PAYLOAD_SIZE + 4); i++)
       {
          chunk[i] = interface->spiDriver->transfer(chunk[i]);
       }
@@ -566,10 +579,10 @@ error_t lan8561ReceivePacket(NetInterface *interface)
 
       //Receive data chunks consist of the receive data chunk payload followed
       //by a 4-byte footer
-      footer = LOAD32BE(chunk + LAN8561_CHUNK_PAYLOAD_SIZE);
+      footer = LOAD32BE(chunk + LAN8651_CHUNK_PAYLOAD_SIZE);
 
       //When the DV bit is 0, the SPI host ignores the chunk payload
-      if((footer & LAN8561_RX_FOOTER_DV) == 0)
+      if((footer & LAN8651_RX_FOOTER_DV) == 0)
       {
          error = ERROR_BUFFER_EMPTY;
          break;
@@ -579,7 +592,7 @@ error_t lan8561ReceivePacket(NetInterface *interface)
       //the current transmit data chunk payload
       if(length == 0)
       {
-         if((footer & LAN8561_RX_FOOTER_SV) == 0)
+         if((footer & LAN8651_RX_FOOTER_SV) == 0)
          {
             error = ERROR_INVALID_PACKET;
             break;
@@ -587,7 +600,7 @@ error_t lan8561ReceivePacket(NetInterface *interface)
       }
       else
       {
-         if((footer & LAN8561_RX_FOOTER_SV) != 0)
+         if((footer & LAN8651_RX_FOOTER_SV) != 0)
          {
             error = ERROR_INVALID_PACKET;
             break;
@@ -597,13 +610,13 @@ error_t lan8561ReceivePacket(NetInterface *interface)
       //When EV is 1, the EBO field contains the byte offset into the
       //receive data chunk payload that points to the last byte of the
       //received Ethernet frame
-      if((footer & LAN8561_RX_FOOTER_EV) != 0)
+      if((footer & LAN8651_RX_FOOTER_EV) != 0)
       {
-         n = ((footer & LAN8561_RX_FOOTER_EBO) >> 8) + 1;
+         n = ((footer & LAN8651_RX_FOOTER_EBO) >> 8) + 1;
       }
       else
       {
-         n = LAN8561_CHUNK_PAYLOAD_SIZE;
+         n = LAN8651_CHUNK_PAYLOAD_SIZE;
       }
 
       //Copy data chunk payload
@@ -613,7 +626,7 @@ error_t lan8561ReceivePacket(NetInterface *interface)
 
       //When the EV bit is 1, the end of an Ethernet frame is present in the
       //current receive data chunk payload
-      if((footer & LAN8561_RX_FOOTER_EV) != 0)
+      if((footer & LAN8651_RX_FOOTER_EV) != 0)
       {
          NetRxAncillary ancillary;
 
@@ -639,7 +652,7 @@ error_t lan8561ReceivePacket(NetInterface *interface)
  * @return Error code
  **/
 
-error_t lan8561UpdateMacAddrFilter(NetInterface *interface)
+error_t lan8651UpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t j;
@@ -653,12 +666,12 @@ error_t lan8561UpdateMacAddrFilter(NetInterface *interface)
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Set the lower 32 bits of the station MAC address
-   lan8561WriteReg(interface, LAN8561_MAC_SAB1,
+   lan8651WriteReg(interface, LAN8651_MAC_SAB1,
       (interface->macAddr.b[3] << 24) | (interface->macAddr.b[2] << 16) |
       (interface->macAddr.b[1] << 8) | interface->macAddr.b[0]);
 
    //Set the upper 16 bits of the station MAC address
-   lan8561WriteReg(interface, LAN8561_MAC_SAT1,
+   lan8651WriteReg(interface, LAN8651_MAC_SAT1,
       (interface->macAddr.b[5] << 8) | interface->macAddr.b[4]);
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
@@ -716,59 +729,59 @@ error_t lan8561UpdateMacAddrFilter(NetInterface *interface)
    if(j >= 1)
    {
       //Set the lower 32 bits of the MAC address
-      lan8561WriteReg(interface, LAN8561_MAC_SAB2,
+      lan8651WriteReg(interface, LAN8651_MAC_SAB2,
          (unicastMacAddr[0].b[3] << 24) | (unicastMacAddr[0].b[2] << 16) |
          (unicastMacAddr[0].b[1] << 8) | unicastMacAddr[0].b[0]);
 
       //The address is activated when SAT register is written
-      lan8561WriteReg(interface, LAN8561_MAC_SAT2,
+      lan8651WriteReg(interface, LAN8651_MAC_SAT2,
          (unicastMacAddr[0].b[5] << 8) | unicastMacAddr[0].b[4]);
    }
    else
    {
       //The address is deactivated when SAB register is written
-      lan8561WriteReg(interface, LAN8561_MAC_SAB2, 0);
+      lan8651WriteReg(interface, LAN8651_MAC_SAB2, 0);
    }
 
    //Configure the second unicast address filter
    if(j >= 2)
    {
       //Set the lower 32 bits of the MAC address
-      lan8561WriteReg(interface, LAN8561_MAC_SAB3,
+      lan8651WriteReg(interface, LAN8651_MAC_SAB3,
          (unicastMacAddr[1].b[3] << 24) | (unicastMacAddr[1].b[2] << 16) |
          (unicastMacAddr[1].b[1] << 8) | unicastMacAddr[1].b[0]);
 
       //The address is activated when SAT register is written
-      lan8561WriteReg(interface, LAN8561_MAC_SAT3,
+      lan8651WriteReg(interface, LAN8651_MAC_SAT3,
          (unicastMacAddr[1].b[5] << 8) | unicastMacAddr[1].b[4]);
    }
    else
    {
       //The address is deactivated when SAB register is written
-      lan8561WriteReg(interface, LAN8561_MAC_SAB3, 0);
+      lan8651WriteReg(interface, LAN8651_MAC_SAB3, 0);
    }
 
    //Configure the third unicast address filter
    if(j >= 3)
    {
       //Set the lower 32 bits of the MAC address
-      lan8561WriteReg(interface, LAN8561_MAC_SAB4,
+      lan8651WriteReg(interface, LAN8651_MAC_SAB4,
          (unicastMacAddr[2].b[3] << 24) | (unicastMacAddr[2].b[2] << 16) |
          (unicastMacAddr[2].b[1] << 8) | unicastMacAddr[2].b[0]);
 
       //The address is activated when SAT register is written
-      lan8561WriteReg(interface, LAN8561_MAC_SAT4,
+      lan8651WriteReg(interface, LAN8651_MAC_SAT4,
          (unicastMacAddr[2].b[5] << 8) | unicastMacAddr[2].b[4]);
    }
    else
    {
       //The address is deactivated when SAB register is written
-      lan8561WriteReg(interface, LAN8561_MAC_SAB4, 0);
+      lan8651WriteReg(interface, LAN8651_MAC_SAB4, 0);
    }
 
    //Configure the multicast hash table
-   lan8561WriteReg(interface, LAN8561_MAC_HRB, hashTable[0]);
-   lan8561WriteReg(interface, LAN8561_MAC_HRT, hashTable[1]);
+   lan8651WriteReg(interface, LAN8651_MAC_HRB, hashTable[0]);
+   lan8651WriteReg(interface, LAN8651_MAC_HRT, hashTable[1]);
 
    //Debug message
    TRACE_DEBUG("  HRB = %08" PRIX32 "\r\n", hashTable[0]);
@@ -787,24 +800,24 @@ error_t lan8561UpdateMacAddrFilter(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void lan8561WriteReg(NetInterface *interface, uint8_t mms, uint16_t address,
+void lan8651WriteReg(NetInterface *interface, uint8_t mms, uint16_t address,
    uint32_t data)
 {
    uint32_t header;
 
    //Set up a register write operation
-   header = LAN8561_CTRL_HEADER_WNR | LAN8561_CTRL_HEADER_AID;
+   header = LAN8651_CTRL_HEADER_WNR | LAN8651_CTRL_HEADER_AID;
    //The MMS field selects the specific register memory map to access
-   header |= (mms << 24) & LAN8561_CTRL_HEADER_MMS;
+   header |= (mms << 24) & LAN8651_CTRL_HEADER_MMS;
    //Address of the first register to access
-   header |= (address << 8) & LAN8561_CTRL_HEADER_ADDR;
+   header |= (address << 8) & LAN8651_CTRL_HEADER_ADDR;
    //Specifies the number of registers to write
-   header |= (0 << 1) & LAN8561_CTRL_HEADER_LEN;
+   header |= (0 << 1) & LAN8651_CTRL_HEADER_LEN;
 
    //The parity bit is calculated over the control command header
-   if(lan8561CalcParity(header) != 0)
+   if(lan8651CalcParity(header) != 0)
    {
-      header |= LAN8561_CTRL_HEADER_P;
+      header |= LAN8651_CTRL_HEADER_P;
    }
 
    //Pull the CS pin low
@@ -841,25 +854,25 @@ void lan8561WriteReg(NetInterface *interface, uint8_t mms, uint16_t address,
  * @return Register value
  **/
 
-uint32_t lan8561ReadReg(NetInterface *interface, uint8_t mms,
+uint32_t lan8651ReadReg(NetInterface *interface, uint8_t mms,
    uint16_t address)
 {
    uint32_t data;
    uint32_t header;
 
    //Set up a register read operation
-   header = LAN8561_CTRL_HEADER_AID;
+   header = LAN8651_CTRL_HEADER_AID;
    //The MMS field selects the specific register memory map to access
-   header |= (mms << 24) & LAN8561_CTRL_HEADER_MMS;
+   header |= (mms << 24) & LAN8651_CTRL_HEADER_MMS;
    //Address of the first register to access
-   header |= (address << 8) & LAN8561_CTRL_HEADER_ADDR;
+   header |= (address << 8) & LAN8651_CTRL_HEADER_ADDR;
    //Specifies the number of registers to read
-   header |= (0 << 1) & LAN8561_CTRL_HEADER_LEN;
+   header |= (0 << 1) & LAN8651_CTRL_HEADER_LEN;
 
    //The parity bit is calculated over the control command header
-   if(lan8561CalcParity(header) != 0)
+   if(lan8651CalcParity(header) != 0)
    {
-      header |= LAN8561_CTRL_HEADER_P;
+      header |= LAN8651_CTRL_HEADER_P;
    }
 
    //Pull the CS pin low
@@ -899,7 +912,7 @@ uint32_t lan8561ReadReg(NetInterface *interface, uint8_t mms,
  * @param[in] num Number of registers to dump
  **/
 
-void lan8561DumpReg(NetInterface *interface, uint8_t mms, uint16_t address,
+void lan8651DumpReg(NetInterface *interface, uint8_t mms, uint16_t address,
    uint_t num)
 {
    uint_t i;
@@ -909,7 +922,7 @@ void lan8561DumpReg(NetInterface *interface, uint8_t mms, uint16_t address,
    {
       //Display current register
       TRACE_DEBUG("0x%02" PRIX16 ": 0x%08" PRIX32 "\r\n", address + i,
-         lan8561ReadReg(interface, mms, address + i));
+         lan8651ReadReg(interface, mms, address + i));
    }
 
    //Terminate with a line feed
@@ -925,22 +938,22 @@ void lan8561DumpReg(NetInterface *interface, uint8_t mms, uint16_t address,
  * @param[in] data MMD register value
  **/
 
-void lan8561WriteMmdReg(NetInterface *interface, uint8_t devAddr,
+void lan8651WriteMmdReg(NetInterface *interface, uint8_t devAddr,
    uint16_t regAddr, uint16_t data)
 {
    //Select register operation
-   lan8561WriteReg(interface, LAN8561_MMDCTRL,
-      LAN8561_MMDCTRL_FNCTN_ADDR | (devAddr & LAN8561_MMDCTRL_DEVAD));
+   lan8651WriteReg(interface, LAN8651_MMDCTRL,
+      LAN8651_MMDCTRL_FNCTN_ADDR | (devAddr & LAN8651_MMDCTRL_DEVAD));
 
    //Write MMD register address
-   lan8561WriteReg(interface, LAN8561_MMDAD, regAddr);
+   lan8651WriteReg(interface, LAN8651_MMDAD, regAddr);
 
    //Select data operation
-   lan8561WriteReg(interface, LAN8561_MMDCTRL,
-      LAN8561_MMDCTRL_FNCTN_DATA_NO_POST_INC | (devAddr & LAN8561_MMDCTRL_DEVAD));
+   lan8651WriteReg(interface, LAN8651_MMDCTRL,
+      LAN8651_MMDCTRL_FNCTN_DATA_NO_POST_INC | (devAddr & LAN8651_MMDCTRL_DEVAD));
 
    //Write the content of the MMD register
-   lan8561WriteReg(interface, LAN8561_MMDAD, data);
+   lan8651WriteReg(interface, LAN8651_MMDAD, data);
 }
 
 
@@ -952,22 +965,22 @@ void lan8561WriteMmdReg(NetInterface *interface, uint8_t devAddr,
  * @return MMD register value
  **/
 
-uint16_t lan8561ReadMmdReg(NetInterface *interface, uint8_t devAddr,
+uint16_t lan8651ReadMmdReg(NetInterface *interface, uint8_t devAddr,
    uint16_t regAddr)
 {
    //Select register operation
-   lan8561WriteReg(interface, LAN8561_MMDCTRL,
-      LAN8561_MMDCTRL_FNCTN_ADDR | (devAddr & LAN8561_MMDCTRL_DEVAD));
+   lan8651WriteReg(interface, LAN8651_MMDCTRL,
+      LAN8651_MMDCTRL_FNCTN_ADDR | (devAddr & LAN8651_MMDCTRL_DEVAD));
 
    //Write MMD register address
-   lan8561WriteReg(interface, LAN8561_MMDAD, regAddr);
+   lan8651WriteReg(interface, LAN8651_MMDAD, regAddr);
 
    //Select data operation
-   lan8561WriteReg(interface, LAN8561_MMDCTRL,
-      LAN8561_MMDCTRL_FNCTN_DATA_NO_POST_INC | (devAddr & LAN8561_MMDCTRL_DEVAD));
+   lan8651WriteReg(interface, LAN8651_MMDCTRL,
+      LAN8651_MMDCTRL_FNCTN_DATA_NO_POST_INC | (devAddr & LAN8651_MMDCTRL_DEVAD));
 
    //Read the content of the MMD register
-   return lan8561ReadReg(interface, LAN8561_MMDAD);
+   return lan8651ReadReg(interface, LAN8651_MMDAD);
 }
 
 
@@ -978,14 +991,14 @@ uint16_t lan8561ReadMmdReg(NetInterface *interface, uint8_t devAddr,
  * @return Indirect register value
  **/
 
-int8_t lan8561ReadIndirectReg(NetInterface *interface, uint8_t address)
+int8_t lan8651ReadIndirectReg(NetInterface *interface, uint8_t address)
 {
    //Specify the address of the register to read
-   lan8561WriteMmdReg(interface, 0x04, 0x00D8, address);
-   lan8561WriteMmdReg(interface, 0x04, 0x00DA, 0x0002);
+   lan8651WriteMmdReg(interface, 0x04, 0x00D8, address);
+   lan8651WriteMmdReg(interface, 0x04, 0x00DA, 0x0002);
 
    //Read the content of the register
-   return lan8561ReadMmdReg(interface, 0x04, 0x00D9);
+   return lan8651ReadMmdReg(interface, 0x04, 0x00D9);
 }
 
 
@@ -995,7 +1008,7 @@ int8_t lan8561ReadIndirectReg(NetInterface *interface, uint8_t address)
  * @return Odd parity bit computed over the supplied data
  **/
 
-uint32_t lan8561CalcParity(uint32_t data)
+uint32_t lan8651CalcParity(uint32_t data)
 {
    //Calculate the odd parity bit computed over the supplied bit stream
    data ^= data >> 1;

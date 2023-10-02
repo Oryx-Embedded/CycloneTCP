@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _AR8031_DRIVER_H
@@ -49,7 +49,7 @@
 #define AR8031_ANAR                                    0x04
 #define AR8031_ANLPAR                                  0x05
 #define AR8031_ANER                                    0x06
-#define AR8031_ANNPR                                   0x07
+#define AR8031_ANNPTR                                  0x07
 #define AR8031_ANLPNPR                                 0x08
 #define AR8031_GBCR                                    0x09
 #define AR8031_GBSR                                    0x0A
@@ -227,11 +227,11 @@
 #define AR8031_ANER_LP_AN_ABLE                         0x0001
 
 //Auto-Negotiation Next Page Transmit register
-#define AR8031_ANNPR_NEXT_PAGE                         0x8000
-#define AR8031_ANNPR_MSG_PAGE                          0x2000
-#define AR8031_ANNPR_ACK2                              0x1000
-#define AR8031_ANNPR_TOGGLE                            0x0800
-#define AR8031_ANNPR_MESSAGE                           0x07FF
+#define AR8031_ANNPTR_NEXT_PAGE                        0x8000
+#define AR8031_ANNPTR_MSG_PAGE                         0x2000
+#define AR8031_ANNPTR_ACK2                             0x1000
+#define AR8031_ANNPTR_TOGGLE                           0x0800
+#define AR8031_ANNPTR_MESSAGE                          0x07FF
 
 //Link Partner Next Page register
 #define AR8031_ANLPNPR_NEXT_PAGE                       0x8000

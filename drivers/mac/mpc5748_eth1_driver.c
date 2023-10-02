@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -33,6 +33,7 @@
 
 //Dependencies
 #include "device_registers.h"
+#include "interrupt_manager.h"
 #include "core/net.h"
 #include "drivers/mac/mpc5748_eth1_driver.h"
 #include "debug.h"
@@ -52,7 +53,6 @@ static uint32_t txBufferDesc[MPC5748_ETH1_TX_BUFFER_COUNT][8]
 //RX buffer descriptors
 static uint32_t rxBufferDesc[MPC5748_ETH1_RX_BUFFER_COUNT][8]
    __attribute__((aligned(64)));
-
 
 //TX buffer index
 static uint_t txBufferIndex;
@@ -184,11 +184,11 @@ error_t mpc5748Eth1Init(NetInterface *interface)
    ENET_0->EIMR = ENET_EIMR_TXF_MASK | ENET_EIMR_RXF_MASK | ENET_EIMR_EBERR_MASK;
 
    //Configure ENET transmit interrupt priority
-   INTC->PSR[ENET0_GROUP2_IRQn] = INTC_PSR_PRIN(MPC5748_ETH1_IRQ_PRIORITY);
+   INT_SYS_SetPriority(ENET0_GROUP2_IRQn, MPC5748_ETH1_IRQ_PRIORITY);
    //Configure ENET receive interrupt priority
-   INTC->PSR[ENET0_GROUP1_IRQn] = INTC_PSR_PRIN(MPC5748_ETH1_IRQ_PRIORITY);
+   INT_SYS_SetPriority(ENET0_GROUP1_IRQn, MPC5748_ETH1_IRQ_PRIORITY);
    //Configure ENET error interrupt priority
-   INTC->PSR[ENET0_GROUP0_IRQn] = INTC_PSR_PRIN(MPC5748_ETH1_IRQ_PRIORITY);
+   INT_SYS_SetPriority(ENET0_GROUP0_IRQn, MPC5748_ETH1_IRQ_PRIORITY);
 
    //Enable Ethernet MAC
    ENET_0->ECR |= ENET_ECR_ETHEREN_MASK;
@@ -351,9 +351,9 @@ void mpc5748Eth1Tick(NetInterface *interface)
 void mpc5748Eth1EnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
-   INTC->PSR[ENET0_GROUP2_IRQn] |= INTC_PSR_PRC_SELN0_MASK;
-   INTC->PSR[ENET0_GROUP1_IRQn] |= INTC_PSR_PRC_SELN0_MASK;
-   INTC->PSR[ENET0_GROUP0_IRQn] |= INTC_PSR_PRC_SELN0_MASK;
+   INT_SYS_EnableIRQ(ENET0_GROUP2_IRQn);
+   INT_SYS_EnableIRQ(ENET0_GROUP1_IRQn);
+   INT_SYS_EnableIRQ(ENET0_GROUP0_IRQn);
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -381,9 +381,9 @@ void mpc5748Eth1EnableIrq(NetInterface *interface)
 void mpc5748Eth1DisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
-   INTC->PSR[ENET0_GROUP2_IRQn] &= ~INTC_PSR_PRC_SELN0_MASK;
-   INTC->PSR[ENET0_GROUP1_IRQn] &= ~INTC_PSR_PRC_SELN0_MASK;
-   INTC->PSR[ENET0_GROUP0_IRQn] &= ~INTC_PSR_PRC_SELN0_MASK;
+   INT_SYS_DisableIRQ(ENET0_GROUP2_IRQn);
+   INT_SYS_DisableIRQ(ENET0_GROUP1_IRQn);
+   INT_SYS_DisableIRQ(ENET0_GROUP0_IRQn);
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _KSZ9131_DRIVER_H
@@ -49,8 +49,8 @@
 #define KSZ9131_ANAR                                  0x04
 #define KSZ9131_ANLPAR                                0x05
 #define KSZ9131_ANER                                  0x06
-#define KSZ9131_ANNPR                                 0x07
-#define KSZ9131_ANLPNPR                               0x08
+#define KSZ9131_ANNPTR                                0x07
+#define KSZ9131_ANNPRR                                0x08
 #define KSZ9131_GBCR                                  0x09
 #define KSZ9131_GBSR                                  0x0A
 #define KSZ9131_MMDACR                                0x0D
@@ -249,19 +249,19 @@
 #define KSZ9131_ANER_LP_AN_ABLE                       0x0001
 
 //Auto-Negotiation Next Page TX register
-#define KSZ9131_ANNPR_NEXT_PAGE                       0x8000
-#define KSZ9131_ANNPR_MSG_PAGE                        0x2000
-#define KSZ9131_ANNPR_ACK2                            0x1000
-#define KSZ9131_ANNPR_TOGGLE                          0x0800
-#define KSZ9131_ANNPR_MESSAGE                         0x07FF
+#define KSZ9131_ANNPTR_NEXT_PAGE                      0x8000
+#define KSZ9131_ANNPTR_MSG_PAGE                       0x2000
+#define KSZ9131_ANNPTR_ACK2                           0x1000
+#define KSZ9131_ANNPTR_TOGGLE                         0x0800
+#define KSZ9131_ANNPTR_MESSAGE                        0x07FF
 
 //Auto-Negotiation Next Page RX register
-#define KSZ9131_ANLPNPR_NEXT_PAGE                     0x8000
-#define KSZ9131_ANLPNPR_ACK                           0x4000
-#define KSZ9131_ANLPNPR_MSG_PAGE                      0x2000
-#define KSZ9131_ANLPNPR_ACK2                          0x1000
-#define KSZ9131_ANLPNPR_TOGGLE                        0x0800
-#define KSZ9131_ANLPNPR_MESSAGE                       0x07FF
+#define KSZ9131_ANNPRR_NEXT_PAGE                      0x8000
+#define KSZ9131_ANNPRR_ACK                            0x4000
+#define KSZ9131_ANNPRR_MSG_PAGE                       0x2000
+#define KSZ9131_ANNPRR_ACK2                           0x1000
+#define KSZ9131_ANNPRR_TOGGLE                         0x0800
+#define KSZ9131_ANNPRR_MESSAGE                        0x07FF
 
 //Auto-Negotiation Master Slave Control register
 #define KSZ9131_GBCR_TEST_MODE                        0xE000

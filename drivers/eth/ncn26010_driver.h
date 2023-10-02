@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _NCN26010_DRIVER_H
@@ -644,6 +644,7 @@ extern const NicDriver ncn26010Driver;
 
 //NCN26010 related functions
 error_t ncn26010Init(NetInterface *interface);
+void ncn26010InitHook(NetInterface *interface);
 
 void ncn26010Tick(NetInterface *interface);
 

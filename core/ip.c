@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -193,7 +193,7 @@ bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr)
 #endif
    //Invalid IP address?
    {
-      result = FALSE;
+      result = TRUE;
    }
 
    //Return TRUE if the IP address is unspecified, else FALSE
@@ -273,6 +273,34 @@ bool_t ipIsMulticastAddr(const IpAddr *ipAddr)
    }
 
    //Return TRUE if the IP address is a multicast address, else FALSE
+   return result;
+}
+
+
+/**
+ * @brief Determine whether an IP address is a broadcast address
+ * @param[in] ipAddr IP address
+ * @return TRUE if the IP address is a broadcast address, else FALSE
+ **/
+
+bool_t ipIsBroadcastAddr(const IpAddr *ipAddr)
+{
+   bool_t result;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Broadcast address?
+   if(ipAddr->length == sizeof(Ipv4Addr) &&
+      ipAddr->ipv4Addr == IPV4_BROADCAST_ADDR)
+   {
+      result = TRUE;
+   }
+   else
+#endif
+   {
+      result = FALSE;
+   }
+
+   //Return TRUE if the IP address is a broadcast address, else FALSE
    return result;
 }
 

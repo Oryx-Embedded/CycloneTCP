@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -133,6 +133,8 @@ NdpNeighborCacheEntry *ndpCreateNeighborCacheEntry(NetInterface *interface)
       //Drop any pending packets
       ndpFlushQueuedPackets(interface, oldestEntry);
       //The oldest entry is removed whenever the table runs out of space
+      ndpChangeState(oldestEntry, NDP_STATE_NONE);
+      //Initialize Neighbor cache entry
       osMemset(oldestEntry, 0, sizeof(NdpNeighborCacheEntry));
    }
 

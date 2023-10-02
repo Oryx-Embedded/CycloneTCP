@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 //Switch to the appropriate trace level
@@ -1923,6 +1923,56 @@ int_t socketGetSoKeepAliveOption(Socket *socket, int_t *optval,
    socketSetErrnoCode(socket, ENOPROTOOPT);
    ret = SOCKET_ERROR;
 #endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Get SO_TYPE option
+ * @param[in] socket Handle referencing the socket
+ * @param[out] optval A pointer to the buffer in which the value for the
+ *   requested option is to be returned
+ * @param[in,out] optlen The size, in bytes, of the buffer pointed to by the
+ *   optval parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketGetSoTypeOption(Socket *socket, int_t *optval,
+   socklen_t *optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(*optlen >= (socklen_t) sizeof(int_t))
+   {
+      //Return the type of the socket
+      if(socket->type == SOCKET_TYPE_STREAM)
+      {
+         *optval = SOCK_STREAM;
+      }
+      else if(socket->type == SOCKET_TYPE_DGRAM)
+      {
+         *optval = SOCK_DGRAM;
+      }
+      else
+      {
+         *optval = SOCK_RAW;
+      }
+
+      //Return the actual length of the option
+      *optlen = sizeof(int_t);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
 
    //Return status code
    return ret;

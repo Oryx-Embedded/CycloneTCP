@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _TJA1101_DRIVER_H
@@ -102,6 +102,7 @@
 #define TJA1101_PHY_ID2_TYPE_NO                          0x03F0
 #define TJA1101_PHY_ID2_TYPE_NO_DEFAULT                  0x0100
 #define TJA1101_PHY_ID2_REVISION_NO                      0x000F
+#define TJA1101_PHY_ID2_REVISION_NO_DEFAULT              0x0002
 
 //Extended status register
 #define TJA1101_EXTENDED_STAT_1000BX_FD                  0x8000
@@ -225,7 +226,6 @@
 #define TJA1101_INT_EN_TRAINING_FAILED                   0x0080
 #define TJA1101_INT_EN_SQI_WARNING                       0x0040
 #define TJA1101_INT_EN_CONTROL_ERR                       0x0020
-#define TJA1101_INT_EN_TXEN_CLAMPED                      0x0010
 #define TJA1101_INT_EN_UV_ERR                            0x0008
 #define TJA1101_INT_EN_UV_RECOVERY                       0x0004
 #define TJA1101_INT_EN_TEMP_ERR                          0x0002
@@ -309,6 +309,7 @@
 #define TJA1101_COMM_CTRL_CONFIG_INH                     0x0020
 
 //Configuration 3 register
+#define TJA1101_CONFIG3_MDI_POL                          0x0004
 #define TJA1101_CONFIG3_FORCE_SLEEP                      0x0002
 
 //C++ guard

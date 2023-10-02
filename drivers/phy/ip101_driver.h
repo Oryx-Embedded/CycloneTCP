@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _IP101_DRIVER_H
@@ -49,7 +49,7 @@
 #define IP101_ANAR                         0x04
 #define IP101_ANLPAR                       0x05
 #define IP101_ANER                         0x06
-#define IP101_ANNPR                        0x07
+#define IP101_ANNPTR                       0x07
 #define IP101_ANLPNPR                      0x08
 #define IP101_MMDACR                       0x0D
 #define IP101_MMDAADR                      0x0E
@@ -134,11 +134,11 @@
 #define IP101_ANER_LP_AN_ABLE              0x0001
 
 //Auto-Negotiation Next Page Transmit register
-#define IP101_ANNPR_NEXT_PAGE              0x8000
-#define IP101_ANNPR_MSG_PAGE               0x2000
-#define IP101_ANNPR_ACK2                   0x1000
-#define IP101_ANNPR_TOGGLE                 0x0800
-#define IP101_ANNPR_MESSAGE                0x07FF
+#define IP101_ANNPTR_NEXT_PAGE             0x8000
+#define IP101_ANNPTR_MSG_PAGE              0x2000
+#define IP101_ANNPTR_ACK2                  0x1000
+#define IP101_ANNPTR_TOGGLE                0x0800
+#define IP101_ANNPTR_MESSAGE               0x07FF
 
 //Auto-Negotiation Link Partner Next Page register
 #define IP101_ANLPNPR_NEXT_PAGE            0x8000

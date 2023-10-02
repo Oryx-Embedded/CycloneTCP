@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _ENC424J600_DRIVER_H
@@ -564,6 +564,7 @@ extern const NicDriver enc424j600Driver;
 
 //ENC424J600 related functions
 error_t enc424j600Init(NetInterface *interface);
+void enc424j600InitHook(NetInterface *interface);
 
 void enc424j600Tick(NetInterface *interface);
 

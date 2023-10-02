@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.3.2
  **/
 
 #ifndef _ADIN1110_DRIVER_H
@@ -1145,6 +1145,7 @@ extern const NicDriver adin1110Driver;
 
 //ADIN1110 related functions
 error_t adin1110Init(NetInterface *interface);
+void adin1110InitHook(NetInterface *interface);
 
 void adin1110Tick(NetInterface *interface);
 
