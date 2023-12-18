@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _IP_H
@@ -34,6 +34,13 @@
 //Dependencies
 #include "ipv4/ipv4.h"
 #include "ipv6/ipv6.h"
+
+//Default value for DF flag
+#ifndef IP_DEFAULT_DF
+   #define IP_DEFAULT_DF FALSE
+#elif (IP_DEFAULT_DF != FALSE && IP_DEFAULT_DF != TRUE)
+   #error IP_DEFAULT_DF parameter is not valid
+#endif
 
 //C++ guard
 #ifdef __cplusplus

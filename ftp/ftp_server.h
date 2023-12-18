@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _FTP_SERVER_H
@@ -349,6 +349,7 @@ typedef error_t (*FtpServerUnknownCommandCallback)(FtpClientConnection *connecti
 
 typedef struct
 {
+   OsTaskParameters task;                                  ///<Task parameters
    NetInterface *interface;                                ///<Underlying network interface
    uint16_t port;                                          ///<FTP command port number
    uint16_t dataPort;                                      ///<FTP data port number
@@ -427,11 +428,8 @@ struct _FtpServerContext
    bool_t running;                                                ///<Operational state of the FTP server
    bool_t stop;                                                   ///<Stop request
    OsEvent event;                                                 ///<Event object used to poll the sockets
+   OsTaskParameters taskParams;                                   ///<Task parameters
    OsTaskId taskId;                                               ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                                             ///<Task control block
-   OsStackType taskStack[FTP_SERVER_STACK_SIZE];                  ///<Task stack
-#endif
    Socket *socket;                                                ///<Listening socket
    uint16_t passivePort;                                          ///<Current passive port number
    FtpClientConnection *connections;                              ///<Client connections

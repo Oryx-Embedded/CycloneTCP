@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _ICECAST_CLIENT_H
@@ -101,6 +101,7 @@ extern "C" {
 
 typedef struct
 {
+   OsTaskParameters task;                          ///<Task parameters
    NetInterface *interface;                        ///<Underlying network interface
    char_t serverName[ICECAST_SERVER_NAME_MAX_LEN]; ///<Icecast server name
    uint16_t serverPort;                            ///<Icecast server port
@@ -119,11 +120,8 @@ typedef struct
    OsMutex mutex;                                     ///<Mutex protecting critical sections
    OsEvent writeEvent;                                ///<This event tells whether the buffer is writable
    OsEvent readEvent;                                 ///<This event tells whether the buffer is readable
+   OsTaskParameters taskParams;                       ///<Task parameters
    OsTaskId taskId;                                   ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                                 ///<Task control block
-   OsStackType taskStack[ICECAST_CLIENT_STACK_SIZE];  ///<Task stack
-#endif
    Socket *socket;                                    ///<Underlying socket
    size_t blockSize;                                  ///<Number of data bytes between subsequent metadata blocks
    uint8_t *streamBuffer;                             ///<Streaming buffer

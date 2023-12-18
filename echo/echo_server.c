@@ -30,7 +30,7 @@
  * any data it receives. Refer to RFC 862 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -53,6 +53,11 @@
 
 void echoServerGetDefaultSettings(EchoServerSettings *settings)
 {
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = ECHO_SERVER_STACK_SIZE;
+   settings->task.priority = ECHO_SERVER_PRIORITY;
+
    //The Echo server is not bound to any interface
    settings->interface = NULL;
 
@@ -82,6 +87,10 @@ error_t echoServerInit(EchoServerContext *context,
 
    //Clear Echo server context
    osMemset(context, 0, sizeof(EchoServerContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
    context->settings = *settings;
@@ -206,17 +215,9 @@ error_t echoServerStart(EchoServerContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("Echo Server",
-         (OsTaskCode) echoServerTask, context, &context->taskTcb,
-         context->taskStack, ECHO_SERVER_STACK_SIZE, ECHO_SERVER_PRIORITY);
-#else
       //Create a task
-      context->taskId = osCreateTask("Echo Server",
-         (OsTaskCode) echoServerTask, context, ECHO_SERVER_STACK_SIZE,
-         ECHO_SERVER_PRIORITY);
-#endif
+      context->taskId = osCreateTask("Echo Server", (OsTaskCode) echoServerTask,
+         context, &context->taskParams);
 
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)

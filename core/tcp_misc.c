@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -334,6 +334,8 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    ancillary = NET_DEFAULT_TX_ANCILLARY;
    //Set the TTL value to be used
    ancillary.ttl = socket->ttl;
+   //Set ToS field
+   ancillary.tos = socket->tos;
 
 #if (ETH_VLAN_SUPPORT == ENABLED)
    //Set VLAN PCP and DEI fields

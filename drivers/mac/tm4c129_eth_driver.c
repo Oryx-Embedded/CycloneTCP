@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -142,22 +142,20 @@ error_t tm4c129EthInit(NetInterface *interface)
    temp |= FLASH_CONF_FPFOFF;
    FLASH_CONF_R = temp;
 
-   //Enable Ethernet controller clock
+   //Enable and reset EMAC peripheral
    SysCtlPeripheralEnable(SYSCTL_PERIPH_EMAC0);
-
-   //Reset Ethernet controller
    SysCtlPeripheralReset(SYSCTL_PERIPH_EMAC0);
-   //Wait for the reset to complete
+
+   //Wait for the EMAC peripheral to be ready
    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_EMAC0))
    {
    }
 
-   //Enable internal PHY clock
+   //Enable and reset PHY peripheral
    SysCtlPeripheralEnable(SYSCTL_PERIPH_EPHY0);
-
-   //Reset internal PHY
    SysCtlPeripheralReset(SYSCTL_PERIPH_EPHY0);
-   //Wait for the reset to complete
+
+   //Wait for the PHY peripheral to be ready
    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_EPHY0))
    {
    }
@@ -250,7 +248,7 @@ error_t tm4c129EthInit(NetInterface *interface)
 
    //Configure DMA bus mode
    EMAC0_DMABUSMOD_R = EMAC_DMABUSMOD_AAL | EMAC_DMABUSMOD_USP |
-      EMAC_DMABUSMOD_RPBL_1 | EMAC_DMABUSMOD_PR_1_1 | EMAC_DMABUSMOD_PBL_1 |
+      EMAC_DMABUSMOD_RPBL_32 | EMAC_DMABUSMOD_PR_1_1 | EMAC_DMABUSMOD_PBL_32 |
       EMAC_DMABUSMOD_ATDS;
 
    //Initialize DMA descriptor lists

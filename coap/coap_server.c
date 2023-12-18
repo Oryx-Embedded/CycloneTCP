@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -50,11 +50,19 @@
 
 void coapServerGetDefaultSettings(CoapServerSettings *settings)
 {
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = COAP_SERVER_STACK_SIZE;
+   settings->task.priority = COAP_SERVER_PRIORITY;
+
    //The CoAP server is not bound to any interface
    settings->interface = NULL;
 
    //CoAP port number
    settings->port = COAP_PORT;
+
+   //UDP initialization callback
+   settings->udpInitCallback = NULL;
 
 #if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
    //DTLS initialization callback function
@@ -87,6 +95,10 @@ error_t coapServerInit(CoapServerContext *context,
 
    //Clear the CoAP server context
    osMemset(context, 0, sizeof(CoapServerContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
    context->settings = *settings;
@@ -202,21 +214,23 @@ error_t coapServerStart(CoapServerContext *context)
       if(error)
          break;
 
+      //Any registered callback?
+      if(context->settings.udpInitCallback != NULL)
+      {
+         //Invoke user callback function
+         error = context->settings.udpInitCallback(context, context->socket);
+         //Any error to report?
+         if(error)
+            break;
+      }
+
       //Start the CoAP server
       context->stop = FALSE;
       context->running = TRUE;
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("CoAP Server",
-         (OsTaskCode) coapServerTask, context, &context->taskTcb,
-         context->taskStack, COAP_SERVER_STACK_SIZE, COAP_SERVER_PRIORITY);
-#else
       //Create a task
-      context->taskId = osCreateTask("CoAP Server",
-         (OsTaskCode) coapServerTask, context, COAP_SERVER_STACK_SIZE,
-         COAP_SERVER_PRIORITY);
-#endif
+      context->taskId = osCreateTask("CoAP Server", (OsTaskCode) coapServerTask,
+         context, &context->taskParams);
 
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)

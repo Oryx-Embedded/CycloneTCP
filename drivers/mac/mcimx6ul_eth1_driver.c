@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -704,7 +704,7 @@ void mcimx6ulEth1EventHandler(NetInterface *interface)
 error_t mcimx6ulEth1SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint8_t temp[MCIMX6UL_ETH1_TX_BUFFER_SIZE];
+   static uint32_t temp[MCIMX6UL_ETH1_TX_BUFFER_SIZE / 4];
    size_t length;
 
    //Retrieve the length of the packet
@@ -778,7 +778,7 @@ error_t mcimx6ulEth1SendPacket(NetInterface *interface,
 
 error_t mcimx6ulEth1ReceivePacket(NetInterface *interface)
 {
-   static uint8_t temp[MCIMX6UL_ETH1_RX_BUFFER_SIZE];
+   static uint32_t temp[MCIMX6UL_ETH1_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
@@ -805,7 +805,7 @@ error_t mcimx6ulEth1ReceivePacket(NetInterface *interface)
             ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, temp, n, &ancillary);
+            nicProcessPacket(interface, (uint8_t *) temp, n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -160,6 +160,7 @@
 #define IP_MULTICAST_LOOP    34
 #define IP_ADD_MEMBERSHIP    35
 #define IP_DROP_MEMBERSHIP   36
+#define IP_DONTFRAG          67
 
 //IPv6 level options
 #define IPV6_UNICAST_HOPS    16
@@ -172,6 +173,7 @@
 #define IPV6_PKTINFO         50
 #define IPV6_RECVHOPLIMIT    51
 #define IPV6_HOPLIMIT        52
+#define IPV6_DONTFRAG        62
 #define IPV6_RECVTCLASS      66
 #define IPV6_TCLASS          67
 
@@ -243,6 +245,7 @@
 #define EINPROGRESS          36
 #define ETIMEDOUT            60
 #define ENAMETOOLONG         63
+#define EMSGSIZE             90
 #define ENOPROTOOPT          92
 #define ECONNRESET           104
 #define EISCONN              106

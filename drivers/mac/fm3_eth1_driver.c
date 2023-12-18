@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -202,10 +202,10 @@ error_t fm3Eth1Init(NetInterface *interface)
    FM3_ETHERNET_MAC0->BMR_f.AAL = 0;
    FM3_ETHERNET_MAC0->BMR_f._8XPBL = 0;
    FM3_ETHERNET_MAC0->BMR_f.USP = 1;
-   FM3_ETHERNET_MAC0->BMR_f.RPBL = 1;
+   FM3_ETHERNET_MAC0->BMR_f.RPBL = 32;
    FM3_ETHERNET_MAC0->BMR_f.FB = 0;
    FM3_ETHERNET_MAC0->BMR_f.PR = 0;
-   FM3_ETHERNET_MAC0->BMR_f.PBL = 1;
+   FM3_ETHERNET_MAC0->BMR_f.PBL = 32;
    FM3_ETHERNET_MAC0->BMR_f.ATDS = 1;
    FM3_ETHERNET_MAC0->BMR_f.DSL = 0;
    FM3_ETHERNET_MAC0->BMR_f.DA = 0;

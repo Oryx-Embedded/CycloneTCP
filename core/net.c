@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -76,18 +76,68 @@ NetContext netContext;
 
 
 /**
- * @brief TCP/IP stack initialization
+ * @brief Initialize settings with default values
+ * @param[out] settings Structure that contains TCP/IP stack settings
+ **/
+
+void netGetDefaultSettings(NetSettings *settings)
+{
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = NET_TASK_STACK_SIZE;
+   settings->task.priority = NET_TASK_PRIORITY;
+}
+
+
+/**
+ * @brief Initialize TCP/IP stack (deprecated)
+ * @param[in] context Pointer to the TCP/IP stack context
+ * @param[in] settings TCP/IP stack specific settings
  * @return Error code
  **/
 
 error_t netInit(void)
 {
    error_t error;
+   NetSettings netSettings;
+
+   //Get default settings
+   netGetDefaultSettings(&netSettings);
+
+   //Initialize TCP/IP stack
+   error = netInitEx(&netContext, &netSettings);
+
+   //Check status code
+   if(!error)
+   {
+      //Start TCP/IP stack
+      error = netStart(&netContext);
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Initialize TCP/IP stack
+ * @param[in] context Pointer to the TCP/IP stack context
+ * @param[in] settings TCP/IP stack specific settings
+ * @return Error code
+ **/
+
+error_t netInitEx(NetContext *context, const NetSettings *settings)
+{
+   error_t error;
    uint_t i;
    NetInterface *interface;
 
    //Clear TCP/IP stack context
-   osMemset(&netContext, 0, sizeof(NetContext));
+   osMemset(context, 0, sizeof(NetContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //The TCP/IP process is currently suspended
    netTaskRunning = FALSE;
@@ -247,19 +297,25 @@ error_t netInit(void)
    dnsSdTickCounter = 0;
 #endif
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   //Create a task using statically allocated memory
-   netContext.taskId = osCreateStaticTask("TCP/IP Stack",
-      (OsTaskCode) netTask, NULL, &netContext.taskTcb, netContext.taskStack,
-      NET_TASK_STACK_SIZE, NET_TASK_PRIORITY);
-#else
+   //Successful initialization
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Start TCP/IP stack
+ * @param[in] context Pointer to the TCP/IP stack context
+ * @return Error code
+ **/
+
+error_t netStart(NetContext *context)
+{
    //Create a task
-   netContext.taskId = osCreateTask("TCP/IP Stack", (OsTaskCode) netTask,
-      NULL, NET_TASK_STACK_SIZE, NET_TASK_PRIORITY);
-#endif
+   context->taskId = osCreateTask("TCP/IP", (OsTaskCode) netTaskEx, context,
+      &context->taskParams);
 
    //Unable to create the task?
-   if(netContext.taskId == OS_INVALID_TASK_ID)
+   if(context->taskId == OS_INVALID_TASK_ID)
       return ERROR_OUT_OF_RESOURCES;
 
 #if (NET_RTOS_SUPPORT == DISABLED)
@@ -267,7 +323,7 @@ error_t netInit(void)
    netTaskRunning = TRUE;
 #endif
 
-   //Successful initialization
+   //Successful processing
    return NO_ERROR;
 }
 
@@ -1465,10 +1521,21 @@ error_t netStopInterface(NetInterface *interface)
 
 
 /**
- * @brief TCP/IP events handling
+ * @brief TCP/IP events handling (deprecated)
  **/
 
 void netTask(void)
+{
+   netTaskEx(&netContext);
+}
+
+
+/**
+ * @brief TCP/IP events handling
+ * @param[in] context Pointer to the TCP/IP stack context
+ **/
+
+void netTaskEx(NetContext *context)
 {
    uint_t i;
    bool_t status;
@@ -1515,9 +1582,13 @@ void netTask(void)
 
       //Compute the maximum blocking time when waiting for an event
       if(timeCompare(time, netTimestamp) < 0)
+      {
          timeout = netTimestamp - time;
+      }
       else
+      {
          timeout = 0;
+      }
 
       //Receive notifications when a frame has been received, or the
       //link state of any network interfaces has changed

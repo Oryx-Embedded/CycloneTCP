@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -619,6 +619,22 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
       else
       {
          ancillary.ttl = socket->ttl;
+      }
+
+      //This flag can be used to send IP packets without fragmentation
+      if(message->destIpAddr.length == sizeof(Ipv4Addr) &&
+         (socket->options & SOCKET_OPTION_IPV4_DONT_FRAG) != 0)
+      {
+         ancillary.dontFrag = TRUE;
+      }
+      else if(message->destIpAddr.length == sizeof(Ipv6Addr) &&
+         (socket->options & SOCKET_OPTION_IPV6_DONT_FRAG) != 0)
+      {
+         ancillary.dontFrag = TRUE;
+      }
+      else
+      {
+         ancillary.dontFrag = message->dontFrag;
       }
 
       //This flag tells the stack that the destination is on a locally attached

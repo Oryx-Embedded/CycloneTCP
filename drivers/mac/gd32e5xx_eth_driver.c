@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -193,8 +193,8 @@ error_t gd32e5xxEthInit(NetInterface *interface)
    ENET_DMA_CTL = ENET_DMA_CTL_RSFD | ENET_DMA_CTL_TSFD;
 
    //Configure DMA bus mode
-   ENET_DMA_BCTL = ENET_DMA_BCTL_AA | ENET_DMA_BCTL_UIP | ENET_RXDP_1BEAT |
-      ENET_ARBITRATION_RXTX_1_1 | ENET_PGBL_1BEAT | ENET_DMA_BCTL_DFM;
+   ENET_DMA_BCTL = ENET_DMA_BCTL_AA | ENET_DMA_BCTL_UIP | ENET_RXDP_32BEAT |
+      ENET_ARBITRATION_RXTX_1_1 | ENET_PGBL_32BEAT | ENET_DMA_BCTL_DFM;
 
    //Initialize DMA descriptor lists
    gd32e5xxEthInitDmaDesc(interface);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _SNMP_AGENT_H
@@ -130,12 +130,13 @@ typedef error_t (*SnmpAgentRandCallback)(uint8_t *data, size_t length);
 
 typedef struct
 {
-   NetInterface *interface;                        ///<Network interface to configure
-   SnmpVersion versionMin;                         ///<Minimum version accepted by the SNMP agent
-   SnmpVersion versionMax;                         ///<Maximum version accepted by the SNMP agent
-   uint16_t port;                                  ///<SNMP port number
-   uint16_t trapPort;                              ///<SNMP trap port number
-   SnmpAgentRandCallback randCallback;             ///<Random data generation callback function
+   OsTaskParameters task;              ///<Task parameters
+   NetInterface *interface;            ///<Network interface to configure
+   SnmpVersion versionMin;             ///<Minimum version accepted by the SNMP agent
+   SnmpVersion versionMax;             ///<Maximum version accepted by the SNMP agent
+   uint16_t port;                      ///<SNMP port number
+   uint16_t trapPort;                  ///<SNMP trap port number
+   SnmpAgentRandCallback randCallback; ///<Random data generation callback function
 } SnmpAgentSettings;
 
 
@@ -150,11 +151,8 @@ struct _SnmpAgentContext
    bool_t stop;                                               ///<Stop request
    OsMutex mutex;                                             ///<Mutex preventing simultaneous access to SNMP agent context
    OsEvent event;                                             ///<Event object used to poll the underlying socket
+   OsTaskParameters taskParams;                               ///<Task parameters
    OsTaskId taskId;                                           ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                                         ///<Task control block
-   OsStackType taskStack[SNMP_AGENT_STACK_SIZE];              ///<Task stack
-#endif
    uint8_t enterpriseOid[SNMP_MAX_OID_SIZE];                  ///<Enterprise OID
    size_t enterpriseOidLen;                                   ///<Length of the enterprise OID
    const MibModule *mibTable[SNMP_AGENT_MAX_MIBS];            ///<MIB modules

@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -1309,28 +1309,13 @@ void tcpStateTimeWait(Socket *socket, const TcpHeader *segment, size_t length)
    //Debug message
    TRACE_DEBUG("TCP FSM: TIME-WAIT state\r\n");
 
+  //Ignore RST segments in TIME-WAIT state (refer to RFC 1337, section 3)
+  if((segment->flags & TCP_FLAG_RST) != 0)
+      return;
+
    //First check sequence number
    if(tcpCheckSeqNum(socket, segment, length))
       return;
-
-   //Check the RST bit
-   if((segment->flags & TCP_FLAG_RST) != 0)
-   {
-      //Enter CLOSED state
-      tcpChangeState(socket, TCP_STATE_CLOSED);
-
-      //Dispose the socket if the user does not have the ownership anymore
-      if(!socket->ownedFlag)
-      {
-         //Delete the TCB
-         tcpDeleteControlBlock(socket);
-         //Mark the socket as closed
-         socket->type = SOCKET_TYPE_UNUSED;
-      }
-
-      //Return immediately
-      return;
-   }
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _NET_H
@@ -93,13 +93,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.3.2"
+#define CYCLONE_TCP_VERSION_STRING "2.3.4"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 3
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 2
+#define CYCLONE_TCP_REV_NUMBER 4
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -298,6 +298,16 @@ struct _NetInterface
 
 
 /**
+ * @brief TCP/IP stack settings
+ **/
+
+typedef struct
+{
+   OsTaskParameters task; ///<Task parameters
+} NetSettings;
+
+
+/**
  * @brief TCP/IP stack context
  **/
 
@@ -306,11 +316,8 @@ typedef struct
    OsMutex mutex;                                ///<Mutex preventing simultaneous access to the TCP/IP stack
    OsEvent event;                                ///<Event object to receive notifications from drivers
    bool_t running;                               ///<The TCP/IP stack is currently running
+   OsTaskParameters taskParams;                  ///<Task parameters
    OsTaskId taskId;                              ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                            ///<Task control block
-   OsStackType taskStack[NET_TASK_STACK_SIZE];   ///<Task stack
-#endif
    uint32_t entropy;
    systime_t timestamp;
    uint8_t randSeed[NET_RAND_SEED_SIZE];         ///<Random seed
@@ -329,7 +336,11 @@ typedef struct
 extern NetContext netContext;
 
 //TCP/IP stack related functions
+void netGetDefaultSettings(NetSettings *settings);
 error_t netInit(void);
+error_t netInitEx(NetContext *context, const NetSettings *settings);
+
+error_t netStart(NetContext *context);
 
 error_t netSeedRand(const uint8_t *seed, size_t length);
 uint32_t netGetRand(void);
@@ -380,6 +391,7 @@ error_t netStartInterface(NetInterface *interface);
 error_t netStopInterface(NetInterface *interface);
 
 void netTask(void);
+void netTaskEx(NetContext *context);
 
 //C++ guard
 #ifdef __cplusplus

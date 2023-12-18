@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _ICS1894_DRIVER_H
@@ -36,7 +36,7 @@
 
 //PHY address
 #ifndef ICS1894_PHY_ADDR
-   #define ICS1894_PHY_ADDR 1
+   #define ICS1894_PHY_ADDR 5
 #elif (ICS1894_PHY_ADDR < 0 || ICS1894_PHY_ADDR > 31)
    #error ICS1894_PHY_ADDR parameter is not valid
 #endif

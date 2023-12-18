@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -1688,32 +1688,40 @@ error_t ipv6SendDatagram(NetInterface *interface,
 
    //The PMTU should not exceed the MTU of the first-hop link
    if(pathMtu > interface->ipv6Context.linkMtu)
+   {
       pathMtu = interface->ipv6Context.linkMtu;
+   }
 #else
    //The PMTU value for the path is assumed to be the MTU of the first-hop link
    pathMtu = interface->ipv6Context.linkMtu;
 #endif
 
-   //If the payload length is smaller than the PMTU then no fragmentation is
-   //needed
+   //Check the length of the payload
    if((length + sizeof(Ipv6Header)) <= pathMtu)
    {
-      //Send data as is
+      //If the payload length is smaller than the PMTU then no fragmentation
+      //is needed
       error = ipv6SendPacket(interface, pseudoHeader, 0, 0, buffer, offset,
          ancillary);
    }
-   //If the payload length exceeds the PMTU then the device must fragment the
-   //data
    else
    {
 #if (IPV6_FRAG_SUPPORT == ENABLED)
-      //Fragment IP datagram into smaller packets
-      error = ipv6FragmentDatagram(interface, pseudoHeader, buffer, offset,
-         pathMtu, ancillary);
-#else
-      //Fragmentation is not supported
-      error = ERROR_MESSAGE_TOO_LONG;
+      //This flag defines a mechanism to turn off fragmentation
+      if(!ancillary->dontFrag)
+      {
+         //If the payload length exceeds the PMTU then the device must fragment
+         //the data
+         error = ipv6FragmentDatagram(interface, pseudoHeader, buffer, offset,
+            pathMtu, ancillary);
+      }
+      else
 #endif
+      {
+         //When the data size is larger than the MTU of the outgoing interface,
+         //the packet will be discarded
+         error = ERROR_MESSAGE_TOO_LONG;
+      }
    }
 
    //Return status code

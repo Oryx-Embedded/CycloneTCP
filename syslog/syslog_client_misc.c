@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -73,8 +73,10 @@ size_t syslogClientFormatTimestamp(time_t time, char_t *buffer)
    //Convert Unix timestamp to date
    convertUnixTimeToDate(time, &dateTime);
 
-   //The format of the timestamp field is Mmm dd hh:mm:ss
-   n = osSprintf(buffer, "%s %02" PRIu8 " %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
+   //The format of the timestamp field is Mmm dd hh:mm:ss. If the day of the
+   //month is less than 10, then it must be represented as a space and then the
+   //number (refer to RFC 3164, section 4.1.2)
+   n = osSprintf(buffer, "%s %2" PRIu8 " %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
       months[dateTime.month], dateTime.day, dateTime.hours, dateTime.minutes,
       dateTime.seconds);
 

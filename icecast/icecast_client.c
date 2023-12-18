@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -48,6 +48,11 @@
 
 void icecastClientGetDefaultSettings(IcecastClientSettings *settings)
 {
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = ICECAST_CLIENT_STACK_SIZE;
+   settings->task.priority = ICECAST_CLIENT_PRIORITY;
+
    //Use default interface
    settings->interface = netGetDefaultInterface();
 
@@ -84,6 +89,10 @@ error_t icecastClientInit(IcecastClientContext *context,
 
    //Clear the Icecast client context
    osMemset(context, 0, sizeof(IcecastClientContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
    context->settings = *settings;
@@ -162,17 +171,9 @@ error_t icecastClientStart(IcecastClientContext *context)
    //Debug message
    TRACE_INFO("Starting Icecast client...\r\n");
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   //Create a task using statically allocated memory
-   context->taskId = osCreateStaticTask("Icecast client",
-      (OsTaskCode) icecastClientTask, context, &context->taskTcb,
-      context->taskStack, ICECAST_CLIENT_STACK_SIZE, ICECAST_CLIENT_PRIORITY);
-#else
    //Create a task
    context->taskId = osCreateTask("Icecast client",
-      (OsTaskCode) icecastClientTask, context, ICECAST_CLIENT_STACK_SIZE,
-      ICECAST_CLIENT_PRIORITY);
-#endif
+      (OsTaskCode) icecastClientTask, context, &context->taskParams);
 
    //Failed to create task?
    if(context->taskId == OS_INVALID_TASK_ID)

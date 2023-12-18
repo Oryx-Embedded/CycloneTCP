@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -1071,7 +1071,7 @@ void am335xEthRxIrqHandler(void)
 
 void am335xEthEventHandler(NetInterface *interface)
 {
-   static uint8_t buffer[AM335X_ETH_RX_BUFFER_SIZE];
+   static uint32_t buffer[AM335X_ETH_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    uint32_t temp;
@@ -1182,7 +1182,7 @@ void am335xEthEventHandler(NetInterface *interface)
          ancillary = NET_DEFAULT_RX_ANCILLARY;
 
          //Pass the packet to the upper layer
-         nicProcessPacket(interface, buffer, n, &ancillary);
+         nicProcessPacket(interface, (uint8_t *) buffer, n, &ancillary);
       }
 
       //No more data in the receive buffer?
@@ -1206,7 +1206,7 @@ void am335xEthEventHandler(NetInterface *interface)
 error_t am335xEthSendPacketPort1(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint8_t temp[AM335X_ETH_TX_BUFFER_SIZE];
+   static uint32_t temp[AM335X_ETH_TX_BUFFER_SIZE / 4];
    size_t length;
    uint32_t value;
 
@@ -1295,7 +1295,7 @@ error_t am335xEthSendPacketPort1(NetInterface *interface,
 error_t am335xEthSendPacketPort2(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint8_t temp[AM335X_ETH_TX_BUFFER_SIZE];
+   static uint32_t temp[AM335X_ETH_TX_BUFFER_SIZE / 4];
    size_t length;
    uint32_t value;
 

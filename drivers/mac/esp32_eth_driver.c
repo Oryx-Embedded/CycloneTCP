@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -168,8 +168,8 @@ error_t esp32EthInit(NetInterface *interface)
       EMAC_DMAOPERATION_MODE_TX_STORE_FORWARD;
 
    //Configure DMA bus mode
-   EMAC_DMABUSMODE_REG = EMAC_DMABUSMODE_RX_DMA_PBL_1 |
-      EMAC_DMABUSMODE_PROG_BURST_LEN_1 | EMAC_DMABUSMODE_ALT_DESC_SIZE;
+   EMAC_DMABUSMODE_REG = EMAC_DMABUSMODE_RX_DMA_PBL_32 |
+      EMAC_DMABUSMODE_PROG_BURST_LEN_32 | EMAC_DMABUSMODE_ALT_DESC_SIZE;
 
    //Initialize DMA descriptor lists
    esp32EthInitDmaDesc(interface);

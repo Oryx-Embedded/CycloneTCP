@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -304,7 +304,7 @@ error_t pcapDriverInit(NetInterface *interface)
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Create the receive task
-   taskId = osCreateTask("PCAP", (OsTaskCode) pcapDriverTask, interface, 0, 0);
+   taskId = osCreateTask("PCAP", (OsTaskCode) pcapDriverTask, interface, NULL);
 
    //Failed to create the task?
    if(taskId == OS_INVALID_TASK_ID)

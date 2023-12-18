@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -137,6 +137,7 @@ error_t ra6EthInit(NetInterface *interface)
 
    //Reset EDMAC0 module
    R_ETHERC_EDMAC->EDMR |= R_ETHERC_EDMAC_EDMR_SWR_Msk;
+   //Wait for the reset to complete
    sleep(10);
 
    //Valid Ethernet PHY or switch driver?

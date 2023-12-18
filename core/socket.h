@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _SOCKET_H
@@ -182,15 +182,17 @@ typedef enum
    SOCKET_OPTION_REUSE_ADDR              = 0x0001,
    SOCKET_OPTION_BROADCAST               = 0x0002,
    SOCKET_OPTION_IPV4_MULTICAST_LOOP     = 0x0004,
-   SOCKET_OPTION_IPV4_PKT_INFO           = 0x0008,
-   SOCKET_OPTION_IPV4_RECV_TOS           = 0x0010,
-   SOCKET_OPTION_IPV4_RECV_TTL           = 0x0020,
-   SOCKET_OPTION_IPV6_MULTICAST_LOOP     = 0x0040,
-   SOCKET_OPTION_IPV6_ONLY               = 0x0080,
-   SOCKET_OPTION_IPV6_PKT_INFO           = 0x0100,
-   SOCKET_OPTION_IPV6_RECV_TRAFFIC_CLASS = 0x0200,
-   SOCKET_OPTION_IPV6_RECV_HOP_LIMIT     = 0x0400,
-   SOCKET_OPTION_TCP_NO_DELAY            = 0x0800
+   SOCKET_OPTION_IPV4_DONT_FRAG          = 0x0008,
+   SOCKET_OPTION_IPV4_PKT_INFO           = 0x0010,
+   SOCKET_OPTION_IPV4_RECV_TOS           = 0x0020,
+   SOCKET_OPTION_IPV4_RECV_TTL           = 0x0040,
+   SOCKET_OPTION_IPV6_MULTICAST_LOOP     = 0x0080,
+   SOCKET_OPTION_IPV6_ONLY               = 0x0100,
+   SOCKET_OPTION_IPV6_DONT_FRAG          = 0x0200,
+   SOCKET_OPTION_IPV6_PKT_INFO           = 0x0400,
+   SOCKET_OPTION_IPV6_RECV_TRAFFIC_CLASS = 0x0800,
+   SOCKET_OPTION_IPV6_RECV_HOP_LIMIT     = 0x1000,
+   SOCKET_OPTION_TCP_NO_DELAY            = 0x2000
 } SocketOptions;
 
 
@@ -231,6 +233,7 @@ typedef struct
    size_t length;           ///<Actual length of the payload, in bytes
    uint8_t ttl;             ///<Time-to-live value
    uint8_t tos;             ///<Type-of-service value
+   bool_t dontFrag;         ///<Do not fragment the IP packet
    NetInterface *interface; ///<Underlying network interface
    IpAddr srcIpAddr;        ///<Source IP address
    uint16_t srcPort;        ///<Source port

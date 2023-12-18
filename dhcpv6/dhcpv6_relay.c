@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -89,6 +89,10 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings 
 
    //Clear the DHCPv6 relay agent context
    osMemset(context, 0, sizeof(Dhcpv6RelayContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save the network-facing interface
    context->serverInterface = settings->serverInterface;
@@ -204,17 +208,9 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings 
       //The DHCPv6 relay agent is now running
       context->running = TRUE;
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("DHCPv6 Relay",
-         (OsTaskCode) dhcpv6RelayTask, context, &context->taskTcb,
-         context->taskStack, DHCPV6_RELAY_STACK_SIZE, DHCPV6_RELAY_PRIORITY);
-#else
       //Create a task
       context->taskId = osCreateTask("DHCPv6 Relay",
-         (OsTaskCode) dhcpv6RelayTask, context, DHCPV6_RELAY_STACK_SIZE,
-         DHCPV6_RELAY_PRIORITY);
-#endif
+         (OsTaskCode) dhcpv6RelayTask, context, &context->taskParams);
 
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)

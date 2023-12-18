@@ -1,6 +1,6 @@
 /**
- * @file sam9x60_eth1_driver.c
- * @brief SAM9X60 Ethernet MAC driver (EMAC0 instance)
+ * @file sama5d3_eth2_driver.c
+ * @brief SAMA5D3 Gigabit Ethernet MAC driver (GMAC instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -33,9 +33,9 @@
 
 //Dependencies
 #include <limits.h>
-#include "sam9x60.h"
+#include "sama5d3x.h"
 #include "core/net.h"
-#include "drivers/mac/sam9x60_eth1_driver.h"
+#include "drivers/mac/sama5d3_eth2_driver.h"
 #include "debug.h"
 
 //Underlying network interface
@@ -46,36 +46,36 @@ static NetInterface *nicDriverInterface;
 
 //TX buffer
 #pragma data_alignment = 8
-#pragma location = SAM9X60_ETH1_RAM_SECTION
-static uint8_t txBuffer[SAM9X60_ETH1_TX_BUFFER_COUNT][SAM9X60_ETH1_TX_BUFFER_SIZE];
+#pragma location = SAMA5D3_ETH2_RAM_SECTION
+static uint8_t txBuffer[SAMA5D3_ETH2_TX_BUFFER_COUNT][SAMA5D3_ETH2_TX_BUFFER_SIZE];
 //RX buffer
 #pragma data_alignment = 8
-#pragma location = SAM9X60_ETH1_RAM_SECTION
-static uint8_t rxBuffer[SAM9X60_ETH1_RX_BUFFER_COUNT][SAM9X60_ETH1_RX_BUFFER_SIZE];
+#pragma location = SAMA5D3_ETH2_RAM_SECTION
+static uint8_t rxBuffer[SAMA5D3_ETH2_RX_BUFFER_COUNT][SAMA5D3_ETH2_RX_BUFFER_SIZE];
 //TX buffer descriptors
-#pragma data_alignment = 4
-#pragma location = SAM9X60_ETH1_RAM_SECTION
-static Sam9x60Eth1TxBufferDesc txBufferDesc[SAM9X60_ETH1_TX_BUFFER_COUNT];
+#pragma data_alignment = 8
+#pragma location = SAMA5D3_ETH2_RAM_SECTION
+static Sama5d3Eth2TxBufferDesc txBufferDesc[SAMA5D3_ETH2_TX_BUFFER_COUNT];
 //RX buffer descriptors
-#pragma data_alignment = 4
-#pragma location = SAM9X60_ETH1_RAM_SECTION
-static Sam9x60Eth1RxBufferDesc rxBufferDesc[SAM9X60_ETH1_RX_BUFFER_COUNT];
+#pragma data_alignment = 8
+#pragma location = SAMA5D3_ETH2_RAM_SECTION
+static Sama5d3Eth2RxBufferDesc rxBufferDesc[SAMA5D3_ETH2_RX_BUFFER_COUNT];
 
-//Keil MDK-ARM or GCC compiler?
+//GCC compiler?
 #else
 
 //TX buffer
-static uint8_t txBuffer[SAM9X60_ETH1_TX_BUFFER_COUNT][SAM9X60_ETH1_TX_BUFFER_SIZE]
-   __attribute__((aligned(8), __section__(SAM9X60_ETH1_RAM_SECTION)));
+static uint8_t txBuffer[SAMA5D3_ETH2_TX_BUFFER_COUNT][SAMA5D3_ETH2_TX_BUFFER_SIZE]
+   __attribute__((aligned(8), __section__(SAMA5D3_ETH2_RAM_SECTION)));
 //RX buffer
-static uint8_t rxBuffer[SAM9X60_ETH1_RX_BUFFER_COUNT][SAM9X60_ETH1_RX_BUFFER_SIZE]
-   __attribute__((aligned(8), __section__(SAM9X60_ETH1_RAM_SECTION)));
+static uint8_t rxBuffer[SAMA5D3_ETH2_RX_BUFFER_COUNT][SAMA5D3_ETH2_RX_BUFFER_SIZE]
+   __attribute__((aligned(8), __section__(SAMA5D3_ETH2_RAM_SECTION)));
 //TX buffer descriptors
-static Sam9x60Eth1TxBufferDesc txBufferDesc[SAM9X60_ETH1_TX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(SAM9X60_ETH1_RAM_SECTION)));
+static Sama5d3Eth2TxBufferDesc txBufferDesc[SAMA5D3_ETH2_TX_BUFFER_COUNT]
+   __attribute__((aligned(8), __section__(SAMA5D3_ETH2_RAM_SECTION)));
 //RX buffer descriptors
-static Sam9x60Eth1RxBufferDesc rxBufferDesc[SAM9X60_ETH1_RX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(SAM9X60_ETH1_RAM_SECTION)));
+static Sama5d3Eth2RxBufferDesc rxBufferDesc[SAMA5D3_ETH2_RX_BUFFER_COUNT]
+   __attribute__((aligned(8), __section__(SAMA5D3_ETH2_RAM_SECTION)));
 
 #endif
 
@@ -86,23 +86,23 @@ static uint_t rxBufferIndex;
 
 
 /**
- * @brief SAM9X60 Ethernet MAC driver (EMAC0 instance)
+ * @brief SAMA5D3 Ethernet MAC driver (GMAC instance)
  **/
 
-const NicDriver sam9x60Eth1Driver =
+const NicDriver sama5d3Eth2Driver =
 {
    NIC_TYPE_ETHERNET,
    ETH_MTU,
-   sam9x60Eth1Init,
-   sam9x60Eth1Tick,
-   sam9x60Eth1EnableIrq,
-   sam9x60Eth1DisableIrq,
-   sam9x60Eth1EventHandler,
-   sam9x60Eth1SendPacket,
-   sam9x60Eth1UpdateMacAddrFilter,
-   sam9x60Eth1UpdateMacConfig,
-   sam9x60Eth1WritePhyReg,
-   sam9x60Eth1ReadPhyReg,
+   sama5d3Eth2Init,
+   sama5d3Eth2Tick,
+   sama5d3Eth2EnableIrq,
+   sama5d3Eth2DisableIrq,
+   sama5d3Eth2EventHandler,
+   sama5d3Eth2SendPacket,
+   sama5d3Eth2UpdateMacAddrFilter,
+   sama5d3Eth2UpdateMacConfig,
+   sama5d3Eth2WritePhyReg,
+   sama5d3Eth2ReadPhyReg,
    TRUE,
    TRUE,
    TRUE,
@@ -111,37 +111,37 @@ const NicDriver sam9x60Eth1Driver =
 
 
 /**
- * @brief SAM9X60 Ethernet MAC initialization
+ * @brief SAMA5D3 Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
 
-error_t sam9x60Eth1Init(NetInterface *interface)
+error_t sama5d3Eth2Init(NetInterface *interface)
 {
    error_t error;
-   volatile uint32_t temp;
+   volatile uint32_t status;
 
    //Debug message
-   TRACE_INFO("Initializing SAM9X60 Ethernet MAC (EMAC0)...\r\n");
+   TRACE_INFO("Initializing SAMA5D3 Ethernet MAC (GMAC)...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
 
-   //Enable EMAC peripheral clock
-   PMC->PMC_PCR = PMC_PCR_PID(ID_EMAC0);
-   temp = PMC->PMC_PCR;
-   PMC->PMC_PCR = temp | PMC_PCR_CMD | PMC_PCR_EN;
+   //Enable GMAC peripheral clock
+   PMC->PMC_PCER1 = (1 << (ID_GMAC - 32));
+   //Enable IRQ controller peripheral clock
+   PMC->PMC_PCER1 = (1 << (ID_IRQ - 32));
 
    //Disable transmit and receive circuits
-   EMAC0->EMAC_NCR = 0;
+   GMAC->GMAC_NCR = 0;
 
    //GPIO configuration
-   sam9x60Eth1InitGpio(interface);
+   sama5d3Eth2InitGpio(interface);
 
    //Configure MDC clock speed
-   EMAC0->EMAC_NCFGR = EMAC_NCFGR_CLK_MCK_64;
+   GMAC->GMAC_NCFGR = GMAC_NCFGR_DBW_DBW64 | GMAC_NCFGR_CLK_MCK_224;
    //Enable management port (MDC and MDIO)
-   EMAC0->EMAC_NCR |= EMAC_NCR_MPE;
+   GMAC->GMAC_NCR |= GMAC_NCR_MPE;
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -167,50 +167,52 @@ error_t sam9x60Eth1Init(NetInterface *interface)
    }
 
    //Set the MAC address of the station
-   EMAC0->EMAC_SA[0].EMAC_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   EMAC0->EMAC_SA[0].EMAC_SAT = interface->macAddr.w[2];
+   GMAC->GMAC_SA[0].GMAC_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   GMAC->GMAC_SA[0].GMAC_SAT = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
-   EMAC0->EMAC_SA[1].EMAC_SAB = 0;
-   EMAC0->EMAC_SA[2].EMAC_SAB = 0;
-   EMAC0->EMAC_SA[3].EMAC_SAB = 0;
+   GMAC->GMAC_SA[1].GMAC_SAB = 0;
+   GMAC->GMAC_SA[2].GMAC_SAB = 0;
+   GMAC->GMAC_SA[3].GMAC_SAB = 0;
 
    //Initialize hash table
-   EMAC0->EMAC_HRB = 0;
-   EMAC0->EMAC_HRT = 0;
+   GMAC->GMAC_HRB = 0;
+   GMAC->GMAC_HRT = 0;
 
    //Configure the receive filter
-   EMAC0->EMAC_NCFGR |= EMAC_NCFGR_BIG | EMAC_NCFGR_MTI;
+   GMAC->GMAC_NCFGR |= GMAC_NCFGR_MAXFS | GMAC_NCFGR_MTIHEN;
 
    //Initialize buffer descriptors
-   sam9x60Eth1InitBufferDesc(interface);
+   sama5d3Eth2InitBufferDesc(interface);
 
    //Clear transmit status register
-   EMAC0->EMAC_TSR = EMAC_TSR_UND | EMAC_TSR_COMP | EMAC_TSR_BEX |
-      EMAC_TSR_TGO | EMAC_TSR_RLES | EMAC_TSR_COL | EMAC_TSR_UBR;
+   GMAC->GMAC_TSR = GMAC_TSR_HRESP | GMAC_TSR_UND | GMAC_TSR_TXCOMP |
+      GMAC_TSR_TFC | GMAC_TSR_TXGO | GMAC_TSR_RLE | GMAC_TSR_COL |
+      GMAC_TSR_UBR;
+
    //Clear receive status register
-   EMAC0->EMAC_RSR = EMAC_RSR_OVR | EMAC_RSR_REC | EMAC_RSR_BNA;
+   GMAC->GMAC_RSR = GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC |
+      GMAC_RSR_BNA;
 
-   //First disable all EMAC interrupts
-   EMAC0->EMAC_IDR = 0xFFFFFFFF;
+   //First disable all GMAC interrupts
+   GMAC->GMAC_IDR = 0xFFFFFFFF;
+
    //Only the desired ones are enabled
-   EMAC0->EMAC_IER = EMAC_IER_ROVR | EMAC_IER_TCOMP | EMAC_IER_TXERR |
-      EMAC_IER_RLE | EMAC_IER_TUND | EMAC_IER_RXUBR | EMAC_IER_RCOMP;
+   GMAC->GMAC_IER = GMAC_IER_HRESP | GMAC_IER_ROVR | GMAC_IER_TCOMP |
+      GMAC_IER_TFC | GMAC_IER_RLEX | GMAC_IER_TUR | GMAC_IER_RXUBR |
+      GMAC_IER_RCOMP;
 
-   //Read EMAC_ISR register to clear any pending interrupt
-   temp = EMAC0->EMAC_ISR;
-   (void) temp;
+   //Read GMAC_ISR register to clear any pending interrupt
+   status = GMAC->GMAC_ISR;
+   (void) status;
 
    //Configure interrupt controller
-   AIC->AIC_SSR = ID_EMAC0;
-   AIC->AIC_SMR = AIC_SMR_SRCTYPE_INT_LEVEL_SENSITIVE | AIC_SMR_PRIOR(SAM9X60_ETH1_IRQ_PRIORITY);
-   AIC->AIC_SVR = (uint32_t) sam9x60Eth1IrqHandler;
+   AIC->AIC_SSR = ID_GMAC;
+   AIC->AIC_SMR = AIC_SMR_SRCTYPE_INT_LEVEL_SENSITIVE | AIC_SMR_PRIOR(SAMA5D3_ETH2_IRQ_PRIORITY);
+   AIC->AIC_SVR = (uint32_t) sama5d3Eth2IrqHandler;
 
-   //Clear EMAC interrupt flag
-   AIC->AIC_ICCR = (1 << ID_EMAC0);
-
-   //Enable the EMAC to transmit and receive data
-   EMAC0->EMAC_NCR |= EMAC_NCR_TE | EMAC_NCR_RE;
+   //Enable the GMAC to transmit and receive data
+   GMAC->GMAC_NCR |= GMAC_NCR_TXEN | GMAC_NCR_RXEN;
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -225,29 +227,25 @@ error_t sam9x60Eth1Init(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-__weak_func void sam9x60Eth1InitGpio(NetInterface *interface)
+__weak_func void sama5d3Eth2InitGpio(NetInterface *interface)
 {
-//SAM9X60-EK evaluation board?
-#if defined(USE_SAM9X60_EK)
-   uint32_t temp;
-
+//SAMA5D3-Xplained, SAMA5D3-EDS or EVB-KSZ9477 evaluation board?
+#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS) || defined(USE_EVB_KSZ9477)
    //Enable PIO peripheral clock
-   PMC->PMC_PCR = PMC_PCR_PID(ID_PIOB);
-   temp = PMC->PMC_PCR;
-   PMC->PMC_PCR = temp | PMC_PCR_CMD | PMC_PCR_EN;
+   PMC->PMC_PCER0 = (1 << ID_PIOB);
 
-   //Disable pull-up resistors on RMII pins
-   PIOB->PIO_PUDR = EMAC0_RMII_MASK;
+   //Disable pull-up resistors on RGMII pins
+   PIOB->PIO_PUDR = GMAC_RGMII_MASK;
    //Disable interrupts-on-change
-   PIOB->PIO_IDR = EMAC0_RMII_MASK;
-   //Assign RMII pins to to the relevant peripheral function
-   PIOB->PIO_ABCDSR[0] &= ~EMAC0_RMII_MASK;
-   PIOB->PIO_ABCDSR[1] &= ~EMAC0_RMII_MASK;
+   PIOB->PIO_IDR = GMAC_RGMII_MASK;
+   //Assign MII pins to peripheral A function
+   PIOB->PIO_ABCDSR[0] &= ~GMAC_RGMII_MASK;
+   PIOB->PIO_ABCDSR[1] &= ~GMAC_RGMII_MASK;
    //Disable the PIO from controlling the corresponding pins
-   PIOB->PIO_PDR = EMAC0_RMII_MASK;
+   PIOB->PIO_PDR = GMAC_RGMII_MASK;
 
-   //Select RMII operation mode and enable transceiver clock
-   EMAC0->EMAC_USRIO = EMAC_USRIO_CLKEN | EMAC_USRIO_RMII;
+   //Select RGMII operation mode
+   GMAC->GMAC_UR = GMAC_UR_RGMII;
 #endif
 }
 
@@ -257,52 +255,52 @@ __weak_func void sam9x60Eth1InitGpio(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void sam9x60Eth1InitBufferDesc(NetInterface *interface)
+void sama5d3Eth2InitBufferDesc(NetInterface *interface)
 {
    uint_t i;
    uint32_t address;
 
    //Initialize TX buffer descriptors
-   for(i = 0; i < SAM9X60_ETH1_TX_BUFFER_COUNT; i++)
+   for(i = 0; i < SAMA5D3_ETH2_TX_BUFFER_COUNT; i++)
    {
       //Calculate the address of the current TX buffer
       address = (uint32_t) txBuffer[i];
       //Write the address to the descriptor entry
       txBufferDesc[i].address = address;
       //Initialize status field
-      txBufferDesc[i].status = EMAC_TX_USED;
+      txBufferDesc[i].status = GMAC_TX_USED;
    }
 
    //Mark the last descriptor entry with the wrap flag
-   txBufferDesc[i - 1].status |= EMAC_TX_WRAP;
+   txBufferDesc[i - 1].status |= GMAC_TX_WRAP;
    //Initialize TX buffer index
    txBufferIndex = 0;
 
    //Initialize RX buffer descriptors
-   for(i = 0; i < SAM9X60_ETH1_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < SAMA5D3_ETH2_RX_BUFFER_COUNT; i++)
    {
       //Calculate the address of the current RX buffer
       address = (uint32_t) rxBuffer[i];
       //Write the address to the descriptor entry
-      rxBufferDesc[i].address = address & EMAC_RX_ADDRESS;
+      rxBufferDesc[i].address = address & GMAC_RX_ADDRESS;
       //Clear status field
       rxBufferDesc[i].status = 0;
    }
 
    //Mark the last descriptor entry with the wrap flag
-   rxBufferDesc[i - 1].address |= EMAC_RX_WRAP;
+   rxBufferDesc[i - 1].address |= GMAC_RX_WRAP;
    //Initialize RX buffer index
    rxBufferIndex = 0;
 
    //Start location of the TX descriptor list
-   EMAC0->EMAC_TBQP = (uint32_t) txBufferDesc;
+   GMAC->GMAC_TBQB = (uint32_t) txBufferDesc;
    //Start location of the RX descriptor list
-   EMAC0->EMAC_RBQP = (uint32_t) rxBufferDesc;
+   GMAC->GMAC_RBQB = (uint32_t) rxBufferDesc;
 }
 
 
 /**
- * @brief SAM9X60 Ethernet MAC timer handler
+ * @brief SAMA5D3 Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to handle periodic
  * operations such as polling the link state
@@ -310,7 +308,7 @@ void sam9x60Eth1InitBufferDesc(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void sam9x60Eth1Tick(NetInterface *interface)
+void sama5d3Eth2Tick(NetInterface *interface)
 {
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -335,10 +333,10 @@ void sam9x60Eth1Tick(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void sam9x60Eth1EnableIrq(NetInterface *interface)
+void sama5d3Eth2EnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
-   AIC->AIC_SSR = AIC_SSR_INTSEL(ID_EMAC0);
+   AIC->AIC_SSR = ID_GMAC;
    AIC->AIC_IECR = AIC_IECR_INTEN;
 
    //Valid Ethernet PHY or switch driver?
@@ -364,10 +362,10 @@ void sam9x60Eth1EnableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void sam9x60Eth1DisableIrq(NetInterface *interface)
+void sama5d3Eth2DisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
-   AIC->AIC_SSR = AIC_SSR_INTSEL(ID_EMAC0);
+   AIC->AIC_SSR = ID_GMAC;
    AIC->AIC_IDCR = AIC_IDCR_INTD;
 
    //Valid Ethernet PHY or switch driver?
@@ -389,10 +387,10 @@ void sam9x60Eth1DisableIrq(NetInterface *interface)
 
 
 /**
- * @brief SAM9X60 Ethernet MAC interrupt service routine
+ * @brief SAMA5D3 Ethernet MAC interrupt service routine
  **/
 
-void sam9x60Eth1IrqHandler(void)
+void sama5d3Eth2IrqHandler(void)
 {
    bool_t flag;
    volatile uint32_t isr;
@@ -405,22 +403,23 @@ void sam9x60Eth1IrqHandler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //Each time the software reads EMAC_ISR, it has to check the contents
-   //of EMAC_TSR, EMAC_RSR and EMAC_NSR
-   isr = EMAC0->EMAC_ISR;
-   tsr = EMAC0->EMAC_TSR;
-   rsr = EMAC0->EMAC_RSR;
+   //Each time the software reads GMAC_ISR, it has to check the contents
+   //of GMAC_TSR, GMAC_RSR and GMAC_NSR
+   isr = GMAC->GMAC_ISR;
+   tsr = GMAC->GMAC_TSR;
+   rsr = GMAC->GMAC_RSR;
    (void) isr;
 
    //Packet transmitted?
-   if((tsr & (EMAC_TSR_UND | EMAC_TSR_COMP | EMAC_TSR_BEX |
-      EMAC_TSR_TGO | EMAC_TSR_RLES | EMAC_TSR_COL | EMAC_TSR_UBR)) != 0)
+   if((tsr & (GMAC_TSR_HRESP | GMAC_TSR_UND | GMAC_TSR_TXCOMP | GMAC_TSR_TFC |
+      GMAC_TSR_TXGO | GMAC_TSR_RLE | GMAC_TSR_COL | GMAC_TSR_UBR)) != 0)
    {
       //Only clear TSR flags that are currently set
-      EMAC0->EMAC_TSR = tsr;
+      GMAC->GMAC_TSR = tsr;
 
-      //Check whether the TX buffer is available for writing
-      if((txBufferDesc[txBufferIndex].status & EMAC_TX_USED) != 0)
+      //Avoid DMA lockup by sending only one frame at a time (see errata 57.5.1)
+      if((txBufferDesc[0].status & GMAC_TX_USED) != 0 &&
+         (txBufferDesc[1].status & GMAC_TX_USED) != 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -428,7 +427,7 @@ void sam9x60Eth1IrqHandler(void)
    }
 
    //Packet received?
-   if((rsr & (EMAC_RSR_OVR | EMAC_RSR_REC | EMAC_RSR_BNA)) != 0)
+   if((rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA)) != 0)
    {
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -436,10 +435,8 @@ void sam9x60Eth1IrqHandler(void)
       flag |= osSetEventFromIsr(&netEvent);
    }
 
-#if (NET_RTOS_SUPPORT == DISABLED)
    //Write AIC_EOICR register before exiting
    AIC->AIC_EOICR = 0;
-#endif
 
    //Interrupt service routine epilogue
    osExitIsr(flag);
@@ -447,29 +444,29 @@ void sam9x60Eth1IrqHandler(void)
 
 
 /**
- * @brief SAM9X60 Ethernet MAC event handler
+ * @brief SAMA5D3 Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 
-void sam9x60Eth1EventHandler(NetInterface *interface)
+void sama5d3Eth2EventHandler(NetInterface *interface)
 {
    error_t error;
    uint32_t rsr;
 
    //Read receive status
-   rsr = EMAC0->EMAC_RSR;
+   rsr = GMAC->GMAC_RSR;
 
    //Packet received?
-   if((rsr & (EMAC_RSR_OVR | EMAC_RSR_REC | EMAC_RSR_BNA)) != 0)
+   if((rsr & (GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA)) != 0)
    {
       //Only clear RSR flags that are currently set
-      EMAC0->EMAC_RSR = rsr;
+      GMAC->GMAC_RSR = rsr;
 
       //Process all pending packets
       do
       {
          //Read incoming packet
-         error = sam9x60Eth1ReceivePacket(interface);
+         error = sama5d3Eth2ReceivePacket(interface);
 
          //No more data in the receive buffer?
       } while(error != ERROR_BUFFER_EMPTY);
@@ -487,7 +484,7 @@ void sam9x60Eth1EventHandler(NetInterface *interface)
  * @return Error code
  **/
 
-error_t sam9x60Eth1SendPacket(NetInterface *interface,
+error_t sama5d3Eth2SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
    size_t length;
@@ -496,7 +493,7 @@ error_t sam9x60Eth1SendPacket(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Check the frame length
-   if(length > SAM9X60_ETH1_TX_BUFFER_SIZE)
+   if(length > SAMA5D3_ETH2_TX_BUFFER_SIZE)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -505,7 +502,7 @@ error_t sam9x60Eth1SendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if((txBufferDesc[txBufferIndex].status & EMAC_TX_USED) == 0)
+   if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) == 0)
    {
       return ERROR_FAILURE;
    }
@@ -514,11 +511,11 @@ error_t sam9x60Eth1SendPacket(NetInterface *interface,
    netBufferRead(txBuffer[txBufferIndex], buffer, offset, length);
 
    //Set the necessary flags in the descriptor entry
-   if(txBufferIndex < (SAM9X60_ETH1_TX_BUFFER_COUNT - 1))
+   if(txBufferIndex < (SAMA5D3_ETH2_TX_BUFFER_COUNT - 1))
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status = EMAC_TX_LAST |
-         (length & EMAC_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = GMAC_TX_LAST |
+         (length & GMAC_TX_LENGTH);
 
       //Point to the next buffer
       txBufferIndex++;
@@ -526,18 +523,18 @@ error_t sam9x60Eth1SendPacket(NetInterface *interface,
    else
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status = EMAC_TX_WRAP | EMAC_TX_LAST |
-         (length & EMAC_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = GMAC_TX_WRAP | GMAC_TX_LAST |
+         (length & GMAC_TX_LENGTH);
 
       //Wrap around
       txBufferIndex = 0;
    }
 
    //Set the TSTART bit to initiate transmission
-   EMAC0->EMAC_NCR |= EMAC_NCR_TSTART;
+   GMAC->GMAC_NCR |= GMAC_NCR_TSTART;
 
    //Check whether the next buffer is available for writing
-   if((txBufferDesc[txBufferIndex].status & EMAC_TX_USED) != 0)
+   if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) != 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -554,9 +551,9 @@ error_t sam9x60Eth1SendPacket(NetInterface *interface,
  * @return Error code
  **/
 
-error_t sam9x60Eth1ReceivePacket(NetInterface *interface)
+error_t sama5d3Eth2ReceivePacket(NetInterface *interface)
 {
-   static uint8_t temp[ETH_MAX_FRAME_SIZE];
+   static uint32_t temp[ETH_MAX_FRAME_SIZE / 4];
    error_t error;
    uint_t i;
    uint_t j;
@@ -572,38 +569,38 @@ error_t sam9x60Eth1ReceivePacket(NetInterface *interface)
    eofIndex = UINT_MAX;
 
    //Search for SOF and EOF flags
-   for(i = 0; i < SAM9X60_ETH1_RX_BUFFER_COUNT; i++)
+   for(i = 0; i < SAMA5D3_ETH2_RX_BUFFER_COUNT; i++)
    {
       //Point to the current entry
       j = rxBufferIndex + i;
 
       //Wrap around to the beginning of the buffer if necessary
-      if(j >= SAM9X60_ETH1_RX_BUFFER_COUNT)
+      if(j >= SAMA5D3_ETH2_RX_BUFFER_COUNT)
       {
-         j -= SAM9X60_ETH1_RX_BUFFER_COUNT;
+         j -= SAMA5D3_ETH2_RX_BUFFER_COUNT;
       }
 
       //No more entries to process?
-      if((rxBufferDesc[j].address & EMAC_RX_OWNERSHIP) == 0)
+      if((rxBufferDesc[j].address & GMAC_RX_OWNERSHIP) == 0)
       {
          //Stop processing
          break;
       }
 
       //A valid SOF has been found?
-      if((rxBufferDesc[j].status & EMAC_RX_SOF) != 0)
+      if((rxBufferDesc[j].status & GMAC_RX_SOF) != 0)
       {
          //Save the position of the SOF
          sofIndex = i;
       }
 
       //A valid EOF has been found?
-      if((rxBufferDesc[j].status & EMAC_RX_EOF) != 0 && sofIndex != UINT_MAX)
+      if((rxBufferDesc[j].status & GMAC_RX_EOF) != 0 && sofIndex != UINT_MAX)
       {
          //Save the position of the EOF
          eofIndex = i;
          //Retrieve the length of the frame
-         size = rxBufferDesc[j].status & EMAC_RX_LENGTH;
+         size = rxBufferDesc[j].status & GMAC_RX_LENGTH;
          //Limit the number of data to read
          size = MIN(size, ETH_MAX_FRAME_SIZE);
          //Stop processing since we have reached the end of the frame
@@ -635,22 +632,22 @@ error_t sam9x60Eth1ReceivePacket(NetInterface *interface)
       if(eofIndex != UINT_MAX && i >= sofIndex && i <= eofIndex)
       {
          //Calculate the number of bytes to read at a time
-         n = MIN(size, SAM9X60_ETH1_RX_BUFFER_SIZE);
+         n = MIN(size, SAMA5D3_ETH2_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         osMemcpy(temp + length, rxBuffer[rxBufferIndex], n);
+         osMemcpy((uint8_t *) temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;
       }
 
       //Mark the current buffer as free
-      rxBufferDesc[rxBufferIndex].address &= ~EMAC_RX_OWNERSHIP;
+      rxBufferDesc[rxBufferIndex].address &= ~GMAC_RX_OWNERSHIP;
 
       //Point to the following entry
       rxBufferIndex++;
 
       //Wrap around to the beginning of the buffer if necessary
-      if(rxBufferIndex >= SAM9X60_ETH1_RX_BUFFER_COUNT)
+      if(rxBufferIndex >= SAMA5D3_ETH2_RX_BUFFER_COUNT)
       {
          rxBufferIndex = 0;
       }
@@ -665,7 +662,7 @@ error_t sam9x60Eth1ReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length, &ancillary);
+      nicProcessPacket(interface, (uint8_t *) temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }
@@ -686,7 +683,7 @@ error_t sam9x60Eth1ReceivePacket(NetInterface *interface)
  * @return Error code
  **/
 
-error_t sam9x60Eth1UpdateMacAddrFilter(NetInterface *interface)
+error_t sama5d3Eth2UpdateMacAddrFilter(NetInterface *interface)
 {
    uint_t i;
    uint_t j;
@@ -700,8 +697,8 @@ error_t sam9x60Eth1UpdateMacAddrFilter(NetInterface *interface)
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Set the MAC address of the station
-   EMAC0->EMAC_SA[0].EMAC_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   EMAC0->EMAC_SA[0].EMAC_SAT = interface->macAddr.w[2];
+   GMAC->GMAC_SA[0].GMAC_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   GMAC->GMAC_SA[0].GMAC_SAT = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
@@ -748,8 +745,30 @@ error_t sam9x60Eth1UpdateMacAddrFilter(NetInterface *interface)
             if(j < 3)
             {
                //Save the unicast address
-               unicastMacAddr[j++] = entry->addr;
+               unicastMacAddr[j] = entry->addr;
             }
+            else
+            {
+               //Point to the MAC address
+               p = entry->addr.b;
+
+               //Apply the hash function
+               k = (p[0] >> 6) ^ p[0];
+               k ^= (p[1] >> 4) ^ (p[1] << 2);
+               k ^= (p[2] >> 2) ^ (p[2] << 4);
+               k ^= (p[3] >> 6) ^ p[3];
+               k ^= (p[4] >> 4) ^ (p[4] << 2);
+               k ^= (p[5] >> 2) ^ (p[5] << 4);
+
+               //The hash value is reduced to a 6-bit index
+               k &= 0x3F;
+
+               //Update hash table contents
+               hashTable[k / 32] |= (1 << (k % 32));
+            }
+
+            //Increment the number of unicast addresses
+            j++;
          }
       }
    }
@@ -757,49 +776,59 @@ error_t sam9x60Eth1UpdateMacAddrFilter(NetInterface *interface)
    //Configure the first unicast address filter
    if(j >= 1)
    {
-      //The address is activated when SAH register is written
-      EMAC0->EMAC_SA[1].EMAC_SAB = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
-      EMAC0->EMAC_SA[1].EMAC_SAT = unicastMacAddr[0].w[2];
+      //The address is activated when SAT register is written
+      GMAC->GMAC_SA[1].GMAC_SAB = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+      GMAC->GMAC_SA[1].GMAC_SAT = unicastMacAddr[0].w[2];
    }
    else
    {
-      //The address is deactivated when SAL register is written
-      EMAC0->EMAC_SA[1].EMAC_SAB = 0;
+      //The address is deactivated when SAB register is written
+      GMAC->GMAC_SA[1].GMAC_SAB = 0;
    }
 
    //Configure the second unicast address filter
    if(j >= 2)
    {
-      //The address is activated when SAH register is written
-      EMAC0->EMAC_SA[2].EMAC_SAB = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
-      EMAC0->EMAC_SA[2].EMAC_SAT = unicastMacAddr[1].w[2];
+      //The address is activated when SAT register is written
+      GMAC->GMAC_SA[2].GMAC_SAB = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+      GMAC->GMAC_SA[2].GMAC_SAT = unicastMacAddr[1].w[2];
    }
    else
    {
-      //The address is deactivated when SAL register is written
-      EMAC0->EMAC_SA[2].EMAC_SAB = 0;
+      //The address is deactivated when SAB register is written
+      GMAC->GMAC_SA[2].GMAC_SAB = 0;
    }
 
    //Configure the third unicast address filter
    if(j >= 3)
    {
-      //The address is activated when SAH register is written
-      EMAC0->EMAC_SA[3].EMAC_SAB = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
-      EMAC0->EMAC_SA[4].EMAC_SAT = unicastMacAddr[2].w[2];
+      //The address is activated when SAT register is written
+      GMAC->GMAC_SA[3].GMAC_SAB = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+      GMAC->GMAC_SA[3].GMAC_SAT = unicastMacAddr[2].w[2];
    }
    else
    {
-      //The address is deactivated when SAL register is written
-      EMAC0->EMAC_SA[3].EMAC_SAB = 0;
+      //The address is deactivated when SAB register is written
+      GMAC->GMAC_SA[3].GMAC_SAB = 0;
+   }
+
+   //The perfect MAC filter supports only 3 unicast addresses
+   if(j >= 4)
+   {
+      GMAC->GMAC_NCFGR |= GMAC_NCFGR_UNIHEN;
+   }
+   else
+   {
+      GMAC->GMAC_NCFGR &= ~GMAC_NCFGR_UNIHEN;
    }
 
    //Configure the multicast hash table
-   EMAC0->EMAC_HRB = hashTable[0];
-   EMAC0->EMAC_HRT = hashTable[1];
+   GMAC->GMAC_HRB = hashTable[0];
+   GMAC->GMAC_HRT = hashTable[1];
 
    //Debug message
-   TRACE_DEBUG("  HRB = %08" PRIX32 "\r\n", EMAC0->EMAC_HRB);
-   TRACE_DEBUG("  HRT = %08" PRIX32 "\r\n", EMAC0->EMAC_HRT);
+   TRACE_DEBUG("  HRB = %08" PRIX32 "\r\n", GMAC->GMAC_HRB);
+   TRACE_DEBUG("  HRT = %08" PRIX32 "\r\n", GMAC->GMAC_HRT);
 
    //Successful processing
    return NO_ERROR;
@@ -812,35 +841,44 @@ error_t sam9x60Eth1UpdateMacAddrFilter(NetInterface *interface)
  * @return Error code
  **/
 
-error_t sam9x60Eth1UpdateMacConfig(NetInterface *interface)
+error_t sama5d3Eth2UpdateMacConfig(NetInterface *interface)
 {
    uint32_t config;
 
    //Read network configuration register
-   config = EMAC0->EMAC_NCFGR;
+   config = GMAC->GMAC_NCFGR;
 
-   //10BASE-T or 100BASE-TX operation mode?
-   if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   //1000BASE-T operation mode?
+   if(interface->linkSpeed == NIC_LINK_SPEED_1GBPS)
    {
-      config |= EMAC_NCFGR_SPD;
+      config |= GMAC_NCFGR_GBE;
+      config &= ~GMAC_NCFGR_SPD;
    }
+   //100BASE-TX operation mode?
+   else if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
+      config &= ~GMAC_NCFGR_GBE;
+      config |= GMAC_NCFGR_SPD;
+   }
+   //10BASE-T operation mode?
    else
    {
-      config &= ~EMAC_NCFGR_SPD;
+      config &= ~GMAC_NCFGR_GBE;
+      config &= ~GMAC_NCFGR_SPD;
    }
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
    {
-      config |= EMAC_NCFGR_FD;
+      config |= GMAC_NCFGR_FD;
    }
    else
    {
-      config &= ~EMAC_NCFGR_FD;
+      config &= ~GMAC_NCFGR_FD;
    }
 
    //Write configuration value back to NCFGR register
-   EMAC0->EMAC_NCFGR = config;
+   GMAC->GMAC_NCFGR = config;
 
    //Successful processing
    return NO_ERROR;
@@ -855,7 +893,7 @@ error_t sam9x60Eth1UpdateMacConfig(NetInterface *interface)
  * @param[in] data Register value
  **/
 
-void sam9x60Eth1WritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void sama5d3Eth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
    uint32_t temp;
@@ -864,18 +902,18 @@ void sam9x60Eth1WritePhyReg(uint8_t opcode, uint8_t phyAddr,
    if(opcode == SMI_OPCODE_WRITE)
    {
       //Set up a write operation
-      temp = EMAC_MAN_SOF(1) | EMAC_MAN_RW(1) | EMAC_MAN_CODE(2);
+      temp = GMAC_MAN_CLTTO | GMAC_MAN_OP(1) | GMAC_MAN_WTN(2);
       //PHY address
-      temp |= EMAC_MAN_PHYA(phyAddr);
+      temp |= GMAC_MAN_PHYA(phyAddr);
       //Register address
-      temp |= EMAC_MAN_REGA(regAddr);
+      temp |= GMAC_MAN_REGA(regAddr);
       //Register value
-      temp |= EMAC_MAN_DATA(data);
+      temp |= GMAC_MAN_DATA(data);
 
       //Start a write operation
-      EMAC0->EMAC_MAN = temp;
+      GMAC->GMAC_MAN = temp;
       //Wait for the write to complete
-      while((EMAC0->EMAC_NSR & EMAC_NSR_IDLE) == 0)
+      while((GMAC->GMAC_NSR & GMAC_NSR_IDLE) == 0)
       {
       }
    }
@@ -894,7 +932,7 @@ void sam9x60Eth1WritePhyReg(uint8_t opcode, uint8_t phyAddr,
  * @return Register value
  **/
 
-uint16_t sam9x60Eth1ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t sama5d3Eth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr)
 {
    uint16_t data;
@@ -904,21 +942,21 @@ uint16_t sam9x60Eth1ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    if(opcode == SMI_OPCODE_READ)
    {
       //Set up a read operation
-      temp = EMAC_MAN_SOF(1) | EMAC_MAN_RW(2) | EMAC_MAN_CODE(2);
+      temp = GMAC_MAN_CLTTO | GMAC_MAN_OP(2) | GMAC_MAN_WTN(2);
       //PHY address
-      temp |= EMAC_MAN_PHYA(phyAddr);
+      temp |= GMAC_MAN_PHYA(phyAddr);
       //Register address
-      temp |= EMAC_MAN_REGA(regAddr);
+      temp |= GMAC_MAN_REGA(regAddr);
 
       //Start a read operation
-      EMAC0->EMAC_MAN = temp;
+      GMAC->GMAC_MAN = temp;
       //Wait for the read to complete
-      while((EMAC0->EMAC_NSR & EMAC_NSR_IDLE) == 0)
+      while((GMAC->GMAC_NSR & GMAC_NSR_IDLE) == 0)
       {
       }
 
       //Get register value
-      data = EMAC0->EMAC_MAN & EMAC_MAN_DATA_Msk;
+      data = GMAC->GMAC_MAN & GMAC_MAN_DATA_Msk;
    }
    else
    {

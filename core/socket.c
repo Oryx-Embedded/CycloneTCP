@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -51,27 +51,28 @@ Socket socketTable[SOCKET_MAX_COUNT];
 //Default socket message
 const SocketMsg SOCKET_DEFAULT_MSG =
 {
-   NULL,    //Pointer to the payload
-   0,       //Size of the payload, in bytes
-   0,       //Actual length of the payload, in bytes
-   0,       //Time-to-live value
-   0,       //Type-of-service value
-   NULL,    //Underlying network interface
-   {0},     //Source IP address
-   0,       //Source port
-   {0},     //Destination IP address
-   0,       //Destination port
+   NULL,          //Pointer to the payload
+   0,             //Size of the payload, in bytes
+   0,             //Actual length of the payload, in bytes
+   0,             //Time-to-live value
+   0,             //Type-of-service value
+   IP_DEFAULT_DF, //Do not fragment the IP packet
+   NULL,          //Underlying network interface
+   {0},           //Source IP address
+   0,             //Source port
+   {0},           //Destination IP address
+   0,             //Destination port
 #if (ETH_SUPPORT == ENABLED)
-   {{{0}}}, //Source MAC address
-   {{{0}}}, //Destination MAC address
-   0,       //Ethernet type field
+   {{{0}}},       //Source MAC address
+   {{{0}}},       //Destination MAC address
+   0,             //Ethernet type field
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   0,       //Switch port identifier
+   0,             //Switch port identifier
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
-   -1,      //Unique identifier for hardware time stamping
-   {0},     //Captured time stamp
+   -1,            //Unique identifier for hardware time stamping
+   {0},           //Captured time stamp
 #endif
 };
 

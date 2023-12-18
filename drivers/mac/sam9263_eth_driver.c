@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -180,16 +180,21 @@ error_t sam9263EthInit(NetInterface *interface)
    sam9263EthInitBufferDesc(interface);
 
    //Clear transmit status register
-   AT91C_BASE_EMAC->EMAC_TSR = AT91C_EMAC_UND | AT91C_EMAC_COMP | AT91C_EMAC_BEX |
-      AT91C_EMAC_TGO | AT91C_EMAC_RLES | AT91C_EMAC_COL | AT91C_EMAC_UBR;
+   AT91C_BASE_EMAC->EMAC_TSR = AT91C_EMAC_UND | AT91C_EMAC_COMP |
+      AT91C_EMAC_BEX | AT91C_EMAC_TGO | AT91C_EMAC_RLES | AT91C_EMAC_COL |
+      AT91C_EMAC_UBR;
+
    //Clear receive status register
-   AT91C_BASE_EMAC->EMAC_RSR = AT91C_EMAC_OVR | AT91C_EMAC_REC | AT91C_EMAC_BNA;
+   AT91C_BASE_EMAC->EMAC_RSR = AT91C_EMAC_OVR | AT91C_EMAC_REC |
+      AT91C_EMAC_BNA;
 
    //First disable all EMAC interrupts
    AT91C_BASE_EMAC->EMAC_IDR = 0xFFFFFFFF;
+
    //Only the desired ones are enabled
-   AT91C_BASE_EMAC->EMAC_IER = AT91C_EMAC_ROVR | AT91C_EMAC_TCOMP | AT91C_EMAC_TXERR |
-      AT91C_EMAC_RLEX | AT91C_EMAC_TUNDR | AT91C_EMAC_RXUBR | AT91C_EMAC_RCOMP;
+   AT91C_BASE_EMAC->EMAC_IER = AT91C_EMAC_ROVR | AT91C_EMAC_TCOMP |
+      AT91C_EMAC_TXERR | AT91C_EMAC_RLEX | AT91C_EMAC_TUNDR |
+      AT91C_EMAC_RXUBR | AT91C_EMAC_RCOMP;
 
    //Read EMAC_ISR register to clear any pending interrupt
    status = AT91C_BASE_EMAC->EMAC_ISR;
@@ -544,7 +549,7 @@ error_t sam9263EthSendPacket(NetInterface *interface,
 
 error_t sam9263EthReceivePacket(NetInterface *interface)
 {
-   static uint8_t temp[ETH_MAX_FRAME_SIZE];
+   static uint32_t temp[ETH_MAX_FRAME_SIZE / 4];
    error_t error;
    uint_t i;
    uint_t j;
@@ -625,7 +630,7 @@ error_t sam9263EthReceivePacket(NetInterface *interface)
          //Calculate the number of bytes to read at a time
          n = MIN(size, SAM9263_ETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         osMemcpy(temp + length, rxBuffer[rxBufferIndex], n);
+         osMemcpy((uint8_t *) temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;
@@ -653,7 +658,7 @@ error_t sam9263EthReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length, &ancillary);
+      nicProcessPacket(interface, (uint8_t *) temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }

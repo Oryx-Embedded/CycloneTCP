@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -141,11 +141,12 @@ error_t rza1EthInit(NetInterface *interface)
    //Start EDMAC transmitting and receiving units
    ETHER.EDSR0 = ETHER_EDSR0_ENT | ETHER_EDSR0_ENR;
 
-   //To execute a software reset with this register, 1 must be
-   //written to both the SWRT and SWRR bits simultaneously
+   //To execute a software reset with this register, 1 must be written to
+   //both the SWRT and SWRR bits simultaneously
    ETHER.EDMR0 = ETHER_EDMR0_SWRT | ETHER_EDMR0_SWRR;
+
    //Wait for the reset to complete
-   while(ETHER.EDMR0 & (ETHER_EDMR0_SWRT | ETHER_EDMR0_SWRR))
+   while((ETHER.EDMR0 & (ETHER_EDMR0_SWRT | ETHER_EDMR0_SWRR)) != 0)
    {
    }
 
@@ -198,7 +199,7 @@ error_t rza1EthInit(NetInterface *interface)
    ETHER.CSMR = 0;
 
    //Enable multicast address filtering
-   ETHER.ECMR0 |= ETH_ECMR0_MCT;
+   ETHER.ECMR0 |= ETHER_ECMR0_MCT;
 
    //Set the upper 32 bits of the MAC address
    ETHER.MAHR0 = (interface->macAddr.b[0] << 24) | (interface->macAddr.b[1] << 16) |
@@ -230,8 +231,8 @@ error_t rza1EthInit(NetInterface *interface)
    //Configure interrupt priority
    R_INTC_Set_Priority(INTC_ID_ETHERI, RZA1_ETH_IRQ_PRIORITY);
 
-   //Enable EDMAC transmission and reception
-   ETHER.ECMR0 |= ETH_ECMR0_RE | ETH_ECMR0_TE;
+   //Enable transmission and reception
+   ETHER.ECMR0 |= ETHER_ECMR0_TE | ETHER_ECMR0_RE;
 
    //Instruct the DMA to poll the receive descriptor list
    ETHER.EDRRR0 = ETHER_EDRRR0_RR;
@@ -956,7 +957,7 @@ error_t rza1EthSendPacket(NetInterface *interface,
  **/
 error_t rza1EthReceivePacket(NetInterface *interface)
 {
-   static uint8_t temp[RZA1_ETH_RX_BUFFER_SIZE];
+   static uint32_t temp[RZA1_ETH_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
@@ -983,7 +984,7 @@ error_t rza1EthReceivePacket(NetInterface *interface)
             ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, temp, n, &ancillary);
+            nicProcessPacket(interface, (uint8_t *) temp, n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
@@ -1111,15 +1112,23 @@ error_t rza1EthUpdateMacAddrFilter(NetInterface *interface)
 
 error_t rza1EthUpdateMacConfig(NetInterface *interface)
 {
+   uint32_t mode;
+
+   //Read EMAC mode register
+   mode = ETHER.ECMR0;
+
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
    {
-      ETHER.ECMR0 |= ETH_ECMR0_DM;
+      mode |= ETHER_ECMR0_DM;
    }
    else
    {
-      ETHER.ECMR0 &= ~ETH_ECMR0_DM;
+      mode &= ~ETHER_ECMR0_DM;
    }
+
+   //Update EMAC mode register
+   ETHER.ECMR0 = mode;
 
    //Successful processing
    return NO_ERROR;

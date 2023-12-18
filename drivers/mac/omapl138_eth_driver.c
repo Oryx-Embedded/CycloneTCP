@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -760,7 +760,7 @@ error_t omapl138EthSendPacket(NetInterface *interface,
 
 error_t omapl138EthReceivePacket(NetInterface *interface)
 {
-   static uint8_t buffer[OMAPL138_ETH_RX_BUFFER_SIZE];
+   static uint32_t buffer[OMAPL138_ETH_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    uint32_t temp;
@@ -842,7 +842,7 @@ error_t omapl138EthReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, buffer, n, &ancillary);
+      nicProcessPacket(interface, (uint8_t *) buffer, n, &ancillary);
    }
 
    //Return status code

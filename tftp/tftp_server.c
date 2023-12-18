@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -57,6 +57,11 @@
 
 void tftpServerGetDefaultSettings(TftpServerSettings *settings)
 {
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = TFTP_SERVER_STACK_SIZE;
+   settings->task.priority = TFTP_SERVER_PRIORITY;
+
    //The TFTP server is not bound to any interface
    settings->interface = NULL;
 
@@ -95,6 +100,10 @@ error_t tftpServerInit(TftpServerContext *context,
 
    //Clear the TFTP server context
    osMemset(context, 0, sizeof(TftpServerContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
    context->settings = *settings;
@@ -172,16 +181,9 @@ error_t tftpServerStart(TftpServerContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("TFTP Server",
-         (OsTaskCode) tftpServerTask, context, &context->taskTcb,
-         context->taskStack, TFTP_SERVER_STACK_SIZE, TFTP_SERVER_PRIORITY);
-#else
       //Create a task
       context->taskId = osCreateTask("TFTP Server", (OsTaskCode) tftpServerTask,
-         context, TFTP_SERVER_STACK_SIZE, TFTP_SERVER_PRIORITY);
-#endif
+         context, &context->taskParams);
 
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)

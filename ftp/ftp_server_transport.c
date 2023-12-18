@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -83,6 +83,12 @@ error_t ftpServerOpenSecureChannel(FtpServerContext *context,
 
 #if (TLS_TICKET_SUPPORT == ENABLED)
    //Enable session ticket mechanism
+   error = tlsEnableSessionTickets(channel->tlsContext, TRUE);
+   //Any error to report?
+   if(error)
+      return error;
+
+   //Register ticket encryption/decryption callbacks
    error = tlsSetTicketCallbacks(channel->tlsContext, tlsEncryptTicket,
       tlsDecryptTicket, &context->tlsTicketContext);
    //Any error to report?

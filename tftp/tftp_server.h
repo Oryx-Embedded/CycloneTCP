@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _TFTP_SERVER_H
@@ -170,6 +170,7 @@ typedef void (*TftpServerCloseFileCallback)(void *file);
 
 typedef struct
 {
+   OsTaskParameters task;                         ///<Task parameters
    NetInterface *interface;                       ///<Underlying network interface
    uint16_t port;                                 ///<TFTP port number
    TftpServerOpenFileCallback openFileCallback;   ///<Open file callback function
@@ -207,11 +208,8 @@ struct _TftpServerContext
    bool_t running;                                               ///<Operational state of the TFTP server
    bool_t stop;                                                  ///<Stop request
    OsEvent event;                                                ///<Event object used to poll the sockets
+   OsTaskParameters taskParams;                                  ///<Task parameters
    OsTaskId taskId;                                              ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                                            ///<Task control block
-   OsStackType taskStack[TFTP_SERVER_STACK_SIZE];                ///<Task stack
-#endif
    Socket *socket;                                               ///<Listening socket
    TftpClientConnection connection[TFTP_SERVER_MAX_CONNECTIONS]; ///<Client connections
    SocketEventDesc eventDesc[TFTP_SERVER_MAX_CONNECTIONS + 1];   ///<The events the application is interested in

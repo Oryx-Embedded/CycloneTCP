@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -50,6 +50,11 @@
 
 void lldpGetDefaultSettings(LldpAgentSettings *settings)
 {
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = LLDP_TASK_STACK_SIZE;
+   settings->task.priority = LLDP_TASK_PRIORITY;
+
    //Use default interface
    settings->interface = netGetDefaultInterface();
 
@@ -110,6 +115,10 @@ error_t lldpInit(LldpAgentContext *context,
 
    //Clear the LLDP agent context
    osMemset(context, 0, sizeof(LldpAgentContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Initialize LLDP agent context
    context->interface = settings->interface;
@@ -309,16 +318,9 @@ error_t lldpStart(LldpAgentContext *context)
       //Save current time
       context->timestamp = osGetSystemTime();
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("LLDP Agent",
-         (OsTaskCode) lldpTask, context, &context->taskTcb,
-         context->taskStack, LLDP_TASK_STACK_SIZE, LLDP_TASK_PRIORITY);
-#else
       //Create a task
       context->taskId = osCreateTask("LLDP Agent", (OsTaskCode) lldpTask,
-         context, LLDP_TASK_STACK_SIZE, LLDP_TASK_PRIORITY);
-#endif
+         context, &context->taskParams);
 
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -595,7 +595,7 @@ error_t same53EthSendPacket(NetInterface *interface,
 
 error_t same53EthReceivePacket(NetInterface *interface)
 {
-   static uint8_t temp[ETH_MAX_FRAME_SIZE];
+   static uint32_t temp[ETH_MAX_FRAME_SIZE / 4];
    error_t error;
    uint_t i;
    uint_t j;
@@ -676,7 +676,7 @@ error_t same53EthReceivePacket(NetInterface *interface)
          //Calculate the number of bytes to read at a time
          n = MIN(size, SAME53_ETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         osMemcpy(temp + length, rxBuffer[rxBufferIndex], n);
+         osMemcpy((uint8_t *) temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;
@@ -704,7 +704,7 @@ error_t same53EthReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length, &ancillary);
+      nicProcessPacket(interface, (uint8_t *) temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }

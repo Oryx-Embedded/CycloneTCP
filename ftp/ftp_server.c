@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -59,6 +59,11 @@
 
 void ftpServerGetDefaultSettings(FtpServerSettings *settings)
 {
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = FTP_SERVER_STACK_SIZE;
+   settings->task.priority = FTP_SERVER_PRIORITY;
+
    //The FTP server is not bound to any interface
    settings->interface = NULL;
 
@@ -144,6 +149,10 @@ error_t ftpServerInit(FtpServerContext *context,
 
    //Clear the FTP server context
    osMemset(context, 0, sizeof(FtpServerContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
    context->settings = *settings;
@@ -270,16 +279,9 @@ error_t ftpServerStart(FtpServerContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("FTP Server",
-         (OsTaskCode) ftpServerTask, context, &context->taskTcb,
-         context->taskStack, FTP_SERVER_STACK_SIZE, FTP_SERVER_PRIORITY);
-#else
       //Create a task
       context->taskId = osCreateTask("FTP Server", (OsTaskCode) ftpServerTask,
-         context, FTP_SERVER_STACK_SIZE, FTP_SERVER_PRIORITY);
-#endif
+         context, &context->taskParams);
 
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)

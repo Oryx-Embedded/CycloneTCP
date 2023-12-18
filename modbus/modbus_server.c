@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -48,6 +48,11 @@
 
 void modbusServerGetDefaultSettings(ModbusServerSettings *settings)
 {
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = MODBUS_SERVER_STACK_SIZE;
+   settings->task.priority = MODBUS_SERVER_PRIORITY;
+
    //The Modbus/TCP server is not bound to any interface
    settings->interface = NULL;
 
@@ -114,6 +119,10 @@ error_t modbusServerInit(ModbusServerContext *context,
 
    //Clear Modbus/TCP server context
    osMemset(context, 0, sizeof(ModbusServerContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
    context->settings = *settings;
@@ -212,17 +221,9 @@ error_t modbusServerStart(ModbusServerContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("Modbus/TCP Server",
-         (OsTaskCode) modbusServerTask, context, &context->taskTcb,
-         context->taskStack, MODBUS_SERVER_STACK_SIZE, MODBUS_SERVER_PRIORITY);
-#else
       //Create a task
       context->taskId = osCreateTask("Modbus/TCP Server",
-         (OsTaskCode) modbusServerTask, context, MODBUS_SERVER_STACK_SIZE,
-         MODBUS_SERVER_PRIORITY);
-#endif
+         (OsTaskCode) modbusServerTask, context, &context->taskParams);
 
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)

@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -1049,14 +1049,23 @@ error_t ipv4SendDatagram(NetInterface *interface,
    else
    {
 #if (IPV4_FRAG_SUPPORT == ENABLED)
-      //If the payload length exceeds the network interface MTU then the
-      //device must fragment the data
-      error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer,
-         offset, ancillary);
-#else
-      //Fragmentation is not supported
-      error = ERROR_MESSAGE_TOO_LONG;
+      //An IP datagram can be marked "don't fragment". Any IP datagram so
+      //marked is not to be fragmented under any circumstances (refer to
+      //RFC791, section 2.3)
+      if(!ancillary->dontFrag)
+      {
+         //If the payload length exceeds the network interface MTU then the
+         //device must fragment the data
+         error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer,
+            offset, ancillary);
+      }
+      else
 #endif
+      {
+         //If IP datagram cannot be delivered to its destination without
+         //fragmenting it, it is to be discarded instead
+         error = ERROR_MESSAGE_TOO_LONG;
+      }
    }
 #endif
 
@@ -1130,6 +1139,14 @@ error_t ipv4SendPacket(NetInterface *interface,
    if(ancillary->routerAlert)
    {
       packet->headerLength = 6;
+   }
+
+   //An IP datagram can be marked "don't fragment"
+   if(ancillary->dontFrag)
+   {
+      //Any IP datagram so marked is not to be fragmented under any
+      //circumstances (refer to RFC791, section 2.3)
+      packet->fragmentOffset |= HTONS(IPV4_FLAG_DF); 
    }
 
    //Check whether the TTL value is zero

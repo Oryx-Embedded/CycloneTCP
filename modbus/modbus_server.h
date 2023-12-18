@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -47,6 +47,13 @@
    #define MODBUS_SERVER_TLS_SUPPORT DISABLED
 #elif (MODBUS_SERVER_TLS_SUPPORT != ENABLED && MODBUS_SERVER_TLS_SUPPORT != DISABLED)
    #error MODBUS_SERVER_TLS_SUPPORT parameter is not valid
+#endif
+
+//Modbus diagnostics
+#ifndef MODBUS_SERVER_DIAG_SUPPORT
+   #define MODBUS_SERVER_DIAG_SUPPORT DISABLED
+#elif (MODBUS_SERVER_DIAG_SUPPORT != ENABLED && MODBUS_SERVER_DIAG_SUPPORT != DISABLED)
+   #error MODBUS_SERVER_DIAG_SUPPORT parameter is not valid
 #endif
 
 //Stack size required to run the Modbus/TCP server
@@ -240,6 +247,7 @@ typedef void (*ModbusServerTickCallback)(ModbusServerContext *context);
 
 typedef struct
 {
+   OsTaskParameters task;                                  ///<Task parameters
    NetInterface *interface;                                ///<Underlying network interface
    uint16_t port;                                          ///<Modbus/TCP port number
    uint8_t unitId;                                         ///<Unit identifier
@@ -293,21 +301,24 @@ struct _ModbusClientConnection
 
 struct _ModbusServerContext
 {
-   ModbusServerSettings settings;                                    ///<User settings
-   bool_t running;                                                   ///<Operational state of the Modbus/TCP server
-   bool_t stop;                                                      ///<Stop request
-   OsEvent event;                                                    ///<Event object used to poll the sockets
-   OsTaskId taskId;                                                  ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                                                ///<Task control block
-   OsStackType taskStack[MODBUS_SERVER_STACK_SIZE];                  ///<Task stack
-#endif
-   Socket *socket;                                                   ///<Listening socket
+   ModbusServerSettings settings;     ///<User settings
+   bool_t running;                    ///<Operational state of the Modbus/TCP server
+   bool_t stop;                       ///<Stop request
+   OsEvent event;                     ///<Event object used to poll the sockets
+   OsTaskParameters taskParams;       ///<Task parameters
+   OsTaskId taskId;                   ///<Task identifier
+   Socket *socket;                    ///<Listening socket
    ModbusClientConnection connection[MODBUS_SERVER_MAX_CONNECTIONS]; ///<Client connections
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
-   TlsTicketContext tlsTicketContext;                                ///<TLS ticket encryption context
+   TlsTicketContext tlsTicketContext; ///<TLS ticket encryption context
 #endif
-   MODBUS_SERVER_PRIVATE_CONTEXT                                     ///<Application specific context
+#if (MODBUS_SERVER_DIAG_SUPPORT == ENABLED)
+   uint32_t rxMessageCount;           ///<Total number of messages received
+   uint32_t txMessageCount;           ///<Total number of messages sent
+   uint32_t commErrorCount;           ///<Total number of communication errors
+   uint32_t exceptionErrorCount;      ///<Total number of exception errors
+#endif
+   MODBUS_SERVER_PRIVATE_CONTEXT      ///<Application specific context
 };
 
 

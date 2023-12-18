@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -70,29 +70,30 @@
 //Default options passed to the stack (TX path)
 const NetTxAncillary NET_DEFAULT_TX_ANCILLARY =
 {
-   0,       //Time-to-live value
-   0,       //Type-of-service value
-   FALSE,   //Do not send the packet via a router
-   FALSE,   //Do not add an IP Router Alert option
+   0,             //Time-to-live value
+   0,             //Type-of-service value
+   IP_DEFAULT_DF, //Do not fragment the IP packet
+   FALSE,         //Do not send the packet via a router
+   FALSE,         //Do not add an IP Router Alert option
 #if (ETH_SUPPORT == ENABLED)
-   {{{0}}}, //Source MAC address
-   {{{0}}}, //Destination MAC address
+   {{{0}}},       //Source MAC address
+   {{{0}}},       //Destination MAC address
 #endif
 #if (ETH_VLAN_SUPPORT == ENABLED)
-   -1,      //VLAN priority (802.1Q)
-   -1,      //Drop eligible indicator
+   -1,            //VLAN priority (802.1Q)
+   -1,            //Drop eligible indicator
 #endif
 #if (ETH_VMAN_SUPPORT == ENABLED)
-   -1,      //VMAN priority (802.1ad)
-   -1,      //Drop eligible indicator
+   -1,            //VMAN priority (802.1ad)
+   -1,            //Drop eligible indicator
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   0,       //Egress port identifier
-   0,       //Egress port map
-   FALSE,   //Override port state
+   0,             //Egress port identifier
+   0,             //Egress port map
+   FALSE,         //Override port state
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
-   -1,      //Unique identifier for hardware time stamping
+   -1,            //Unique identifier for hardware time stamping
 #endif
 };
 

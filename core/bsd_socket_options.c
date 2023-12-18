@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -400,7 +400,7 @@ int_t socketSetIpTtlOption(Socket *socket, const int_t *optval,
    //Check the length of the option
    if(optlen >= (socklen_t) sizeof(int_t))
    {
-      //This options specifies the TTL value associated with an IPv4 socket
+      //This option specifies the TTL value associated with an IPv4 socket
       //for unicast traffic
       socket->ttl = *optval;
 
@@ -482,7 +482,7 @@ int_t socketSetIpMulticastTtlOption(Socket *socket, const int_t *optval,
    //Check the length of the option
    if(optlen >= (socklen_t) sizeof(int_t))
    {
-      //This options specifies the TTL value associated with an IPv4 socket
+      //This option specifies the TTL value associated with an IPv4 socket
       //for multicast traffic
       socket->multicastTtl = *optval;
 
@@ -652,6 +652,52 @@ int_t socketSetIpDropMembershipOption(Socket *socket,
 
       //Successful processing
       ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv4 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set IP_DONTFRAG option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetIpDontFragOption(Socket *socket, const int_t *optval,
+   socklen_t optlen)
+{
+   int_t ret;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(int_t))
+   {
+      //This option can be used to set the "don't fragment" flag on IP packets
+      if(*optval != 0)
+      {
+         socket->options |= SOCKET_OPTION_IPV4_DONT_FRAG;
+      }
+      else
+      {
+         socket->options &= ~SOCKET_OPTION_IPV4_DONT_FRAG;
+      }
    }
    else
    {
@@ -898,7 +944,7 @@ int_t socketSetIpv6UnicastHopsOption(Socket *socket, const int_t *optval,
    //Check the length of the option
    if(optlen >= (socklen_t) sizeof(int_t))
    {
-      //This options specifies the TTL value associated with an IPv6 socket
+      //This option specifies the TTL value associated with an IPv6 socket
       //for unicast traffic
       socket->ttl = *optval;
 
@@ -980,7 +1026,7 @@ int_t socketSetIpv6MulticastHopsOption(Socket *socket, const int_t *optval,
    //Check the length of the option
    if(optlen >= (socklen_t) sizeof(int_t))
    {
-      //This options specifies the TTL value associated with an IPv6 socket
+      //This option specifies the TTL value associated with an IPv6 socket
       //for multicast traffic
       socket->multicastTtl = *optval;
 
@@ -1206,6 +1252,54 @@ int_t socketSetIpv6OnlyOption(Socket *socket, const int_t *optval,
 
       //Successful processing
       ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv6 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set IPV6_DONTFRAG option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetIpv6DontFragOption(Socket *socket, const int_t *optval,
+   socklen_t optlen)
+{
+   int_t ret;
+
+#if (IPV6_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(int_t))
+   {
+      //This option defines a mechanism to turn off the automatic inserting
+      //of a fragment header for UDP and raw sockets (refer to RFC 3542,
+      //section 11.2)
+      if(*optval != 0)
+      {
+         socket->options |= SOCKET_OPTION_IPV6_DONT_FRAG;
+      }
+      else
+      {
+         socket->options &= ~SOCKET_OPTION_IPV6_DONT_FRAG;
+      }
    }
    else
    {
@@ -2207,6 +2301,58 @@ int_t socketGetIpMulticastLoopOption(Socket *socket, int_t *optval,
 
 
 /**
+ * @brief Get IP_DONTFRAG option
+ * @param[in] socket Handle referencing the socket
+ * @param[out] optval A pointer to the buffer in which the value for the
+ *   requested option is to be returned
+ * @param[in,out] optlen The size, in bytes, of the buffer pointed to by the
+ *   optval parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketGetIpDontFragOption(Socket *socket, int_t *optval,
+   socklen_t *optlen)
+{
+   int_t ret;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(*optlen >= (socklen_t) sizeof(int_t))
+   {
+      //This option can be used to set the "don't fragment" flag on IP packets
+      if((socket->options & SOCKET_OPTION_IPV4_DONT_FRAG) != 0)
+      {
+         *optval = TRUE;
+      }
+      else
+      {
+         *optval = FALSE;
+      }
+
+      //Return the actual length of the option
+      *optlen = sizeof(int_t);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv4 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
  * @brief Get IP_PKTINFO option
  * @param[in] socket Handle referencing the socket
  * @param[out] optval A pointer to the buffer in which the value for the
@@ -2428,7 +2574,7 @@ int_t socketGetIpv6UnicastHopsOption(Socket *socket, int_t *optval,
    //Check the length of the option
    if(*optlen >= (socklen_t) sizeof(int_t))
    {
-      //This options specifies the TTL value associated with an IPv6 socket
+      //This option specifies the TTL value associated with an IPv6 socket
       //for unicast traffic
       *optval = socket->ttl;
 
@@ -2474,7 +2620,7 @@ int_t socketGetIpv6MulticastHopsOption(Socket *socket, int_t *optval,
    //Check the length of the option
    if(*optlen >= (socklen_t) sizeof(int_t))
    {
-      //This options specifies the TTL value associated with an IPv6 socket
+      //This option specifies the TTL value associated with an IPv6 socket
       //for multicast traffic
       *optval = socket->multicastTtl;
 
@@ -2576,6 +2722,60 @@ int_t socketGetIpv6OnlyOption(Socket *socket, int_t *optval,
       //This option indicates if a socket created for the AF_INET6 address
       //family is restricted to IPv6 communications only
       if((socket->options & SOCKET_OPTION_IPV6_ONLY) != 0)
+      {
+         *optval = TRUE;
+      }
+      else
+      {
+         *optval = FALSE;
+      }
+
+      //Return the actual length of the option
+      *optlen = sizeof(int_t);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv6 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Get IPV6_DONTFRAG option
+ * @param[in] socket Handle referencing the socket
+ * @param[out] optval A pointer to the buffer in which the value for the
+ *   requested option is to be returned
+ * @param[in,out] optlen The size, in bytes, of the buffer pointed to by the
+ *   optval parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketGetIpv6DontFragOption(Socket *socket, int_t *optval,
+   socklen_t *optlen)
+{
+   int_t ret;
+
+#if (IPV6_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(*optlen >= (socklen_t) sizeof(int_t))
+   {
+      //This option defines a mechanism to turn off the automatic inserting
+      //of a fragment header for UDP and raw sockets (refer to RFC 3542,
+      //section 11.2)
+      if((socket->options & SOCKET_OPTION_IPV6_DONT_FRAG) != 0)
       {
          *optval = TRUE;
       }

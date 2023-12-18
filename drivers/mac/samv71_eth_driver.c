@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -588,7 +588,7 @@ void samv71EthEventHandler(NetInterface *interface)
 error_t samv71EthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint8_t temp[SAMV71_ETH_TX_BUFFER_SIZE];
+   static uint32_t temp[SAMV71_ETH_TX_BUFFER_SIZE / 4];
    size_t length;
 
    //Retrieve the length of the packet
@@ -659,7 +659,7 @@ error_t samv71EthSendPacket(NetInterface *interface,
 
 error_t samv71EthReceivePacket(NetInterface *interface)
 {
-   static uint8_t temp[ETH_MAX_FRAME_SIZE];
+   static uint32_t temp[ETH_MAX_FRAME_SIZE / 4];
    error_t error;
    uint_t i;
    uint_t j;
@@ -740,7 +740,7 @@ error_t samv71EthReceivePacket(NetInterface *interface)
          //Calculate the number of bytes to read at a time
          n = MIN(size, SAMV71_ETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         osMemcpy(temp + length, rxBuffer[rxBufferIndex], (n + 3) & ~3UL);
+         osMemcpy((uint8_t *) temp + length, rxBuffer[rxBufferIndex], (n + 3) & ~3UL);
          //Update byte counters
          length += n;
          size -= n;
@@ -768,7 +768,7 @@ error_t samv71EthReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length, &ancillary);
+      nicProcessPacket(interface, (uint8_t *) temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }

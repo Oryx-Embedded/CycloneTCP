@@ -1,6 +1,6 @@
 /**
  * @file mimxrt1160_eth2_driver.h
- * @brief NXP i.MX RT1160 Ethernet MAC driver (ENET_1G instance)
+ * @brief NXP i.MX RT1160 Gigabit Ethernet MAC driver (ENET_1G instance)
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _MIMXRT1160_ETH2_DRIVER_H

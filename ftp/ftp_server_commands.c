@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -1561,8 +1561,8 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Make sure the pathname is valid
    if(error)
@@ -1696,8 +1696,8 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
    else
    {
       //Retrieve the full pathname
-      error = ftpServerGetPath(connection, param,
-         connection->path, FTP_SERVER_MAX_PATH_LEN);
+      error = ftpServerGetPath(connection, param, connection->path,
+         FTP_SERVER_MAX_PATH_LEN);
 
       //Any error to report?
       if(error)
@@ -1930,8 +1930,8 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)
@@ -2006,8 +2006,8 @@ void ftpServerProcessRmd(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname of the directory
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)
@@ -2081,8 +2081,8 @@ void ftpServerProcessSize(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)
@@ -2155,8 +2155,8 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)
@@ -2263,8 +2263,8 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)
@@ -2372,8 +2372,8 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)
@@ -2496,8 +2496,8 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)
@@ -2585,8 +2585,8 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname
-   error = ftpServerGetPath(connection, param,
-      newPath, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, newPath,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)
@@ -2669,8 +2669,8 @@ void ftpServerProcessDele(FtpClientConnection *connection, char_t *param)
    }
 
    //Retrieve the full pathname of the file
-   error = ftpServerGetPath(connection, param,
-      connection->path, FTP_SERVER_MAX_PATH_LEN);
+   error = ftpServerGetPath(connection, param, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //Any error to report?
    if(error)

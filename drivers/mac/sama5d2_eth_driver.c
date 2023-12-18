@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -225,8 +225,10 @@ error_t sama5d2EthInit(NetInterface *interface)
    //Clear transmit status register
    GMAC0->GMAC_TSR = GMAC_TSR_HRESP | GMAC_TSR_TXCOMP | GMAC_TSR_TFC |
       GMAC_TSR_TXGO | GMAC_TSR_RLE | GMAC_TSR_COL | GMAC_TSR_UBR;
+
    //Clear receive status register
-   GMAC0->GMAC_RSR = GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC | GMAC_RSR_BNA;
+   GMAC0->GMAC_RSR = GMAC_RSR_HNO | GMAC_RSR_RXOVR | GMAC_RSR_REC |
+      GMAC_RSR_BNA;
 
    //First disable all GMAC interrupts
    GMAC0->GMAC_IDR = 0xFFFFFFFF;
@@ -234,8 +236,9 @@ error_t sama5d2EthInit(NetInterface *interface)
    GMAC0->GMAC_IDRPQ[1] = 0xFFFFFFFF;
 
    //Only the desired ones are enabled
-   GMAC0->GMAC_IER = GMAC_IER_HRESP | GMAC_IER_ROVR | GMAC_IER_TCOMP | GMAC_IER_TFC |
-      GMAC_IER_RLEX | GMAC_IER_TUR | GMAC_IER_RXUBR | GMAC_IER_RCOMP;
+   GMAC0->GMAC_IER = GMAC_IER_HRESP | GMAC_IER_ROVR | GMAC_IER_TCOMP |
+      GMAC_IER_TFC | GMAC_IER_RLEX | GMAC_IER_TUR | GMAC_IER_RXUBR |
+      GMAC_IER_RCOMP;
 
    //Read GMAC_ISR register to clear any pending interrupt
    status = GMAC0->GMAC_ISR;
@@ -619,7 +622,7 @@ error_t sama5d2EthSendPacket(NetInterface *interface,
 
 error_t sama5d2EthReceivePacket(NetInterface *interface)
 {
-   static uint8_t temp[ETH_MAX_FRAME_SIZE];
+   static uint32_t temp[ETH_MAX_FRAME_SIZE / 4];
    error_t error;
    uint_t i;
    uint_t j;
@@ -700,7 +703,7 @@ error_t sama5d2EthReceivePacket(NetInterface *interface)
          //Calculate the number of bytes to read at a time
          n = MIN(size, SAMA5D2_ETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         osMemcpy(temp + length, rxBuffer[rxBufferIndex], n);
+         osMemcpy((uint8_t *) temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;
@@ -728,7 +731,7 @@ error_t sama5d2EthReceivePacket(NetInterface *interface)
       ancillary = NET_DEFAULT_RX_ANCILLARY;
 
       //Pass the packet to the upper layer
-      nicProcessPacket(interface, temp, length, &ancillary);
+      nicProcessPacket(interface, (uint8_t *) temp, length, &ancillary);
       //Valid packet received
       error = NO_ERROR;
    }

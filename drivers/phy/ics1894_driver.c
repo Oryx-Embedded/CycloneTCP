@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -59,6 +59,8 @@ const PhyDriver ics1894PhyDriver =
 
 error_t ics1894Init(NetInterface *interface)
 {
+   uint16_t temp;
+
    //Debug message
    TRACE_INFO("Initializing ICS1894...\r\n");
 
@@ -85,6 +87,22 @@ error_t ics1894Init(NetInterface *interface)
 
    //Dump PHY registers for debugging purpose
    ics1894DumpPhyReg(interface);
+
+   //The PHY supports full-duplex operation only
+   ics1894WritePhyReg(interface, ICS1894_ANAR, ICS1894_ANAR_100BTX_FD |
+      ICS1894_ANAR_10BT_FD | ICS1894_ANAR_SELECTOR_DEFAULT);
+
+   //Configure LED0 mode
+   temp = ics1894ReadPhyReg(interface, ICS1894_ECR3);
+   temp &= ~ICS1894_ECR3_LED0_MODE;
+   temp |= ICS1894_ECR3_LED0_MODE_LINK_STAT;
+   ics1894WritePhyReg(interface, ICS1894_ECR3, temp);
+
+   //Configure LED1 mode
+   temp = ics1894ReadPhyReg(interface, ICS1894_ECR3);
+   temp &= ~ICS1894_ECR3_LED1_MODE;
+   temp |= ICS1894_ECR3_LED1_MODE_ACT;
+   ics1894WritePhyReg(interface, ICS1894_ECR3, temp);
 
    //Perform custom configuration
    ics1894InitHook(interface);

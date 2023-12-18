@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -241,19 +241,19 @@ error_t tc3xxEthInit(NetInterface *interface)
    //The DMA takes the descriptor table as contiguous
    MODULE_GETH.DMA_CH[0].CONTROL.B.DSL = 0;
    //Configure TX features
-   MODULE_GETH.DMA_CH[0].TX_CONTROL.B.TXPBL = 1;
+   MODULE_GETH.DMA_CH[0].TX_CONTROL.B.TXPBL = 32;
 
    //Configure RX features
-   MODULE_GETH.DMA_CH[0].RX_CONTROL.B.RXPBL = 1;
+   MODULE_GETH.DMA_CH[0].RX_CONTROL.B.RXPBL = 32;
    MODULE_GETH.DMA_CH[0].RX_CONTROL.B.RBSZ_13_Y = TC3XX_ETH_RX_BUFFER_SIZE / 4;
 
    //Enable store and forward mode for transmission
-   MODULE_GETH.MTL_TXQ0.OPERATION_MODE.B.TQS = 7;
+   MODULE_GETH.MTL_TXQ0.OPERATION_MODE.B.TQS = 15;
    MODULE_GETH.MTL_TXQ0.OPERATION_MODE.B.TXQEN = 2;
    MODULE_GETH.MTL_TXQ0.OPERATION_MODE.B.TSF = 1;
 
    //Enable store and forward mode for reception
-   MODULE_GETH.MTL_RXQ0.OPERATION_MODE.B.RQS = 7;
+   MODULE_GETH.MTL_RXQ0.OPERATION_MODE.B.RQS = 31;
    MODULE_GETH.MTL_RXQ0.OPERATION_MODE.B.RSF = 1;
 
    //Initialize DMA descriptor lists

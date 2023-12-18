@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -202,7 +202,7 @@ error_t xmc4400EthInit(NetInterface *interface)
 
    //Configure DMA bus mode
    ETH0->BUS_MODE = ETH_BUS_MODE_AAL_Msk | ETH_BUS_MODE_USP_Msk |
-      ETH_BUS_MODE_RPBL_1 | ETH_BUS_MODE_PR_1_1 | ETH_BUS_MODE_PBL_1;
+      ETH_BUS_MODE_RPBL_32 | ETH_BUS_MODE_PR_1_1 | ETH_BUS_MODE_PBL_32;
 
    //Initialize DMA descriptor lists
    xmc4400EthInitDmaDesc(interface);

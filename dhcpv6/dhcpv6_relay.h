@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _DHCPV6_RELAY_H
@@ -76,6 +76,7 @@ extern "C" {
 
 typedef struct
 {
+   OsTaskParameters task;                                     ///<Task parameters
    NetInterface *serverInterface;                             ///<Network-facing interface
    NetInterface *clientInterface[DHCPV6_RELAY_MAX_CLIENT_IF]; ///<Client-facing interfaces
    uint_t clientInterfaceCount;                               ///<Number of client-facing interfaces
@@ -100,11 +101,8 @@ typedef struct
    bool_t stopRequest;                                        ///<Stop request
    OsEvent ackEvent;                                          ///<Event object use to acknowledge user requests
    OsEvent event;                                             ///<Event object used to poll the sockets
+   OsTaskParameters taskParams;                               ///<Task parameters
    OsTaskId taskId;                                           ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                                         ///<Task control block
-   OsStackType taskStack[DHCPV6_RELAY_STACK_SIZE];            ///<Task stack
-#endif
    uint8_t buffer[DHCPV6_MAX_MSG_SIZE];                       ///<Scratch buffer to store DHCPv6 messages
 } Dhcpv6RelayContext;
 

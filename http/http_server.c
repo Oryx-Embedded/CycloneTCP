@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -62,6 +62,22 @@
 
 void httpServerGetDefaultSettings(HttpServerSettings *settings)
 {
+   uint_t i;
+
+   //Initialize listener task parameters
+   settings->listenerTask = OS_TASK_DEFAULT_PARAMS;
+   settings->listenerTask.stackSize = HTTP_SERVER_STACK_SIZE;
+   settings->listenerTask.priority = HTTP_SERVER_PRIORITY;
+
+   //Initialize connection task parameters
+   for(i = 0; i < HTTP_SERVER_MAX_CONNECTIONS; i++)
+   {
+      //Default task parameters
+      settings->connectionTask[i] = OS_TASK_DEFAULT_PARAMS;
+      settings->connectionTask[i].stackSize = HTTP_SERVER_STACK_SIZE;
+      settings->connectionTask[i].priority = HTTP_SERVER_PRIORITY;
+   }
+
    //The HTTP server is not bound to any interface
    settings->interface = NULL;
 
@@ -123,11 +139,18 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
       return ERROR_INVALID_PARAMETER;
 
    //Check settings
-   if(settings->maxConnections == 0 || settings->connections == NULL)
+   if(settings->connections == NULL || settings->maxConnections < 1 ||
+      settings->maxConnections > HTTP_SERVER_MAX_CONNECTIONS)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear the HTTP server context
    osMemset(context, 0, sizeof(HttpServerContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->listenerTask;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
    context->settings = *settings;
@@ -146,6 +169,10 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 
       //Initialize the structure
       osMemset(connection, 0, sizeof(HttpConnection));
+
+      //Initialize task parameters
+      connection->taskParams = settings->connectionTask[i];
+      connection->taskId = OS_INVALID_TASK_ID;
 
       //Create an event object to manage connection lifetime
       if(!osCreateEvent(&connection->startEvent))
@@ -225,32 +252,18 @@ error_t httpServerStart(HttpServerContext *context)
       //Point to the current session
       connection = &context->connections[i];
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      connection->taskId = osCreateStaticTask("HTTP Connection",
-         (OsTaskCode) httpConnectionTask, connection, &connection->taskTcb,
-         connection->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
-#else
       //Create a task
       connection->taskId = osCreateTask("HTTP Connection", httpConnectionTask,
-         &context->connections[i], HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
-#endif
+         connection, &connection->taskParams);
 
       //Unable to create the task?
       if(connection->taskId == OS_INVALID_TASK_ID)
          return ERROR_OUT_OF_RESOURCES;
    }
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   //Create a task using statically allocated memory
-   context->taskId = osCreateStaticTask("HTTP Listener",
-      (OsTaskCode) httpListenerTask, context, &context->taskTcb,
-      context->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
-#else
    //Create a task
    context->taskId = osCreateTask("HTTP Listener", httpListenerTask,
-      context, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
-#endif
+      context, &context->taskParams);
 
    //Unable to create the task?
    if(context->taskId == OS_INVALID_TASK_ID)

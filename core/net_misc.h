@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _NET_MISC_H
@@ -116,6 +116,7 @@ struct _NetTxAncillary
 {
    uint8_t ttl;         ///<Time-to-live value
    uint8_t tos;         ///<Type-of-service value
+   bool_t dontFrag;     ///<Do not fragment the IP packet
    bool_t dontRoute;    ///<Do not send the packet via a router
    bool_t routerAlert;  ///<Add an IP Router Alert option
 #if (ETH_SUPPORT == ENABLED)

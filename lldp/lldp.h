@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _LLDP_H
@@ -273,6 +273,7 @@ typedef struct
 struct _LldpPortEntry
 {
    LldpAgentContext *context;           ///<LLDP agent context
+
    uint8_t portIndex;                   ///<Port index
    LldpAdminStatus adminStatus;         ///<Indicates whether the local LLDP agent is enabled
    bool_t portEnabled;                  ///<Operational state of the MAC service supporting the port
@@ -313,6 +314,7 @@ struct _LldpPortEntry
 
 typedef struct
 {
+   OsTaskParameters task;               ///<Task parameters
    NetInterface *interface;             ///<Network interface to configure
    uint_t numPorts;                     ///<Number of ports
    LldpPortEntry *ports;                ///<Port table
@@ -343,11 +345,8 @@ struct _LldpAgentContext
    bool_t stop;                                 ///<Stop request
    OsMutex mutex;                               ///<Mutex preventing simultaneous access to LLDP agent context
    OsEvent event;                               ///<Event object used to poll the underlying socket
+   OsTaskParameters taskParams;                 ///<Task parameters
    OsTaskId taskId;                             ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                           ///<Task control block
-   OsStackType taskStack[LLDP_TASK_STACK_SIZE]; ///<Task stack
-#endif
    Socket *socket;                              ///<Underlying socket
    systime_t timestamp;                         ///<Timestamp to manage timeout
    LldpDataUnit lldpdu;                         ///<Incoming/outgoing LLDP data unit

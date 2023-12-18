@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -194,10 +194,10 @@ error_t stm32h5xxEthInit(NetInterface *interface)
    ETH->DMACCR = ETH_DMACCR_DSL_0BIT;
 
    //Configure TX features
-   ETH->DMACTCR = ETH_DMACTCR_TPBL_1PBL;
+   ETH->DMACTCR = ETH_DMACTCR_TPBL_32PBL;
 
    //Configure RX features
-   ETH->DMACRCR = ETH_DMACRCR_RPBL_1PBL;
+   ETH->DMACRCR = ETH_DMACRCR_RPBL_32PBL;
    ETH->DMACRCR |= (STM32H5XX_ETH_RX_BUFFER_SIZE << 1) & ETH_DMACRCR_RBSZ;
 
    //Enable store and forward mode

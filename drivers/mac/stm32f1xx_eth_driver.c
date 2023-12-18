@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -194,8 +194,8 @@ error_t stm32f1xxEthInit(NetInterface *interface)
    ETH->DMAOMR = ETH_DMAOMR_RSF | ETH_DMAOMR_TSF;
 
    //Configure DMA bus mode
-   ETH->DMABMR = ETH_DMABMR_AAB | ETH_DMABMR_USP | ETH_DMABMR_RDP_1Beat |
-      ETH_DMABMR_RTPR_1_1 | ETH_DMABMR_PBL_1Beat;
+   ETH->DMABMR = ETH_DMABMR_AAB | ETH_DMABMR_USP | ETH_DMABMR_RDP_32Beat |
+      ETH_DMABMR_RTPR_1_1 | ETH_DMABMR_PBL_32Beat;
 
    //Initialize DMA descriptor lists
    stm32f1xxEthInitDmaDesc(interface);

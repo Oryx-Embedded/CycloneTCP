@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _DHCPV6_COMMON_H
@@ -153,8 +153,10 @@ typedef enum
 } Dhcpv6StatusCode;
 
 
-//CodeWarrior or Win32 compiler?
-#if defined(__CWCC__) || defined(_WIN32)
+//CC-RX, CodeWarrior or Win32 compiler?
+#if defined(__CCRX__)
+   #pragma pack
+#elif defined(__CWCC__) || defined(_WIN32)
    #pragma pack(push, 1)
 #endif
 
@@ -418,8 +420,10 @@ typedef __packed_struct
 } Dhcpv6FqdnOption;
 
 
-//CodeWarrior or Win32 compiler?
-#if defined(__CWCC__) || defined(_WIN32)
+//CC-RX, CodeWarrior or Win32 compiler?
+#if defined(__CCRX__)
+   #pragma unpack
+#elif defined(__CWCC__) || defined(_WIN32)
    #pragma pack(pop)
 #endif
 

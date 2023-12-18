@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 #ifndef _BSD_SOCKET_OPTIONS_H
@@ -83,6 +83,9 @@ int_t socketSetIpAddMembershipOption(Socket *socket,
 int_t socketSetIpDropMembershipOption(Socket *socket,
    const struct ip_mreq *optval, socklen_t optlen);
 
+int_t socketSetIpDontFragOption(Socket *socket, const int_t *optval,
+   socklen_t optlen);
+
 int_t socketSetIpPktInfoOption(Socket *socket, const int_t *optval,
    socklen_t optlen);
 
@@ -114,6 +117,9 @@ int_t socketSetIpv6DropMembershipOption(Socket *socket,
    const struct ipv6_mreq *optval, socklen_t optlen);
 
 int_t socketSetIpv6OnlyOption(Socket *socket, const int_t *optval,
+   socklen_t optlen);
+
+int_t socketSetIpv6DontFragOption(Socket *socket, const int_t *optval,
    socklen_t optlen);
 
 int_t socketSetIpv6PktInfoOption(Socket *socket, const int_t *optval,
@@ -179,6 +185,9 @@ int_t socketGetIpMulticastTtlOption(Socket *socket, int_t *optval,
 int_t socketGetIpMulticastLoopOption(Socket *socket, int_t *optval,
    socklen_t *optlen);
 
+int_t socketGetIpDontFragOption(Socket *socket, int_t *optval,
+   socklen_t *optlen);
+
 int_t socketGetIpPktInfoOption(Socket *socket, int_t *optval,
    socklen_t *optlen);
 
@@ -201,6 +210,9 @@ int_t socketGetIpv6MulticastLoopOption(Socket *socket, int_t *optval,
    socklen_t *optlen);
 
 int_t socketGetIpv6OnlyOption(Socket *socket, int_t *optval,
+   socklen_t *optlen);
+
+int_t socketGetIpv6DontFragOption(Socket *socket, int_t *optval,
    socklen_t *optlen);
 
 int_t socketGetIpv6PktInfoOption(Socket *socket, int_t *optval,

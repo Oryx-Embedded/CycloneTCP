@@ -1,5 +1,5 @@
 /**
- * @file sam9x60_eth2_driver.h
+ * @file sam9x6_eth2_driver.h
  * @brief SAM9X60 Ethernet MAC driver (EMAC1 instance)
  *
  * @section License
@@ -25,50 +25,50 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
-#ifndef _SAM9X60_ETH2_DRIVER_H
-#define _SAM9X60_ETH2_DRIVER_H
+#ifndef _SAM9X6_ETH2_DRIVER_H
+#define _SAM9X6_ETH2_DRIVER_H
 
 //Number of TX buffers
-#ifndef SAM9X60_ETH2_TX_BUFFER_COUNT
-   #define SAM9X60_ETH2_TX_BUFFER_COUNT 8
-#elif (SAM9X60_ETH2_TX_BUFFER_COUNT < 1)
-   #error SAM9X60_ETH2_TX_BUFFER_COUNT parameter is not valid
+#ifndef SAM9X6_ETH2_TX_BUFFER_COUNT
+   #define SAM9X6_ETH2_TX_BUFFER_COUNT 8
+#elif (SAM9X6_ETH2_TX_BUFFER_COUNT < 1)
+   #error SAM9X6_ETH2_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef SAM9X60_ETH2_TX_BUFFER_SIZE
-   #define SAM9X60_ETH2_TX_BUFFER_SIZE 1536
-#elif (SAM9X60_ETH2_TX_BUFFER_SIZE != 1536)
-   #error SAM9X60_ETH2_TX_BUFFER_SIZE parameter is not valid
+#ifndef SAM9X6_ETH2_TX_BUFFER_SIZE
+   #define SAM9X6_ETH2_TX_BUFFER_SIZE 1536
+#elif (SAM9X6_ETH2_TX_BUFFER_SIZE != 1536)
+   #error SAM9X6_ETH2_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef SAM9X60_ETH2_RX_BUFFER_COUNT
-   #define SAM9X60_ETH2_RX_BUFFER_COUNT 96
-#elif (SAM9X60_ETH2_RX_BUFFER_COUNT < 12)
-   #error SAM9X60_ETH2_RX_BUFFER_COUNT parameter is not valid
+#ifndef SAM9X6_ETH2_RX_BUFFER_COUNT
+   #define SAM9X6_ETH2_RX_BUFFER_COUNT 96
+#elif (SAM9X6_ETH2_RX_BUFFER_COUNT < 12)
+   #error SAM9X6_ETH2_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef SAM9X60_ETH2_RX_BUFFER_SIZE
-   #define SAM9X60_ETH2_RX_BUFFER_SIZE 128
-#elif (SAM9X60_ETH2_RX_BUFFER_SIZE != 128)
-   #error SAM9X60_ETH2_RX_BUFFER_SIZE parameter is not valid
+#ifndef SAM9X6_ETH2_RX_BUFFER_SIZE
+   #define SAM9X6_ETH2_RX_BUFFER_SIZE 128
+#elif (SAM9X6_ETH2_RX_BUFFER_SIZE != 128)
+   #error SAM9X6_ETH2_RX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Ethernet interrupt priority
-#ifndef SAM9X60_ETH2_IRQ_PRIORITY
-   #define SAM9X60_ETH2_IRQ_PRIORITY 0
-#elif (SAM9X60_ETH2_IRQ_PRIORITY < 0)
-   #error SAM9X60_ETH2_IRQ_PRIORITY parameter is not valid
+#ifndef SAM9X6_ETH2_IRQ_PRIORITY
+   #define SAM9X6_ETH2_IRQ_PRIORITY 0
+#elif (SAM9X6_ETH2_IRQ_PRIORITY < 0)
+   #error SAM9X6_ETH2_IRQ_PRIORITY parameter is not valid
 #endif
 
 //Name of the section where to place DMA buffers
-#ifndef SAM9X60_ETH2_RAM_SECTION
-   #define SAM9X60_ETH2_RAM_SECTION ".region_nocache"
+#ifndef SAM9X6_ETH2_RAM_SECTION
+   #define SAM9X6_ETH2_RAM_SECTION ".region_nocache"
 #endif
 
 //TX buffer descriptor flags
@@ -117,7 +117,7 @@ typedef struct
 {
    uint32_t address;
    uint32_t status;
-} Sam9x60Eth2TxBufferDesc;
+} Sam9x6Eth2TxBufferDesc;
 
 
 /**
@@ -128,36 +128,36 @@ typedef struct
 {
    uint32_t address;
    uint32_t status;
-} Sam9x60Eth2RxBufferDesc;
+} Sam9x6Eth2RxBufferDesc;
 
 
-//SAM9X60 Ethernet MAC driver (EMAC1 instance)
-extern const NicDriver sam9x60Eth2Driver;
+//SAM9X6 Ethernet MAC driver (EMAC1 instance)
+extern const NicDriver sam9x6Eth2Driver;
 
-//SAM9X60 Ethernet MAC related functions
-error_t sam9x60Eth2Init(NetInterface *interface);
-void sam9x60Eth2InitGpio(NetInterface *interface);
-void sam9x60Eth2InitBufferDesc(NetInterface *interface);
+//SAM9X6 Ethernet MAC related functions
+error_t sam9x6Eth2Init(NetInterface *interface);
+void sam9x6Eth2InitGpio(NetInterface *interface);
+void sam9x6Eth2InitBufferDesc(NetInterface *interface);
 
-void sam9x60Eth2Tick(NetInterface *interface);
+void sam9x6Eth2Tick(NetInterface *interface);
 
-void sam9x60Eth2EnableIrq(NetInterface *interface);
-void sam9x60Eth2DisableIrq(NetInterface *interface);
-void sam9x60Eth2IrqHandler(void);
-void sam9x60Eth2EventHandler(NetInterface *interface);
+void sam9x6Eth2EnableIrq(NetInterface *interface);
+void sam9x6Eth2DisableIrq(NetInterface *interface);
+void sam9x6Eth2IrqHandler(void);
+void sam9x6Eth2EventHandler(NetInterface *interface);
 
-error_t sam9x60Eth2SendPacket(NetInterface *interface,
+error_t sam9x6Eth2SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-error_t sam9x60Eth2ReceivePacket(NetInterface *interface);
+error_t sam9x6Eth2ReceivePacket(NetInterface *interface);
 
-error_t sam9x60Eth2UpdateMacAddrFilter(NetInterface *interface);
-error_t sam9x60Eth2UpdateMacConfig(NetInterface *interface);
+error_t sam9x6Eth2UpdateMacAddrFilter(NetInterface *interface);
+error_t sam9x6Eth2UpdateMacConfig(NetInterface *interface);
 
-void sam9x60Eth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void sam9x6Eth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data);
 
-uint16_t sam9x60Eth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t sam9x6Eth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr);
 
 //Wrapper for the interrupt service routine

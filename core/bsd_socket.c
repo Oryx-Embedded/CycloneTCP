@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -790,6 +790,16 @@ int_t sendmsg(int_t s, struct msghdr *msg, int_t flags)
                   //Specify TTL value
                   message.ttl = (uint8_t) *val;
                }
+               else if(cmsg->cmsg_type == IP_DONTFRAG &&
+                  cmsg->cmsg_len >= CMSG_LEN(sizeof(int_t)))
+               {
+                  //Point to the ancillary data value
+                  val = (int_t *) CMSG_DATA(cmsg);
+
+                  //This option can be used to set the "don't fragment" flag
+                  //on IP packets
+                  message.dontFrag = (*val != 0) ? TRUE : FALSE;
+               }
                else
                {
                   //Unknown control message type
@@ -827,6 +837,16 @@ int_t sendmsg(int_t s, struct msghdr *msg, int_t flags)
                   val = (int_t *) CMSG_DATA(cmsg);
                   //Specify Hop Limit value
                   message.ttl = (uint8_t) *val;
+               }
+               else if(cmsg->cmsg_type == IPV6_DONTFRAG &&
+                  cmsg->cmsg_len >= CMSG_LEN(sizeof(int_t)))
+               {
+                  //Point to the ancillary data value
+                  val = (int_t *) CMSG_DATA(cmsg);
+
+                  //This option be used to turn off the automatic inserting
+                  //of a fragment header for UDP and raw sockets
+                  message.dontFrag = (*val != 0) ? TRUE : FALSE;
                }
                else
                {
@@ -1752,6 +1772,11 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
             //Set IP_DROP_MEMBERSHIP option
             ret = socketSetIpDropMembershipOption(sock, optval, optlen);
          }
+         else if(optname == IP_DONTFRAG)
+         {
+            //Set IP_DONTFRAG option
+            ret = socketSetIpDontFragOption(sock, optval, optlen);
+         }
          else if(optname == IP_PKTINFO)
          {
             //Set IP_PKTINFO option
@@ -1816,6 +1841,11 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
          {
             //Set IPV6_V6ONLY option
             ret = socketSetIpv6OnlyOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_DONTFRAG)
+         {
+            //Set IPV6_DONTFRAG option
+            ret = socketSetIpv6DontFragOption(sock, optval, optlen);
          }
          else if(optname == IPV6_PKTINFO)
          {
@@ -2006,6 +2036,11 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
             //Get IP_MULTICAST_LOOP option
             ret = socketGetIpMulticastLoopOption(sock, optval, optlen);
          }
+         else if(optname == IP_DONTFRAG)
+         {
+            //Get IP_DONTFRAG option
+            ret = socketGetIpDontFragOption(sock, optval, optlen);
+         }
          else if(optname == IP_PKTINFO)
          {
             //Get IP_PKTINFO option
@@ -2055,6 +2090,11 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
          {
             //Get IPV6_V6ONLY option
             ret = socketGetIpv6OnlyOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_DONTFRAG)
+         {
+            //Get IPV6_DONTFRAG option
+            ret = socketGetIpv6DontFragOption(sock, optval, optlen);
          }
          else if(optname == IPV6_PKTINFO)
          {

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -195,8 +195,8 @@ error_t apm32f4xxEthInit(NetInterface *interface)
    ETH->DMAOPMOD = ETH_DMAOPMOD_RXSF | ETH_DMAOPMOD_TXSF;
 
    //Configure DMA bus mode
-   ETH->DMABMOD = ETH_DMABMOD_AAL | ETH_DMABMOD_USP | ETH_DMABMOD_RPBL_1 |
-      ETH_DMABMOD_PR_1_1 | ETH_DMABMOD_PBL_1 | ETH_DMABMOD_EDFEN;
+   ETH->DMABMOD = ETH_DMABMOD_AAL | ETH_DMABMOD_USP | ETH_DMABMOD_RPBL_32 |
+      ETH_DMABMOD_PR_1_1 | ETH_DMABMOD_PBL_32 | ETH_DMABMOD_EDFEN;
 
    //Initialize DMA descriptor lists
    apm32f4xxEthInitDmaDesc(interface);

@@ -1,5 +1,5 @@
 /**
- * @file sama5d3_geth_driver.h
+ * @file sama5d3_eth2_driver.h
  * @brief SAMA5D3 Gigabit Ethernet MAC driver (GMAC instance)
  *
  * @section License
@@ -25,50 +25,50 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
-#ifndef _SAMA5D3_GETH_DRIVER_H
-#define _SAMA5D3_GETH_DRIVER_H
+#ifndef _SAMA5D3_ETH2_DRIVER_H
+#define _SAMA5D3_ETH2_DRIVER_H
 
 //Number of TX buffers
-#ifndef SAMA5D3_GETH_TX_BUFFER_COUNT
-   #define SAMA5D3_GETH_TX_BUFFER_COUNT 2
-#elif (SAMA5D3_GETH_TX_BUFFER_COUNT != 2)
-   #error SAMA5D3_GETH_TX_BUFFER_COUNT parameter is not valid
+#ifndef SAMA5D3_ETH2_TX_BUFFER_COUNT
+   #define SAMA5D3_ETH2_TX_BUFFER_COUNT 2
+#elif (SAMA5D3_ETH2_TX_BUFFER_COUNT != 2)
+   #error SAMA5D3_ETH2_TX_BUFFER_COUNT parameter is not valid
 #endif
 
 //TX buffer size
-#ifndef SAMA5D3_GETH_TX_BUFFER_SIZE
-   #define SAMA5D3_GETH_TX_BUFFER_SIZE 1536
-#elif (SAMA5D3_GETH_TX_BUFFER_SIZE != 1536)
-   #error SAMA5D3_GETH_TX_BUFFER_SIZE parameter is not valid
+#ifndef SAMA5D3_ETH2_TX_BUFFER_SIZE
+   #define SAMA5D3_ETH2_TX_BUFFER_SIZE 1536
+#elif (SAMA5D3_ETH2_TX_BUFFER_SIZE != 1536)
+   #error SAMA5D3_ETH2_TX_BUFFER_SIZE parameter is not valid
 #endif
 
 //Number of RX buffers
-#ifndef SAMA5D3_GETH_RX_BUFFER_COUNT
-   #define SAMA5D3_GETH_RX_BUFFER_COUNT 96
-#elif (SAMA5D3_GETH_RX_BUFFER_COUNT < 12)
-   #error SAMA5D3_GETH_RX_BUFFER_COUNT parameter is not valid
+#ifndef SAMA5D3_ETH2_RX_BUFFER_COUNT
+   #define SAMA5D3_ETH2_RX_BUFFER_COUNT 96
+#elif (SAMA5D3_ETH2_RX_BUFFER_COUNT < 12)
+   #error SAMA5D3_ETH2_RX_BUFFER_COUNT parameter is not valid
 #endif
 
 //RX buffer size
-#ifndef SAMA5D3_GETH_RX_BUFFER_SIZE
-   #define SAMA5D3_GETH_RX_BUFFER_SIZE 128
-#elif (SAMA5D3_GETH_RX_BUFFER_SIZE != 128)
-   #error SAMA5D3_GETH_RX_BUFFER_SIZE parameter is not valid
+#ifndef SAMA5D3_ETH2_RX_BUFFER_SIZE
+   #define SAMA5D3_ETH2_RX_BUFFER_SIZE 128
+#elif (SAMA5D3_ETH2_RX_BUFFER_SIZE != 128)
+   #error SAMA5D3_ETH2_RX_BUFFER_SIZE parameter is not valid
 #endif
 
-//Gigabit Ethernet interrupt priority
-#ifndef SAMA5D3_GETH_IRQ_PRIORITY
-   #define SAMA5D3_GETH_IRQ_PRIORITY 0
-#elif (SAMA5D3_GETH_IRQ_PRIORITY < 0)
-   #error SAMA5D3_GETH_IRQ_PRIORITY parameter is not valid
+//Ethernet interrupt priority
+#ifndef SAMA5D3_ETH2_IRQ_PRIORITY
+   #define SAMA5D3_ETH2_IRQ_PRIORITY 0
+#elif (SAMA5D3_ETH2_IRQ_PRIORITY < 0)
+   #error SAMA5D3_ETH2_IRQ_PRIORITY parameter is not valid
 #endif
 
 //Name of the section where to place DMA buffers
-#ifndef SAMA5D3_GETH_RAM_SECTION
-   #define SAMA5D3_GETH_RAM_SECTION ".ram_no_cache"
+#ifndef SAMA5D3_ETH2_RAM_SECTION
+   #define SAMA5D3_ETH2_RAM_SECTION ".ram_no_cache"
 #endif
 
 //RGMII signals
@@ -128,7 +128,7 @@ typedef struct
 {
    uint32_t address;
    uint32_t status;
-} Sama5d3GethTxBufferDesc;
+} Sama5d3Eth2TxBufferDesc;
 
 
 /**
@@ -139,36 +139,36 @@ typedef struct
 {
    uint32_t address;
    uint32_t status;
-} Sama5d3GethRxBufferDesc;
+} Sama5d3Eth2RxBufferDesc;
 
 
 //SAMA5D3 Ethernet MAC driver (GMAC instance)
-extern const NicDriver sama5d3GigabitEthDriver;
+extern const NicDriver sama5d3Eth2Driver;
 
 //SAMA5D3 Ethernet MAC related functions
-error_t sama5d3GigabitEthInit(NetInterface *interface);
-void sama5d3GigabitEthInitGpio(NetInterface *interface);
-void sama5d3GigabitEthInitBufferDesc(NetInterface *interface);
+error_t sama5d3Eth2Init(NetInterface *interface);
+void sama5d3Eth2InitGpio(NetInterface *interface);
+void sama5d3Eth2InitBufferDesc(NetInterface *interface);
 
-void sama5d3GigabitEthTick(NetInterface *interface);
+void sama5d3Eth2Tick(NetInterface *interface);
 
-void sama5d3GigabitEthEnableIrq(NetInterface *interface);
-void sama5d3GigabitEthDisableIrq(NetInterface *interface);
-void sama5d3GigabitEthIrqHandler(void);
-void sama5d3GigabitEthEventHandler(NetInterface *interface);
+void sama5d3Eth2EnableIrq(NetInterface *interface);
+void sama5d3Eth2DisableIrq(NetInterface *interface);
+void sama5d3Eth2IrqHandler(void);
+void sama5d3Eth2EventHandler(NetInterface *interface);
 
-error_t sama5d3GigabitEthSendPacket(NetInterface *interface,
+error_t sama5d3Eth2SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-error_t sama5d3GigabitEthReceivePacket(NetInterface *interface);
+error_t sama5d3Eth2ReceivePacket(NetInterface *interface);
 
-error_t sama5d3GigabitEthUpdateMacAddrFilter(NetInterface *interface);
-error_t sama5d3GigabitEthUpdateMacConfig(NetInterface *interface);
+error_t sama5d3Eth2UpdateMacAddrFilter(NetInterface *interface);
+error_t sama5d3Eth2UpdateMacConfig(NetInterface *interface);
 
-void sama5d3GigabitEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
+void sama5d3Eth2WritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data);
 
-uint16_t sama5d3GigabitEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
+uint16_t sama5d3Eth2ReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr);
 
 //C++ guard

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -203,8 +203,8 @@ error_t at32f4xxEthInit(NetInterface *interface)
    EMAC_DMA->opm = EMAC_DMA_OPM_RSF | EMAC_DMA_OPM_TSF;
 
    //Configure DMA bus mode
-   EMAC_DMA->bm = EMAC_DMA_BM_AAB | EMAC_DMA_BM_USP | EMAC_DMA_BM_RDP_1 |
-      EMAC_DMA_BM_PR_1_1 | EMAC_DMA_BM_PBL_1;
+   EMAC_DMA->bm = EMAC_DMA_BM_AAB | EMAC_DMA_BM_USP | EMAC_DMA_BM_RDP_32 |
+      EMAC_DMA_BM_PR_1_1 | EMAC_DMA_BM_PBL_32;
 
    //Initialize DMA descriptor lists
    at32f4xxEthInitDmaDesc(interface);

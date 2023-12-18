@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.3.4
  **/
 
 //Switch to the appropriate trace level
@@ -72,6 +72,11 @@
 
 void snmpAgentGetDefaultSettings(SnmpAgentSettings *settings)
 {
+   //Default task parameters
+   settings->task = OS_TASK_DEFAULT_PARAMS;
+   settings->task.stackSize = SNMP_AGENT_STACK_SIZE;
+   settings->task.priority = SNMP_AGENT_PRIORITY;
+
    //The SNMP agent is not bound to any interface
    settings->interface = NULL;
 
@@ -115,6 +120,10 @@ error_t snmpAgentInit(SnmpAgentContext *context,
 
    //Clear the SNMP agent context
    osMemset(context, 0, sizeof(SnmpAgentContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->task;
+   context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
    context->settings = *settings;
@@ -259,16 +268,9 @@ error_t snmpAgentStart(SnmpAgentContext *context)
       context->stop = FALSE;
       context->running = TRUE;
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("SNMP Agent",
-         (OsTaskCode) snmpAgentTask, context, &context->taskTcb,
-         context->taskStack, SNMP_AGENT_STACK_SIZE, SNMP_AGENT_PRIORITY);
-#else
       //Create a task
       context->taskId = osCreateTask("SNMP Agent", (OsTaskCode) snmpAgentTask,
-         context, SNMP_AGENT_STACK_SIZE, SNMP_AGENT_PRIORITY);
-#endif
+         context, &context->taskParams);
 
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
