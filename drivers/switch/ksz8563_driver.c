@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -1059,16 +1059,16 @@ error_t ksz8563AddStaticFdbEntry(NetInterface *interface,
       ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_TABLE_ENTRY4, value);
 
       //Write the TABLE_INDEX field with the 4-bit index value
-      value = (j << 16) & KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX;
+      value = (j << 16) & KSZ8563_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX;
       //Set the TABLE_SELECT bit to 0 to select the static address table
-      value &= ~KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT;
+      value &= ~KSZ8563_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT;
       //Set the ACTION bit to 0 to indicate a write operation
-      value &= ~KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_ACTION;
+      value &= ~KSZ8563_STATIC_MCAST_TABLE_CTRL_ACTION;
       //Set the START_FINISH bit to 1 to initiate the operation
-      value |= KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH;
+      value |= KSZ8563_STATIC_MCAST_TABLE_CTRL_START_FINISH;
 
       //Start the write operation
-      ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_RES_MCAST_TABLE_CTRL,
+      ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_MCAST_TABLE_CTRL,
          value);
 
       //When the operation is complete, the START_FINISH bit will be cleared
@@ -1077,10 +1077,10 @@ error_t ksz8563AddStaticFdbEntry(NetInterface *interface,
       {
          //Read the Static Address and Reserved Multicast Table Control register
          value = ksz8563ReadSwitchReg32(interface,
-            KSZ8563_STATIC_RES_MCAST_TABLE_CTRL);
+            KSZ8563_STATIC_MCAST_TABLE_CTRL);
 
          //Poll the START_FINISH bit
-      } while((value & KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH) != 0);
+      } while((value & KSZ8563_STATIC_MCAST_TABLE_CTRL_START_FINISH) != 0);
 
       //Successful processing
       error = NO_ERROR;
@@ -1138,16 +1138,16 @@ error_t ksz8563DeleteStaticFdbEntry(NetInterface *interface,
       ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_TABLE_ENTRY4, 0);
 
       //Write the TABLE_INDEX field with the 4-bit index value
-      value = (j << 16) & KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX;
+      value = (j << 16) & KSZ8563_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX;
       //Set the TABLE_SELECT bit to 0 to select the static address table
-      value &= ~KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT;
+      value &= ~KSZ8563_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT;
       //Set the ACTION bit to 0 to indicate a write operation
-      value &= ~KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_ACTION;
+      value &= ~KSZ8563_STATIC_MCAST_TABLE_CTRL_ACTION;
       //Set the START_FINISH bit to 1 to initiate the operation
-      value |= KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH;
+      value |= KSZ8563_STATIC_MCAST_TABLE_CTRL_START_FINISH;
 
       //Start the write operation
-      ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_RES_MCAST_TABLE_CTRL,
+      ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_MCAST_TABLE_CTRL,
          value);
 
       //When the operation is complete, the START_FINISH bit will be cleared
@@ -1156,10 +1156,10 @@ error_t ksz8563DeleteStaticFdbEntry(NetInterface *interface,
       {
          //Read the Static Address and Reserved Multicast Table Control register
          value = ksz8563ReadSwitchReg32(interface,
-            KSZ8563_STATIC_RES_MCAST_TABLE_CTRL);
+            KSZ8563_STATIC_MCAST_TABLE_CTRL);
 
          //Poll the START_FINISH bit
-      } while((value & KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH) != 0);
+      } while((value & KSZ8563_STATIC_MCAST_TABLE_CTRL_START_FINISH) != 0);
 
       //Successful processing
       error = NO_ERROR;
@@ -1193,16 +1193,16 @@ error_t ksz8563GetStaticFdbEntry(NetInterface *interface, uint_t index,
    if(index < KSZ8563_STATIC_MAC_TABLE_SIZE)
    {
       //Write the TABLE_INDEX field with the 4-bit index value
-      value = (index << 16) & KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX;
+      value = (index << 16) & KSZ8563_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX;
       //Set the TABLE_SELECT bit to 0 to select the static address table
-      value &= ~KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT;
+      value &= ~KSZ8563_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT;
       //Set the ACTION bit to 1 to indicate a read operation
-      value |= KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_ACTION;
+      value |= KSZ8563_STATIC_MCAST_TABLE_CTRL_ACTION;
       //Set the START_FINISH bit to 1 to initiate the operation
-      value |= KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH;
+      value |= KSZ8563_STATIC_MCAST_TABLE_CTRL_START_FINISH;
 
       //Start the read operation
-      ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_RES_MCAST_TABLE_CTRL,
+      ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_MCAST_TABLE_CTRL,
          value);
 
       //When the operation is complete, the START_FINISH bit will be cleared
@@ -1211,10 +1211,10 @@ error_t ksz8563GetStaticFdbEntry(NetInterface *interface, uint_t index,
       {
          //Read the Static Address and Reserved Multicast Table Control register
          value = ksz8563ReadSwitchReg32(interface,
-            KSZ8563_STATIC_RES_MCAST_TABLE_CTRL);
+            KSZ8563_STATIC_MCAST_TABLE_CTRL);
 
          //Poll the START_FINISH bit
-      } while((value & KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH) != 0);
+      } while((value & KSZ8563_STATIC_MCAST_TABLE_CTRL_START_FINISH) != 0);
 
       //Read the Static Address Table Entry 1 register
       value = ksz8563ReadSwitchReg32(interface, KSZ8563_STATIC_TABLE_ENTRY1);
@@ -1295,16 +1295,16 @@ void ksz8563FlushStaticFdbTable(NetInterface *interface)
       ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_TABLE_ENTRY4, 0);
 
       //Write the TABLE_INDEX field with the 4-bit index value
-      value = (i << 16) & KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX;
+      value = (i << 16) & KSZ8563_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX;
       //Set the TABLE_SELECT bit to 0 to select the static address table
-      value &= ~KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT;
+      value &= ~KSZ8563_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT;
       //Set the ACTION bit to 0 to indicate a write operation
-      value &= ~KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_ACTION;
+      value &= ~KSZ8563_STATIC_MCAST_TABLE_CTRL_ACTION;
       //Set the START_FINISH bit to 1 to initiate the operation
-      value |= KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH;
+      value |= KSZ8563_STATIC_MCAST_TABLE_CTRL_START_FINISH;
 
       //Start the write operation
-      ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_RES_MCAST_TABLE_CTRL,
+      ksz8563WriteSwitchReg32(interface, KSZ8563_STATIC_MCAST_TABLE_CTRL,
          value);
 
       //When the operation is complete, the START_FINISH bit will be cleared
@@ -1313,10 +1313,10 @@ void ksz8563FlushStaticFdbTable(NetInterface *interface)
       {
          //Read the Static Address and Reserved Multicast Table Control register
          value = ksz8563ReadSwitchReg32(interface,
-            KSZ8563_STATIC_RES_MCAST_TABLE_CTRL);
+            KSZ8563_STATIC_MCAST_TABLE_CTRL);
 
          //Poll the START_FINISH bit
-      } while((value & KSZ8563_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH) != 0);
+      } while((value & KSZ8563_STATIC_MCAST_TABLE_CTRL_START_FINISH) != 0);
    }
 }
 

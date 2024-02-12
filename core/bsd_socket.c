@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -2279,15 +2279,14 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
  * @brief Perform specific operation
  * @param[in] s Descriptor that identifies a socket
  * @param[in] cmd A command to perform on the socket
- * @param[in,out] arg A pointer to a parameter
+ * @param[in] arg Argument value
  * @return If no error occurs, setsockopt returns SOCKET_SUCCESS
  *   Otherwise, it returns SOCKET_ERROR
  **/
 
-int_t fcntl(int_t s, int_t cmd, void *arg)
+int_t fcntl(int_t s, int_t cmd, int_t arg)
 {
    int_t ret;
-   int_t *flags;
    Socket *sock;
 
    //Make sure the socket descriptor is valid
@@ -2302,45 +2301,29 @@ int_t fcntl(int_t s, int_t cmd, void *arg)
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
-   //Make sure the parameter is valid
-   if(arg != NULL)
+   //Check command type
+   switch(cmd)
    {
-      //Check command type
-      switch(cmd)
-      {
-      //Get the file status flags?
-      case F_GETFL:
-         //Cast the parameter to the relevant type
-         flags = (int_t *) arg;
-         //Check whether non-blocking mode is currently enabled
-         *flags = (sock->timeout == 0) ? O_NONBLOCK : 0;
-         //Successful processing
-         ret = SOCKET_SUCCESS;
-         break;
+   //Get the file status flags?
+   case F_GETFL:
+      //Return (as the function result) the file descriptor flags
+      ret = (sock->timeout == 0) ? O_NONBLOCK : 0;
+      break;
 
-      //Set the file status flags?
-      case F_SETFL:
-         //Cast the parameter to the relevant type
-         flags = (int_t *) arg;
-         //Enable blocking or non-blocking operation
-         sock->timeout = (*flags & O_NONBLOCK) ? 0 : INFINITE_DELAY;
-         //Successful processing
-         ret = SOCKET_SUCCESS;
-         break;
+   //Set the file status flags?
+   case F_SETFL:
+      //Enable blocking or non-blocking operation
+      sock->timeout = ((arg & O_NONBLOCK) != 0) ? 0 : INFINITE_DELAY;
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+      break;
 
-      //Unknown command?
-      default:
-         //Report an error
-         socketSetErrnoCode(sock, EINVAL);
-         ret = SOCKET_ERROR;
-         break;
-      }
-   }
-   else
-   {
+   //Unknown command?
+   default:
       //Report an error
-      socketSetErrnoCode(sock, EFAULT);
+      socketSetErrnoCode(sock, EINVAL);
       ret = SOCKET_ERROR;
+      break;
    }
 
    //Release exclusive access

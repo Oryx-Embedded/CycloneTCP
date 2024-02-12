@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -689,6 +689,9 @@ int_t socketSetIpDontFragOption(Socket *socket, const int_t *optval,
    //Check the length of the option
    if(optlen >= (socklen_t) sizeof(int_t))
    {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
+
       //This option can be used to set the "don't fragment" flag on IP packets
       if(*optval != 0)
       {
@@ -698,6 +701,12 @@ int_t socketSetIpDontFragOption(Socket *socket, const int_t *optval,
       {
          socket->options &= ~SOCKET_OPTION_IPV4_DONT_FRAG;
       }
+
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
    }
    else
    {

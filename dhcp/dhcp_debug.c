@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -222,11 +222,13 @@ error_t dhcpDumpMessage(const DhcpMessage *message, size_t length)
       //Display the name of the current option
       if(option->code < arraysize(optionLabel))
       {
-         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n", optionLabel[option->code], option->length);
+         TRACE_DEBUG("  %s option (%" PRIu8 " bytes)\r\n",
+            optionLabel[option->code], option->length);
       }
       else
       {
-         TRACE_DEBUG("  Option %" PRIu8 " (%" PRIu8 " bytes)\r\n", option->code, option->length);
+         TRACE_DEBUG("  Option %" PRIu8 " (%" PRIu8 " bytes)\r\n",
+            option->code, option->length);
       }
 
       //Check option code

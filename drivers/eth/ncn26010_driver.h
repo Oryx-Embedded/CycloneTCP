@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 #ifndef _NCN26010_DRIVER_H
@@ -78,7 +78,7 @@
 #define NCN26010_TX_HEADER_TSC    0x000000C0
 #define NCN26010_TX_HEADER_P      0x00000001
 
-//Receive data header
+//Receive data footer
 #define NCN26010_RX_FOOTER_EXST   0x80000000
 #define NCN26010_RX_FOOTER_HDRB   0x40000000
 #define NCN26010_RX_FOOTER_SYNC   0x20000000

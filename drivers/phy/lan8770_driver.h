@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 #ifndef _LAN8770_DRIVER_H
@@ -101,7 +101,7 @@
 #define LAN8770_BER_RATE_WIN_TOG                       0x04, 0xF4
 
 //Basic Control register
-#define LAN8770_BASIC_CONTROL_RESET                    0x8000
+#define LAN8770_BASIC_CONTROL_SW_RESET                 0x8000
 #define LAN8770_BASIC_CONTROL_LOOPBACK                 0x4000
 #define LAN8770_BASIC_CONTROL_SPEED_SEL_LSB            0x2000
 #define LAN8770_BASIC_CONTROL_AN_EN                    0x1000
@@ -168,7 +168,7 @@
 #define LAN8770_MODE_STATUS_DSCR_LOCK_STATUS           0x0008
 #define LAN8770_MODE_STATUS_LINK_UP                    0x0001
 
-//External Register Control register
+//Extended Register Control register
 #define LAN8770_EXT_REG_CTL_READ_CONTROL               0x1000
 #define LAN8770_EXT_REG_CTL_WRITE_CONTROL              0x0800
 #define LAN8770_EXT_REG_CTL_REGISTER_BANK              0x0700
@@ -331,7 +331,7 @@
 //AFE Port Configuration 1 register
 #define LAN8770_AFE_PORT_CFG1_TX_PD                    0x0020
 #define LAN8770_AFE_PORT_CFG1_TX_AMP                   0x001E
-#define LAN8770_AFE_PORT_CFG1_TX_AMP_DEFAULT           0x000A
+#define LAN8770_AFE_PORT_CFG1_TX_AMP_DEFAULT           0x0008
 #define LAN8770_AFE_PORT_CFG1_TX_SRC                   0x0001
 
 //Coefficient Clock Power Down Configuration register

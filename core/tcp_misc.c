@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -1748,7 +1748,7 @@ error_t tcpRetransmitSegment(Socket *socket)
    size_t length;
    NetBuffer *buffer;
    TcpQueueItem *queueItem;
-   TcpHeader *header;
+   TcpHeader *segment;
    NetTxAncillary ancillary;
 
    //Initialize error code
@@ -1774,11 +1774,8 @@ error_t tcpRetransmitSegment(Socket *socket)
          break;
       }
 
-      //Point to the TCP header
-      header = (TcpHeader *) queueItem->header;
-
       //Allocate a memory buffer to hold the TCP segment
-      buffer = ipAllocBuffer(0, &offset);
+      buffer = ipAllocBuffer(TCP_MAX_HEADER_LENGTH, &offset);
       //Failed to allocate memory?
       if(buffer == NULL)
       {
@@ -1791,25 +1788,64 @@ error_t tcpRetransmitSegment(Socket *socket)
       //Start of exception handling block
       do
       {
+         //Point to the beginning of the TCP segment
+         segment = netBufferAt(buffer, offset);
+
          //Copy TCP header
-         error = netBufferAppend(buffer, header, header->dataOffset * 4);
-         //Any error to report?
-         if(error)
-            break;
+         osMemcpy(segment, queueItem->header, TCP_MAX_HEADER_LENGTH);
+
+         //Update ACK number
+         segment->ackNum = htonl(socket->rcvNxt);
+         //Update receive window
+         segment->window = htons(socket->rcvWnd);
+         //The checksum field is replaced with zeros
+         segment->checksum = 0;
+
+         //Adjust the length of the multi-part buffer
+         netBufferSetLength(buffer, offset + segment->dataOffset * 4);
 
          //Copy data from send buffer
-         error = tcpReadTxBuffer(socket, ntohl(header->seqNum), buffer,
+         error = tcpReadTxBuffer(socket, ntohl(segment->seqNum), buffer,
             queueItem->length);
          //Any error to report?
          if(error)
             break;
+
+#if (IPV4_SUPPORT == ENABLED)
+         //Destination address is an IPv4 address?
+         if(queueItem->pseudoHeader.length == sizeof(Ipv4PseudoHeader))
+         {
+            //Calculate TCP header checksum
+            segment->checksum = ipCalcUpperLayerChecksumEx(
+               &queueItem->pseudoHeader.ipv4Data, sizeof(Ipv4PseudoHeader),
+               buffer, offset, segment->dataOffset * 4 + queueItem->length);
+         }
+         else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+         //Destination address is an IPv6 address?
+         if(queueItem->pseudoHeader.length == sizeof(Ipv6PseudoHeader))
+         {
+            //Calculate TCP header checksum
+            segment->checksum = ipCalcUpperLayerChecksumEx(
+               &queueItem->pseudoHeader.ipv6Data, sizeof(Ipv6PseudoHeader),
+               buffer, offset, segment->dataOffset * 4 + queueItem->length);
+         }
+         else
+#endif
+         //Destination address is not valid?
+         {
+            //This should never occur...
+            error = ERROR_INVALID_ADDRESS;
+            break;
+         }
 
          //Total number of segments retransmitted
          MIB2_TCP_INC_COUNTER32(tcpRetransSegs, 1);
          TCP_MIB_INC_COUNTER32(tcpRetransSegs, 1);
 
          //Dump TCP header contents for debugging purpose
-         tcpDumpHeader(header, queueItem->length, socket->iss, socket->irs);
+         tcpDumpHeader(segment, queueItem->length, socket->iss, socket->irs);
 
          //Additional options can be passed to the stack along with the packet
          ancillary = NET_DEFAULT_TX_ANCILLARY;

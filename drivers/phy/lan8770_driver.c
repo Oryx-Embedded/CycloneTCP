@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -91,11 +91,11 @@ error_t lan8770Init(NetInterface *interface)
 
    //Reset PHY transceiver
    lan8770WritePhyReg(interface, LAN8770_BASIC_CONTROL,
-      LAN8770_BASIC_CONTROL_RESET);
+      LAN8770_BASIC_CONTROL_SW_RESET);
 
    //Wait for the reset to complete
    while(lan8770ReadPhyReg(interface, LAN8770_BASIC_CONTROL) &
-      LAN8770_BASIC_CONTROL_RESET)
+      LAN8770_BASIC_CONTROL_SW_RESET)
    {
    }
 
@@ -335,11 +335,11 @@ void lan8770DumpPhyReg(NetInterface *interface)
 
 
 /**
- * @brief Write external register
+ * @brief Write extended register
  * @param[in] interface Underlying network interface
  * @param[in] bank Register bank
  * @param[in] addr Register address
- * @param[in] data External register value
+ * @param[in] data Extended register value
  **/
 
 void lan8770WriteExtReg(NetInterface *interface, uint8_t bank,
@@ -363,11 +363,11 @@ void lan8770WriteExtReg(NetInterface *interface, uint8_t bank,
 
 
 /**
- * @brief Read external register
+ * @brief Read extended register
  * @param[in] interface Underlying network interface
  * @param[in] bank Register bank
  * @param[in] addr Register address
- * @return External register value
+ * @return Extended register value
  **/
 
 uint16_t lan8770ReadExtReg(NetInterface *interface, uint8_t bank,

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -319,6 +319,9 @@ void httpListenerTask(void *param)
             //Make sure the socket handle is valid
             if(socket != NULL)
             {
+               //Just for sanity
+               (void) counter;
+
                //Debug message
                TRACE_INFO("Connection #%u established with client %s port %" PRIu16 "...\r\n",
                   counter, ipAddrToString(&clientIpAddr, NULL), clientPort);
@@ -341,8 +344,7 @@ void httpListenerTask(void *param)
             else
             {
                //Just for sanity
-               osReleaseSemaphore(&connection->serverContext->semaphore);
-
+               osReleaseSemaphore(&context->semaphore);
             }
 
             //We are done

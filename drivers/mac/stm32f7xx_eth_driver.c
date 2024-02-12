@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -989,11 +989,11 @@ error_t stm32f7xxEthUpdateMacConfig(NetInterface *interface)
 void stm32f7xxEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    uint8_t regAddr, uint16_t data)
 {
+   uint32_t temp;
+
    //Valid opcode?
    if(opcode == SMI_OPCODE_WRITE)
    {
-      uint32_t temp;
-
       //Take care not to alter MDC clock configuration
       temp = ETH->MACMIIAR & ETH_MACMIIAR_CR;
       //Set up a write operation

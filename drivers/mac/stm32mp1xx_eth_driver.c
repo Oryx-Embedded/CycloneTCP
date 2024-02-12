@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -183,7 +183,7 @@ error_t stm32mp1xxEthInit(NetInterface *interface)
    ETH->MACRXFCR = 0;
 
    //Enable the first RX queue
-   ETH->MACRXQC0R = ETH_MACRXQC0R_RXQ0EN_Val(1);
+   ETH->MACRXQC0R = ETH_MACRXQC0R_RXQ0EN_Val(2);
 
    //Configure DMA operating mode
    ETH->DMAMR = ETH_DMAMR_INTM_Val(0) | ETH_DMAMR_PR_Val(0);

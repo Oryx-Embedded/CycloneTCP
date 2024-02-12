@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 #ifndef _KSZ9893_DRIVER_H
@@ -188,7 +188,7 @@
 #define KSZ9893_ALU_TABLE_INDEX0                               0x0410
 #define KSZ9893_ALU_TABLE_INDEX1                               0x0414
 #define KSZ9893_ALU_TABLE_CTRL                                 0x0418
-#define KSZ9893_STATIC_RES_MCAST_TABLE_CTRL                    0x041C
+#define KSZ9893_STATIC_MCAST_TABLE_CTRL                        0x041C
 #define KSZ9893_ALU_TABLE_ENTRY1                               0x0420
 #define KSZ9893_STATIC_TABLE_ENTRY1                            0x0420
 #define KSZ9893_ALU_TABLE_ENTRY2                               0x0424
@@ -911,12 +911,12 @@
 #define KSZ9893_ALU_TABLE_CTRL_ACTION_SEARCH                   0x00000003
 
 //Static Address and Reserved Multicast Table Control register
-#define KSZ9893_STATIC_RES_MCAST_TABLE_CTRL_TABLE_INDEX        0x003F0000
-#define KSZ9893_STATIC_RES_MCAST_TABLE_CTRL_START_FINISH       0x00000080
-#define KSZ9893_STATIC_RES_MCAST_TABLE_CTRL_TABLE_SELECT       0x00000002
-#define KSZ9893_STATIC_RES_MCAST_TABLE_CTRL_ACTION             0x00000001
-#define KSZ9893_STATIC_RES_MCAST_TABLE_CTRL_ACTION_READ        0x00000000
-#define KSZ9893_STATIC_RES_MCAST_TABLE_CTRL_ACTION_WRITE       0x00000001
+#define KSZ9893_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX            0x003F0000
+#define KSZ9893_STATIC_MCAST_TABLE_CTRL_START_FINISH           0x00000080
+#define KSZ9893_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT           0x00000002
+#define KSZ9893_STATIC_MCAST_TABLE_CTRL_ACTION                 0x00000001
+#define KSZ9893_STATIC_MCAST_TABLE_CTRL_ACTION_READ            0x00000000
+#define KSZ9893_STATIC_MCAST_TABLE_CTRL_ACTION_WRITE           0x00000001
 
 //ALU Table Entry 1 register
 #define KSZ9893_ALU_TABLE_ENTRY1_STATIC                        0x80000000

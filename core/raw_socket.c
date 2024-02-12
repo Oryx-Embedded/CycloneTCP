@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 //Switch to the appropriate trace level
@@ -398,48 +398,73 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
             continue;
       }
 
-      //The current socket meets all the criteria
-      break;
-   }
-
-   //Drop incoming packet if no matching socket was found
-   if(i >= SOCKET_MAX_COUNT)
-      return;
-
-   //Empty receive queue?
-   if(socket->receiveQueue == NULL)
-   {
-      //Allocate a memory buffer to hold the data and the associated descriptor
-      p = netBufferAlloc(sizeof(SocketQueueItem) + length);
-
-      //Successful memory allocation?
-      if(p != NULL)
+      //Empty receive queue?
+      if(socket->receiveQueue == NULL)
       {
-         //Point to the newly created item
-         queueItem = netBufferAt(p, 0);
-         queueItem->buffer = p;
-         //Add the newly created item to the queue
-         socket->receiveQueue = queueItem;
+         //Allocate a memory buffer to hold the data and the associated
+         //descriptor
+         p = netBufferAlloc(sizeof(SocketQueueItem) + length);
+
+         //Successful memory allocation?
+         if(p != NULL)
+         {
+            //Point to the newly created item
+            queueItem = netBufferAt(p, 0);
+            queueItem->buffer = p;
+            //Add the newly created item to the queue
+            socket->receiveQueue = queueItem;
+         }
+         else
+         {
+            //Memory allocation failed
+            queueItem = NULL;
+         }
       }
       else
       {
-         //Memory allocation failed
-         queueItem = NULL;
-      }
-   }
-   else
-   {
-      //Point to the very first item
-      queueItem = socket->receiveQueue;
+         //Point to the very first item
+         queueItem = socket->receiveQueue;
 
-      //Reach the last item in the receive queue
-      for(i = 1; queueItem->next; i++)
-      {
-         queueItem = queueItem->next;
+         //Reach the last item in the receive queue
+         for(i = 1; queueItem->next; i++)
+         {
+            queueItem = queueItem->next;
+         }
+
+         //Check whether the receive queue is full
+         if(i >= RAW_SOCKET_RX_QUEUE_SIZE)
+         {
+            //Number of inbound packets which were chosen to be discarded even
+            //though no errors had been detected
+            MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+            IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+
+            //Exit immediately
+            break;
+         }
+
+         //Allocate a memory buffer to hold the data and the associated
+         //descriptor
+         p = netBufferAlloc(sizeof(SocketQueueItem) + length);
+
+         //Successful memory allocation?
+         if(p != NULL)
+         {
+            //Add the newly created item to the queue
+            queueItem->next = netBufferAt(p, 0);
+            //Point to the newly created item
+            queueItem = queueItem->next;
+            queueItem->buffer = p;
+         }
+         else
+         {
+            //Memory allocation failed
+            queueItem = NULL;
+         }
       }
 
-      //Check whether the receive queue is full
-      if(i >= RAW_SOCKET_RX_QUEUE_SIZE)
+      //Not enough resources to properly handle the packet?
+      if(queueItem == NULL)
       {
          //Number of inbound packets which were chosen to be discarded even
          //though no errors had been detected
@@ -447,61 +472,31 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
          IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
 
          //Exit immediately
-         return;
+         break;
       }
 
-      //Allocate a memory buffer to hold the data and the associated descriptor
-      p = netBufferAlloc(sizeof(SocketQueueItem) + length);
+      //Initialize next field
+      queueItem->next = NULL;
+      //Network interface where the packet was received
+      queueItem->interface = interface;
 
-      //Successful memory allocation?
-      if(p != NULL)
-      {
-         //Add the newly created item to the queue
-         queueItem->next = netBufferAt(p, 0);
-         //Point to the newly created item
-         queueItem = queueItem->next;
-         queueItem->buffer = p;
-      }
-      else
-      {
-         //Memory allocation failed
-         queueItem = NULL;
-      }
+      //Other fields are meaningless
+      queueItem->srcPort = 0;
+      queueItem->srcIpAddr = IP_ADDR_ANY;
+      queueItem->destIpAddr = IP_ADDR_ANY;
+
+      //Offset to the raw datagram
+      queueItem->offset = sizeof(SocketQueueItem);
+
+      //Copy the payload
+      netBufferWrite(queueItem->buffer, queueItem->offset, data, length);
+
+      //Additional options can be passed to the stack along with the packet
+      queueItem->ancillary = *ancillary;
+
+      //Notify user that data is available
+      rawSocketUpdateEvents(socket);
    }
-
-   //Not enough resources to properly handle the packet?
-   if(queueItem == NULL)
-   {
-      //Number of inbound packets which were chosen to be discarded even
-      //though no errors had been detected
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-
-      //Exit immediately
-      return;
-   }
-
-   //Initialize next field
-   queueItem->next = NULL;
-   //Network interface where the packet was received
-   queueItem->interface = interface;
-
-   //Other fields are meaningless
-   queueItem->srcPort = 0;
-   queueItem->srcIpAddr = IP_ADDR_ANY;
-   queueItem->destIpAddr = IP_ADDR_ANY;
-
-   //Offset to the raw datagram
-   queueItem->offset = sizeof(SocketQueueItem);
-
-   //Copy the payload
-   netBufferWrite(queueItem->buffer, queueItem->offset, data, length);
-
-   //Additional options can be passed to the stack along with the packet
-   queueItem->ancillary = *ancillary;
-
-   //Notify user that data is available
-   rawSocketUpdateEvents(socket);
 #endif
 }
 

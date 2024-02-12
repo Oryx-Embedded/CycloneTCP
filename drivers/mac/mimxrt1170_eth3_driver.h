@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.4
+ * @version 2.4.0
  **/
 
 #ifndef _MIMXRT1170_ETH3_DRIVER_H
@@ -99,10 +99,11 @@
 #define ENET_TDES3_LD            0x10000000
 #define ENET_TDES3_CPC           0x0C000000
 #define ENET_TDES3_SAIC          0x03800000
-#define ENET_TDES3_THL           0x00780000
+#define ENET_TDES3_SLOTNUM_THL   0x00780000
 #define ENET_TDES3_TSE           0x00040000
 #define ENET_TDES3_CIC           0x00030000
 #define ENET_TDES3_FL            0x00007FFF
+#define ENET_TDES3_TPL           0w0003FFFF
 
 //Transmit normal descriptor (write-back format)
 #define ENET_TDES0_TTSL          0xFFFFFFFF
