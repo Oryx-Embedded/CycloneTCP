@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -1047,7 +1047,8 @@ error_t webSocketSendEx(WebSocket *webSocket, const void *data, size_t length,
             //Send more data
             error = webSocketSendData(webSocket,
                txContext->buffer + txContext->bufferPos,
-               txContext->bufferLen - txContext->bufferPos, &n, 0);
+               txContext->bufferLen - txContext->bufferPos, &n,
+               SOCKET_FLAG_DELAY);
 
             //Advance data pointer
             txContext->bufferPos += n;

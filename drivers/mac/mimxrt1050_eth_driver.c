@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -239,8 +239,8 @@ error_t mimxrt1050EthInit(NetInterface *interface)
 
 __weak_func void mimxrt1050EthInitGpio(NetInterface *interface)
 {
-//MIMXRT1050-EVKA or MIMXRT1050-EVKB evaluation board?
-#if defined(USE_MIMXRT1050_EVKA) || defined(USE_MIMXRT1050_EVKB)
+//MIMXRT1050-EVK or MIMXRT1050-EVKB evaluation board?
+#if defined(USE_MIMXRT1050_EVK) || defined(USE_MIMXRT1050_EVKB)
    gpio_pin_config_t pinConfig;
    clock_enet_pll_config_t pllConfig;
 
@@ -724,7 +724,6 @@ void mimxrt1050EthEventHandler(NetInterface *interface)
 error_t mimxrt1050EthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint32_t temp[MIMXRT1050_ETH_TX_BUFFER_SIZE / 4];
    size_t length;
 
    //Retrieve the length of the packet
@@ -746,8 +745,7 @@ error_t mimxrt1050EthSendPacket(NetInterface *interface,
    }
 
    //Copy user data to the transmit buffer
-   netBufferRead(temp, buffer, offset, length);
-   osMemcpy(txBuffer[txBufferIndex], temp, (length + 3) & ~3UL);
+   netBufferRead(txBuffer[txBufferIndex], buffer, offset, length);
 
    //Clear BDU flag
    txBufferDesc[txBufferIndex][4] = 0;
@@ -798,7 +796,6 @@ error_t mimxrt1050EthSendPacket(NetInterface *interface,
 
 error_t mimxrt1050EthReceivePacket(NetInterface *interface)
 {
-   static uint32_t temp[MIMXRT1050_ETH_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
@@ -818,14 +815,11 @@ error_t mimxrt1050EthReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, MIMXRT1050_ETH_RX_BUFFER_SIZE);
 
-            //Copy data from the receive buffer
-            osMemcpy(temp, rxBuffer[rxBufferIndex], (n + 3) & ~3UL);
-
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) temp, n, &ancillary);
+            nicProcessPacket(interface, rxBuffer[rxBufferIndex], n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;

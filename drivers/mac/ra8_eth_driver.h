@@ -1,6 +1,6 @@
 /**
  * @file ra8_eth_driver.h
- * @brief Renesas RA8D1 / RA8M1 Ethernet MAC driver
+ * @brief Renesas RA8M1 / RA8D1 / RA8T1 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _RA8_ETH_DRIVER_H

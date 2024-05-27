@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -101,19 +101,13 @@ error_t tja1102Init(NetInterface *interface)
    value |= TJA1102_EXTENDED_CTRL_CONFIG_EN;
    tja1102WritePhyReg(interface, TJA1102_EXTENDED_CTRL, value);
 
-   //Select RMII mode (50MHz output on REF_CLK)
-   value = tja1102ReadPhyReg(interface, TJA1102_CONFIG1);
-   value &= ~TJA1102_CONFIG1_MII_MODE;
-   value |= TJA1102_CONFIG1_MII_MODE_RMII_50MHZ_REF_CLK_OUT;
-   tja1102WritePhyReg(interface, TJA1102_CONFIG1, value);
+   //Perform custom configuration
+   tja1102InitHook(interface);
 
    //The PHY is configured for autonomous operation
    value = tja1102ReadPhyReg(interface, TJA1102_COMM_CTRL);
    value |= TJA1102_COMM_CTRL_AUTO_OP;
    tja1102WritePhyReg(interface, TJA1102_COMM_CTRL, value);
-
-   //Perform custom configuration
-   tja1102InitHook(interface);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;

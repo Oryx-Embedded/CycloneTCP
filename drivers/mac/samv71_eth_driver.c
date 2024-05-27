@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -588,7 +588,6 @@ void samv71EthEventHandler(NetInterface *interface)
 error_t samv71EthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint32_t temp[SAMV71_ETH_TX_BUFFER_SIZE / 4];
    size_t length;
 
    //Retrieve the length of the packet
@@ -610,8 +609,7 @@ error_t samv71EthSendPacket(NetInterface *interface,
    }
 
    //Copy user data to the transmit buffer
-   netBufferRead(temp, buffer, offset, length);
-   osMemcpy(txBuffer[txBufferIndex], temp, (length + 3) & ~3UL);
+   netBufferRead(txBuffer[txBufferIndex], buffer, offset, length);
 
    //Set the necessary flags in the descriptor entry
    if(txBufferIndex < (SAMV71_ETH_TX_BUFFER_COUNT - 1))
@@ -740,7 +738,7 @@ error_t samv71EthReceivePacket(NetInterface *interface)
          //Calculate the number of bytes to read at a time
          n = MIN(size, SAMV71_ETH_RX_BUFFER_SIZE);
          //Copy data from receive buffer
-         osMemcpy((uint8_t *) temp + length, rxBuffer[rxBufferIndex], (n + 3) & ~3UL);
+         osMemcpy((uint8_t *) temp + length, rxBuffer[rxBufferIndex], n);
          //Update byte counters
          length += n;
          size -= n;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -33,13 +33,17 @@
 
 //Dependencies
 #include <limits.h>
-#include "mpfs_hal/mss_plic.h"
-#include "mpfs_hal/mss_sysreg.h"
-#include "drivers/mss_mac/mac_registers.h"
-#include "drivers/mss_mac/pse_mac_regs.h"
+#include "mpfs_hal/common/mss_plic.h"
+#include "mpfs_hal/common/mss_sysreg.h"
+#include "drivers/mss/mss_ethernet_mac/mss_ethernet_registers.h"
+#include "drivers/mss/mss_ethernet_mac/mss_ethernet_mac_regs.h"
 #include "core/net.h"
 #include "drivers/mac/mpfsxxx_eth1_driver.h"
 #include "debug.h"
+
+#if defined(USE_MPFS_ICICLE_KIT_ES)
+   #include "drivers/mac/mpfsxxx_eth2_driver.h"
+#endif
 
 //Underlying network interface
 static NetInterface *nicDriverInterface;
@@ -132,8 +136,8 @@ error_t mpfsxxxEth1Init(NetInterface *interface)
    mpfsxxxEth1InitGpio(interface);
 
    //Configure MDC clock speed
-   MAC0->NETWORK_CONFIG = (1 << GEM_DATA_BUS_WIDTH_SHIFT) |
-      (2 << GEM_MDC_CLOCK_DIVISOR_SHIFT);
+   MAC0->NETWORK_CONFIG = GEM_SGMII_MODE_ENABLE | GEM_PCS_SELECT |
+      (1 << GEM_DATA_BUS_WIDTH_SHIFT) | (5 << GEM_MDC_CLOCK_DIVISOR_SHIFT);
 
    //Enable management port (MDC and MDIO)
    MAC0->NETWORK_CONTROL |= GEM_MAN_PORT_EN;
@@ -245,7 +249,15 @@ __weak_func void mpfsxxxEth1InitGpio(NetInterface *interface)
 {
 //MPFS-ICICLE-KIT-ES evaluation board?
 #if defined(USE_MPFS_ICICLE_KIT_ES)
-   //Select SGMII operation mode
+   //Enable MAC1 peripheral clock
+   SYSREG->SUBBLK_CLOCK_CR |= 4U;
+
+   //Configure MDC clock speed
+   MAC1->NETWORK_CONFIG = GEM_SGMII_MODE_ENABLE | GEM_PCS_SELECT |
+      (1 << GEM_DATA_BUS_WIDTH_SHIFT) | (5 << GEM_MDC_CLOCK_DIVISOR_SHIFT);
+
+   //Enable management port (MDC and MDIO)
+   MAC1->NETWORK_CONTROL |= GEM_MAN_PORT_EN;
 #endif
 }
 
@@ -480,7 +492,9 @@ uint8_t mac0_int_plic_IRQHandler(void)
    isr = MAC0->INT_STATUS;
    tsr = MAC0->TRANSMIT_STATUS;
    rsr = MAC0->RECEIVE_STATUS;
-   (void) isr;
+
+   //Clear interrupt flags
+   MAC0->INT_STATUS = isr;
 
    //Packet transmitted?
    if((tsr & (GEM_TX_RESP_NOT_OK | GEM_STAT_TRANSMIT_UNDER_RUN |

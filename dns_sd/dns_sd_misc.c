@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -193,17 +193,19 @@ error_t dnsSdSendProbe(DnsSdContext *context)
             service = &context->serviceList[i];
 
             //Valid service?
-            if(service->name[0] != '\0')
+            if(service->serviceName[0] != '\0')
             {
                //Encode the service name using DNS notation
-               message.length += mdnsEncodeName(context->instanceName, service->name,
-                  ".local", (uint8_t *) message.dnsHeader + message.length);
+               message.length += mdnsEncodeName(context->instanceName,
+                  service->serviceName, ".local",
+                  (uint8_t *) message.dnsHeader + message.length);
 
                //Point to the corresponding question structure
                dnsQuestion = DNS_GET_QUESTION(message.dnsHeader, message.length);
 
-               //The probes should be sent as QU questions with the unicast-response
-               //bit set, to allow a defending host to respond immediately via unicast
+               //The probes should be sent as QU questions with the unicast-
+               //response bit set, to allow a defending host to respond
+               //immediately via unicast
                dnsQuestion->qtype = HTONS(DNS_RR_TYPE_ANY);
                dnsQuestion->qclass = HTONS(MDNS_QCLASS_QU | DNS_RR_CLASS_IN);
 
@@ -228,7 +230,7 @@ error_t dnsSdSendProbe(DnsSdContext *context)
             service = &context->serviceList[i];
 
             //Valid service?
-            if(service->name[0] != '\0')
+            if(service->serviceName[0] != '\0')
             {
                //Format SRV resource record
                error = dnsSdFormatSrvRecord(interface, &message, service,
@@ -307,7 +309,7 @@ error_t dnsSdSendAnnouncement(DnsSdContext *context)
             service = &context->serviceList[i];
 
             //Valid service?
-            if(service->name[0] != '\0')
+            if(service->serviceName[0] != '\0')
             {
                //Format PTR resource record (service type enumeration)
                error = dnsSdFormatServiceEnumPtrRecord(interface, &message,
@@ -389,7 +391,7 @@ error_t dnsSdSendGoodbye(DnsSdContext *context, const DnsSdService *service)
       entry = &context->serviceList[i];
 
       //Valid service?
-      if(entry->name[0] != '\0')
+      if(entry->serviceName[0] != '\0')
       {
          if(service == entry || service == NULL)
          {
@@ -485,9 +487,9 @@ error_t dnsSdParseQuestion(NetInterface *interface, const MdnsMessage *query,
    //Check whether the querier originating the query is a simple resolver
    if(ntohs(query->udpHeader->srcPort) != MDNS_PORT)
    {
-      //The resource record TTL given in a legacy unicast response should
-      //not be greater than ten seconds, even if the true TTL of the mDNS
-      //resource record is higher
+      //The resource record TTL given in a legacy unicast response should not
+      //be greater than ten seconds, even if the true TTL of the mDNS resource
+      //record is higher
       ttl = MIN(ttl, MDNS_LEGACY_UNICAST_RR_TTL);
 
       //The cache-flush bit must not be set in legacy unicast responses
@@ -509,7 +511,7 @@ error_t dnsSdParseQuestion(NetInterface *interface, const MdnsMessage *query,
          service = &context->serviceList[i];
 
          //Valid service?
-         if(service->name[0] != '\0')
+         if(service->serviceName[0] != '\0')
          {
             //Check the class of the query
             if(qclass == DNS_RR_CLASS_IN || qclass == DNS_RR_CLASS_ANY)
@@ -533,7 +535,7 @@ error_t dnsSdParseQuestion(NetInterface *interface, const MdnsMessage *query,
                   }
                }
                else if(!mdnsCompareName(query->dnsHeader, query->length,
-                  offset, "", service->name, ".local", 0))
+                  offset, "", service->serviceName, ".local", 0))
                {
                   //PTR query?
                   if(qtype == DNS_RR_TYPE_PTR || qtype == DNS_RR_TYPE_ANY)
@@ -550,7 +552,7 @@ error_t dnsSdParseQuestion(NetInterface *interface, const MdnsMessage *query,
                   }
                }
                else if(!mdnsCompareName(query->dnsHeader, query->length, offset,
-                  context->instanceName, service->name, ".local", 0))
+                  context->instanceName, service->serviceName, ".local", 0))
                {
                   //SRV query?
                   if(qtype == DNS_RR_TYPE_SRV || qtype == DNS_RR_TYPE_ANY)
@@ -596,6 +598,49 @@ error_t dnsSdParseQuestion(NetInterface *interface, const MdnsMessage *query,
 
 
 /**
+ * @brief Parse the Authority Section
+ * @param[in] interface Underlying network interface
+ * @param[in] query Incoming mDNS query message
+ * @param[in] offset Offset to first byte of the resource record
+ **/
+
+void dnsSdParseNsRecords(NetInterface *interface, const MdnsMessage *query,
+   size_t offset)
+{
+   uint_t i;
+   size_t n;
+   DnsResourceRecord *record;
+
+   //Parse Authority Section
+   for(i = 0; i < ntohs(query->dnsHeader->nscount); i++)
+   {
+      //Parse resource record name
+      n = dnsParseName(query->dnsHeader, query->length, offset, NULL, 0);
+      //Invalid name?
+      if(!n)
+         break;
+
+      //Point to the associated resource record
+      record = DNS_GET_RESOURCE_RECORD(query->dnsHeader, n);
+      //Point to the resource data
+      n += sizeof(DnsResourceRecord);
+
+      //Make sure the resource record is valid
+      if(n > query->length)
+         break;
+      if((n + ntohs(record->rdlength)) > query->length)
+         break;
+
+      //Check for service instance name conflict
+      dnsSdParseNsRecord(interface, query, offset, record);
+
+      //Point to the next resource record
+      offset = n + ntohs(record->rdlength);
+   }
+}
+
+
+/**
  * @brief Parse a resource record from the Authority Section
  * @param[in] interface Underlying network interface
  * @param[in] query Incoming mDNS query message
@@ -628,11 +673,11 @@ void dnsSdParseNsRecord(NetInterface *interface, const MdnsMessage *query,
          service = &context->serviceList[i];
 
          //Valid service?
-         if(service->name[0] != '\0')
+         if(service->serviceName[0] != '\0')
          {
             //Apply tie-breaking rules
             if(!mdnsCompareName(query->dnsHeader, query->length, offset,
-               context->instanceName, service->name, ".local", 0))
+               context->instanceName, service->serviceName, ".local", 0))
             {
                //Convert the class to host byte order
                rclass = ntohs(record->rclass);
@@ -722,11 +767,11 @@ void dnsSdParseAnRecord(NetInterface *interface, const MdnsMessage *response,
          service = &context->serviceList[i];
 
          //Valid service?
-         if(service->name[0] != '\0')
+         if(service->serviceName[0] != '\0')
          {
             //Check for conflicts
             if(!mdnsCompareName(response->dnsHeader, response->length, offset,
-               context->instanceName, service->name, ".local", 0))
+               context->instanceName, service->serviceName, ".local", 0))
             {
                //Convert the class to host byte order
                rclass = ntohs(record->rclass);
@@ -742,14 +787,15 @@ void dnsSdParseAnRecord(NetInterface *interface, const MdnsMessage *response,
                      //Compute the offset of the first byte of the rdata
                      offset = record->rdata - (uint8_t *) response->dnsHeader;
 
-                     //A conflict occurs when a mDNS responder has a unique record for
-                     //which it is currently authoritative, and it receives a mDNS
-                     //response message containing a record with the same name, rrtype
-                     //and rrclass, but inconsistent rdata
-                     if(mdnsCompareName(response->dnsHeader, response->length, offset,
-                        context->instanceName, "", ".local", 0))
+                     //A conflict occurs when a mDNS responder has a unique
+                     //record for which it is currently authoritative, and it
+                     //receives a mDNS response message containing a record with
+                     //the same name, rrtype and rrclass, but inconsistent rdata
+                     if(mdnsCompareName(response->dnsHeader, response->length,
+                        offset, context->instanceName, "", ".local", 0))
                      {
-                        //The service instance name is already in use by some other host
+                        //The service instance name is already in use by some
+                        //other host
                         context->conflict = TRUE;
                      }
                   }
@@ -771,7 +817,6 @@ void dnsSdParseAnRecord(NetInterface *interface, const MdnsMessage *response,
 void dnsSdGenerateAdditionalRecords(NetInterface *interface,
    MdnsMessage *response, bool_t legacyUnicast)
 {
-   error_t error;
    uint_t i;
    uint_t j;
    size_t n;
@@ -856,7 +901,7 @@ void dnsSdGenerateAdditionalRecords(NetInterface *interface,
          service = &context->serviceList[j];
 
          //Valid service?
-         if(service->name[0] != '\0')
+         if(service->serviceName[0] != '\0')
          {
             //Check the class of the resource record
             if(rclass == DNS_RR_CLASS_IN)
@@ -866,21 +911,15 @@ void dnsSdGenerateAdditionalRecords(NetInterface *interface,
                {
                   //Compare service name
                   if(!mdnsCompareName(response->dnsHeader, response->length,
-                     offset, "", service->name, ".local", 0))
+                     offset, "", service->serviceName, ".local", 0))
                   {
                      //Format SRV resource record
-                     error = dnsSdFormatSrvRecord(interface, response, service,
+                     dnsSdFormatSrvRecord(interface, response, service,
                         cacheFlush, ttl);
-                     //Any error to report?
-                     if(error)
-                        return;
 
                      //Format TXT resource record
-                     error = dnsSdFormatTxtRecord(interface, response, service,
+                     dnsSdFormatTxtRecord(interface, response, service,
                         cacheFlush, ttl);
-                     //Any error to report?
-                     if(error)
-                        return;
                   }
                }
                //SRV record?
@@ -888,14 +927,12 @@ void dnsSdGenerateAdditionalRecords(NetInterface *interface,
                {
                   //Compare service name
                   if(!mdnsCompareName(response->dnsHeader, response->length,
-                     offset, context->instanceName, service->name, ".local", 0))
+                     offset, context->instanceName, service->serviceName,
+                     ".local", 0))
                   {
                      //Format TXT resource record
-                     error = dnsSdFormatTxtRecord(interface, response, service,
+                     dnsSdFormatTxtRecord(interface, response, service,
                         cacheFlush, ttl);
-                     //Any error to report?
-                     if(error)
-                        return;
                   }
                }
             }
@@ -969,14 +1006,14 @@ error_t dnsSdFormatServiceEnumPtrRecord(NetInterface *interface,
       offset += sizeof(DnsResourceRecord);
 
       //The first pass calculates the length of the DNS encoded service name
-      n = mdnsEncodeName("", service->name, ".local", NULL);
+      n = mdnsEncodeName("", service->serviceName, ".local", NULL);
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
          return ERROR_MESSAGE_TOO_LONG;
 
       //The second pass encodes the service name using DNS notation
-      n = mdnsEncodeName("", service->name, ".local", record->rdata);
+      n = mdnsEncodeName("", service->serviceName, ".local", record->rdata);
 
       //Convert length field to network byte order
       record->rdlength = htons(n);
@@ -1015,8 +1052,8 @@ error_t dnsSdFormatPtrRecord(NetInterface *interface, MdnsMessage *message,
 
    //Check whether the resource record is already present in the Answer
    //Section of the message
-   duplicate = mdnsCheckDuplicateRecord(message, "", service->name, ".local",
-      DNS_RR_TYPE_PTR, NULL, 0);
+   duplicate = mdnsCheckDuplicateRecord(message, "", service->serviceName,
+      ".local", DNS_RR_TYPE_PTR, NULL, 0);
 
    //The duplicates should be suppressed and the resource record should
    //appear only once in the list
@@ -1026,14 +1063,14 @@ error_t dnsSdFormatPtrRecord(NetInterface *interface, MdnsMessage *message,
       offset = message->length;
 
       //The first pass calculates the length of the DNS encoded service name
-      n = mdnsEncodeName("", service->name, ".local", NULL);
+      n = mdnsEncodeName("", service->serviceName, ".local", NULL);
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
          return ERROR_MESSAGE_TOO_LONG;
 
       //The second pass encodes the service name using the DNS name notation
-      offset += mdnsEncodeName("", service->name, ".local",
+      offset += mdnsEncodeName("", service->serviceName, ".local",
          (uint8_t *) message->dnsHeader + offset);
 
       //Consider the length of the resource record itself
@@ -1052,14 +1089,15 @@ error_t dnsSdFormatPtrRecord(NetInterface *interface, MdnsMessage *message,
       offset += sizeof(DnsResourceRecord);
 
       //The first pass calculates the length of the DNS encoded instance name
-      n = mdnsEncodeName(context->instanceName, service->name, ".local", NULL);
+      n = mdnsEncodeName(context->instanceName, service->serviceName, ".local",
+         NULL);
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
          return ERROR_MESSAGE_TOO_LONG;
 
       //The second pass encodes the instance name using DNS notation
-      n = mdnsEncodeName(context->instanceName, service->name, ".local",
+      n = mdnsEncodeName(context->instanceName, service->serviceName, ".local",
          record->rdata);
 
       //Convert length field to network byte order
@@ -1104,7 +1142,7 @@ error_t dnsSdFormatSrvRecord(NetInterface *interface, MdnsMessage *message,
    //Check whether the resource record is already present in the Answer
    //Section of the message
    duplicate = mdnsCheckDuplicateRecord(message, dnsSdContext->instanceName,
-      service->name, ".local", DNS_RR_TYPE_SRV, NULL, 0);
+      service->serviceName, ".local", DNS_RR_TYPE_SRV, NULL, 0);
 
    //The duplicates should be suppressed and the resource record should
    //appear only once in the list
@@ -1114,23 +1152,24 @@ error_t dnsSdFormatSrvRecord(NetInterface *interface, MdnsMessage *message,
       offset = message->length;
 
       //The first pass calculates the length of the DNS encoded instance name
-      n = mdnsEncodeName(dnsSdContext->instanceName, service->name, ".local",
-         NULL);
+      n = mdnsEncodeName(dnsSdContext->instanceName, service->serviceName,
+         ".local", NULL);
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
          return ERROR_MESSAGE_TOO_LONG;
 
       //The second pass encodes the instance name using DNS notation
-      offset += mdnsEncodeName(dnsSdContext->instanceName, service->name, ".local",
-         (uint8_t *) message->dnsHeader + offset);
+      offset += mdnsEncodeName(dnsSdContext->instanceName, service->serviceName,
+         ".local", (uint8_t *) message->dnsHeader + offset);
 
       //Consider the length of the resource record itself
       if((offset + sizeof(DnsSrvResourceRecord)) > MDNS_MESSAGE_MAX_SIZE)
          return ERROR_MESSAGE_TOO_LONG;
 
       //Point to the corresponding resource record
-      record = (DnsSrvResourceRecord *) DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
+      record = (DnsSrvResourceRecord *) DNS_GET_RESOURCE_RECORD(message->dnsHeader,
+         offset);
 
       //Fill in resource record
       record->rtype = HTONS(DNS_RR_TYPE_SRV);
@@ -1200,7 +1239,7 @@ error_t dnsSdFormatTxtRecord(NetInterface *interface, MdnsMessage *message,
    //Check whether the resource record is already present in the Answer
    //Section of the message
    duplicate = mdnsCheckDuplicateRecord(message, context->instanceName,
-      service->name, ".local", DNS_RR_TYPE_TXT, NULL, 0);
+      service->serviceName, ".local", DNS_RR_TYPE_TXT, NULL, 0);
 
    //The duplicates should be suppressed and the resource record should
    //appear only once in the list
@@ -1210,15 +1249,16 @@ error_t dnsSdFormatTxtRecord(NetInterface *interface, MdnsMessage *message,
       offset = message->length;
 
       //The first pass calculates the length of the DNS encoded instance name
-      n = mdnsEncodeName(context->instanceName, service->name, ".local", NULL);
+      n = mdnsEncodeName(context->instanceName, service->serviceName, ".local",
+         NULL);
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
          return ERROR_MESSAGE_TOO_LONG;
 
       //The second pass encodes the instance name using DNS notation
-      offset += mdnsEncodeName(context->instanceName, service->name, ".local",
-         (uint8_t *) message->dnsHeader + offset);
+      offset += mdnsEncodeName(context->instanceName, service->serviceName,
+         ".local", (uint8_t *) message->dnsHeader + offset);
 
       //Consider the length of the resource record itself
       if((offset + sizeof(DnsResourceRecord)) > MDNS_MESSAGE_MAX_SIZE)
@@ -1287,7 +1327,7 @@ error_t dnsSdFormatNsecRecord(NetInterface *interface, MdnsMessage *message,
    //Check whether the resource record is already present in the Answer
    //Section of the message
    duplicate = mdnsCheckDuplicateRecord(message, context->instanceName,
-      service->name, ".local", DNS_RR_TYPE_NSEC, NULL, 0);
+      service->serviceName, ".local", DNS_RR_TYPE_NSEC, NULL, 0);
 
    //The duplicates should be suppressed and the resource record should
    //appear only once in the list
@@ -1313,14 +1353,15 @@ error_t dnsSdFormatNsecRecord(NetInterface *interface, MdnsMessage *message,
       offset = message->length;
 
       //The first pass calculates the length of the DNS encoded instance name
-      n = mdnsEncodeName(context->instanceName, service->name, ".local", NULL);
+      n = mdnsEncodeName(context->instanceName, service->serviceName, ".local",
+         NULL);
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
          return ERROR_MESSAGE_TOO_LONG;
 
       //The second pass encodes the instance name using the DNS name notation
-      offset += mdnsEncodeName(context->instanceName, service->name,
+      offset += mdnsEncodeName(context->instanceName, service->serviceName,
          ".local", (uint8_t *) message->dnsHeader + offset);
 
       //Consider the length of the resource record itself
@@ -1349,7 +1390,7 @@ error_t dnsSdFormatNsecRecord(NetInterface *interface, MdnsMessage *message,
          return ERROR_MESSAGE_TOO_LONG;
 
       //The Next Domain Name field contains the record's own name
-      mdnsEncodeName(context->instanceName, service->name,
+      mdnsEncodeName(context->instanceName, service->serviceName,
          ".local", record->rdata);
 
       //DNS NSEC record is limited to Window Block number zero

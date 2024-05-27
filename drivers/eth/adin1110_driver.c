@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -131,10 +131,17 @@ error_t adin1110Init(NetInterface *interface)
    //Configure MAC address filtering
    adin1110UpdateMacAddrFilter(interface);
 
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   //Configure the SPI protocol engine
+   adin1110WriteReg(interface, ADIN1110_CONFIG0, ADIN1110_CONFIG0_CSARFE |
+      ADIN1110_CONFIG0_ZARFE | ADIN1110_CONFIG0_TXCTHRESH_16_CREDITS |
+      ADIN1110_CONFIG0_CPS_64B);
+#else
    //Enable store and forward mode
    value = adin1110ReadReg(interface, ADIN1110_CONFIG0);
    value &= ~(ADIN1110_CONFIG0_TXCTE | ADIN1110_CONFIG0_RXCTE);
    adin1110WriteReg(interface, ADIN1110_CONFIG0, value);
+#endif
 
    //Enable CRC append in the MAC TX path
    value = adin1110ReadReg(interface, ADIN1110_CONFIG2);
@@ -144,9 +151,14 @@ error_t adin1110Init(NetInterface *interface)
    //Clear IMASK0 register
    adin1110WriteReg(interface, ADIN1110_IMASK0, 0xFFFFFFFF);
 
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   //Disable generic SPI protocol interrupts
+   adin1110WriteReg(interface, ADIN1110_IMASK1, 0xFFFFFFFF);
+#else
    //Write the IMASK1 register to enable interrupts as required
    adin1110WriteReg(interface, ADIN1110_IMASK1, ~(ADIN1110_IMASK1_TX_RDY_MASK |
       ADIN1110_IMASK1_P1_RX_RDY_MASK | ADIN1110_IMASK1_LINK_CHANGE_MASK));
+#endif
 
    //When the MAC is configured, write 1 to the SYNC field in the CONFIG0
    //register to indicate that the MAC configuration is complete
@@ -212,6 +224,38 @@ __weak_func void adin1110InitHook(NetInterface *interface)
 
 void adin1110Tick(NetInterface *interface)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   uint32_t value;
+   bool_t linkState;
+
+   //Read PHY status register
+   value = adin1110ReadReg(interface, ADIN1110_STATUS1);
+   //Retrieve current link state
+   linkState = (value & ADIN1110_STATUS1_P1_LINK_STATUS) ? TRUE : FALSE;
+
+   //Link up event?
+   if(linkState && !interface->linkState)
+   {
+      //The PHY is only able to operate in 10 Mbps mode
+      interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+      interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+
+      //Update link state
+      interface->linkState = TRUE;
+
+      //Process link state change event
+      nicNotifyLinkChange(interface);
+   }
+   //Link down event?
+   else if(!linkState && interface->linkState)
+   {
+      //Update link state
+      interface->linkState = FALSE;
+
+      //Process link state change event
+      nicNotifyLinkChange(interface);
+   }
+#endif
 }
 
 
@@ -253,6 +297,14 @@ void adin1110DisableIrq(NetInterface *interface)
 
 bool_t adin1110IrqHandler(NetInterface *interface)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   //When the SPI host detects an asserted IRQn from the MACPHY, it should
+   //initiate a data chunk transfer to obtain the current data footer
+   interface->nicEvent = TRUE;
+
+   //Notify the TCP/IP stack of the event
+   return osSetEventFromIsr(&netEvent);
+#else
    bool_t flag;
    size_t n;
    uint32_t mask;
@@ -316,6 +368,7 @@ bool_t adin1110IrqHandler(NetInterface *interface)
 
    //A higher priority task must be woken?
    return flag;
+#endif
 }
 
 
@@ -326,6 +379,22 @@ bool_t adin1110IrqHandler(NetInterface *interface)
 
 void adin1110EventHandler(NetInterface *interface)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   uint32_t status;
+
+   //Read buffer status register
+   status = adin1110ReadReg(interface, ADIN1110_BUFSTS);
+
+   //Process all the data chunks currently available
+   while((status & ADIN1110_BUFSTS_RCA) != 0)
+   {
+      //Read incoming packet
+      adin1110ReceivePacket(interface);
+
+      //Read buffer status register
+      status = adin1110ReadReg(interface, ADIN1110_BUFSTS);
+   }
+#else
    uint32_t status;
 
    //When an interrupt occurs, the system can poll the MAC status registers
@@ -378,6 +447,7 @@ void adin1110EventHandler(NetInterface *interface)
    //Re-enable interrupts
    adin1110WriteReg(interface, ADIN1110_IMASK1, ~(ADIN1110_IMASK1_TX_RDY_MASK |
       ADIN1110_IMASK1_P1_RX_RDY_MASK | ADIN1110_IMASK1_LINK_CHANGE_MASK));
+#endif
 }
 
 
@@ -394,6 +464,115 @@ void adin1110EventHandler(NetInterface *interface)
 error_t adin1110SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   static uint8_t chunk[ADIN1110_CHUNK_PAYLOAD_SIZE + 4];
+   size_t i;
+   size_t j;
+   size_t n;
+   size_t length;
+   uint32_t status;
+   uint32_t header;
+   uint32_t footer;
+
+   //Retrieve the length of the packet
+   length = netBufferGetLength(buffer) - offset;
+
+   //Read buffer status register
+   status = adin1110ReadReg(interface, ADIN1110_BUFSTS);
+   //Get the number of data chunks available in the transmit buffer
+   n = (status & ADIN1110_BUFSTS_TXC) >> 8;
+
+   //Check the number of transmit credits available
+   if(length <= (n * ADIN1110_CHUNK_PAYLOAD_SIZE))
+   {
+      //A data transaction consists of multiple chunks
+      for(i = 0; i < length; i += n)
+      {
+         //The default size of the data chunk payload is 64 bytes
+         n = MIN(length - i, ADIN1110_CHUNK_PAYLOAD_SIZE);
+
+         //Set up a data transfer
+         header = ADIN1110_TX_HEADER_DNC | ADIN1110_TX_HEADER_NORX |
+            ADIN1110_TX_HEADER_DV;
+
+         //Start of packet?
+         if(i == 0)
+         {
+            //The SPI host shall set the SV bit when the beginning of an
+            //Ethernet frame is present in the current transmit data chunk
+            //payload
+            header |= ADIN1110_TX_HEADER_SV;
+         }
+
+         //End of packet?
+         if((i + n) == length)
+         {
+            //The SPI host shall set the EV bit when the end of an Ethernet
+            //frame is present in the current transmit data chunk payload
+            header |= ADIN1110_TX_HEADER_EV;
+
+            //When EV is 1, the EBO field shall contain the byte offset into
+            //the transmit data chunk payload that points to the last byte of
+            //the Ethernet frame to transmit
+            header |= ((n - 1) << 8) & ADIN1110_TX_HEADER_EBO;
+         }
+
+         //The parity bit is calculated over the transmit data header
+         if(adin1110CalcParity(header) != 0)
+         {
+            header |= ADIN1110_CTRL_HEADER_P;
+         }
+
+         //A chunk is composed of 4 bytes of overhead plus the configured
+         //payload size
+         STORE32BE(header, chunk);
+
+         //Copy data chunk payload
+         netBufferRead(chunk + 4, buffer, offset + i, n);
+
+         //Pad frames shorter than the data chunk payload
+         if(n < ADIN1110_CHUNK_PAYLOAD_SIZE)
+         {
+            osMemset(chunk + 4 + n, 0, ADIN1110_CHUNK_PAYLOAD_SIZE - n);
+         }
+
+         //Pull the CS pin low
+         interface->spiDriver->assertCs();
+
+         //Perform data transfer
+         for(j = 0; j < (ADIN1110_CHUNK_PAYLOAD_SIZE + 4); j++)
+         {
+            chunk[j] = interface->spiDriver->transfer(chunk[j]);
+         }
+
+         //Terminate the operation by raising the CS pin
+         interface->spiDriver->deassertCs();
+
+         //Receive data chunks consist of the receive data chunk payload followed
+         //by a 4-byte footer
+         footer = LOAD32BE(chunk + ADIN1110_CHUNK_PAYLOAD_SIZE);
+
+         //The RCA field indicates the number of receive data chunks available
+         if((footer & ADIN1110_RX_FOOTER_RCA) != 0)
+         {
+            //Some data chunks are available for reading
+            interface->nicEvent = TRUE;
+            //Notify the TCP/IP stack of the event
+            osSetEvent(&netEvent);
+         }
+      }
+   }
+   else
+   {
+      //No sufficient credits available
+   }
+
+   //The transmitter can accept another packet
+   osSetEvent(&interface->nicTxEvent);
+
+   //Successful processing
+   return NO_ERROR;
+#else
    static uint8_t temp[ADIN1110_ETH_TX_BUFFER_SIZE];
    size_t n;
    size_t length;
@@ -445,17 +624,139 @@ error_t adin1110SendPacket(NetInterface *interface,
 
    //Successful processing
    return NO_ERROR;
+#endif
 }
 
 
 /**
  * @brief Receive a packet
  * @param[in] interface Underlying network interface
+ * @return Error code
  **/
 
-void adin1110ReceivePacket(NetInterface *interface)
+error_t adin1110ReceivePacket(NetInterface *interface)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   static uint8_t buffer[ADIN1110_ETH_RX_BUFFER_SIZE];
+   static uint8_t chunk[ADIN1110_CHUNK_PAYLOAD_SIZE + 4];
+   error_t error;
+   size_t i;
+   size_t n;
+   size_t length;
+   uint32_t header;
+   uint32_t footer;
+
+   //Initialize variable
+   length = 0;
+
+   //A data transaction consists of multiple chunks
+   while(1)
+   {
+      //Check the length of the received packet
+      if((length + ADIN1110_CHUNK_PAYLOAD_SIZE) > ADIN1110_ETH_RX_BUFFER_SIZE)
+      {
+         error = ERROR_BUFFER_OVERFLOW;
+         break;
+      }
+
+      //The SPI host sets NORX to 0 to indicate that it accepts and process
+      //any receive frame data within the current chunk
+      header = ADIN1110_TX_HEADER_DNC;
+
+      //The parity bit is calculated over the transmit data header
+      if(adin1110CalcParity(header) != 0)
+      {
+         header |= ADIN1110_CTRL_HEADER_P;
+      }
+
+      //Transmit data chunks consist of a 4-byte header followed by the
+      //transmit data chunk payload,
+      STORE32BE(header, chunk);
+
+      //Clear data chunk payload
+      osMemset(chunk + 4, 0, ADIN1110_CHUNK_PAYLOAD_SIZE);
+
+      //Pull the CS pin low
+      interface->spiDriver->assertCs();
+
+      //Perform data transfer
+      for(i = 0; i < (ADIN1110_CHUNK_PAYLOAD_SIZE + 4); i++)
+      {
+         chunk[i] = interface->spiDriver->transfer(chunk[i]);
+      }
+
+      //Terminate the operation by raising the CS pin
+      interface->spiDriver->deassertCs();
+
+      //Receive data chunks consist of the receive data chunk payload followed
+      //by a 4-byte footer
+      footer = LOAD32BE(chunk + ADIN1110_CHUNK_PAYLOAD_SIZE);
+
+      //When the DV bit is 0, the SPI host ignores the chunk payload
+      if((footer & ADIN1110_RX_FOOTER_DV) == 0)
+      {
+         error = ERROR_BUFFER_EMPTY;
+         break;
+      }
+
+      //When the SV bit is 1, the beginning of an Ethernet frame is present in
+      //the current transmit data chunk payload
+      if(length == 0)
+      {
+         if((footer & ADIN1110_RX_FOOTER_SV) == 0)
+         {
+            error = ERROR_INVALID_PACKET;
+            break;
+         }
+      }
+      else
+      {
+         if((footer & ADIN1110_RX_FOOTER_SV) != 0)
+         {
+            error = ERROR_INVALID_PACKET;
+            break;
+         }
+      }
+
+      //When EV is 1, the EBO field contains the byte offset into the
+      //receive data chunk payload that points to the last byte of the
+      //received Ethernet frame
+      if((footer & ADIN1110_RX_FOOTER_EV) != 0)
+      {
+         n = ((footer & ADIN1110_RX_FOOTER_EBO) >> 8) + 1;
+      }
+      else
+      {
+         n = ADIN1110_CHUNK_PAYLOAD_SIZE;
+      }
+
+      //Copy data chunk payload
+      osMemcpy(buffer + length, chunk, n);
+      //Adjust the length of the packet
+      length += n;
+
+      //When the EV bit is 1, the end of an Ethernet frame is present in the
+      //current receive data chunk payload
+      if((footer & ADIN1110_RX_FOOTER_EV) != 0)
+      {
+         NetRxAncillary ancillary;
+
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_RX_ANCILLARY;
+         //Pass the packet to the upper layer
+         nicProcessPacket(interface, buffer, length, &ancillary);
+
+         //Successful processing
+         error = NO_ERROR;
+         break;
+      }
+   }
+
+   //Return status code
+   return error;
+#else
    static uint8_t temp[ADIN1110_ETH_RX_BUFFER_SIZE];
+   error_t error;
    size_t length;
    uint16_t header;
 
@@ -480,7 +781,19 @@ void adin1110ReceivePacket(NetInterface *interface)
 
       //Pass the packet to the upper layer
       nicProcessPacket(interface, temp, length, &ancillary);
+
+      //Successful processing
+      error = NO_ERROR;
    }
+   else
+   {
+      //The RX FIFO is empty
+      error = ERROR_BUFFER_EMPTY;
+   }
+
+   //Return status code
+   return error;
+#endif
 }
 
 
@@ -567,6 +880,69 @@ error_t adin1110UpdateMacAddrFilter(NetInterface *interface)
 void adin1110WriteReg(NetInterface *interface, uint16_t address,
    uint32_t data)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   uint32_t header;
+
+   //Set up a register write operation
+   header = ADIN1110_CTRL_HEADER_WNR | ADIN1110_CTRL_HEADER_AID;
+
+   //The MMS field selects the specific register memory map to access
+   if(address < 0x30)
+   {
+      header |= (ADIN1110_MMS_STD << 24) & ADIN1110_CTRL_HEADER_MMS;
+   }
+   else
+   {
+      header |= (ADIN1110_MMS_MAC << 24) & ADIN1110_CTRL_HEADER_MMS;
+   }
+
+   //Address of the first register to access
+   header |= (address << 8) & ADIN1110_CTRL_HEADER_ADDR;
+   //Specifies the number of registers to write
+   header |= (0 << 1) & ADIN1110_CTRL_HEADER_LEN;
+
+   //The parity bit is calculated over the control command header
+   if(adin1110CalcParity(header) != 0)
+   {
+      header |= ADIN1110_CTRL_HEADER_P;
+   }
+
+   //Pull the CS pin low
+   interface->spiDriver->assertCs();
+
+   //Write control command header
+   interface->spiDriver->transfer((header >> 24) & 0xFF);
+   interface->spiDriver->transfer((header >> 16) & 0xFF);
+   interface->spiDriver->transfer((header >> 8) & 0xFF);
+   interface->spiDriver->transfer(header & 0xFF);
+
+   //Write data
+   interface->spiDriver->transfer((data >> 24) & 0xFF);
+   interface->spiDriver->transfer((data >> 16) & 0xFF);
+   interface->spiDriver->transfer((data >> 8) & 0xFF);
+   interface->spiDriver->transfer(data & 0xFF);
+
+#if (ADIN1110_PROTECTION_SUPPORT == ENABLED)
+   //Protection is accomplished by duplication of each 32-bit word containing
+   //register data with its ones' complement
+   data = ~data;
+
+   //Write complement
+   interface->spiDriver->transfer((data >> 24) & 0xFF);
+   interface->spiDriver->transfer((data >> 16) & 0xFF);
+   interface->spiDriver->transfer((data >> 8) & 0xFF);
+   interface->spiDriver->transfer(data & 0xFF);
+#endif
+
+   //Send 32 bits of dummy data at the end of the control write command
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+
+   //Terminate the operation by raising the CS pin
+   interface->spiDriver->deassertCs();
+#else
    //Pull the CS pin low
    interface->spiDriver->assertCs();
 
@@ -582,6 +958,7 @@ void adin1110WriteReg(NetInterface *interface, uint16_t address,
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
+#endif
 }
 
 
@@ -594,6 +971,70 @@ void adin1110WriteReg(NetInterface *interface, uint16_t address,
 
 uint32_t adin1110ReadReg(NetInterface *interface, uint16_t address)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == ENABLED)
+   uint32_t data;
+   uint32_t header;
+
+   //Set up a register read operation
+   header = ADIN1110_CTRL_HEADER_AID;
+
+   //The MMS field selects the specific register memory map to access
+   if(address < 0x30)
+   {
+      header |= (ADIN1110_MMS_STD << 24) & ADIN1110_CTRL_HEADER_MMS;
+   }
+   else
+   {
+      header |= (ADIN1110_MMS_MAC << 24) & ADIN1110_CTRL_HEADER_MMS;
+   }
+
+   //Address of the first register to access
+   header |= (address << 8) & ADIN1110_CTRL_HEADER_ADDR;
+   //Specifies the number of registers to read
+   header |= (0 << 1) & ADIN1110_CTRL_HEADER_LEN;
+
+   //The parity bit is calculated over the control command header
+   if(adin1110CalcParity(header) != 0)
+   {
+      header |= ADIN1110_CTRL_HEADER_P;
+   }
+
+   //Pull the CS pin low
+   interface->spiDriver->assertCs();
+
+   //Write control command header
+   interface->spiDriver->transfer((header >> 24) & 0xFF);
+   interface->spiDriver->transfer((header >> 16) & 0xFF);
+   interface->spiDriver->transfer((header >> 8) & 0xFF);
+   interface->spiDriver->transfer(header & 0xFF);
+
+   //Discard the echoed control header
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+
+   //Read data
+   data = interface->spiDriver->transfer(0x00) << 24;
+   data |= interface->spiDriver->transfer(0x00) << 16;
+   data |= interface->spiDriver->transfer(0x00) << 8;
+   data |= interface->spiDriver->transfer(0x00);
+
+#if (ADIN1110_PROTECTION_SUPPORT == ENABLED)
+   //Protection is accomplished by duplication of each 32-bit word containing
+   //register data with its ones' complement
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+#endif
+
+   //Terminate the operation by raising the CS pin
+   interface->spiDriver->deassertCs();
+
+   //Return register value
+   return data;
+#else
    uint32_t data;
 
    //Pull the CS pin low
@@ -617,6 +1058,7 @@ uint32_t adin1110ReadReg(NetInterface *interface, uint16_t address)
 
    //Return register value
    return data;
+#endif
 }
 
 
@@ -842,6 +1284,7 @@ uint16_t adin1110ReadMmdReg(NetInterface *interface, uint8_t devAddr,
 void adin1110WriteFifo(NetInterface *interface, uint16_t header,
    const uint8_t *data, size_t length)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == DISABLED)
    size_t i;
 
    //Pull the CS pin low
@@ -870,6 +1313,7 @@ void adin1110WriteFifo(NetInterface *interface, uint16_t header,
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
+#endif
 }
 
 
@@ -884,6 +1328,7 @@ void adin1110WriteFifo(NetInterface *interface, uint16_t header,
 void adin1110ReadFifo(NetInterface *interface, uint16_t *header,
    uint8_t *data, size_t length)
 {
+#if (ADIN1110_OA_SPI_SUPPORT == DISABLED)
    size_t i;
 
    //Pull the CS pin low
@@ -921,4 +1366,27 @@ void adin1110ReadFifo(NetInterface *interface, uint16_t *header,
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
+#endif
+}
+
+
+/**
+ * @brief Calculate parity bit over a 32-bit data
+ * @param[in] data 32-bit bit stream
+ * @return Odd parity bit computed over the supplied data
+ **/
+
+uint32_t adin1110CalcParity(uint32_t data)
+{
+   //Calculate the odd parity bit computed over the supplied bit stream
+   data ^= data >> 1;
+   data ^= data >> 2;
+   data ^= data >> 4;
+   data ^= data >> 8;
+   data ^= data >> 16;
+
+   //Return '1' when the number of bits set to one in the supplied bit
+   //stream is even (resulting in an odd number of ones when the parity is
+   //included), otherwise return '0'
+   return ~data & 0x01;
 }

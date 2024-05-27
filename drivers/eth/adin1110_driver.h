@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _ADIN1110_DRIVER_H
@@ -33,6 +33,20 @@
 
 //Dependencies
 #include "core/nic.h"
+
+//Open Alliance SPI protocol
+#ifndef ADIN1110_OA_SPI_SUPPORT
+   #define ADIN1110_OA_SPI_SUPPORT DISABLED
+#elif (ADIN1110_OA_SPI_SUPPORT != ENABLED && ADIN1110_OA_SPI_SUPPORT != DISABLED)
+   #error ADIN1110_OA_SPI_SUPPORT parameter is not valid
+#endif
+
+//Control data protection
+#ifndef ADIN1110_PROTECTION_SUPPORT
+   #define ADIN1110_PROTECTION_SUPPORT DISABLED
+#elif (ADIN1110_PROTECTION_SUPPORT != ENABLED && ADIN1110_PROTECTION_SUPPORT != DISABLED)
+   #error ADIN1110_PROTECTION_SUPPORT parameter is not valid
+#endif
 
 //TX buffer size
 #ifndef ADIN1110_ETH_TX_BUFFER_SIZE
@@ -54,19 +68,65 @@
 #define ADIN1110_FRAME_HEADER_SIZE 2
 //TX frame overhead
 #define ADIN1110_TX_FRAME_OVERHEAD 4
+//Chunk payload size
+#define ADIN1110_CHUNK_PAYLOAD_SIZE 64
 
 //SPI commands
 #define ADIN1110_SPI_CMD_READ  0x80
 #define ADIN1110_SPI_CMD_WRITE 0xA0
 
 //Frame header
-#define ADIN1110_FRAME_HEADER_PRIORITY           0x4000
-#define ADIN1110_FRAME_HEADER_EGRESS_CAPTURE     0x00C0
-#define ADIN1110_FRAME_HEADER_EGRESS_CAPTURE_A   0x0040
-#define ADIN1110_FRAME_HEADER_EGRESS_CAPTURE_B   0x0080
-#define ADIN1110_FRAME_HEADER_EGRESS_CAPTURE_C   0x00C0
-#define ADIN1110_FRAME_HEADER_TIME_STAMP_PARITY  0x0008
-#define ADIN1110_FRAME_HEADER_TIME_STAMP_PRESENT 0x0004
+#define ADIN1110_FRAME_HEADER_PRIORITY     0x4000
+#define ADIN1110_FRAME_HEADER_EG_CAPTURE   0x00C0
+#define ADIN1110_FRAME_HEADER_EG_CAPTURE_A 0x0040
+#define ADIN1110_FRAME_HEADER_EG_CAPTURE_B 0x0080
+#define ADIN1110_FRAME_HEADER_EG_CAPTURE_C 0x00C0
+#define ADIN1110_FRAME_HEADER_TS_PARITY    0x0008
+#define ADIN1110_FRAME_HEADER_TS_PRESENT   0x0004
+
+//Transmit data header
+#define ADIN1110_TX_HEADER_DNC             0x80000000
+#define ADIN1110_TX_HEADER_SEQ             0x40000000
+#define ADIN1110_TX_HEADER_NORX            0x20000000
+#define ADIN1110_TX_HEADER_VS              0x00C00000
+#define ADIN1110_TX_HEADER_DV              0x00200000
+#define ADIN1110_TX_HEADER_SV              0x00100000
+#define ADIN1110_TX_HEADER_SWO             0x000F0000
+#define ADIN1110_TX_HEADER_EV              0x00004000
+#define ADIN1110_TX_HEADER_EBO             0x00003F00
+#define ADIN1110_TX_HEADER_TSC             0x000000C0
+#define ADIN1110_TX_HEADER_P               0x00000001
+
+//Receive data footer
+#define ADIN1110_RX_FOOTER_EXST            0x80000000
+#define ADIN1110_RX_FOOTER_HDRB            0x40000000
+#define ADIN1110_RX_FOOTER_SYNC            0x20000000
+#define ADIN1110_RX_FOOTER_RCA             0x1F000000
+#define ADIN1110_RX_FOOTER_VS              0x00C00000
+#define ADIN1110_RX_FOOTER_DV              0x00200000
+#define ADIN1110_RX_FOOTER_SV              0x00100000
+#define ADIN1110_RX_FOOTER_SWO             0x000F0000
+#define ADIN1110_RX_FOOTER_FD              0x00008000
+#define ADIN1110_RX_FOOTER_EV              0x00004000
+#define ADIN1110_RX_FOOTER_EBO             0x00003F00
+#define ADIN1110_RX_FOOTER_RTSA            0x00000080
+#define ADIN1110_RX_FOOTER_RTSP            0x00000040
+#define ADIN1110_RX_FOOTER_TXC             0x0000003E
+#define ADIN1110_RX_FOOTER_P               0x00000001
+
+//Control command header
+#define ADIN1110_CTRL_HEADER_DNC           0x80000000
+#define ADIN1110_CTRL_HEADER_HDRB          0x40000000
+#define ADIN1110_CTRL_HEADER_WNR           0x20000000
+#define ADIN1110_CTRL_HEADER_AID           0x10000000
+#define ADIN1110_CTRL_HEADER_MMS           0x0F000000
+#define ADIN1110_CTRL_HEADER_ADDR          0x00FFFF00
+#define ADIN1110_CTRL_HEADER_LEN           0x000000FE
+#define ADIN1110_CTRL_HEADER_P             0x00000001
+
+//Memory map selectors
+#define ADIN1110_MMS_STD 0x00
+#define ADIN1110_MMS_MAC 0x01
 
 //ADIN1110 SPI registers
 #define ADIN1110_IDVER                                                  0x00
@@ -1157,7 +1217,7 @@ void adin1110EventHandler(NetInterface *interface);
 error_t adin1110SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-void adin1110ReceivePacket(NetInterface *interface);
+error_t adin1110ReceivePacket(NetInterface *interface);
 
 error_t adin1110UpdateMacAddrFilter(NetInterface *interface);
 
@@ -1184,6 +1244,8 @@ void adin1110WriteFifo(NetInterface *interface, uint16_t header,
 
 void adin1110ReadFifo(NetInterface *interface, uint16_t *header,
    uint8_t *data, size_t length);
+
+uint32_t adin1110CalcParity(uint32_t data);
 
 //C++ guard
 #ifdef __cplusplus

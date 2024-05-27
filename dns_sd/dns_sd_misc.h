@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _DNS_SD_MISC_H
@@ -52,6 +52,9 @@ error_t dnsSdSendGoodbye(DnsSdContext *context, const DnsSdService *service);
 
 error_t dnsSdParseQuestion(NetInterface *interface, const MdnsMessage *query,
    size_t offset, const DnsQuestion *question, MdnsMessage *response);
+
+void dnsSdParseNsRecords(NetInterface *interface, const MdnsMessage *query,
+   size_t offset);
 
 void dnsSdParseNsRecord(NetInterface *interface, const MdnsMessage *query,
    size_t offset, const DnsResourceRecord *record);

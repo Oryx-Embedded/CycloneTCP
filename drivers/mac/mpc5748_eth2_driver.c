@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -112,9 +112,9 @@ error_t mpc5748Eth2Init(NetInterface *interface)
    {
    }
 
-   //Receive control register
+   //Configure MAC for MII mode
    ENET_1->RCR = ENET_RCR_MAX_FL(MPC5748_ETH2_RX_BUFFER_SIZE) |
-      ENET_RCR_RMII_MODE_MASK | ENET_RCR_MII_MODE_MASK;
+      ENET_RCR_MII_MODE_MASK;
 
    //Transmit control register
    ENET_1->TCR = 0;
@@ -210,6 +210,124 @@ error_t mpc5748Eth2Init(NetInterface *interface)
 
 __weak_func void mpc5748Eth2InitGpio(NetInterface *interface)
 {
+//MPC5748G-GW-RDB evaluation board?
+#if defined(USE_MPC5748G_GW_RDB)
+   //Configure MII_1_TX_CLK (PE12)
+   SIUL2->MSCR[76] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[460] = SIUL2_IMCR_SSS(1);
+
+   //Configure MII_1_TX_EN (PI12)
+   SIUL2->MSCR[140] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(3);
+
+   //Configure MII_1_TXD0 (PA11)
+   SIUL2->MSCR[11] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(3);
+
+   //Configure MII_1_TXD1 (PA10)
+   SIUL2->MSCR[10] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(4);
+
+   //Configure MII_1_TXD2 (PH3)
+   SIUL2->MSCR[115] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(4);
+
+   //Configure MII_1_TXD3 (PI13)
+   SIUL2->MSCR[141] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(3);
+
+   //Configure MII_1_RX_CLK (PB11)
+   SIUL2->MSCR[27] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[459] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RX_DV (PB5)
+   SIUL2->MSCR[21] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[465] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RXD0 (PD10)
+   SIUL2->MSCR[58] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[461] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RXD1 (PD9)
+   SIUL2->MSCR[57] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[462] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RXD2 (PB7)
+   SIUL2->MSCR[23] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[463] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RXD3 (PB6)
+   SIUL2->MSCR[22] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[464] = SIUL2_IMCR_SSS(2);
+
+   //Configure PHY reset pin (PI11)
+   SIUL2->MSCR[139] = SIUL2_MSCR_OBE_MASK | SIUL2_MSCR_SMC_MASK;
+
+   //Reset PHY transceiver
+   SIUL2->GPDO[139] = 0;
+   sleep(10);
+   SIUL2->GPDO[139] = 1;
+   sleep(10);
+
+//SJA1105SMBEVM evaluation board?
+#elif defined(USE_SJA1105SMBEVM)
+   //Configure MII_1_TX_CLK (PE12)
+   SIUL2->MSCR[76] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[460] = SIUL2_IMCR_SSS(1);
+
+   //Configure MII_1_TX_EN (PI12)
+   SIUL2->MSCR[140] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(3);
+
+   //Configure MII_1_TXD0 (PA11)
+   SIUL2->MSCR[11] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(3);
+
+   //Configure MII_1_TXD1 (PA10)
+   SIUL2->MSCR[10] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(4);
+
+   //Configure MII_1_TXD2 (PH3)
+   SIUL2->MSCR[115] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(4);
+
+   //Configure MII_1_TXD3 (PI13)
+   SIUL2->MSCR[141] = SIUL2_MSCR_SRC(3) | SIUL2_MSCR_OBE_MASK |
+      SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_SSS(3);
+
+   //Configure MII_1_RX_CLK (PB11)
+   SIUL2->MSCR[27] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[459] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RX_DV (PB5)
+   SIUL2->MSCR[21] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[465] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RXD0 (PB15)
+   SIUL2->MSCR[31] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[461] = SIUL2_IMCR_SSS(1);
+
+   //Configure MII_1_RXD1 (PD9)
+   SIUL2->MSCR[57] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[462] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RXD2 (PB7)
+   SIUL2->MSCR[23] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[463] = SIUL2_IMCR_SSS(2);
+
+   //Configure MII_1_RXD3 (PB6)
+   SIUL2->MSCR[22] = SIUL2_MSCR_SMC_MASK | SIUL2_MSCR_IBE_MASK;
+   SIUL2->IMCR[464] = SIUL2_IMCR_SSS(2);
+
+   //Configure PHY reset pin (PI14)
+   SIUL2->MSCR[142] = SIUL2_MSCR_OBE_MASK | SIUL2_MSCR_SMC_MASK;
+
+   //Reset PHY transceiver
+   SIUL2->GPDO[142] = 0;
+   sleep(10);
+   SIUL2->GPDO[142] = 1;
+   sleep(10);
+#endif
 }
 
 

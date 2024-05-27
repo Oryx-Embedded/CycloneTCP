@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -46,19 +46,15 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 4
-#pragma location = STM32H5XX_ETH_RAM_SECTION
 static uint8_t txBuffer[STM32H5XX_ETH_TX_BUFFER_COUNT][STM32H5XX_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 4
-#pragma location = STM32H5XX_ETH_RAM_SECTION
 static uint8_t rxBuffer[STM32H5XX_ETH_RX_BUFFER_COUNT][STM32H5XX_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 4
-#pragma location = STM32H5XX_ETH_RAM_SECTION
 static Stm32h5xxTxDmaDesc txDmaDesc[STM32H5XX_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 4
-#pragma location = STM32H5XX_ETH_RAM_SECTION
 static Stm32h5xxRxDmaDesc rxDmaDesc[STM32H5XX_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
@@ -66,16 +62,16 @@ static Stm32h5xxRxDmaDesc rxDmaDesc[STM32H5XX_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer
 static uint8_t txBuffer[STM32H5XX_ETH_TX_BUFFER_COUNT][STM32H5XX_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(STM32H5XX_ETH_RAM_SECTION)));
+   __attribute__((aligned(4)));
 //Receive buffer
 static uint8_t rxBuffer[STM32H5XX_ETH_RX_BUFFER_COUNT][STM32H5XX_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(4), __section__(STM32H5XX_ETH_RAM_SECTION)));
+   __attribute__((aligned(4)));
 //Transmit DMA descriptors
 static Stm32h5xxTxDmaDesc txDmaDesc[STM32H5XX_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(STM32H5XX_ETH_RAM_SECTION)));
+   __attribute__((aligned(4)));
 //Receive DMA descriptors
 static Stm32h5xxRxDmaDesc rxDmaDesc[STM32H5XX_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4), __section__(STM32H5XX_ETH_RAM_SECTION)));
+   __attribute__((aligned(4)));
 
 #endif
 
@@ -251,41 +247,8 @@ error_t stm32h5xxEthInit(NetInterface *interface)
 
 __weak_func void stm32h5xxEthInitGpio(NetInterface *interface)
 {
-//STM32H573I-DK evaluation board?
-#if defined(USE_STM32H573I_DK)
-   GPIO_InitTypeDef GPIO_InitStructure;
-
-   //Enable SBS clock
-   __HAL_RCC_SBS_CLK_ENABLE();
-
-   //Enable GPIO clocks
-   __HAL_RCC_GPIOA_CLK_ENABLE();
-   __HAL_RCC_GPIOC_CLK_ENABLE();
-   __HAL_RCC_GPIOG_CLK_ENABLE();
-
-   //Select RMII interface mode
-   HAL_SBS_ETHInterfaceSelect(SBS_ETH_RMII);
-
-   //Configure RMII pins
-   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
-
-   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
-   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
-   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-   //Configure RMII_TX_EN (PG11), ETH_RMII_TXD1 (PG12) and ETH_RMII_TXD0 (PG13)
-   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
-   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
-
 //Nucleo-H563ZI evaluation board?
-#elif defined(USE_STM32H5XX_NUCLEO)
+#if defined(USE_STM32H5XX_NUCLEO)
    GPIO_InitTypeDef GPIO_InitStructure;
 
    //Enable SBS clock
@@ -320,6 +283,39 @@ __weak_func void stm32h5xxEthInitGpio(NetInterface *interface)
 
    //Configure RMII_TX_EN (PG11) and ETH_RMII_TXD0 (PG13)
    GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+//STM32H573I-DK evaluation board?
+#elif defined(USE_STM32H573I_DK)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
+   //Enable SBS clock
+   __HAL_RCC_SBS_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOG_CLK_ENABLE();
+
+   //Select RMII interface mode
+   HAL_SBS_ETHInterfaceSelect(SBS_ETH_RMII);
+
+   //Configure RMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure RMII_TX_EN (PG11), ETH_RMII_TXD1 (PG12) and ETH_RMII_TXD0 (PG13)
+   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 #endif
 }

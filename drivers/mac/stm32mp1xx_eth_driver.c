@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -253,8 +253,68 @@ error_t stm32mp1xxEthInit(NetInterface *interface)
 
 __weak_func void stm32mp1xxEthInitGpio(NetInterface *interface)
 {
+//STM32MP157C-DK2 evaluation board?
+#if defined(USE_STM32MP15XX_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
+   //Enable SYSCFG clock
+   __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOB_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOE_CLK_ENABLE();
+   __HAL_RCC_GPIOG_CLK_ENABLE();
+
+   //Select RGMII interface mode
+   HAL_SYSCFG_ETHInterfaceSelect(SYSCFG_ETH_RGMII);
+
+   //Configure RGMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH1_RGMII_RX_CLK (PA1), ETH1_MDIO (PA2) and
+   //ETH1_RGMII_RX_CTL (PA7)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH1_RGMII_RXD2 (PB0), ETH1_RGMII_RXD3 (PB1) and
+   //ETH1_RGMII_TX_CTL (PB11)
+   GPIO_InitStructure.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_11;
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+   //Configure ETH1_MDC (PC1), ETH1_RGMII_TXD2 (PC2), ETH1_RGMII_RXD0 (PC4) and
+   //ETH1_RGMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure ETH1_RGMII_TXD3 (PE2)
+   GPIO_InitStructure.Pin = GPIO_PIN_2;
+   HAL_GPIO_Init(GPIOE, &GPIO_InitStructure);
+
+   //Configure ETH1_RGMII_GTX_CLK (PG4), ETH1_RGMII_CLK125 (PG5),
+   //ETH1_RGMII_TXD0 (PG13) and ETH1_RMII_TXD1 (PG14)
+   GPIO_InitStructure.Pin = GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_13 | GPIO_PIN_14;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+   //Configure PHY_RST (PG0)
+   GPIO_InitStructure.Pin = GPIO_PIN_0;
+   GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_LOW;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+   //Reset PHY transceiver
+   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_0, GPIO_PIN_RESET);
+   sleep(10);
+   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_0, GPIO_PIN_SET);
+   sleep(10);
+
 //STM32MP157A-EV1 evaluation board?
-#if defined(USE_STM32MP15XX_EVAL)
+#elif defined(USE_STM32MP15XX_EVAL)
    GPIO_InitTypeDef GPIO_InitStructure;
 
    //Enable SYSCFG clock
@@ -313,66 +373,6 @@ __weak_func void stm32mp1xxEthInitGpio(NetInterface *interface)
    //sleep(10);
    //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);
    //sleep(10);
-
-//STM32MP157C-DK2 evaluation board?
-#elif defined(USE_STM32MP15XX_DISCO)
-   GPIO_InitTypeDef GPIO_InitStructure;
-
-   //Enable SYSCFG clock
-   __HAL_RCC_SYSCFG_CLK_ENABLE();
-
-   //Enable GPIO clocks
-   __HAL_RCC_GPIOA_CLK_ENABLE();
-   __HAL_RCC_GPIOB_CLK_ENABLE();
-   __HAL_RCC_GPIOC_CLK_ENABLE();
-   __HAL_RCC_GPIOE_CLK_ENABLE();
-   __HAL_RCC_GPIOG_CLK_ENABLE();
-
-   //Select RGMII interface mode
-   HAL_SYSCFG_ETHInterfaceSelect(SYSCFG_ETH_RGMII);
-
-   //Configure RGMII pins
-   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
-
-   //Configure ETH1_RGMII_RX_CLK (PA1), ETH1_MDIO (PA2) and
-   //ETH1_RGMII_RX_CTL (PA7)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
-   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-   //Configure ETH1_RGMII_RXD2 (PB0), ETH1_RGMII_RXD3 (PB1) and
-   //ETH1_RGMII_TX_CTL (PB11)
-   GPIO_InitStructure.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_11;
-   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-   //Configure ETH1_MDC (PC1), ETH1_RGMII_TXD2 (PC2), ETH1_RGMII_RXD0 (PC4) and
-   //ETH1_RGMII_RXD1 (PC5)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5;
-   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-   //Configure ETH1_RGMII_TXD3 (PE2)
-   GPIO_InitStructure.Pin = GPIO_PIN_2;
-   HAL_GPIO_Init(GPIOE, &GPIO_InitStructure);
-
-   //Configure ETH1_RGMII_GTX_CLK (PG4), ETH1_RGMII_CLK125 (PG5),
-   //ETH1_RGMII_TXD0 (PG13) and ETH1_RMII_TXD1 (PG14)
-   GPIO_InitStructure.Pin = GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_13 | GPIO_PIN_14;
-   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
-
-   //Configure PHY_RST (PG0)
-   GPIO_InitStructure.Pin = GPIO_PIN_0;
-   GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_LOW;
-   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
-
-   //Reset PHY transceiver
-   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_0, GPIO_PIN_RESET);
-   sleep(10);
-   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_0, GPIO_PIN_SET);
-   sleep(10);
 #endif
 }
 

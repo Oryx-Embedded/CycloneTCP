@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _SOCKET_H
@@ -109,11 +109,14 @@ typedef enum
 
 typedef enum
 {
-   SOCKET_ETH_PROTO_ALL  = 0x0000,
-   SOCKET_ETH_PROTO_LLC  = 0x05DC,
-   SOCKET_ETH_PROTO_IPV4 = 0x0800,
-   SOCKET_ETH_PROTO_ARP  = 0x0806,
-   SOCKET_ETH_PROTO_IPV6 = 0x86DD
+   SOCKET_ETH_PROTO_ALL   = 0x0000,
+   SOCKET_ETH_PROTO_LLC   = 0x05DC,
+   SOCKET_ETH_PROTO_IPV4  = 0x0800,
+   SOCKET_ETH_PROTO_ARP   = 0x0806,
+   SOCKET_ETH_PROTO_IPV6  = 0x86DD,
+   SOCKET_ETH_PROTO_EAPOL = 0x888E,
+   SOCKET_ETH_PROTO_LLDP  = 0x88CC,
+   SOCKET_ETH_PROTO_PTP   = 0x88F7
 } SocketEthProtocol;
 
 

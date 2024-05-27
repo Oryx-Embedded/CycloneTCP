@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -290,6 +290,68 @@ __weak_func void ra6EthInitGpio(NetInterface *interface)
    //Lock PFS registers
    R_PMISC->PWPR &= ~R_PMISC_PWPR_PFSWE_Msk;
    R_PMISC->PWPR |= R_PMISC_PWPR_B0WI_Msk;
+
+//AIK-RA6M3 evaluation board?
+#elif defined(USE_AIK_RA6M3)
+   //Unlock PFS registers
+   R_PMISC->PWPR &= ~R_PMISC_PWPR_B0WI_Msk;
+   R_PMISC->PWPR |= R_PMISC_PWPR_PFSWE_Msk;
+
+   //Select RMII interface mode
+   R_PMISC->PFENET &= ~R_PMISC_PFENET_PHYMODE0_Msk;
+
+   //Configure ET0_MDC (P2_14)
+   R_PFS->PORT[2].PIN[14].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (1 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure ET0_MDIO (P2_11)
+   R_PFS->PORT[2].PIN[11].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (1 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD_EN_B (P4_5)
+   R_PFS->PORT[4].PIN[5].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD1_B (P4_6)
+   R_PFS->PORT[4].PIN[6].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD0_B (P7_0)
+   R_PFS->PORT[7].PIN[0].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure REF50CK0_B (P7_1)
+   R_PFS->PORT[7].PIN[1].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_RXD0_B (P7_2)
+   R_PFS->PORT[7].PIN[2].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_RXD1_B (P7_3)
+   R_PFS->PORT[7].PIN[3].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_RX_ER_B (P7_4)
+   R_PFS->PORT[7].PIN[4].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_CRS_DV_B (P7_5)
+   R_PFS->PORT[7].PIN[5].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure PHY reset pin (P0_10)
+   R_PFS->PORT[0].PIN[10].PmnPFS = R_PFS_PORT_PIN_PmnPFS_PDR_Msk;
+
+   //Lock PFS registers
+   R_PMISC->PWPRS &= ~R_PMISC_PWPR_PFSWE_Msk;
+   R_PMISC->PWPRS |= R_PMISC_PWPR_B0WI_Msk;
+
+   //Reset PHY transceiver
+   R_PORT0->PCNTR3 = (1 << 10) << R_PORTB_PCNTR3_PORR_Pos;
+   sleep(10);
+   R_PORT0->PCNTR3 = (1 << 10) << R_PORTB_PCNTR3_POSR_Pos;
+   sleep(10);
 
 //M13-RA6M2-EK, M13-RA6M4-EK or M13-RA6M5-EK evaluation board?
 #elif defined(USE_M13_RA6M2_EK) || defined(USE_M13_RA6M4_EK) || \

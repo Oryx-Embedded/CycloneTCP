@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -813,10 +813,8 @@ void mcxn947EthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    {
       //Take care not to alter MDC clock configuration
       temp = ENET->MAC_MDIO_ADDRESS & ENET_MAC_MDIO_ADDRESS_CR_MASK;
-
       //Set up a write operation
-      temp |= ENET_MAC_MDIO_ADDRESS_GOC_0_MASK |
-         ENET_MAC_MDIO_ADDRESS_GB_MASK;
+      temp |= ENET_MAC_MDIO_ADDRESS_GOC_0_MASK | ENET_MAC_MDIO_ADDRESS_GB_MASK;
 
       //PHY address
       temp |= ENET_MAC_MDIO_ADDRESS_PA(phyAddr);

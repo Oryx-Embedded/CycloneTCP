@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _LAN8770_DRIVER_H
@@ -345,7 +345,7 @@
 #define LAN8770_COEF_RW_CTL_CFG_POKE_COEF_EN           0x0002
 #define LAN8770_COEF_RW_CTL_CFG_PEAK_COEF_EN           0x0001
 
-// DCQ				Configuration 1 register
+//DCQ Configuration 1 register
 #define LAN8770_DCQ_CONFIG1_PMSE_SCALING_FACTOR        0xC000
 #define LAN8770_DCQ_CONFIG1_PMSE_KP_FACTOR             0x3C00
 #define LAN8770_DCQ_CONFIG1_MSE_SCALING_FACTOR         0x0300
@@ -354,7 +354,7 @@
 #define LAN8770_DCQ_CONFIG1_SQI_METHOD_B_EN            0x0020
 #define LAN8770_DCQ_CONFIG1_SQI_KP                     0x001F
 
-// DCQ				Configuration 2 register
+//DCQ Configuration 2 register
 #define LAN8770_DCQ_CONFIG2_DCQ_PMSE_EN                0x0002
 #define LAN8770_DCQ_CONFIG2_DCQ_MSE_SQI_METHOD_A_EN    0x0001
 

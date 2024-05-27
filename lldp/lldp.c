@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -297,7 +297,7 @@ error_t lldpStart(LldpAgentContext *context)
       error = socketSetTimeout(context->socket, 0);
       //Any error to report?
       if(error)
-         return error;
+         break;
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket, context->interface);
@@ -309,7 +309,7 @@ error_t lldpStart(LldpAgentContext *context)
       error = lldpAcceptMulticastAddr(context);
       //Any error to report?
       if(error)
-         return error;
+         break;
 
       //Start the LLDP agent
       context->stop = FALSE;

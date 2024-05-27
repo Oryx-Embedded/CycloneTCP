@@ -1,6 +1,6 @@
 /**
  * @file ra8_eth_driver.c
- * @brief Renesas RA8D1 / RA8M1 Ethernet MAC driver
+ * @brief Renesas RA8M1 / RA8D1 / RA8T1 Ethernet MAC driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -231,8 +231,77 @@ error_t ra8EthInit(NetInterface *interface)
 
 __weak_func void ra8EthInitGpio(NetInterface *interface)
 {
+//EK-RA8M1 evaluation board?
+#if defined(USE_EK_RA8M1)
+   //Disable protection
+   R_SYSTEM->PRCR = 0xA50B;
+   //Disable VBATT channel 0 input (P4_2)
+   R_SYSTEM->VBTICTLR &= ~R_SYSTEM_VBTICTLR_VCH0INEN_Msk;
+   //Enable protection
+   R_SYSTEM->PRCR = 0xA500;
+
+   //Unlock PFS registers
+   R_PMISC->PWPRS &= ~R_PMISC_PWPR_B0WI_Msk;
+   R_PMISC->PWPRS |= R_PMISC_PWPR_PFSWE_Msk;
+
+   //Select RMII interface mode
+   R_PMISC->PFENET &= ~R_PMISC_PFENET_PHYMODE0_Msk;
+
+   //Configure ET0_MDC (P4_1)
+   R_PFS->PORT[4].PIN[1].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (1 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure ET0_MDIO (P4_2)
+   R_PFS->PORT[4].PIN[2].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (1 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD_EN_B (P4_5)
+   R_PFS->PORT[4].PIN[5].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD1_B (P4_6)
+   R_PFS->PORT[4].PIN[6].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_TXD0_B (P7_0)
+   R_PFS->PORT[7].PIN[0].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure REF50CK0_B (P7_1)
+   R_PFS->PORT[7].PIN[1].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_RXD0_B (P7_2)
+   R_PFS->PORT[7].PIN[2].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_RXD1_B (P7_3)
+   R_PFS->PORT[7].PIN[3].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_RX_ER_B (P7_4)
+   R_PFS->PORT[7].PIN[4].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure RMII0_CRS_DV_B (P7_5)
+   R_PFS->PORT[7].PIN[5].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
+      R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
+
+   //Configure PHY reset pin (P4_4)
+   R_PFS->PORT[4].PIN[4].PmnPFS = R_PFS_PORT_PIN_PmnPFS_PDR_Msk;
+
+   //Lock PFS registers
+   R_PMISC->PWPRS &= ~R_PMISC_PWPR_PFSWE_Msk;
+   R_PMISC->PWPRS |= R_PMISC_PWPR_B0WI_Msk;
+
+   //Reset PHY transceiver
+   R_PORT4->PCNTR3 = (1 << 4) << R_PORT0_PCNTR3_PORR_Pos;
+   sleep(10);
+   R_PORT4->PCNTR3 = (1 << 4) << R_PORT0_PCNTR3_POSR_Pos;
+   sleep(10);
+
 //EK-RA8D1 evaluation board?
-#if defined(USE_EK_RA8D1)
+#elif defined(USE_EK_RA8D1)
    //Disable protection
    R_SYSTEM->PRCR = 0xA50B;
    //Disable VBATT channel 0 input (P4_2)
@@ -300,8 +369,8 @@ __weak_func void ra8EthInitGpio(NetInterface *interface)
    R_PORT7->PCNTR3 = (1 << 6) << R_PORT0_PCNTR3_POSR_Pos;
    sleep(10);
 
-//EK-RA8M1 evaluation board?
-#elif defined(USE_EK_RA8M1)
+//MCK-RA8T1 evaluation board?
+#elif defined(USE_MCK_RA8T1)
    //Disable protection
    R_SYSTEM->PRCR = 0xA50B;
    //Disable VBATT channel 0 input (P4_2)
@@ -356,17 +425,17 @@ __weak_func void ra8EthInitGpio(NetInterface *interface)
    R_PFS->PORT[7].PIN[5].PmnPFS = (23 << R_PFS_PORT_PIN_PmnPFS_PSEL_Pos) |
       R_PFS_PORT_PIN_PmnPFS_PMR_Msk | (3 << R_PFS_PORT_PIN_PmnPFS_DSCR_Pos);
 
-   //Configure PHY reset pin (P4_4)
-   R_PFS->PORT[4].PIN[4].PmnPFS = R_PFS_PORT_PIN_PmnPFS_PDR_Msk;
+   //Configure PHY reset pin (PB_1)
+   R_PFS->PORT[11].PIN[1].PmnPFS = R_PFS_PORT_PIN_PmnPFS_PDR_Msk;
 
    //Lock PFS registers
    R_PMISC->PWPRS &= ~R_PMISC_PWPR_PFSWE_Msk;
    R_PMISC->PWPRS |= R_PMISC_PWPR_B0WI_Msk;
 
    //Reset PHY transceiver
-   R_PORT4->PCNTR3 = (1 << 4) << R_PORT0_PCNTR3_PORR_Pos;
+   R_PORTB->PCNTR3 = (1 << 1) << R_PORTB_PCNTR3_PORR_Pos;
    sleep(10);
-   R_PORT4->PCNTR3 = (1 << 4) << R_PORT0_PCNTR3_POSR_Pos;
+   R_PORTB->PCNTR3 = (1 << 1) << R_PORTB_PCNTR3_POSR_Pos;
    sleep(10);
 #endif
 }

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -86,17 +86,6 @@ error_t pef7071Init(NetInterface *interface)
    //Dump PHY registers for debugging purpose
    pef7071DumpPhyReg(interface);
 
-   //Select RMII mode
-   pef7071WritePhyReg(interface, PEF7071_MIICTRL, PEF7071_MIICTRL_RXCOFF |
-      PEF7071_MIICTRL_MODE_RMII);
-
-   //The link speed is forced to 10/100 Mbit/s only
-   pef7071WritePhyReg(interface, PEF7071_GCTRL, 0);
-
-   //Restart auto-negotiation
-   pef7071WritePhyReg(interface, PEF7071_CTRL, PEF7071_CTRL_ANEN |
-      PEF7071_CTRL_ANRS);
-
    //Perform custom configuration
    pef7071InitHook(interface);
 
@@ -117,6 +106,21 @@ error_t pef7071Init(NetInterface *interface)
 
 __weak_func void pef7071InitHook(NetInterface *interface)
 {
+//AURIX TC265 Starter Kit, AURIX TC277 TFT Application Kit or
+//AURIX TC297 TFT Application Kit?
+#if defined(USE_KIT_AURIX_TC265_TRB) || defined(USE_KIT_AURIX_TC277_TFT) || \
+   defined(USE_KIT_AURIX_TC297_TFT)
+   //Select RMII mode
+   pef7071WritePhyReg(interface, PEF7071_MIICTRL, PEF7071_MIICTRL_RXCOFF |
+      PEF7071_MIICTRL_MODE_RMII);
+
+   //The link speed is forced to 10/100 Mbit/s only
+   pef7071WritePhyReg(interface, PEF7071_GCTRL, 0);
+
+   //Restart auto-negotiation
+   pef7071WritePhyReg(interface, PEF7071_CTRL, PEF7071_CTRL_ANEN |
+      PEF7071_CTRL_ANRS);
+#endif
 }
 
 

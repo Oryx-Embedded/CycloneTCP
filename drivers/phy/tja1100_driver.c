@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -101,19 +101,13 @@ error_t tja1100Init(NetInterface *interface)
    value |= TJA1100_EXTENDED_CTRL_CONFIG_EN;
    tja1100WritePhyReg(interface, TJA1100_EXTENDED_CTRL, value);
 
-   //Select RMII mode (25MHz XTAL)
-   value = tja1100ReadPhyReg(interface, TJA1100_CONFIG1);
-   value &= ~TJA1100_CONFIG1_MII_MODE;
-   value |= TJA1100_CONFIG1_MII_MODE_RMII_25MHZ_XTAL;
-   tja1100WritePhyReg(interface, TJA1100_CONFIG1, value);
+   //Perform custom configuration
+   tja1100InitHook(interface);
 
    //The PHY is configured for autonomous operation
    value = tja1100ReadPhyReg(interface, TJA1100_CONFIG1);
    value |= TJA1100_CONFIG1_AUTO_OP;
    tja1100WritePhyReg(interface, TJA1100_CONFIG1, value);
-
-   //Perform custom configuration
-   tja1100InitHook(interface);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;

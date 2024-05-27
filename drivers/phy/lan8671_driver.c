@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -98,23 +98,6 @@ error_t lan8671Init(NetInterface *interface)
    lan8671ModifyMmdReg(interface, 0x1F, 0x0096, 0x2000, 0x2000);
    lan8671ModifyMmdReg(interface, 0x1F, 0x0099, 0xFFFF, 0x7F80);
 
-#if (LAN8671_PLCA_SUPPORT == ENABLED)
-   //Set PLCA burst
-   lan8671WriteMmdReg(interface, LAN8671_PLCA_BURST,
-      LAN8671_PLCA_BURST_MAXBC_DISABLED | LAN8671_PLCA_BURST_BTMR_DEFAULT);
-
-   //Set PLCA node count and local ID
-   lan8671WriteMmdReg(interface, LAN8671_PLCA_CTRL1,
-      ((LAN8671_NODE_COUNT << 8) & LAN8671_PLCA_CTRL1_NCNT) |
-      (LAN8671_LOCAL_ID & LAN8671_PLCA_CTRL1_ID));
-
-   //Enable PLCA
-   lan8671WriteMmdReg(interface, LAN8671_PLCA_CTRL0, LAN8671_PLCA_CTRL0_EN);
-#else
-   //Disable PLCA
-   lan8671WriteMmdReg(interface, LAN8671_PLCA_CTRL0, 0);
-#endif
-
    //Perform custom configuration
    lan8671InitHook(interface);
 
@@ -135,6 +118,22 @@ error_t lan8671Init(NetInterface *interface)
 
 __weak_func void lan8671InitHook(NetInterface *interface)
 {
+#if (LAN8671_PLCA_SUPPORT == ENABLED)
+   //Set PLCA burst
+   lan8671WriteMmdReg(interface, LAN8671_PLCA_BURST,
+      LAN8671_PLCA_BURST_MAXBC_DISABLED | LAN8671_PLCA_BURST_BTMR_DEFAULT);
+
+   //Set PLCA node count and local ID
+   lan8671WriteMmdReg(interface, LAN8671_PLCA_CTRL1,
+      ((LAN8671_NODE_COUNT << 8) & LAN8671_PLCA_CTRL1_NCNT) |
+      (LAN8671_LOCAL_ID & LAN8671_PLCA_CTRL1_ID));
+
+   //Enable PLCA
+   lan8671WriteMmdReg(interface, LAN8671_PLCA_CTRL0, LAN8671_PLCA_CTRL0_EN);
+#else
+   //Disable PLCA
+   lan8671WriteMmdReg(interface, LAN8671_PLCA_CTRL0, 0);
+#endif
 }
 
 

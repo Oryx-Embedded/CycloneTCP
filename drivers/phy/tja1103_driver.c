@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -103,6 +103,9 @@ error_t tja1103Init(NetInterface *interface)
    tja1103WriteMmdReg(interface, TJA1103_PHY_CTRL, TJA1103_PHY_CTRL_CONFIG_EN);
    tja1103WriteMmdReg(interface, TJA1103_INFRA_CTRL, TJA1103_INFRA_CTRL_EN);
 
+   //Perform custom configuration
+   tja1103InitHook(interface);
+
    //The PHY is configured for autonomous operation
    value = tja1103ReadMmdReg(interface, TJA1103_PHY_CONFIG);
    value |= TJA1103_PHY_CONFIG_AUTO;
@@ -116,9 +119,6 @@ error_t tja1103Init(NetInterface *interface)
    value = tja1103ReadMmdReg(interface, TJA1103_PHY_CTRL);
    value |= TJA1103_PHY_CTRL_START_OP;
    tja1103WriteMmdReg(interface, TJA1103_PHY_CTRL, value);
-
-   //Perform custom configuration
-   tja1103InitHook(interface);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -91,8 +91,6 @@ void netGetDefaultSettings(NetSettings *settings)
 
 /**
  * @brief Initialize TCP/IP stack (deprecated)
- * @param[in] context Pointer to the TCP/IP stack context
- * @param[in] settings TCP/IP stack specific settings
  * @return Error code
  **/
 
@@ -1044,11 +1042,11 @@ error_t netSetExtIntDriver(NetInterface *interface, const ExtIntDriver *driver)
 /**
  * @brief Set administrative link state
  * @param[in] interface Pointer to the desired network interface
- * @param[in] linkState Administrative link state (up, down or auto)
+ * @param[in] linkState Administrative link state (up or down)
  * @return Error code
  **/
 
-error_t netSetLinkState(NetInterface *interface, NicLinkState linkState)
+error_t netSetLinkState(NetInterface *interface, bool_t linkState)
 {
    //Make sure the network interface is valid
    if(interface == NULL)

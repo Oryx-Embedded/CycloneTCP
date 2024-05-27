@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -538,7 +538,6 @@ void stm32mp13xxEth1EventHandler(NetInterface *interface)
 error_t stm32mp13xxEth1SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint32_t temp[STM32MP13XX_ETH1_TX_BUFFER_SIZE / 4];
    size_t length;
 
    //Retrieve the length of the packet
@@ -560,8 +559,7 @@ error_t stm32mp13xxEth1SendPacket(NetInterface *interface,
    }
 
    //Copy user data to the transmit buffer
-   netBufferRead(temp, buffer, offset, length);
-   osMemcpy(txBuffer[txIndex], temp, (length + 3) & ~3UL);
+   netBufferRead(txBuffer[txIndex], buffer, offset, length);
 
    //Set the start address of the buffer
    txDmaDesc[txIndex].tdes0 = (uint32_t) txBuffer[txIndex];
@@ -604,7 +602,6 @@ error_t stm32mp13xxEth1SendPacket(NetInterface *interface,
 
 error_t stm32mp13xxEth1ReceivePacket(NetInterface *interface)
 {
-   static uint32_t temp[STM32MP13XX_ETH1_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
@@ -624,14 +621,11 @@ error_t stm32mp13xxEth1ReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, STM32MP13XX_ETH1_RX_BUFFER_SIZE);
 
-            //Copy data from the receive buffer
-            osMemcpy(temp, rxBuffer[rxIndex], (n + 3) & ~3UL);
-
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) temp, n, &ancillary);
+            nicProcessPacket(interface, rxBuffer[rxIndex], n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;

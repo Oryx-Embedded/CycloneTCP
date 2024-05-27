@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -355,7 +355,6 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
 {
    error_t error;
    uint_t i;
-   size_t k;
    size_t n;
    size_t offset;
    DnsQuestion *question;
@@ -488,7 +487,7 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
             break;
 
 #if (DNS_SD_SUPPORT == ENABLED)
-         //Parse resource record
+         //Parse question
          error = dnsSdParseQuestion(interface, query, offset, question,
             response);
          //Any error to report?
@@ -535,45 +534,16 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
       if(i != ntohs(query->dnsHeader->ancount))
          break;
 
-      k = offset;
-
-      //Parse Authority Section
-      for(i = 0; i < ntohs(query->dnsHeader->nscount); i++)
-      {
-         //Parse resource record name
-         n = dnsParseName(query->dnsHeader, query->length, offset, NULL, 0);
-         //Invalid name?
-         if(!n)
-            break;
-
-         //Point to the associated resource record
-         record = DNS_GET_RESOURCE_RECORD(query->dnsHeader, n);
-         //Point to the resource data
-         n += sizeof(DnsResourceRecord);
-
-         //Make sure the resource record is valid
-         if(n > query->length)
-            break;
-         if((n + ntohs(record->rdlength)) > query->length)
-            break;
-
-#if (DNS_SD_SUPPORT == ENABLED)
-         //Check for service instance name conflict
-         dnsSdParseNsRecord(interface, query, offset, record);
-#endif
-         //Point to the next resource record
-         offset = n + ntohs(record->rdlength);
-      }
-
-      //Any error while parsing the Authority Section?
-      if(i != ntohs(query->dnsHeader->nscount))
-         break;
-
       //When a host that is probing for a record sees another host issue a query
       //for the same record, it consults the Authority Section of that query.
       //If it finds any resource record there which answers the query, then it
       //compares the data of that resource record with its own tentative data
-      mdnsResponderParseNsRecords(context, query, k);
+      mdnsResponderParseNsRecords(context, query, offset);
+
+#if (DNS_SD_SUPPORT == ENABLED)
+      //Check for service instance name conflict
+      dnsSdParseNsRecords(interface, query, offset);
+#endif
 
       //End of exception handling block
    } while(0);
@@ -1191,72 +1161,68 @@ void mdnsResponderParseNsRecords(MdnsResponderContext *context,
    //Get the first host record in lexicographical order
    record2 = mdnsResponderGetNextHostRecord(context, NULL);
 
-   //Check whether the Authority Section of the query contains any tiebreaker
-   //record
-   if(record1 != NULL)
+   //When a host is probing for a set of records with the same name, or a
+   //message is received containing multiple tiebreaker records answering
+   //a given probe question in the Question Section, the host's records
+   //and the tiebreaker records from the message are each sorted into order
+   while(1)
    {
-      //When a host is probing for a set of records with the same name, or a
-      //message is received containing multiple tiebreaker records answering
-      //a given probe question in the Question Section, the host's records
-      //and the tiebreaker records from the message are each sorted into order
-      while(1)
+      //The records are compared pairwise
+      if(record1 == NULL && record2 == NULL)
       {
-         //The records are compared pairwise
-         if(record1 == NULL && record2 == NULL)
+         //If both lists run out of records at the same time without any
+         //difference being found, then this indicates that two devices are
+         //advertising identical sets of records, as is sometimes done for
+         //fault tolerance, and there is, in fact, no conflict
+         break;
+      }
+      else if(record1 != NULL && record2 == NULL)
+      {
+         //If either list of records runs out of records before any difference
+         //is found, then the list with records remaining is deemed to have won
+         //the tiebreak
+         context->tieBreakLost = TRUE;
+         break;
+      }
+      else if(record1 == NULL && record2 != NULL)
+      {
+         //The host has won the tiebreak
+         break;
+      }
+      else
+      {
+         //The two records are compared and the lexicographically later data
+         //wins
+         res = mdnsCompareRecord(query, record1, NULL, record2);
+
+         //Check comparison result
+         if(res > 0)
          {
-            //If both lists run out of records at the same time without any
-            //difference being found, then this indicates that two devices are
-            //advertising identical sets of records, as is sometimes done for
-            //fault tolerance, and there is, in fact, no conflict
-            break;
-         }
-         else if(record1 != NULL && record2 == NULL)
-         {
-            //If either list of records runs out of records before any difference
-            //is found, then the list with records remaining is deemed to have won
-            //the tiebreak
+            //If the host finds that its own data is lexicographically earlier,
+            //then it defers to the winning host by waiting one second, and
+            //then begins probing for this record again
             context->tieBreakLost = TRUE;
             break;
          }
-         else if(record1 == NULL && record2 != NULL)
+         else if(res < 0)
          {
-            //The host has won the tiebreak
+            //If the host finds that its own data is lexicographically later,
+            //it simply ignores the other host's probe
             break;
          }
          else
          {
-            //The two records are compared and the lexicographically later data wins
-            res = mdnsCompareRecord(query, record1, NULL, record2);
-
-            //Check comparison result
-            if(res > 0)
-            {
-               //If the host finds that its own data is lexicographically earlier,
-               //then it defers to the winning host by waiting one second, and then
-               //begins probing for this record again
-               context->tieBreakLost = TRUE;
-               break;
-            }
-            else if(res < 0)
-            {
-               //If the host finds that its own data is lexicographically later,
-               //it simply ignores the other host's probe
-               break;
-            }
-            else
-            {
-               //When comparing the records, if the first records match perfectly,
-               //then the second records are compared, and so on
-            }
+            //When comparing the records, if the first records match perfectly,
+            //then the second records are compared, and so on
          }
-
-         //Get the next tiebreaker record in lexicographical order
-         record1 = mdnsResponderGetNextTiebreakerRecord(context, query, offset,
-            record1);
-
-         //Get the next host record in lexicographical order
-         record2 = mdnsResponderGetNextHostRecord(context, record2);
       }
+
+      //Get the next tiebreaker record in lexicographical order
+      record1 = mdnsResponderGetNextTiebreakerRecord(context, query, offset,
+         record1);
+
+      //Get the next host record in lexicographical order
+      record2 = mdnsResponderGetNextHostRecord(context, record2);
    }
 }
 
@@ -1271,7 +1237,6 @@ void mdnsResponderParseNsRecords(MdnsResponderContext *context,
 void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
    MdnsMessage *response, bool_t legacyUnicast)
 {
-   error_t error;
    uint_t i;
    uint_t k;
    size_t n;
@@ -1365,7 +1330,7 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
             if(context->ipv6AddrCount > 0)
             {
                //Generate AAAA resource records
-               error = mdnsResponderGenerateIpv6AddrRecords(context, response,
+               mdnsResponderGenerateIpv6AddrRecords(context, response,
                   cacheFlush, ttl);
             }
             else
@@ -1373,13 +1338,9 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
                //In the event that a device has only IPv4 addresses but no IPv6
                //addresses, then the appropriate NSEC record should be placed
                //into the Additional Section
-               error = mdnsResponderFormatNsecRecord(context, response,
-                  cacheFlush, ttl);
+               mdnsResponderFormatNsecRecord(context, response, cacheFlush,
+                  ttl);
             }
-
-            //Any error to report?
-            if(error)
-               return;
          }
          //AAAA record?
          else if(ntohs(record->rtype) == DNS_RR_TYPE_AAAA)
@@ -1390,7 +1351,7 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
             if(context->ipv4AddrCount > 0)
             {
                //Generate A resource records
-               error = mdnsResponderGenerateIpv4AddrRecords(context, response,
+               mdnsResponderGenerateIpv4AddrRecords(context, response,
                   cacheFlush, ttl);
             }
             else
@@ -1398,30 +1359,20 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
                //In the event that a device has only IPv6 addresses but no IPv4
                //addresses, then the appropriate NSEC record should be placed
                //into the Additional Section
-               error = mdnsResponderFormatNsecRecord(context, response,
-                  cacheFlush, ttl);;
+               mdnsResponderFormatNsecRecord(context, response, cacheFlush,
+                  ttl);
             }
-
-            //Any error to report?
-            if(error)
-               return;
          }
          //SRV record?
          else if(ntohs(record->rtype) == DNS_RR_TYPE_SRV)
          {
             //Generate A resource records
-            error = mdnsResponderGenerateIpv4AddrRecords(context, response,
+            mdnsResponderGenerateIpv4AddrRecords(context, response,
                cacheFlush, ttl);
-            //Any error to report?
-            if(error)
-               return;
 
             //Generate AAAA resource records
-            error = mdnsResponderGenerateIpv6AddrRecords(context, response,
+            mdnsResponderGenerateIpv6AddrRecords(context, response,
                cacheFlush, ttl);
-            //Any error to report?
-            if(error)
-               return;
 
             //In the event that a device has only IPv4 addresses but no IPv6
             //addresses, or vice versa, then the appropriate NSEC record should
@@ -1430,11 +1381,8 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
             if(context->ipv4AddrCount == 0 || context->ipv6AddrCount == 0)
             {
                //Generate NSEC resource record
-               error = mdnsResponderFormatNsecRecord(context, response,
-                  cacheFlush, ttl);
-               //Any error to report?
-               if(error)
-                  return;
+               mdnsResponderFormatNsecRecord(context, response, cacheFlush,
+                  ttl);
             }
          }
       }

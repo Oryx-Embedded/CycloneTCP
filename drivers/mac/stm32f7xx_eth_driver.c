@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -229,8 +229,118 @@ error_t stm32f7xxEthInit(NetInterface *interface)
 
 __weak_func void stm32f7xxEthInitGpio(NetInterface *interface)
 {
+//Nucleo-F746ZG, Nucleo-F756ZG or Nucleo-F767ZI evaluation board?
+#if defined(USE_STM32F7XX_NUCLEO_144)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
+   //Enable SYSCFG clock
+   __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOB_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOG_CLK_ENABLE();
+
+   //Select RMII interface mode
+   SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
+
+   //Configure RMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_TXD1 (PB13)
+   GPIO_InitStructure.Pin = GPIO_PIN_13;
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure RMII_TX_EN (PG11) and ETH_RMII_TXD0 (PG13)
+   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+//STM32F746G-Discovery or STM32F7508-Discovery evaluation board?
+#elif defined(USE_STM32746G_DISCO) || defined(USE_STM32F7508_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
+   //Enable SYSCFG clock
+   __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOG_CLK_ENABLE();
+
+   //Select RMII interface mode
+   SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
+
+   //Configure RMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_RX_ER (PG2), ETH_RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13)
+   //and ETH_RMII_TXD1 (PG14)
+   GPIO_InitStructure.Pin = GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+//STM32F769I-Discovery evaluation board?
+#elif defined(USE_STM32F769I_DISCO)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
+   //Enable SYSCFG clock
+   __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOD_CLK_ENABLE();
+   __HAL_RCC_GPIOG_CLK_ENABLE();
+
+   //Select RMII interface mode
+   SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
+
+   //Configure RMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_RX_ER (PD5)
+   GPIO_InitStructure.Pin = GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13) and ETH_RMII_TXD1 (PG14)
+   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
 //STM32756G-EVAL or STM32F769I-EVAL evaluation board?
-#if defined(USE_STM32756G_EVAL) || defined(USE_STM32F769I_EVAL)
+#elif defined(USE_STM32756G_EVAL) || defined(USE_STM32F769I_EVAL)
    GPIO_InitTypeDef GPIO_InitStructure;
 
    //Enable SYSCFG clock
@@ -316,116 +426,6 @@ __weak_func void stm32f7xxEthInitGpio(NetInterface *interface)
    //Configure ETH_MII_RX_ER (PI10)
    //GPIO_InitStructure.Pin = GPIO_PIN_10;
    //HAL_GPIO_Init(GPIOI, &GPIO_InitStructure);
-
-//STM32F746G-Discovery or STM32F7508-Discovery evaluation board?
-#elif defined(USE_STM32746G_DISCO) || defined(USE_STM32F7508_DISCO)
-   GPIO_InitTypeDef GPIO_InitStructure;
-
-   //Enable SYSCFG clock
-   __HAL_RCC_SYSCFG_CLK_ENABLE();
-
-   //Enable GPIO clocks
-   __HAL_RCC_GPIOA_CLK_ENABLE();
-   __HAL_RCC_GPIOC_CLK_ENABLE();
-   __HAL_RCC_GPIOG_CLK_ENABLE();
-
-   //Select RMII interface mode
-   SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
-
-   //Configure RMII pins
-   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
-
-   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
-   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
-   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-   //Configure ETH_RMII_RX_ER (PG2), ETH_RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13)
-   //and ETH_RMII_TXD1 (PG14)
-   GPIO_InitStructure.Pin = GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
-   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
-
-//STM32F769I-Discovery evaluation board?
-#elif defined(USE_STM32F769I_DISCO)
-   GPIO_InitTypeDef GPIO_InitStructure;
-
-   //Enable SYSCFG clock
-   __HAL_RCC_SYSCFG_CLK_ENABLE();
-
-   //Enable GPIO clocks
-   __HAL_RCC_GPIOA_CLK_ENABLE();
-   __HAL_RCC_GPIOC_CLK_ENABLE();
-   __HAL_RCC_GPIOD_CLK_ENABLE();
-   __HAL_RCC_GPIOG_CLK_ENABLE();
-
-   //Select RMII interface mode
-   SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
-
-   //Configure RMII pins
-   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
-
-   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
-   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
-   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-   //Configure ETH_RMII_RX_ER (PD5)
-   GPIO_InitStructure.Pin = GPIO_PIN_5;
-   HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-   //Configure ETH_RMII_TX_EN (PG11), ETH_RMII_TXD0 (PG13) and ETH_RMII_TXD1 (PG14)
-   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
-   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
-
-//Nucleo-F746ZG or Nucleo-F767ZI evaluation board?
-#elif defined(USE_STM32F7XX_NUCLEO_144)
-   GPIO_InitTypeDef GPIO_InitStructure;
-
-   //Enable SYSCFG clock
-   __HAL_RCC_SYSCFG_CLK_ENABLE();
-
-   //Enable GPIO clocks
-   __HAL_RCC_GPIOA_CLK_ENABLE();
-   __HAL_RCC_GPIOB_CLK_ENABLE();
-   __HAL_RCC_GPIOC_CLK_ENABLE();
-   __HAL_RCC_GPIOG_CLK_ENABLE();
-
-   //Select RMII interface mode
-   SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
-
-   //Configure RMII pins
-   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-   GPIO_InitStructure.Pull = GPIO_NOPULL;
-   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
-
-   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and ETH_RMII_CRS_DV (PA7)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
-   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-   //Configure ETH_RMII_TXD1 (PB13)
-   GPIO_InitStructure.Pin = GPIO_PIN_13;
-   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
-   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-   //Configure RMII_TX_EN (PG11) and ETH_RMII_TXD0 (PG13)
-   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13;
-   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 #endif
 }
 
@@ -665,7 +665,6 @@ void stm32f7xxEthEventHandler(NetInterface *interface)
 error_t stm32f7xxEthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint32_t temp[STM32F7XX_ETH_TX_BUFFER_SIZE / 4];
    size_t length;
 
    //Retrieve the length of the packet
@@ -687,8 +686,7 @@ error_t stm32f7xxEthSendPacket(NetInterface *interface,
    }
 
    //Copy user data to the transmit buffer
-   netBufferRead(temp, buffer, offset, length);
-   osMemcpy((uint8_t *) txCurDmaDesc->tdes2, temp, (length + 3) & ~3UL);
+   netBufferRead((uint8_t *) txCurDmaDesc->tdes2, buffer, offset, length);
 
    //Write the number of bytes to send
    txCurDmaDesc->tdes1 = length & ETH_TDES1_TBS1;
@@ -728,7 +726,6 @@ error_t stm32f7xxEthSendPacket(NetInterface *interface,
 
 error_t stm32f7xxEthReceivePacket(NetInterface *interface)
 {
-   static uint32_t temp[STM32F7XX_ETH_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
@@ -748,14 +745,12 @@ error_t stm32f7xxEthReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, STM32F7XX_ETH_RX_BUFFER_SIZE);
 
-            //Copy data from the receive buffer
-            osMemcpy(temp, (uint8_t *) rxCurDmaDesc->rdes2, (n + 3) & ~3UL);
-
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) temp, n, &ancillary);
+            nicProcessPacket(interface, (uint8_t *) rxCurDmaDesc->rdes2, n,
+               &ancillary);
 
             //Valid packet received
             error = NO_ERROR;

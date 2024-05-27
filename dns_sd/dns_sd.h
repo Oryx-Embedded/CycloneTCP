@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _DNS_SD_H
@@ -122,12 +122,12 @@ typedef struct
 
 typedef struct
 {
-   char_t name[DNS_SD_MAX_SERVICE_NAME_LEN + 1]; ///<Service name
-   uint16_t priority;                            ///<Priority of the target host
-   uint16_t weight;                              ///<Server selection mechanism
-   uint16_t port;                                ///<Port on the target host of this service
-   uint8_t metadata[DNS_SD_MAX_METADATA_LEN];    ///<Discovery-time metadata (TXT record)
-   size_t metadataLength;                        ///<Length of the metadata
+   char_t serviceName[DNS_SD_MAX_SERVICE_NAME_LEN + 1]; ///<Service name
+   uint16_t priority;                                   ///<Priority of the target host
+   uint16_t weight;                                     ///<Server selection mechanism
+   uint16_t port;                                       ///<Port on the target host of this service
+   uint8_t metadata[DNS_SD_MAX_METADATA_LEN];           ///<Discovery-time metadata (TXT record)
+   size_t metadataLength;                               ///<Length of the metadata
 } DnsSdService;
 
 

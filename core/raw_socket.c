@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -362,6 +362,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
 {
 #if (ETH_SUPPORT == ENABLED)
    uint_t i;
+   uint_t j;
    Socket *socket;
    SocketQueueItem *queueItem;
    NetBuffer *p;
@@ -426,13 +427,13 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
          queueItem = socket->receiveQueue;
 
          //Reach the last item in the receive queue
-         for(i = 1; queueItem->next; i++)
+         for(j = 1; queueItem->next; j++)
          {
             queueItem = queueItem->next;
          }
 
          //Check whether the receive queue is full
-         if(i >= RAW_SOCKET_RX_QUEUE_SIZE)
+         if(j >= RAW_SOCKET_RX_QUEUE_SIZE)
          {
             //Number of inbound packets which were chosen to be discarded even
             //though no errors had been detected

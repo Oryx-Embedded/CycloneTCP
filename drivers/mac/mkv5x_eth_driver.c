@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -45,15 +45,19 @@ static NetInterface *nicDriverInterface;
 
 //TX buffer
 #pragma data_alignment = 16
+#pragma location = MKV5X_ETH_RAM_SECTION
 static uint8_t txBuffer[MKV5X_ETH_TX_BUFFER_COUNT][MKV5X_ETH_TX_BUFFER_SIZE];
 //RX buffer
 #pragma data_alignment = 16
+#pragma location = MKV5X_ETH_RAM_SECTION
 static uint8_t rxBuffer[MKV5X_ETH_RX_BUFFER_COUNT][MKV5X_ETH_RX_BUFFER_SIZE];
 //TX buffer descriptors
 #pragma data_alignment = 16
+#pragma location = MKV5X_ETH_RAM_SECTION
 static uint32_t txBufferDesc[MKV5X_ETH_TX_BUFFER_COUNT][8];
 //RX buffer descriptors
 #pragma data_alignment = 16
+#pragma location = MKV5X_ETH_RAM_SECTION
 static uint32_t rxBufferDesc[MKV5X_ETH_RX_BUFFER_COUNT][8];
 
 //ARM or GCC compiler?
@@ -61,16 +65,16 @@ static uint32_t rxBufferDesc[MKV5X_ETH_RX_BUFFER_COUNT][8];
 
 //TX buffer
 static uint8_t txBuffer[MKV5X_ETH_TX_BUFFER_COUNT][MKV5X_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(16)));
+   __attribute__((aligned(16), __section__(MKV5X_ETH_RAM_SECTION)));
 //RX buffer
 static uint8_t rxBuffer[MKV5X_ETH_RX_BUFFER_COUNT][MKV5X_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(16)));
+   __attribute__((aligned(16), __section__(MKV5X_ETH_RAM_SECTION)));
 //TX buffer descriptors
 static uint32_t txBufferDesc[MKV5X_ETH_TX_BUFFER_COUNT][8]
-   __attribute__((aligned(16)));
+   __attribute__((aligned(16), __section__(MKV5X_ETH_RAM_SECTION)));
 //RX buffer descriptors
 static uint32_t rxBufferDesc[MKV5X_ETH_RX_BUFFER_COUNT][8]
-   __attribute__((aligned(16)));
+   __attribute__((aligned(16), __section__(MKV5X_ETH_RAM_SECTION)));
 
 #endif
 
@@ -594,7 +598,6 @@ void mkv5xEthEventHandler(NetInterface *interface)
 error_t mkv5xEthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint32_t temp[MKV5X_ETH_TX_BUFFER_SIZE / 4];
    size_t length;
 
    //Retrieve the length of the packet
@@ -616,8 +619,7 @@ error_t mkv5xEthSendPacket(NetInterface *interface,
    }
 
    //Copy user data to the transmit buffer
-   netBufferRead(temp, buffer, offset, length);
-   osMemcpy(txBuffer[txBufferIndex], temp, (length + 3) & ~3UL);
+   netBufferRead(txBuffer[txBufferIndex], buffer, offset, length);
 
    //Clear BDU flag
    txBufferDesc[txBufferIndex][4] = 0;
@@ -668,7 +670,6 @@ error_t mkv5xEthSendPacket(NetInterface *interface,
 
 error_t mkv5xEthReceivePacket(NetInterface *interface)
 {
-   static uint32_t temp[MKV5X_ETH_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    NetRxAncillary ancillary;
@@ -688,14 +689,11 @@ error_t mkv5xEthReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, MKV5X_ETH_RX_BUFFER_SIZE);
 
-            //Copy data from the receive buffer
-            osMemcpy(temp, rxBuffer[rxBufferIndex], (n + 3) & ~3UL);
-
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) temp, n, &ancillary);
+            nicProcessPacket(interface, rxBuffer[rxBufferIndex], n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;

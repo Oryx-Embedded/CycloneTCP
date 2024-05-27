@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -118,23 +118,6 @@ error_t ncn26010Init(NetInterface *interface)
       NCN26010_DIOCFG_VAL1 | NCN26010_DIOCFG_SLEW_RATE_0 |
       NCN26010_DIOCFG_FN0_LED_TX | NCN26010_DIOCFG_VAL0);
 
-#if (NCN26010_PLCA_SUPPORT == ENABLED)
-   //Set PLCA burst
-   ncn26010WriteReg(interface, NCN26010_PLCABURST,
-      NCN26010_PLCABURST_MAXBC_DEFAULT | NCN26010_PLCABURST_BTMR_DEFAULT);
-
-   //Set PLCA node count and local ID
-   ncn26010WriteReg(interface, NCN26010_PLCACTRL1,
-      ((NCN26010_NODE_COUNT << 8) & NCN26010_PLCACTRL1_NCNT) |
-      (NCN26010_LOCAL_ID & NCN26010_PLCACTRL1_ID));
-
-   //Enable PLCA
-   ncn26010WriteReg(interface, NCN26010_PLCACTRL0, NCN26010_PLCACTRL0_PCLA_EN);
-#else
-   //Disable PLCA
-   ncn26010WriteReg(interface, NCN26010_PLCACTRL0, 0);
-#endif
-
    //Perform custom configuration
    ncn26010InitHook(interface);
 
@@ -216,6 +199,22 @@ error_t ncn26010Init(NetInterface *interface)
 
 __weak_func void ncn26010InitHook(NetInterface *interface)
 {
+#if (NCN26010_PLCA_SUPPORT == ENABLED)
+   //Set PLCA burst
+   ncn26010WriteReg(interface, NCN26010_PLCABURST,
+      NCN26010_PLCABURST_MAXBC_DEFAULT | NCN26010_PLCABURST_BTMR_DEFAULT);
+
+   //Set PLCA node count and local ID
+   ncn26010WriteReg(interface, NCN26010_PLCACTRL1,
+      ((NCN26010_NODE_COUNT << 8) & NCN26010_PLCACTRL1_NCNT) |
+      (NCN26010_LOCAL_ID & NCN26010_PLCACTRL1_ID));
+
+   //Enable PLCA
+   ncn26010WriteReg(interface, NCN26010_PLCACTRL0, NCN26010_PLCACTRL0_PCLA_EN);
+#else
+   //Disable PLCA
+   ncn26010WriteReg(interface, NCN26010_PLCACTRL0, 0);
+#endif
 }
 
 

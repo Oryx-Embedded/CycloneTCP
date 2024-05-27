@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -198,8 +198,8 @@ error_t f28m35xEthInit(NetInterface *interface)
 
 __weak_func void f28m35xEthInitGpio(NetInterface *interface)
 {
-//TMDXCNCDH52C1 evaluation board?
-#if defined(USE_TMDXCNCDH52C1)
+//TMDSCNCDH52C1 evaluation board?
+#if defined(USE_TMDSCNCDH52C1)
    //Enable GPIO clocks
    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
@@ -355,7 +355,6 @@ void f28m35xEthEnableIrq(NetInterface *interface)
    IntEnable(INT_ETH);
 #endif
 
-
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
    {
@@ -388,7 +387,6 @@ void f28m35xEthDisableIrq(NetInterface *interface)
    //Disable Ethernet MAC interrupts
    IntDisable(INT_ETH);
 #endif
-
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _MV88E1512_DRIVER_H
@@ -393,7 +393,7 @@
 #define MV88E1512_FIBER_CTRL1_SERDES_LOOPBACK_TYPE            0x0100
 #define MV88E1512_FIBER_CTRL1_MARVELL_REMOTE_FAULT_IND        0x0020
 #define MV88E1512_FIBER_CTRL1_IEEE_REMOTE_FAULT_IND           0x0010
-#define MV88E1512_FIBER_CTRL1_INT_POLARITY                    0x0004
+#define MV88E1512_FIBER_CTRL1_INT_POL                         0x0004
 #define MV88E1512_FIBER_CTRL1_MODE                            0x0003
 
 //Fiber Specific Status register

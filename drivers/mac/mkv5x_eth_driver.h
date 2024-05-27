@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _MKV5X_ETH_DRIVER_H
@@ -78,6 +78,11 @@
    #define MKV5X_ETH_IRQ_SUB_PRIORITY 0
 #elif (MKV5X_ETH_IRQ_SUB_PRIORITY < 0)
    #error MKV5X_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef MKV5X_ETH_RAM_SECTION
+   #define MKV5X_ETH_RAM_SECTION ".ram_no_cache"
 #endif
 
 //Enhanced transmit buffer descriptor

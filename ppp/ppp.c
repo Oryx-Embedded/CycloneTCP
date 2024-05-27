@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -143,7 +143,7 @@ error_t pppInit(PppContext *context, const PppSettings *settings)
    context->settings.authProtocol &= ~PPP_AUTH_PROTOCOL_PAP;
 #endif
 
-#if (PAP_SUPPORT == DISABLED)
+#if (CHAP_SUPPORT == DISABLED)
    //CHAP with MD5 authentication is not supported
    context->settings.authProtocol &= ~PPP_AUTH_PROTOCOL_CHAP_MD5;
 #endif

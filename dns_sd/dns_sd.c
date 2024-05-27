@@ -33,7 +33,7 @@
  * - RFC 2782: A DNS RR for specifying the location of services (DNS SRV)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -296,10 +296,10 @@ error_t dnsSdRegisterService(DnsSdContext *context, const char_t *serviceName,
       entry = &context->serviceList[i];
 
       //Check if the entry is currently in use
-      if(entry->name[0] != '\0')
+      if(entry->serviceName[0] != '\0')
       {
          //Check whether the specified service is already registered
-         if(!osStrcasecmp(entry->name, serviceName))
+         if(!osStrcasecmp(entry->serviceName, serviceName))
             break;
       }
       else
@@ -321,7 +321,7 @@ error_t dnsSdRegisterService(DnsSdContext *context, const char_t *serviceName,
    if(entry != NULL)
    {
       //Service name
-      osStrcpy(entry->name, serviceName);
+      osStrcpy(entry->serviceName, serviceName);
 
       //Priority field
       entry->priority = priority;
@@ -430,12 +430,12 @@ error_t dnsSdUnregisterService(DnsSdContext *context, const char_t *serviceName)
       entry = &context->serviceList[i];
 
       //Service name found?
-      if(!osStrcasecmp(entry->name, serviceName))
+      if(!osStrcasecmp(entry->serviceName, serviceName))
       {
          //Send a goodbye packet
          dnsSdSendGoodbye(context, entry);
          //Remove the service from the list
-         entry->name[0] = '\0';
+         entry->serviceName[0] = '\0';
       }
    }
 
@@ -471,7 +471,7 @@ uint_t dnsSdGetNumServices(DnsSdContext *context)
          for(i = 0; i < DNS_SD_SERVICE_LIST_SIZE; i++)
          {
             //Check if the entry is currently in use
-            if(context->serviceList[i].name[0] != '\0')
+            if(context->serviceList[i].serviceName[0] != '\0')
                n++;
          }
       }

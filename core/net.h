@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 #ifndef _NET_H
@@ -93,13 +93,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.4.0"
+#define CYCLONE_TCP_VERSION_STRING "2.4.2"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 4
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 0
+#define CYCLONE_TCP_REV_NUMBER 2
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -378,7 +378,7 @@ error_t netSetSpiDriver(NetInterface *interface, const SpiDriver *driver);
 error_t netSetUartDriver(NetInterface *interface, const UartDriver *driver);
 error_t netSetExtIntDriver(NetInterface *interface, const ExtIntDriver *driver);
 
-error_t netSetLinkState(NetInterface *interface, NicLinkState linkState);
+error_t netSetLinkState(NetInterface *interface, bool_t linkState);
 bool_t netGetLinkState(NetInterface *interface);
 
 uint_t netGetLinkSpeed(NetInterface *interface);

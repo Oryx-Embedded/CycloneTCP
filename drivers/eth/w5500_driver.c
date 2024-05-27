@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -123,6 +123,7 @@ error_t w5500Init(NetInterface *interface)
    {
       w5500WriteReg8(interface, W5500_CTRL_BSB_Sn_REG(i), W5500_Sn_TXBUF_SIZE,
          W5500_Sn_TXBUF_SIZE_0KB);
+
       w5500WriteReg8(interface, W5500_CTRL_BSB_Sn_REG(i), W5500_Sn_RXBUF_SIZE,
          W5500_Sn_RXBUF_SIZE_0KB);
    }

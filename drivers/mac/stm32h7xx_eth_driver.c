@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.0
+ * @version 2.4.2
  **/
 
 //Switch to the appropriate trace level
@@ -251,9 +251,10 @@ error_t stm32h7xxEthInit(NetInterface *interface)
 
 __weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
 {
-//STM32H743I-EVAL, STM32H747I-EVAL or STM32H747I-Discovery evaluation board?
-#if defined(USE_STM32H743I_EVAL) || defined(USE_STM32H747I_EVAL) || \
-   defined(USE_STM32H747I_DISCO)
+//Nucleo-H723ZG, Nucleo-H743ZI, Nucleo-H743ZI2, Nucleo-H753ZI, Nucleo-H745ZI-Q,
+//or Nucleo-H755ZI-Q evaluation board?
+#if defined(USE_NUCLEO_H723ZG) || defined(USE_NUCLEO_H743ZI) || \
+   defined(USE_NUCLEO_H743ZI2) || defined(USE_NUCLEO_H745ZI_Q)
    GPIO_InitTypeDef GPIO_InitStructure;
 
    //Enable SYSCFG clock
@@ -261,6 +262,7 @@ __weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
 
    //Enable GPIO clocks
    __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOB_CLK_ENABLE();
    __HAL_RCC_GPIOC_CLK_ENABLE();
    __HAL_RCC_GPIOG_CLK_ENABLE();
 
@@ -277,12 +279,16 @@ __weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
    HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
 
+   //Configure ETH_RMII_TXD1 (PB13)
+   GPIO_InitStructure.Pin = GPIO_PIN_13;
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
+
    //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
    GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-   //Configure RMII_TX_EN (PG11), ETH_RMII_TXD1 (PG12) and ETH_RMII_TXD0 (PG13)
-   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
+   //Configure RMII_TX_EN (PG11) and ETH_RMII_TXD0 (PG13)
+   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 
 //STM32H735G-DK evaluation board?
@@ -354,7 +360,8 @@ __weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
 
    //Configure ETH_MDC (PC1), ETH_MII_TXD2 (PC2), ETH_MII_TX_CLK (PC3),
    //ETH_MII_RXD0 (PC4) and ETH_MII_RXD1 (PC5)
-   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 |
+      GPIO_PIN_5;
    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 
    //Configure ETH_MII_TXD3 (PE2)
@@ -373,10 +380,9 @@ __weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_10;
    HAL_GPIO_Init(GPIOI, &GPIO_InitStructure);
 
-//Nucleo-H723ZG, Nucleo-H743ZI, Nucleo-H743ZI2 or Nucleo-H745ZI-Q evaluation
-//board?
-#elif defined(USE_NUCLEO_H723ZG) || defined(USE_NUCLEO_H743ZI) || \
-   defined(USE_NUCLEO_H743ZI2) || defined(USE_NUCLEO_H745ZI_Q)
+//STM32H743I-EVAL, STM32H747I-EVAL or STM32H747I-Discovery evaluation board?
+#elif defined(USE_STM32H743I_EVAL) || defined(USE_STM32H747I_EVAL) || \
+   defined(USE_STM32H747I_DISCO)
    GPIO_InitTypeDef GPIO_InitStructure;
 
    //Enable SYSCFG clock
@@ -384,7 +390,6 @@ __weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
 
    //Enable GPIO clocks
    __HAL_RCC_GPIOA_CLK_ENABLE();
-   __HAL_RCC_GPIOB_CLK_ENABLE();
    __HAL_RCC_GPIOC_CLK_ENABLE();
    __HAL_RCC_GPIOG_CLK_ENABLE();
 
@@ -401,16 +406,12 @@ __weak_func void stm32h7xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
    HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-   //Configure ETH_RMII_TXD1 (PB13)
-   GPIO_InitStructure.Pin = GPIO_PIN_13;
-   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
-
    //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
    GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-   //Configure RMII_TX_EN (PG11) and ETH_RMII_TXD0 (PG13)
-   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13;
+   //Configure RMII_TX_EN (PG11), ETH_RMII_TXD1 (PG12) and ETH_RMII_TXD0 (PG13)
+   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 #endif
 }
@@ -633,7 +634,6 @@ void stm32h7xxEthEventHandler(NetInterface *interface)
 error_t stm32h7xxEthSendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
-   static uint32_t temp[STM32H7XX_ETH_TX_BUFFER_SIZE / 4];
    size_t length;
 
    //Retrieve the length of the packet
@@ -655,8 +655,7 @@ error_t stm32h7xxEthSendPacket(NetInterface *interface,
    }
 
    //Copy user data to the transmit buffer
-   netBufferRead(temp, buffer, offset, length);
-   osMemcpy(txBuffer[txIndex], temp, (length + 3) & ~3UL);
+   netBufferRead(txBuffer[txIndex], buffer, offset, length);
 
    //Set the start address of the buffer
    txDmaDesc[txIndex].tdes0 = (uint32_t) txBuffer[txIndex];
@@ -699,7 +698,6 @@ error_t stm32h7xxEthSendPacket(NetInterface *interface,
 
 error_t stm32h7xxEthReceivePacket(NetInterface *interface)
 {
-   static uint32_t temp[STM32H7XX_ETH_RX_BUFFER_SIZE / 4];
    error_t error;
    size_t n;
    uint32_t status;
@@ -730,14 +728,11 @@ error_t stm32h7xxEthReceivePacket(NetInterface *interface)
             //Limit the number of data to read
             n = MIN(n, STM32H7XX_ETH_RX_BUFFER_SIZE);
 
-            //Copy data from the receive buffer
-            osMemcpy(temp, rxBuffer[rxIndex], (n + 3) & ~3UL);
-
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
 
             //Pass the packet to the upper layer
-            nicProcessPacket(interface, (uint8_t *) temp, n, &ancillary);
+            nicProcessPacket(interface, rxBuffer[rxIndex], n, &ancillary);
 
             //Valid packet received
             error = NO_ERROR;
