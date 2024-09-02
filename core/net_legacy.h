@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _NET_LEGACY_H
@@ -270,5 +270,13 @@
 #define icmpEnableBroadcastEchoRequest icmpEnableBroadcastEchoRequests
 #define icmpv6EnableEchoRequest icmpv6EnableEchoRequests
 #define icmpv6EnableMulticastEchoRequest icmpv6EnableMulticastEchoRequests
+
+#ifdef MLD_SUPPORT
+   #define MLD_NODE_SUPPORT MLD_SUPPORT
+#endif
+
+#ifdef DNS_SD_SUPPORT
+   #define DNS_SD_RESPONDER_SUPPORT DNS_SD_SUPPORT
+#endif
 
 #endif

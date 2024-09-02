@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -164,7 +164,7 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
    n = osStrlen(connection->homeDir);
 
    //Make sure the pathname is valid
-   if(osStrncmp(outputPath, connection->homeDir, n))
+   if(osStrncmp(outputPath, connection->homeDir, n) != 0)
       return ERROR_INVALID_PATH;
 
    //Successful processing
@@ -193,7 +193,7 @@ uint_t ftpServerGetFilePermissions(FtpClientConnection *connection,
    n = osStrlen(connection->homeDir);
 
    //Make sure the pathname is valid
-   if(!osStrncmp(path, connection->homeDir, n))
+   if(osStrncmp(path, connection->homeDir, n) == 0)
    {
       //Strip root directory from the pathname
       path = ftpServerStripRootDir(context, path);

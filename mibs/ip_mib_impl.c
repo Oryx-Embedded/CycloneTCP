@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -148,19 +148,19 @@ error_t ipMibGetIpv4InterfaceEntry(const MibObject *object, const uint8_t *oid,
 
 #if (IPV4_SUPPORT == ENABLED)
    //ipv4InterfaceReasmMaxSize object?
-   if(!osStrcmp(object->name, "ipv4InterfaceReasmMaxSize"))
+   if(osStrcmp(object->name, "ipv4InterfaceReasmMaxSize") == 0)
    {
       //Get object value
       value->integer = IPV4_MAX_FRAG_DATAGRAM_SIZE;
    }
    //ipv4InterfaceEnableStatus object?
-   else if(!osStrcmp(object->name, "ipv4InterfaceEnableStatus"))
+   else if(osStrcmp(object->name, "ipv4InterfaceEnableStatus") == 0)
    {
       //Get object value
       value->integer = IP_MIB_IP_STATUS_UP;
    }
    //ipv4InterfaceRetransmitTime object?
-   else if(!osStrcmp(object->name, "ipv4InterfaceRetransmitTime"))
+   else if(osStrcmp(object->name, "ipv4InterfaceRetransmitTime") == 0)
    {
       //Get object value
       value->unsigned32 = ARP_REQUEST_TIMEOUT;
@@ -293,13 +293,13 @@ error_t ipMibGetIpv6InterfaceEntry(const MibObject *object, const uint8_t *oid,
 
 #if (IPV6_SUPPORT == ENABLED)
    //ipv6InterfaceReasmMaxSize object?
-   if(!osStrcmp(object->name, "ipv6InterfaceReasmMaxSize"))
+   if(osStrcmp(object->name, "ipv6InterfaceReasmMaxSize") == 0)
    {
       //Get object value
       value->unsigned32 = IPV6_MAX_FRAG_DATAGRAM_SIZE;
    }
    //ipv6InterfaceIdentifier object?
-   else if(!osStrcmp(object->name, "ipv6InterfaceIdentifier"))
+   else if(osStrcmp(object->name, "ipv6InterfaceIdentifier") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= sizeof(Eui64))
@@ -321,25 +321,25 @@ error_t ipMibGetIpv6InterfaceEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ipv6InterfaceEnableStatus object?
-   else if(!osStrcmp(object->name, "ipv6InterfaceEnableStatus"))
+   else if(osStrcmp(object->name, "ipv6InterfaceEnableStatus") == 0)
    {
       //Get object value
       value->integer = IP_MIB_IP_STATUS_UP;
    }
    //ipv6InterfaceReachableTime object?
-   else if(!osStrcmp(object->name, "ipv6InterfaceReachableTime"))
+   else if(osStrcmp(object->name, "ipv6InterfaceReachableTime") == 0)
    {
       //Get object value
       value->unsigned32 = interface->ndpContext.reachableTime;
    }
    //ipv6InterfaceRetransmitTime object?
-   else if(!osStrcmp(object->name, "ipv6InterfaceRetransmitTime"))
+   else if(osStrcmp(object->name, "ipv6InterfaceRetransmitTime") == 0)
    {
       //Get object value
       value->unsigned32 = interface->ndpContext.retransTimer;
    }
    //ipv6InterfaceForwarding object?
-   else if(!osStrcmp(object->name, "ipv6InterfaceForwarding"))
+   else if(osStrcmp(object->name, "ipv6InterfaceForwarding") == 0)
    {
       //Get object value
       if(interface->ipv6Context.isRouter)
@@ -476,227 +476,227 @@ error_t ipMibGetIpSystemStatsEntry(const MibObject *object, const uint8_t *oid,
    if(entry != NULL)
    {
       //ipSystemStatsInReceives object?
-      if(!osStrcmp(object->name, "ipSystemStatsInReceives"))
+      if(osStrcmp(object->name, "ipSystemStatsInReceives") == 0)
       {
          value->counter32 = entry->ipSystemStatsInReceives;
       }
       //ipSystemStatsHCInReceives object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCInReceives"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCInReceives") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCInReceives;
       }
       //ipSystemStatsInOctets object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInOctets"))
+      else if(osStrcmp(object->name, "ipSystemStatsInOctets") == 0)
       {
          value->counter32 = entry->ipSystemStatsInOctets;
       }
       //ipSystemStatsHCInOctets object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCInOctets"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCInOctets") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCInOctets;
       }
       //ipSystemStatsInHdrErrors object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInHdrErrors"))
+      else if(osStrcmp(object->name, "ipSystemStatsInHdrErrors") == 0)
       {
          value->counter32 = entry->ipSystemStatsInHdrErrors;
       }
       //ipSystemStatsInNoRoutes object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInNoRoutes"))
+      else if(osStrcmp(object->name, "ipSystemStatsInNoRoutes") == 0)
       {
          value->counter32 = entry->ipSystemStatsInNoRoutes;
       }
       //ipSystemStatsInAddrErrors object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInAddrErrors"))
+      else if(osStrcmp(object->name, "ipSystemStatsInAddrErrors") == 0)
       {
          value->counter32 = entry->ipSystemStatsInAddrErrors;
       }
       //ipSystemStatsInUnknownProtos object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInUnknownProtos"))
+      else if(osStrcmp(object->name, "ipSystemStatsInUnknownProtos") == 0)
       {
          value->counter32 = entry->ipSystemStatsInUnknownProtos;
       }
       //ipSystemStatsInTruncatedPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInTruncatedPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsInTruncatedPkts") == 0)
       {
          value->counter32 = entry->ipSystemStatsInTruncatedPkts;
       }
       //ipSystemStatsInForwDatagrams object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInForwDatagrams"))
+      else if(osStrcmp(object->name, "ipSystemStatsInForwDatagrams") == 0)
       {
          value->counter32 = entry->ipSystemStatsInForwDatagrams;
       }
       //ipSystemStatsHCInForwDatagrams object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCInForwDatagrams"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCInForwDatagrams") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCInForwDatagrams;
       }
       //ipSystemStatsReasmReqds object?
-      else if(!osStrcmp(object->name, "ipSystemStatsReasmReqds"))
+      else if(osStrcmp(object->name, "ipSystemStatsReasmReqds") == 0)
       {
          value->counter32 = entry->ipSystemStatsReasmReqds;
       }
       //ipSystemStatsReasmOKs object?
-      else if(!osStrcmp(object->name, "ipSystemStatsReasmOKs"))
+      else if(osStrcmp(object->name, "ipSystemStatsReasmOKs") == 0)
       {
          value->counter32 = entry->ipSystemStatsReasmOKs;
       }
       //ipSystemStatsReasmFails object?
-      else if(!osStrcmp(object->name, "ipSystemStatsReasmFails"))
+      else if(osStrcmp(object->name, "ipSystemStatsReasmFails") == 0)
       {
          value->counter32 = entry->ipSystemStatsReasmFails;
       }
       //ipSystemStatsInDiscards object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInDiscards"))
+      else if(osStrcmp(object->name, "ipSystemStatsInDiscards") == 0)
       {
          value->counter32 = entry->ipSystemStatsInDiscards;
       }
       //ipSystemStatsInDelivers object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInDelivers"))
+      else if(osStrcmp(object->name, "ipSystemStatsInDelivers") == 0)
       {
          value->counter32 = entry->ipSystemStatsInDelivers;
       }
       //ipSystemStatsHCInDelivers object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCInDelivers"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCInDelivers") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCInDelivers;
       }
       //ipSystemStatsOutRequests object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutRequests"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutRequests") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutRequests;
       }
       //ipSystemStatsHCOutRequests object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCOutRequests"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCOutRequests") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCOutRequests;
       }
       //ipSystemStatsOutNoRoutes object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutNoRoutes"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutNoRoutes") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutNoRoutes;
       }
       //ipSystemStatsOutForwDatagrams object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutForwDatagrams"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutForwDatagrams") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutForwDatagrams;
       }
       //ipSystemStatsHCOutForwDatagrams object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCOutForwDatagrams"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCOutForwDatagrams") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCOutForwDatagrams;
       }
       //ipSystemStatsOutDiscards object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutDiscards"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutDiscards") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutDiscards;
       }
       //ipSystemStatsOutFragReqds object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutFragReqds"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutFragReqds") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutFragReqds;
       }
       //ipSystemStatsOutFragOKs object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutFragOKs"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutFragOKs") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutFragOKs;
       }
       //ipSystemStatsOutFragFails object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutFragFails"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutFragFails") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutFragFails;
       }
       //ipSystemStatsOutFragCreates object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutFragCreates"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutFragCreates") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutFragCreates;
       }
       //ipSystemStatsOutTransmits object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutTransmits"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutTransmits") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutTransmits;
       }
       //ipSystemStatsHCOutTransmits object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCOutTransmits"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCOutTransmits") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCOutTransmits;
       }
       //ipSystemStatsOutOctets object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutOctets"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutOctets") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutOctets;
       }
       //ipSystemStatsHCOutOctets object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCOutOctets"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCOutOctets") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCOutOctets;
       }
       //ipSystemStatsInMcastPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInMcastPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsInMcastPkts") == 0)
       {
          value->counter32 = entry->ipSystemStatsInMcastPkts;
       }
       //ipSystemStatsHCInMcastPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCInMcastPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCInMcastPkts") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCInMcastPkts;
       }
       //ipSystemStatsInMcastOctets object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInMcastOctets"))
+      else if(osStrcmp(object->name, "ipSystemStatsInMcastOctets") == 0)
       {
          value->counter32 = entry->ipSystemStatsInMcastOctets;
       }
       //ipSystemStatsHCInMcastOctets object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCInMcastOctets"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCInMcastOctets") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCInMcastOctets;
       }
       //ipSystemStatsOutMcastPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutMcastPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutMcastPkts") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutMcastPkts;
       }
       //ipSystemStatsHCOutMcastPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCOutMcastPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCOutMcastPkts") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCOutMcastPkts;
       }
       //ipSystemStatsOutMcastOctets object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutMcastOctets"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutMcastOctets") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutMcastOctets;
       }
       //ipSystemStatsHCOutMcastOctets object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCOutMcastOctets"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCOutMcastOctets") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCOutMcastOctets;
       }
       //ipSystemStatsInBcastPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsInBcastPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsInBcastPkts") == 0)
       {
          value->counter32 = entry->ipSystemStatsInBcastPkts;
       }
       //ipSystemStatsHCInBcastPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCInBcastPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCInBcastPkts") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCInBcastPkts;
       }
       //ipSystemStatsOutBcastPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsOutBcastPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsOutBcastPkts") == 0)
       {
          value->counter32 = entry->ipSystemStatsOutBcastPkts;
       }
       //ipSystemStatsHCOutBcastPkts object?
-      else if(!osStrcmp(object->name, "ipSystemStatsHCOutBcastPkts"))
+      else if(osStrcmp(object->name, "ipSystemStatsHCOutBcastPkts") == 0)
       {
          value->counter64 = entry->ipSystemStatsHCOutBcastPkts;
       }
       //ipSystemStatsDiscontinuityTime object?
-      else if(!osStrcmp(object->name, "ipSystemStatsDiscontinuityTime"))
+      else if(osStrcmp(object->name, "ipSystemStatsDiscontinuityTime") == 0)
       {
          value->timeTicks = entry->ipSystemStatsDiscontinuityTime;
       }
       //ipSystemStatsRefreshRate object?
-      else if(!osStrcmp(object->name, "ipSystemStatsRefreshRate"))
+      else if(osStrcmp(object->name, "ipSystemStatsRefreshRate") == 0)
       {
          value->unsigned32 = entry->ipSystemStatsRefreshRate;
       }
@@ -857,222 +857,222 @@ error_t ipMibGetIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
    if(entry != NULL)
    {
       //ipIfStatsInReceives object?
-      if(!osStrcmp(object->name, "ipIfStatsInReceives"))
+      if(osStrcmp(object->name, "ipIfStatsInReceives") == 0)
       {
          value->counter32 = entry->ipIfStatsInReceives;
       }
       //ipIfStatsHCInReceives object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCInReceives"))
+      else if(osStrcmp(object->name, "ipIfStatsHCInReceives") == 0)
       {
          value->counter64 = entry->ipIfStatsHCInReceives;
       }
       //ipIfStatsInOctets object?
-      else if(!osStrcmp(object->name, "ipIfStatsInOctets"))
+      else if(osStrcmp(object->name, "ipIfStatsInOctets") == 0)
       {
          value->counter32 = entry->ipIfStatsInOctets;
       }
       //ipIfStatsHCInOctets object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCInOctets"))
+      else if(osStrcmp(object->name, "ipIfStatsHCInOctets") == 0)
       {
          value->counter64 = entry->ipIfStatsHCInOctets;
       }
       //ipIfStatsInHdrErrors object?
-      else if(!osStrcmp(object->name, "ipIfStatsInHdrErrors"))
+      else if(osStrcmp(object->name, "ipIfStatsInHdrErrors") == 0)
       {
          value->counter32 = entry->ipIfStatsInHdrErrors;
       }
       //ipIfStatsInNoRoutes object?
-      else if(!osStrcmp(object->name, "ipIfStatsInNoRoutes"))
+      else if(osStrcmp(object->name, "ipIfStatsInNoRoutes") == 0)
       {
          value->counter32 = entry->ipIfStatsInNoRoutes;
       }
       //ipIfStatsInAddrErrors object?
-      else if(!osStrcmp(object->name, "ipIfStatsInAddrErrors"))
+      else if(osStrcmp(object->name, "ipIfStatsInAddrErrors") == 0)
       {
          value->counter32 = entry->ipIfStatsInAddrErrors;
       }
       //ipIfStatsInUnknownProtos object?
-      else if(!osStrcmp(object->name, "ipIfStatsInUnknownProtos"))
+      else if(osStrcmp(object->name, "ipIfStatsInUnknownProtos") == 0)
       {
          value->counter32 = entry->ipIfStatsInUnknownProtos;
       }
       //ipIfStatsInTruncatedPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsInTruncatedPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsInTruncatedPkts") == 0)
       {
          value->counter32 = entry->ipIfStatsInTruncatedPkts;
       }
       //ipIfStatsInForwDatagrams object?
-      else if(!osStrcmp(object->name, "ipIfStatsInForwDatagrams"))
+      else if(osStrcmp(object->name, "ipIfStatsInForwDatagrams") == 0)
       {
          value->counter32 = entry->ipIfStatsInForwDatagrams;
       }
       //ipIfStatsHCInForwDatagrams object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCInForwDatagrams"))
+      else if(osStrcmp(object->name, "ipIfStatsHCInForwDatagrams") == 0)
       {
          value->counter64 = entry->ipIfStatsHCInForwDatagrams;
       }
       //ipIfStatsReasmReqds object?
-      else if(!osStrcmp(object->name, "ipIfStatsReasmReqds"))
+      else if(osStrcmp(object->name, "ipIfStatsReasmReqds") == 0)
       {
          value->counter32 = entry->ipIfStatsReasmReqds;
       }
       //ipIfStatsReasmOKs object?
-      else if(!osStrcmp(object->name, "ipIfStatsReasmOKs"))
+      else if(osStrcmp(object->name, "ipIfStatsReasmOKs") == 0)
       {
          value->counter32 = entry->ipIfStatsReasmOKs;
       }
       //ipIfStatsReasmFails object?
-      else if(!osStrcmp(object->name, "ipIfStatsReasmFails"))
+      else if(osStrcmp(object->name, "ipIfStatsReasmFails") == 0)
       {
          value->counter32 = entry->ipIfStatsReasmFails;
       }
       //ipIfStatsInDiscards object?
-      else if(!osStrcmp(object->name, "ipIfStatsInDiscards"))
+      else if(osStrcmp(object->name, "ipIfStatsInDiscards") == 0)
       {
          value->counter32 = entry->ipIfStatsInDiscards;
       }
       //ipIfStatsInDelivers object?
-      else if(!osStrcmp(object->name, "ipIfStatsInDelivers"))
+      else if(osStrcmp(object->name, "ipIfStatsInDelivers") == 0)
       {
          value->counter32 = entry->ipIfStatsInDelivers;
       }
       //ipIfStatsHCInDelivers object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCInDelivers"))
+      else if(osStrcmp(object->name, "ipIfStatsHCInDelivers") == 0)
       {
          value->counter64 = entry->ipIfStatsHCInDelivers;
       }
       //ipIfStatsOutRequests object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutRequests"))
+      else if(osStrcmp(object->name, "ipIfStatsOutRequests") == 0)
       {
          value->counter32 = entry->ipIfStatsOutRequests;
       }
       //ipIfStatsHCOutRequests object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCOutRequests"))
+      else if(osStrcmp(object->name, "ipIfStatsHCOutRequests") == 0)
       {
          value->counter64 = entry->ipIfStatsHCOutRequests;
       }
       //ipIfStatsOutForwDatagrams object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutForwDatagrams"))
+      else if(osStrcmp(object->name, "ipIfStatsOutForwDatagrams") == 0)
       {
          value->counter32 = entry->ipIfStatsOutForwDatagrams;
       }
       //ipIfStatsHCOutForwDatagrams object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCOutForwDatagrams"))
+      else if(osStrcmp(object->name, "ipIfStatsHCOutForwDatagrams") == 0)
       {
          value->counter64 = entry->ipIfStatsHCOutForwDatagrams;
       }
       //ipIfStatsOutDiscards object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutDiscards"))
+      else if(osStrcmp(object->name, "ipIfStatsOutDiscards") == 0)
       {
          value->counter32 = entry->ipIfStatsOutDiscards;
       }
       //ipIfStatsOutFragReqds object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutFragReqds"))
+      else if(osStrcmp(object->name, "ipIfStatsOutFragReqds") == 0)
       {
          value->counter32 = entry->ipIfStatsOutFragReqds;
       }
       //ipIfStatsOutFragOKs object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutFragOKs"))
+      else if(osStrcmp(object->name, "ipIfStatsOutFragOKs") == 0)
       {
          value->counter32 = entry->ipIfStatsOutFragOKs;
       }
       //ipIfStatsOutFragFails object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutFragFails"))
+      else if(osStrcmp(object->name, "ipIfStatsOutFragFails") == 0)
       {
          value->counter32 = entry->ipIfStatsOutFragFails;
       }
       //ipIfStatsOutFragCreates object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutFragCreates"))
+      else if(osStrcmp(object->name, "ipIfStatsOutFragCreates") == 0)
       {
          value->counter32 = entry->ipIfStatsOutFragCreates;
       }
       //ipIfStatsOutTransmits object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutTransmits"))
+      else if(osStrcmp(object->name, "ipIfStatsOutTransmits") == 0)
       {
          value->counter32 = entry->ipIfStatsOutTransmits;
       }
       //ipIfStatsHCOutTransmits object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCOutTransmits"))
+      else if(osStrcmp(object->name, "ipIfStatsHCOutTransmits") == 0)
       {
          value->counter64 = entry->ipIfStatsHCOutTransmits;
       }
       //ipIfStatsOutOctets object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutOctets"))
+      else if(osStrcmp(object->name, "ipIfStatsOutOctets") == 0)
       {
          value->counter32 = entry->ipIfStatsOutOctets;
       }
       //ipIfStatsHCOutOctets object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCOutOctets"))
+      else if(osStrcmp(object->name, "ipIfStatsHCOutOctets") == 0)
       {
          value->counter64 = entry->ipIfStatsHCOutOctets;
       }
       //ipIfStatsInMcastPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsInMcastPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsInMcastPkts") == 0)
       {
          value->counter32 = entry->ipIfStatsInMcastPkts;
       }
       //ipIfStatsHCInMcastPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCInMcastPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsHCInMcastPkts") == 0)
       {
          value->counter64 = entry->ipIfStatsHCInMcastPkts;
       }
       //ipIfStatsInMcastOctets object?
-      else if(!osStrcmp(object->name, "ipIfStatsInMcastOctets"))
+      else if(osStrcmp(object->name, "ipIfStatsInMcastOctets") == 0)
       {
          value->counter32 = entry->ipIfStatsInMcastOctets;
       }
       //ipIfStatsHCInMcastOctets object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCInMcastOctets"))
+      else if(osStrcmp(object->name, "ipIfStatsHCInMcastOctets") == 0)
       {
          value->counter64 = entry->ipIfStatsHCInMcastOctets;
       }
       //ipIfStatsOutMcastPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutMcastPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsOutMcastPkts") == 0)
       {
          value->counter32 = entry->ipIfStatsOutMcastPkts;
       }
       //ipIfStatsHCOutMcastPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCOutMcastPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsHCOutMcastPkts") == 0)
       {
          value->counter64 = entry->ipIfStatsHCOutMcastPkts;
       }
       //ipIfStatsOutMcastOctets object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutMcastOctets"))
+      else if(osStrcmp(object->name, "ipIfStatsOutMcastOctets") == 0)
       {
          value->counter32 = entry->ipIfStatsOutMcastOctets;
       }
       //ipIfStatsHCOutMcastOctets object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCOutMcastOctets"))
+      else if(osStrcmp(object->name, "ipIfStatsHCOutMcastOctets") == 0)
       {
          value->counter64 = entry->ipIfStatsHCOutMcastOctets;
       }
       //ipIfStatsInBcastPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsInBcastPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsInBcastPkts") == 0)
       {
          value->counter32 = entry->ipIfStatsInBcastPkts;
       }
       //ipIfStatsHCInBcastPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCInBcastPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsHCInBcastPkts") == 0)
       {
          value->counter64 = entry->ipIfStatsHCInBcastPkts;
       }
       //ipIfStatsOutBcastPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsOutBcastPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsOutBcastPkts") == 0)
       {
          value->counter32 = entry->ipIfStatsOutBcastPkts;
       }
       //ipIfStatsHCOutBcastPkts object?
-      else if(!osStrcmp(object->name, "ipIfStatsHCOutBcastPkts"))
+      else if(osStrcmp(object->name, "ipIfStatsHCOutBcastPkts") == 0)
       {
          value->counter64 = entry->ipIfStatsHCOutBcastPkts;
       }
       //ipIfStatsDiscontinuityTime object?
-      else if(!osStrcmp(object->name, "ipIfStatsDiscontinuityTime"))
+      else if(osStrcmp(object->name, "ipIfStatsDiscontinuityTime") == 0)
       {
          value->timeTicks = entry->ipIfStatsDiscontinuityTime;
       }
       //ipIfStatsRefreshRate object?
-      else if(!osStrcmp(object->name, "ipIfStatsRefreshRate"))
+      else if(osStrcmp(object->name, "ipIfStatsRefreshRate") == 0)
       {
          value->unsigned32 = entry->ipIfStatsRefreshRate;
       }
@@ -1259,34 +1259,34 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
       if(i < IPV4_ADDR_LIST_SIZE)
       {
          //ipAddressPrefixOrigin object?
-         if(!osStrcmp(object->name, "ipAddressPrefixOrigin"))
+         if(osStrcmp(object->name, "ipAddressPrefixOrigin") == 0)
          {
             //The origin of this prefix
             value->integer = IP_MIB_PREFIX_ORIGIN_MANUAL;
          }
          //ipAddressPrefixOnLinkFlag object?
-         else if(!osStrcmp(object->name, "ipAddressPrefixOnLinkFlag"))
+         else if(osStrcmp(object->name, "ipAddressPrefixOnLinkFlag") == 0)
          {
             //This flag indicates whether this prefix can be used for on-link
             //determination
             value->integer = MIB_TRUTH_VALUE_TRUE;
          }
          //ipAddressPrefixAutonomousFlag object?
-         else if(!osStrcmp(object->name, "ipAddressPrefixAutonomousFlag"))
+         else if(osStrcmp(object->name, "ipAddressPrefixAutonomousFlag") == 0)
          {
             //This flag indicates whether this prefix can be used for autonomous
             //address configuration
             value->integer = MIB_TRUTH_VALUE_FALSE;
          }
          //ipAddressPrefixAdvPreferredLifetime object?
-         else if(!osStrcmp(object->name, "ipAddressPrefixAdvPreferredLifetime"))
+         else if(osStrcmp(object->name, "ipAddressPrefixAdvPreferredLifetime") == 0)
          {
             //Remaining length of time, in seconds, that this prefix will
             //continue to be preferred
             value->unsigned32 = UINT32_MAX;
          }
          //ipAddressPrefixAdvValidLifetime object?
-         else if(!osStrcmp(object->name, "ipAddressPrefixAdvValidLifetime"))
+         else if(osStrcmp(object->name, "ipAddressPrefixAdvValidLifetime") == 0)
          {
             //Remaining length of time, in seconds, that this prefix will
             //continue to be valid
@@ -1338,7 +1338,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
       if(i < IPV6_PREFIX_LIST_SIZE)
       {
          //ipAddressPrefixOrigin object?
-         if(!osStrcmp(object->name, "ipAddressPrefixOrigin"))
+         if(osStrcmp(object->name, "ipAddressPrefixOrigin") == 0)
          {
             //The origin of this prefix
             if(entry->permanent)
@@ -1351,7 +1351,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
             }
          }
          //ipAddressPrefixOnLinkFlag object?
-         else if(!osStrcmp(object->name, "ipAddressPrefixOnLinkFlag"))
+         else if(osStrcmp(object->name, "ipAddressPrefixOnLinkFlag") == 0)
          {
             //This flag indicates whether this prefix can be used for on-link
             //determination
@@ -1365,7 +1365,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
             }
          }
          //ipAddressPrefixAutonomousFlag object?
-         else if(!osStrcmp(object->name, "ipAddressPrefixAutonomousFlag"))
+         else if(osStrcmp(object->name, "ipAddressPrefixAutonomousFlag") == 0)
          {
             //This flag indicates whether this prefix can be used for autonomous
             //address configuration
@@ -1379,7 +1379,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
             }
          }
          //ipAddressPrefixAdvPreferredLifetime object?
-         else if(!osStrcmp(object->name, "ipAddressPrefixAdvPreferredLifetime"))
+         else if(osStrcmp(object->name, "ipAddressPrefixAdvPreferredLifetime") == 0)
          {
             //Remaining length of time, in seconds, that this prefix will
             //continue to be preferred
@@ -1393,7 +1393,7 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
             }
          }
          //ipAddressPrefixAdvValidLifetime object?
-         else if(!osStrcmp(object->name, "ipAddressPrefixAdvValidLifetime"))
+         else if(osStrcmp(object->name, "ipAddressPrefixAdvValidLifetime") == 0)
          {
             //Remaining length of time, in seconds, that this prefix will
             //continue to be valid
@@ -1821,20 +1821,20 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
       if(index <= NET_INTERFACE_COUNT)
       {
          //ipAddressIfIndex object?
-         if(!osStrcmp(object->name, "ipAddressIfIndex"))
+         if(osStrcmp(object->name, "ipAddressIfIndex") == 0)
          {
             //Index value that uniquely identifies the interface to which
             //this entry is applicable
             value->integer = index;
          }
          //ipAddressType object?
-         else if(!osStrcmp(object->name, "ipAddressType"))
+         else if(osStrcmp(object->name, "ipAddressType") == 0)
          {
             //Type of IP address
             value->integer = IP_MIB_ADDR_TYPE_UNICAST;
          }
          //ipAddressPrefix object?
-         else if(!osStrcmp(object->name, "ipAddressPrefix"))
+         else if(osStrcmp(object->name, "ipAddressPrefix") == 0)
          {
             IpAddr prefix;
             uint_t length;
@@ -1881,7 +1881,7 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
             *valueLen = n;
          }
          //ipAddressOrigin object?
-         else if(!osStrcmp(object->name, "ipAddressOrigin"))
+         else if(osStrcmp(object->name, "ipAddressOrigin") == 0)
          {
 #if (AUTO_IP_SUPPORT == ENABLED)
             //Address chosen by the system at random?
@@ -1910,7 +1910,7 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
             }
          }
          //ipAddressStatus object?
-         else if(!osStrcmp(object->name, "ipAddressStatus"))
+         else if(osStrcmp(object->name, "ipAddressStatus") == 0)
          {
             //Status of the IP address
             if(entry->state == IPV4_ADDR_STATE_VALID)
@@ -1927,25 +1927,25 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
             }
          }
          //ipAddressCreated object?
-         else if(!osStrcmp(object->name, "ipAddressCreated"))
+         else if(osStrcmp(object->name, "ipAddressCreated") == 0)
          {
             //Get object value
             value->timeTicks = 0;
          }
          //ipAddressLastChanged object?
-         else if(!osStrcmp(object->name, "ipAddressLastChanged"))
+         else if(osStrcmp(object->name, "ipAddressLastChanged") == 0)
          {
             //Get object value
             value->timeTicks = 0;
          }
          //ipAddressRowStatus object?
-         else if(!osStrcmp(object->name, "ipAddressRowStatus"))
+         else if(osStrcmp(object->name, "ipAddressRowStatus") == 0)
          {
             //Get object value
             value->integer = MIB_ROW_STATUS_ACTIVE;
          }
          //ipAddressStorageType object?
-         else if(!osStrcmp(object->name, "ipAddressStorageType"))
+         else if(osStrcmp(object->name, "ipAddressStorageType") == 0)
          {
             //Get object value
             value->integer = MIB_STORAGE_TYPE_VOLATILE;
@@ -2001,20 +2001,20 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
       if(index <= NET_INTERFACE_COUNT)
       {
          //ipAddressIfIndex object?
-         if(!osStrcmp(object->name, "ipAddressIfIndex"))
+         if(osStrcmp(object->name, "ipAddressIfIndex") == 0)
          {
             //Index value that uniquely identifies the interface to which
             //this entry is applicable
             value->integer = index;
          }
          //ipAddressType object?
-         else if(!osStrcmp(object->name, "ipAddressType"))
+         else if(osStrcmp(object->name, "ipAddressType") == 0)
          {
             //Type of IP address
             value->integer = IP_MIB_ADDR_TYPE_UNICAST;
          }
          //ipAddressPrefix object?
-         else if(!osStrcmp(object->name, "ipAddressPrefix"))
+         else if(osStrcmp(object->name, "ipAddressPrefix") == 0)
          {
             //Unknown OID
             const uint8_t unknownOid[] = {0};
@@ -2029,13 +2029,13 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
             *valueLen = sizeof(unknownOid);
          }
          //ipAddressOrigin object?
-         else if(!osStrcmp(object->name, "ipAddressOrigin"))
+         else if(osStrcmp(object->name, "ipAddressOrigin") == 0)
          {
             //Origin of the address
             value->integer = IP_MIB_ADDR_ORIGIN_MANUAL;
          }
          //ipAddressStatus object?
-         else if(!osStrcmp(object->name, "ipAddressStatus"))
+         else if(osStrcmp(object->name, "ipAddressStatus") == 0)
          {
             //Status of the IP address
             if(entry->state == IPV6_ADDR_STATE_PREFERRED)
@@ -2056,25 +2056,25 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
             }
          }
          //ipAddressCreated object?
-         else if(!osStrcmp(object->name, "ipAddressCreated"))
+         else if(osStrcmp(object->name, "ipAddressCreated") == 0)
          {
             //Get object value
             value->timeTicks = 0;
          }
          //ipAddressLastChanged object?
-         else if(!osStrcmp(object->name, "ipAddressLastChanged"))
+         else if(osStrcmp(object->name, "ipAddressLastChanged") == 0)
          {
             //Get object value
             value->timeTicks = 0;
          }
          //ipAddressRowStatus object?
-         else if(!osStrcmp(object->name, "ipAddressRowStatus"))
+         else if(osStrcmp(object->name, "ipAddressRowStatus") == 0)
          {
             //Get object value
             value->integer = MIB_ROW_STATUS_ACTIVE;
          }
          //ipAddressStorageType object?
-         else if(!osStrcmp(object->name, "ipAddressStorageType"))
+         else if(osStrcmp(object->name, "ipAddressStorageType") == 0)
          {
             //Get object value
             value->integer = MIB_STORAGE_TYPE_VOLATILE;
@@ -2357,7 +2357,7 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
       if(entry != NULL)
       {
          //ipNetToPhysicalPhysAddress object?
-         if(!osStrcmp(object->name, "ipNetToPhysicalPhysAddress"))
+         if(osStrcmp(object->name, "ipNetToPhysicalPhysAddress") == 0)
          {
             //Make sure the buffer is large enough to hold the entire object
             if(*valueLen >= sizeof(MacAddr))
@@ -2374,25 +2374,25 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
             }
          }
          //ipNetToPhysicalLastUpdated object?
-         else if(!osStrcmp(object->name, "ipNetToPhysicalLastUpdated"))
+         else if(osStrcmp(object->name, "ipNetToPhysicalLastUpdated") == 0)
          {
             //Get object value
             value->timeTicks = entry->timestamp / 10;
          }
          //ipNetToPhysicalType object?
-         else if(!osStrcmp(object->name, "ipNetToPhysicalType"))
+         else if(osStrcmp(object->name, "ipNetToPhysicalType") == 0)
          {
             //Get object value
             value->integer = IP_MIB_NET_TO_PHYS_TYPE_DYNAMIC;
          }
          //ipNetToPhysicalState object?
-         else if(!osStrcmp(object->name, "ipNetToPhysicalState"))
+         else if(osStrcmp(object->name, "ipNetToPhysicalState") == 0)
          {
             //Get object value
             value->integer = IP_MIB_NET_TO_PHYS_STATE_UNKNOWN;
          }
          //ipNetToPhysicalRowStatus object?
-         else if(!osStrcmp(object->name, "ipNetToPhysicalRowStatus"))
+         else if(osStrcmp(object->name, "ipNetToPhysicalRowStatus") == 0)
          {
             //Get object value
             value->integer = MIB_ROW_STATUS_ACTIVE;
@@ -2425,7 +2425,7 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
       if(entry != NULL)
       {
          //ipNetToPhysicalPhysAddress object?
-         if(!osStrcmp(object->name, "ipNetToPhysicalPhysAddress"))
+         if(osStrcmp(object->name, "ipNetToPhysicalPhysAddress") == 0)
          {
             //Make sure the buffer is large enough to hold the entire object
             if(*valueLen >= sizeof(MacAddr))
@@ -2442,19 +2442,19 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
             }
          }
          //ipNetToPhysicalLastUpdated object?
-         else if(!osStrcmp(object->name, "ipNetToPhysicalLastUpdated"))
+         else if(osStrcmp(object->name, "ipNetToPhysicalLastUpdated") == 0)
          {
             //Get object value
             value->timeTicks = entry->timestamp / 10;
          }
          //ipNetToPhysicalType object?
-         else if(!osStrcmp(object->name, "ipNetToPhysicalType"))
+         else if(osStrcmp(object->name, "ipNetToPhysicalType") == 0)
          {
             //Get object value
             value->integer = IP_MIB_NET_TO_PHYS_TYPE_DYNAMIC;
          }
          //ipNetToPhysicalState object?
-         else if(!osStrcmp(object->name, "ipNetToPhysicalState"))
+         else if(osStrcmp(object->name, "ipNetToPhysicalState") == 0)
          {
             //Get object value
             if(entry->state == NDP_STATE_INCOMPLETE)
@@ -2483,7 +2483,7 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
             }
          }
          //ipNetToPhysicalRowStatus object?
-         else if(!osStrcmp(object->name, "ipNetToPhysicalRowStatus"))
+         else if(osStrcmp(object->name, "ipNetToPhysicalRowStatus") == 0)
          {
             //Get object value
             value->integer = MIB_ROW_STATUS_ACTIVE;
@@ -2764,62 +2764,62 @@ error_t ipMibGetIpv6ScopeZoneIndexEntry(const MibObject *object, const uint8_t *
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ipv6ScopeZoneIndexLinkLocal object?
-   if(!osStrcmp(object->name, "ipv6ScopeZoneIndexLinkLocal"))
+   if(osStrcmp(object->name, "ipv6ScopeZoneIndexLinkLocal") == 0)
    {
       value->unsigned32 = index;
    }
    //ipv6ScopeZoneIndex3 object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndex3"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndex3") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndexAdminLocal object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndexAdminLocal"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndexAdminLocal") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndexSiteLocal object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndexSiteLocal"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndexSiteLocal") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndex6 object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndex6"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndex6") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndex7 object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndex7"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndex7") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndexOrganizationLocal object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndexOrganizationLocal"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndexOrganizationLocal") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndex9 object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndex9"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndex9") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndexA object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndexA"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndexA") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndexB object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndexB"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndexB") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndexC object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndexC"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndexC") == 0)
    {
       value->unsigned32 = 0;
    }
    //ipv6ScopeZoneIndexD object?
-   else if(!osStrcmp(object->name, "ipv6ScopeZoneIndexD"))
+   else if(osStrcmp(object->name, "ipv6ScopeZoneIndexD") == 0)
    {
       value->unsigned32 = 0;
    }
@@ -2958,13 +2958,13 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
       if(i <= IPV4_ADDR_LIST_SIZE)
       {
          //ipDefaultRouterLifetime object?
-         if(!osStrcmp(object->name, "ipDefaultRouterLifetime"))
+         if(osStrcmp(object->name, "ipDefaultRouterLifetime") == 0)
          {
             //Get object value
             value->unsigned32 = UINT16_MAX;
          }
          //ipDefaultRouterPreference object?
-         else if(!osStrcmp(object->name, "ipDefaultRouterPreference"))
+         else if(osStrcmp(object->name, "ipDefaultRouterPreference") == 0)
          {
             //Get object value
             value->integer = 0;
@@ -3011,7 +3011,7 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
       if(i <= IPV6_ROUTER_LIST_SIZE)
       {
          //ipDefaultRouterLifetime object?
-         if(!osStrcmp(object->name, "ipDefaultRouterLifetime"))
+         if(osStrcmp(object->name, "ipDefaultRouterLifetime") == 0)
          {
             //Get object value
             if(entry->lifetime == INFINITE_DELAY)
@@ -3024,7 +3024,7 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
             }
          }
          //ipDefaultRouterPreference object?
-         else if(!osStrcmp(object->name, "ipDefaultRouterPreference"))
+         else if(osStrcmp(object->name, "ipDefaultRouterPreference") == 0)
          {
             //Get object value
             if(entry->preference == NDP_ROUTER_SEL_PREFERENCE_LOW)
@@ -3403,7 +3403,7 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
    if(routerAdvContext != NULL)
    {
       //ipv6RouterAdvertSendAdverts object?
-      if(!osStrcmp(object->name, "ipv6RouterAdvertSendAdverts"))
+      if(osStrcmp(object->name, "ipv6RouterAdvertSendAdverts") == 0)
       {
          //This flag indicates whether the router sends periodic router
          //advertisements and responds to router solicitations on this
@@ -3418,21 +3418,21 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
          }
       }
       //ipv6RouterAdvertMaxInterval object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertMaxInterval"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertMaxInterval") == 0)
       {
          //Maximum time allowed between sending unsolicited router
          //advertisements from this interface
          value->unsigned32 = routerAdvContext->settings.maxRtrAdvInterval;
       }
       //ipv6RouterAdvertMinInterval object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertMinInterval"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertMinInterval") == 0)
       {
          //Minimum time allowed between sending unsolicited router
          //advertisements from this interface
          value->unsigned32 = routerAdvContext->settings.minRtrAdvInterval;
       }
       //ipv6RouterAdvertManagedFlag object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertManagedFlag"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertManagedFlag") == 0)
       {
          //Value to be placed into the Managed Address Configuration flag
          //field in router advertisements sent from this interface
@@ -3446,7 +3446,7 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
          }
       }
       //ipv6RouterAdvertOtherConfigFlag object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertOtherConfigFlag"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertOtherConfigFlag") == 0)
       {
          //Value to be placed into the Other Configuration flag field in
          //router advertisements sent from this interface
@@ -3460,42 +3460,42 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
          }
       }
       //ipv6RouterAdvertLinkMTU object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertLinkMTU"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertLinkMTU") == 0)
       {
          //Value to be placed in the MTU option sent by the router on this
          //interface
          value->unsigned32 = routerAdvContext->settings.linkMtu;
       }
       //ipv6RouterAdvertReachableTime object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertReachableTime"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertReachableTime") == 0)
       {
          //Value to be placed in the Reachable Time field in router
          //advertisement messages sent from this interface
          value->unsigned32 = routerAdvContext->settings.reachableTime;
       }
       //ipv6RouterAdvertRetransmitTime object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertRetransmitTime"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertRetransmitTime") == 0)
       {
          //Value to be placed in the Retrans Timer field in router
          //advertisements sent from this interface
          value->unsigned32 = routerAdvContext->settings.retransTimer;
       }
       //ipv6RouterAdvertCurHopLimit object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertCurHopLimit"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertCurHopLimit") == 0)
       {
          //Value to be placed in the Cur Hop Limit field in router
          //advertisements sent from this interface
          value->unsigned32 = routerAdvContext->settings.curHopLimit;
       }
       //ipv6RouterAdvertDefaultLifetime object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertDefaultLifetime"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertDefaultLifetime") == 0)
       {
          //Value to be placed in the Router Lifetime field of router
          //advertisements sent from this interface
          value->unsigned32 = routerAdvContext->settings.defaultLifetime;
       }
       //ipv6RouterAdvertRowStatus object?
-      else if(!osStrcmp(object->name, "ipv6RouterAdvertRowStatus"))
+      else if(osStrcmp(object->name, "ipv6RouterAdvertRowStatus") == 0)
       {
          //Status of this conceptual row
          value->integer = MIB_ROW_STATUS_ACTIVE;
@@ -3640,22 +3640,22 @@ error_t ipMibGetIcmpStatsEntry(const MibObject *object, const uint8_t *oid,
    if(entry != NULL)
    {
       //icmpStatsInMsgs object?
-      if(!osStrcmp(object->name, "icmpStatsInMsgs"))
+      if(osStrcmp(object->name, "icmpStatsInMsgs") == 0)
       {
          value->counter32 = entry->icmpStatsInMsgs;
       }
       //icmpStatsInErrors object?
-      else if(!osStrcmp(object->name, "icmpStatsInErrors"))
+      else if(osStrcmp(object->name, "icmpStatsInErrors") == 0)
       {
          value->counter32 = entry->icmpStatsInErrors;
       }
       //icmpStatsOutMsgs object?
-      else if(!osStrcmp(object->name, "icmpStatsOutMsgs"))
+      else if(osStrcmp(object->name, "icmpStatsOutMsgs") == 0)
       {
          value->counter32 = entry->icmpStatsOutMsgs;
       }
       //icmpStatsOutErrors object?
-      else if(!osStrcmp(object->name, "icmpStatsOutErrors"))
+      else if(osStrcmp(object->name, "icmpStatsOutErrors") == 0)
       {
          value->counter32 = entry->icmpStatsOutErrors;
       }
@@ -3816,12 +3816,12 @@ error_t ipMibGetIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oid,
    if(entry != NULL)
    {
       //icmpMsgStatsInPkts object?
-      if(!osStrcmp(object->name, "icmpMsgStatsInPkts"))
+      if(osStrcmp(object->name, "icmpMsgStatsInPkts") == 0)
       {
          value->counter32 = entry->icmpMsgStatsInPkts[type];
       }
       //icmpMsgStatsOutPkts object?
-      else if(!osStrcmp(object->name, "icmpMsgStatsOutPkts"))
+      else if(osStrcmp(object->name, "icmpMsgStatsOutPkts") == 0)
       {
          value->counter32 = entry->icmpMsgStatsOutPkts[type];
       }

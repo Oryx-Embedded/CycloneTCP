@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _IPV6_H
@@ -100,6 +100,13 @@ struct _Ipv6PseudoHeader;
    #define IPV6_MULTICAST_FILTER_SIZE 8
 #elif (IPV6_MULTICAST_FILTER_SIZE < 1)
    #error IPV6_MULTICAST_FILTER_SIZE parameter is not valid
+#endif
+
+//Maximum number of multicast sources
+#ifndef IPV6_MAX_MULTICAST_SOURCES
+   #define IPV6_MAX_MULTICAST_SOURCES 0
+#elif (IPV6_MAX_MULTICAST_SOURCES < 0)
+   #error IPV6_MAX_MULTICAST_SOURCES parameter is not valid
 #endif
 
 //Version number for IPv6
@@ -208,9 +215,11 @@ typedef enum
 
 typedef enum
 {
-   IPV6_OPTION_TYPE_MASK = 0x1F,
-   IPV6_OPTION_TYPE_PAD1 = 0x00,
-   IPV6_OPTION_TYPE_PADN = 0x01
+   IPV6_OPTION_TYPE_MASK                 = 0x1F,
+   IPV6_OPTION_TYPE_PAD1                 = 0x00,
+   IPV6_OPTION_TYPE_PADN                 = 0x01,
+   PV6_OPTION_TUNNEL_ENCAPSULATION_LIMIT = 0x04,
+   IPV6_OPTION_TYPE_ROUTER_ALERT         = 0x05
 } Ipv6OptionType;
 
 
@@ -370,6 +379,18 @@ typedef __packed_struct
 
 
 /**
+ * @brief IPv6 Router Alert option
+ **/
+
+typedef __packed_struct
+{
+   uint8_t type;   //0
+   uint8_t length; //1
+   uint16_t value; //2-3
+} Ipv6RouterAlertOption;
+
+
+/**
  * @brief IPv6 pseudo header
  **/
 
@@ -441,16 +462,29 @@ typedef struct
 
 
 /**
+ * @brief Source address list
+ **/
+
+typedef struct
+{
+   uint_t numSources;                            ///<Number of source addresses
+#if (IPV6_MAX_MULTICAST_SOURCES > 0)
+   Ipv6Addr sources[IPV6_MAX_MULTICAST_SOURCES]; ///<Source addresses
+#endif
+} Ipv6SrcAddrList;
+
+
+/**
  * @brief IPv6 multicast filter entry
  **/
 
 typedef struct
 {
-   Ipv6Addr addr;   ///<Multicast address
-   uint_t refCount; ///<Reference count for the current entry
-   uint_t state;    ///<MLD node state
-   bool_t flag;     ///<MLD flag
-   systime_t timer; ///<Delay timer
+   Ipv6Addr addr;              ///<Multicast address
+   uint_t anySourceRefCount;   ///<Reference count for the current entry
+   bool_t macFilterConfigured; ///<MAC address filter is configured
+   uint_t srcFilterMode;       ///<Source filter mode
+   Ipv6SrcAddrList srcFilter;  ///<Source filter
 } Ipv6FilterEntry;
 
 
@@ -499,23 +533,35 @@ error_t ipv6SetLinkLocalAddr(NetInterface *interface, const Ipv6Addr *addr);
 error_t ipv6GetLinkLocalAddr(NetInterface *interface, Ipv6Addr *addr);
 Ipv6AddrState ipv6GetLinkLocalAddrState(NetInterface *interface);
 
-error_t ipv6SetGlobalAddr(NetInterface *interface, uint_t index, const Ipv6Addr *addr);
-error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index, Ipv6Addr *addr);
+error_t ipv6SetGlobalAddr(NetInterface *interface, uint_t index,
+   const Ipv6Addr *addr);
+
+error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index,
+   Ipv6Addr *addr);
+
 Ipv6AddrState ipv6GetGlobalAddrState(NetInterface *interface, uint_t index);
 
-error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index, const Ipv6Addr *addr);
-error_t ipv6GetAnycastAddr(NetInterface *interface, uint_t index, Ipv6Addr *addr);
+error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index,
+   const Ipv6Addr *addr);
 
-error_t ipv6SetPrefix(NetInterface *interface,
-   uint_t index, const Ipv6Addr *prefix, uint_t length);
+error_t ipv6GetAnycastAddr(NetInterface *interface, uint_t index,
+   Ipv6Addr *addr);
 
-error_t ipv6GetPrefix(NetInterface *interface,
-   uint_t index, Ipv6Addr *prefix, uint_t *length);
+error_t ipv6SetPrefix(NetInterface *interface, uint_t index,
+   const Ipv6Addr *prefix, uint_t length);
 
-error_t ipv6SetDefaultRouter(NetInterface *interface, uint_t index, const Ipv6Addr *addr);
-error_t ipv6GetDefaultRouter(NetInterface *interface, uint_t index, Ipv6Addr *addr);
+error_t ipv6GetPrefix(NetInterface *interface, uint_t index, Ipv6Addr *prefix,
+   uint_t *length);
 
-error_t ipv6SetDnsServer(NetInterface *interface, uint_t index, const Ipv6Addr *addr);
+error_t ipv6SetDefaultRouter(NetInterface *interface, uint_t index,
+   const Ipv6Addr *addr);
+
+error_t ipv6GetDefaultRouter(NetInterface *interface, uint_t index,
+   Ipv6Addr *addr);
+
+error_t ipv6SetDnsServer(NetInterface *interface, uint_t index,
+   const Ipv6Addr *addr);
+
 error_t ipv6GetDnsServer(NetInterface *interface, uint_t index, Ipv6Addr *addr);
 
 void ipv6LinkChangeEvent(NetInterface *interface);
@@ -523,14 +569,17 @@ void ipv6LinkChangeEvent(NetInterface *interface);
 void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    size_t ipPacketOffset, NetRxAncillary *ancillary);
 
-error_t ipv6ParseHopByHopOptHeader(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
+error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
+   const NetBuffer *ipPacket, size_t ipPacketOffset, size_t *headerOffset,
+   size_t *nextHeaderOffset);
 
-error_t ipv6ParseDestOptHeader(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
+error_t ipv6ParseDestOptHeader(NetInterface *interface,
+   const NetBuffer *ipPacket, size_t ipPacketOffset, size_t *headerOffset,
+   size_t *nextHeaderOffset);
 
-error_t ipv6ParseRoutingHeader(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
+error_t ipv6ParseRoutingHeader(NetInterface *interface,
+   const NetBuffer *ipPacket, size_t ipPacketOffset, size_t *headerOffset,
+   size_t *nextHeaderOffset);
 
 error_t ipv6ParseAhHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
@@ -549,8 +598,11 @@ error_t ipv6SendPacket(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, uint32_t fragId, size_t fragOffset,
    NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-error_t ipv6JoinMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
-error_t ipv6LeaveMulticastGroup(NetInterface *interface, const Ipv6Addr *groupAddr);
+error_t ipv6FormatHopByHopOptHeader(uint8_t *nextHeader, NetBuffer *buffer,
+   size_t *offset);
+
+error_t ipv6FormatFragmentHeader(uint32_t fragId, size_t fragOffset,
+   uint8_t *nextHeader, NetBuffer *buffer, size_t *offset);
 
 error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr);
 char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str);

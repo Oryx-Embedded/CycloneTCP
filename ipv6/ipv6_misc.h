@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _IPV6_MISC_H
@@ -91,8 +91,6 @@ uint_t ipv6GetCommonPrefixLength(const Ipv6Addr *ipAddr1,
 
 error_t ipv6ComputeSolicitedNodeAddr(const Ipv6Addr *ipAddr,
    Ipv6Addr *solicitedNodeAddr);
-
-error_t ipv6MapMulticastAddrToMac(const Ipv6Addr *ipAddr, MacAddr *macAddr);
 
 void ipv6GenerateLinkLocalAddr(const Eui64 *interfaceId, Ipv6Addr *ipAddr);
 

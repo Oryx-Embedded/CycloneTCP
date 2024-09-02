@@ -30,7 +30,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -367,19 +367,19 @@ error_t ssiProcessCommand(HttpConnection *connection,
    error_t error;
 
    //Include command found?
-   if(length > 7 && !osStrncasecmp(tag, "include", 7))
+   if(length > 7 && osStrncasecmp(tag, "include", 7) == 0)
    {
       //Process SSI include directive
       error = ssiProcessIncludeCommand(connection, tag, length, uri, level);
    }
    //Echo command found?
-   else if(length > 4 && !osStrncasecmp(tag, "echo", 4))
+   else if(length > 4 && osStrncasecmp(tag, "echo", 4) == 0)
    {
       //Process SSI echo directive
       error = ssiProcessEchoCommand(connection, tag, length);
    }
    //Exec command found?
-   else if(length > 4 && !osStrncasecmp(tag, "exec", 4))
+   else if(length > 4 && osStrncasecmp(tag, "exec", 4) == 0)
    {
       //Process SSI exec directive
       error = ssiProcessExecCommand(connection, tag, length);
@@ -470,7 +470,7 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
       return ERROR_INVALID_TAG;
 
    //The file parameter defines the included file as relative to the document path
-   if(!osStrcasecmp(attribute, "file"))
+   if(osStrcasecmp(attribute, "file") == 0)
    {
       //Allocate a buffer to hold the path to the file to be included
       path = osAllocMem(osStrlen(uri) + osStrlen(value) + 1);
@@ -494,7 +494,7 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
       }
    }
    //The virtual parameter defines the included file as relative to the document root
-   else if(!osStrcasecmp(attribute, "virtual"))
+   else if(osStrcasecmp(attribute, "virtual") == 0)
    {
       //Copy the absolute path
       path = strDuplicate(value);
@@ -644,73 +644,73 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
    }
 
    //Enforce attribute name
-   if(osStrcasecmp(attribute, "var"))
+   if(osStrcasecmp(attribute, "var") != 0)
       return ERROR_INVALID_TAG;
 
    //Remote address?
-   if(!osStrcasecmp(value, "REMOTE_ADDR"))
+   if(osStrcasecmp(value, "REMOTE_ADDR") == 0)
    {
       //The IP address of the host making this request
       ipAddrToString(&connection->socket->remoteIpAddr, connection->buffer);
    }
    //Remote port?
-   else if(!osStrcasecmp(value, "REMOTE_PORT"))
+   else if(osStrcasecmp(value, "REMOTE_PORT") == 0)
    {
       //The port number used by the remote host when making this request
       osSprintf(connection->buffer, "%" PRIu16, connection->socket->remotePort);
    }
    //Server address?
-   else if(!osStrcasecmp(value, "SERVER_ADDR"))
+   else if(osStrcasecmp(value, "SERVER_ADDR") == 0)
    {
       //The IP address of the server for this URL
       ipAddrToString(&connection->socket->localIpAddr, connection->buffer);
    }
    //Server port?
-   else if(!osStrcasecmp(value, "SERVER_PORT"))
+   else if(osStrcasecmp(value, "SERVER_PORT") == 0)
    {
       //The port number on this server to which this request was directed
       osSprintf(connection->buffer, "%" PRIu16, connection->socket->localPort);
    }
    //Request method?
-   else if(!osStrcasecmp(value, "REQUEST_METHOD"))
+   else if(osStrcasecmp(value, "REQUEST_METHOD") == 0)
    {
       //The method used for this HTTP request
       osStrcpy(connection->buffer, connection->request.method);
    }
    //Document root?
-   else if(!osStrcasecmp(value, "DOCUMENT_ROOT"))
+   else if(osStrcasecmp(value, "DOCUMENT_ROOT") == 0)
    {
       //The root directory
       osStrcpy(connection->buffer, connection->settings->rootDirectory);
    }
    //Document URI?
-   else if(!osStrcasecmp(value, "DOCUMENT_URI"))
+   else if(osStrcasecmp(value, "DOCUMENT_URI") == 0)
    {
       //The URI for this request relative to the root directory
       osStrcpy(connection->buffer, connection->request.uri);
    }
    //Document name?
-   else if(!osStrcasecmp(value, "DOCUMENT_NAME"))
+   else if(osStrcasecmp(value, "DOCUMENT_NAME") == 0)
    {
       //The full physical path and filename of the document requested
       httpGetAbsolutePath(connection, connection->request.uri,
          connection->buffer, HTTP_SERVER_BUFFER_SIZE);
    }
    //Query string?
-   else if(!osStrcasecmp(value, "QUERY_STRING"))
+   else if(osStrcasecmp(value, "QUERY_STRING") == 0)
    {
       //The information following the "?" in the URL for this request
       osStrcpy(connection->buffer, connection->request.queryString);
    }
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    //User name?
-   else if(!osStrcasecmp(value, "AUTH_USER"))
+   else if(osStrcasecmp(value, "AUTH_USER") == 0)
    {
       //The username provided by the user to the server
       osStrcpy(connection->buffer, connection->request.auth.user);
    }
    //Authentication method?
-   else if(!osStrcasecmp(value, "AUTH_TYPE"))
+   else if(osStrcasecmp(value, "AUTH_TYPE") == 0)
    {
       //Check the authentication method used in this request
       if(connection->request.auth.mode == HTTP_AUTH_MODE_BASIC)
@@ -728,13 +728,13 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
    }
 #endif
    //GMT time?
-   else if(!osStrcasecmp(value, "DATE_GMT"))
+   else if(osStrcasecmp(value, "DATE_GMT") == 0)
    {
       //The current date and time in Greenwich Mean Time
       connection->buffer[0] = '\0';
    }
    //Local time?
-   else if(!osStrcasecmp(value, "DATE_LOCAL"))
+   else if(osStrcasecmp(value, "DATE_LOCAL") == 0)
    {
       //The current date and time in the local timezone
       connection->buffer[0] = '\0';
@@ -825,8 +825,9 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag,
    }
 
    //Enforce attribute name
-   if(osStrcasecmp(attribute, "cgi") && osStrcasecmp(attribute, "cmd") &&
-      osStrcasecmp(attribute, "cmd_argument"))
+   if(osStrcasecmp(attribute, "cgi") != 0 &&
+      osStrcasecmp(attribute, "cmd") != 0 &&
+      osStrcasecmp(attribute, "cmd_argument") != 0)
    {
       return ERROR_INVALID_TAG;
    }

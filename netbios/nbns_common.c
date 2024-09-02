@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -92,14 +92,12 @@ void nbnsProcessMessage(NetInterface *interface,
    //Retrieve the length of the NBNS message
    length = netBufferGetLength(buffer) - offset;
 
-   //Ensure the NBNS message is valid
+   //Malformed NBNS message?
    if(length < sizeof(NbnsHeader))
-      return;
-   if(length > DNS_MESSAGE_MAX_SIZE)
       return;
 
    //Point to the NBNS message header
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;

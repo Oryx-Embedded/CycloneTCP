@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -370,6 +370,7 @@ error_t lldpStop(LldpAgentContext *context)
    //Check whether the LLDP agent is running
    if(context->running)
    {
+#if (NET_RTOS_SUPPORT == ENABLED)
       //Stop the LLDP agent
       context->stop = TRUE;
       //Send a signal to the task to abort any blocking operation
@@ -380,6 +381,7 @@ error_t lldpStop(LldpAgentContext *context)
       {
          osDelayTask(1);
       }
+#endif
 
       //Remove the LLDP multicast address from the static MAC table
       lldpDropMulticastAddr(context);

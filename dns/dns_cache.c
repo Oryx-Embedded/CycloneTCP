@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL DNS_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
 #include "core/net.h"
 #include "dns/dns_cache.h"
 #include "dns/dns_client.h"
@@ -209,7 +208,7 @@ DnsCacheEntry *dnsFindEntry(NetInterface *interface,
          continue;
 
       //Does the entry match the specified domain name?
-      if(name == NULL || !osStrcasecmp(entry->name, name))
+      if(name == NULL || osStrcasecmp(entry->name, name) == 0)
          return entry;
    }
 

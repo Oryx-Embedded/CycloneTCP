@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -249,7 +249,7 @@ error_t lldpMibGetLldpStatsTxPortEntry(const MibObject *object, const uint8_t *o
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpStatsTxPortFramesTotal object?
-   if(!strcmp(object->name, "lldpStatsTxPortFramesTotal"))
+   if(osStrcmp(object->name, "lldpStatsTxPortFramesTotal") == 0)
    {
       //This object indicates the number of LLDP frames transmitted by this
       //LLDP agent on the indicated port
@@ -395,7 +395,7 @@ error_t lldpMibGetLldpStatsRxPortEntry(const MibObject *object, const uint8_t *o
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpStatsRxPortFramesDiscardedTotal object?
-   if(!strcmp(object->name, "lldpStatsRxPortFramesDiscardedTotal"))
+   if(osStrcmp(object->name, "lldpStatsRxPortFramesDiscardedTotal") == 0)
    {
       //This object indicates the number of LLDP frames received by this LLDP
       //agent on the indicated port, and then discarded for any reason
@@ -403,7 +403,7 @@ error_t lldpMibGetLldpStatsRxPortEntry(const MibObject *object, const uint8_t *o
          lldpStatsRxPortNum, &counter);
    }
    //lldpStatsRxPortFramesErrors object?
-   else if(!strcmp(object->name, "lldpStatsRxPortFramesErrors"))
+   else if(osStrcmp(object->name, "lldpStatsRxPortFramesErrors") == 0)
    {
       //This object indicates the number of invalid LLDP frames received by
       //this LLDP agent on the indicated port, while this LLDP agent is enabled
@@ -411,7 +411,7 @@ error_t lldpMibGetLldpStatsRxPortEntry(const MibObject *object, const uint8_t *o
          lldpStatsRxPortNum, &counter);
    }
    //lldpStatsRxPortFramesTotal object?
-   else if(!strcmp(object->name, "lldpStatsRxPortFramesTotal"))
+   else if(osStrcmp(object->name, "lldpStatsRxPortFramesTotal") == 0)
    {
       //This object indicates the number of valid LLDP frames received by this
       //LLDP agent on the indicated port, while this LLDP agent is enabled
@@ -419,7 +419,7 @@ error_t lldpMibGetLldpStatsRxPortEntry(const MibObject *object, const uint8_t *o
          lldpStatsRxPortNum, &counter);
    }
    //lldpStatsRxPortTLVsDiscardedTotal object?
-   else if(!strcmp(object->name, "lldpStatsRxPortTLVsDiscardedTotal"))
+   else if(osStrcmp(object->name, "lldpStatsRxPortTLVsDiscardedTotal") == 0)
    {
       //This object indicates the number of LLDP TLVs discarded for any reason
       //by this LLDP agent on the indicated port
@@ -427,7 +427,7 @@ error_t lldpMibGetLldpStatsRxPortEntry(const MibObject *object, const uint8_t *o
          lldpStatsRxPortNum, &counter);
    }
    //lldpStatsRxPortTLVsUnrecognizedTotal object?
-   else if(!strcmp(object->name, "lldpStatsRxPortTLVsUnrecognizedTotal"))
+   else if(osStrcmp(object->name, "lldpStatsRxPortTLVsUnrecognizedTotal") == 0)
    {
       //This object indicates the number of LLDP TLVs received on the given
       //port that are not recognized by this LLDP agent
@@ -435,7 +435,7 @@ error_t lldpMibGetLldpStatsRxPortEntry(const MibObject *object, const uint8_t *o
          lldpStatsRxPortNum, &counter);
    }
    //lldpStatsRxPortAgeoutsTotal object?
-   else if(!strcmp(object->name, "lldpStatsRxPortAgeoutsTotal"))
+   else if(osStrcmp(object->name, "lldpStatsRxPortAgeoutsTotal") == 0)
    {
       //This object indicates the number of age-outs that occurred on a given
       //port. An age-out is the number of times the complete set of information

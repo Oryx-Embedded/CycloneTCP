@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -210,7 +210,7 @@ error_t nbnsSendQuery(DnsCacheEntry *entry)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the NBNS header
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Format NBNS query message
    message->id = htons(entry->id);
@@ -253,16 +253,22 @@ error_t nbnsSendQuery(DnsCacheEntry *entry)
    //Dump message
    dnsDumpMessage((DnsHeader *) message, length);
 
-   //The destination address is the broadcast address
+   //NBNS only supports IPv4
    destIpAddr.length = sizeof(Ipv4Addr);
-   ipv4GetBroadcastAddr(entry->interface, &destIpAddr.ipv4Addr);
 
-   //Additional options can be passed to the stack along with the packet
-   ancillary = NET_DEFAULT_TX_ANCILLARY;
+   //The destination address is the broadcast address
+   error = ipv4GetBroadcastAddr(entry->interface, &destIpAddr.ipv4Addr);
 
-   //A request packet is always sent to the well known port 137
-   error = udpSendBuffer(entry->interface, NULL, NBNS_PORT, &destIpAddr,
-      NBNS_PORT, buffer, offset, &ancillary);
+   //Check status code
+   if(!error)
+   {
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+      //A request packet is always sent to the well known port 137
+      error = udpSendBuffer(entry->interface, NULL, NBNS_PORT, &destIpAddr,
+         NBNS_PORT, buffer, offset, &ancillary);
+   }
 
    //Free previously allocated memory
    netBufferFree(buffer);

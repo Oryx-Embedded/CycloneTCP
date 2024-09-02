@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -445,7 +445,7 @@ error_t papSendAuthReq(PppContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Authenticate-Request packet
-   authReqPacket = netBufferAt(buffer, offset);
+   authReqPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    authReqPacket->code = PAP_CODE_AUTH_REQ;
@@ -485,6 +485,7 @@ error_t papSendAuthReq(PppContext *context)
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -515,7 +516,7 @@ error_t papSendAuthAck(PppContext *context, uint8_t identifier)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Authenticate-Ack packet
-   authAckPacket = netBufferAt(buffer, offset);
+   authAckPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    authAckPacket->code = PAP_CODE_AUTH_ACK;
@@ -536,6 +537,7 @@ error_t papSendAuthAck(PppContext *context, uint8_t identifier)
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -566,7 +568,7 @@ error_t papSendAuthNak(PppContext *context, uint8_t identifier)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Authenticate-Nak packet
-   authNakPacket = netBufferAt(buffer, offset);
+   authNakPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    authNakPacket->code = PAP_CODE_AUTH_NAK;
@@ -587,6 +589,7 @@ error_t papSendAuthNak(PppContext *context, uint8_t identifier)
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }

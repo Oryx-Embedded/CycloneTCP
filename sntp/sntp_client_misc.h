@@ -1,5 +1,5 @@
 /**
- * @file sntp_client.h
+ * @file sntp_client_misc.h
  * @brief Helper functions for SNTP client
  *
  * @section License
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _SNTP_CLIENT_MISC_H
@@ -55,9 +55,6 @@ error_t sntpClientParseResponse(SntpClientContext *context,
    NtpTimestamp *timestamp);
 
 error_t sntpClientCheckTimeout(SntpClientContext *context);
-
-void sntpClientDumpMessage(const uint8_t *message, size_t length);
-void sntpClientDumpTimestamp(const NtpTimestamp *timestamp);
 
 //C++ guard
 #ifdef __cplusplus

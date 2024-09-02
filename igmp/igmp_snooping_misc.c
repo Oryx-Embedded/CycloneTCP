@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -84,6 +84,12 @@ void igmpSnoopingProcessMessage(IgmpSnoopingContext *context,
       igmpSnoopingProcessMembershipReport(context, pseudoHeader, message,
          length, ancillary);
    }
+   else if(message->type == IGMP_TYPE_MEMBERSHIP_REPORT_V3)
+   {
+      //Process Version 3 Membership Report message
+      igmpSnoopingProcessMembershipReportV3(context, pseudoHeader,
+         (IgmpMembershipReportV3 *) message, length, ancillary);
+   }
    else if(message->type == IGMP_TYPE_LEAVE_GROUP)
    {
       //Process Leave Group message
@@ -130,17 +136,38 @@ void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
    //Point to snooping switch port
    port = &context->ports[ancillary->port - 1];
 
-   //IGMPv1 or IGMPv2 Membership Query message?
-   if(message->maxRespTime == 0)
+   //The IGMP version of a Membership Query message is determined as follows
+   if(length == sizeof(IgmpMessage) && message->maxRespTime == 0)
    {
       //The maximum response time is 10 seconds by default
       maxRespTime = IGMP_V1_MAX_RESPONSE_TIME;
    }
-   else
+   else if(length == sizeof(IgmpMessage) && message->maxRespTime != 0)
    {
       //The Max Resp Time field specifies the maximum time allowed before
-      //sending a responding report
+      //sending a responding report (in units of 1/10 second)
       maxRespTime = message->maxRespTime * 100;
+   }
+   else if(length >= sizeof(IgmpMembershipQueryV3))
+   {
+      //The Max Resp Code field specifies the maximum time allowed before
+      //sending a responding report
+      if(message->maxRespTime < 128)
+      {
+         //The time is represented in units of 1/10 second
+         maxRespTime = message->maxRespTime * 100;
+      }
+      else
+      {
+         //Max Resp Code represents a floating-point value
+         maxRespTime = igmpDecodeFloatingPointValue(message->maxRespTime) * 100;
+      }
+   }
+   else
+   {
+      //Query messages that do not match any of the above conditions must be
+      //silently ignored (refer to RFC 3376, section 7.1)
+      return;
    }
 
    //A switch supporting IGMP snooping must maintain a list of multicast
@@ -155,15 +182,15 @@ void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
          //Update the list of router ports
          port->routerPresent = TRUE;
 
-         //The snooping switch must update its forwarding table when the list of
-         //router ports has changed
+         //The snooping switch must update its forwarding table when the list
+         //of router ports has changed
          for(i = 0; i < context->numGroups; i++)
          {
             //Point to the current group
             group = &context->groups[i];
 
-            //Check whether there are hosts on the network which have sent reports
-            //for this multicast group
+            //Check whether there are hosts on the network which have sent
+            //reports for this multicast group
             if(group->state != IGMP_SNOOPING_GROUP_STATE_NO_MEMBERS_PRESENT)
             {
                //Update the corresponding entry in forwarding table
@@ -203,7 +230,7 @@ void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
             group->addr == message->groupAddr)
          {
             //Set the timer to [Max Response Time] * [Last Member Query Count]
-            netStartTimer(&group->timer, maxRespTime * 100 *
+            netStartTimer(&group->timer, maxRespTime *
                IGMP_LAST_MEMBER_QUERY_COUNT);
 
             //Switch to the "Checking Membership" state
@@ -254,7 +281,8 @@ void igmpSnoopingProcessMembershipReport(IgmpSnoopingContext *context,
    if(group == NULL)
    {
       //Create a new multicast group
-      group = igmpSnoopingCreateGroup(context, message->groupAddr, ancillary->port);
+      group = igmpSnoopingCreateGroup(context, message->groupAddr,
+         ancillary->port);
    }
 
    //Valid multicast group?
@@ -277,7 +305,8 @@ void igmpSnoopingProcessMembershipReport(IgmpSnoopingContext *context,
       portMap = ((1 << context->numPorts) - 1);
    }
 
-   //Prevent the message from being forwarded to the port on which it arrived
+   //Prevent the message from being forwarded back to the port on which it was
+   //originally received
    portMap &= ~(1 << (ancillary->port - 1));
 
    //Forward the IGMP message
@@ -285,6 +314,134 @@ void igmpSnoopingProcessMembershipReport(IgmpSnoopingContext *context,
    {
       igmpSnoopingForwardMessage(context, portMap, &ancillary->destMacAddr,
          pseudoHeader, message, length);
+   }
+}
+
+
+/**
+ * @brief Process incoming Version 3 Membership Report message
+ * @param[in] context Pointer to the IGMP snooping switch context
+ * @param[in] pseudoHeader IPv4 pseudo header
+ * @param[in] message Pointer to the incoming IGMP message
+ * @param[in] length Length of the IGMP message, in bytes
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
+ **/
+
+void igmpSnoopingProcessMembershipReportV3(IgmpSnoopingContext *context,
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMembershipReportV3 *message,
+   size_t length, const NetRxAncillary *ancillary)
+{
+   size_t i;
+   size_t n;
+   size_t recordLen;
+   uint_t k;
+   uint_t numRecords;
+   uint32_t portMap;
+   IgmpSnoopingGroup *group;
+   const IgmpGroupRecord *record;
+
+   //Malformed Membership Report message?
+   if(length < sizeof(IgmpMembershipReportV3))
+      return;
+
+   //Get the length occupied by the group records
+   n = length - sizeof(IgmpMembershipReportV3);
+
+   //The Number of Group Records field specifies how many Group Records are
+   //present in this Report
+   numRecords = ntohs(message->numOfGroupRecords);
+
+   //It is encouraged that snooping switches at least recognize and process
+   //IGMPv3 Join Reports, even if this processing is limited to the behavior
+   //for IGMPv2 Joins (refer to RFC 4541, section 2.1.2)
+   for(i = 0, k = 0; i < n && k < numRecords; i += recordLen, k++)
+   {
+      //Malformed Membership Report message?
+      if((i + sizeof(IgmpGroupRecord)) > n)
+         break;
+
+      //Point to the current group record
+      record = (IgmpGroupRecord *) (message->groupRecords + i);
+
+      //Determine the length of the group record
+      recordLen = sizeof(IgmpGroupRecord) + record->auxDataLen +
+         ntohs(record->numOfSources) * sizeof(Ipv4Addr);
+
+      //Malformed Membership Report message?
+      if((i + recordLen) > n)
+         break;
+
+      //The Multicast Address field contains the IP multicast address to which
+      //this Group Record pertains
+      group = igmpSnoopingFindGroup(context, record->multicastAddr,
+         ancillary->port);
+
+      //Check group record type
+      if(record->recordType == IGMP_GROUP_RECORD_TYPE_TO_IN &&
+         record->numOfSources == 0)
+      {
+         //Ignore Leave Group messages for which there are no group members
+         if(group->state == IGMP_SNOOPING_GROUP_STATE_MEMBERS_PRESENT)
+         {
+            //The Last Member Query Time represents the  "leave latency", or the
+            //difference between the transmission of a membership change and the
+            //change in the information given to the routing protocol
+            netStartTimer(&group->timer, context->lastMemberQueryTime);
+
+            //Switch to the "Checking Membership" state
+            group->state = IGMP_SNOOPING_GROUP_STATE_CHECKING_MEMBERSHIP;
+         }
+      }
+      else if(record->recordType == IGMP_GROUP_RECORD_TYPE_IS_IN ||
+         record->recordType == IGMP_GROUP_RECORD_TYPE_IS_EX ||
+         record->recordType == IGMP_GROUP_RECORD_TYPE_TO_IN ||
+         record->recordType == IGMP_GROUP_RECORD_TYPE_TO_EX ||
+         record->recordType == IGMP_GROUP_RECORD_TYPE_ALLOW)
+      {
+         //First report received for this multicast group?
+         if(group == NULL)
+         {
+            //Create a new multicast group
+            group = igmpSnoopingCreateGroup(context, record->multicastAddr,
+               ancillary->port);
+         }
+
+         //Valid multicast group?
+         if(group != NULL)
+         {
+            //Start timer
+            netStartTimer(&group->timer, IGMP_GROUP_MEMBERSHIP_INTERVAL);
+            //Switch to the "Members Present" state
+            group->state = IGMP_SNOOPING_GROUP_STATE_MEMBERS_PRESENT;
+         }
+      }
+      else
+      {
+         //Just for sanity
+      }
+   }
+
+   //A snooping switch should forward IGMP Membership Reports only to ports
+   //where multicast routers are attached (refer to RFC 4541, section 2.1.1)
+   portMap = igmpSnoopingGetRouterPorts(context);
+
+   //An administrative control may be provided to override this restriction,
+   //allowing the report messages to be flooded to other ports
+   if(context->floodReports)
+   {
+      portMap = ((1 << context->numPorts) - 1);
+   }
+
+   //Prevent the message from being forwarded back to the port on which it was
+   //originally received
+   portMap &= ~(1 << (ancillary->port - 1));
+
+   //Forward the IGMP message
+   if(portMap != 0)
+   {
+      igmpSnoopingForwardMessage(context, portMap, &ancillary->destMacAddr,
+         pseudoHeader, (IgmpMessage *) message, length);
    }
 }
 
@@ -549,7 +706,7 @@ void igmpSnoopingDeleteGroup(IgmpSnoopingContext *context,
 /**
  * @brief Enable IGMP monitoring
  * @param[in] context Pointer to the IGMP snooping switch context
- * @param[in] enable Enable or disable MLD monitoring
+ * @param[in] enable Enable or disable IGMP monitoring
  **/
 
 void igmpSnoopingEnableMonitoring(IgmpSnoopingContext *context, bool_t enable)

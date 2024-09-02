@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -46,8 +46,9 @@
 #include "core/raw_socket.h"
 #include "ipv4/arp_cache.h"
 #include "ipv4/ipv4.h"
-#include "ipv4/ipv4_misc.h"
+#include "ipv4/ipv4_multicast.h"
 #include "ipv4/ipv4_routing.h"
+#include "ipv4/ipv4_misc.h"
 #include "ipv4/icmp.h"
 #include "ipv4/auto_ip_misc.h"
 #include "igmp/igmp_host.h"
@@ -239,7 +240,8 @@ error_t ipv4GetHostAddr(NetInterface *interface, Ipv4Addr *addr)
  * @return Error code
  **/
 
-error_t ipv4GetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr *addr)
+error_t ipv4GetHostAddrEx(NetInterface *interface, uint_t index,
+   Ipv4Addr *addr)
 {
    Ipv4AddrEntry *entry;
 
@@ -304,7 +306,8 @@ error_t ipv4SetSubnetMask(NetInterface *interface, Ipv4Addr mask)
  * @return Error code
  **/
 
-error_t ipv4SetSubnetMaskEx(NetInterface *interface, uint_t index, Ipv4Addr mask)
+error_t ipv4SetSubnetMaskEx(NetInterface *interface, uint_t index,
+   Ipv4Addr mask)
 {
    //Check parameters
    if(interface == NULL)
@@ -348,7 +351,8 @@ error_t ipv4GetSubnetMask(NetInterface *interface, Ipv4Addr *mask)
  * @return Error code
  **/
 
-error_t ipv4GetSubnetMaskEx(NetInterface *interface, uint_t index, Ipv4Addr *mask)
+error_t ipv4GetSubnetMaskEx(NetInterface *interface, uint_t index,
+   Ipv4Addr *mask)
 {
    //Check parameters
    if(interface == NULL || mask == NULL)
@@ -694,10 +698,12 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
       }
       else
 #endif
-#if (IGMP_ROUTER_SUPPORT == ENABLED && IPV4_ROUTING_SUPPORT == ENABLED)
-      //Trap multicast packets
+      //Multicast packet?
       if(ipv4IsMulticastAddr(packet->destAddr))
       {
+#if defined(IPV4_PACKET_FORWARD_HOOK)
+         IPV4_PACKET_FORWARD_HOOK(interface, packet, length);
+#elif (IPV4_ROUTING_SUPPORT == ENABLED)
          NetBuffer1 buffer;
 
          //Unfragmented datagrams fit in a single chunk
@@ -708,12 +714,12 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
 
          //Forward the multicast packet
          ipv4ForwardPacket(interface, (NetBuffer *) &buffer, 0);
-
-         //Destination address filtering
-         error = ipv4CheckDestAddr(interface, packet->destAddr);
+#endif
+         //Multicast address filtering
+         error = ipv4MulticastFilter(interface, packet->destAddr,
+            packet->srcAddr);
       }
       else
-#endif
       {
          //Destination address filtering
          error = ipv4CheckDestAddr(interface, packet->destAddr);
@@ -828,7 +834,7 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    length = netBufferGetLength(buffer) - offset;
 
    //Point to the IPv4 header
-   header = netBufferAt(buffer, offset);
+   header = netBufferAt(buffer, offset, 0);
    //Sanity check
    if(header == NULL)
       return;
@@ -1112,13 +1118,13 @@ error_t ipv4SendPacket(NetInterface *interface,
    if(offset < sizeof(Ipv4Header))
       return ERROR_INVALID_PARAMETER;
 
-   //Make room for the header
+   //Make room for the IPv4 header
    offset -= sizeof(Ipv4Header);
    //Calculate the size of the entire packet, including header and data
    length = netBufferGetLength(buffer) - offset;
 
    //Point to the IPv4 header
-   packet = netBufferAt(buffer, offset);
+   packet = netBufferAt(buffer, offset, 0);
 
    //Format IPv4 header
    packet->version = IPV4_VERSION;
@@ -1146,7 +1152,7 @@ error_t ipv4SendPacket(NetInterface *interface,
    {
       //Any IP datagram so marked is not to be fragmented under any
       //circumstances (refer to RFC791, section 2.3)
-      packet->fragmentOffset |= HTONS(IPV4_FLAG_DF); 
+      packet->fragmentOffset |= HTONS(IPV4_FLAG_DF);
    }
 
    //Check whether the TTL value is zero
@@ -1349,191 +1355,6 @@ error_t ipv4SendPacket(NetInterface *interface,
 
    //Return status code
    return error;
-}
-
-
-/**
- * @brief Join the specified host group
- * @param[in] interface Underlying network interface
- * @param[in] groupAddr IPv4 address identifying the host group to join
- * @return Error code
- **/
-
-error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
-{
-   error_t error;
-   uint_t i;
-   Ipv4FilterEntry *entry;
-   Ipv4FilterEntry *firstFreeEntry;
-#if (ETH_SUPPORT == ENABLED)
-   NetInterface *physicalInterface;
-   MacAddr macAddr;
-#endif
-
-   //The IPv4 address must be a valid multicast address
-   if(!ipv4IsMulticastAddr(groupAddr))
-      return ERROR_INVALID_ADDRESS;
-
-#if (ETH_SUPPORT == ENABLED)
-   //Point to the physical interface
-   physicalInterface = nicGetPhysicalInterface(interface);
-#endif
-
-   //Initialize error code
-   error = NO_ERROR;
-   //Keep track of the first free entry
-   firstFreeEntry = NULL;
-
-   //Go through the multicast filter table
-   for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
-   {
-      //Point to the current entry
-      entry = &interface->ipv4Context.multicastFilter[i];
-
-      //Valid entry?
-      if(entry->refCount > 0)
-      {
-         //Check whether the table already contains the specified IPv4 address
-         if(entry->addr == groupAddr)
-         {
-            //Increment the reference count
-            entry->refCount++;
-            //Successful processing
-            return NO_ERROR;
-         }
-      }
-      else
-      {
-         //Keep track of the first free entry
-         if(firstFreeEntry == NULL)
-            firstFreeEntry = entry;
-      }
-   }
-
-   //Check whether the multicast filter table is full
-   if(firstFreeEntry == NULL)
-   {
-      //A new entry cannot be added
-      return ERROR_FAILURE;
-   }
-
-#if (ETH_SUPPORT == ENABLED)
-   //Map the IPv4 multicast address to a MAC-layer address
-   ipv4MapMulticastAddrToMac(groupAddr, &macAddr);
-   //Add the corresponding address to the MAC filter table
-   error = ethAcceptMacAddr(interface, &macAddr);
-
-   //Check status code
-   if(!error)
-   {
-      //Virtual interface?
-      if(interface != physicalInterface)
-      {
-         //Configure the physical interface to accept the MAC address
-         error = ethAcceptMacAddr(physicalInterface, &macAddr);
-
-         //Any error to report?
-         if(error)
-         {
-            //Clean up side effects
-            ethDropMacAddr(interface, &macAddr);
-         }
-      }
-   }
-#endif
-
-   //MAC filter table successfully updated?
-   if(!error)
-   {
-      //Now we can safely add a new entry to the table
-      firstFreeEntry->addr = groupAddr;
-      //Initialize the reference count
-      firstFreeEntry->refCount = 1;
-
-#if (IGMP_HOST_SUPPORT == ENABLED)
-      //Report multicast group membership to the router
-      igmpHostJoinGroup(interface, firstFreeEntry);
-#endif
-   }
-
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Leave the specified host group
- * @param[in] interface Underlying network interface
- * @param[in] groupAddr IPv4 address identifying the host group to leave
- * @return Error code
- **/
-
-error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr)
-{
-   uint_t i;
-   Ipv4FilterEntry *entry;
-#if (ETH_SUPPORT == ENABLED)
-   NetInterface *physicalInterface;
-   MacAddr macAddr;
-#endif
-
-   //The IPv4 address must be a valid multicast address
-   if(!ipv4IsMulticastAddr(groupAddr))
-      return ERROR_INVALID_ADDRESS;
-
-#if (ETH_SUPPORT == ENABLED)
-   //Point to the physical interface
-   physicalInterface = nicGetPhysicalInterface(interface);
-#endif
-
-   //Go through the multicast filter table
-   for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
-   {
-      //Point to the current entry
-      entry = &interface->ipv4Context.multicastFilter[i];
-
-      //Valid entry?
-      if(entry->refCount > 0)
-      {
-         //Specified IPv4 address found?
-         if(entry->addr == groupAddr)
-         {
-            //Decrement the reference count
-            entry->refCount--;
-
-            //Remove the entry if the reference count drops to zero
-            if(entry->refCount == 0)
-            {
-#if (IGMP_HOST_SUPPORT == ENABLED)
-               //Report group membership termination
-               igmpHostLeaveGroup(interface, entry);
-#endif
-#if (ETH_SUPPORT == ENABLED)
-               //Map the IPv4 multicast address to a MAC-layer address
-               ipv4MapMulticastAddrToMac(groupAddr, &macAddr);
-               //Drop the corresponding address from the MAC filter table
-               ethDropMacAddr(interface, &macAddr);
-
-               //Virtual interface?
-               if(interface != physicalInterface)
-               {
-                  //Drop the corresponding address from the MAC filter table of
-                  //the physical interface
-                  ethDropMacAddr(physicalInterface, &macAddr);
-               }
-#endif
-               //Remove the multicast address from the list
-               entry->addr = IPV4_UNSPECIFIED_ADDR;
-            }
-
-            //Successful processing
-            return NO_ERROR;
-         }
-      }
-   }
-
-   //The specified IPv4 address does not exist
-   return ERROR_ADDRESS_NOT_FOUND;
 }
 
 

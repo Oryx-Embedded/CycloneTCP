@@ -35,14 +35,13 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL HTTP_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
 #include "core/net.h"
 #include "http/http_server.h"
 #include "http/http_server_auth.h"
@@ -1134,9 +1133,9 @@ error_t httpSendErrorResponse(HttpConnection *connection,
    length = osStrlen(template) + osStrlen(message) - 4;
 
    //Check whether the HTTP request has a body
-   if(osStrcasecmp(connection->request.method, "GET") &&
-      osStrcasecmp(connection->request.method, "HEAD") &&
-      osStrcasecmp(connection->request.method, "DELETE"))
+   if(osStrcasecmp(connection->request.method, "GET") != 0 &&
+      osStrcasecmp(connection->request.method, "HEAD") != 0 &&
+      osStrcasecmp(connection->request.method, "DELETE") != 0)
    {
       //Drop the HTTP request body and close the connection after sending
       //the HTTP response
@@ -1200,9 +1199,9 @@ error_t httpSendRedirectResponse(HttpConnection *connection,
    length = osStrlen(template) + 2 * osStrlen(uri) - 4;
 
    //Check whether the HTTP request has a body
-   if(osStrcasecmp(connection->request.method, "GET") &&
-      osStrcasecmp(connection->request.method, "HEAD") &&
-      osStrcasecmp(connection->request.method, "DELETE"))
+   if(osStrcasecmp(connection->request.method, "GET") != 0 &&
+      osStrcasecmp(connection->request.method, "HEAD") != 0 &&
+      osStrcasecmp(connection->request.method, "DELETE") != 0)
    {
       //Drop the HTTP request body and close the connection after sending
       //the HTTP response

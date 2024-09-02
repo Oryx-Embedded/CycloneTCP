@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -226,7 +226,7 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //tcpConnectionState object?
-   if(!osStrcmp(object->name, "tcpConnectionState"))
+   if(osStrcmp(object->name, "tcpConnectionState") == 0)
    {
       //Get object value
       switch(socket->state)
@@ -270,7 +270,7 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //tcpConnectionProcess object?
-   else if(!osStrcmp(object->name, "tcpConnectionProcess"))
+   else if(osStrcmp(object->name, "tcpConnectionProcess") == 0)
    {
       //ID of the process associated with this connection
       value->unsigned32 = 0;
@@ -530,7 +530,7 @@ error_t tcpMibGetTcpListenerEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //tcpListenerProcess object?
-   if(!osStrcmp(object->name, "tcpListenerProcess"))
+   if(osStrcmp(object->name, "tcpListenerProcess") == 0)
    {
       //ID of the process associated with this listener
       value->unsigned32 = 0;

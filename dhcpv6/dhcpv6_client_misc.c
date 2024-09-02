@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -278,7 +278,7 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the DHCPv6 message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Set DHCPv6 message type
    message->msgType = type;
@@ -438,6 +438,7 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -475,7 +476,7 @@ void dhcpv6ClientProcessMessage(NetInterface *interface,
       return;
 
    //Point to the beginning of the DHCPv6 message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;

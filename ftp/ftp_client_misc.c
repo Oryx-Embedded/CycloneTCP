@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -570,7 +570,7 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
          return ERROR_INVALID_SYNTAX;
 
       //Check whether the current entry is a directory
-      if(!osStrcmp(token, "<DIR>"))
+      if(osStrcmp(token, "<DIR>") == 0)
       {
          //Update attributes
          dirEntry->attributes |= FTP_FILE_ATTR_DIRECTORY;
@@ -648,7 +648,7 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       for(i = 1; i <= 12; i++)
       {
          //Compare month name
-         if(!osStrcmp(token, months[i]))
+         if(osStrcmp(token, months[i]) == 0)
          {
             //Save month number
             dirEntry->modified.month = i;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _IPV4_H
@@ -83,6 +83,13 @@ struct _Ipv4PseudoHeader;
    #define IPV4_MULTICAST_FILTER_SIZE 4
 #elif (IPV4_MULTICAST_FILTER_SIZE < 1)
    #error IPV4_MULTICAST_FILTER_SIZE parameter is not valid
+#endif
+
+//Maximum number of multicast sources
+#ifndef IPV4_MAX_MULTICAST_SOURCES
+   #define IPV4_MAX_MULTICAST_SOURCES 0
+#elif (IPV4_MAX_MULTICAST_SOURCES < 0)
+   #error IPV4_MAX_MULTICAST_SOURCES parameter is not valid
 #endif
 
 //Version number for IPv4
@@ -196,6 +203,29 @@ typedef enum
    IPV4_ADDR_STATE_TENTATIVE = 1, ///<An address whose uniqueness on a link is being verified
    IPV4_ADDR_STATE_VALID     = 2  ///<An address assigned to an interface whose use is unrestricted
 } Ipv4AddrState;
+
+
+/**
+ * @brief IPv4 type-of-service
+ **/
+
+typedef enum
+{
+   IPV4_TOS_PRECEDENCE_ROUTINE           = 0x00,
+   IPV4_TOS_PRECEDENCE_PRIORITY          = 0x20,
+   IPV4_TOS_PRECEDENCE_IMMEDIATE         = 0x40,
+   IPV4_TOS_PRECEDENCE_FLASH             = 0x60,
+   IPV4_TOS_PRECEDENCE_FLASH_OVERRIDE    = 0x80,
+   IPV4_TOS_PRECEDENCE_CRITIC_ECP        = 0xA0,
+   IPV4_TOS_PRECEDENCE_INTERNETWORK_CTRL = 0xC0,
+   IPV4_TOS_PRECEDENCE_NETWORK_CTRL      = 0xE0,
+   IPV4_TOS_NORMAL_DELAY                 = 0x00,
+   IPV4_TOS_LOW_DELAY                    = 0x10,
+   IPV4_TOS_NORMAL_THROUGHPUT            = 0x00,
+   IPV4_TOS_HIGH_THROUGHPUT              = 0x08,
+   IPV4_TOS_NORMAL_RELIBILITY            = 0x00,
+   IPV4_TOS_HIGH_RELIBILITY              = 0x04
+} Ipv4TypeOfService;
 
 
 /**
@@ -327,6 +357,18 @@ typedef __packed_struct
 } Ipv4Option;
 
 
+/**
+ * @brief IPv4 Router Alert option
+ **/
+
+typedef __packed_struct
+{
+   uint8_t type;    //0
+   uint8_t length;  //1
+   uint16_t value;  //2-3
+} Ipv4RouterAlertOption;
+
+
 //CC-RX, CodeWarrior or Win32 compiler?
 #if defined(__CCRX__)
    #pragma unpack
@@ -350,16 +392,29 @@ typedef struct
 
 
 /**
+ * @brief Source address list
+ **/
+
+typedef struct
+{
+   uint_t numSources;                            ///<Number of source addresses
+#if (IPV4_MAX_MULTICAST_SOURCES > 0)
+   Ipv4Addr sources[IPV4_MAX_MULTICAST_SOURCES]; ///<Source addresses
+#endif
+} Ipv4SrcAddrList;
+
+
+/**
  * @brief IPv4 multicast filter entry
  **/
 
 typedef struct
 {
-   Ipv4Addr addr;    ///<Multicast address
-   uint_t refCount;  ///<Reference count for the current entry
-   uint_t state;     ///<IGMP host state
-   bool_t flag;      ///<IGMP flag
-   systime_t timer;  ///<Delay timer
+   Ipv4Addr addr;              ///<Multicast address
+   uint_t anySourceRefCount;   ///<Reference count for the current entry
+   bool_t macFilterConfigured; ///<MAC address filter is configured
+   uint_t srcFilterMode;       ///<Source filter mode
+   Ipv4SrcAddrList srcFilter;  ///<Source filter
 } Ipv4FilterEntry;
 
 
@@ -392,12 +447,19 @@ error_t ipv4SetDefaultTtl(NetInterface *interface, uint8_t ttl);
 error_t ipv4SetHostAddr(NetInterface *interface, Ipv4Addr addr);
 error_t ipv4SetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr addr);
 error_t ipv4GetHostAddr(NetInterface *interface, Ipv4Addr *addr);
-error_t ipv4GetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr *addr);
+
+error_t ipv4GetHostAddrEx(NetInterface *interface, uint_t index,
+   Ipv4Addr *addr);
 
 error_t ipv4SetSubnetMask(NetInterface *interface, Ipv4Addr mask);
-error_t ipv4SetSubnetMaskEx(NetInterface *interface, uint_t index, Ipv4Addr mask);
+
+error_t ipv4SetSubnetMaskEx(NetInterface *interface, uint_t index,
+   Ipv4Addr mask);
+
 error_t ipv4GetSubnetMask(NetInterface *interface, Ipv4Addr *mask);
-error_t ipv4GetSubnetMaskEx(NetInterface *interface, uint_t index, Ipv4Addr *mask);
+
+error_t ipv4GetSubnetMaskEx(NetInterface *interface, uint_t index,
+   Ipv4Addr *mask);
 
 error_t ipv4SetDefaultGateway(NetInterface *interface, Ipv4Addr addr);
 
@@ -427,9 +489,6 @@ error_t ipv4SendDatagram(NetInterface *interface,
 error_t ipv4SendPacket(NetInterface *interface,
    const Ipv4PseudoHeader *pseudoHeader, uint16_t fragId, size_t fragOffset,
    NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
-
-error_t ipv4JoinMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
-error_t ipv4LeaveMulticastGroup(NetInterface *interface, Ipv4Addr groupAddr);
 
 error_t ipv4StringToAddr(const char_t *str, Ipv4Addr *ipAddr);
 char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);

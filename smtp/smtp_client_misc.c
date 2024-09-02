@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -197,8 +197,8 @@ error_t smtpClientFormatCommand(SmtpClientContext *context,
    const char_t *command, const char_t *argument)
 {
    //Check SMTP command name
-   if(!osStrcasecmp(command, "MAIL FROM") ||
-      !osStrcasecmp(command, "RCPT TO"))
+   if(osStrcasecmp(command, "MAIL FROM") == 0 ||
+      osStrcasecmp(command, "RCPT TO") == 0)
    {
       //Check whether the address is valid
       if(argument != NULL)
@@ -215,7 +215,7 @@ error_t smtpClientFormatCommand(SmtpClientContext *context,
       //Debug message
       TRACE_DEBUG("SMTP client: %s", context->buffer);
    }
-   else if(!osStrcasecmp(command, "."))
+   else if(osStrcasecmp(command, ".") == 0)
    {
       //SMTP indicates the end of the mail data by sending a line containing
       //only a "." (refer to RFC 5321, section 3.3)
@@ -282,13 +282,13 @@ error_t smtpClientParseEhloReply(SmtpClientContext *context,
 
    //The response to EHLO is a multiline reply. Each line of the response
    //contains a keyword
-   if(!osStrcasecmp(token, "STARTTLS"))
+   if(osStrcasecmp(token, "STARTTLS") == 0)
    {
       //The STARTTLS keyword is used to tell the SMTP client that the
       //SMTP server allows use of TLS
       context->startTlsSupported = TRUE;
    }
-   else if(!osStrcasecmp(token, "AUTH"))
+   else if(osStrcasecmp(token, "AUTH") == 0)
    {
       //The AUTH keyword contains a space-separated list of names of
       //available authentication mechanisms
@@ -298,17 +298,17 @@ error_t smtpClientParseEhloReply(SmtpClientContext *context,
       while(token != NULL)
       {
          //Check the name of the authentication mechanism
-         if(!osStrcasecmp(token, "LOGIN"))
+         if(osStrcasecmp(token, "LOGIN") == 0)
          {
             //LOGIN authentication mechanism is supported
             context->authLoginSupported = TRUE;
          }
-         else if(!osStrcasecmp(token, "PLAIN"))
+         else if(osStrcasecmp(token, "PLAIN") == 0)
          {
             //PLAIN authentication mechanism is supported
             context->authPlainSupported = TRUE;
          }
-         else if(!osStrcasecmp(token, "CRAM-MD5"))
+         else if(osStrcasecmp(token, "CRAM-MD5") == 0)
          {
             //CRAM-MD5 authentication mechanism is supported
             context->authCramMd5Supported = TRUE;
@@ -458,7 +458,7 @@ error_t smtpClientFormatMailHeader(SmtpClientContext *context,
       p += osSprintf(p, "MIME-Version: 1.0\r\n");
 
       //Check whether multipart encoding is being used
-      if(!osStrncasecmp(context->contentType, "multipart/", 10))
+      if(osStrncasecmp(context->contentType, "multipart/", 10) == 0)
       {
          //This Content-Type header field defines the boundary string
          p += osSprintf(p, "Content-Type: %s; boundary=%s\r\n",
@@ -546,7 +546,7 @@ error_t smtpClientFormatMultipartHeader(SmtpClientContext *context,
             contentTransferEncoding);
 
          //Base64 encoding?
-         if(!osStrcasecmp(contentTransferEncoding, "base64"))
+         if(osStrcasecmp(contentTransferEncoding, "base64") == 0)
          {
             context->base64Encoding = TRUE;
          }

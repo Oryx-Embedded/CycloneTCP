@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _NDP_H
@@ -619,19 +619,19 @@ void ndpLinkChangeEvent(NetInterface *interface);
 
 void ndpProcessRouterAdv(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit);
+   size_t offset, const NetRxAncillary *ancillary);
 
 void ndpProcessNeighborSol(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit);
+   size_t offset, const NetRxAncillary *ancillary);
 
 void ndpProcessNeighborAdv(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit);
+   size_t offset, const NetRxAncillary *ancillary);
 
 void ndpProcessRedirect(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit);
+   size_t offset, const NetRxAncillary *ancillary);
 
 error_t ndpSendRouterSol(NetInterface *interface);
 

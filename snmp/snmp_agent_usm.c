@@ -34,7 +34,7 @@
  * - RFC 7860: HMAC-SHA-2 Authentication Protocols in the User-based Security Model
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -149,7 +149,7 @@ SnmpUserEntry *snmpFindUserEntry(SnmpAgentContext *context,
             if(osStrlen(context->userTable[i].name) == length)
             {
                //Compare user names
-               if(!osStrncmp(context->userTable[i].name, name, length))
+               if(osStrncmp(context->userTable[i].name, name, length) == 0)
                {
                   //A matching entry has been found
                   entry = &context->userTable[i];

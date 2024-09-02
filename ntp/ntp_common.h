@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _NTP_COMMON_H
@@ -91,6 +91,31 @@ typedef enum
 
 
 /**
+ * @brief Stratum
+ **/
+
+typedef enum
+{
+   NTP_STRATUM_KISS_OF_DEATH = 0,
+   NTP_STRATUM_PRIMARY       = 1,
+   NTP_STRATUM_SECONDARY_2   = 2,
+   NTP_STRATUM_SECONDARY_3   = 3,
+   NTP_STRATUM_SECONDARY_4   = 4,
+   NTP_STRATUM_SECONDARY_5   = 5,
+   NTP_STRATUM_SECONDARY_6   = 6,
+   NTP_STRATUM_SECONDARY_7   = 7,
+   NTP_STRATUM_SECONDARY_8   = 8,
+   NTP_STRATUM_SECONDARY_9   = 9,
+   NTP_STRATUM_SECONDARY_10  = 10,
+   NTP_STRATUM_SECONDARY_11  = 11,
+   NTP_STRATUM_SECONDARY_12  = 12,
+   NTP_STRATUM_SECONDARY_13  = 13,
+   NTP_STRATUM_SECONDARY_14  = 14,
+   NTP_STRATUM_SECONDARY_15  = 15,
+} NtpStratum;
+
+
+/**
  * @brief Kiss codes
  *
  * The kiss codes can provide useful information for an intelligent client.
@@ -114,8 +139,25 @@ typedef enum
    NTP_KISS_CODE_NKEY = NTP_KISS_CODE('N', 'K', 'E', 'Y'), ///<No key found
    NTP_KISS_CODE_RATE = NTP_KISS_CODE('R', 'A', 'T', 'E'), ///<Rate exceeded
    NTP_KISS_CODE_RMOT = NTP_KISS_CODE('R', 'M', 'O', 'T'), ///<Somebody is tinkering with the association from a remote host running ntpdc
-   NTP_KISS_CODE_STEP = NTP_KISS_CODE('S', 'T', 'E', 'P')  ///<A step change in system time has occurred
+   NTP_KISS_CODE_STEP = NTP_KISS_CODE('S', 'T', 'E', 'P'), ///<A step change in system time has occurred
+   NTP_KISS_CODE_NTSN = NTP_KISS_CODE('N', 'T', 'S', 'N')  ///<NTS negative-acknowledgment (NAK)
 } NtpKissCode;
+
+
+/**
+ * @brief NTP extensions field types
+ **/
+
+typedef enum
+{
+   NTP_EXTENSION_TYPE_NO_OPERATION_REQ        = 0x0002, ///<No-Operation Request
+   NTP_EXTENSION_TYPE_UNIQUE_ID               = 0x0104, ///<Unique Identifier
+   NTP_EXTENSION_TYPE_NTS_COOKIE              = 0x0204, ///<NTS Cookie
+   NTP_EXTENSION_TYPE_NTS_COOKIE_PLACEHOLDER  = 0x0304, ///<NTS Cookie Placeholder
+   NTP_EXTENSION_TYPE_NTS_AEAD                = 0x0404, ///<NTS Authenticator and Encrypted Extension Fields
+   NTP_EXTENSION_TYPE_NO_OPERATION_RESP       = 0x8002, ///<No-Operation Response
+   NTP_EXTENSION_TYPE_NO_OPERATION_ERROR_RESP = 0xC002  ///<No-Operation Error Response
+} NtpExtensionType;
 
 
 //CC-RX, CodeWarrior or Win32 compiler?
@@ -162,18 +204,34 @@ typedef __packed_struct
    NtpTimestamp originateTimestamp; //24-31
    NtpTimestamp receiveTimestamp;   //32-39
    NtpTimestamp transmitTimestamp;  //40-47
+   uint8_t extensions[];            //48
 } NtpHeader;
 
 
 /**
- * @brief NTP authenticator
+ * @brief NTP extension field
  **/
 
 typedef __packed_struct
 {
-   uint32_t keyId;            //0-3
-   uint8_t messageDigest[16]; //4-19
-} NtpAuthenticator;
+   uint16_t fieldType; //0-1
+   uint16_t length;    //2-3
+   uint8_t value[];    //4
+} NtpExtension;
+
+
+/**
+ * @brief NTS Authenticator and Encrypted Extension Fields extension
+ **/
+
+typedef __packed_struct
+{
+   uint16_t fieldType;        //0-1
+   uint16_t length;           //2-3
+   uint16_t nonceLength;      //4-5
+   uint16_t ciphertextLength; //6-7
+   uint8_t nonce[];           //8
+} NtpNtsAeadExtension;
 
 
 //CC-RX, CodeWarrior or Win32 compiler?
@@ -182,6 +240,10 @@ typedef __packed_struct
 #elif defined(__CWCC__) || defined(_WIN32)
    #pragma pack(pop)
 #endif
+
+//NTP related functions
+const NtpExtension *ntpGetExtension(const uint8_t *extensions, size_t length,
+   uint16_t type, uint_t index);
 
 //C++ guard
 #ifdef __cplusplus

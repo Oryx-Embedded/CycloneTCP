@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -42,12 +42,12 @@
 #include "core/net.h"
 #include "core/ip.h"
 #include "ipv6/ipv6.h"
-#include "ipv6/ipv6_misc.h"
 #include "ipv6/ipv6_pmtu.h"
+#include "ipv6/ipv6_misc.h"
 #include "ipv6/icmpv6.h"
-#include "ipv6/mld.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv_misc.h"
+#include "mld/mld_node_misc.h"
 #include "mibs/ip_mib_module.h"
 #include "debug.h"
 
@@ -117,12 +117,13 @@ error_t icmpv6EnableMulticastEchoRequests(NetInterface *interface,
  * @param[in] pseudoHeader IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the incoming ICMPv6 message
  * @param[in] offset Offset to the first byte of the ICMPv6 message
- * @param[in] hopLimit Hop Limit field from IPv6 header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
 void icmpv6ProcessMessage(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit)
+   size_t offset, const NetRxAncillary *ancillary)
 {
    size_t length;
    Icmpv6Header *header;
@@ -145,7 +146,7 @@ void icmpv6ProcessMessage(NetInterface *interface,
    }
 
    //Point to the ICMPv6 message header
-   header = netBufferAt(buffer, offset);
+   header = netBufferAt(buffer, offset, 0);
 
    //Sanity check
    if(header == NULL)
@@ -206,45 +207,43 @@ void icmpv6ProcessMessage(NetInterface *interface,
       //Process Echo Request message
       icmpv6ProcessEchoRequest(interface, pseudoHeader, buffer, offset);
       break;
-#if (MLD_SUPPORT == ENABLED)
-   //Multicast Listener Query message?
-   case ICMPV6_TYPE_MULTICAST_LISTENER_QUERY:
-      //Process Multicast Listener Query message
-      mldProcessListenerQuery(interface, pseudoHeader, buffer, offset, hopLimit);
-      break;
-   //Version 1 Multicast Listener Report message?
-   case ICMPV6_TYPE_MULTICAST_LISTENER_REPORT_V1:
-      //Process Version 1 Multicast Listener Report message
-      mldProcessListenerReport(interface, pseudoHeader, buffer, offset, hopLimit);
+#if (MLD_NODE_SUPPORT == ENABLED)
+   //MLD message?
+   case ICMPV6_TYPE_MCAST_LISTENER_QUERY:
+   case ICMPV6_TYPE_MCAST_LISTENER_REPORT_V1:
+   case ICMPV6_TYPE_MCAST_LISTENER_DONE_V1:
+   case ICMPV6_TYPE_MCAST_LISTENER_REPORT_V2:
+      //Process MLD message
+      mldProcessMessage(interface, pseudoHeader, buffer, offset, ancillary);
       break;
 #endif
 #if (NDP_ROUTER_ADV_SUPPORT == ENABLED)
    //Router Solicitation message?
    case ICMPV6_TYPE_ROUTER_SOL:
       //Process Router Solicitation message
-      ndpProcessRouterSol(interface, pseudoHeader, buffer, offset, hopLimit);
+      ndpProcessRouterSol(interface, pseudoHeader, buffer, offset, ancillary);
       break;
 #endif
 #if (NDP_SUPPORT == ENABLED)
    //Router Advertisement message?
    case ICMPV6_TYPE_ROUTER_ADV:
       //Process Router Advertisement message
-      ndpProcessRouterAdv(interface, pseudoHeader, buffer, offset, hopLimit);
+      ndpProcessRouterAdv(interface, pseudoHeader, buffer, offset, ancillary);
       break;
    //Neighbor Solicitation message?
    case ICMPV6_TYPE_NEIGHBOR_SOL:
       //Process Neighbor Solicitation message
-      ndpProcessNeighborSol(interface, pseudoHeader, buffer, offset, hopLimit);
+      ndpProcessNeighborSol(interface, pseudoHeader, buffer, offset, ancillary);
       break;
    //Neighbor Advertisement message?
    case ICMPV6_TYPE_NEIGHBOR_ADV:
       //Process Neighbor Advertisement message
-      ndpProcessNeighborAdv(interface, pseudoHeader, buffer, offset, hopLimit);
+      ndpProcessNeighborAdv(interface, pseudoHeader, buffer, offset, ancillary);
       break;
    //Redirect message?
    case ICMPV6_TYPE_REDIRECT:
       //Process Redirect message
-      ndpProcessRedirect(interface, pseudoHeader, buffer, offset, hopLimit);
+      ndpProcessRedirect(interface, pseudoHeader, buffer, offset, ancillary);
       break;
 #endif
    //Unknown type?
@@ -280,7 +279,7 @@ void icmpv6ProcessDestUnreachable(NetInterface *interface,
       return;
 
    //Point to the ICMPv6 header
-   icmpHeader = netBufferAt(buffer, offset);
+   icmpHeader = netBufferAt(buffer, offset, 0);
 
    //Sanity check
    if(icmpHeader == NULL)
@@ -321,7 +320,7 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
       return;
 
    //Point to the ICMPv6 header
-   icmpHeader = netBufferAt(buffer, offset);
+   icmpHeader = netBufferAt(buffer, offset, 0);
 
    //Sanity check
    if(icmpHeader == NULL)
@@ -342,7 +341,7 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
       return;
 
    //Point to the original IPv6 header
-   ipHeader = netBufferAt(buffer, offset);
+   ipHeader = netBufferAt(buffer, offset, 0);
 
    //Sanity check
    if(ipHeader == NULL)
@@ -387,7 +386,7 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
       return;
 
    //Point to the Echo Request header
-   requestHeader = netBufferAt(request, requestOffset);
+   requestHeader = netBufferAt(request, requestOffset, 0);
 
    //Sanity check
    if(requestHeader == NULL)
@@ -433,7 +432,7 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
       return;
 
    //Point to the Echo Reply header
-   replyHeader = netBufferAt(reply, replyOffset);
+   replyHeader = netBufferAt(reply, replyOffset, 0);
 
    //Format Echo Reply header
    replyHeader->type = ICMPV6_TYPE_ECHO_REPLY;
@@ -524,7 +523,7 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
       return ERROR_INVALID_LENGTH;
 
    //Point to the header of the invoking packet
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset);
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
 
    //Sanity check
    if(ipHeader == NULL)
@@ -537,7 +536,7 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
       if(length >= (sizeof(Ipv6Header) + sizeof(Icmpv6Header)))
       {
          //Point to the ICMPv6 header
-         icmpHeader = netBufferAt(ipPacket, ipPacketOffset + sizeof(Ipv6Header));
+         icmpHeader = netBufferAt(ipPacket, ipPacketOffset + sizeof(Ipv6Header), 0);
 
          //Sanity check
          if(icmpHeader != NULL)
@@ -600,7 +599,7 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the ICMPv6 header
-   icmpHeader = netBufferAt(icmpMessage, offset);
+   icmpHeader = netBufferAt(icmpMessage, offset, 0);
 
    //Format ICMPv6 Error message
    icmpHeader->type = type;

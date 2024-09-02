@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -461,7 +461,7 @@ error_t lan9303TagFrame(NetInterface *interface, NetBuffer *buffer,
          //Make room for the special VLAN tag
          *offset -= sizeof(VlanTag);
          //Point to the beginning of the frame
-         header = netBufferAt(buffer, *offset);
+         header = netBufferAt(buffer, *offset, 0);
 
          //Move the Ethernet header to make room for the special VLAN tag
          osMemmove(header, (uint8_t *) header + sizeof(VlanTag),

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -226,7 +226,7 @@ SnmpUserEntry *snmpFindCommunityEntry(SnmpAgentContext *context,
             if(osStrlen(context->communityTable[i].name) == length)
             {
                //Compare community strings
-               if(!osStrncmp(context->communityTable[i].name, community, length))
+               if(osStrncmp(context->communityTable[i].name, community, length) == 0)
                {
                   //A matching entry has been found
                   entry = &context->communityTable[i];

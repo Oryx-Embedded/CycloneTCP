@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -323,7 +323,7 @@ error_t coapDumpOption(const CoapOption *option)
                arraysize(coapObserveList));
 
             //Dump the value of the option
-            if(osStrcmp(name, "Unknown"))
+            if(osStrcmp(name, "Unknown") != 0)
             {
                TRACE_DEBUG("    %" PRIu32 " (%s)\r\n", value, name);
             }

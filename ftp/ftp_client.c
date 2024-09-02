@@ -33,7 +33,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -832,7 +832,7 @@ error_t ftpClientOpenDir(FtpClientContext *context, const char_t *path)
       else if(context->state == FTP_CLIENT_STATE_SUB_COMMAND_7)
       {
          //Format LIST command
-         if(!osStrcmp(path, "."))
+         if(osStrcmp(path, ".") == 0)
          {
             ftpClientFormatCommand(context, "LIST", NULL);
          }

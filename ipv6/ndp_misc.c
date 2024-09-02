@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -38,6 +38,7 @@
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_cache.h"
 #include "ipv6/ndp_misc.h"
+#include "mld/mld_node_misc.h"
 #include "mdns/mdns_responder.h"
 #include "debug.h"
 
@@ -183,6 +184,17 @@ void ndpUpdateAddrList(NetInterface *interface)
                   //Duplicate Address Detection is on-going?
                   else if(entry->dadRetransmitCount <= context->dupAddrDetectTransmits)
                   {
+#if (MLD_NODE_SUPPORT == ENABLED)
+                     Ipv6Addr solicitedNodeAddr;
+
+                     //Form the Solicited-Node address
+                     ipv6ComputeSolicitedNodeAddr(&entry->addr,
+                        &solicitedNodeAddr);
+
+                     //Send a MLD report message for the multicast address
+                     mldNodeSendUnsolicitedReport(&interface->mldNodeContext,
+                        &solicitedNodeAddr);
+#endif
                      //Send a multicast Neighbor Solicitation message
                      ndpSendNeighborSol(interface, &entry->addr, TRUE);
 
@@ -652,15 +664,16 @@ void *ndpGetOption(uint8_t *options, size_t length, uint8_t type)
       //Point to the current option
       option = (NdpOption *) (options + i);
 
-      //Nodes must silently discard an NDP message that contains
-      //an option with length zero
+      //Nodes must silently discard an NDP message that contains an option
+      //with length zero
       if(option->length == 0)
          break;
+
       //Check option length
       if((i + option->length * 8) > length)
          break;
 
-      //Current option type matches the specified one?
+      //Check whether the option type matches the specified value
       if(option->type == type || type == NDP_OPT_ANY)
          return option;
 

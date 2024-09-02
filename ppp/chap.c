@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -498,7 +498,7 @@ error_t chapSendChallenge(PppContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Challenge packet
-   challengePacket = netBufferAt(buffer, offset);
+   challengePacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    challengePacket->code = CHAP_CODE_CHALLENGE;
@@ -547,6 +547,7 @@ error_t chapSendChallenge(PppContext *context)
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -580,7 +581,7 @@ error_t chapSendResponse(PppContext *context, const uint8_t *value)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Response packet
-   responsePacket = netBufferAt(buffer, offset);
+   responsePacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    responsePacket->code = CHAP_CODE_RESPONSE;
@@ -605,6 +606,7 @@ error_t chapSendResponse(PppContext *context, const uint8_t *value)
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -634,7 +636,7 @@ error_t chapSendSuccess(PppContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Success packet
-   successPacket = netBufferAt(buffer, offset);
+   successPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    successPacket->code = CHAP_CODE_SUCCESS;
@@ -651,6 +653,7 @@ error_t chapSendSuccess(PppContext *context)
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -680,7 +683,7 @@ error_t chapSendFailure(PppContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Failure packet
-   failurePacket = netBufferAt(buffer, offset);
+   failurePacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    failurePacket->code = CHAP_CODE_FAILURE;
@@ -697,6 +700,7 @@ error_t chapSendFailure(PppContext *context)
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }

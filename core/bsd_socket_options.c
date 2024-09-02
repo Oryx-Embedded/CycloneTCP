@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -341,6 +341,61 @@ int_t socketSetSoKeepAliveOption(Socket *socket, const int_t *optval,
 
 
 /**
+ * @brief Set SO_NO_CHECK option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetSoNoCheckOption(Socket *socket, const int_t *optval,
+   socklen_t optlen)
+{
+   int_t ret;
+
+#if (UDP_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(int_t))
+   {
+      //Get exclusive access
+      osAcquireMutex(&netMutex);
+
+      //This option allows UDP checksum generation to be bypassed
+      if(*optval != 0)
+      {
+         socket->options |= SOCKET_OPTION_UDP_NO_CHECKSUM;
+      }
+      else
+      {
+         socket->options &= ~SOCKET_OPTION_UDP_NO_CHECKSUM;
+      }
+
+      //Release exclusive access
+      osReleaseMutex(&netMutex);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv4 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
  * @brief Set IP_TOS option
  * @param[in] socket Handle referencing the socket
  * @param[in] optval A pointer to the buffer in which the value for the
@@ -441,7 +496,7 @@ int_t socketSetIpMulticastIfOption(Socket *socket,
 
 #if (IPV4_SUPPORT == ENABLED)
    //Check the length of the option
-   if(optlen >= (socklen_t) sizeof(struct in_addr))
+   if(optlen >= (socklen_t) sizeof(IN_ADDR))
    {
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -580,7 +635,7 @@ int_t socketSetIpAddMembershipOption(Socket *socket,
 
 #if (IPV4_SUPPORT == ENABLED)
    //Check the length of the option
-   if(optlen >= (socklen_t) sizeof(struct ip_mreq))
+   if(optlen >= (socklen_t) sizeof(IP_MREQ))
    {
       error_t error;
       IpAddr groupAddr;
@@ -589,7 +644,7 @@ int_t socketSetIpAddMembershipOption(Socket *socket,
       groupAddr.length = sizeof(Ipv4Addr);
       groupAddr.ipv4Addr = optval->imr_multiaddr.s_addr;
 
-      //Join the socket to the supplied multicast group
+      //Join the specified multicast group
       error = socketJoinMulticastGroup(socket, &groupAddr);
 
       //Check status code
@@ -639,15 +694,15 @@ int_t socketSetIpDropMembershipOption(Socket *socket,
 
 #if (IPV4_SUPPORT == ENABLED)
    //Check the length of the option
-   if(optlen >= (socklen_t) sizeof(struct ip_mreq))
+   if(optlen >= (socklen_t) sizeof(IP_MREQ))
    {
       IpAddr groupAddr;
 
-      //Copy IPv4 address
+      //Copy group address
       groupAddr.length = sizeof(Ipv4Addr);
       groupAddr.ipv4Addr = optval->imr_multiaddr.s_addr;
 
-      //Leaves the specified multicast group
+      //Leave the specified multicast group
       socketLeaveMulticastGroup(socket, &groupAddr);
 
       //Successful processing
@@ -664,6 +719,750 @@ int_t socketSetIpDropMembershipOption(Socket *socket,
    socketSetErrnoCode(socket, ENOPROTOOPT);
    ret = SOCKET_ERROR;
 #endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set IP_BLOCK_SOURCE option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetIpBlockSourceOption(Socket *socket,
+   const struct ip_mreq_source *optval, socklen_t optlen)
+{
+   int_t ret;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(IP_MREQ_SOURCE))
+   {
+      error_t error;
+      IpAddr groupAddr;
+      IpAddr srcAddr;
+
+      //Copy group address
+      groupAddr.length = sizeof(Ipv4Addr);
+      groupAddr.ipv4Addr = optval->imr_multiaddr.s_addr;
+
+      //Copy source address
+      srcAddr.length = sizeof(Ipv4Addr);
+      srcAddr.ipv4Addr = optval->imr_sourceaddr.s_addr;
+
+      //Block specific source for specific group
+      error = socketBlockMulticastSource(socket, &groupAddr, &srcAddr);
+
+      //Check status code
+      if(!error)
+      {
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+      }
+      else
+      {
+         //The source address cannot be blocked
+         socketSetErrnoCode(socket, EINVAL);
+         ret = SOCKET_ERROR;
+      }
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv4 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set IP_UNBLOCK_SOURCE option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetIpUnblockSourceOption(Socket *socket,
+   const struct ip_mreq_source *optval, socklen_t optlen)
+{
+   int_t ret;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(IP_MREQ_SOURCE))
+   {
+      IpAddr groupAddr;
+      IpAddr srcAddr;
+
+      //Copy group address
+      groupAddr.length = sizeof(Ipv4Addr);
+      groupAddr.ipv4Addr = optval->imr_multiaddr.s_addr;
+
+      //Copy source address
+      srcAddr.length = sizeof(Ipv4Addr);
+      srcAddr.ipv4Addr = optval->imr_sourceaddr.s_addr;
+
+      //Unblock specific source for specific group
+      socketUnblockMulticastSource(socket, &groupAddr, &srcAddr);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv4 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set IP_ADD_SOURCE_MEMBERSHIP option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetIpAddSourceMembershipOption(Socket *socket,
+   const struct ip_mreq_source *optval, socklen_t optlen)
+{
+   int_t ret;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(IP_MREQ_SOURCE))
+   {
+      error_t error;
+      IpAddr groupAddr;
+      IpAddr srcAddr;
+
+      //Copy group address
+      groupAddr.length = sizeof(Ipv4Addr);
+      groupAddr.ipv4Addr = optval->imr_multiaddr.s_addr;
+
+      //Copy source address
+      srcAddr.length = sizeof(Ipv4Addr);
+      srcAddr.ipv4Addr = optval->imr_sourceaddr.s_addr;
+
+      //Accept specific source for specific group
+      error = socketAddMulticastSource(socket, &groupAddr, &srcAddr);
+
+      //Check status code
+      if(!error)
+      {
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+      }
+      else
+      {
+         //The source address cannot be accepted
+         socketSetErrnoCode(socket, EINVAL);
+         ret = SOCKET_ERROR;
+      }
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv4 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set IP_DROP_SOURCE_MEMBERSHIP option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetIpDropSourceMembershipOption(Socket *socket,
+   const struct ip_mreq_source *optval, socklen_t optlen)
+{
+   int_t ret;
+
+#if (IPV4_SUPPORT == ENABLED)
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(IP_MREQ_SOURCE))
+   {
+      IpAddr groupAddr;
+      IpAddr srcAddr;
+
+      //Copy group address
+      groupAddr.length = sizeof(Ipv4Addr);
+      groupAddr.ipv4Addr = optval->imr_multiaddr.s_addr;
+
+      //Copy source address
+      srcAddr.length = sizeof(Ipv4Addr);
+      srcAddr.ipv4Addr = optval->imr_sourceaddr.s_addr;
+
+      //Drop specific source for specific group
+      socketDropMulticastSource(socket, &groupAddr, &srcAddr);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+#else
+   //IPv4 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set MCAST_JOIN_GROUP option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetMcastJoinGroupOption(Socket *socket,
+   const struct group_req *optval, socklen_t optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(GROUP_REQ))
+   {
+      error_t error;
+      IpAddr groupAddr;
+
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(optval->gr_group.ss_family == AF_INET)
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) &optval->gr_group;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv4Addr);
+         groupAddr.ipv4Addr = sa->sin_addr.s_addr;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(optval->gr_group.ss_family == AF_INET6)
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) &optval->gr_group;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&groupAddr.ipv6Addr, sa->sin6_addr.s6_addr);
+      }
+      else
+#endif
+      //Invalid address?
+      {
+         //Report an error
+         socketSetErrnoCode(socket, EINVAL);
+         return SOCKET_ERROR;
+      }
+
+      //Join the specified multicast group
+      error = socketJoinMulticastGroup(socket, &groupAddr);
+
+      //Check status code
+      if(!error)
+      {
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+      }
+      else
+      {
+         //The multicast group cannot be joined
+         socketSetErrnoCode(socket, EINVAL);
+         ret = SOCKET_ERROR;
+      }
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set MCAST_LEAVE_GROUP option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetMcastLeaveGroupOption(Socket *socket,
+   const struct group_req *optval, socklen_t optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(GROUP_REQ))
+   {
+      IpAddr groupAddr;
+
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(optval->gr_group.ss_family == AF_INET)
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) &optval->gr_group;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv4Addr);
+         groupAddr.ipv4Addr = sa->sin_addr.s_addr;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(optval->gr_group.ss_family == AF_INET6)
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) &optval->gr_group;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&groupAddr.ipv6Addr, sa->sin6_addr.s6_addr);
+      }
+      else
+#endif
+      //Invalid address?
+      {
+         //Report an error
+         socketSetErrnoCode(socket, EINVAL);
+         return SOCKET_ERROR;
+      }
+
+      //Leave the specified multicast group
+      socketLeaveMulticastGroup(socket, &groupAddr);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set MCAST_BLOCK_SOURCE option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetMcastBlockSourceOption(Socket *socket,
+   const struct group_source_req *optval, socklen_t optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(GROUP_SOURCE_REQ))
+   {
+      error_t error;
+      IpAddr groupAddr;
+      IpAddr srcAddr;
+
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(optval->gsr_group.ss_family == AF_INET &&
+         optval->gsr_source.ss_family == AF_INET)
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa1 = (SOCKADDR_IN *) &optval->gsr_group;
+         SOCKADDR_IN *sa2 = (SOCKADDR_IN *) &optval->gsr_source;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv4Addr);
+         groupAddr.ipv4Addr = sa1->sin_addr.s_addr;
+
+         //Copy source address
+         srcAddr.length = sizeof(Ipv4Addr);
+         srcAddr.ipv4Addr = sa2->sin_addr.s_addr;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(optval->gsr_group.ss_family == AF_INET6 &&
+         optval->gsr_source.ss_family == AF_INET6)
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa1 = (SOCKADDR_IN6 *) &optval->gsr_group;
+         SOCKADDR_IN6 *sa2 = (SOCKADDR_IN6 *) &optval->gsr_source;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&groupAddr.ipv6Addr, sa1->sin6_addr.s6_addr);
+
+         //Copy source address
+         srcAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&srcAddr.ipv6Addr, sa2->sin6_addr.s6_addr);
+      }
+      else
+#endif
+      //Invalid address?
+      {
+         //Report an error
+         socketSetErrnoCode(socket, EINVAL);
+         return SOCKET_ERROR;
+      }
+
+      //Block specific source for specific group
+      error = socketBlockMulticastSource(socket, &groupAddr, &srcAddr);
+
+      //Check status code
+      if(!error)
+      {
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+      }
+      else
+      {
+         //The source address cannot be blocked
+         socketSetErrnoCode(socket, EINVAL);
+         ret = SOCKET_ERROR;
+      }
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+
+   //Return status code
+   return ret;
+}
+
+/**
+ * @brief Set MCAST_UNBLOCK_SOURCE option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetMcastUnblockSourceOption(Socket *socket,
+   const struct group_source_req *optval, socklen_t optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(GROUP_SOURCE_REQ))
+   {
+      IpAddr groupAddr;
+      IpAddr srcAddr;
+
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(optval->gsr_group.ss_family == AF_INET &&
+         optval->gsr_source.ss_family == AF_INET)
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa1 = (SOCKADDR_IN *) &optval->gsr_group;
+         SOCKADDR_IN *sa2 = (SOCKADDR_IN *) &optval->gsr_source;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv4Addr);
+         groupAddr.ipv4Addr = sa1->sin_addr.s_addr;
+
+         //Copy source address
+         srcAddr.length = sizeof(Ipv4Addr);
+         srcAddr.ipv4Addr = sa2->sin_addr.s_addr;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(optval->gsr_group.ss_family == AF_INET6 &&
+         optval->gsr_source.ss_family == AF_INET6)
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa1 = (SOCKADDR_IN6 *) &optval->gsr_group;
+         SOCKADDR_IN6 *sa2 = (SOCKADDR_IN6 *) &optval->gsr_source;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&groupAddr.ipv6Addr, sa1->sin6_addr.s6_addr);
+
+         //Copy source address
+         srcAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&srcAddr.ipv6Addr, sa2->sin6_addr.s6_addr);
+      }
+      else
+#endif
+      //Invalid address?
+      {
+         //Report an error
+         socketSetErrnoCode(socket, EINVAL);
+         return SOCKET_ERROR;
+      }
+
+      //Unblock specific source for specific group
+      socketUnblockMulticastSource(socket, &groupAddr, &srcAddr);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set MCAST_JOIN_SOURCE_GROUP option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetMcastJoinSourceGroupOption(Socket *socket,
+   const struct group_source_req *optval, socklen_t optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(GROUP_SOURCE_REQ))
+   {
+      error_t error;
+      IpAddr groupAddr;
+      IpAddr srcAddr;
+
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(optval->gsr_group.ss_family == AF_INET &&
+         optval->gsr_source.ss_family == AF_INET)
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa1 = (SOCKADDR_IN *) &optval->gsr_group;
+         SOCKADDR_IN *sa2 = (SOCKADDR_IN *) &optval->gsr_source;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv4Addr);
+         groupAddr.ipv4Addr = sa1->sin_addr.s_addr;
+
+         //Copy source address
+         srcAddr.length = sizeof(Ipv4Addr);
+         srcAddr.ipv4Addr = sa2->sin_addr.s_addr;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(optval->gsr_group.ss_family == AF_INET6 &&
+         optval->gsr_source.ss_family == AF_INET6)
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa1 = (SOCKADDR_IN6 *) &optval->gsr_group;
+         SOCKADDR_IN6 *sa2 = (SOCKADDR_IN6 *) &optval->gsr_source;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&groupAddr.ipv6Addr, sa1->sin6_addr.s6_addr);
+
+         //Copy source address
+         srcAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&srcAddr.ipv6Addr, sa2->sin6_addr.s6_addr);
+      }
+      else
+#endif
+      //Invalid address?
+      {
+         //Report an error
+         socketSetErrnoCode(socket, EINVAL);
+         return SOCKET_ERROR;
+      }
+
+      //Accept specific source for specific group
+      error = socketAddMulticastSource(socket, &groupAddr, &srcAddr);
+
+      //Check status code
+      if(!error)
+      {
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+      }
+      else
+      {
+         //The source address cannot be accepted
+         socketSetErrnoCode(socket, EINVAL);
+         ret = SOCKET_ERROR;
+      }
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set MCAST_LEAVE_SOURCE_GROUP option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetMcastLeaveSourceGroupOption(Socket *socket,
+   const struct group_source_req *optval, socklen_t optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(optlen >= (socklen_t) sizeof(GROUP_SOURCE_REQ))
+   {
+      IpAddr groupAddr;
+      IpAddr srcAddr;
+
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(optval->gsr_group.ss_family == AF_INET &&
+         optval->gsr_source.ss_family == AF_INET)
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa1 = (SOCKADDR_IN *) &optval->gsr_group;
+         SOCKADDR_IN *sa2 = (SOCKADDR_IN *) &optval->gsr_source;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv4Addr);
+         groupAddr.ipv4Addr = sa1->sin_addr.s_addr;
+
+         //Copy source address
+         srcAddr.length = sizeof(Ipv4Addr);
+         srcAddr.ipv4Addr = sa2->sin_addr.s_addr;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(optval->gsr_group.ss_family == AF_INET6 &&
+         optval->gsr_source.ss_family == AF_INET6)
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa1 = (SOCKADDR_IN6 *) &optval->gsr_group;
+         SOCKADDR_IN6 *sa2 = (SOCKADDR_IN6 *) &optval->gsr_source;
+
+         //Copy group address
+         groupAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&groupAddr.ipv6Addr, sa1->sin6_addr.s6_addr);
+
+         //Copy source address
+         srcAddr.length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&srcAddr.ipv6Addr, sa2->sin6_addr.s6_addr);
+      }
+      else
+#endif
+      //Invalid address?
+      {
+         //Report an error
+         socketSetErrnoCode(socket, EINVAL);
+         return SOCKET_ERROR;
+      }
+
+      //Drop specific source for specific group
+      socketDropMulticastSource(socket, &groupAddr, &srcAddr);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
 
    //Return status code
    return ret;
@@ -994,7 +1793,7 @@ int_t socketSetIpv6MulticastIfOption(Socket *socket,
 
 #if (IPV6_SUPPORT == ENABLED)
    //Check the length of the option
-   if(optlen >= (socklen_t) sizeof(struct in_addr))
+   if(optlen >= (socklen_t) sizeof(IN_ADDR))
    {
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -1133,16 +1932,16 @@ int_t socketSetIpv6AddMembershipOption(Socket *socket,
 
 #if (IPV6_SUPPORT == ENABLED)
    //Check the length of the option
-   if(optlen >= (socklen_t) sizeof(struct ipv6_mreq))
+   if(optlen >= (socklen_t) sizeof(IPV6_MREQ))
    {
       error_t error;
       IpAddr groupAddr;
 
-      //Copy IPv6 address
+      //Copy group address
       groupAddr.length = sizeof(Ipv6Addr);
       ipv6CopyAddr(&groupAddr.ipv6Addr, optval->ipv6mr_multiaddr.s6_addr);
 
-      //Join the socket to the supplied multicast group
+      //Join the specified multicast group
       error = socketJoinMulticastGroup(socket, &groupAddr);
 
       //Check status code
@@ -1192,15 +1991,15 @@ int_t socketSetIpv6DropMembershipOption(Socket *socket,
 
 #if (IPV6_SUPPORT == ENABLED)
    //Check the length of the option
-   if(optlen >= (socklen_t) sizeof(struct ipv6_mreq))
+   if(optlen >= (socklen_t) sizeof(IPV6_MREQ))
    {
       IpAddr groupAddr;
 
-      //Copy IPv6 address
+      //Copy group address
       groupAddr.length = sizeof(Ipv6Addr);
       ipv6CopyAddr(&groupAddr.ipv6Addr, optval->ipv6mr_multiaddr.s6_addr);
 
-      //Leaves the specified multicast group
+      //Leave the specified multicast group
       socketLeaveMulticastGroup(socket, &groupAddr);
 
       //Successful processing
@@ -1765,6 +2564,97 @@ int_t socketGetSoReuseAddrOption(Socket *socket, int_t *optval,
 
 
 /**
+ * @brief Get SO_TYPE option
+ * @param[in] socket Handle referencing the socket
+ * @param[out] optval A pointer to the buffer in which the value for the
+ *   requested option is to be returned
+ * @param[in,out] optlen The size, in bytes, of the buffer pointed to by the
+ *   optval parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketGetSoTypeOption(Socket *socket, int_t *optval,
+   socklen_t *optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(*optlen >= (socklen_t) sizeof(int_t))
+   {
+      //Return the type of the socket
+      if(socket->type == SOCKET_TYPE_STREAM)
+      {
+         *optval = SOCK_STREAM;
+      }
+      else if(socket->type == SOCKET_TYPE_DGRAM)
+      {
+         *optval = SOCK_DGRAM;
+      }
+      else
+      {
+         *optval = SOCK_RAW;
+      }
+
+      //Return the actual length of the option
+      *optlen = sizeof(int_t);
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Get SO_ERROR option
+ * @param[in] socket Handle referencing the socket
+ * @param[out] optval A pointer to the buffer in which the value for the
+ *   requested option is to be returned
+ * @param[in,out] optlen The size, in bytes, of the buffer pointed to by the
+ *   optval parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketGetSoErrorOption(Socket *socket, int_t *optval,
+   socklen_t *optlen)
+{
+   int_t ret;
+
+   //Check the length of the option
+   if(*optlen >= (socklen_t) sizeof(int_t))
+   {
+      //Return the error code
+      *optval = socket->errnoCode;
+      //Return the actual length of the option
+      *optlen = sizeof(int_t);
+
+      //Clear error status
+      socket->errnoCode = 0;
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+   else
+   {
+      //The option length is not valid
+      socketSetErrnoCode(socket, EFAULT);
+      ret = SOCKET_ERROR;
+   }
+
+   //Return status code
+   return ret;
+}
+
+
+/**
  * @brief Get SO_BROADCAST option
  * @param[in] socket Handle referencing the socket
  * @param[out] optval A pointer to the buffer in which the value for the
@@ -2033,7 +2923,7 @@ int_t socketGetSoKeepAliveOption(Socket *socket, int_t *optval,
 
 
 /**
- * @brief Get SO_TYPE option
+ * @brief Get SO_NO_CHECK option
  * @param[in] socket Handle referencing the socket
  * @param[out] optval A pointer to the buffer in which the value for the
  *   requested option is to be returned
@@ -2042,26 +2932,23 @@ int_t socketGetSoKeepAliveOption(Socket *socket, int_t *optval,
  * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
  **/
 
-int_t socketGetSoTypeOption(Socket *socket, int_t *optval,
+int_t socketGetSoNoCheckOption(Socket *socket, int_t *optval,
    socklen_t *optlen)
 {
    int_t ret;
 
+#if (UDP_SUPPORT == ENABLED)
    //Check the length of the option
    if(*optlen >= (socklen_t) sizeof(int_t))
    {
-      //Return the type of the socket
-      if(socket->type == SOCKET_TYPE_STREAM)
+      //This option allows UDP checksum generation to be bypassed
+      if((socket->options & SOCKET_OPTION_UDP_NO_CHECKSUM) != 0)
       {
-         *optval = SOCK_STREAM;
-      }
-      else if(socket->type == SOCKET_TYPE_DGRAM)
-      {
-         *optval = SOCK_DGRAM;
+         *optval = TRUE;
       }
       else
       {
-         *optval = SOCK_RAW;
+         *optval = FALSE;
       }
 
       //Return the actual length of the option
@@ -2076,47 +2963,11 @@ int_t socketGetSoTypeOption(Socket *socket, int_t *optval,
       socketSetErrnoCode(socket, EFAULT);
       ret = SOCKET_ERROR;
    }
-
-   //Return status code
-   return ret;
-}
-
-
-/**
- * @brief Get SO_ERROR option
- * @param[in] socket Handle referencing the socket
- * @param[out] optval A pointer to the buffer in which the value for the
- *   requested option is to be returned
- * @param[in,out] optlen The size, in bytes, of the buffer pointed to by the
- *   optval parameter
- * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
- **/
-
-int_t socketGetSoErrorOption(Socket *socket, int_t *optval,
-   socklen_t *optlen)
-{
-   int_t ret;
-
-   //Check the length of the option
-   if(*optlen >= (socklen_t) sizeof(int_t))
-   {
-      //Return the error code
-      *optval = socket->errnoCode;
-      //Return the actual length of the option
-      *optlen = sizeof(int_t);
-
-      //Clear error status
-      socket->errnoCode = 0;
-
-      //Successful processing
-      ret = SOCKET_SUCCESS;
-   }
-   else
-   {
-      //The option length is not valid
-      socketSetErrnoCode(socket, EFAULT);
-      ret = SOCKET_ERROR;
-   }
+#else
+   //IPv4 is not supported
+   socketSetErrnoCode(socket, ENOPROTOOPT);
+   ret = SOCKET_ERROR;
+#endif
 
    //Return status code
    return ret;

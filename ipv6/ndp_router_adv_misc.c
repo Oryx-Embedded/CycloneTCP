@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -161,12 +161,13 @@ void ndpRouterAdvLinkChangeEvent(NdpRouterAdvContext *context)
  * @param[in] pseudoHeader IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the Router Advertisement message
  * @param[in] offset Offset to the first byte of the message
- * @param[in] hopLimit Hop Limit field from IPv6 header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
 void ndpProcessRouterSol(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit)
+   size_t offset, const NetRxAncillary *ancillary)
 {
    error_t error;
    uint_t n;
@@ -196,7 +197,7 @@ void ndpProcessRouterSol(NetInterface *interface,
       return;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;
@@ -210,7 +211,7 @@ void ndpProcessRouterSol(NetInterface *interface,
 
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
-   if(hopLimit != NDP_HOP_LIMIT)
+   if(ancillary->ttl != NDP_HOP_LIMIT)
       return;
 
    //ICMPv6 Code must be 0
@@ -245,13 +246,13 @@ void ndpProcessRouterSol(NetInterface *interface,
       //Search the Neighbor Cache for the source address of the solicitation
       entry = ndpFindNeighborCacheEntry(interface, &pseudoHeader->srcAddr);
 
-      //No matching entry has been found?
+      //No matching entry found?
       if(entry == NULL)
       {
          //Check whether Neighbor Discovery protocol is enabled
          if(interface->ndpContext.enable)
          {
-            //Create an entry
+            //Create a new entry
             entry = ndpCreateNeighborCacheEntry(interface);
 
             //Neighbor Cache entry successfully created?
@@ -394,7 +395,7 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Format Router Advertisement message
    message->type = ICMPV6_TYPE_ROUTER_ADV;
@@ -560,6 +561,7 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }

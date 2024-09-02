@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -450,7 +450,7 @@ error_t lldpMibSetLldpPortConfigEntry(const MibObject *object, const uint8_t *oi
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpPortConfigAdminStatus object?
-   if(!strcmp(object->name, "lldpPortConfigAdminStatus"))
+   if(osStrcmp(object->name, "lldpPortConfigAdminStatus") == 0)
    {
       //This object specifies the administrative status of the local LLDP agent
       if(value->integer == LLDP_MIB_ADMIN_STATUS_DISABLED)
@@ -486,7 +486,7 @@ error_t lldpMibSetLldpPortConfigEntry(const MibObject *object, const uint8_t *oi
       }
    }
    //lldpPortConfigNotificationEnable object?
-   else if(!strcmp(object->name, "lldpPortConfigNotificationEnable"))
+   else if(osStrcmp(object->name, "lldpPortConfigNotificationEnable") == 0)
    {
       //This object controls, on a per port basis, whether or not notifications
       //from the agent are enabled
@@ -509,7 +509,7 @@ error_t lldpMibSetLldpPortConfigEntry(const MibObject *object, const uint8_t *oi
       }
    }
    //lldpPortConfigTLVsTxEnable object?
-   else if(!strcmp(object->name, "lldpPortConfigTLVsTxEnable"))
+   else if(osStrcmp(object->name, "lldpPortConfigTLVsTxEnable") == 0)
    {
       //This object specifies the basic set of LLDP TLVs whose transmission is
       //allowed on the local LLDP agent by the network management
@@ -574,7 +574,7 @@ error_t lldpMibGetLldpPortConfigEntry(const MibObject *object, const uint8_t *oi
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpPortConfigAdminStatus object?
-   if(!strcmp(object->name, "lldpPortConfigAdminStatus"))
+   if(osStrcmp(object->name, "lldpPortConfigAdminStatus") == 0)
    {
       LldpAdminStatus adminStatus;
 
@@ -607,7 +607,7 @@ error_t lldpMibGetLldpPortConfigEntry(const MibObject *object, const uint8_t *oi
       }
    }
    //lldpPortConfigNotificationEnable object?
-   else if(!strcmp(object->name, "lldpPortConfigNotificationEnable"))
+   else if(osStrcmp(object->name, "lldpPortConfigNotificationEnable") == 0)
    {
       bool_t notificationEnable;
 
@@ -631,7 +631,7 @@ error_t lldpMibGetLldpPortConfigEntry(const MibObject *object, const uint8_t *oi
       }
    }
    //lldpPortConfigTLVsTxEnable object?
-   else if(!strcmp(object->name, "lldpPortConfigTLVsTxEnable"))
+   else if(osStrcmp(object->name, "lldpPortConfigTLVsTxEnable") == 0)
    {
       uint8_t mibBasicTlvsTxEnable;
 
@@ -824,7 +824,7 @@ error_t lldpMibSetLldpConfigManAddrEntry(const MibObject *object, const uint8_t 
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpConfigManAddrPortsTxEnable object?
-   if(!strcmp(object->name, "lldpConfigManAddrPortsTxEnable"))
+   if(osStrcmp(object->name, "lldpConfigManAddrPortsTxEnable") == 0)
    {
       //This object is a bit map indicating the system ports through which the
       //particular Management Address TLV is enabled for transmission
@@ -918,7 +918,7 @@ error_t lldpMibGetLldpConfigManAddrEntry(const MibObject *object, const uint8_t 
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpConfigManAddrPortsTxEnable object?
-   if(!strcmp(object->name, "lldpConfigManAddrPortsTxEnable"))
+   if(osStrcmp(object->name, "lldpConfigManAddrPortsTxEnable") == 0)
    {
       //Get the highest port index
       for(k = context->numPorts; k > 0; k--)

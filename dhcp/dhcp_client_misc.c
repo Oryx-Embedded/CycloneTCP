@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -246,7 +246,8 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the DHCP message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
+
    //Clear memory buffer contents
    osMemset(message, 0, DHCP_MAX_MSG_SIZE);
 
@@ -321,6 +322,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -364,7 +366,8 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the DHCP message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
+
    //Clear memory buffer contents
    osMemset(message, 0, DHCP_MAX_MSG_SIZE);
 
@@ -482,6 +485,7 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -521,7 +525,8 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the DHCP message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
+
    //Clear memory buffer contents
    osMemset(message, 0, DHCP_MAX_MSG_SIZE);
 
@@ -594,6 +599,7 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -637,7 +643,8 @@ error_t dhcpClientSendRelease(DhcpClientContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the DHCP message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
+
    //Clear memory buffer contents
    osMemset(message, 0, DHCP_MAX_MSG_SIZE);
 
@@ -707,6 +714,7 @@ error_t dhcpClientSendRelease(DhcpClientContext *context)
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -745,7 +753,7 @@ void dhcpClientProcessMessage(NetInterface *interface,
       return;
 
    //Point to the beginning of the DHCP message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;

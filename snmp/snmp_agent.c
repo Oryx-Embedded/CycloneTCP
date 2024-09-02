@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -317,6 +317,7 @@ error_t snmpAgentStop(SnmpAgentContext *context)
    //Check whether the SNMP agent is running
    if(context->running)
    {
+#if (NET_RTOS_SUPPORT == ENABLED)
       //Stop the SNMP agent
       context->stop = TRUE;
       //Send a signal to the task to abort any blocking operation
@@ -327,6 +328,7 @@ error_t snmpAgentStop(SnmpAgentContext *context)
       {
          osDelayTask(1);
       }
+#endif
 
       //Close the UDP socket
       socketClose(context->socket);

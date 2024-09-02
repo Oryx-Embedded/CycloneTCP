@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -1056,7 +1056,7 @@ error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
       //Make room for the Protocol field
       offset--;
       //Move backward
-      p = netBufferAt(buffer, offset);
+      p = netBufferAt(buffer, offset, 0);
       //Compress the Protocol field
       p[0] = LSB(protocol);
    }
@@ -1070,7 +1070,7 @@ error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
       //Make room for the Protocol field
       offset -= 2;
       //Move backward
-      p = netBufferAt(buffer, offset);
+      p = netBufferAt(buffer, offset, 0);
       //Do not compress the Protocol field
       p[0] = MSB(protocol);
       p[1] = LSB(protocol);
@@ -1092,7 +1092,7 @@ error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
       //Make room for the Address and Control fields
       offset -= 2;
       //Move backward
-      p = netBufferAt(buffer, offset);
+      p = netBufferAt(buffer, offset, 0);
       //Do not compress the Address and Control fields
       p[0] = PPP_ADDR_FIELD;
       p[1] = PPP_CTRL_FIELD;

@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -39,6 +39,7 @@
 //Dependencies
 #include "core/net.h"
 #include "core/socket.h"
+#include "core/socket_misc.h"
 #include "core/raw_socket.h"
 #include "core/ethernet_misc.h"
 #include "ipv4/ipv4.h"
@@ -81,14 +82,14 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = socketTable + i;
+      socket = &socketTable[i];
 
       //Raw socket found?
       if(socket->type != SOCKET_TYPE_RAW_IP)
          continue;
 
       //Check whether the socket is bound to a particular interface
-      if(socket->interface && socket->interface != interface)
+      if(socket->interface != NULL && socket->interface != interface)
          continue;
 
 #if (IPV4_SUPPORT == ENABLED)
@@ -113,26 +114,22 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          }
          else if(ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
          {
-            uint_t j;
-            IpAddr *group;
+            IpAddr srcAddr;
+            IpAddr destAddr;
 
-            //Loop through multicast groups
-            for(j = 0; j < SOCKET_MAX_MULTICAST_GROUPS; j++)
+            //Get source IPv4 address
+            srcAddr.length = sizeof(Ipv4Addr);
+            srcAddr.ipv4Addr = pseudoHeader->ipv4Data.srcAddr;
+
+            //Get destination IPv4 address
+            destAddr.length = sizeof(Ipv4Addr);
+            destAddr.ipv4Addr = pseudoHeader->ipv4Data.destAddr;
+
+            //Multicast address filtering
+            if(!socketMulticastFilter(socket, &destAddr, &srcAddr))
             {
-               //Point to the current multicast group
-               group = &socket->multicastGroups[j];
-
-               //Matching multicast address?
-               if(group->length == sizeof(Ipv4Addr) &&
-                  group->ipv4Addr == pseudoHeader->ipv4Data.destAddr)
-               {
-                  break;
-               }
-            }
-
-            //Filter out non-matching multicast addresses
-            if(j >= SOCKET_MAX_MULTICAST_GROUPS)
                continue;
+            }
          }
          else
          {
@@ -177,18 +174,44 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          if(socket->protocol != pseudoHeader->ipv6Data.nextHeader)
             continue;
 
-         //Destination IP address filtering
-         if(socket->localIpAddr.length != 0)
+         //Check whether the destination address is a unicast or multicast
+         //address
+         if(ipv6IsMulticastAddr(&pseudoHeader->ipv6Data.destAddr))
          {
-            //An IPv6 address is expected
-            if(socket->localIpAddr.length != sizeof(Ipv6Addr))
-               continue;
+            IpAddr srcAddr;
+            IpAddr destAddr;
 
-            //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
-               !ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+            //Get source IPv6 address
+            srcAddr.length = sizeof(Ipv6Addr);
+            srcAddr.ipv6Addr = pseudoHeader->ipv6Data.srcAddr;
+
+            //Get destination IPv6 address
+            destAddr.length = sizeof(Ipv6Addr);
+            destAddr.ipv6Addr = pseudoHeader->ipv6Data.destAddr;
+
+            //Multicast address filtering
+            if(!socketMulticastFilter(socket, &destAddr, &srcAddr))
             {
                continue;
+            }
+         }
+         else
+         {
+            //Destination IP address filtering
+            if(socket->localIpAddr.length != 0)
+            {
+               //An IPv6 address is expected
+               if(socket->localIpAddr.length != sizeof(Ipv6Addr))
+                  continue;
+
+               //Filter out non-matching addresses
+               if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr,
+                  &IPV6_UNSPECIFIED_ADDR) &&
+                  !ipv6CompAddr(&socket->localIpAddr.ipv6Addr,
+                  &pseudoHeader->ipv6Data.destAddr))
+               {
+                  continue;
+               }
             }
          }
 
@@ -200,8 +223,10 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
                continue;
 
             //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
-               !ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr))
+            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr,
+               &IPV6_UNSPECIFIED_ADDR) &&
+               !ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr,
+               &pseudoHeader->ipv6Data.srcAddr))
             {
                continue;
             }
@@ -233,7 +258,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       if(p != NULL)
       {
          //Point to the newly created item
-         queueItem = netBufferAt(p, 0);
+         queueItem = netBufferAt(p, 0, 0);
          queueItem->buffer = p;
          //Add the newly created item to the queue
          socket->receiveQueue = queueItem;
@@ -274,7 +299,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       if(p != NULL)
       {
          //Add the newly created item to the queue
-         queueItem->next = netBufferAt(p, 0);
+         queueItem->next = netBufferAt(p, 0, 0);
          //Point to the newly created item
          queueItem = queueItem->next;
          queueItem->buffer = p;
@@ -371,14 +396,14 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = socketTable + i;
+      socket = &socketTable[i];
 
       //Raw socket found?
       if(socket->type != SOCKET_TYPE_RAW_ETH)
          continue;
 
       //Check whether the socket is bound to a particular interface
-      if(socket->interface && socket->interface != interface)
+      if(socket->interface != NULL && socket->interface != interface)
          continue;
 
       //Check protocol field
@@ -410,7 +435,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
          if(p != NULL)
          {
             //Point to the newly created item
-            queueItem = netBufferAt(p, 0);
+            queueItem = netBufferAt(p, 0, 0);
             queueItem->buffer = p;
             //Add the newly created item to the queue
             socket->receiveQueue = queueItem;
@@ -452,7 +477,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
          if(p != NULL)
          {
             //Add the newly created item to the queue
-            queueItem->next = netBufferAt(p, 0);
+            queueItem->next = netBufferAt(p, 0, 0);
             //Point to the newly created item
             queueItem = queueItem->next;
             queueItem->buffer = p;

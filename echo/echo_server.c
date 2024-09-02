@@ -30,7 +30,7 @@
  * any data it receives. Refer to RFC 862 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -276,6 +276,7 @@ error_t echoServerStop(EchoServerContext *context)
    //Check whether the Echo server is running
    if(context->running)
    {
+#if (NET_RTOS_SUPPORT == ENABLED)
       //Stop the Echo server
       context->stop = TRUE;
       //Send a signal to the task to abort any blocking operation
@@ -286,6 +287,7 @@ error_t echoServerStop(EchoServerContext *context)
       {
          osDelayTask(1);
       }
+#endif
 
 #if (ECHO_SERVER_TCP_SUPPORT == ENABLED)
       //Loop through the TCP connection table

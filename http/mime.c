@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -130,9 +130,16 @@ const char_t *mimeGetType(const char_t *filename)
       {
          //Length of the extension
          m = osStrlen(mimeTypeList[i].extension);
-         //Compare file extensions
-         if(m <= n && !osStrcasecmp(filename + n - m, mimeTypeList[i].extension))
-            return mimeTypeList[i].type;
+
+         //Check the length of the filename
+         if(m <= n)
+         {
+            //Compare file extensions
+            if(osStrcasecmp(filename + n - m, mimeTypeList[i].extension) == 0)
+            {
+               return mimeTypeList[i].type;
+            }
+         }
       }
    }
 

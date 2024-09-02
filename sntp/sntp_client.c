@@ -30,7 +30,7 @@
  * in the Internet. Refer to RFC 4330 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -198,9 +198,7 @@ error_t sntpClientGetTimestamp(SntpClientContext *context,
       {
          //Extract NTP timestamp from server's response
          error = sntpClientParseResponse(context, timestamp);
-
-         //Revert to default state
-         context->state = SNTP_CLIENT_STATE_INIT;
+         //We are done
          break;
       }
       else

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _SNTP_CLIENT_H
@@ -33,7 +33,7 @@
 
 //Dependencies
 #include "core/net.h"
-#include "sntp/ntp_common.h"
+#include "ntp/ntp_common.h"
 
 //SNTP client support
 #ifndef SNTP_CLIENT_SUPPORT
@@ -81,9 +81,9 @@ extern "C" {
 typedef enum
 {
    SNTP_CLIENT_STATE_INIT      = 0,
-   SNTP_CLIENT_STATE_SENDING   = 2,
-   SNTP_CLIENT_STATE_RECEIVING = 3,
-   SNTP_CLIENT_STATE_COMPLETE  = 4
+   SNTP_CLIENT_STATE_SENDING   = 1,
+   SNTP_CLIENT_STATE_RECEIVING = 2,
+   SNTP_CLIENT_STATE_COMPLETE  = 3
 } SntpClientState;
 
 

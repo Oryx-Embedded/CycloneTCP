@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -211,13 +211,13 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    }
 
    //Point to the IPv6 header
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset);
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
    //Sanity check
    if(ipHeader == NULL)
       return;
 
    //Point to the Fragment header
-   fragHeader = netBufferAt(ipPacket, fragHeaderOffset);
+   fragHeader = netBufferAt(ipPacket, fragHeaderOffset, 0);
    //Sanity check
    if(fragHeader == NULL)
       return;
@@ -333,7 +333,7 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
 
       //Point to the Next Header field of the last header
       p = netBufferAt((NetBuffer *) &frag->buffer,
-         nextHeaderOffset - ipPacketOffset);
+         nextHeaderOffset - ipPacketOffset, 0);
 
       //The Next Header field of the last header of the unfragmentable part is
       //obtained from the Next Header field of the first fragment's Fragment
@@ -517,7 +517,7 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       else
       {
          //Point to the IPv6 header
-         Ipv6Header *datagram = netBufferAt((NetBuffer *) &frag->buffer, 0);
+         Ipv6Header *datagram = netBufferAt((NetBuffer *) &frag->buffer, 0, 0);
 
          //Fix the Payload Length field
          datagram->payloadLen = htons(frag->unfragPartLength +
@@ -635,7 +635,7 @@ Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
       if(frag->buffer.chunkCount > 0)
       {
          //Point to the corresponding datagram
-         datagram = netBufferAt((NetBuffer *) &frag->buffer, 0);
+         datagram = netBufferAt((NetBuffer *) &frag->buffer, 0, 0);
 
          //Check source and destination addresses
          if(!ipv6CompAddr(&datagram->srcAddr, &packet->srcAddr))
@@ -744,7 +744,7 @@ void ipv6FlushFragQueue(NetInterface *interface)
 Ipv6HoleDesc *ipv6FindHole(Ipv6FragDesc *frag, uint16_t offset)
 {
    //Return a pointer to the hole descriptor
-   return netBufferAt((NetBuffer *) &frag->buffer, frag->unfragPartLength + offset);
+   return netBufferAt((NetBuffer *) &frag->buffer, frag->unfragPartLength + offset, 0);
 }
 
 

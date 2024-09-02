@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -204,7 +204,7 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //tcpConnState object?
-   if(!osStrcmp(object->name, "tcpConnState"))
+   if(osStrcmp(object->name, "tcpConnState") == 0)
    {
       //Get object value
       switch(socket->state)
@@ -248,25 +248,25 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //tcpConnLocalAddress object?
-   else if(!osStrcmp(object->name, "tcpConnLocalAddress"))
+   else if(osStrcmp(object->name, "tcpConnLocalAddress") == 0)
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &socket->localIpAddr.ipv4Addr);
    }
    //tcpConnLocalPort object?
-   else if(!osStrcmp(object->name, "tcpConnLocalPort"))
+   else if(osStrcmp(object->name, "tcpConnLocalPort") == 0)
    {
       //Get object value
       value->integer = socket->localPort;
    }
    //tcpConnRemAddress object?
-   else if(!osStrcmp(object->name, "tcpConnRemAddress"))
+   else if(osStrcmp(object->name, "tcpConnRemAddress") == 0)
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &socket->remoteIpAddr.ipv4Addr);
    }
    //tcpConnRemPort object?
-   else if(!osStrcmp(object->name, "tcpConnRemPort"))
+   else if(osStrcmp(object->name, "tcpConnRemPort") == 0)
    {
       //Get object value
       value->integer = socket->remotePort;

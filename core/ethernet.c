@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -486,7 +486,7 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
    length = netBufferGetLength(buffer) - offset;
 
    //Point to the beginning of the frame
-   header = netBufferAt(buffer, offset);
+   header = netBufferAt(buffer, offset, 0);
 
    //Format Ethernet header
    header->destAddr = *destAddr;
@@ -622,7 +622,9 @@ error_t ethAcceptMacAddr(NetInterface *interface, const MacAddr *macAddr)
       {
          //Keep track of the first free entry
          if(firstFreeEntry == NULL)
+         {
             firstFreeEntry = entry;
+         }
       }
    }
 

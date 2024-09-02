@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -232,6 +232,7 @@ error_t tftpServerStop(TftpServerContext *context)
    //Check whether the TFTP server is running
    if(context->running)
    {
+#if (NET_RTOS_SUPPORT == ENABLED)
       //Stop the TFTP server
       context->stop = TRUE;
       //Send a signal to the task to abort any blocking operation
@@ -242,6 +243,7 @@ error_t tftpServerStop(TftpServerContext *context)
       {
          osDelayTask(1);
       }
+#endif
 
       //Loop through the connection table
       for(i = 0; i < TFTP_SERVER_MAX_CONNECTIONS; i++)

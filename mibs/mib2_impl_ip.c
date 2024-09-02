@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -112,31 +112,31 @@ error_t mib2GetIpAddrEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ipAdEntAddr object?
-   if(!osStrcmp(object->name, "ipAdEntAddr"))
+   if(osStrcmp(object->name, "ipAdEntAddr") == 0)
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &entry->addr);
    }
    //ipAdEntIfIndex object?
-   else if(!osStrcmp(object->name, "ipAdEntIfIndex"))
+   else if(osStrcmp(object->name, "ipAdEntIfIndex") == 0)
    {
       //Get object value
       value->integer = index;
    }
    //ipAdEntNetMask object?
-   else if(!osStrcmp(object->name, "ipAdEntNetMask"))
+   else if(osStrcmp(object->name, "ipAdEntNetMask") == 0)
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &entry->subnetMask);
    }
    //ipAdEntBcastAddr object?
-   else if(!osStrcmp(object->name, "ipAdEntBcastAddr"))
+   else if(osStrcmp(object->name, "ipAdEntBcastAddr") == 0)
    {
       //Get object value
       value->integer = 1;
    }
    //ipAdEntReasmMaxSize object?
-   else if(!osStrcmp(object->name, "ipAdEntReasmMaxSize"))
+   else if(osStrcmp(object->name, "ipAdEntReasmMaxSize") == 0)
    {
       //Get object value
       value->integer = IPV4_MAX_FRAG_DATAGRAM_SIZE;
@@ -332,13 +332,13 @@ error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ipNetToMediaIfIndex object?
-   if(!osStrcmp(object->name, "ipNetToMediaIfIndex"))
+   if(osStrcmp(object->name, "ipNetToMediaIfIndex") == 0)
    {
       //Get object value
       value->integer = index;
    }
    //ipNetToMediaPhysAddress object?
-   else if(!osStrcmp(object->name, "ipNetToMediaPhysAddress"))
+   else if(osStrcmp(object->name, "ipNetToMediaPhysAddress") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= MIB2_PHYS_ADDRESS_SIZE)
@@ -355,13 +355,13 @@ error_t mib2GetIpNetToMediaEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ipNetToMediaNetAddress object?
-   else if(!osStrcmp(object->name, "ipNetToMediaNetAddress"))
+   else if(osStrcmp(object->name, "ipNetToMediaNetAddress") == 0)
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &entry->ipAddr);
    }
    //ipNetToMediaType object?
-   else if(!osStrcmp(object->name, "ipNetToMediaType"))
+   else if(osStrcmp(object->name, "ipNetToMediaType") == 0)
    {
       //Get object value
       value->integer = MIB2_IP_NET_TO_MEDIA_TYPE_DYNAMIC;

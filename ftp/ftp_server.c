@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -330,6 +330,7 @@ error_t ftpServerStop(FtpServerContext *context)
    //Check whether the FTP server is running
    if(context->running)
    {
+#if (NET_RTOS_SUPPORT == ENABLED)
       //Stop the FTP server
       context->stop = TRUE;
       //Send a signal to the task to abort any blocking operation
@@ -340,6 +341,7 @@ error_t ftpServerStop(FtpServerContext *context)
       {
          osDelayTask(1);
       }
+#endif
 
       //Loop through the connection table
       for(i = 0; i < context->settings.maxConnections; i++)

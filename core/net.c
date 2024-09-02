@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NIC_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
 #include "core/net.h"
 #include "core/socket.h"
 #include "core/raw_socket.h"
@@ -48,9 +47,9 @@
 #include "igmp/igmp_snooping.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_routing.h"
-#include "ipv6/mld.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv.h"
+#include "mld/mld_node.h"
 #include "dhcp/dhcp_client_misc.h"
 #include "dhcp/dhcp_server_misc.h"
 #include "dhcpv6/dhcpv6_client_misc.h"
@@ -59,7 +58,7 @@
 #include "mdns/mdns_client.h"
 #include "mdns/mdns_responder.h"
 #include "mdns/mdns_common.h"
-#include "dns_sd/dns_sd.h"
+#include "dns_sd/dns_sd_responder.h"
 #include "netbios/nbns_client.h"
 #include "netbios/nbns_responder.h"
 #include "netbios/nbns_common.h"
@@ -269,7 +268,7 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 #if (IPV6_SUPPORT == ENABLED && IPV6_FRAG_SUPPORT == ENABLED)
    ipv6FragTickCounter = 0;
 #endif
-#if (IPV6_SUPPORT == ENABLED && MLD_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && MLD_NODE_SUPPORT == ENABLED)
    mldTickCounter = 0;
 #endif
 #if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
@@ -291,8 +290,8 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
    mdnsResponderTickCounter = 0;
 #endif
-#if (DNS_SD_SUPPORT == ENABLED)
-   dnsSdTickCounter = 0;
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
+   dnsSdResponderTickCounter = 0;
 #endif
 
    //Successful initialization
@@ -1307,7 +1306,7 @@ error_t netConfigInterface(NetInterface *interface)
       if(error)
          break;
 
-#if (NDP_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
       //NDP related initialization
       error = ndpInit(interface);
       //Any error to report?
@@ -1315,19 +1314,13 @@ error_t netConfigInterface(NetInterface *interface)
          break;
 #endif
 
-#if (MLD_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && MLD_NODE_SUPPORT == ENABLED)
       //MLD related initialization
       error = mldInit(interface);
       //Any error to report?
       if(error)
          break;
 #endif
-
-      //Join the All-Nodes multicast address
-      error = ipv6JoinMulticastGroup(interface, &IPV6_LINK_LOCAL_ALL_NODES_ADDR);
-      //Any error to report?
-      if(error)
-         break;
 #endif
 
 #if (MDNS_CLIENT_SUPPORT == ENABLED || MDNS_RESPONDER_SUPPORT == ENABLED)

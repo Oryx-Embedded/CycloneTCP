@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -104,164 +104,164 @@ void ftpServerProcessCommand(FtpClientConnection *connection)
          }
 
          //NOOP command received?
-         if(!osStrcasecmp(connection->command, "NOOP"))
+         if(osStrcasecmp(connection->command, "NOOP") == 0)
          {
             ftpServerProcessNoop(connection, p);
          }
          //SYST command received?
-         else if(!osStrcasecmp(connection->command, "SYST"))
+         else if(osStrcasecmp(connection->command, "SYST") == 0)
          {
             ftpServerProcessSyst(connection, p);
          }
          //FEAT command received?
-         else if(!osStrcasecmp(connection->command, "FEAT"))
+         else if(osStrcasecmp(connection->command, "FEAT") == 0)
          {
             ftpServerProcessFeat(connection, p);
          }
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED)
          //AUTH command received?
-         else if(!osStrcasecmp(connection->command, "AUTH"))
+         else if(osStrcasecmp(connection->command, "AUTH") == 0)
          {
             ftpServerProcessAuth(connection, p);
          }
          //PBSZ command received?
-         else if(!osStrcasecmp(connection->command, "PBSZ"))
+         else if(osStrcasecmp(connection->command, "PBSZ") == 0)
          {
             ftpServerProcessPbsz(connection, p);
          }
          //PROT command received?
-         else if(!osStrcasecmp(connection->command, "PROT"))
+         else if(osStrcasecmp(connection->command, "PROT") == 0)
          {
             ftpServerProcessProt(connection, p);
          }
 #endif
          //TYPE command received?
-         else if(!osStrcasecmp(connection->command, "TYPE"))
+         else if(osStrcasecmp(connection->command, "TYPE") == 0)
          {
             ftpServerProcessType(connection, p);
          }
          //STRU command received?
-         else if(!osStrcasecmp(connection->command, "STRU"))
+         else if(osStrcasecmp(connection->command, "STRU") == 0)
          {
             ftpServerProcessStru(connection, p);
          }
          //MODE command received?
-         else if(!osStrcasecmp(connection->command, "MODE"))
+         else if(osStrcasecmp(connection->command, "MODE") == 0)
          {
             ftpServerProcessMode(connection, p);
          }
          //USER command received?
-         else if(!osStrcasecmp(connection->command, "USER"))
+         else if(osStrcasecmp(connection->command, "USER") == 0)
          {
             ftpServerProcessUser(connection, p);
          }
          //PASS command received?
-         else if(!osStrcasecmp(connection->command, "PASS"))
+         else if(osStrcasecmp(connection->command, "PASS") == 0)
          {
             ftpServerProcessPass(connection, p);
          }
          //REIN command received?
-         else if(!osStrcasecmp(connection->command, "REIN"))
+         else if(osStrcasecmp(connection->command, "REIN") == 0)
          {
             ftpServerProcessRein(connection, p);
          }
          //QUIT command received?
-         else if(!osStrcasecmp(connection->command, "QUIT"))
+         else if(osStrcasecmp(connection->command, "QUIT") == 0)
          {
             ftpServerProcessQuit(connection, p);
          }
          //PORT command received?
-         else if(!osStrcasecmp(connection->command, "PORT"))
+         else if(osStrcasecmp(connection->command, "PORT") == 0)
          {
             ftpServerProcessPort(connection, p);
          }
          //EPRT command received?
-         else if(!osStrcasecmp(connection->command, "EPRT"))
+         else if(osStrcasecmp(connection->command, "EPRT") == 0)
          {
             ftpServerProcessEprt(connection, p);
          }
          //PASV command received?
-         else if(!osStrcasecmp(connection->command, "PASV"))
+         else if(osStrcasecmp(connection->command, "PASV") == 0)
          {
             ftpServerProcessPasv(connection, p);
          }
          //EPSV command received?
-         else if(!osStrcasecmp(connection->command, "EPSV"))
+         else if(osStrcasecmp(connection->command, "EPSV") == 0)
          {
             ftpServerProcessEpsv(connection, p);
          }
          //ABOR command received?
-         else if(!osStrcasecmp(connection->command, "ABOR"))
+         else if(osStrcasecmp(connection->command, "ABOR") == 0)
          {
             ftpServerProcessAbor(connection, p);
          }
          //PWD command received?
-         else if(!osStrcasecmp(connection->command, "PWD"))
+         else if(osStrcasecmp(connection->command, "PWD") == 0)
          {
             ftpServerProcessPwd(connection, p);
          }
          //LIST command received?
-         else if(!osStrcasecmp(connection->command, "LIST"))
+         else if(osStrcasecmp(connection->command, "LIST") == 0)
          {
             ftpServerProcessList(connection, p);
          }
          //NLST command received?
-         else if(!osStrcasecmp(connection->command, "NLST"))
+         else if(osStrcasecmp(connection->command, "NLST") == 0)
          {
             ftpServerProcessNlst(connection, p);
          }
          //CWD command received?
-         else if(!osStrcasecmp(connection->command, "CWD"))
+         else if(osStrcasecmp(connection->command, "CWD") == 0)
          {
             ftpServerProcessCwd(connection, p);
          }
          //CDUP command received?
-         else if(!osStrcasecmp(connection->command, "CDUP"))
+         else if(osStrcasecmp(connection->command, "CDUP") == 0)
          {
             ftpServerProcessCdup(connection, p);
          }
          //MKD command received?
-         else if(!osStrcasecmp(connection->command, "MKD"))
+         else if(osStrcasecmp(connection->command, "MKD") == 0)
          {
             ftpServerProcessMkd(connection, p);
          }
          //RMD command received?
-         else if(!osStrcasecmp(connection->command, "RMD"))
+         else if(osStrcasecmp(connection->command, "RMD") == 0)
          {
             ftpServerProcessRmd(connection, p);
          }
          //SIZE command received?
-         else if(!osStrcasecmp(connection->command, "SIZE"))
+         else if(osStrcasecmp(connection->command, "SIZE") == 0)
          {
             ftpServerProcessSize(connection, p);
          }
          //RETR command received?
-         else if(!osStrcasecmp(connection->command, "RETR"))
+         else if(osStrcasecmp(connection->command, "RETR") == 0)
          {
             ftpServerProcessRetr(connection, p);
          }
          //STOR command received?
-         else if(!osStrcasecmp(connection->command, "STOR"))
+         else if(osStrcasecmp(connection->command, "STOR") == 0)
          {
             ftpServerProcessStor(connection, p);
          }
          //APPE command received?
-         else if(!osStrcasecmp(connection->command, "APPE"))
+         else if(osStrcasecmp(connection->command, "APPE") == 0)
          {
             ftpServerProcessAppe(connection, p);
          }
          //RNFR command received?
-         else if(!osStrcasecmp(connection->command, "RNFR"))
+         else if(osStrcasecmp(connection->command, "RNFR") == 0)
          {
             ftpServerProcessRnfr(connection, p);
          }
          //RNTO command received?
-         else if(!osStrcasecmp(connection->command, "RNTO"))
+         else if(osStrcasecmp(connection->command, "RNTO") == 0)
          {
             ftpServerProcessRnto(connection, p);
          }
          //DELE command received?
-         else if(!osStrcasecmp(connection->command, "DELE"))
+         else if(osStrcasecmp(connection->command, "DELE") == 0)
          {
             ftpServerProcessDele(connection, p);
          }
@@ -400,7 +400,7 @@ void ftpServerProcessAuth(FtpClientConnection *connection, char_t *param)
       if(*param != '\0')
       {
          //TLS security mechanism?
-         if(!osStrcasecmp(param, "TLS"))
+         if(osStrcasecmp(param, "TLS") == 0)
          {
             //If the server is willing to accept the named security mechanism,
             //and does not require any security data, it must respond with reply
@@ -499,7 +499,7 @@ void ftpServerProcessProt(FtpClientConnection *connection, char_t *param)
       if(*param != '\0')
       {
          //Private protection level?
-         if(!osStrcasecmp(param, "P"))
+         if(osStrcasecmp(param, "P") == 0)
          {
             //The server must reply with a 200 reply code to indicate that the
             //specified protection level is accepted
@@ -543,13 +543,13 @@ void ftpServerProcessType(FtpClientConnection *connection, char_t *param)
    if(*param != '\0')
    {
       //ASCII type?
-      if(!osStrcasecmp(param, "A"))
+      if(osStrcasecmp(param, "A") == 0)
       {
          //Format the response to the TYPE command
          osStrcpy(connection->response, "200 Type set to A\r\n");
       }
       //Image type?
-      else if(!osStrcasecmp(param, "I"))
+      else if(osStrcasecmp(param, "I") == 0)
       {
          //Format the response to the TYPE command
          osStrcpy(connection->response, "200 Type set to I\r\n");
@@ -584,7 +584,7 @@ void ftpServerProcessStru(FtpClientConnection *connection, char_t *param)
    if(*param != '\0')
    {
       //No record structure?
-      if(!osStrcasecmp(param, "F"))
+      if(osStrcasecmp(param, "F") == 0)
       {
          //Format the response to the STRU command
          osStrcpy(connection->response, "200 Structure set to F\r\n");
@@ -619,7 +619,7 @@ void ftpServerProcessMode(FtpClientConnection *connection, char_t *param)
    if(*param != '\0')
    {
       //Stream mode?
-      if(!osStrcasecmp(param, "S"))
+      if(osStrcasecmp(param, "S") == 0)
       {
          //Format the response to the MODE command
          osStrcpy(connection->response, "200 Mode set to S\r\n");

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -36,6 +36,7 @@
 #include "core/ip.h"
 #include "core/udp.h"
 #include "core/socket.h"
+#include "core/socket_misc.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
@@ -148,7 +149,7 @@ error_t udpProcessDatagram(NetInterface *interface,
    }
 
    //Point to the UDP header
-   header = netBufferAt(buffer, offset);
+   header = netBufferAt(buffer, offset, sizeof(UdpHeader));
    //Sanity check
    if(header == NULL)
       return ERROR_FAILURE;
@@ -199,14 +200,14 @@ error_t udpProcessDatagram(NetInterface *interface,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = socketTable + i;
+      socket = &socketTable[i];
 
       //UDP socket found?
       if(socket->type != SOCKET_TYPE_DGRAM)
          continue;
 
       //Check whether the socket is bound to a particular interface
-      if(socket->interface && socket->interface != interface)
+      if(socket->interface != NULL && socket->interface != interface)
          continue;
 
       //Check destination port number
@@ -235,26 +236,22 @@ error_t udpProcessDatagram(NetInterface *interface,
          }
          else if(ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
          {
-            uint_t j;
-            IpAddr *group;
+            IpAddr srcAddr;
+            IpAddr destAddr;
 
-            //Loop through multicast groups
-            for(j = 0; j < SOCKET_MAX_MULTICAST_GROUPS; j++)
+            //Get source IPv4 address
+            srcAddr.length = sizeof(Ipv4Addr);
+            srcAddr.ipv4Addr = pseudoHeader->ipv4Data.srcAddr;
+
+            //Get destination IPv4 address
+            destAddr.length = sizeof(Ipv4Addr);
+            destAddr.ipv4Addr = pseudoHeader->ipv4Data.destAddr;
+
+            //Multicast address filtering
+            if(!socketMulticastFilter(socket, &destAddr, &srcAddr))
             {
-               //Point to the current multicast group
-               group = &socket->multicastGroups[j];
-
-               //Matching multicast address?
-               if(group->length == sizeof(Ipv4Addr) &&
-                  group->ipv4Addr == pseudoHeader->ipv4Data.destAddr)
-               {
-                  break;
-               }
-            }
-
-            //Filter out non-matching multicast addresses
-            if(j >= SOCKET_MAX_MULTICAST_GROUPS)
                continue;
+            }
          }
          else
          {
@@ -295,18 +292,44 @@ error_t udpProcessDatagram(NetInterface *interface,
       //IPv6 packet received?
       if(pseudoHeader->length == sizeof(Ipv6PseudoHeader))
       {
-         //Destination IP address filtering
-         if(socket->localIpAddr.length != 0)
+         //Check whether the destination address is a unicast or multicast
+         //address
+         if(ipv6IsMulticastAddr(&pseudoHeader->ipv6Data.destAddr))
          {
-            //An IPv6 address is expected
-            if(socket->localIpAddr.length != sizeof(Ipv6Addr))
-               continue;
+            IpAddr srcAddr;
+            IpAddr destAddr;
 
-            //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
-               !ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.destAddr))
+            //Get source IPv6 address
+            srcAddr.length = sizeof(Ipv6Addr);
+            srcAddr.ipv6Addr = pseudoHeader->ipv6Data.srcAddr;
+
+            //Get destination IPv6 address
+            destAddr.length = sizeof(Ipv6Addr);
+            destAddr.ipv6Addr = pseudoHeader->ipv6Data.destAddr;
+
+            //Multicast address filtering
+            if(!socketMulticastFilter(socket, &destAddr, &srcAddr))
             {
                continue;
+            }
+         }
+         else
+         {
+            //Destination IP address filtering
+            if(socket->localIpAddr.length != 0)
+            {
+               //An IPv6 address is expected
+               if(socket->localIpAddr.length != sizeof(Ipv6Addr))
+                  continue;
+
+               //Filter out non-matching addresses
+               if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr,
+                  &IPV6_UNSPECIFIED_ADDR) &&
+                  !ipv6CompAddr(&socket->localIpAddr.ipv6Addr,
+                  &pseudoHeader->ipv6Data.destAddr))
+               {
+                  continue;
+               }
             }
          }
 
@@ -318,8 +341,10 @@ error_t udpProcessDatagram(NetInterface *interface,
                continue;
 
             //Filter out non-matching addresses
-            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
-               !ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &pseudoHeader->ipv6Data.srcAddr))
+            if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr,
+               &IPV6_UNSPECIFIED_ADDR) &&
+               !ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr,
+               &pseudoHeader->ipv6Data.srcAddr))
             {
                continue;
             }
@@ -361,7 +386,7 @@ error_t udpProcessDatagram(NetInterface *interface,
       if(p != NULL)
       {
          //Point to the newly created item
-         queueItem = netBufferAt(p, 0);
+         queueItem = netBufferAt(p, 0, 0);
          queueItem->buffer = p;
          //Add the newly created item to the queue
          socket->receiveQueue = queueItem;
@@ -402,7 +427,7 @@ error_t udpProcessDatagram(NetInterface *interface,
       if(p != NULL)
       {
          //Add the newly created item to the queue
-         queueItem->next = netBufferAt(p, 0);
+         queueItem->next = netBufferAt(p, 0, 0);
          //Point to the newly created item
          queueItem = queueItem->next;
          queueItem->buffer = p;
@@ -521,6 +546,12 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
    {
       //Additional options can be passed to the stack along with the packet
       ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+      //This option allows UDP checksum generation to be bypassed
+      if((socket->options & SOCKET_OPTION_UDP_NO_CHECKSUM) != 0)
+      {
+         ancillary.noChecksum = TRUE;
+      }
 
       //Set the TTL value to be used
       if(message->ttl != 0)
@@ -643,7 +674,7 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
       return ERROR_INVALID_LENGTH;
 
    //Point to the UDP header
-   header = netBufferAt(buffer, offset);
+   header = netBufferAt(buffer, offset, sizeof(UdpHeader));
    //Sanity check
    if(header == NULL)
       return ERROR_FAILURE;
@@ -709,9 +740,21 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
       pseudoHeader.ipv4Data.protocol = IPV4_PROTOCOL_UDP;
       pseudoHeader.ipv4Data.length = htons(length);
 
-      //Calculate UDP header checksum
-      header->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader.ipv4Data,
-         sizeof(Ipv4PseudoHeader), buffer, offset, length);
+      //UDP checksum is optional for IPv4
+      if(!ancillary->noChecksum)
+      {
+         //Calculate UDP header checksum
+         header->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader.ipv4Data,
+            sizeof(Ipv4PseudoHeader), buffer, offset, length);
+
+         //If the computed checksum is zero, it is transmitted as all ones.
+         //An all zero transmitted checksum value means that the transmitter
+         //generated no checksum (refer to RFC 768)
+         if(header->checksum == 0)
+         {
+            header->checksum = 0xFFFF;
+         }
+      }
    }
    else
 #endif
@@ -751,9 +794,17 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
       pseudoHeader.ipv6Data.reserved[2] = 0;
       pseudoHeader.ipv6Data.nextHeader = IPV6_UDP_HEADER;
 
-      //Calculate UDP header checksum
+      //Unlike IPv4, when UDP packets are originated by an IPv6 node, the UDP
+      //checksum is not optional (refer to RFC 2460, section 8.1)
       header->checksum = ipCalcUpperLayerChecksumEx(&pseudoHeader.ipv6Data,
          sizeof(Ipv6PseudoHeader), buffer, offset, length);
+
+      //If that computation yields a result of zero, it must be changed to hex
+      //FFFF for placement in the UDP header
+      if(header->checksum == 0)
+      {
+         header->checksum = 0xFFFF;
+      }
    }
    else
 #endif
@@ -761,14 +812,6 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
    {
       //An internal error has occurred
       return ERROR_FAILURE;
-   }
-
-   //If the computed checksum is zero, it is transmitted as all ones. An all
-   //zero transmitted checksum value means that the transmitter generated no
-   //checksum
-   if(header->checksum == 0x0000)
-   {
-      header->checksum = 0xFFFF;
    }
 
    //Total number of UDP datagrams sent from this entity

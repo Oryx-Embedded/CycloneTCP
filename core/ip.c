@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -36,8 +36,10 @@
 #include "core/ethernet.h"
 #include "core/ip.h"
 #include "ipv4/ipv4.h"
+#include "ipv4/ipv4_multicast.h"
 #include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
+#include "ipv6/ipv6_multicast.h"
 #include "ipv6/ipv6_misc.h"
 #include "debug.h"
 
@@ -399,93 +401,58 @@ bool_t ipCompPrefix(const IpAddr *ipAddr1, const IpAddr *ipAddr2,
 
 
 /**
- * @brief Join the specified host group
- * @param[in] interface Underlying network interface (optional parameter)
- * @param[in] groupAddr IP address identifying the host group to join
+ * @brief Update IP multicast filter table
+ * @param[in] interface Underlying network interface
+ * @param[in] groupAddr IP multicast address
  * @return Error code
  **/
 
-error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
+void ipUpdateMulticastFilter(NetInterface *interface, const IpAddr *groupAddr)
 {
-   error_t error;
+   uint_t i;
 
-   //Use default network interface?
-   if(interface == NULL)
+   //Loop through network interfaces
+   for(i = 0; i < NET_INTERFACE_COUNT; i++)
    {
-      interface = netGetDefaultInterface();
-   }
-
+      //Matching interface?
+      if(interface == NULL || interface == &netInterface[i])
+      {
 #if (IPV4_SUPPORT == ENABLED)
-   //IPv4 multicast address?
-   if(groupAddr->length == sizeof(Ipv4Addr))
-   {
-      //Join the specified host group
-      error = ipv4JoinMulticastGroup(interface, groupAddr->ipv4Addr);
-   }
-   else
+         //IPv4 group address?
+         if(groupAddr == NULL)
+         {
+            //Update IPv4 multicast filter table
+            ipv4UpdateMulticastFilter(&netInterface[i], IPV4_UNSPECIFIED_ADDR);
+         }
+         else if(groupAddr->length == sizeof(Ipv4Addr))
+         {
+            //Update IPv4 multicast filter table (for the specified group only)
+            ipv4UpdateMulticastFilter(&netInterface[i], groupAddr->ipv4Addr);
+         }
+         else
+         {
+            //Just for sanity
+         }
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-   //IPv6 multicast address?
-   if(groupAddr->length == sizeof(Ipv6Addr))
-   {
-      //Join the specified host group
-      error = ipv6JoinMulticastGroup(interface, &groupAddr->ipv6Addr);
-   }
-   else
+         //IPv6 group address?
+         if(groupAddr == NULL)
+         {
+            //Update IPv6 multicast filter table
+            ipv6UpdateMulticastFilter(&netInterface[i], NULL);
+         }
+         else if(groupAddr->length == sizeof(Ipv6Addr))
+         {
+            //Update IPv6 multicast filter table (for the specified group only)
+            ipv6UpdateMulticastFilter(&netInterface[i], &groupAddr->ipv6Addr);
+         }
+         else
+         {
+            //Just for sanity
+         }
 #endif
-   //Invalid IP address?
-   {
-      //Report an error
-      error = ERROR_INVALID_ADDRESS;
+      }
    }
-
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Leave the specified host group
- * @param[in] interface Underlying network interface (optional parameter)
- * @param[in] groupAddr IP address identifying the host group to leave
- * @return Error code
- **/
-
-error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr)
-{
-   error_t error;
-
-   //Use default network interface?
-   if(interface == NULL)
-   {
-      interface = netGetDefaultInterface();
-   }
-
-#if (IPV4_SUPPORT == ENABLED)
-   //IPv4 multicast address?
-   if(groupAddr->length == sizeof(Ipv4Addr))
-   {
-      //Drop membership
-      error = ipv4LeaveMulticastGroup(interface, groupAddr->ipv4Addr);
-   }
-   else
-#endif
-#if (IPV6_SUPPORT == ENABLED)
-   //IPv6 multicast address?
-   if(groupAddr->length == sizeof(Ipv6Addr))
-   {
-      //Drop membership
-      error = ipv6LeaveMulticastGroup(interface, &groupAddr->ipv6Addr);
-   }
-   else
-#endif
-   //Invalid IP address?
-   {
-      error = ERROR_INVALID_ADDRESS;
-   }
-
-   //Return status code
-   return error;
 }
 
 
@@ -751,7 +718,7 @@ NetBuffer *ipAllocBuffer(size_t length, size_t *offset)
    headerLen = sizeof(Ipv6Header) + sizeof(Ipv6FragmentHeader);
 #else
    //Maximum overhead when using IPv4
-   headerLen = sizeof(Ipv4Header) + sizeof(uint32_t);
+   headerLen = sizeof(Ipv4Header) + sizeof(Ipv4RouterAlertOption);
 #endif
 
 #if (IPV4_IPSEC_SUPPORT == ENABLED && AH_SUPPORT == ENABLED)

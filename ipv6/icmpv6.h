@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _ICMPV6_H
@@ -50,21 +50,21 @@ extern "C" {
 
 typedef enum
 {
-   ICMPV6_TYPE_DEST_UNREACHABLE             = 1,
-   ICMPV6_TYPE_PACKET_TOO_BIG               = 2,
-   ICMPV6_TYPE_TIME_EXCEEDED                = 3,
-   ICMPV6_TYPE_PARAM_PROBLEM                = 4,
-   ICMPV6_TYPE_ECHO_REQUEST                 = 128,
-   ICMPV6_TYPE_ECHO_REPLY                   = 129,
-   ICMPV6_TYPE_MULTICAST_LISTENER_QUERY     = 130,
-   ICMPV6_TYPE_MULTICAST_LISTENER_REPORT_V1 = 131,
-   ICMPV6_TYPE_MULTICAST_LISTENER_DONE_V1   = 132,
-   ICMPV6_TYPE_ROUTER_SOL                   = 133,
-   ICMPV6_TYPE_ROUTER_ADV                   = 134,
-   ICMPV6_TYPE_NEIGHBOR_SOL                 = 135,
-   ICMPV6_TYPE_NEIGHBOR_ADV                 = 136,
-   ICMPV6_TYPE_REDIRECT                     = 137,
-   ICMPV6_TYPE_MULTICAST_LISTENER_REPORT_V2 = 143
+   ICMPV6_TYPE_DEST_UNREACHABLE         = 1,
+   ICMPV6_TYPE_PACKET_TOO_BIG           = 2,
+   ICMPV6_TYPE_TIME_EXCEEDED            = 3,
+   ICMPV6_TYPE_PARAM_PROBLEM            = 4,
+   ICMPV6_TYPE_ECHO_REQUEST             = 128,
+   ICMPV6_TYPE_ECHO_REPLY               = 129,
+   ICMPV6_TYPE_MCAST_LISTENER_QUERY     = 130,
+   ICMPV6_TYPE_MCAST_LISTENER_REPORT_V1 = 131,
+   ICMPV6_TYPE_MCAST_LISTENER_DONE_V1   = 132,
+   ICMPV6_TYPE_ROUTER_SOL               = 133,
+   ICMPV6_TYPE_ROUTER_ADV               = 134,
+   ICMPV6_TYPE_NEIGHBOR_SOL             = 135,
+   ICMPV6_TYPE_NEIGHBOR_ADV             = 136,
+   ICMPV6_TYPE_REDIRECT                 = 137,
+   ICMPV6_TYPE_MCAST_LISTENER_REPORT_V2 = 143
 } Icmpv6Type;
 
 
@@ -248,7 +248,7 @@ error_t icmpv6EnableMulticastEchoRequests(NetInterface *interface,
 
 void icmpv6ProcessMessage(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit);
+   size_t offset, const NetRxAncillary *ancillary);
 
 void icmpv6ProcessDestUnreachable(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,

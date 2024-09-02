@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _NIC_H
@@ -263,6 +263,9 @@ typedef void (*SpiAssertCs)(void);
 typedef void (*SpiDeassertCs)(void);
 typedef uint8_t (*SpiTransfer)(uint8_t data);
 
+typedef void (*SpiTransferMultipleBytes)(const uint8_t *txBuffer,
+   uint8_t *rxBuffer, size_t length);
+
 //UART driver abstraction layer
 typedef error_t (*UartInit)(void);
 typedef void (*UartEnableIrq)(void);
@@ -370,6 +373,7 @@ typedef struct
    SpiAssertCs assertCs;
    SpiDeassertCs deassertCs;
    SpiTransfer transfer;
+   SpiTransferMultipleBytes transferMultipleBytes;
 } SpiDriver;
 
 

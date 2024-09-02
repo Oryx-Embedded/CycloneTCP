@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -294,4 +294,298 @@ uint_t socketGetEvents(Socket *socket)
 
    //Return the events in the signaled state
    return eventFlags;
+}
+
+
+/**
+ * @brief Filter out incoming multicast traffic
+ * @param[in] socket Handle that identifies a socket
+ * @param[in] destAddr Destination IP address of the received packet
+ * @param[in] srcAddr Source IP address of the received packet
+ * @return Return TRUE if the multicast packet should be accepted, else FALSE
+ **/
+
+bool_t socketMulticastFilter(Socket *socket, const IpAddr *destAddr,
+   const IpAddr *srcAddr)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0)
+   uint_t i;
+   bool_t acceptable;
+   SocketMulticastGroup *group;
+
+   //Initialize flag
+   acceptable = FALSE;
+
+   //Loop through multicast groups
+   for(i = 0; i < SOCKET_MAX_MULTICAST_GROUPS; i++)
+   {
+      //Point to the current multicast group
+      group = &socket->multicastGroups[i];
+
+      //Matching multicast address?
+      if(ipCompAddr(&group->addr, destAddr))
+      {
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+         uint_t j;
+
+         //Check filter mode
+         if(group->filterMode == IP_FILTER_MODE_INCLUDE)
+         {
+            //In INCLUDE mode, reception of packets sent to the specified
+            //multicast address is requested only from those IP source
+            //addresses listed in the source list
+            for(j = 0; j < SOCKET_MAX_MULTICAST_SOURCES && !acceptable; j++)
+            {
+               //Compare source addresses
+               if(ipCompAddr(&group->sources[j], srcAddr))
+               {
+                  acceptable = TRUE;
+               }
+            }
+         }
+         else
+         {
+            //In EXCLUDE mode, reception of packets sent to the given multicast
+            //address is requested from all IP source addresses except those
+            //listed in the source list
+            acceptable = TRUE;
+
+            //Loop through the list of excluded source addresses
+            for(j = 0; j < group->numSources && acceptable; j++)
+            {
+               //Compare source addresses
+               if(ipCompAddr(&group->sources[j], srcAddr))
+               {
+                  acceptable = FALSE;
+               }
+            }
+         }
+#else
+         //The multicast address is acceptable
+         acceptable = TRUE;
+#endif
+      }
+   }
+
+   //Return TRUE if the multicast packet should be accepted
+   return acceptable;
+#else
+   //Not implemented
+   return FALSE;
+#endif
+}
+
+
+/**
+ * @brief Create a new multicast group
+ * @param[in] socket Handle to a socket
+ * @param[in] groupAddr IP address identifying a multicast group
+ * @return Pointer to the newly created multicast group
+ **/
+
+SocketMulticastGroup *socketCreateMulticastGroupEntry(Socket *socket,
+   const IpAddr *groupAddr)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0)
+   uint_t i;
+   SocketMulticastGroup *group;
+
+   //Initialize pointer
+   group = NULL;
+
+   //Loop through multicast groups
+   for(i = 0; i < SOCKET_MAX_MULTICAST_GROUPS; i++)
+   {
+      //Check whether the current entry is available for use
+      if(socket->multicastGroups[i].addr.length == 0)
+      {
+         //Point to the current group
+         group = &socket->multicastGroups[i];
+
+         //Save multicast group address
+         group->addr = *groupAddr;
+
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+         //By default, all sources are accepted
+         group->filterMode = IP_FILTER_MODE_EXCLUDE;
+         group->numSources = 0;
+#endif
+         //We are done
+         break;
+      }
+   }
+
+   //Return a pointer to the newly created multicast group
+   return group;
+#else
+   //Not implemented
+   return NULL;
+#endif
+}
+
+
+/**
+ * @brief Search the list of multicast groups for a given group address
+ * @param[in] socket Handle to a socket
+ * @param[in] groupAddr IP address identifying a multicast group
+ * @return A pointer to the matching multicast group is returned. NULL is
+ *   returned if the specified group address cannot be found
+ **/
+
+SocketMulticastGroup *socketFindMulticastGroupEntry(Socket *socket,
+   const IpAddr *groupAddr)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0)
+   uint_t i;
+   SocketMulticastGroup *group;
+
+   //Initialize pointer
+   group = NULL;
+
+   //Loop through multicast groups
+   for(i = 0; i < SOCKET_MAX_MULTICAST_GROUPS; i++)
+   {
+      //Compare group addresses
+      if(ipCompAddr(&socket->multicastGroups[i].addr, groupAddr))
+      {
+         //Point to the current group
+         group = &socket->multicastGroups[i];
+         break;
+      }
+   }
+
+   //Return a pointer to the matching multicast group
+   return group;
+#else
+   //Not implemented
+   return NULL;
+#endif
+}
+
+
+/**
+ * @brief Delete a multicast group
+ * @param[in] group Pointer to the multicast group
+ **/
+
+void socketDeleteMulticastGroupEntry(SocketMulticastGroup *group)
+{
+   //Delete the specified entry
+   group->addr = IP_ADDR_UNSPECIFIED;
+}
+
+
+/**
+ * @brief Add an address to the multicast source filter
+ * @param[in] group Pointer to the multicast group
+ * @param[in] srcAddr IP address to be added to the list
+ * @return Error code
+ **/
+
+error_t socketAddMulticastSrcAddr(SocketMulticastGroup *group,
+   const IpAddr *srcAddr)
+{
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Make sure that the source address is not a duplicate
+   if(socketFindMulticastSrcAddr(group, srcAddr) < 0)
+   {
+      //Check the length of the list
+      if(group->numSources < SOCKET_MAX_MULTICAST_SOURCES)
+      {
+         //Append the source address to the list
+         group->sources[group->numSources] = *srcAddr;
+         group->numSources++;
+      }
+      else
+      {
+         //The implementation limits the number of source addresses
+         error = ERROR_OUT_OF_RESOURCES;
+      }
+   }
+
+   //Return status code
+   return error;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Remove an address from the multicast source filter
+ * @param[in] group Pointer to the multicast group
+ * @param[in] srcAddr IP address to be removed from the list
+ **/
+
+void socketRemoveMulticastSrcAddr(SocketMulticastGroup *group,
+   const IpAddr *srcAddr)
+{
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+   uint_t i;
+   uint_t j;
+
+   //Loop through the list of source addresses
+   for(i = 0; i < group->numSources; i++)
+   {
+      //Matching IP address?
+      if(ipCompAddr(&group->sources[i], srcAddr))
+      {
+         //Remove the source address from the list
+         for(j = i + 1; j < group->numSources; j++)
+         {
+            group->sources[j - 1] = group->sources[j];
+         }
+
+         //Update the length of the list
+         group->numSources--;
+
+         //We are done
+         break;
+      }
+   }
+#endif
+}
+
+
+/**
+ * @brief Search the list of multicast sources for a given IP address
+ * @param[in] socket Handle to a socket
+ * @param[in] srcAddr Source IP address
+ * @return Index of the matching IP address is returned. -1 is
+ *   returned if the specified IP address cannot be found
+ **/
+
+int_t socketFindMulticastSrcAddr(SocketMulticastGroup *group,
+   const IpAddr *srcAddr)
+{
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+   int_t i;
+   int_t index;
+
+   //Initialize index
+   index = -1;
+
+   //Loop through the list of source addresses
+   for(i = 0; i < group->numSources; i++)
+   {
+      //Matching IP address?
+      if(ipCompAddr(&group->sources[i], srcAddr))
+      {
+         index = i;
+         break;
+      }
+   }
+
+   //Return the index of the matching IP address, if any
+   return index;
+#else
+   //Not implemented
+   return -1;
+#endif
 }

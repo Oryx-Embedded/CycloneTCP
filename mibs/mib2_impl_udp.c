@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -131,13 +131,13 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
    }
 
    //udpLocalAddress object?
-   if(!osStrcmp(object->name, "udpLocalAddress"))
+   if(osStrcmp(object->name, "udpLocalAddress") == 0)
    {
       //Get object value
       ipv4CopyAddr(value->ipAddr, &localIpAddr);
    }
    //udpLocalPort object?
-   else if(!osStrcmp(object->name, "udpLocalPort"))
+   else if(osStrcmp(object->name, "udpLocalPort") == 0)
    {
       //Get object value
       value->integer = localPort;

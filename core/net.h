@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _NET_H
@@ -54,6 +54,7 @@ struct _NetInterface;
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv.h"
 #include "ipv6/slaac.h"
+#include "mld/mld_node.h"
 #include "ppp/ppp.h"
 #include "dhcp/dhcp_client.h"
 #include "dhcp/dhcp_server.h"
@@ -61,7 +62,7 @@ struct _NetInterface;
 #include "dns/dns_client.h"
 #include "mdns/mdns_responder.h"
 #include "mdns/mdns_common.h"
-#include "dns_sd/dns_sd.h"
+#include "dns_sd/dns_sd_responder.h"
 #include "cpu_endian.h"
 #include "error.h"
 
@@ -93,13 +94,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.4.2"
+#define CYCLONE_TCP_VERSION_STRING "2.4.4"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 4
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 2
+#define CYCLONE_TCP_REV_NUMBER 4
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -275,6 +276,9 @@ struct _NetInterface
 #if (NDP_ROUTER_ADV_SUPPORT == ENABLED)
    NdpRouterAdvContext *ndpRouterAdvContext;      ///<RA service context
 #endif
+#if (MLD_NODE_SUPPORT == ENABLED)
+   MldNodeContext mldNodeContext;                 ///<MLD node context
+#endif
 #if (SLAAC_SUPPORT == ENABLED)
    SlaacContext *slaacContext;                    ///<SLAAC context
 #endif
@@ -287,8 +291,8 @@ struct _NetInterface
    MdnsResponderContext *mdnsResponderContext;    ///<mDNS responder context
 #endif
 
-#if (DNS_SD_SUPPORT == ENABLED)
-   DnsSdContext *dnsSdContext;                    ///DNS-SD context
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
+   DnsSdResponderContext *dnsSdResponderContext;  ///<DNS-SD responder context
 #endif
 
 #if (PPP_SUPPORT == ENABLED)

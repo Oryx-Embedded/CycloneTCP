@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -119,7 +119,7 @@ void tcpProcessSegment(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Point to the TCP header
-   segment = netBufferAt(buffer, offset);
+   segment = netBufferAt(buffer, offset, 0);
    //Sanity check
    if(segment == NULL)
       return;
@@ -174,14 +174,14 @@ void tcpProcessSegment(NetInterface *interface,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = socketTable + i;
+      socket = &socketTable[i];
 
       //TCP socket found?
       if(socket->type != SOCKET_TYPE_STREAM)
          continue;
 
       //Check whether the socket is bound to a particular interface
-      if(socket->interface && socket->interface != interface)
+      if(socket->interface != NULL && socket->interface != interface)
          continue;
 
       //Check destination port number
@@ -1309,8 +1309,8 @@ void tcpStateTimeWait(Socket *socket, const TcpHeader *segment, size_t length)
    //Debug message
    TRACE_DEBUG("TCP FSM: TIME-WAIT state\r\n");
 
-  //Ignore RST segments in TIME-WAIT state (refer to RFC 1337, section 3)
-  if((segment->flags & TCP_FLAG_RST) != 0)
+   //Ignore RST segments in TIME-WAIT state (refer to RFC 1337, section 3)
+   if((segment->flags & TCP_FLAG_RST) != 0)
       return;
 
    //First check sequence number

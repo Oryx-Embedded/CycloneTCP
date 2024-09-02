@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -46,9 +46,9 @@
 #include "igmp/igmp_host.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_routing.h"
-#include "ipv6/mld.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv_misc.h"
+#include "mld/mld_node.h"
 #include "dhcp/dhcp_client_misc.h"
 #include "dhcp/dhcp_server_misc.h"
 #include "dhcpv6/dhcpv6_client_misc.h"
@@ -57,7 +57,7 @@
 #include "mdns/mdns_client.h"
 #include "mdns/mdns_responder.h"
 #include "mdns/mdns_common.h"
-#include "dns_sd/dns_sd.h"
+#include "dns_sd/dns_sd_responder.h"
 #include "netbios/nbns_client.h"
 #include "netbios/nbns_responder.h"
 #include "netbios/nbns_common.h"
@@ -70,6 +70,9 @@
 //Default options passed to the stack (TX path)
 const NetTxAncillary NET_DEFAULT_TX_ANCILLARY =
 {
+#if (UDP_SUPPORT == ENABLED)
+   FALSE,         //Disable UDP checksum generation
+#endif
    0,             //Time-to-live value
    0,             //Type-of-service value
    IP_DEFAULT_DF, //Do not fragment the IP packet
@@ -274,9 +277,9 @@ void netProcessLinkChange(NetInterface *interface)
    mdnsResponderLinkChangeEvent(interface->mdnsResponderContext);
 #endif
 
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
    //Perform probing and announcing
-   dnsSdLinkChangeEvent(interface->dnsSdContext);
+   dnsSdResponderLinkChangeEvent(interface->dnsSdResponderContext);
 #endif
 
    //Loop through the link change callback table
@@ -303,7 +306,7 @@ void netProcessLinkChange(NetInterface *interface)
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = socketTable + i;
+      socket = &socketTable[i];
 
 #if (TCP_SUPPORT == ENABLED)
       //Connection-oriented socket?
@@ -588,7 +591,7 @@ void netTick(void)
    }
 #endif
 
-#if (IPV6_SUPPORT == ENABLED && MLD_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && MLD_NODE_SUPPORT == ENABLED)
    //Increment tick counter
    mldTickCounter += NET_TICK_INTERVAL;
 
@@ -711,21 +714,21 @@ void netTick(void)
    }
 #endif
 
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
    //Increment tick counter
-   dnsSdTickCounter += NET_TICK_INTERVAL;
+   dnsSdResponderTickCounter += NET_TICK_INTERVAL;
 
    //Manage DNS-SD probing and announcing
-   if(dnsSdTickCounter >= DNS_SD_TICK_INTERVAL)
+   if(dnsSdResponderTickCounter >= DNS_SD_RESPONDER_TICK_INTERVAL)
    {
       //Loop through network interfaces
       for(i = 0; i < NET_INTERFACE_COUNT; i++)
       {
-         dnsSdTick(netInterface[i].dnsSdContext);
+         dnsSdResponderTick(netInterface[i].dnsSdResponderContext);
       }
 
       //Reset tick counter
-      dnsSdTickCounter = 0;
+      dnsSdResponderTickCounter = 0;
    }
 #endif
 
@@ -814,7 +817,7 @@ bool_t netTimerExpired(NetTimer *timer)
    if(timer->running)
    {
       //Check whether the specified time interval has elapsed
-      if(timeCompare(time, timer->startTime + timer->interval) >= 0)
+      if((time - timer->startTime) >= timer->interval)
       {
          expired = TRUE;
       }
@@ -822,6 +825,37 @@ bool_t netTimerExpired(NetTimer *timer)
 
    //Return TRUE if the timer has expired
    return expired;
+}
+
+
+/**
+ * @brief Get the remaining value of the running timer
+ * @param[in] timer Pointer to the timer structure
+ * @return Remaining time
+ **/
+
+systime_t netGetRemainingTime(NetTimer *timer)
+{
+   systime_t time;
+   systime_t remaining;
+
+   //Initialize variable
+   remaining = 0;
+   //Get current time
+   time = osGetSystemTime();
+
+   //Check whether the timer is running
+   if(timer->running)
+   {
+      //Calculate remaining time
+      if((time - timer->startTime) < timer->interval)
+      {
+         remaining = timer->startTime + timer->interval - time;
+      }
+   }
+
+   //Return remaining time
+   return remaining;
 }
 
 

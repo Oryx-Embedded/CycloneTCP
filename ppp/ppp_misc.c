@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -75,7 +75,7 @@ error_t pppSendConfigureAckNak(PppContext *context,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the packet
-   configureAckNakPacket = netBufferAt(buffer, offset);
+   configureAckNakPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    configureAckNakPacket->code = code;
@@ -150,6 +150,7 @@ error_t pppSendConfigureAckNak(PppContext *context,
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -182,7 +183,7 @@ error_t pppSendTerminateReq(PppContext *context,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Terminate-Request packet
-   terminateReqPacket = netBufferAt(buffer, offset);
+   terminateReqPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    terminateReqPacket->code = PPP_CODE_TERMINATE_REQ;
@@ -199,6 +200,7 @@ error_t pppSendTerminateReq(PppContext *context,
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -231,7 +233,7 @@ error_t pppSendTerminateAck(PppContext *context,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Terminate-Ack packet
-   terminateAckPacket = netBufferAt(buffer, offset);
+   terminateAckPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    terminateAckPacket->code = PPP_CODE_TERMINATE_ACK;
@@ -248,6 +250,7 @@ error_t pppSendTerminateAck(PppContext *context,
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -285,7 +288,7 @@ error_t pppSendCodeRej(PppContext *context, const PppPacket *packet,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Code-Reject packet
-   codeRejPacket = netBufferAt(buffer, offset);
+   codeRejPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    codeRejPacket->code = PPP_CODE_CODE_REJ;
@@ -307,6 +310,7 @@ error_t pppSendCodeRej(PppContext *context, const PppPacket *packet,
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -344,7 +348,7 @@ error_t pppSendProtocolRej(PppContext *context, uint8_t identifier,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Protocol-Reject packet
-   protocolRejPacket = netBufferAt(buffer, offset);
+   protocolRejPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    protocolRejPacket->code = PPP_CODE_PROTOCOL_REJ;
@@ -369,6 +373,7 @@ error_t pppSendProtocolRej(PppContext *context, uint8_t identifier,
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -407,7 +412,7 @@ error_t pppSendEchoRep(PppContext *context,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Echo-Reply packet
-   echoRepPacket = netBufferAt(buffer, offset);
+   echoRepPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    echoRepPacket->code = PPP_CODE_ECHO_REP;
@@ -431,6 +436,7 @@ error_t pppSendEchoRep(PppContext *context,
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }

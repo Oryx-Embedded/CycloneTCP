@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -87,41 +87,54 @@ error_t igmpRouterSendGroupSpecificQuery(IgmpRouterContext *context,
 error_t igmpRouterSendMembershipQuery(IgmpRouterContext *context,
    Ipv4Addr destAddr, Ipv4Addr groupAddr, systime_t maxRespTime)
 {
-   IgmpMessage message;
-   NetInterface *interface;
+   size_t offset;
+   NetBuffer *buffer;
+   IgmpMessage *message;
 
-   //Point to the underlying network interface
-   interface = context->interface;
+   //Allocate a memory buffer to hold the IGMP message
+   buffer = ipAllocBuffer(sizeof(IgmpMessage), &offset);
+   //Failed to allocate memory?
+   if(buffer == NULL)
+      return ERROR_OUT_OF_MEMORY;
+
+   //Point to the beginning of the IGMP message
+   message = netBufferAt(buffer, offset, 0);
 
    //Format Membership Query message
-   message.type = IGMP_TYPE_MEMBERSHIP_QUERY;
-   message.checksum = 0;
+   message->type = IGMP_TYPE_MEMBERSHIP_QUERY;
+   message->checksum = 0;
 
    //IGMPv1 compatibility mode?
    if(context->version == IGMP_VERSION_1)
    {
       //When in IGMPv1 mode, routers must send Periodic Queries with a Max
       //Response Time of 0 (refer to RFC 2236, section 4)
-      message.maxRespTime = 0;
+      message->maxRespTime = 0;
    }
    else
    {
       //The Max Response Time field is meaningful only in Membership Query
       //messages, and specifies the maximum allowed time before sending a
       //responding report in units of 1/10 second
-      message.maxRespTime = (uint8_t) (maxRespTime / 100);
+      message->maxRespTime = (uint8_t) (maxRespTime / 100);
    }
 
    //In a Membership Query message, the group address field is set to zero
    //when sending a General Query, and set to the group address being queried
    //when sending a Group-Specific Query
-   message.groupAddr = groupAddr;
+   message->groupAddr = groupAddr;
 
    //Message checksum calculation
-   message.checksum = ipCalcChecksum(&message, sizeof(IgmpMessage));
+   message->checksum = ipCalcChecksum(&message, sizeof(IgmpMessage));
 
    //The Membership Report message is sent to the group being reported
-   return igmpSendMessage(interface, destAddr, &message, sizeof(IgmpMessage));
+   error = igmpSendMessage(interface, destAddr, buffer, offset);
+
+   //Free previously allocated memory
+   netBufferFree(buffer);
+
+   //Return status code
+   return error;
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _IGMP_SNOOPING_MISC_H
@@ -51,6 +51,10 @@ void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
 
 void igmpSnoopingProcessMembershipReport(IgmpSnoopingContext *context,
    const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length, const NetRxAncillary *ancillary);
+
+void igmpSnoopingProcessMembershipReportV3(IgmpSnoopingContext *context,
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMembershipReportV3 *message,
    size_t length, const NetRxAncillary *ancillary);
 
 void igmpSnoopingProcessLeaveGroup(IgmpSnoopingContext *context,

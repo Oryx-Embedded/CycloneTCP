@@ -30,7 +30,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -833,7 +833,7 @@ error_t arpSendProbe(NetInterface *interface, Ipv4Addr targetIpAddr)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the ARP packet
-   arpRequest = netBufferAt(buffer, offset);
+   arpRequest = netBufferAt(buffer, offset, 0);
 
    //Format ARP request
    arpRequest->hrd = htons(ARP_HARDWARE_TYPE_ETH);
@@ -901,7 +901,7 @@ error_t arpSendRequest(NetInterface *interface, Ipv4Addr targetIpAddr,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the ARP packet
-   arpRequest = netBufferAt(buffer, offset);
+   arpRequest = netBufferAt(buffer, offset, 0);
 
    //Format ARP request
    arpRequest->hrd = htons(ARP_HARDWARE_TYPE_ETH);
@@ -963,7 +963,7 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr senderIpAddr,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the ARP packet
-   arpReply = netBufferAt(buffer, offset);
+   arpReply = netBufferAt(buffer, offset, 0);
 
    //Format ARP reply
    arpReply->hrd = htons(ARP_HARDWARE_TYPE_ETH);

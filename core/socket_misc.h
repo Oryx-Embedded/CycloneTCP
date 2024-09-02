@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _SOCKET_MISC_H
@@ -46,6 +46,26 @@ Socket *socketAllocate(uint_t type, uint_t protocol);
 void socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask);
 void socketUnregisterEvents(Socket *socket);
 uint_t socketGetEvents(Socket *socket);
+
+bool_t socketMulticastFilter(Socket *socket, const IpAddr *destAddr,
+   const IpAddr *srcAddr);
+
+SocketMulticastGroup *socketCreateMulticastGroupEntry(Socket *socket,
+   const IpAddr *groupAddr);
+
+SocketMulticastGroup *socketFindMulticastGroupEntry(Socket *socket,
+   const IpAddr *groupAddr);
+
+void socketDeleteMulticastGroupEntry(SocketMulticastGroup *group);
+
+error_t socketAddMulticastSrcAddr(SocketMulticastGroup *group,
+   const IpAddr *srcAddr);
+
+void socketRemoveMulticastSrcAddr(SocketMulticastGroup *group,
+   const IpAddr *srcAddr);
+
+int_t socketFindMulticastSrcAddr(SocketMulticastGroup *group,
+   const IpAddr *srcAddr);
 
 //C++ guard
 #ifdef __cplusplus

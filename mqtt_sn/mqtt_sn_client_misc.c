@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -254,7 +254,7 @@ error_t mqttSnClientAddTopic(MqttSnClientContext *context,
    for(i = 0; i < MQTT_SN_CLIENT_TOPIC_TABLE_SIZE; i++)
    {
       //Check whether the topic name has already been registered
-      if(!osStrcmp(context->topicTable[i].topicName, topicName))
+      if(osStrcmp(context->topicTable[i].topicName, topicName) == 0)
       {
          //Update topic identifier
          context->topicTable[i].topicId = topicId;
@@ -300,7 +300,7 @@ error_t mqttSnClientDeleteTopic(MqttSnClientContext *context,
    for(i = 0; i < MQTT_SN_CLIENT_TOPIC_TABLE_SIZE; i++)
    {
       //Matching topic name?
-      if(!osStrcmp(context->topicTable[i].topicName, topicName))
+      if(osStrcmp(context->topicTable[i].topicName, topicName) == 0)
       {
          //Release current entry
          context->topicTable[i].topicName[0] = '\0';
@@ -375,7 +375,7 @@ uint16_t mqttSnClientFindTopicName(MqttSnClientContext *context,
       for(i = 0; i < MQTT_SN_CLIENT_TOPIC_TABLE_SIZE; i++)
       {
          //Matching topic name?
-         if(!osStrcmp(context->topicTable[i].topicName, topicName))
+         if(osStrcmp(context->topicTable[i].topicName, topicName) == 0)
          {
             //Retrieve the corresponding topic identifier
             topicId = context->topicTable[i].topicId;
@@ -449,7 +449,7 @@ uint16_t mqttSnClientFindPredefTopicName(MqttSnClientContext *context,
       for(i = 0; i < context->predefinedTopicTableSize; i++)
       {
          //Matching topic name?
-         if(!osStrcmp(context->predefinedTopicTable[i].topicName, topicName))
+         if(osStrcmp(context->predefinedTopicTable[i].topicName, topicName) == 0)
          {
             //Retrieve the corresponding topic identifier
             topicId = context->predefinedTopicTable[i].topicId;

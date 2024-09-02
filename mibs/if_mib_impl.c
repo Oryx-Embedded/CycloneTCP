@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -145,13 +145,13 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    physicalInterface = nicGetPhysicalInterface(interface);
 
    //ifIndex object?
-   if(!osStrcmp(object->name, "ifIndex"))
+   if(osStrcmp(object->name, "ifIndex") == 0)
    {
       //Get object value
       value->integer = index;
    }
    //ifDescr object?
-   else if(!osStrcmp(object->name, "ifDescr"))
+   else if(osStrcmp(object->name, "ifDescr") == 0)
    {
       //Retrieve the length of the interface name
       n = osStrlen(interface->name);
@@ -171,7 +171,7 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifType object?
-   else if(!osStrcmp(object->name, "ifType"))
+   else if(osStrcmp(object->name, "ifType") == 0)
    {
 #if (ETH_VLAN_SUPPORT == ENABLED)
       //VLAN interface?
@@ -215,7 +215,7 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifMtu object?
-   else if(!osStrcmp(object->name, "ifMtu"))
+   else if(osStrcmp(object->name, "ifMtu") == 0)
    {
       //Get interface MTU
       if(physicalInterface->nicDriver != NULL)
@@ -228,14 +228,14 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifSpeed object?
-   else if(!osStrcmp(object->name, "ifSpeed"))
+   else if(osStrcmp(object->name, "ifSpeed") == 0)
    {
       //Get interface's current bandwidth
       value->gauge32 = interface->linkSpeed;
    }
 #if (ETH_SUPPORT == ENABLED)
    //ifPhysAddress object?
-   else if(!osStrcmp(object->name, "ifPhysAddress"))
+   else if(osStrcmp(object->name, "ifPhysAddress") == 0)
    {
       NetInterface *logicalInterface;
 
@@ -258,7 +258,7 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    }
 #endif
    //ifAdminStatus object?
-   else if(!osStrcmp(object->name, "ifAdminStatus"))
+   else if(osStrcmp(object->name, "ifAdminStatus") == 0)
    {
       //Check whether the interface is enabled for operation
       if(physicalInterface->nicDriver != NULL)
@@ -271,7 +271,7 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifOperStatus object?
-   else if(!osStrcmp(object->name, "ifOperStatus"))
+   else if(osStrcmp(object->name, "ifOperStatus") == 0)
    {
       //Get the current operational state of the interface
       if(interface->linkState)
@@ -284,61 +284,61 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifLastChange object?
-   else if(!osStrcmp(object->name, "ifLastChange"))
+   else if(osStrcmp(object->name, "ifLastChange") == 0)
    {
       //Get object value
       value->timeTicks = entry->ifLastChange;
    }
    //ifInOctets object?
-   else if(!osStrcmp(object->name, "ifInOctets"))
+   else if(osStrcmp(object->name, "ifInOctets") == 0)
    {
       //Get object value
       value->counter32 = entry->ifInOctets;
    }
    //ifInUcastPkts object?
-   else if(!osStrcmp(object->name, "ifInUcastPkts"))
+   else if(osStrcmp(object->name, "ifInUcastPkts") == 0)
    {
       //Get object value
       value->counter32 = entry->ifInUcastPkts;
    }
    //ifInDiscards object?
-   else if(!osStrcmp(object->name, "ifInDiscards"))
+   else if(osStrcmp(object->name, "ifInDiscards") == 0)
    {
       //Get object value
       value->counter32 = entry->ifInDiscards;
    }
    //ifInErrors object?
-   else if(!osStrcmp(object->name, "ifInErrors"))
+   else if(osStrcmp(object->name, "ifInErrors") == 0)
    {
       //Get object value
       value->counter32 = entry->ifInErrors;
    }
    //ifInUnknownProtos object?
-   else if(!osStrcmp(object->name, "ifInUnknownProtos"))
+   else if(osStrcmp(object->name, "ifInUnknownProtos") == 0)
    {
       //Get object value
       value->counter32 = entry->ifInUnknownProtos;
    }
    //ifOutOctets object?
-   else if(!osStrcmp(object->name, "ifOutOctets"))
+   else if(osStrcmp(object->name, "ifOutOctets") == 0)
    {
       //Get object value
       value->counter32 = entry->ifOutOctets;
    }
    //ifOutUcastPkts object?
-   else if(!osStrcmp(object->name, "ifOutUcastPkts"))
+   else if(osStrcmp(object->name, "ifOutUcastPkts") == 0)
    {
       //Get object value
       value->counter32 = entry->ifOutUcastPkts;
    }
    //ifOutDiscards object?
-   else if(!osStrcmp(object->name, "ifOutDiscards"))
+   else if(osStrcmp(object->name, "ifOutDiscards") == 0)
    {
       //Get object value
       value->counter32 = entry->ifOutDiscards;
    }
    //ifOutErrors object?
-   else if(!osStrcmp(object->name, "ifOutErrors"))
+   else if(osStrcmp(object->name, "ifOutErrors") == 0)
    {
       //Get object value
       value->counter32 = entry->ifOutErrors;
@@ -470,7 +470,7 @@ error_t ifMibGetIfXEntry(const MibObject *object, const uint8_t *oid,
    entry = &ifMibBase.ifXTable[index - 1];
 
    //ifName object?
-   if(!osStrcmp(object->name, "ifName"))
+   if(osStrcmp(object->name, "ifName") == 0)
    {
       //Retrieve the length of the interface name
       n = osStrlen(interface->name);
@@ -490,110 +490,110 @@ error_t ifMibGetIfXEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //ifInMulticastPkts object?
-   else if(!osStrcmp(object->name, "ifInMulticastPkts"))
+   else if(osStrcmp(object->name, "ifInMulticastPkts") == 0)
    {
       //Get object value
       value->counter32 = entry->ifInMulticastPkts;
    }
    //ifInBroadcastPkts object?
-   else if(!osStrcmp(object->name, "ifInBroadcastPkts"))
+   else if(osStrcmp(object->name, "ifInBroadcastPkts") == 0)
    {
       //Get object value
       value->counter32 = entry->ifInBroadcastPkts;
    }
    //ifOutMulticastPkts object?
-   else if(!osStrcmp(object->name, "ifOutMulticastPkts"))
+   else if(osStrcmp(object->name, "ifOutMulticastPkts") == 0)
    {
       //Get object value
       value->counter32 = entry->ifOutMulticastPkts;
    }
    //ifOutBroadcastPkts object?
-   else if(!osStrcmp(object->name, "ifOutBroadcastPkts"))
+   else if(osStrcmp(object->name, "ifOutBroadcastPkts") == 0)
    {
       //Get object value
       value->counter32 = entry->ifOutBroadcastPkts;
    }
    //ifHCInOctets object?
-   else if(!osStrcmp(object->name, "ifHCInOctets"))
+   else if(osStrcmp(object->name, "ifHCInOctets") == 0)
    {
       //Get object value
       value->counter64 = entry->ifHCInOctets;
    }
    //ifHCInUcastPkts object?
-   else if(!osStrcmp(object->name, "ifHCInUcastPkts"))
+   else if(osStrcmp(object->name, "ifHCInUcastPkts") == 0)
    {
       //Get object value
       value->counter64 = entry->ifHCInUcastPkts;
    }
    //ifHCInMulticastPkts object?
-   else if(!osStrcmp(object->name, "ifHCInMulticastPkts"))
+   else if(osStrcmp(object->name, "ifHCInMulticastPkts") == 0)
    {
       //Get object value
       value->counter64 = entry->ifHCInMulticastPkts;
    }
    //ifHCInBroadcastPkts object?
-   else if(!osStrcmp(object->name, "ifHCInBroadcastPkts"))
+   else if(osStrcmp(object->name, "ifHCInBroadcastPkts") == 0)
    {
       //Get object value
       value->counter64 = entry->ifHCInBroadcastPkts;
    }
    //ifHCOutOctets object?
-   else if(!osStrcmp(object->name, "ifHCOutOctets"))
+   else if(osStrcmp(object->name, "ifHCOutOctets") == 0)
    {
       //Get object value
       value->counter64 = entry->ifHCOutOctets;
    }
    //ifHCOutUcastPkts object?
-   else if(!osStrcmp(object->name, "ifHCOutUcastPkts"))
+   else if(osStrcmp(object->name, "ifHCOutUcastPkts") == 0)
    {
       //Get object value
       value->counter64 = entry->ifHCOutUcastPkts;
    }
    //ifHCOutMulticastPkts object?
-   else if(!osStrcmp(object->name, "ifHCOutMulticastPkts"))
+   else if(osStrcmp(object->name, "ifHCOutMulticastPkts") == 0)
    {
       //Get object value
       value->counter64 = entry->ifHCOutMulticastPkts;
    }
    //ifHCOutBroadcastPkts object?
-   else if(!osStrcmp(object->name, "ifHCOutBroadcastPkts"))
+   else if(osStrcmp(object->name, "ifHCOutBroadcastPkts") == 0)
    {
       //Get object value
       value->counter64 = entry->ifHCOutBroadcastPkts;
    }
    //ifLinkUpDownTrapEnable object?
-   else if(!osStrcmp(object->name, "ifLinkUpDownTrapEnable"))
+   else if(osStrcmp(object->name, "ifLinkUpDownTrapEnable") == 0)
    {
       //Get object value
       value->integer = entry->ifLinkUpDownTrapEnable;
    }
    //ifHighSpeed object?
-   else if(!osStrcmp(object->name, "ifHighSpeed"))
+   else if(osStrcmp(object->name, "ifHighSpeed") == 0)
    {
       //Get interface's current bandwidth
       value->gauge32 = interface->linkSpeed / 1000000;
    }
    //ifPromiscuousMode object?
-   else if(!osStrcmp(object->name, "ifPromiscuousMode"))
+   else if(osStrcmp(object->name, "ifPromiscuousMode") == 0)
    {
       //Get object value
       value->integer = entry->ifPromiscuousMode;
    }
    //ifConnectorPresent object?
-   else if(!osStrcmp(object->name, "ifConnectorPresent"))
+   else if(osStrcmp(object->name, "ifConnectorPresent") == 0)
    {
       //Get object value
       value->integer = entry->ifConnectorPresent;
    }
    //ifAlias object?
-   else if(!osStrcmp(object->name, "ifAlias"))
+   else if(osStrcmp(object->name, "ifAlias") == 0)
    {
       //On the first instantiation of an interface, the value of ifAlias
       //associated with that interface is the zero-length string
       *valueLen = 0;
    }
    //ifCounterDiscontinuityTime object?
-   else if(!osStrcmp(object->name, "ifCounterDiscontinuityTime"))
+   else if(osStrcmp(object->name, "ifCounterDiscontinuityTime") == 0)
    {
       //Get object value
       value->timeTicks = 0;
@@ -740,7 +740,7 @@ error_t ifMibGetIfStackEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ifStackStatus object?
-   if(!osStrcmp(object->name, "ifStackStatus"))
+   if(osStrcmp(object->name, "ifStackStatus") == 0)
    {
       //status of the relationship between the two sub-layers
       value->integer = MIB_ROW_STATUS_ACTIVE;
@@ -944,13 +944,13 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
    if(!error)
    {
       //ifRcvAddressStatus object?
-      if(!osStrcmp(object->name, "ifRcvAddressStatus"))
+      if(osStrcmp(object->name, "ifRcvAddressStatus") == 0)
       {
          //Get object value
          value->integer = MIB_ROW_STATUS_ACTIVE;
       }
       //ifRcvAddressType object?
-      else if(!osStrcmp(object->name, "ifRcvAddressType"))
+      else if(osStrcmp(object->name, "ifRcvAddressType") == 0)
       {
          //Get object value
          if(macCompAddr(&macAddr, &logicalInterface->macAddr) ||

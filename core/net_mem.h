@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _NET_MEM_H
@@ -113,7 +113,7 @@ void netBufferFree(NetBuffer *buffer);
 size_t netBufferGetLength(const NetBuffer *buffer);
 error_t netBufferSetLength(NetBuffer *buffer, size_t length);
 
-void *netBufferAt(const NetBuffer *buffer, size_t offset);
+void *netBufferAt(const NetBuffer *buffer, size_t offset, size_t length);
 
 error_t netBufferConcat(NetBuffer *dest,
    const NetBuffer *src, size_t srcOffset, size_t length);

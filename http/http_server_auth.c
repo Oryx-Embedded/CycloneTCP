@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL HTTP_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
 #include "core/net.h"
 #include "http/http_server.h"
 #include "http/http_server_auth.h"
@@ -76,7 +75,7 @@ bool_t httpCheckPassword(HttpConnection *connection,
          if(auth->password != NULL)
          {
             //Check whether the password is valid
-            if(!osStrcmp(password, auth->password))
+            if(osStrcmp(password, auth->password) == 0)
                status = TRUE;
          }
       }
@@ -159,7 +158,7 @@ bool_t httpCheckPassword(HttpConnection *connection,
                osFreeMem(md5Context);
 
                //Check response
-               if(!osStrcasecmp(auth->response, ha1))
+               if(osStrcasecmp(auth->response, ha1) == 0)
                {
                   //Perform nonce verification
                   error = httpVerifyNonce(connection->serverContext, auth->nonce, auth->nc);
@@ -211,7 +210,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
    }
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED)
    //Basic access authentication?
-   else if(!osStrcasecmp(token, "Basic"))
+   else if(osStrcasecmp(token, "Basic") == 0)
    {
       error_t error;
       size_t n;
@@ -262,7 +261,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
 #endif
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    //Digest access authentication?
-   else if(!osStrcasecmp(token, "Digest"))
+   else if(osStrcasecmp(token, "Digest") == 0)
    {
       size_t n;
       char_t *separator;
@@ -299,48 +298,48 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
                value++;
 
             //Check parameter name
-            if(!osStrcasecmp(name, "username"))
+            if(osStrcasecmp(name, "username") == 0)
             {
                //Save user name
                strSafeCopy(connection->request.auth.user,
                   value, HTTP_SERVER_USERNAME_MAX_LEN);
             }
-            else if(!osStrcasecmp(name, "realm"))
+            else if(osStrcasecmp(name, "realm") == 0)
             {
                //Save realm
                connection->request.auth.realm = value;
             }
-            else if(!osStrcasecmp(name, "nonce"))
+            else if(osStrcasecmp(name, "nonce") == 0)
             {
                //Save nonce parameter
                connection->request.auth.nonce = value;
             }
-            else if(!osStrcasecmp(name, "uri"))
+            else if(osStrcasecmp(name, "uri") == 0)
             {
                //Save uri parameter
                connection->request.auth.uri = value;
             }
-            else if(!osStrcasecmp(name, "qop"))
+            else if(osStrcasecmp(name, "qop") == 0)
             {
                //Save qop parameter
                connection->request.auth.qop = value;
             }
-            else if(!osStrcasecmp(name, "nc"))
+            else if(osStrcasecmp(name, "nc") == 0)
             {
                //Save nc parameter
                connection->request.auth.nc = value;
             }
-            else if(!osStrcasecmp(name, "cnonce"))
+            else if(osStrcasecmp(name, "cnonce") == 0)
             {
                //Save cnonce parameter
                connection->request.auth.cnonce = value;
             }
-            else if(!osStrcasecmp(name, "response"))
+            else if(osStrcasecmp(name, "response") == 0)
             {
                //Save response parameter
                connection->request.auth.response = value;
             }
-            else if(!osStrcasecmp(name, "opaque"))
+            else if(osStrcasecmp(name, "opaque") == 0)
             {
                //Save opaque parameter
                connection->request.auth.opaque = value;
@@ -613,7 +612,7 @@ error_t httpVerifyNonce(HttpServerContext *context,
       entry = &context->nonceCache[i];
 
       //Check nonce value
-      if(!osStrcasecmp(entry->nonce, nonce))
+      if(osStrcasecmp(entry->nonce, nonce) == 0)
       {
          //Make sure the nonce timestamp has not expired
          if((time - entry->timestamp) < HTTP_SERVER_NONCE_LIFETIME)

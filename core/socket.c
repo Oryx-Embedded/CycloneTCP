@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -425,57 +425,51 @@ error_t socketEnableBroadcast(Socket *socket, bool_t enabled)
 
 error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 {
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0)
    error_t error;
-   uint_t i;
+   SocketMulticastGroup *group;
 
-   //Make sure the socket handle is valid
-   if(socket == NULL)
+   //Check parameters
+   if(socket == NULL || groupAddr == NULL)
       return ERROR_INVALID_PARAMETER;
+
+   //This function shall be used with connectionless or raw sockets
+   if(socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
+      return ERROR_INVALID_SOCKET;
+   }
+
+   //The group address must be a valid multicast address
+   if(!ipIsMulticastAddr(groupAddr))
+      return ERROR_INVALID_ADDRESS;
+
+   //Initialize status code
+   error = NO_ERROR;
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
-   //Loop through multicast groups
-   for(i = 0; i < SOCKET_MAX_MULTICAST_GROUPS; i++)
+   //Search the list of multicast groups for en existing entry
+   group = socketFindMulticastGroupEntry(socket, groupAddr);
+
+   //No matching entry found?
+   if(group == NULL)
    {
-      //Check whether the multicast address is a duplicate
-      if(ipCompAddr(&socket->multicastGroups[i], groupAddr))
-      {
-         break;
-      }
+      //Create a new entry
+      group = socketCreateMulticastGroupEntry(socket, groupAddr);
    }
 
-   //Multicast group already registered?
-   if(i < SOCKET_MAX_MULTICAST_GROUPS)
+   //Entry successfully created?
+   if(group != NULL)
    {
-      //Successful processing
-      error = NO_ERROR;
+      //Update the multicast reception state of the interface
+      ipUpdateMulticastFilter(socket->interface, groupAddr);
    }
    else
    {
-      //Initialize status code
+      //Report an error
       error = ERROR_OUT_OF_RESOURCES;
-
-      //Loop through multicast groups
-      for(i = 0; i < SOCKET_MAX_MULTICAST_GROUPS; i++)
-      {
-         //Check whether the current entry is available for use
-         if(socket->multicastGroups[i].length == 0)
-         {
-            //Join the specified host group
-            error = ipJoinMulticastGroup(socket->interface, groupAddr);
-
-            //Check status code
-            if(!error)
-            {
-               //Add a new entry
-               socket->multicastGroups[i] = *groupAddr;
-            }
-
-            //Exit immediately
-            break;
-         }
-      }
    }
 
    //Release exclusive access
@@ -483,6 +477,10 @@ error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 
    //Return status code
    return error;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -495,26 +493,241 @@ error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 
 error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 {
-   uint_t i;
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0)
+   error_t error;
+   SocketMulticastGroup *group;
 
-   //Make sure the socket handle is valid
-   if(socket == NULL)
+   //Check parameters
+   if(socket == NULL || groupAddr == NULL)
       return ERROR_INVALID_PARAMETER;
+
+   //This function shall be used with connectionless or raw sockets
+   if(socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
+      return ERROR_INVALID_SOCKET;
+   }
+
+   //The group address must be a valid multicast address
+   if(!ipIsMulticastAddr(groupAddr))
+      return ERROR_INVALID_ADDRESS;
+
+   //Initialize status code
+   error = NO_ERROR;
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
-   //Loop through multicast groups
-   for(i = 0; i < SOCKET_MAX_MULTICAST_GROUPS; i++)
+   //Search the list of multicast groups for the specified address
+   group = socketFindMulticastGroupEntry(socket, groupAddr);
+
+   //Any matching entry found?
+   if(group != NULL)
    {
-      //Matching multicast address?
-      if(ipCompAddr(&socket->multicastGroups[i], groupAddr))
+      //Delete entry
+      socketDeleteMulticastGroupEntry(group);
+
+      //Update the multicast reception state of the interface
+      ipUpdateMulticastFilter(socket->interface, groupAddr);
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_ADDRESS_NOT_FOUND;
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Set multicast source filter (full-state API)
+ * @param[in] socket Handle to a socket
+ * @param[in] groupAddr IP address identifying a multicast group
+ * @param[in] filterMode Multicast filter mode (include or exclude)
+ * @param[in] sources IP addresses of sources to include or exclude depending
+ *   on the filter mode
+ * @param[in] numSources Number of source addresses in the list
+ * @return Error code
+ **/
+
+error_t socketSetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
+   IpFilterMode filterMode, const IpAddr *sources, uint_t numSources)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0 && SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   uint_t i;
+   SocketMulticastGroup *group;
+
+   //Check parameters
+   if(socket == NULL || groupAddr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //This function shall be used with connectionless or raw sockets
+   if(socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
+      return ERROR_INVALID_SOCKET;
+   }
+
+   //The group address must be a valid multicast address
+   if(!ipIsMulticastAddr(groupAddr))
+      return ERROR_INVALID_ADDRESS;
+
+   //Invalid filter mode?
+   if(filterMode != IP_FILTER_MODE_INCLUDE &&
+      filterMode != IP_FILTER_MODE_EXCLUDE)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
+
+   //Invalid set of source addresses?
+   if(numSources != 0 && sources == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //The implementation limits the number of source addresses
+   if(numSources > SOCKET_MAX_MULTICAST_SOURCES)
+      return ERROR_INVALID_PARAMETER;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Search the list of multicast groups for the specified address
+   group = socketFindMulticastGroupEntry(socket, groupAddr);
+
+   //The "non-existent" state is considered to have a filter mode of INCLUDE
+   //and an empty source list
+   if(filterMode == IP_FILTER_MODE_INCLUDE && numSources == 0)
+   {
+      //Any matching entry found?
+      if(group != NULL)
       {
-         //Drop membership
-         ipLeaveMulticastGroup(socket->interface, groupAddr);
          //Delete entry
-         socket->multicastGroups[i] = IP_ADDR_UNSPECIFIED;
+         socketDeleteMulticastGroupEntry(group);
       }
+   }
+   else
+   {
+      //No matching entry found?
+      if(group == NULL)
+      {
+         //Create a new entry
+         group = socketCreateMulticastGroupEntry(socket, groupAddr);
+      }
+
+      //Entry successfully created?
+      if(group != NULL)
+      {
+         //Replace the previous filter with a new one
+         group->filterMode = filterMode;
+         group->numSources = numSources;
+
+         //Save the list of sources to include or exclude
+         for(i = 0; i < numSources; i++)
+         {
+            group->sources[i] = sources[i];
+         }
+      }
+      else
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+      }
+   }
+
+   //Check status code
+   if(!error)
+   {
+      //Update the multicast reception state of the interface
+      ipUpdateMulticastFilter(socket->interface, groupAddr);
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Get multicast source filter
+ * @param[in] socket Handle to a socket
+ * @param[in] groupAddr IP address identifying a multicast group
+ * @param[out] filterMode Multicast filter mode (include or exclude)
+ * @param[out] sources IP addresses of sources to include or exclude depending
+ *   on the filter mode
+ * @param[out] numSources Number of source addresses in the list
+ * @return Error code
+ **/
+
+error_t socketGetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
+   IpFilterMode *filterMode, IpAddr *sources, uint_t *numSources)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0 && SOCKET_MAX_MULTICAST_SOURCES > 0)
+   uint_t i;
+   SocketMulticastGroup *group;
+
+   //Check parameters
+   if(socket == NULL || groupAddr == NULL || numSources == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //This function shall be used with connectionless or raw sockets
+   if(socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
+      return ERROR_INVALID_SOCKET;
+   }
+
+   //The group address must be a valid multicast address
+   if(!ipIsMulticastAddr(groupAddr))
+      return ERROR_INVALID_ADDRESS;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Search the list of multicast groups for the specified address
+   group = socketFindMulticastGroupEntry(socket, groupAddr);
+
+   //Any matching entry found?
+   if(group != NULL)
+   {
+      //Filter mode
+      *filterMode = group->filterMode;
+      //Number of source addresses in the list
+      *numSources = group->numSources;
+
+      //This parameter is optional
+      if(sources != NULL)
+      {
+         //Copy the list of source addresses
+         for(i = 0; i < group->numSources; i++)
+         {
+            sources[i] = group->sources[i];
+         }
+      }
+   }
+   else
+   {
+      //The "non-existent" state is considered to have a filter mode of INCLUDE
+      //and an empty source list
+      *filterMode = IP_FILTER_MODE_EXCLUDE;
+      *numSources = 0;
    }
 
    //Release exclusive access
@@ -522,6 +735,331 @@ error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 
    //Successful processing
    return NO_ERROR;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Accept specific source for specific group (delta-based API)
+ * @param[in] socket Handle to a socket
+ * @param[in] groupAddr IP address identifying a multicast group
+ * @param[in] srcAddr Source IP address to accept
+ * @return Error code
+ **/
+
+error_t socketAddMulticastSource(Socket *socket, const IpAddr *groupAddr,
+   const IpAddr *srcAddr)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0 && SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   SocketMulticastGroup *group;
+
+   //Check parameters
+   if(socket == NULL || groupAddr == NULL || srcAddr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //This function shall be used with connectionless or raw sockets
+   if(socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
+      return ERROR_INVALID_SOCKET;
+   }
+
+   //The group address must be a valid multicast address
+   if(!ipIsMulticastAddr(groupAddr))
+      return ERROR_INVALID_ADDRESS;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Search the list of multicast groups for en existing entry
+   group = socketFindMulticastGroupEntry(socket, groupAddr);
+
+   //No matching entry found?
+   if(group == NULL)
+   {
+      //Create a new entry
+      group = socketCreateMulticastGroupEntry(socket, groupAddr);
+
+      //Failed to create entry?
+      if(group == NULL)
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+      }
+   }
+
+   //Check status code
+   if(!error)
+   {
+      //Check multicast filter mode
+      if(group->filterMode == IP_FILTER_MODE_EXCLUDE)
+      {
+         //Switch to source-specific multicast mode
+         group->filterMode = IP_FILTER_MODE_INCLUDE;
+         group->numSources = 0;
+      }
+
+      //Add the address to the list of allowed sources
+      error = socketAddMulticastSrcAddr(group, srcAddr);
+   }
+
+   //Check status code
+   if(!error)
+   {
+      //Update the multicast reception state of the interface
+      ipUpdateMulticastFilter(socket->interface, groupAddr);
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Drop specific source for specific group (delta-based API)
+ * @param[in] socket Handle to a socket
+ * @param[in] groupAddr IP address identifying a multicast group
+ * @param[in] srcAddr Source IP address to drop
+ * @return Error code
+ **/
+
+error_t socketDropMulticastSource(Socket *socket, const IpAddr *groupAddr,
+   const IpAddr *srcAddr)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0 && SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   SocketMulticastGroup *group;
+
+   //Check parameters
+   if(socket == NULL || groupAddr == NULL || srcAddr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //This function shall be used with connectionless or raw sockets
+   if(socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
+      return ERROR_INVALID_SOCKET;
+   }
+
+   //The group address must be a valid multicast address
+   if(!ipIsMulticastAddr(groupAddr))
+      return ERROR_INVALID_ADDRESS;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Search the list of multicast groups for en existing entry
+   group = socketFindMulticastGroupEntry(socket, groupAddr);
+
+   //Any matching entry found?
+   if(group != NULL)
+   {
+      //Check multicast filter mode
+      if(group->filterMode == IP_FILTER_MODE_INCLUDE)
+      {
+         //Remove the address to the list of allowed sources
+         socketRemoveMulticastSrcAddr(group, srcAddr);
+
+         //Empty set of source addresses?
+         if(group->numSources == 0)
+         {
+            //Delete entry
+            socketDeleteMulticastGroupEntry(group);
+         }
+
+         //Update the multicast reception state of the interface
+         ipUpdateMulticastFilter(socket->interface, groupAddr);
+      }
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_ADDRESS_NOT_FOUND;
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Block specific source for specific group (delta-based API)
+ * @param[in] socket Handle to a socket
+ * @param[in] groupAddr IP address identifying a multicast group
+ * @param[in] srcAddr Source IP address to block
+ * @return Error code
+ **/
+
+error_t socketBlockMulticastSource(Socket *socket, const IpAddr *groupAddr,
+   const IpAddr *srcAddr)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0 && SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   SocketMulticastGroup *group;
+
+   //Check parameters
+   if(socket == NULL || groupAddr == NULL || srcAddr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //This function shall be used with connectionless or raw sockets
+   if(socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
+      return ERROR_INVALID_SOCKET;
+   }
+
+   //The group address must be a valid multicast address
+   if(!ipIsMulticastAddr(groupAddr))
+      return ERROR_INVALID_ADDRESS;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Search the list of multicast groups for en existing entry
+   group = socketFindMulticastGroupEntry(socket, groupAddr);
+
+   //No matching entry found?
+   if(group == NULL)
+   {
+      //Create a new entry
+      group = socketCreateMulticastGroupEntry(socket, groupAddr);
+
+      //Failed to create entry?
+      if(group == NULL)
+      {
+         //Report an error
+         error = ERROR_OUT_OF_RESOURCES;
+      }
+   }
+
+   //Check status code
+   if(!error)
+   {
+      //Check multicast filter mode
+      if(group->filterMode == IP_FILTER_MODE_INCLUDE)
+      {
+         //Switch to any-source multicast mode
+         group->filterMode = IP_FILTER_MODE_EXCLUDE;
+         group->numSources = 0;
+      }
+
+      //Add the address to the list of blocked sources
+      error = socketAddMulticastSrcAddr(group, srcAddr);
+   }
+
+   //Check status code
+   if(!error)
+   {
+      //Update the multicast reception state of the interface
+      ipUpdateMulticastFilter(socket->interface, groupAddr);
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
+ * @brief Unblock specific source for specific group (delta-based API)
+ * @param[in] socket Handle to a socket
+ * @param[in] groupAddr IP address identifying a multicast group
+ * @param[in] srcAddr Source IP address to unblock
+ * @return Error code
+ **/
+
+error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
+   const IpAddr *srcAddr)
+{
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0 && SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   SocketMulticastGroup *group;
+
+   //Check parameters
+   if(socket == NULL || groupAddr == NULL || srcAddr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //This function shall be used with connectionless or raw sockets
+   if(socket->type != SOCKET_TYPE_DGRAM &&
+      socket->type != SOCKET_TYPE_RAW_IP)
+   {
+      return ERROR_INVALID_SOCKET;
+   }
+
+   //The group address must be a valid multicast address
+   if(!ipIsMulticastAddr(groupAddr))
+      return ERROR_INVALID_ADDRESS;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Search the list of multicast groups for en existing entry
+   group = socketFindMulticastGroupEntry(socket, groupAddr);
+
+   //Any matching entry found?
+   if(group != NULL)
+   {
+      //Check multicast filter mode
+      if(group->filterMode == IP_FILTER_MODE_EXCLUDE)
+      {
+         //Remove the address from the list of blocked sources
+         socketRemoveMulticastSrcAddr(group, srcAddr);
+
+         //Update the multicast reception state of the interface
+         ipUpdateMulticastFilter(socket->interface, groupAddr);
+      }
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_ADDRESS_NOT_FOUND;
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Return status code
+   return error;
+#else
+   //Not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -671,7 +1209,7 @@ error_t socketSetTxBufferSize(Socket *socket, size_t size)
    if(size < 1 || size > TCP_MAX_TX_BUFFER_SIZE)
       return ERROR_INVALID_PARAMETER;
 
-   //This function shall be used with connection-oriented socket types
+   //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
       return ERROR_INVALID_SOCKET;
 
@@ -707,7 +1245,7 @@ error_t socketSetRxBufferSize(Socket *socket, size_t size)
    if(size < 1 || size > TCP_MAX_RX_BUFFER_SIZE)
       return ERROR_INVALID_PARAMETER;
 
-   //This function shall be used with connection-oriented socket types
+   //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
       return ERROR_INVALID_SOCKET;
 
@@ -880,7 +1418,8 @@ error_t socketListen(Socket *socket, uint_t backlog)
    //Make sure the socket handle is valid
    if(socket == NULL)
       return ERROR_INVALID_PARAMETER;
-   //This function shall be used with connection-oriented socket types
+
+   //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
       return ERROR_INVALID_SOCKET;
 
@@ -918,7 +1457,8 @@ Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr,
    //Make sure the socket handle is valid
    if(socket == NULL)
       return NULL;
-   //This function shall be used with connection-oriented socket types
+
+   //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
       return NULL;
 
@@ -1291,7 +1831,7 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
                header->srcAddr = message.srcMacAddr;
                header->type = htons(message.ethType);
 
-               //Ajuste the length of the frame
+               //Ajust the length of the frame
                message.length += sizeof(EthHeader);
             }
          }
@@ -1485,12 +2025,17 @@ error_t socketShutdown(Socket *socket, uint_t how)
    //Make sure the socket handle is valid
    if(socket == NULL)
       return ERROR_INVALID_PARAMETER;
+
    //Make sure the socket type is correct
    if(socket->type != SOCKET_TYPE_STREAM)
       return ERROR_INVALID_SOCKET;
+
    //Check flags
-   if((how != SOCKET_SD_SEND) && (how != SOCKET_SD_RECEIVE) && (how != SOCKET_SD_BOTH))
+   if(how != SOCKET_SD_SEND && how != SOCKET_SD_RECEIVE &&
+      how != SOCKET_SD_BOTH)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
@@ -1516,8 +2061,6 @@ error_t socketShutdown(Socket *socket, uint_t how)
 
 void socketClose(Socket *socket)
 {
-   uint_t i;
-
    //Make sure the socket handle is valid
    if(socket == NULL)
       return;
@@ -1525,18 +2068,32 @@ void socketClose(Socket *socket)
    //Get exclusive access
    osAcquireMutex(&netMutex);
 
-   //Loop through multicast groups
-   for(i = 0; i < SOCKET_MAX_MULTICAST_GROUPS; i++)
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0)
+   //Connectionless or raw socket?
+   if(socket->type == SOCKET_TYPE_DGRAM ||
+      socket->type == SOCKET_TYPE_RAW_IP)
    {
-      //Valid multicast address?
-      if(socket->multicastGroups[i].length != 0)
+      uint_t i;
+      IpAddr groupAddr;
+
+      //Loop through multicast groups
+      for(i = 0; i < SOCKET_MAX_MULTICAST_GROUPS; i++)
       {
-         //Drop membership
-         ipLeaveMulticastGroup(socket->interface, &socket->multicastGroups[i]);
-         //Delete entry
-         socket->multicastGroups[i] = IP_ADDR_UNSPECIFIED;
+         //Get current group address
+         groupAddr = socket->multicastGroups[i].addr;
+
+         //Valid multicast address?
+         if(groupAddr.length != 0)
+         {
+            //Delete entry
+            socket->multicastGroups[i].addr = IP_ADDR_UNSPECIFIED;
+
+            //Update the multicast reception state of the interface
+            ipUpdateMulticastFilter(socket->interface, &groupAddr);
+         }
       }
    }
+#endif
 
 #if (TCP_SUPPORT == ENABLED)
    //Connection-oriented socket?
@@ -1556,7 +2113,7 @@ void socketClose(Socket *socket)
       SocketQueueItem *queueItem = socket->receiveQueue;
 
       //Purge the receive queue
-      while(queueItem)
+      while(queueItem != NULL)
       {
          //Keep track of the next item in the queue
          SocketQueueItem *nextQueueItem = queueItem->next;
@@ -1800,14 +2357,15 @@ error_t getHostByName(NetInterface *interface, const char_t *name,
          size_t n = osStrlen(name);
 
          //Select the most suitable protocol
-         if(n >= 6 && !osStrcasecmp(name + n - 6, ".local"))
+         if(n >= 6 && osStrcasecmp(name + n - 6, ".local") == 0)
          {
 #if (MDNS_CLIENT_SUPPORT == ENABLED)
             //Use mDNS to resolve the specified host name
             protocol = HOST_NAME_RESOLVER_MDNS;
 #endif
          }
-         else if(n <= 15 && !osStrchr(name, '.') && type == HOST_TYPE_IPV4)
+         else if(n <= 15 && osStrchr(name, '.') == NULL &&
+            type == HOST_TYPE_IPV4)
          {
 #if (NBNS_CLIENT_SUPPORT == ENABLED)
             //Use NetBIOS Name Service to resolve the specified host name
@@ -1817,7 +2375,7 @@ error_t getHostByName(NetInterface *interface, const char_t *name,
             protocol = HOST_NAME_RESOLVER_LLMNR;
 #endif
          }
-         else if(!osStrchr(name, '.'))
+         else if(osStrchr(name, '.') == NULL)
          {
 #if (LLMNR_CLIENT_SUPPORT == ENABLED)
             //Use LLMNR to resolve the specified host name

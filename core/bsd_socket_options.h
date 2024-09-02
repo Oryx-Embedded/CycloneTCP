@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _BSD_SOCKET_OPTIONS_H
@@ -62,6 +62,9 @@ int_t socketSetSoRcvBufOption(Socket *socket, const int_t *optval,
 int_t socketSetSoKeepAliveOption(Socket *socket, const int_t *optval,
    socklen_t optlen);
 
+int_t socketSetSoNoCheckOption(Socket *socket, const int_t *optval,
+   socklen_t optlen);
+
 int_t socketSetIpTosOption(Socket *socket, const int_t *optval,
    socklen_t optlen);
 
@@ -82,6 +85,36 @@ int_t socketSetIpAddMembershipOption(Socket *socket,
 
 int_t socketSetIpDropMembershipOption(Socket *socket,
    const struct ip_mreq *optval, socklen_t optlen);
+
+int_t socketSetIpBlockSourceOption(Socket *socket,
+   const struct ip_mreq_source *optval, socklen_t optlen);
+
+int_t socketSetIpUnblockSourceOption(Socket *socket,
+   const struct ip_mreq_source *optval, socklen_t optlen);
+
+int_t socketSetIpAddSourceMembershipOption(Socket *socket,
+   const struct ip_mreq_source *optval, socklen_t optlen);
+
+int_t socketSetIpDropSourceMembershipOption(Socket *socket,
+   const struct ip_mreq_source *optval, socklen_t optlen);
+
+int_t socketSetMcastJoinGroupOption(Socket *socket,
+   const struct group_req *optval, socklen_t optlen);
+
+int_t socketSetMcastLeaveGroupOption(Socket *socket,
+   const struct group_req *optval, socklen_t optlen);
+
+int_t socketSetMcastBlockSourceOption(Socket *socket,
+   const struct group_source_req *optval, socklen_t optlen);
+
+int_t socketSetMcastUnblockSourceOption(Socket *socket,
+   const struct group_source_req *optval, socklen_t optlen);
+
+int_t socketSetMcastJoinSourceGroupOption(Socket *socket,
+   const struct group_source_req *optval, socklen_t optlen);
+
+int_t socketSetMcastLeaveSourceGroupOption(Socket *socket,
+   const struct group_source_req *optval, socklen_t optlen);
 
 int_t socketSetIpDontFragOption(Socket *socket, const int_t *optval,
    socklen_t optlen);
@@ -149,6 +182,12 @@ int_t socketSetTcpKeepCntOption(Socket *socket, const int_t *optval,
 int_t socketGetSoReuseAddrOption(Socket *socket, int_t *optval,
    socklen_t *optlen);
 
+int_t socketGetSoTypeOption(Socket *socket, int_t *optval,
+   socklen_t *optlen);
+
+int_t socketGetSoErrorOption(Socket *socket, int_t *optval,
+   socklen_t *optlen);
+
 int_t socketGetSoBroadcastOption(Socket *socket, int_t *optval,
    socklen_t *optlen);
 
@@ -167,10 +206,7 @@ int_t socketGetSoRcvBufOption(Socket *socket, int_t *optval,
 int_t socketGetSoKeepAliveOption(Socket *socket, int_t *optval,
    socklen_t *optlen);
 
-int_t socketGetSoTypeOption(Socket *socket, int_t *optval,
-   socklen_t *optlen);
-
-int_t socketGetSoErrorOption(Socket *socket, int_t *optval,
+int_t socketGetSoNoCheckOption(Socket *socket, int_t *optval,
    socklen_t *optlen);
 
 int_t socketGetIpTosOption(Socket *socket, int_t *optval,

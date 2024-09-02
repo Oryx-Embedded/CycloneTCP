@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _IGMP_ROUTER_H
@@ -50,18 +50,6 @@ struct _IgmpRouterContext;
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-/**
- * @brief IGMP versions
- **/
-
-typedef enum
-{
-   IGMP_VERSION_1 = 1,
-   IGMP_VERSION_2 = 2,
-   IGMP_VERSION_3 = 3
-} IgmpVersion;
 
 
 /**

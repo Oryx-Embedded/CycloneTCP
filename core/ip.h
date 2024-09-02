@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _IP_H
@@ -57,6 +57,17 @@ typedef enum
    IP_PROTOCOL_TCP  = 6,
    IP_PROTOCOL_UDP  = 17
 } IpProtocol;
+
+
+/**
+ * @brief Multicast filter mode
+ **/
+
+typedef enum
+{
+   IP_FILTER_MODE_EXCLUDE = 0,
+   IP_FILTER_MODE_INCLUDE = 1
+} IpFilterMode;
 
 
 /**
@@ -133,8 +144,7 @@ bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
 bool_t ipCompPrefix(const IpAddr *ipAddr1, const IpAddr *ipAddr2,
    size_t length);
 
-error_t ipJoinMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
-error_t ipLeaveMulticastGroup(NetInterface *interface, const IpAddr *groupAddr);
+void ipUpdateMulticastFilter(NetInterface *interface, const IpAddr *groupAddr);
 
 uint16_t ipCalcChecksum(const void *data, size_t length);
 uint16_t ipCalcChecksumEx(const NetBuffer *buffer, size_t offset, size_t length);

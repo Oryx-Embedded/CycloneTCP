@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _MDNS_CLIENT_H
@@ -71,6 +71,13 @@
    #define MDNS_MAX_LIFETIME 60000
 #elif (MDNS_MAX_LIFETIME < 1000)
    #error MDNS_MAX_LIFETIME parameter is not valid
+#endif
+
+//Additional record generation
+#ifndef MDNS_ADDITIONAL_RECORDS_SUPPORT
+   #define MDNS_ADDITIONAL_RECORDS_SUPPORT ENABLED
+#elif (MDNS_ADDITIONAL_RECORDS_SUPPORT != ENABLED && MDNS_ADDITIONAL_RECORDS_SUPPORT != DISABLED)
+   #error MDNS_ADDITIONAL_RECORDS_SUPPORT parameter is not valid
 #endif
 
 //C++ guard

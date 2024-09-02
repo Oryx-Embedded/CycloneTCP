@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -230,7 +230,7 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //sysORID object?
-   if(!osStrcmp(object->name, "sysORID"))
+   if(osStrcmp(object->name, "sysORID") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= mibModule->oidLen)
@@ -247,7 +247,7 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //sysORDescr object?
-   else if(!osStrcmp(object->name, "sysORDescr"))
+   else if(osStrcmp(object->name, "sysORDescr") == 0)
    {
       //Retrieve the length of the MIB name
       n = osStrlen(mibModule->name);
@@ -267,7 +267,7 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //sysORUpTime object?
-   else if(!osStrcmp(object->name, "sysORUpTime"))
+   else if(osStrcmp(object->name, "sysORUpTime") == 0)
    {
       //Get object value
       value->timeTicks = 0;

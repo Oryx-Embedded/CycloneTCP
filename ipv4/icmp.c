@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -135,7 +135,7 @@ void icmpProcessMessage(NetInterface *interface,
    }
 
    //Point to the ICMP message header
-   header = netBufferAt(buffer, offset);
+   header = netBufferAt(buffer, offset, 0);
    //Sanity check
    if(header == NULL)
       return;
@@ -211,7 +211,7 @@ void icmpProcessEchoRequest(NetInterface *interface,
       return;
 
    //Point to the Echo Request header
-   requestHeader = netBufferAt(request, requestOffset);
+   requestHeader = netBufferAt(request, requestOffset, 0);
    //Sanity check
    if(requestHeader == NULL)
       return;
@@ -262,7 +262,7 @@ void icmpProcessEchoRequest(NetInterface *interface,
       return;
 
    //Point to the Echo Reply header
-   replyHeader = netBufferAt(reply, replyOffset);
+   replyHeader = netBufferAt(reply, replyOffset, 0);
 
    //Format Echo Reply header
    replyHeader->type = ICMP_TYPE_ECHO_REPLY;
@@ -355,7 +355,7 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
       return ERROR_INVALID_LENGTH;
 
    //Point to the header of the invoking packet
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset);
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
    //Sanity check
    if(ipHeader == NULL)
       return ERROR_FAILURE;
@@ -378,7 +378,7 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the ICMP header
-   icmpHeader = netBufferAt(icmpMessage, offset);
+   icmpHeader = netBufferAt(icmpMessage, offset, 0);
 
    //Format ICMP message
    icmpHeader->type = type;

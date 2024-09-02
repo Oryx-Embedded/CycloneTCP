@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _MDNS_COMMON_H
@@ -37,7 +37,7 @@
 
 //Maximum size of mDNS messages
 #ifndef MDNS_MESSAGE_MAX_SIZE
-   #define MDNS_MESSAGE_MAX_SIZE 1024
+   #define MDNS_MESSAGE_MAX_SIZE 1232
 #elif (MDNS_MESSAGE_MAX_SIZE < 1)
    #error MDNS_MESSAGE_MAX_SIZE parameter is not valid
 #endif

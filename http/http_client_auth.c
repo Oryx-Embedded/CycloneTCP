@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -516,7 +516,7 @@ void httpClientParseQopParam(const HttpParam *param,
       }
 
       //Check current token
-      if(n == 4 && !osStrncasecmp(param->value + i, "auth", 4))
+      if(n == 4 && osStrncasecmp(param->value + i, "auth", 4) == 0)
       {
          //The value "auth" indicates authentication
          authHeader->qop = HTTP_AUTH_QOP_AUTH;

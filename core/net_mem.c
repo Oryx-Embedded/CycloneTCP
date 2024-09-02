@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -362,7 +362,9 @@ error_t netBufferSetLength(NetBuffer *buffer, size_t length)
 
          //Release previously allocated memory
          if(chunk->size > 0)
+         {
             memPoolFree(chunk->address);
+         }
 
          //Mark the current chunk as free
          chunk->address = NULL;
@@ -406,29 +408,43 @@ error_t netBufferSetLength(NetBuffer *buffer, size_t length)
 
 
 /**
- * @brief Returns a pointer to the data at the specified position
+ * @brief Returns a pointer to a data segment
  * @param[in] buffer Pointer to a multi-part buffer
  * @param[in] offset Offset from the beginning of the buffer
- * @return Pointer the data at the specified position
+ * @param[in] length Length of the data segment
+ * @return Pointer the data segment
  **/
 
-void *netBufferAt(const NetBuffer *buffer, size_t offset)
+void *netBufferAt(const NetBuffer *buffer, size_t offset, size_t length)
 {
    uint_t i;
+   void *data;
+
+   //Initialize pointer
+   data = NULL;
 
    //Loop through data chunks
    for(i = 0; i < buffer->chunkCount; i++)
    {
-      //The data at the specified offset resides in the current chunk?
+      //Does the data segment reside in the current chunk?
       if(offset < buffer->chunk[i].length)
-         return (uint8_t *) buffer->chunk[i].address + offset;
+      {
+         //Check whether the whole data segment fits the current chunk
+         if((offset + length) <= buffer->chunk[i].length)
+         {
+            data = (uint8_t *) buffer->chunk[i].address + offset;
+         }
+
+         //Exit immediately
+         break;
+      }
 
       //Jump to the next chunk
       offset -= buffer->chunk[i].length;
    }
 
-   //Invalid offset...
-   return NULL;
+   //Return a pointer to the data segment
+   return data;
 }
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -766,7 +766,7 @@ error_t ipcpSendConfigureReq(PppContext *context)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the Configure-Request packet
-   configureReqPacket = netBufferAt(buffer, offset);
+   configureReqPacket = netBufferAt(buffer, offset, 0);
 
    //Format packet header
    configureReqPacket->code = PPP_CODE_CONFIGURE_REQ;
@@ -824,6 +824,7 @@ error_t ipcpSendConfigureReq(PppContext *context)
 
    //Free previously allocated memory block
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }

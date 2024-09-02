@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _NDP_ROUTER_ADV_MISC_H
@@ -49,7 +49,7 @@ void ndpRouterAdvLinkChangeEvent(NdpRouterAdvContext *context);
 
 void ndpProcessRouterSol(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit);
+   size_t offset, const NetRxAncillary *ancillary);
 
 error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime);
 

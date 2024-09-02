@@ -24,8 +24,18 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
+ * @section Description
+ *
+ * IGMP is used by IP hosts to report their multicast group memberships to any
+ * immediately-neighboring multicast routersRefer to the following RFCs for
+ * complete details:
+ * - RFC 1112: Host Extensions for IP Multicasting
+ * - RFC 2236: Internet Group Management Protocol, Version 2
+ * - RFC 3376: Internet Group Management Protocol, Version 3
+ * - RFC 4541: Considerations for IGMP and MLD Snooping Switches
+ *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -33,6 +43,8 @@
 
 //Dependencies
 #include "core/net.h"
+#include "ipv4/ipv4_multicast.h"
+#include "ipv4/ipv4_misc.h"
 #include "igmp/igmp_host.h"
 #include "igmp/igmp_host_misc.h"
 #include "igmp/igmp_router.h"
@@ -40,6 +52,7 @@
 #include "igmp/igmp_snooping.h"
 #include "igmp/igmp_snooping_misc.h"
 #include "igmp/igmp_common.h"
+#include "igmp/igmp_debug.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -60,7 +73,10 @@ error_t igmpInit(NetInterface *interface)
 {
    error_t error;
 
-   //Join the all-systems group
+   //The all-systems multicast address, 224.0.0.1, is handled as a special
+   //case. On all systems (hosts and routers), reception of packets destined
+   //to the all-systems multicast address is permanently enabled on all
+   //interfaces on which multicast reception is supported
    error = ipv4JoinMulticastGroup(interface, IGMP_ALL_SYSTEMS_ADDR);
    //Any error to report?
    if(error)
@@ -92,7 +108,7 @@ void igmpTick(NetInterface *interface)
 {
 #if (IGMP_HOST_SUPPORT == ENABLED)
    //Manage IGMP host timers
-   igmpHostTick(interface);
+   igmpHostTick(&interface->igmpHostContext);
 #endif
 
 #if (IGMP_ROUTER_SUPPORT == ENABLED)
@@ -124,7 +140,7 @@ void igmpLinkChangeEvent(NetInterface *interface)
 {
 #if (IGMP_HOST_SUPPORT == ENABLED)
    //Notify the IGMP host of link state changes
-   igmpHostLinkChangeEvent(interface);
+   igmpHostLinkChangeEvent(&interface->igmpHostContext);
 #endif
 }
 
@@ -133,22 +149,43 @@ void igmpLinkChangeEvent(NetInterface *interface)
  * @brief Send IGMP message
  * @param[in] interface Underlying network interface
  * @param[in] destAddr Destination IP address
- * @param[in] message Pointer to the IGMP message
- * @param[in] length Length of the IGMP message, in bytes
+ * @param[in] buffer Multi-part buffer containing the payload
+ * @param[in] offset Offset to the first byte of the payload
  * @return Error code
  **/
 
 error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
-   const IgmpMessage *message, size_t length)
+   NetBuffer *buffer, size_t offset)
 {
    error_t error;
+   size_t length;
+   IgmpMessage *message;
+   Ipv4Addr srcIpAddr;
    Ipv4PseudoHeader pseudoHeader;
 
-   //Initialize status code
-   error = NO_ERROR;
+   //Retrieve the length of payload
+   length = netBufferGetLength(buffer) - offset;
+
+   //Point to the beginning of the IGMP message
+   message = netBufferAt(buffer, offset, length);
+   //Sanity check
+   if(message == NULL)
+      return ERROR_FAILURE;
+
+   //Select the source IPv4 address to use
+   error = ipv4SelectSourceAddr(&interface, destAddr, &srcIpAddr);
+
+   //Check status code
+   if(!error)
+   {
+      pseudoHeader.srcAddr = srcIpAddr;
+   }
+   else
+   {
+      pseudoHeader.srcAddr = IPV4_UNSPECIFIED_ADDR;
+   }
 
    //Format IPv4 pseudo header
-   pseudoHeader.srcAddr = interface->ipv4Context.addrList[0].addr;
    pseudoHeader.destAddr = destAddr;
    pseudoHeader.reserved = 0;
    pseudoHeader.protocol = IPV4_PROTOCOL_IGMP;
@@ -157,7 +194,7 @@ error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
    //Debug message
    TRACE_INFO("Sending IGMP message (%" PRIuSIZE " bytes)...\r\n", length);
    //Dump message contents for debugging purpose
-   igmpDumpMessage(message);
+   igmpDumpMessage(message, length);
 
 #if (IGMP_SNOOPING_SUPPORT == ENABLED)
    //Valid IGMP snooping switch context?
@@ -173,47 +210,42 @@ error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
       //Forward the message to the IGMP snooping switch
       igmpSnoopingProcessMessage(interface->igmpSnoopingContext, &pseudoHeader,
          message, length, &ancillary);
+
+      //Sucessful processing
+      error = NO_ERROR;
    }
    else
 #endif
    {
-      size_t offset;
-      NetBuffer *buffer;
       NetTxAncillary ancillary;
 
-      //Allocate a memory buffer to hold an IGMP message
-      buffer = ipAllocBuffer(0, &offset);
+      //Additional options can be passed to the stack along with the packet
+      ancillary = NET_DEFAULT_TX_ANCILLARY;
 
-      //Successful memory allocation?
-      if(buffer != NULL)
+      //All IGMP messages are sent with an IP TTL of 1 and contain an IP Router
+      //Alert option in their IP header (refer to RFC 2236, section 2)
+      ancillary.ttl = IGMP_TTL;
+      ancillary.routerAlert = TRUE;
+
+      //Every IGMPv3 message is sent with an IP Precedence of Internetwork
+      //Control (refer to RFC 3376, section 4)
+      if(message->type == IGMP_TYPE_MEMBERSHIP_QUERY &&
+         length >= sizeof(IgmpMembershipQueryV3))
       {
-         //Copy the IGMP message
-         error = netBufferAppend(buffer, message, length);
-
-         //Check status code
-         if(!error)
-         {
-            //Additional options can be passed to the stack along with the packet
-            ancillary = NET_DEFAULT_TX_ANCILLARY;
-
-            //All IGMP messages are sent with an IP TTL of 1 and contain an IP Router
-            //Alert option in their IP header (refer to RFC 2236, section 2)
-            ancillary.ttl = IGMP_TTL;
-            ancillary.routerAlert = TRUE;
-
-            //Send the IGMP message
-            error = ipv4SendDatagram(interface, &pseudoHeader, buffer, offset,
-               &ancillary);
-         }
-
-         //Free previously allocated memory
-         netBufferFree(buffer);
+         ancillary.tos = IPV4_TOS_PRECEDENCE_INTERNETWORK_CTRL;
+      }
+      else if(message->type == IGMP_TYPE_MEMBERSHIP_REPORT_V3)
+      {
+         ancillary.tos = IPV4_TOS_PRECEDENCE_INTERNETWORK_CTRL;
       }
       else
       {
-         //Failed to allocate memory
-         error = ERROR_OUT_OF_MEMORY;
+         ancillary.tos = 0;
       }
+
+      //Send the IGMP message
+      error = ipv4SendDatagram(interface, &pseudoHeader, buffer, offset,
+         &ancillary);
    }
 
 #if (IGMP_HOST_SUPPORT == ENABLED && IGMP_ROUTER_SUPPORT == ENABLED)
@@ -221,7 +253,8 @@ error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
    if(message->type == IGMP_TYPE_MEMBERSHIP_QUERY)
    {
       //Forward Membership Query messages to the IGMP host
-      igmpHostProcessMessage(interface, message, length);
+      igmpHostProcessMessage(&interface->igmpHostContext, &pseudoHeader,
+         message, length);
    }
    else if(message->type == IGMP_TYPE_MEMBERSHIP_REPORT_V1 ||
       message->type == IGMP_TYPE_MEMBERSHIP_REPORT_V2 ||
@@ -268,15 +301,10 @@ void igmpProcessMessage(NetInterface *interface,
 
    //To be valid, an IGMP message must be at least 8 octets long
    if(length < sizeof(IgmpMessage))
-   {
-      //Debug message
-      TRACE_WARNING("IGMP message length is invalid!\r\n");
-      //Silently discard incoming message
       return;
-   }
 
    //Point to the beginning of the IGMP message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;
@@ -293,7 +321,7 @@ void igmpProcessMessage(NetInterface *interface,
 #endif
 
    //Dump message contents for debugging purpose
-   igmpDumpMessage(message);
+   igmpDumpMessage(message, length);
 
    //Verify checksum value
    if(ipCalcChecksumEx(buffer, offset, length) != 0x0000)
@@ -304,9 +332,14 @@ void igmpProcessMessage(NetInterface *interface,
       return;
    }
 
+   //All IGMP messages are sent with an IP TTL of 1
+   if(ancillary->ttl != IGMP_TTL)
+      return;
+
 #if (IGMP_HOST_SUPPORT == ENABLED)
    //Pass the message to the IGMP host
-   igmpHostProcessMessage(interface, message, length);
+   igmpHostProcessMessage(&interface->igmpHostContext, pseudoHeader, message,
+      length);
 #endif
 
 #if (IGMP_ROUTER_SUPPORT == ENABLED)
@@ -332,47 +365,48 @@ void igmpProcessMessage(NetInterface *interface,
 
 
 /**
- * @brief Dump IGMP message for debugging purpose
- * @param[in] message Pointer to the IGMP message
+ * @brief Generate a random delay
+ * @param[in] maxDelay maximum delay
+ * @return Random amount of time
  **/
 
-void igmpDumpMessage(const IgmpMessage *message)
+systime_t igmpGetRandomDelay(systime_t maxDelay)
 {
-#if (TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
-   const char_t *label;
+   systime_t delay;
 
-   //Check IGMP message type
-   if(message->type == IGMP_TYPE_MEMBERSHIP_QUERY)
+   //Generate a random delay in the specified range
+   if(maxDelay > IGMP_TICK_INTERVAL)
    {
-      label = "Membership Query";
-   }
-   else if(message->type == IGMP_TYPE_MEMBERSHIP_REPORT_V1)
-   {
-      label = "Version 1 Membership Report";
-   }
-   else if(message->type == IGMP_TYPE_MEMBERSHIP_REPORT_V2)
-   {
-      label = "Version 2 Membership Report";
-   }
-   else if(message->type == IGMP_TYPE_MEMBERSHIP_REPORT_V3)
-   {
-      label = "Version 3 Membership Report";
-   }
-   else if(message->type == IGMP_TYPE_LEAVE_GROUP)
-   {
-      label = "Leave Group";
+      delay = netGenerateRandRange(0, maxDelay - IGMP_TICK_INTERVAL);
    }
    else
    {
-      label = "Unknown";
+      delay = 0;
    }
 
-   //Dump IGMP message
-   TRACE_DEBUG("  Type = 0x%02" PRIX8 " (%s)\r\n", message->type, label);
-   TRACE_DEBUG("  Max Resp Time = %" PRIu8 "\r\n", message->maxRespTime);
-   TRACE_DEBUG("  Checksum = 0x%04" PRIX16 "\r\n", ntohs(message->checksum));
-   TRACE_DEBUG("  Group Address = %s\r\n", ipv4AddrToString(message->groupAddr, NULL));
-#endif
+   //Return the random value
+   return delay;
+}
+
+
+/**
+ * @brief Decode a floating-point value
+ * @param[in] code Floating-point representation
+ * @return Decoded value
+ **/
+
+uint32_t igmpDecodeFloatingPointValue(uint8_t code)
+{
+   uint8_t exp;
+   uint8_t mant;
+
+   //Retrieve the value of the exponent
+   exp = (code >> 4) & 0x07;
+   //Retrieve the value of the mantissa
+   mant = code & 0x0F;
+
+   //The code represents a floating-point value
+   return (mant | 0x10) << (exp + 3);
 }
 
 #endif

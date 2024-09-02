@@ -33,7 +33,7 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -41,12 +41,14 @@
 
 //Dependencies
 #include "core/net.h"
+#include "ipv4/ipv4_multicast.h"
 #include "ipv4/ipv4_misc.h"
+#include "ipv6/ipv6_multicast.h"
 #include "ipv6/ipv6_misc.h"
 #include "mdns/mdns_client.h"
 #include "mdns/mdns_responder.h"
 #include "mdns/mdns_responder_misc.h"
-#include "dns_sd/dns_sd_misc.h"
+#include "dns_sd/dns_sd_responder_misc.h"
 #include "dns/dns_debug.h"
 #include "debug.h"
 
@@ -119,14 +121,12 @@ void mdnsProcessMessage(NetInterface *interface,
    //Retrieve the length of the mDNS message
    length = netBufferGetLength(buffer) - offset;
 
-   //Ensure the mDNS message is valid
+   //Malformed mDNS message?
    if(length < sizeof(DnsHeader))
-      return;
-   if(length > MDNS_MESSAGE_MAX_SIZE)
       return;
 
    //Point to the mDNS message header
-   dnsHeader = netBufferAt(buffer, offset);
+   dnsHeader = netBufferAt(buffer, offset, length);
    //Sanity check
    if(dnsHeader == NULL)
       return;
@@ -185,7 +185,7 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
    size_t offset;
    DnsResourceRecord *record;
 
-   //Source address check (refer to RFC 6762 section 11)
+   //Source address check (refer to RFC 6762, section 11)
    if(!mdnsCheckSourceAddr(interface, response->pseudoHeader))
       return;
 
@@ -254,9 +254,9 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
       mdnsResponderParseAnRecord(interface, response, offset, record);
 #endif
 
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
       //Parse the resource record
-      dnsSdParseAnRecord(interface, response, offset, record);
+      dnsSdResponderParseAnRecord(interface, response, offset, record);
 #endif
 
       //Point to the next resource record
@@ -281,7 +281,7 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
    //IPv4 packet received?
    if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
    {
-      //Perform source address check (refer to RFC 6762 section 11)
+      //Perform source address check (refer to RFC 6762, section 11)
       if(pseudoHeader->ipv4Data.destAddr == MDNS_IPV4_MULTICAST_ADDR)
       {
          //All responses received with the destination address 224.0.0.251
@@ -314,7 +314,7 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
    //IPv6 packet received?
    if(pseudoHeader->length == sizeof(Ipv6PseudoHeader))
    {
-      //Perform source address check (refer to RFC 6762 section 11)
+      //Perform source address check (refer to RFC 6762, section 11)
       if(ipv6CompAddr(&pseudoHeader->ipv6Data.destAddr, &MDNS_IPV6_MULTICAST_ADDR))
       {
          //All responses received with the destination address ff02::fb
@@ -365,7 +365,8 @@ error_t mdnsCreateMessage(MdnsMessage *message, bool_t queryResponse)
    if(message->buffer != NULL)
    {
       //Point to the mDNS message header
-      message->dnsHeader = netBufferAt(message->buffer, message->offset);
+      message->dnsHeader = netBufferAt(message->buffer, message->offset,
+         MDNS_MESSAGE_MAX_SIZE);
 
       //Sanity check
       if(message->dnsHeader != NULL)
@@ -874,7 +875,7 @@ int_t mdnsCompareRecord(const MdnsMessage *message1,
          res = osMemcmp(record1->rdata, record2->rdata, n1);
 
          //Check comparison result
-         if(!res)
+         if(res == 0)
          {
             //The first resource records runs out of rdata
             res = -1;
@@ -886,7 +887,7 @@ int_t mdnsCompareRecord(const MdnsMessage *message1,
          res = osMemcmp(record1->rdata, record2->rdata, n2);
 
          //Check comparison result
-         if(!res)
+         if(res == 0)
          {
             //The second resource records runs out of rdata
             res = 1;

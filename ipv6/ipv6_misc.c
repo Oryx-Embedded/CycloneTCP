@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -34,6 +34,7 @@
 //Dependencies
 #include "core/net.h"
 #include "ipv6/ipv6.h"
+#include "ipv6/ipv6_multicast.h"
 #include "ipv6/ipv6_misc.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_cache.h"
@@ -412,7 +413,9 @@ void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
          {
             //Keep track of the first free entry
             if(firstFreeEntry == NULL)
+            {
                firstFreeEntry = entry;
+            }
          }
       }
    }
@@ -565,7 +568,9 @@ void ipv6AddDefaultRouter(NetInterface *interface, const Ipv6Addr *addr,
          {
             //Keep track of the first free entry
             if(firstFreeEntry == NULL)
+            {
                firstFreeEntry = entry;
+            }
          }
       }
    }
@@ -794,81 +799,51 @@ error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
    //Filter out any invalid addresses
    error = ERROR_INVALID_ADDRESS;
 
-   //Multicast address?
-   if(ipv6IsMulticastAddr(ipAddr))
+   //Loop through the list of IPv6 unicast addresses
+   for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
    {
-      //Go through the multicast filter table
-      for(i = 0; i < IPV6_MULTICAST_FILTER_SIZE; i++)
+      Ipv6AddrEntry *entry;
+
+      //Point to the current entry
+      entry = &interface->ipv6Context.addrList[i];
+
+      //Valid entry?
+      if(entry->state != IPV6_ADDR_STATE_INVALID)
       {
-         Ipv6FilterEntry *entry;
-
-         //Point to the current entry
-         entry = &interface->ipv6Context.multicastFilter[i];
-
-         //Valid entry?
-         if(entry->refCount > 0)
+         //Check whether the destination address matches a valid unicast
+         //address assigned to the interface
+         if(ipv6CompAddr(&entry->addr, ipAddr))
          {
-            //Check whether the destination IPv6 address matches
-            //a relevant multicast address
-            if(ipv6CompAddr(&entry->addr, ipAddr))
-            {
-               //The multicast address is acceptable
-               error = NO_ERROR;
-               //Stop immediately
-               break;
-            }
+            //The destination address is acceptable
+            error = NO_ERROR;
+            //We are done
+            break;
          }
       }
    }
-   //Unicast address?
-   else
+
+   //Check status code
+   if(error == ERROR_INVALID_ADDRESS)
    {
-      //Loop through the list of IPv6 unicast addresses
-      for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
+      Ipv6Addr *anycastAddrList;
+
+      //Point to the list of anycast addresses assigned to the interface
+      anycastAddrList = interface->ipv6Context.anycastAddrList;
+
+      //Loop through the list of IPv6 anycast addresses
+      for(i = 0; i < IPV6_ANYCAST_ADDR_LIST_SIZE; i++)
       {
-         Ipv6AddrEntry *entry;
-
-         //Point to the current entry
-         entry = &interface->ipv6Context.addrList[i];
-
          //Valid entry?
-         if(entry->state != IPV6_ADDR_STATE_INVALID)
+         if(!ipv6CompAddr(&anycastAddrList[i], &IPV6_UNSPECIFIED_ADDR))
          {
-            //Check whether the destination address matches a valid unicast
+            //Check whether the destination address matches a valid anycast
             //address assigned to the interface
-            if(ipv6CompAddr(&entry->addr, ipAddr))
+            if(ipv6CompAddr(&anycastAddrList[i], ipAddr))
             {
                //The destination address is acceptable
                error = NO_ERROR;
                //We are done
                break;
-            }
-         }
-      }
-
-      //Check whether the specified is a valid unicast address
-      if(error == ERROR_INVALID_ADDRESS)
-      {
-         Ipv6Addr *anycastAddrList;
-
-         //Point to the list of anycast addresses assigned to the interface
-         anycastAddrList = interface->ipv6Context.anycastAddrList;
-
-         //Loop through the list of IPv6 anycast addresses
-         for(i = 0; i < IPV6_ANYCAST_ADDR_LIST_SIZE; i++)
-         {
-            //Valid entry?
-            if(!ipv6CompAddr(&anycastAddrList[i], &IPV6_UNSPECIFIED_ADDR))
-            {
-               //Check whether the destination address matches a valid anycast
-               //address assigned to the interface
-               if(ipv6CompAddr(&anycastAddrList[i], ipAddr))
-               {
-                  //The destination address is acceptable
-                  error = NO_ERROR;
-                  //We are done
-                  break;
-               }
             }
          }
       }
@@ -1405,47 +1380,6 @@ error_t ipv6ComputeSolicitedNodeAddr(const Ipv6Addr *ipAddr,
       solicitedNodeAddr->b[15] = ipAddr->b[15];
 
       //Successful processing
-      error = NO_ERROR;
-   }
-   else
-   {
-      //Report an error
-      error = ERROR_INVALID_ADDRESS;
-   }
-
-   //Return status code
-   return error;
-}
-
-
-/**
- * @brief Map an IPv6 multicast address to a MAC-layer multicast address
- * @param[in] ipAddr IPv6 multicast address
- * @param[out] macAddr Corresponding MAC-layer multicast address
- * @return Error code
- **/
-
-error_t ipv6MapMulticastAddrToMac(const Ipv6Addr *ipAddr, MacAddr *macAddr)
-{
-   error_t error;
-
-   //Ensure the specified IPv6 address is a multicast address
-   if(ipv6IsMulticastAddr(ipAddr))
-   {
-      //To support IPv6 multicasting, MAC address range of 33-33-00-00-00-00
-      //to 33-33-FF-FF-FF-FF is reserved (refer to RFC 2464)
-      macAddr->b[0] = 0x33;
-      macAddr->b[1] = 0x33;
-
-      //The low-order 32 bits of the IPv6 multicast address are mapped directly
-      //to the low-order 32 bits in the MAC-layer multicast address
-      macAddr->b[2] = ipAddr->b[12];
-      macAddr->b[3] = ipAddr->b[13];
-      macAddr->b[4] = ipAddr->b[14];
-      macAddr->b[5] = ipAddr->b[15];
-
-      //The specified IPv6 multicast address was successfully mapped to a
-      //MAC-layer address
       error = NO_ERROR;
    }
    else

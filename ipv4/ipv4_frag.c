@@ -34,7 +34,7 @@
  * - RFC 815: IP datagram reassembly algorithms
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -453,7 +453,7 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       else
       {
          //Point to the IP header
-         Ipv4Header *datagram = netBufferAt((NetBuffer *) &frag->buffer, 0);
+         Ipv4Header *datagram = netBufferAt((NetBuffer *) &frag->buffer, 0, 0);
 
          //Fix IP header
          datagram->totalLength = htons(frag->headerLength + frag->dataLen);
@@ -573,7 +573,7 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
       if(frag->buffer.chunkCount > 0)
       {
          //Point to the corresponding datagram
-         datagram = netBufferAt((NetBuffer *) &frag->buffer, 0);
+         datagram = netBufferAt((NetBuffer *) &frag->buffer, 0, 0);
 
          //Check source and destination addresses
          if(datagram->srcAddr != packet->srcAddr)
@@ -682,7 +682,7 @@ void ipv4FlushFragQueue(NetInterface *interface)
 Ipv4HoleDesc *ipv4FindHole(Ipv4FragDesc *frag, uint16_t offset)
 {
    //Return a pointer to the hole descriptor
-   return netBufferAt((NetBuffer *) &frag->buffer, frag->headerLength + offset);
+   return netBufferAt((NetBuffer *) &frag->buffer, frag->headerLength + offset, 0);
 }
 
 

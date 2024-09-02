@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -235,13 +235,13 @@ error_t httpClientParseStatusLine(HttpClientContext *context, char_t *line,
       return ERROR_INVALID_SYNTAX;
 
    //Check protocol version
-   if(!osStrcasecmp(token, "HTTP/1.0"))
+   if(osStrcasecmp(token, "HTTP/1.0") == 0)
    {
       //Under HTTP/1.0, connections are not considered persistent unless a
       //keepalive header is included
       context->keepAlive = FALSE;
    }
-   else if(!osStrcasecmp(token, "HTTP/1.1"))
+   else if(osStrcasecmp(token, "HTTP/1.1") == 0)
    {
       //In HTTP/1.1, all connections are considered persistent unless declared
       //otherwise
@@ -369,24 +369,24 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
          return ERROR_INVALID_SYNTAX;
 
       //Check header field name
-      if(!osStrcasecmp(name, "Connection"))
+      if(osStrcasecmp(name, "Connection") == 0)
       {
          //Parse Connection header field
          httpClientParseConnectionField(context, value);
       }
-      else if(!osStrcasecmp(name, "Transfer-Encoding"))
+      else if(osStrcasecmp(name, "Transfer-Encoding") == 0)
       {
          //Parse Transfer-Encoding header field
          httpClientParseTransferEncodingField(context, value);
       }
-      else if(!osStrcasecmp(name, "Content-Length"))
+      else if(osStrcasecmp(name, "Content-Length") == 0)
       {
          //Parse Content-Length header field
          httpClientParseContentLengthField(context, value);
       }
 #if (HTTP_CLIENT_AUTH_SUPPORT == ENABLED)
       //WWW-Authenticate header field found?
-      else if(!osStrcasecmp(name, "WWW-Authenticate"))
+      else if(osStrcasecmp(name, "WWW-Authenticate") == 0)
       {
          //Parse WWW-Authenticate header field
          httpClientParseWwwAuthenticateField(context, value);
@@ -435,7 +435,7 @@ error_t httpClientParseConnectionField(HttpClientContext *context,
       n = strcspn(value, ", \t");
 
       //Check current value
-      if(n == 10 && !osStrncasecmp(value, "keep-alive", 10))
+      if(n == 10 && osStrncasecmp(value, "keep-alive", 10) == 0)
       {
          //Check HTTP request state
          if(context->requestState == HTTP_REQ_STATE_FORMAT_HEADER)
@@ -444,7 +444,7 @@ error_t httpClientParseConnectionField(HttpClientContext *context,
             context->keepAlive = TRUE;
          }
       }
-      else if(n == 5 && !osStrncasecmp(value, "close", 5))
+      else if(n == 5 && osStrncasecmp(value, "close", 5) == 0)
       {
          //The connection will be closed after completion of the response
          context->keepAlive = FALSE;
@@ -478,7 +478,7 @@ error_t httpClientParseTransferEncodingField(HttpClientContext *context,
    const char_t *value)
 {
    //Check the value of the header field
-   if(!osStrcasecmp(value, "chunked"))
+   if(osStrcasecmp(value, "chunked") == 0)
    {
       //If a Transfer-Encoding header field is present and the chunked
       //transfer coding is the final encoding, the message body length

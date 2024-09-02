@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -849,17 +849,17 @@ error_t httpClientAddHeaderField(HttpClientContext *context,
       name, value);
 
    //Check header field name
-   if(!osStrcasecmp(name, "Connection"))
+   if(osStrcasecmp(name, "Connection") == 0)
    {
       //Parse Connection header field
       error = httpClientParseConnectionField(context, value);
    }
-   else if(!osStrcasecmp(name, "Transfer-Encoding"))
+   else if(osStrcasecmp(name, "Transfer-Encoding") == 0)
    {
       //Parse Transfer-Encoding header field
       error = httpClientParseTransferEncodingField(context, value);
    }
-   else if(!osStrcasecmp(name, "Content-Length"))
+   else if(osStrcasecmp(name, "Content-Length") == 0)
    {
       //Parse Content-Length header field
       error = httpClientParseContentLengthField(context, value);
@@ -945,17 +945,17 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
    osMemcpy(context->buffer + context->bufferLen + nameLen - 2, ": ", 2);
 
    //Check header field name
-   if(!osStrcasecmp(name, "Connection"))
+   if(osStrcasecmp(name, "Connection") == 0)
    {
       //Parse Connection header field
       error = httpClientParseConnectionField(context, value);
    }
-   else if(!osStrcasecmp(name, "Transfer-Encoding"))
+   else if(osStrcasecmp(name, "Transfer-Encoding") == 0)
    {
       //Parse Transfer-Encoding header field
       error = httpClientParseTransferEncodingField(context, value);
    }
-   else if(!osStrcasecmp(name, "Content-Length"))
+   else if(osStrcasecmp(name, "Content-Length") == 0)
    {
       //Parse Content-Length header field
       error = httpClientParseContentLengthField(context, value);
@@ -1078,9 +1078,9 @@ error_t httpClientWriteHeader(HttpClientContext *context)
             else
             {
                //The request header has been successfully transmitted
-               if(!osStrcasecmp(context->method, "POST") ||
-                  !osStrcasecmp(context->method, "PUT") ||
-                  !osStrcasecmp(context->method, "PATCH"))
+               if(osStrcasecmp(context->method, "POST") == 0 ||
+                  osStrcasecmp(context->method, "PUT") == 0 ||
+                  osStrcasecmp(context->method, "PATCH") == 0)
                {
                   //POST, PUT and PATCH requests have a body
                   httpClientChangeRequestState(context, HTTP_REQ_STATE_SEND_BODY);
@@ -1566,7 +1566,7 @@ const char_t *httpClientGetHeaderField(HttpClientContext *context,
             valueLen = osStrlen(context->buffer + i + nameLen + 1);
 
             //Check whether the current header field matches the specified name
-            if(!osStrcasecmp(context->buffer + i, name))
+            if(osStrcasecmp(context->buffer + i, name) == 0)
             {
                //Retrieve the value of the header field
                value = context->buffer + i + nameLen + 1;
@@ -1680,7 +1680,7 @@ error_t httpClientReadBody(HttpClientContext *context, void *data,
          //304 status code is always terminated by the first empty line after
          //the header fields, regardless of the header fields present in the
          //message, and thus cannot contain a message body
-         if(!osStrcasecmp(context->method, "HEAD") ||
+         if(osStrcasecmp(context->method, "HEAD") == 0 ||
             HTTP_STATUS_CODE_1YZ(context->statusCode) ||
             context->statusCode == 204 ||
             context->statusCode == 304)

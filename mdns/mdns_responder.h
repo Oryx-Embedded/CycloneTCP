@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _MDNS_RESPONDER_H
@@ -119,6 +119,13 @@
    #define MDNS_ANNOUNCE_DELAY 1000
 #elif (MDNS_ANNOUNCE_DELAY < 100)
    #error MDNS_ANNOUNCE_DELAY parameter is not valid
+#endif
+
+//Additional record generation
+#ifndef DNS_SD_ADDITIONAL_RECORDS_SUPPORT
+   #define DNS_SD_ADDITIONAL_RECORDS_SUPPORT ENABLED
+#elif (DNS_SD_ADDITIONAL_RECORDS_SUPPORT != ENABLED && DNS_SD_ADDITIONAL_RECORDS_SUPPORT != DISABLED)
+   #error DNS_SD_ADDITIONAL_RECORDS_SUPPORT parameter is not valid
 #endif
 
 //Forward declaration of DnsSdContext structure

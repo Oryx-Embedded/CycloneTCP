@@ -1,5 +1,5 @@
 /**
- * @file sntp_client.c
+ * @file sntp_client_misc.c
  * @brief Helper functions for SNTP client
  *
  * @section License
@@ -24,13 +24,8 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
- * @section Description
- *
- * The Simple Network Time Protocol is used to synchronize computer clocks
- * in the Internet. Refer to RFC 4330 for more details
- *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -41,6 +36,7 @@
 #include "core/net.h"
 #include "sntp/sntp_client.h"
 #include "sntp/sntp_client_misc.h"
+#include "ntp/ntp_debug.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -133,8 +129,8 @@ error_t sntpClientSendRequest(SntpClientContext *context)
    TRACE_INFO("Sending NTP request message (%" PRIuSIZE " bytes)...\r\n",
       context->messageLen);
 
-   //Dump the contents of the NTP message for debugging purpose
-   sntpClientDumpMessage(context->message, context->messageLen);
+   //Dump the contents of the NTP packet for debugging purpose
+   ntpDumpPacket(header, context->messageLen);
 
    //Send the request to the designated NTP server
    error = socketSendTo(context->socket, &context->serverIpAddr,
@@ -263,8 +259,8 @@ error_t sntpClientCheckResponse(SntpClientContext *context,
    TRACE_INFO("NTP response message received (%" PRIuSIZE " bytes)...\r\n",
       length);
 
-   //Dump NTP message
-   sntpClientDumpMessage(message, length);
+   //Dump the contents of the NTP packet for debugging purpose
+   ntpDumpPacket(header, length);
 
    //The server reply should be discarded if the VN field is 0
    if(header->vn == 0)
@@ -286,6 +282,7 @@ error_t sntpClientCheckResponse(SntpClientContext *context,
    //Timestamp used in the client request
    if(header->originateTimestamp.seconds != 0)
       return ERROR_INVALID_MESSAGE;
+
    if(header->originateTimestamp.fraction != htonl(context->retransmitStartTime))
       return ERROR_INVALID_MESSAGE;
 
@@ -382,105 +379,6 @@ error_t sntpClientCheckTimeout(SntpClientContext *context)
 
    //Return status code
    return error;
-}
-
-
-/**
- * @brief Dump NTP message for debugging purpose
- * @param[in] message Pointer to the NTP message
- * @param[in] length Length of the NTP message
- **/
-
-void sntpClientDumpMessage(const uint8_t *message, size_t length)
-{
-#if (SNTP_TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
-   uint32_t kissCode;
-   const NtpHeader *header;
-   const NtpAuthenticator *auth;
-
-   //Valid NTP packet?
-   if(length >= sizeof(NtpHeader))
-   {
-      //Point to the NTP packet header
-      header = (NtpHeader *) message;
-
-      //Dump NTP message
-      TRACE_DEBUG("  Mode = %" PRIu8 "\r\n", header->mode);
-      TRACE_DEBUG("  Version = %" PRIu8 "\r\n", header->vn);
-      TRACE_DEBUG("  Leap indicator = %" PRIu8 "\r\n", header->li);
-      TRACE_DEBUG("  Stratum = %" PRIu8 "\r\n", header->stratum);
-      TRACE_DEBUG("  Poll = %" PRIu8 "\r\n", header->poll);
-      TRACE_DEBUG("  Precision = %" PRId8 "\r\n", header->precision);
-      TRACE_DEBUG("  Root Delay = %" PRIu32 "\r\n", ntohl(header->rootDelay));
-      TRACE_DEBUG("  Root Dispersion = %" PRIu32 "\r\n", ntohl(header->rootDispersion));
-
-      //Retrieve kiss code
-      kissCode = htonl(header->referenceId);
-
-      //Valid kiss code?
-      if(isalnum((kissCode >> 24) & 0xFF) &&
-         isalnum((kissCode >> 16) & 0xFF) &&
-         isalnum((kissCode >> 8) & 0xFF) &&
-         isalnum(kissCode & 0xFF))
-      {
-         //Dump kiss code
-         TRACE_DEBUG("  Kiss Code = '%c%c%c%c'\r\n", (kissCode >> 24) & 0xFF,
-            (kissCode >> 16) & 0xFF, (kissCode >> 8) & 0xFF, kissCode & 0xFF);
-      }
-      else
-      {
-         //Dump reference identifier
-         TRACE_DEBUG("  Reference Identifier = %" PRIu32 "\r\n",
-            header->referenceId);
-      }
-
-      //Dump reference timestamp
-      TRACE_DEBUG("  ReferenceTimestamp\r\n");
-      sntpClientDumpTimestamp(&header->referenceTimestamp);
-
-      //Dump originate timestamp
-      TRACE_DEBUG("  Originate Timestamp\r\n");
-      sntpClientDumpTimestamp(&header->originateTimestamp);
-
-      //Dump receive timestamp
-      TRACE_DEBUG("  Receive Timestamp\r\n");
-      sntpClientDumpTimestamp(&header->receiveTimestamp);
-
-      //Dump transmit timestamp
-      TRACE_DEBUG("  Transmit Timestamp\r\n");
-      sntpClientDumpTimestamp(&header->transmitTimestamp);
-   }
-
-   //When the NTP authentication scheme is implemented, the Key Identifier
-   //and Message Digest fields contain the message authentication code (MAC)
-   //information
-   if(length >= (sizeof(NtpHeader) + sizeof(NtpAuthenticator)))
-   {
-      //The Authenticator field is optional
-      auth = (NtpAuthenticator *) (message + sizeof(NtpHeader));
-
-      //Dump key identifier
-      TRACE_DEBUG("  Key Identifier = %" PRIu32 "\r\n", ntohl(auth->keyId));
-
-      //Dump message digest
-      TRACE_DEBUG("  Message Digest\r\n");
-      TRACE_DEBUG_ARRAY("    ", auth->messageDigest, 16);
-   }
-#endif
-}
-
-
-/**
- * @brief Dump NTP timestamp
- * @param[in] timestamp Pointer to the NTP timestamp
- **/
-
-void sntpClientDumpTimestamp(const NtpTimestamp *timestamp)
-{
-   //Dump seconds
-   TRACE_DEBUG("    Seconds = %" PRIu32 "\r\n", ntohl(timestamp->seconds));
-   //Dump fraction field
-   TRACE_DEBUG("    Fraction = %" PRIu32 "\r\n", ntohl(timestamp->fraction));
 }
 
 #endif

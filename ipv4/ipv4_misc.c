@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -53,21 +53,20 @@
 error_t ipv4AddRouterAlertOption(NetBuffer *buffer, size_t *offset)
 {
    error_t error;
-   Ipv4Option *option;
+   Ipv4RouterAlertOption *option;
 
-   //Make sure there is enough room to add the option
-   if(*offset >= sizeof(uint32_t))
+   //Make sure there is sufficient space for the option
+   if(*offset >= sizeof(Ipv4RouterAlertOption))
    {
-      //Make room for the IPv4 option
-      *offset -= sizeof(uint32_t);
-      //Point to the IPv4 option
-      option = netBufferAt(buffer, *offset);
+      //Make room for the option
+      *offset -= sizeof(Ipv4RouterAlertOption);
+      //Point to the option
+      option = netBufferAt(buffer, *offset, 0);
 
       //Format Router Alert option
       option->type = IPV4_OPTION_RTRALT;
-      option->length = sizeof(uint32_t);
-      option->value[0] = 0;
-      option->value[1] = 0;
+      option->length = sizeof(Ipv4RouterAlertOption);
+      option->value = HTONS(0);
 
       //Successful processing
       error = NO_ERROR;
@@ -128,33 +127,6 @@ error_t ipv4CheckDestAddr(NetInterface *interface, Ipv4Addr ipAddr)
       //Always accept broadcast address
       error = NO_ERROR;
    }
-   //Multicast address?
-   else if(ipv4IsMulticastAddr(ipAddr))
-   {
-      //Go through the multicast filter table
-      for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
-      {
-         Ipv4FilterEntry *entry;
-
-         //Point to the current entry
-         entry = &interface->ipv4Context.multicastFilter[i];
-
-         //Valid entry?
-         if(entry->refCount > 0)
-         {
-            //Check whether the destination IPv4 address matches
-            //a relevant multicast address
-            if(entry->addr == ipAddr)
-            {
-               //The multicast address is acceptable
-               error = NO_ERROR;
-               //Stop immediately
-               break;
-            }
-         }
-      }
-   }
-   //Unicast address?
    else
    {
       //Loop through the list of IPv4 addresses assigned to the interface
@@ -420,6 +392,39 @@ error_t ipv4SelectDefaultGateway(NetInterface *interface, Ipv4Addr srcAddr,
 
    //No default gateway found
    return ERROR_NO_ROUTE;
+}
+
+
+/**
+ * @brief Check whether a valid IPv4 address has been assigned to the interface
+ * @param[in] interface Underlying network interface
+ * @return TRUE if a valid IPv4 address has been assigned, else FALSE
+ **/
+
+bool_t ipv4IsHostAddrValid(NetInterface *interface)
+{
+   uint_t i;
+   bool_t flag;
+   Ipv4AddrEntry *entry;
+
+   //Initialize flag
+   flag = FALSE;
+
+   //Loop through the list of IPv4 addresses assigned to the interface
+   for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
+   {
+      //Point to the current entry
+      entry = &interface->ipv4Context.addrList[i];
+
+      //Valid entry?
+      if(entry->state == IPV4_ADDR_STATE_VALID)
+      {
+         flag = TRUE;
+      }
+   }
+
+   //Return TRUE if a valid IPv4 address has been assigned to the interface
+   return flag;
 }
 
 
@@ -730,7 +735,9 @@ uint_t ipv4GetPrefixLength(Ipv4Addr mask)
    {
       //Check the value of the current bit
       if(!(mask & (1U << (31 - i))))
+      {
          break;
+      }
    }
 
    //Return prefix length
@@ -746,51 +753,45 @@ uint_t ipv4GetPrefixLength(Ipv4Addr mask)
 
 error_t ipv4GetBroadcastAddr(NetInterface *interface, Ipv4Addr *addr)
 {
+   error_t error;
+   uint_t i;
+   Ipv4AddrEntry *entry;
+
    //Check parameters
-   if(interface == NULL || addr == NULL)
-      return ERROR_INVALID_PARAMETER;
+   if(interface != NULL && addr != NULL)
+   {
+      //Initialize status code
+      error = ERROR_NO_ADDRESS;
 
-   //The broadcast address is obtained by performing a bitwise OR operation
-   //between the bit complement of the subnet mask and the host IP address
-   *addr = interface->ipv4Context.addrList[0].addr;
-   *addr |= ~interface->ipv4Context.addrList[0].subnetMask;
+      //Loop through the list of IPv4 addresses assigned to the interface
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
+      {
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
 
-   //Successful processing
-   return NO_ERROR;
-}
+         //Valid entry?
+         if(entry->state != IPV4_ADDR_STATE_INVALID)
+         {
+            //The broadcast address is obtained by performing a bitwise OR
+            //operation between the bit complement of the subnet mask and the
+            //host IP address
+            *addr = entry->addr;
+            *addr |= ~entry->subnetMask;
 
+            //We are done
+            error = NO_ERROR;
+            break;
+         }
+      }
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_PARAMETER;
+   }
 
-/**
- * @brief Map an host group address to a MAC-layer multicast address
- * @param[in] ipAddr IPv4 host group address
- * @param[out] macAddr Corresponding MAC-layer multicast address
- * @return Error code
- **/
-
-error_t ipv4MapMulticastAddrToMac(Ipv4Addr ipAddr, MacAddr *macAddr)
-{
-   uint8_t *p;
-
-   //Ensure the specified IPv4 address is a valid host group address
-   if(!ipv4IsMulticastAddr(ipAddr))
-      return ERROR_INVALID_ADDRESS;
-
-   //Cast the address to byte array
-   p = (uint8_t *) &ipAddr;
-
-   //An IP host group address is mapped to an Ethernet multicast address
-   //by placing the low-order 23-bits of the IP address into the low-order
-   //23 bits of the Ethernet multicast address 01-00-5E-00-00-00
-   macAddr->b[0] = 0x01;
-   macAddr->b[1] = 0x00;
-   macAddr->b[2] = 0x5E;
-   macAddr->b[3] = p[1] & 0x7F;
-   macAddr->b[4] = p[2];
-   macAddr->b[5] = p[3];
-
-   //The specified host group address was successfully
-   //mapped to a MAC-layer address
-   return NO_ERROR;
+   //Return status code
+   return error;
 }
 
 

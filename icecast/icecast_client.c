@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -448,7 +448,7 @@ error_t icecastClientConnect(IcecastClientContext *context)
    interface = context->settings.interface;
 
    //Force traffic to go through a proxy server?
-   if(osStrcmp(interface->proxyName, ""))
+   if(osStrcmp(interface->proxyName, "") != 0)
    {
       //Icecast request template
       const char_t requestTemplate[] =
@@ -554,7 +554,7 @@ error_t icecastClientConnect(IcecastClientContext *context)
          context->buffer[length] = '\0';
 
          //The end of the header has been reached?
-         if(!osStrcmp(context->buffer, "\r\n"))
+         if(osStrcmp(context->buffer, "\r\n") == 0)
             break;
 
          //Check whether a separator is present
@@ -574,7 +574,7 @@ error_t icecastClientConnect(IcecastClientContext *context)
             TRACE_INFO("<%s>=<%s>\r\n", property, value);
 
             //Icy-Metaint property found?
-            if(!osStrcasecmp(property, "Icy-Metaint"))
+            if(osStrcasecmp(property, "Icy-Metaint") == 0)
             {
                //Retrieve the block size used by the Icecast server
                context->blockSize = atoi(value);

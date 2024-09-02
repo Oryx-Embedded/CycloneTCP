@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -305,7 +305,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
       return ERROR_INVALID_LENGTH;
 
    //Point to the IPv6 header
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset);
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
 
    //Sanity check
    if(ipHeader == NULL)
@@ -540,7 +540,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
       if(!error)
       {
          //Point to the IPv6 header
-         ipHeader = netBufferAt(destBuffer, destOffset);
+         ipHeader = netBufferAt(destBuffer, destOffset, 0);
          //Every time a router forwards a packet, it decrements the Hop Limit field
          ipHeader->hopLimit--;
 

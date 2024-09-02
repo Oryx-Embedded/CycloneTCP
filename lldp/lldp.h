@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _LLDP_H
@@ -315,7 +315,7 @@ struct _LldpPortEntry
 typedef struct
 {
    OsTaskParameters task;               ///<Task parameters
-   NetInterface *interface;             ///<Network interface to configure
+   NetInterface *interface;             ///<Underlying network interface
    uint_t numPorts;                     ///<Number of ports
    LldpPortEntry *ports;                ///<Port table
    uint_t numNeighbors;                 ///<Maximum number of entries in the neighbor table

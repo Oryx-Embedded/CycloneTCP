@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -88,7 +88,7 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the TCP segment
-   segment = netBufferAt(buffer, offset);
+   segment = netBufferAt(buffer, offset, 0);
 
    //Format TCP header
    segment->srcPort = htons(socket->localPort);
@@ -450,7 +450,7 @@ error_t tcpRejectSegment(NetInterface *interface,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the TCP segment
-   segment2 = netBufferAt(buffer, offset);
+   segment2 = netBufferAt(buffer, offset, 0);
 
    //Format TCP header
    segment2->srcPort = htons(segment->destPort);
@@ -1789,7 +1789,7 @@ error_t tcpRetransmitSegment(Socket *socket)
       do
       {
          //Point to the beginning of the TCP segment
-         segment = netBufferAt(buffer, offset);
+         segment = netBufferAt(buffer, offset, 0);
 
          //Copy TCP header
          osMemcpy(segment, queueItem->header, TCP_MAX_HEADER_LENGTH);

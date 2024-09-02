@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -217,7 +217,7 @@ error_t ethEncodeVlanTag(NetBuffer *buffer, size_t *offset, uint16_t vlanId,
    //Make room for the VLAN tag
    *offset -= sizeof(VlanTag);
    //Point to the VLAN tag
-   vlanTag = netBufferAt(buffer, *offset);
+   vlanTag = netBufferAt(buffer, *offset, 0);
 
    //The TCI field is divided into PCP, DEI, and VID
    vlanTag->tci = htons(vlanId);

@@ -25,19 +25,18 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL MDNS_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
 #include "core/net.h"
 #include "dns/dns_debug.h"
 #include "mdns/mdns_responder.h"
 #include "mdns/mdns_responder_misc.h"
-#include "dns_sd/dns_sd_misc.h"
+#include "dns_sd/dns_sd_responder_misc.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -349,9 +348,9 @@ error_t mdnsResponderStartProbing(MdnsResponderContext *context)
    //Force mDNS responder to start probing again
    context->state = MDNS_STATE_INIT;
 
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
    //Restart probing process (service instance name)
-   dnsSdStartProbing(interface->dnsSdContext);
+   dnsSdResponderStartProbing(interface->dnsSdResponderContext);
 #endif
 
    //Successful processing
@@ -545,10 +544,10 @@ void mdnsResponderTick(MdnsResponderContext *context)
       if(timeCompare(time, context->ipv4Response.timestamp +
          context->ipv4Response.timeout) >= 0)
       {
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
          //Generate additional records (DNS-SD)
-         dnsSdGenerateAdditionalRecords(interface, &context->ipv4Response,
-            FALSE);
+         dnsSdResponderGenerateAdditionalRecords(interface,
+            &context->ipv4Response, FALSE);
 #endif
          //Generate additional records (mDNS)
          mdnsResponderGenerateAdditionalRecords(context,
@@ -576,10 +575,10 @@ void mdnsResponderTick(MdnsResponderContext *context)
       if(timeCompare(time, context->ipv6Response.timestamp +
          context->ipv6Response.timeout) >= 0)
       {
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
          //Generate additional records (DNS-SD)
-         dnsSdGenerateAdditionalRecords(interface, &context->ipv6Response,
-            FALSE);
+         dnsSdResponderGenerateAdditionalRecords(interface,
+            &context->ipv6Response, FALSE);
 #endif
          //Generate additional records (mDNS)
          mdnsResponderGenerateAdditionalRecords(context,

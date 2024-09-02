@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _NET_MISC_H
@@ -114,6 +114,9 @@ typedef struct
 
 struct _NetTxAncillary
 {
+#if (UDP_SUPPORT == ENABLED)
+   bool_t noChecksum;   ///<Disable UDP checksum generation
+#endif
    uint8_t ttl;         ///<Time-to-live value
    uint8_t tos;         ///<Type-of-service value
    bool_t dontFrag;     ///<Do not fragment the IP packet
@@ -211,6 +214,7 @@ void netStartTimer(NetTimer *timer, systime_t interval);
 void netStopTimer(NetTimer *timer);
 bool_t netTimerRunning(NetTimer *timer);
 bool_t netTimerExpired(NetTimer *timer);
+systime_t netGetRemainingTime(NetTimer *timer);
 
 void netInitRand(void);
 uint32_t netGenerateRand(void);

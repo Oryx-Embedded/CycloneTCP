@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _SNMP_AGENT_H
@@ -131,7 +131,7 @@ typedef error_t (*SnmpAgentRandCallback)(uint8_t *data, size_t length);
 typedef struct
 {
    OsTaskParameters task;              ///<Task parameters
-   NetInterface *interface;            ///<Network interface to configure
+   NetInterface *interface;            ///<Underlying network interface
    SnmpVersion versionMin;             ///<Minimum version accepted by the SNMP agent
    SnmpVersion versionMax;             ///<Maximum version accepted by the SNMP agent
    uint16_t port;                      ///<SNMP port number

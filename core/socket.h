@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _SOCKET_H
@@ -48,11 +48,18 @@ struct _Socket;
    #error SOCKET_MAX_COUNT parameter is not valid
 #endif
 
-//Maximum number of multicast groups joined
+//Maximum number of multicast groups
 #ifndef SOCKET_MAX_MULTICAST_GROUPS
    #define SOCKET_MAX_MULTICAST_GROUPS 1
-#elif (SOCKET_MAX_MULTICAST_GROUPS < 1)
+#elif (SOCKET_MAX_MULTICAST_GROUPS < 0)
    #error SOCKET_MAX_MULTICAST_GROUPS parameter is not valid
+#endif
+
+//Maximum number of multicast sources
+#ifndef SOCKET_MAX_MULTICAST_SOURCES
+   #define SOCKET_MAX_MULTICAST_SOURCES 0
+#elif (SOCKET_MAX_MULTICAST_SOURCES < 0)
+   #error SOCKET_MAX_MULTICAST_SOURCES parameter is not valid
 #endif
 
 //Dynamic port range (lower limit)
@@ -195,7 +202,8 @@ typedef enum
    SOCKET_OPTION_IPV6_PKT_INFO           = 0x0400,
    SOCKET_OPTION_IPV6_RECV_TRAFFIC_CLASS = 0x0800,
    SOCKET_OPTION_IPV6_RECV_HOP_LIMIT     = 0x1000,
-   SOCKET_OPTION_TCP_NO_DELAY            = 0x2000
+   SOCKET_OPTION_TCP_NO_DELAY            = 0x2000,
+   SOCKET_OPTION_UDP_NO_CHECKSUM         = 0x4000
 } SocketOptions;
 
 
@@ -258,6 +266,21 @@ typedef struct
 
 
 /**
+ * @brief Multicast group
+ **/
+
+typedef struct
+{
+   IpAddr addr;                                  ///<Multicast address
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+   IpFilterMode filterMode;                      ///<Multicast filter mode
+   uint_t numSources;                            ///<Number of source addresses
+   IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES]; ///<Source addresses
+#endif
+} SocketMulticastGroup;
+
+
+/**
  * @brief Receive queue item
  **/
 
@@ -293,7 +316,9 @@ struct _Socket
    uint8_t tos;                   ///<Type-of-service value
    uint8_t ttl;                   ///<Time-to-live value for unicast datagrams
    uint8_t multicastTtl;          ///<Time-to-live value for multicast datagrams
-   IpAddr multicastGroups[SOCKET_MAX_MULTICAST_GROUPS]; ///<Multicast groups
+#if (SOCKET_MAX_MULTICAST_GROUPS > 0)
+   SocketMulticastGroup multicastGroups[SOCKET_MAX_MULTICAST_GROUPS]; ///<Multicast groups
+#endif
 #if (ETH_VLAN_SUPPORT == ENABLED)
    int8_t vlanPcp;                ///<VLAN priority (802.1Q)
    int8_t vlanDei;                ///<Drop eligible indicator
@@ -429,8 +454,27 @@ error_t socketSetVmanPcp(Socket *socket, uint8_t pcp);
 error_t socketSetVmanDei(Socket *socket, bool_t dei);
 
 error_t socketEnableBroadcast(Socket *socket, bool_t enabled);
+
 error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr);
 error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr);
+
+error_t socketSetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
+   IpFilterMode filterMode, const IpAddr *sources, uint_t numSources);
+
+error_t socketGetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
+   IpFilterMode *filterMode, IpAddr *sources, uint_t *numSources);
+
+error_t socketAddMulticastSource(Socket *socket, const IpAddr *groupAddr,
+   const IpAddr *srcAddr);
+
+error_t socketDropMulticastSource(Socket *socket, const IpAddr *groupAddr,
+   const IpAddr *srcAddr);
+
+error_t socketBlockMulticastSource(Socket *socket, const IpAddr *groupAddr,
+   const IpAddr *srcAddr);
+
+error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
+   const IpAddr *srcAddr);
 
 error_t socketEnableKeepAlive(Socket *socket, bool_t enabled);
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -161,11 +161,11 @@ error_t snmpVacmMibGetContextEntry(const MibObject *object,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check context name
-   if(osStrcmp(contextName, context->contextName))
+   if(osStrcmp(contextName, context->contextName) != 0)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //vacmContextName object?
-   if(!osStrcmp(object->name, "vacmContextName"))
+   if(osStrcmp(object->name, "vacmContextName") == 0)
    {
 #if (SNMP_V3_SUPPORT == ENABLED)
       //Retrieve the length of the context name
@@ -331,7 +331,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
       osStrlen(securityName));
 
    //vacmGroupName object?
-   if(!osStrcmp(object->name, "vacmGroupName"))
+   if(osStrcmp(object->name, "vacmGroupName") == 0)
    {
       //Ensure the length of the group name is valid
       if(valueLen > SNMP_MAX_GROUP_NAME_LEN)
@@ -364,7 +364,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
       }
    }
    //vacmSecurityToGroupStorageType object?
-   else if(!osStrcmp(object->name, "vacmSecurityToGroupStorageType"))
+   else if(osStrcmp(object->name, "vacmSecurityToGroupStorageType") == 0)
    {
       //The vacmSecurityToGroupStorageType object specifies the storage type
       //for this conceptual row
@@ -378,7 +378,7 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
       }
    }
    //vacmSecurityToGroupStatus object?
-   else if(!osStrcmp(object->name, "vacmSecurityToGroupStatus"))
+   else if(osStrcmp(object->name, "vacmSecurityToGroupStatus") == 0)
    {
       MibRowStatus status;
 
@@ -574,7 +574,7 @@ error_t snmpVacmMibGetSecurityToGroupEntry(const MibObject *object,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //vacmGroupName object?
-   if(!osStrcmp(object->name, "vacmGroupName"))
+   if(osStrcmp(object->name, "vacmGroupName") == 0)
    {
       //Retrieve the length of the group name
       n = osStrlen(entry->groupName);
@@ -594,13 +594,13 @@ error_t snmpVacmMibGetSecurityToGroupEntry(const MibObject *object,
       }
    }
    //vacmSecurityToGroupStorageType object?
-   else if(!osStrcmp(object->name, "vacmSecurityToGroupStorageType"))
+   else if(osStrcmp(object->name, "vacmSecurityToGroupStorageType") == 0)
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //vacmSecurityToGroupStatus object?
-   else if(!osStrcmp(object->name, "vacmSecurityToGroupStatus"))
+   else if(osStrcmp(object->name, "vacmSecurityToGroupStatus") == 0)
    {
       //Get the status of this conceptual row
       value->integer = entry->status;
@@ -842,7 +842,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       securityModel, securityLevel);
 
    //vacmAccessContextMatch object?
-   if(!osStrcmp(object->name, "vacmAccessContextMatch"))
+   if(osStrcmp(object->name, "vacmAccessContextMatch") == 0)
    {
       //Ensure the value of the object is acceptable
       if(value->integer != SNMP_CONTEXT_MATCH_EXACT &&
@@ -872,7 +872,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessReadViewName object?
-   else if(!osStrcmp(object->name, "vacmAccessReadViewName"))
+   else if(osStrcmp(object->name, "vacmAccessReadViewName") == 0)
    {
       //Ensure the length of the read view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
@@ -905,7 +905,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessWriteViewName object?
-   else if(!osStrcmp(object->name, "vacmAccessWriteViewName"))
+   else if(osStrcmp(object->name, "vacmAccessWriteViewName") == 0)
    {
       //Ensure the length of the write view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
@@ -938,7 +938,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessNotifyViewName object?
-   else if(!osStrcmp(object->name, "vacmAccessNotifyViewName"))
+   else if(osStrcmp(object->name, "vacmAccessNotifyViewName") == 0)
    {
       //Ensure the length of the notify view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
@@ -971,7 +971,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessStorageType object?
-   else if(!osStrcmp(object->name, "vacmAccessStorageType"))
+   else if(osStrcmp(object->name, "vacmAccessStorageType") == 0)
    {
       //The vacmAccessStorageType object specifies the storage type
       //for this conceptual row
@@ -985,7 +985,7 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //vacmAccessStatus object?
-   else if(!osStrcmp(object->name, "vacmAccessStatus"))
+   else if(osStrcmp(object->name, "vacmAccessStatus") == 0)
    {
       MibRowStatus status;
 
@@ -1169,13 +1169,13 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //vacmAccessContextMatch object?
-   if(!osStrcmp(object->name, "vacmAccessContextMatch"))
+   if(osStrcmp(object->name, "vacmAccessContextMatch") == 0)
    {
       //Get object value
       value->integer = entry->contextMatch;
    }
    //vacmAccessReadViewName object?
-   else if(!osStrcmp(object->name, "vacmAccessReadViewName"))
+   else if(osStrcmp(object->name, "vacmAccessReadViewName") == 0)
    {
       //Retrieve the length of the read view name
       n = osStrlen(entry->readViewName);
@@ -1195,7 +1195,7 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       }
    }
    //vacmAccessWriteViewName object?
-   else if(!osStrcmp(object->name, "vacmAccessWriteViewName"))
+   else if(osStrcmp(object->name, "vacmAccessWriteViewName") == 0)
    {
       //Retrieve the length of the write view name
       n = osStrlen(entry->writeViewName);
@@ -1215,7 +1215,7 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       }
    }
    //vacmAccessNotifyViewName object?
-   else if(!osStrcmp(object->name, "vacmAccessNotifyViewName"))
+   else if(osStrcmp(object->name, "vacmAccessNotifyViewName") == 0)
    {
       //Retrieve the length of the notify view name
       n = osStrlen(entry->notifyViewName);
@@ -1235,13 +1235,13 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       }
    }
    //vacmAccessStorageType object?
-   else if(!osStrcmp(object->name, "vacmAccessStorageType"))
+   else if(osStrcmp(object->name, "vacmAccessStorageType") == 0)
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //vacmAccessStatus object?
-   else if(!osStrcmp(object->name, "vacmAccessStatus"))
+   else if(osStrcmp(object->name, "vacmAccessStatus") == 0)
    {
       //Get the status of this conceptual row
       value->integer = entry->status;
@@ -1543,7 +1543,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
    entry = snmpFindViewEntry(context, viewName, subtree, subtreeLen);
 
    //vacmViewTreeFamilyMask object?
-   if(!osStrcmp(object->name, "vacmViewTreeFamilyMask"))
+   if(osStrcmp(object->name, "vacmViewTreeFamilyMask") == 0)
    {
       //Ensure the length of the bit mask is valid
       if(valueLen > SNMP_MAX_BIT_MASK_SIZE)
@@ -1574,7 +1574,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       }
    }
    //vacmViewTreeFamilyType object?
-   else if(!osStrcmp(object->name, "vacmViewTreeFamilyType"))
+   else if(osStrcmp(object->name, "vacmViewTreeFamilyType") == 0)
    {
       //Ensure the value of the object is acceptable
       if(value->integer != SNMP_VIEW_TYPE_INCLUDED &&
@@ -1604,7 +1604,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       }
    }
    //vacmViewTreeFamilyStorageType object?
-   else if(!osStrcmp(object->name, "vacmViewTreeFamilyStorageType"))
+   else if(osStrcmp(object->name, "vacmViewTreeFamilyStorageType") == 0)
    {
       //The vacmViewTreeFamilyStorageType object specifies the storage type
       //for this conceptual row
@@ -1618,7 +1618,7 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       }
    }
    //vacmViewTreeFamilyStatus object?
-   else if(!osStrcmp(object->name, "vacmViewTreeFamilyStatus"))
+   else if(osStrcmp(object->name, "vacmViewTreeFamilyStatus") == 0)
    {
       MibRowStatus status;
 
@@ -1783,7 +1783,7 @@ error_t snmpVacmMibGetViewTreeFamilyEntry(const MibObject *object,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //vacmViewTreeFamilyMask object?
-   if(!osStrcmp(object->name, "vacmViewTreeFamilyMask"))
+   if(osStrcmp(object->name, "vacmViewTreeFamilyMask") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= entry->maskLen)
@@ -1800,7 +1800,7 @@ error_t snmpVacmMibGetViewTreeFamilyEntry(const MibObject *object,
       }
    }
    //vacmViewTreeFamilyType object?
-   else if(!osStrcmp(object->name, "vacmViewTreeFamilyType"))
+   else if(osStrcmp(object->name, "vacmViewTreeFamilyType") == 0)
    {
       //This object indicates whether the corresponding instances of
       //vacmViewTreeFamilySubtree and vacmViewTreeFamilyMask define a family
@@ -1808,13 +1808,13 @@ error_t snmpVacmMibGetViewTreeFamilyEntry(const MibObject *object,
       value->integer = entry->type;
    }
    //vacmViewTreeFamilyStorageType object?
-   else if(!osStrcmp(object->name, "vacmViewTreeFamilyStorageType"))
+   else if(osStrcmp(object->name, "vacmViewTreeFamilyStorageType") == 0)
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //vacmViewTreeFamilyStatus object?
-   else if(!osStrcmp(object->name, "vacmViewTreeFamilyStatus"))
+   else if(osStrcmp(object->name, "vacmViewTreeFamilyStatus") == 0)
    {
       //Get the status of this conceptual row
       value->integer = entry->status;

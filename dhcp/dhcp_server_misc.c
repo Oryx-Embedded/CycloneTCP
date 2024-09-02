@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -135,13 +135,11 @@ void dhcpServerProcessMessage(NetInterface *interface,
    length = netBufferGetLength(buffer) - offset;
 
    //Make sure the DHCP message is valid
-   if(length < sizeof(DhcpMessage))
-      return;
-   if(length > DHCP_MAX_MSG_SIZE)
+   if(length < sizeof(DhcpMessage) || length > DHCP_MAX_MSG_SIZE)
       return;
 
    //Point to the beginning of the DHCP message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;
@@ -608,7 +606,8 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the DHCP message
-   reply = netBufferAt(buffer, offset);
+   reply = netBufferAt(buffer, offset, 0);
+
    //Clear memory buffer contents
    osMemset(reply, 0, DHCP_MAX_MSG_SIZE);
 
@@ -784,6 +783,7 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -963,7 +963,7 @@ error_t dhcpServerGetNextIpAddr(DhcpServerContext *context, Ipv4Addr *ipAddr)
          return NO_ERROR;
    }
 
-   //No available addresses in the pool...
+   //No available addresses in the pool
    return ERROR_NO_ADDRESS;
 }
 

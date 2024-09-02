@@ -30,7 +30,7 @@
  * of an SNMP entity. Refer to RFC 3418 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -166,7 +166,7 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
    community = snmpFindCommunityEntry(context, index, osStrlen(index));
 
    //snmpCommunityName object?
-   if(!osStrcmp(object->name, "snmpCommunityName"))
+   if(osStrcmp(object->name, "snmpCommunityName") == 0)
    {
       //Ensure the length of the community string is valid
       if(valueLen > SNMP_MAX_USER_NAME_LEN)
@@ -199,27 +199,27 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunitySecurityName object?
-   else if(!osStrcmp(object->name, "snmpCommunitySecurityName"))
+   else if(osStrcmp(object->name, "snmpCommunitySecurityName") == 0)
    {
       //Write access is not required
    }
    //snmpCommunityContextEngineID object?
-   else if(!osStrcmp(object->name, "snmpCommunityContextEngineID"))
+   else if(osStrcmp(object->name, "snmpCommunityContextEngineID") == 0)
    {
       //Write access is not required
    }
    //snmpCommunityContextName object?
-   else if(!osStrcmp(object->name, "snmpCommunityContextName"))
+   else if(osStrcmp(object->name, "snmpCommunityContextName") == 0)
    {
       //Write access is not required
    }
    //snmpCommunityTransportTag object?
-   else if(!osStrcmp(object->name, "snmpCommunityTransportTag"))
+   else if(osStrcmp(object->name, "snmpCommunityTransportTag") == 0)
    {
       //Write access is not required
    }
    //snmpCommunityStorageType object?
-   else if(!osStrcmp(object->name, "snmpCommunityStorageType"))
+   else if(osStrcmp(object->name, "snmpCommunityStorageType") == 0)
    {
       //The snmpCommunityStorageType object specifies the storage type
       //for this conceptual row
@@ -233,7 +233,7 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunityStatus object?
-   else if(!osStrcmp(object->name, "snmpCommunityStatus"))
+   else if(osStrcmp(object->name, "snmpCommunityStatus") == 0)
    {
       MibRowStatus status;
 
@@ -406,7 +406,7 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       return ERROR_INSTANCE_NOT_FOUND;
 
    //snmpCommunityName object?
-   if(!osStrcmp(object->name, "snmpCommunityName"))
+   if(osStrcmp(object->name, "snmpCommunityName") == 0)
    {
       //Retrieve the length of the community string
       n = osStrlen(community->name);
@@ -426,7 +426,7 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunitySecurityName object?
-   else if(!osStrcmp(object->name, "snmpCommunitySecurityName"))
+   else if(osStrcmp(object->name, "snmpCommunitySecurityName") == 0)
    {
       //Retrieve the length of the community string
       n = osStrlen(community->name);
@@ -446,7 +446,7 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunityContextEngineID object?
-   else if(!osStrcmp(object->name, "snmpCommunityContextEngineID"))
+   else if(osStrcmp(object->name, "snmpCommunityContextEngineID") == 0)
    {
       //Retrieve the length of the context engine identifier
       n = context->contextEngineLen;
@@ -466,7 +466,7 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunityContextName object?
-   else if(!osStrcmp(object->name, "snmpCommunityContextName"))
+   else if(osStrcmp(object->name, "snmpCommunityContextName") == 0)
    {
       //Retrieve the length of the context name
       n = osStrlen(context->contextName);
@@ -486,19 +486,19 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       }
    }
    //snmpCommunityTransportTag object?
-   else if(!osStrcmp(object->name, "snmpCommunityTransportTag"))
+   else if(osStrcmp(object->name, "snmpCommunityTransportTag") == 0)
    {
       //The default value is the empty string
       *valueLen = 0;
    }
    //snmpCommunityStorageType object?
-   else if(!osStrcmp(object->name, "snmpCommunityStorageType"))
+   else if(osStrcmp(object->name, "snmpCommunityStorageType") == 0)
    {
       //Get the storage type for this conceptual row
       value->integer = MIB_STORAGE_TYPE_VOLATILE;
    }
    //snmpCommunityStatus object?
-   else if(!osStrcmp(object->name, "snmpCommunityStatus"))
+   else if(osStrcmp(object->name, "snmpCommunityStatus") == 0)
    {
       //Get the status of this conceptual row
       value->integer = community->status;

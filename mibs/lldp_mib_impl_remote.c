@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -100,7 +100,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpRemChassisIdSubtype object?
-   if(!strcmp(object->name, "lldpRemChassisIdSubtype"))
+   if(osStrcmp(object->name, "lldpRemChassisIdSubtype") == 0)
    {
       LldpChassisIdSubtype chassisIdSubtype;
       const uint8_t *chassisId;
@@ -119,7 +119,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpRemChassisId object?
-   else if(!strcmp(object->name, "lldpRemChassisId"))
+   else if(osStrcmp(object->name, "lldpRemChassisId") == 0)
    {
       LldpChassisIdSubtype chassisIdSubtype;
       const uint8_t *chassisId;
@@ -149,7 +149,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpRemPortIdSubtype object?
-   else if(!strcmp(object->name, "lldpRemPortIdSubtype"))
+   else if(osStrcmp(object->name, "lldpRemPortIdSubtype") == 0)
    {
       LldpPortIdSubtype portIdSubtype;
       const uint8_t *portId;
@@ -168,7 +168,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpRemPortId object?
-   else if(!strcmp(object->name, "lldpRemPortId"))
+   else if(osStrcmp(object->name, "lldpRemPortId") == 0)
    {
       LldpPortIdSubtype portIdSubtype;
       const uint8_t *portId;
@@ -198,7 +198,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpRemPortDesc object?
-   else if(!strcmp(object->name, "lldpRemPortDesc"))
+   else if(osStrcmp(object->name, "lldpRemPortDesc") == 0)
    {
       const char_t *portDesc;
       size_t portDescLen;
@@ -226,7 +226,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpRemSysName object?
-   else if(!strcmp(object->name, "lldpRemSysName"))
+   else if(osStrcmp(object->name, "lldpRemSysName") == 0)
    {
       const char_t *sysName;
       size_t sysNameLen;
@@ -253,7 +253,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpRemSysDesc object?
-   else if(!strcmp(object->name, "lldpRemSysDesc"))
+   else if(osStrcmp(object->name, "lldpRemSysDesc") == 0)
    {
       const char_t *sysDesc;
       size_t sysDescLen;
@@ -280,7 +280,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpRemSysCapSupported object?
-   else if(!strcmp(object->name, "lldpRemSysCapSupported"))
+   else if(osStrcmp(object->name, "lldpRemSysCapSupported") == 0)
    {
       error_t error;
       uint16_t supportedCap;
@@ -318,7 +318,7 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpRemSysCapEnabled object?
-   else if(!strcmp(object->name, "lldpRemSysCapEnabled"))
+   else if(osStrcmp(object->name, "lldpRemSysCapEnabled") == 0)
    {
       error_t error;
       uint16_t supportedCap;
@@ -599,7 +599,7 @@ error_t lldpMibGetLldpRemManAddrEntry(const MibObject *object, const uint8_t *oi
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpRemManAddrIfSubtype object?
-   if(!strcmp(object->name, "lldpRemManAddrIfSubtype"))
+   if(osStrcmp(object->name, "lldpRemManAddrIfSubtype") == 0)
    {
       //This object identifies the interface numbering method used for defining
       //the interface number, associated with the remote system
@@ -620,14 +620,14 @@ error_t lldpMibGetLldpRemManAddrEntry(const MibObject *object, const uint8_t *oi
       }
    }
    //lldpRemManAddrIfId object?
-   else if(!strcmp(object->name, "lldpRemManAddrIfId"))
+   else if(osStrcmp(object->name, "lldpRemManAddrIfId") == 0)
    {
       //This object identifies the interface number regarding the management
       //address component associated with the remote system
       value->integer = ifNum;
    }
    //lldpRemManAddrOID object?
-   else if(!strcmp(object->name, "lldpRemManAddrOID"))
+   else if(osStrcmp(object->name, "lldpRemManAddrOID") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= addrOidLen)
@@ -947,7 +947,7 @@ error_t lldpMibGetLldpRemUnknownTLVEntry(const MibObject *object, const uint8_t 
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpRemUnknownTLVInfo object?
-   if(!strcmp(object->name, "lldpRemUnknownTLVInfo"))
+   if(osStrcmp(object->name, "lldpRemUnknownTLVInfo") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= infoLen)
@@ -1251,7 +1251,7 @@ error_t lldpMibGetLldpRemOrgDefInfoEntry(const MibObject *object, const uint8_t 
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpRemOrgDefInfo object?
-   if(!strcmp(object->name, "lldpRemOrgDefInfo"))
+   if(osStrcmp(object->name, "lldpRemOrgDefInfo") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= infoLen)

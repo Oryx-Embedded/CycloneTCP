@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -35,6 +35,7 @@
 #include "core/net.h"
 #include "core/nic.h"
 #include "core/ethernet.h"
+#include "ipv4/ipv4_multicast.h"
 #include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6_misc.h"
 #include "debug.h"
@@ -473,8 +474,18 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
             //Loop through network interfaces
             for(i = 0; i < NET_INTERFACE_COUNT; i++)
             {
-               //Check destination address
-               error = ipv4CheckDestAddr(&netInterface[i], header->destAddr);
+               //Multicast packet?
+               if(ipv4IsMulticastAddr(header->destAddr))
+               {
+                  //Multicast address filtering
+                  error = ipv4MulticastFilter(interface, header->destAddr,
+                     header->srcAddr);
+               }
+               else
+               {
+                  //Destination address filtering
+                  error = ipv4CheckDestAddr(&netInterface[i], header->destAddr);
+               }
 
                //Valid destination address?
                if(!error)

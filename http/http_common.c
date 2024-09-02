@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -163,7 +163,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
          {
             //Discard whitespace and separator characters
          }
-         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) != NULL || c >= 128)
          {
             //Point to the first character of the parameter name
             param->name = p + i;
@@ -196,7 +196,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
             //Save the length of the parameter name
             param->nameLen = p + i - param->name;
          }
-         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) != NULL || c >= 128)
          {
             //Advance data pointer
          }
@@ -230,7 +230,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
             //Successful processing
             error = NO_ERROR;
          }
-         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) != NULL || c >= 128)
          {
             //Point to the first character that follows the parameter name
             i = param->name + param->nameLen - p;
@@ -261,7 +261,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
             //using double-quote marks (refer to RFC 7230, section 3.2.6)
             param->value = p + i;
          }
-         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+         else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) != NULL || c >= 128)
          {
             //Point to the first character of the parameter value
             param->value = p + i;
@@ -325,7 +325,7 @@ error_t httpParseParam(const char_t **pos, HttpParam *param)
                //Successful processing
                error = NO_ERROR;
             }
-            else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) || c >= 128)
+            else if(isalnum(c) || osStrchr("!#$%&'*+-.^_`|~", c) != NULL || c >= 128)
             {
                //Advance data pointer
             }
@@ -380,7 +380,7 @@ bool_t httpCompareParamName(const HttpParam *param, const char_t *name)
    if(param->name != NULL && param->nameLen == n)
    {
       //Compare names
-      if(!osStrncasecmp(param->name, name, n))
+      if(osStrncasecmp(param->name, name, n) == 0)
       {
          res = TRUE;
       }
@@ -413,7 +413,7 @@ bool_t httpCompareParamValue(const HttpParam *param, const char_t *value)
    if(param->value != NULL && param->valueLen == n)
    {
       //Perform case-insensitive comparison
-      if(!osStrncasecmp(param->value, value, n))
+      if(osStrncasecmp(param->value, value, n) == 0)
       {
          res = TRUE;
       }

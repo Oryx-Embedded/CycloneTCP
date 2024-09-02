@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -1267,7 +1267,7 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
                pktInfo = (IN_PKTINFO *) CMSG_DATA(cmsg);
 
                //Format packet information
-               pktInfo->ipi_ifindex = message.interface->index;
+               pktInfo->ipi_ifindex = message.interface->index + 1;
                pktInfo->ipi_addr.s_addr = message.destIpAddr.ipv4Addr;
 
                //Adjust the actual length of the ancillary data buffer
@@ -1372,7 +1372,7 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
                pktInfo = (IN6_PKTINFO *) CMSG_DATA(cmsg);
 
                //Format packet information
-               pktInfo->ipi6_ifindex = message.interface->index;
+               pktInfo->ipi6_ifindex = message.interface->index + 1;
                ipv6CopyAddr(pktInfo->ipi6_addr.s6_addr, &message.destIpAddr.ipv6Addr);
 
                //Adjust the actual length of the ancillary data buffer
@@ -1726,6 +1726,11 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
             //Set SO_KEEPALIVE option
             ret = socketSetSoKeepAliveOption(sock, optval, optlen);
          }
+         else if(optname == SO_NO_CHECK)
+         {
+            //Set SO_NO_CHECK option
+            ret = socketSetSoNoCheckOption(sock, optval, optlen);
+         }
          else
          {
             //Unknown option
@@ -1771,6 +1776,56 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
          {
             //Set IP_DROP_MEMBERSHIP option
             ret = socketSetIpDropMembershipOption(sock, optval, optlen);
+         }
+         else if(optname == IP_BLOCK_SOURCE)
+         {
+            //Set IP_BLOCK_SOURCE option
+            ret = socketSetIpBlockSourceOption(sock, optval, optlen);
+         }
+         else if(optname == IP_UNBLOCK_SOURCE)
+         {
+            //Set IP_UNBLOCK_SOURCE option
+            ret = socketSetIpUnblockSourceOption(sock, optval, optlen);
+         }
+         else if(optname == IP_ADD_SOURCE_MEMBERSHIP)
+         {
+            //Set IP_ADD_SOURCE_MEMBERSHIP option
+            ret = socketSetIpAddSourceMembershipOption(sock, optval, optlen);
+         }
+         else if(optname == IP_DROP_SOURCE_MEMBERSHIP)
+         {
+            //Set IP_DROP_SOURCE_MEMBERSHIP option
+            ret = socketSetIpDropSourceMembershipOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_JOIN_GROUP)
+         {
+            //Set MCAST_JOIN_GROUP option
+            ret = socketSetMcastJoinGroupOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_LEAVE_GROUP)
+         {
+            //Set MCAST_LEAVE_GROUP option
+            ret = socketSetMcastLeaveGroupOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_BLOCK_SOURCE)
+         {
+            //Set MCAST_BLOCK_SOURCE option
+            ret = socketSetMcastBlockSourceOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_UNBLOCK_SOURCE)
+         {
+            //Set MCAST_UNBLOCK_SOURCE option
+            ret = socketSetMcastUnblockSourceOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_JOIN_SOURCE_GROUP)
+         {
+            //Set MCAST_JOIN_SOURCE_GROUP option
+            ret = socketSetMcastJoinSourceGroupOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_LEAVE_SOURCE_GROUP)
+         {
+            //Set MCAST_LEAVE_SOURCE_GROUP option
+            ret = socketSetMcastLeaveSourceGroupOption(sock, optval, optlen);
          }
          else if(optname == IP_DONTFRAG)
          {
@@ -1836,6 +1891,36 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
          {
             //Set IPV6_DROP_MEMBERSHIP option
             ret = socketSetIpv6DropMembershipOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_JOIN_GROUP)
+         {
+            //Set MCAST_JOIN_GROUP option
+            ret = socketSetMcastJoinGroupOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_LEAVE_GROUP)
+         {
+            //Set MCAST_LEAVE_GROUP option
+            ret = socketSetMcastLeaveGroupOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_BLOCK_SOURCE)
+         {
+            //Set MCAST_BLOCK_SOURCE option
+            ret = socketSetMcastBlockSourceOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_UNBLOCK_SOURCE)
+         {
+            //Set MCAST_UNBLOCK_SOURCE option
+            ret = socketSetMcastUnblockSourceOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_JOIN_SOURCE_GROUP)
+         {
+            //Set MCAST_JOIN_SOURCE_GROUP option
+            ret = socketSetMcastJoinSourceGroupOption(sock, optval, optlen);
+         }
+         else if(optname == MCAST_LEAVE_SOURCE_GROUP)
+         {
+            //Set MCAST_LEAVE_SOURCE_GROUP option
+            ret = socketSetMcastLeaveSourceGroupOption(sock, optval, optlen);
          }
          else if(optname == IPV6_V6ONLY)
          {
@@ -1966,6 +2051,16 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
             //Get SO_REUSEADDR option
             ret = socketGetSoReuseAddrOption(sock, optval, optlen);
          }
+         else if(optname == SO_TYPE)
+         {
+            //Get SO_TYPE option
+            ret = socketGetSoTypeOption(sock, optval, optlen);
+         }
+         else if(optname == SO_ERROR)
+         {
+            //Get SO_ERROR option
+            ret = socketGetSoErrorOption(sock, optval, optlen);
+         }
          else if(optname == SO_BROADCAST)
          {
             //Get SO_BROADCAST option
@@ -1996,15 +2091,10 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
             //Get SO_KEEPALIVE option
             ret = socketGetSoKeepAliveOption(sock, optval, optlen);
          }
-         else if(optname == SO_TYPE)
+         else if(optname == SO_NO_CHECK)
          {
-            //Get SO_TYPE option
-            ret = socketGetSoTypeOption(sock, optval, optlen);
-         }
-         else if(optname == SO_ERROR)
-         {
-            //Get SO_ERROR option
-            ret = socketGetSoErrorOption(sock, optval, optlen);
+            //Get SO_NO_CHECK option
+            ret = socketGetSoNoCheckOption(sock, optval, optlen);
          }
          else
          {
@@ -2035,6 +2125,24 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
          {
             //Get IP_MULTICAST_LOOP option
             ret = socketGetIpMulticastLoopOption(sock, optval, optlen);
+         }
+         else if(optname == IP_ADD_MEMBERSHIP ||
+            optname == IP_DROP_MEMBERSHIP ||
+            optname == IP_BLOCK_SOURCE ||
+            optname == IP_UNBLOCK_SOURCE ||
+            optname == IP_ADD_SOURCE_MEMBERSHIP ||
+            optname == IP_DROP_SOURCE_MEMBERSHIP ||
+            optname == MCAST_JOIN_GROUP ||
+            optname == MCAST_LEAVE_GROUP ||
+            optname == MCAST_BLOCK_SOURCE ||
+            optname == MCAST_UNBLOCK_SOURCE ||
+            optname == MCAST_JOIN_SOURCE_GROUP ||
+            optname == MCAST_LEAVE_SOURCE_GROUP)
+         {
+            //When any of these options are used with getsockopt, the error
+            //generated is EOPNOTSUPP (refer to RFC 3678, section 4.1.3)
+            socketSetErrnoCode(sock, EOPNOTSUPP);
+            ret = SOCKET_ERROR;
          }
          else if(optname == IP_DONTFRAG)
          {
@@ -2085,6 +2193,20 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
          {
             //Get IPV6_MULTICAST_LOOP option
             ret = socketGetIpv6MulticastLoopOption(sock, optval, optlen);
+         }
+         else if(optname == IPV6_ADD_MEMBERSHIP ||
+            optname == IPV6_DROP_MEMBERSHIP ||
+            optname == MCAST_JOIN_GROUP ||
+            optname == MCAST_LEAVE_GROUP ||
+            optname == MCAST_BLOCK_SOURCE ||
+            optname == MCAST_UNBLOCK_SOURCE ||
+            optname == MCAST_JOIN_SOURCE_GROUP ||
+            optname == MCAST_LEAVE_SOURCE_GROUP)
+         {
+            //When any of these options are used with getsockopt, the error
+            //generated is EOPNOTSUPP
+            socketSetErrnoCode(sock, EOPNOTSUPP);
+            ret = SOCKET_ERROR;
          }
          else if(optname == IPV6_V6ONLY)
          {
@@ -2172,6 +2294,530 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
 
    //return status code
    return ret;
+}
+
+
+/**
+ * @brief Set multicast source filter (IPv4 only)
+ * @param[in] s Descriptor that identifies a socket
+ * @param[in] interface Local IP address of the interface
+ * @param[in] group IP multicast address of the group
+ * @param[in] fmode Multicast filter mode (MCAST_INCLUDE or MCAST_EXCLUDE)
+ * @param[in] numsrc Number of source addresses in the slist array
+ * @param[in] slist Array of IP addresses of sources to include or exclude
+ *   depending on the filter mode
+ * @return If no error occurs, setipv4sourcefilter returns SOCKET_SUCCESS
+ *   Otherwise, it returns SOCKET_ERROR
+ **/
+
+int_t setipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr group,
+   uint32_t fmode, uint_t numsrc, struct in_addr *slist)
+{
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   uint_t i;
+   Socket *sock;
+   IpFilterMode filterMode;
+   IpAddr groupAddr;
+   IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Make sure the socket descriptor is valid
+   if(s < 0 || s >= SOCKET_MAX_COUNT)
+   {
+      return SOCKET_ERROR;
+   }
+
+   //Point to the socket structure
+   sock = &socketTable[s];
+
+   //Copy group address
+   groupAddr.length = sizeof(Ipv4Addr);
+   groupAddr.ipv4Addr = group.s_addr;
+
+   //Check filter mode
+   if(fmode == MCAST_INCLUDE)
+   {
+      //Select source-specific filter mode
+      filterMode = IP_FILTER_MODE_INCLUDE;
+   }
+   else if(fmode == MCAST_INCLUDE)
+   {
+      //Select any-source filter mode
+      filterMode = IP_FILTER_MODE_EXCLUDE;
+   }
+   else
+   {
+      //Report an error
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //If the implementation imposes a limit on the maximum number of sources
+   //in a source filter, ENOBUFS is generated when the operation would exceed
+   //the maximum (refer to RFC3678, section 4.2.1)
+   if(numsrc > SOCKET_MAX_MULTICAST_SOURCES)
+   {
+      socketSetErrnoCode(sock, ENOBUFS);
+      return SOCKET_ERROR;
+   }
+
+   //If numsrc is 0, a NULL pointer may be supplied
+   if(numsrc > 0 && slist == NULL)
+   {
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //Copy the list of source addresses to include or exclude
+   for(i = 0; i < numsrc; i++)
+   {
+      sources[i].length = sizeof(Ipv4Addr);
+      sources[i].ipv4Addr = slist[i].s_addr;
+   }
+
+   //Set multicast source filter
+   error = socketSetMulticastSourceFilter(sock, &groupAddr, filterMode,
+      sources, numsrc);
+
+   //Any error to report?
+   if(error)
+   {
+      socketTranslateErrorCode(sock, error);
+      return SOCKET_ERROR;
+   }
+
+   //Successful processing
+   return SOCKET_SUCCESS;
+#else
+   //Not implemented
+   return SOCKET_ERROR;
+#endif
+}
+
+
+/**
+ * @brief Get multicast source filter (IPv4 only)
+ * @param[in] s Descriptor that identifies a socket
+ * @param[in] interface Local IP address of the interface
+ * @param[in] group IP multicast address of the group
+ * @param[out] fmode Multicast filter mode (MCAST_INCLUDE or MCAST_EXCLUDE)
+ * @param[out] numsrc On input, the numsrc argument holds the number of source
+ *   addresses that will fit in the slist array. On output, the numsrc argument
+ *   will hold the total number of sources in the filter
+ * @param[out] slist Buffer into which an array of IP addresses of included or
+ *   excluded (depending on the filter mode) sources will be written. If numsrc
+ *   was 0 on input, a NULL pointer may be supplied
+ * @return If no error occurs, setipv4sourcefilter returns SOCKET_SUCCESS
+ *   Otherwise, it returns SOCKET_ERROR
+ **/
+
+int_t getipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr group,
+   uint32_t *fmode, uint_t *numsrc, struct in_addr *slist)
+{
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   uint_t i;
+   uint_t numSources;
+   Socket *sock;
+   IpFilterMode filterMode;
+   IpAddr groupAddr;
+   IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Make sure the socket descriptor is valid
+   if(s < 0 || s >= SOCKET_MAX_COUNT)
+   {
+      return SOCKET_ERROR;
+   }
+
+   //Point to the socket structure
+   sock = &socketTable[s];
+
+   //Check parameters
+   if(fmode == NULL || numsrc == NULL)
+   {
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //If numsrc was 0 on input, a NULL pointer may be supplied
+   if(*numsrc > 0 && slist == NULL)
+   {
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //Copy group address
+   groupAddr.length = sizeof(Ipv4Addr);
+   groupAddr.ipv4Addr = group.s_addr;
+
+   //Set multicast source filter
+   error = socketGetMulticastSourceFilter(sock, &groupAddr, &filterMode,
+      sources, &numSources);
+
+   //Any error to report?
+   if(error)
+   {
+      socketTranslateErrorCode(sock, error);
+      return SOCKET_ERROR;
+   }
+
+   //Filter mode
+   if(filterMode == IP_FILTER_MODE_INCLUDE)
+   {
+      *fmode = MCAST_INCLUDE;
+   }
+   else
+   {
+      *fmode = MCAST_EXCLUDE;
+   }
+
+   //The slist parameter will hold as many source addresses as fit, up to the
+   //minimum of the array size passed in as the original numsrc value and the
+   //total number of sources in the filter (refer to RFC3678, section 4.2.2)
+   for(i = 0; i < *numsrc && i < numSources; i++)
+   {
+      slist[i].s_addr = sources[i].ipv4Addr;
+   }
+
+   //On return, numsrc is always updated to be the total number of sources in
+   //the filter
+   *numsrc = numSources;
+
+   //Successful processing
+   return SOCKET_SUCCESS;
+#else
+   //Not implemented
+   return SOCKET_ERROR;
+#endif
+}
+
+
+/**
+ * @brief Set multicast source filter
+ * @param[in] s Descriptor that identifies a socket
+ * @param[in] interface Local IP address of the interface
+ * @param[in] group IP multicast address of the group
+ * @param[in] fmode Multicast filter mode (MCAST_INCLUDE or MCAST_EXCLUDE)
+ * @param[in] numsrc Number of source addresses in the slist array
+ * @param[in] slist Array of IP addresses of sources to include or exclude
+ *   depending on the filter mode
+ * @return If no error occurs, setipv4sourcefilter returns SOCKET_SUCCESS
+ *   Otherwise, it returns SOCKET_ERROR
+ **/
+
+int_t setsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
+   socklen_t grouplen, uint32_t fmode, uint_t numsrc,
+   struct sockaddr_storage *slist)
+{
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   uint_t i;
+   Socket *sock;
+   IpFilterMode filterMode;
+   IpAddr groupAddr;
+   IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Make sure the socket descriptor is valid
+   if(s < 0 || s >= SOCKET_MAX_COUNT)
+   {
+      return SOCKET_ERROR;
+   }
+
+   //Point to the socket structure
+   sock = &socketTable[s];
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 group address?
+   if(group->sa_family == AF_INET &&
+      grouplen >= (socklen_t) sizeof(SOCKADDR_IN))
+   {
+      //Point to the IPv4 address information
+      SOCKADDR_IN *sa = (SOCKADDR_IN *) group;
+
+      //Copy IPv4 address
+      groupAddr.length = sizeof(Ipv4Addr);
+      groupAddr.ipv4Addr = sa->sin_addr.s_addr;
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 group address?
+   if(group->sa_family == AF_INET6 &&
+      grouplen >= (socklen_t) sizeof(SOCKADDR_IN6))
+   {
+      //Point to the IPv6 address information
+      SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) group;
+
+      //Copy IPv6 address
+      groupAddr.length = sizeof(Ipv6Addr);
+      ipv6CopyAddr(&groupAddr.ipv6Addr, sa->sin6_addr.s6_addr);
+   }
+   else
+#endif
+   //Invalid group address?
+   {
+      //Report an error
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //Check filter mode
+   if(fmode == MCAST_INCLUDE)
+   {
+      //Select source-specific filter mode
+      filterMode = IP_FILTER_MODE_INCLUDE;
+   }
+   else if(fmode == MCAST_INCLUDE)
+   {
+      //Select any-source filter mode
+      filterMode = IP_FILTER_MODE_EXCLUDE;
+   }
+   else
+   {
+      //Report an error
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //If the implementation imposes a limit on the maximum number of sources
+   //in a source filter, ENOBUFS is generated when the operation would exceed
+   //the maximum (refer to RFC3678, section 5.2.1)
+   if(numsrc > SOCKET_MAX_MULTICAST_SOURCES)
+   {
+      socketSetErrnoCode(sock, ENOBUFS);
+      return SOCKET_ERROR;
+   }
+
+   //If numsrc is 0, a NULL pointer may be supplied
+   if(numsrc > 0 && slist == NULL)
+   {
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //Copy the list of source addresses to include or exclude
+   for(i = 0; i < numsrc; i++)
+   {
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 source address?
+      if(slist[i].ss_family == AF_INET &&
+         slist[i].ss_family == group->sa_family)
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) &slist[i];
+
+         //Copy IPv4 address
+         sources[i].length = sizeof(Ipv4Addr);
+         sources[i].ipv4Addr = sa->sin_addr.s_addr;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 source address?
+      if(slist[i].ss_family == AF_INET6 &&
+         slist[i].ss_family == group->sa_family)
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) &slist[i];
+
+         //Copy IPv6 address
+         sources[i].length = sizeof(Ipv6Addr);
+         ipv6CopyAddr(&sources[i].ipv6Addr, sa->sin6_addr.s6_addr);
+      }
+      else
+#endif
+      //Invalid source address?
+      {
+         //Report an error
+         socketSetErrnoCode(sock, EINVAL);
+         return SOCKET_ERROR;
+      }
+   }
+
+   //Set multicast source filter
+   error = socketSetMulticastSourceFilter(sock, &groupAddr, filterMode,
+      sources, numsrc);
+
+   //Any error to report?
+   if(error)
+   {
+      socketTranslateErrorCode(sock, error);
+      return SOCKET_ERROR;
+   }
+
+   //Successful processing
+   return SOCKET_SUCCESS;
+#else
+   //Not implemented
+   return SOCKET_ERROR;
+#endif
+}
+
+
+/**
+ * @brief Get multicast source filter
+ * @param[in] s Descriptor that identifies a socket
+ * @param[in] interface Local IP address of the interface
+ * @param[in] group IP multicast address of the group
+ * @param[out] fmode Multicast filter mode (MCAST_INCLUDE or MCAST_EXCLUDE)
+ * @param[out] numsrc On input, the numsrc argument holds the number of source
+ *   addresses that will fit in the slist array. On output, the numsrc argument
+ *   will hold the total number of sources in the filter
+ * @param[out] slist Buffer into which an array of IP addresses of included or
+ *   excluded (depending on the filter mode) sources will be written. If numsrc
+ *   was 0 on input, a NULL pointer may be supplied
+ * @return If no error occurs, setipv4sourcefilter returns SOCKET_SUCCESS
+ *   Otherwise, it returns SOCKET_ERROR
+ **/
+
+int_t getsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
+   socklen_t grouplen, uint32_t *fmode, uint_t *numsrc,
+   struct sockaddr_storage *slist)
+{
+#if (SOCKET_MAX_MULTICAST_SOURCES > 0)
+   error_t error;
+   uint_t i;
+   uint_t numSources;
+   Socket *sock;
+   IpFilterMode filterMode;
+   IpAddr groupAddr;
+   IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Make sure the socket descriptor is valid
+   if(s < 0 || s >= SOCKET_MAX_COUNT)
+   {
+      return SOCKET_ERROR;
+   }
+
+   //Point to the socket structure
+   sock = &socketTable[s];
+
+   //Check parameters
+   if(fmode == NULL || numsrc == NULL)
+   {
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //If numsrc was 0 on input, a NULL pointer may be supplied
+   if(*numsrc > 0 && slist == NULL)
+   {
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+#if (IPV4_SUPPORT == ENABLED)
+   //IPv4 group address?
+   if(group->sa_family == AF_INET &&
+      grouplen >= (socklen_t) sizeof(SOCKADDR_IN))
+   {
+      //Point to the IPv4 address information
+      SOCKADDR_IN *sa = (SOCKADDR_IN *) group;
+
+      //Copy IPv4 address
+      groupAddr.length = sizeof(Ipv4Addr);
+      groupAddr.ipv4Addr = sa->sin_addr.s_addr;
+   }
+   else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+   //IPv6 group address?
+   if(group->sa_family == AF_INET6 &&
+      grouplen >= (socklen_t) sizeof(SOCKADDR_IN6))
+   {
+      //Point to the IPv6 address information
+      SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) group;
+
+      //Copy IPv6 address
+      groupAddr.length = sizeof(Ipv6Addr);
+      ipv6CopyAddr(&groupAddr.ipv6Addr, sa->sin6_addr.s6_addr);
+   }
+   else
+#endif
+   //Invalid group address?
+   {
+      //Report an error
+      socketSetErrnoCode(sock, EINVAL);
+      return SOCKET_ERROR;
+   }
+
+   //Set multicast source filter
+   error = socketGetMulticastSourceFilter(sock, &groupAddr, &filterMode,
+      sources, &numSources);
+
+   //Any error to report?
+   if(error)
+   {
+      socketTranslateErrorCode(sock, error);
+      return SOCKET_ERROR;
+   }
+
+   //Filter mode
+   if(filterMode == IP_FILTER_MODE_INCLUDE)
+   {
+      *fmode = MCAST_INCLUDE;
+   }
+   else
+   {
+      *fmode = MCAST_EXCLUDE;
+   }
+
+   //The slist parameter will hold as many source addresses as fit, up to the
+   //minimum of the array size passed in as the original numsrc value and the
+   //total number of sources in the filter (refer to RFC3678, section 5.2.2)
+   for(i = 0; i < *numsrc && i < numSources; i++)
+   {
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 source address?
+      if(sock->localIpAddr.length == sizeof(Ipv4Addr))
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) &slist[i];
+
+         //Set address family and port number
+         sa->sin_family = AF_INET;
+         sa->sin_port = 0;
+
+         //Copy IPv4 address
+         sa->sin_addr.s_addr = sources[i].ipv4Addr;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 source address?
+      if(sock->localIpAddr.length == sizeof(Ipv6Addr))
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) &slist[i];
+
+         //Set address family and port number
+         sa->sin6_family = AF_INET6;
+         sa->sin6_port = 0;
+         sa->sin6_flowinfo = 0;
+         sa->sin6_scope_id = 0;
+
+         //Copy IPv6 address
+         ipv6CopyAddr(sa->sin6_addr.s6_addr, &sources[i].ipv6Addr);
+      }
+      else
+#endif
+      //Invalid source address?
+      {
+         //Just for sanity
+         osMemset(&slist[i], 0, sizeof(SOCKADDR_STORAGE));
+      }
+   }
+
+   //On return, numsrc is always updated to be the total number of sources in
+   //the filter
+   *numsrc = numSources;
+
+   //Successful processing
+   return SOCKET_SUCCESS;
+#else
+   //Not implemented
+   return SOCKET_ERROR;
+#endif
 }
 
 
@@ -3096,6 +3742,85 @@ int_t getnameinfo(const struct sockaddr *addr, socklen_t addrlen,
 
    //Successful processing
    return 0;
+}
+
+
+/**
+ * @brief Map an interface name into its corresponding index
+ * @param[in] ifname Name of the interface
+ * @return If ifname is the name of an interface, then the function returns the
+ *   interface index corresponding to name ifname. Otherwise, the function
+ *   returns zero
+ **/
+
+uint_t if_nametoindex(const char_t *ifname)
+{
+   uint_t i;
+   uint_t index;
+
+   //Initialize interface index
+   index = 0;
+
+   //Valid parameter?
+   if(ifname != NULL)
+   {
+      //Loop through network interfaces
+      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
+         //Matching interface name?
+         if(osStrcmp(netInterface[i].name, ifname) == 0)
+         {
+            //Save the interface index
+            index = netInterface[i].index + 1;
+            //We are done
+            break;
+         }
+      }
+   }
+
+   //Return the index corresponding to interface name
+   return index;
+}
+
+
+/**
+ * @brief Map an interface index into its corresponding name
+ * @param[in] ifindex Interface index
+ * @param[in] ifname Buffer of at least IF_NAMESIZE bytes
+ * @return If ifindex is an interface index, then the function returns the value
+ *   supplied in ifname, which points to a buffer now containing the interface
+ *   name. Otherwise, the function returns a NULL pointer
+ **/
+
+char_t *if_indextoname(uint_t ifindex, char_t *ifname)
+{
+   uint_t i;
+   char_t *name;
+
+   //Initialize interface name
+   name = NULL;
+
+   //Valid parameters?
+   if(ifindex != 0 && ifname != NULL)
+   {
+      //Loop through network interfaces
+      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      {
+         //Matching interface index?
+         if((netInterface[i].index + 1) == ifindex)
+         {
+            //Copy the name of the interface
+            osStrcpy(ifname, netInterface[i].name);
+            name = ifname;
+
+            //We are done
+            break;
+         }
+      }
+   }
+
+   //Return the name of the interface
+   return name;
 }
 
 

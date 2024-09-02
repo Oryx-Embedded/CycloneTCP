@@ -25,19 +25,18 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL MDNS_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
 #include "core/net.h"
 #include "mdns/mdns_responder.h"
 #include "mdns/mdns_responder_misc.h"
-#include "dns_sd/dns_sd.h"
-#include "dns_sd/dns_sd_misc.h"
+#include "dns_sd/dns_sd_responder.h"
+#include "dns_sd/dns_sd_responder_misc.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -357,12 +356,13 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
    uint_t i;
    size_t n;
    size_t offset;
+   uint16_t destPort;
+   IpAddr destIpAddr;
    DnsQuestion *question;
    DnsResourceRecord *record;
    MdnsResponderContext *context;
    MdnsMessage *response;
-   uint16_t destPort;
-   IpAddr destIpAddr;
+   MdnsMessage legacyUnicastResponse;
 
    //Point to the mDNS responder context
    context = interface->mdnsResponderContext;
@@ -374,24 +374,30 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
    //IPv4 query received?
    if(query->pseudoHeader->length == sizeof(Ipv4PseudoHeader))
    {
-      //If the source UDP port in a received Multicast DNS query is not port 5353,
-      //this indicates that the querier originating the query is a simple resolver
+      //There are two kinds of Multicast DNS queries
       if(ntohs(query->udpHeader->srcPort) != MDNS_PORT)
       {
-         //The mDNS responder must send a UDP response directly back to the querier,
-         //via unicast, to the query packet's source IP address and port
+         //If the source UDP port in a received Multicast DNS query is not
+         //port 5353, this indicates that the querier originating the query
+         //is a simple resolver
+         response = &legacyUnicastResponse;
+
+         //The mDNS responder must send a UDP response directly back to the
+         //querier, via unicast, to the query packet's source IP address and
+         //port
          destIpAddr.length = sizeof(Ipv4Addr);
          destIpAddr.ipv4Addr = query->pseudoHeader->ipv4Data.srcAddr;
       }
       else
       {
-         //Use mDNS IPv4 multicast address
+         //The query is made by a fully compliant Multicast DNS querier
+         response = &context->ipv4Response;
+
+         //The destination address of the response must be the mDNS IPv4
+         //multicast address
          destIpAddr.length = sizeof(Ipv4Addr);
          destIpAddr.ipv4Addr = MDNS_IPV4_MULTICAST_ADDR;
       }
-
-      //Point to the mDNS response message
-      response = &context->ipv4Response;
    }
    else
 #endif
@@ -399,24 +405,30 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
    //IPv6 query received?
    if(query->pseudoHeader->length == sizeof(Ipv6PseudoHeader))
    {
-      //If the source UDP port in a received Multicast DNS query is not port 5353,
-      //this indicates that the querier originating the query is a simple resolver
+      //There are two kinds of Multicast DNS queries
       if(ntohs(query->udpHeader->srcPort) != MDNS_PORT)
       {
-         //The mDNS responder must send a UDP response directly back to the querier,
-         //via unicast, to the query packet's source IP address and port
+         //If the source UDP port in a received Multicast DNS query is not
+         //port 5353, this indicates that the querier originating the query
+         //is a simple resolver
+         response = &legacyUnicastResponse;
+
+         //The mDNS responder must send a UDP response directly back to the
+         //querier, via unicast, to the query packet's source IP address and
+         //port
          destIpAddr.length = sizeof(Ipv6Addr);
          destIpAddr.ipv6Addr = query->pseudoHeader->ipv6Data.srcAddr;
       }
       else
       {
-         //Use mDNS IPv6 multicast address
+         //The query is made by a fully compliant Multicast DNS querier
+         response = &context->ipv6Response;
+
+         //The destination address of the response must be the mDNS IPv6
+         //multicast address
          destIpAddr.length = sizeof(Ipv6Addr);
          destIpAddr.ipv6Addr = MDNS_IPV6_MULTICAST_ADDR;
       }
-
-      //Point to the mDNS response message
-      response = &context->ipv6Response;
    }
    else
 #endif
@@ -437,11 +449,8 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
          return;
       }
 
-      //Release pending mDNS response, if any
-      if(response->buffer != NULL)
-      {
-         mdnsDeleteMessage(response);
-      }
+      //Initialize the legacy unicast response
+      osMemset(response, 0, sizeof(MdnsMessage));
    }
 
    //When possible, a responder should, for the sake of network efficiency,
@@ -472,6 +481,7 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
          //Invalid name?
          if(!n)
             break;
+
          //Malformed mDNS message?
          if((n + sizeof(DnsQuestion)) > query->length)
             break;
@@ -486,10 +496,10 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
          if(error)
             break;
 
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
          //Parse question
-         error = dnsSdParseQuestion(interface, query, offset, question,
-            response);
+         error = dnsSdResponderParseQuestion(interface, query, offset,
+            question, response);
          //Any error to report?
          if(error)
             break;
@@ -540,9 +550,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
       //compares the data of that resource record with its own tentative data
       mdnsResponderParseNsRecords(context, query, offset);
 
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
       //Check for service instance name conflict
-      dnsSdParseNsRecords(interface, query, offset);
+      dnsSdResponderParseNsRecords(interface, query, offset);
 #endif
 
       //End of exception handling block
@@ -551,14 +561,12 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
    //Should a mDNS message be send in response to the query?
    if(response->dnsHeader->ancount > 0)
    {
-      //If the source UDP port in a received Multicast DNS query is not port
-      //5353, this indicates that the querier originating the query is a simple
-      //resolver
+      //Legacy unicast response?
       if(ntohs(query->udpHeader->srcPort) != MDNS_PORT)
       {
-#if (DNS_SD_SUPPORT == ENABLED)
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
          //Generate additional records (DNS-SD)
-         dnsSdGenerateAdditionalRecords(interface, response, TRUE);
+         dnsSdResponderGenerateAdditionalRecords(interface, response, TRUE);
 #endif
          //Generate additional records (mDNS)
          mdnsResponderGenerateAdditionalRecords(context, response, TRUE);
@@ -599,9 +607,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
          }
          else
          {
-#if (DNS_SD_SUPPORT == ENABLED)
-            //Generate additional records (refer to RFC 6763 section 12)
-            dnsSdGenerateAdditionalRecords(interface, response, FALSE);
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
+            //Generate additional records (refer to RFC 6763, section 12)
+            dnsSdResponderGenerateAdditionalRecords(interface, response, FALSE);
 #endif
             //Generate additional records (mDNS)
             mdnsResponderGenerateAdditionalRecords(context, response, FALSE);
@@ -1237,6 +1245,7 @@ void mdnsResponderParseNsRecords(MdnsResponderContext *context,
 void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
    MdnsMessage *response, bool_t legacyUnicast)
 {
+#if (MDNS_ADDITIONAL_RECORDS_SUPPORT == ENABLED)
    uint_t i;
    uint_t k;
    size_t n;
@@ -1395,6 +1404,7 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
    response->dnsHeader->arcount += response->dnsHeader->ancount - ancount;
    //Number of resource records in the Answer Section
    response->dnsHeader->ancount = ancount;
+#endif
 }
 
 
@@ -1940,9 +1950,11 @@ error_t mdnsResponderFormatNsecRecord(MdnsResponderContext *context,
       //Compute the length of the bitmap
       for(bitmapLen = sizeof(bitmap); bitmapLen > 0; bitmapLen--)
       {
-         //Trailing zero octets in the bitmap must be omitted...
-         if(bitmap[bitmapLen - 1] != 0x00)
+         //Trailing zero octets in the bitmap must be omitted
+         if(bitmap[bitmapLen - 1] != 0)
+         {
             break;
+         }
       }
 
       //Set the position to the end of the buffer

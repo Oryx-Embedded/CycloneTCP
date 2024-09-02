@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -204,7 +204,8 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
             //Report an error
             error = ERROR_INVALID_REQUEST;
          }
-         else if(osStrncmp((char_t *) rxContext->buffer + rxContext->bufferLen - 2, "\r\n", 2))
+         else if(osStrncmp((char_t *) rxContext->buffer + rxContext->bufferLen - 2,
+            "\r\n", 2) != 0)
          {
             //Limit the number of characters to read at a time
             n = WEB_SOCKET_BUFFER_SIZE - 1 - rxContext->bufferLen;
@@ -261,7 +262,8 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
             //Report an error
             error = ERROR_INVALID_REQUEST;
          }
-         else if(osStrncmp((char_t *) rxContext->buffer + rxContext->bufferLen - 2, "\r\n", 2))
+         else if(osStrncmp((char_t *) rxContext->buffer + rxContext->bufferLen - 2,
+            "\r\n", 2) != 0)
          {
             //Limit the number of characters to read at a time
             n = WEB_SOCKET_BUFFER_SIZE - 1 - rxContext->bufferLen;
@@ -279,7 +281,7 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
             rxContext->buffer[rxContext->bufferLen] = '\0';
 
             //An empty line indicates the end of the header fields
-            if(!osStrcmp((char_t *) rxContext->buffer, "\r\n"))
+            if(osStrcmp((char_t *) rxContext->buffer, "\r\n") == 0)
             {
                //Client or server operation?
                if(webSocket->endpoint == WS_ENDPOINT_CLIENT)
@@ -380,7 +382,7 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
       return ERROR_INVALID_REQUEST;
 
    //The method of the request must be GET
-   if(osStrcasecmp(token, "GET"))
+   if(osStrcasecmp(token, "GET") != 0)
       return ERROR_INVALID_REQUEST;
 
    //The Request-URI is following the method token
@@ -437,7 +439,7 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
       webSocket->handshakeContext.connectionClose = TRUE;
    }
    //HTTP version 1.0?
-   else if(!osStrcasecmp(token, "HTTP/1.0"))
+   else if(osStrcasecmp(token, "HTTP/1.0") == 0)
    {
       //Save version number
       webSocket->handshakeContext.version = WS_HTTP_VERSION_1_0;
@@ -445,7 +447,7 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
       webSocket->handshakeContext.connectionClose = TRUE;
    }
    //HTTP version 1.1?
-   else if(!osStrcasecmp(token, "HTTP/1.1"))
+   else if(osStrcasecmp(token, "HTTP/1.1") == 0)
    {
       //Save version number
       webSocket->handshakeContext.version = WS_HTTP_VERSION_1_1;
@@ -536,20 +538,20 @@ error_t webSocketParseHeaderField(WebSocket *webSocket, char_t *line)
       value = strTrimWhitespace(separator + 1);
 
       //Upgrade header field found?
-      if(!osStrcasecmp(name, "Upgrade"))
+      if(osStrcasecmp(name, "Upgrade") == 0)
       {
-         if(!osStrcasecmp(value, "websocket"))
+         if(osStrcasecmp(value, "websocket") == 0)
             handshakeContext->upgradeWebSocket = TRUE;
 
       }
       //Connection header field found?
-      else if(!osStrcasecmp(name, "Connection"))
+      else if(osStrcasecmp(name, "Connection") == 0)
       {
          //Parse Connection header field
          webSocketParseConnectionField(webSocket, value);
       }
       //Sec-WebSocket-Key header field found?
-      else if(!osStrcasecmp(name, "Sec-WebSocket-Key"))
+      else if(osStrcasecmp(name, "Sec-WebSocket-Key") == 0)
       {
          //Server operation?
          if(webSocket->endpoint == WS_ENDPOINT_SERVER)
@@ -560,7 +562,7 @@ error_t webSocketParseHeaderField(WebSocket *webSocket, char_t *line)
          }
       }
       //Sec-WebSocket-Accept header field found?
-      else if(!osStrcasecmp(name, "Sec-WebSocket-Accept"))
+      else if(osStrcasecmp(name, "Sec-WebSocket-Accept") == 0)
       {
          //Client operation?
          if(webSocket->endpoint == WS_ENDPOINT_CLIENT)
@@ -572,14 +574,14 @@ error_t webSocketParseHeaderField(WebSocket *webSocket, char_t *line)
       }
 #if (WEB_SOCKET_BASIC_AUTH_SUPPORT == ENABLED || WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
       //WWW-Authenticate header field found?
-      else if(!osStrcasecmp(name, "WWW-Authenticate"))
+      else if(osStrcasecmp(name, "WWW-Authenticate") == 0)
       {
          //Parse WWW-Authenticate header field
          webSocketParseAuthenticateField(webSocket, value);
       }
 #endif
       //Content-Length header field found?
-      else if(!osStrcasecmp(name, "Content-Length"))
+      else if(osStrcasecmp(name, "Content-Length") == 0)
       {
          handshakeContext->contentLength = osStrtoul(value, NULL, 10);
       }
@@ -611,17 +613,17 @@ void webSocketParseConnectionField(WebSocket *webSocket, char_t *value)
       value = strTrimWhitespace(token);
 
       //Check current value
-      if(!osStrcasecmp(value, "keep-alive"))
+      if(osStrcasecmp(value, "keep-alive") == 0)
       {
          //The connection is persistent
          webSocket->handshakeContext.connectionClose = FALSE;
       }
-      else if(!osStrcasecmp(value, "close"))
+      else if(osStrcasecmp(value, "close") == 0)
       {
          //The connection will be closed after completion of the response
          webSocket->handshakeContext.connectionClose = TRUE;
       }
-      else if(!osStrcasecmp(value, "upgrade"))
+      else if(osStrcasecmp(value, "upgrade") == 0)
       {
          //Upgrade the connection
          webSocket->handshakeContext.connectionUpgrade = TRUE;
@@ -1126,7 +1128,7 @@ error_t webSocketVerifyServerKey(WebSocket *webSocket)
    TRACE_DEBUG("  Calculated key: %s\r\n", webSocket->txContext.buffer);
 
    //Check whether the server's key is valid
-   if(osStrcmp(handshakeContext->serverKey, buffer))
+   if(osStrcmp(handshakeContext->serverKey, buffer) != 0)
       return ERROR_INVALID_KEY;
 
    //Successful verification

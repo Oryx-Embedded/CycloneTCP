@@ -30,7 +30,7 @@
  * Network Management Protocol (SNMP). Refer to RFC 3415 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -142,7 +142,7 @@ error_t snmpIsAccessAllowed(SnmpAgentContext *context,
       return ERROR_UNKNOWN_CONTEXT;
 
    //Check context name
-   if(osStrncmp(contextName, context->contextName, contextNameLen))
+   if(osStrncmp(contextName, context->contextName, contextNameLen) != 0)
       return ERROR_UNKNOWN_CONTEXT;
 
    //The vacmSecurityToGroupTable is consulted for mapping the securityModel
@@ -294,7 +294,7 @@ SnmpGroupEntry *snmpFindGroupEntry(SnmpAgentContext *context,
             if(osStrlen(entry->securityName) == securityNameLen)
             {
                //Compare security name
-               if(!osStrncmp(entry->securityName, securityName, securityNameLen))
+               if(osStrncmp(entry->securityName, securityName, securityNameLen) == 0)
                {
                   //A matching entry has been found
                   break;
@@ -392,10 +392,10 @@ SnmpAccessEntry *snmpFindAccessEntry(SnmpAgentContext *context,
       if(entry->status != MIB_ROW_STATUS_UNUSED)
       {
          //Compare group name
-         if(!osStrcmp(entry->groupName, groupName))
+         if(osStrcmp(entry->groupName, groupName) == 0)
          {
             //Compare context name prefix
-            if(!osStrcmp(entry->contextPrefix, contextPrefix))
+            if(osStrcmp(entry->contextPrefix, contextPrefix) == 0)
             {
                //Compare security model and security level
                if(entry->securityModel == securityModel &&
@@ -456,7 +456,7 @@ SnmpAccessEntry *snmpSelectAccessEntry(SnmpAgentContext *context,
          continue;
 
       //Compare group name
-      if(osStrcmp(entry->groupName, groupName))
+      if(osStrcmp(entry->groupName, groupName) != 0)
          continue;
 
       //Compare security model
@@ -478,7 +478,7 @@ SnmpAccessEntry *snmpSelectAccessEntry(SnmpAgentContext *context,
          continue;
 
       //Compare context name prefix
-      if(osStrncmp(entry->contextPrefix, contextName, n))
+      if(osStrncmp(entry->contextPrefix, contextName, n) != 0)
          continue;
 
       //Exact match?
@@ -613,7 +613,7 @@ SnmpViewEntry *snmpFindViewEntry(SnmpAgentContext *context,
       if(entry->status != MIB_ROW_STATUS_UNUSED)
       {
          //Compare view name
-         if(!osStrcmp(entry->viewName, viewName))
+         if(osStrcmp(entry->viewName, viewName) == 0)
          {
             //Check the length of the subtree
             if(entry->subtreeLen == subtreeLen)
@@ -674,7 +674,7 @@ SnmpViewEntry *snmpSelectViewEntry(SnmpAgentContext *context,
          continue;
 
       //Compare view name
-      if(osStrcmp(entry->viewName, viewName))
+      if(osStrcmp(entry->viewName, viewName) != 0)
          continue;
 
       //Check whether the OID matches the subtree (the mask allows for a

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -355,7 +355,7 @@ error_t lldpMibGetLldpLocPortEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpLocPortIdSubtype object?
-   if(!strcmp(object->name, "lldpLocPortIdSubtype"))
+   if(osStrcmp(object->name, "lldpLocPortIdSubtype") == 0)
    {
       LldpPortIdSubtype portIdSubtype;
       const uint8_t *portId;
@@ -374,7 +374,7 @@ error_t lldpMibGetLldpLocPortEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpLocPortId object?
-   else if(!strcmp(object->name, "lldpLocPortId"))
+   else if(osStrcmp(object->name, "lldpLocPortId") == 0)
    {
       LldpPortIdSubtype portIdSubtype;
       const uint8_t *portId;
@@ -404,7 +404,7 @@ error_t lldpMibGetLldpLocPortEntry(const MibObject *object, const uint8_t *oid,
       }
    }
    //lldpLocPortDesc object?
-   else if(!strcmp(object->name, "lldpLocPortDesc"))
+   else if(osStrcmp(object->name, "lldpLocPortDesc") == 0)
    {
       const char_t *portDesc;
       size_t portDescLen;
@@ -595,7 +595,7 @@ error_t lldpMibGetLldpLocManAddrEntry(const MibObject *object, const uint8_t *oi
       return ERROR_INSTANCE_NOT_FOUND;
 
    //lldpLocManAddrLen object?
-   if(!strcmp(object->name, "lldpLocManAddrLen"))
+   if(osStrcmp(object->name, "lldpLocManAddrLen") == 0)
    {
       //This objects indicates the total length of the management address
       //subtype and the management address fields in LLDPDUs transmitted by
@@ -604,7 +604,7 @@ error_t lldpMibGetLldpLocManAddrEntry(const MibObject *object, const uint8_t *oi
       value->integer = lldpLocManAddrLen + 1;
    }
    //lldpLocManAddrIfSubtype object?
-   else if(!strcmp(object->name, "lldpLocManAddrIfSubtype"))
+   else if(osStrcmp(object->name, "lldpLocManAddrIfSubtype") == 0)
    {
       //This object identifies the interface numbering method used for defining
       //the interface number, associated with the local system
@@ -625,14 +625,14 @@ error_t lldpMibGetLldpLocManAddrEntry(const MibObject *object, const uint8_t *oi
       }
    }
    //lldpLocManAddrIfId object?
-   else if(!strcmp(object->name, "lldpLocManAddrIfId"))
+   else if(osStrcmp(object->name, "lldpLocManAddrIfId") == 0)
    {
       //This object identifies the interface number regarding the management
       //address component associated with the local system
       value->integer = ifNum;
    }
    //lldpLocManAddrOID object?
-   else if(!strcmp(object->name, "lldpLocManAddrOID"))
+   else if(osStrcmp(object->name, "lldpLocManAddrOID") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
       if(*valueLen >= addrOidLen)

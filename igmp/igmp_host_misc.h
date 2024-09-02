@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _IGMP_HOST_MISC_H
@@ -41,17 +41,54 @@ extern "C" {
 #endif
 
 //IGMP host related functions
-error_t igmpHostSendMembershipReport(NetInterface *interface, Ipv4Addr ipAddr);
-error_t igmpHostSendLeaveGroup(NetInterface *interface, Ipv4Addr ipAddr);
+void igmpHostChangeCompatibilityMode(IgmpHostContext *context,
+   IgmpVersion compatibilityMode);
 
-void igmpHostProcessMessage(NetInterface *interface,
-   const IgmpMessage *message, size_t length);
+void igmpHostSendMembershipReport(IgmpHostContext *context, Ipv4Addr groupAddr);
+void igmpHostSendLeaveGroup(IgmpHostContext *context, Ipv4Addr groupAddr);
 
-void igmpHostProcessMembershipQuery(NetInterface *interface,
-   const IgmpMessage *message, size_t length);
+void igmpHostSendCurrentStateReport(IgmpHostContext *context,
+   Ipv4Addr groupAddr);
 
-void igmpHostProcessMembershipReport(NetInterface *interface,
-   const IgmpMessage *message, size_t length);
+void igmpHostSendStateChangeReport(IgmpHostContext *context);
+
+void igmpHostFlushReportRecords(IgmpHostContext *context, NetBuffer *buffer,
+   size_t offset, size_t *length);
+
+void igmpHostProcessMessage(IgmpHostContext *context,
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length);
+
+void igmpHostProcessMembershipQuery(IgmpHostContext *context,
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length);
+
+void igmpHostProcessMembershipQueryV3(IgmpHostContext *context,
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMembershipQueryV3 *message,
+   size_t length);
+
+void igmpHostProcessMembershipReport(IgmpHostContext *context,
+   const Ipv4PseudoHeader *pseudoHeader, const IgmpMessage *message,
+   size_t length);
+
+void igmpHostMergeReports(IgmpHostGroup *group,
+   IpFilterMode newFilterMode, const Ipv4SrcAddrList *newFilter);
+
+bool_t igmpHostGetRetransmitStatus(IgmpHostContext *context);
+bool_t igmpHostGetGroupRetransmitStatus(IgmpHostGroup *group);
+void igmpHostDecGroupRetransmitCounters(IgmpHostGroup *group);
+
+IgmpHostGroup *igmpHostCreateGroup(IgmpHostContext *context,
+   Ipv4Addr groupAddr);
+
+IgmpHostGroup *igmpHostFindGroup(IgmpHostContext *context, Ipv4Addr groupAddr);
+bool_t igmpHostMatchGroup(IgmpHostGroup *group, Ipv4Addr multicastAddr);
+void igmpHostDeleteGroup(IgmpHostGroup *group);
+void igmpHostFlushUnusedGroups(IgmpHostContext *context);
+
+error_t igmpHostAddSrcAddr(IgmpHostSrcAddrList *list, Ipv4Addr srcAddr);
+void igmpHostRemoveSrcAddr(IgmpHostSrcAddrList *list, Ipv4Addr srcAddr);
+int_t igmpHostFindSrcAddr(const IgmpHostSrcAddrList *list, Ipv4Addr srcAddr);
 
 //C++ guard
 #ifdef __cplusplus

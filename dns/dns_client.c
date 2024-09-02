@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -295,7 +295,7 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the DNS header
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Format DNS query message
    message->id = htons(entry->id);
@@ -362,6 +362,7 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
 
    //Free previously allocated memory
    netBufferFree(buffer);
+
    //Return status code
    return error;
 }
@@ -396,14 +397,12 @@ void dnsProcessResponse(NetInterface *interface,
    //Retrieve the length of the DNS message
    length = netBufferGetLength(buffer) - offset;
 
-   //Ensure the DNS message is valid
+   //Malformed DNS message?
    if(length < sizeof(DnsHeader))
-      return;
-   if(length > DNS_MESSAGE_MAX_SIZE)
       return;
 
    //Point to the DNS message header
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;

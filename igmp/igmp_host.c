@@ -33,7 +33,7 @@
  * - RFC 3376: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -42,6 +42,8 @@
 //Dependencies
 #include "core/net.h"
 #include "ipv4/ipv4.h"
+#include "ipv4/ipv4_multicast.h"
+#include "ipv4/ipv4_misc.h"
 #include "igmp/igmp_host.h"
 #include "igmp/igmp_host_misc.h"
 #include "debug.h"
@@ -66,11 +68,22 @@ error_t igmpHostInit(NetInterface *interface)
    //Clear the IGMP host context
    osMemset(context, 0, sizeof(IgmpHostContext));
 
-   //The default host compatibility mode is IGMPv2
-   context->igmpv1RouterPresent = FALSE;
+   //Underlying network interface
+   context->interface = interface;
+   //The default host compatibility mode is IGMPv3
+   context->compatibilityMode = IGMP_VERSION_3;
 
-   //Start IGMPv1 router present timer
-   netStartTimer(&context->timer, IGMP_V1_ROUTER_PRESENT_TIMEOUT);
+   //In order to switch gracefully between versions of IGMP, hosts keep both
+   //an IGMPv1 Querier Present timer and an IGMPv2 Querier Present timer per
+   //interface (refer to RFC 3376, section 7.2.1)
+   netStopTimer(&context->igmpv1QuerierPresentTimer);
+   netStopTimer(&context->igmpv2QuerierPresentTimer);
+
+   //A timer per interface is used for scheduling responses to General Queries
+   netStopTimer(&context->generalQueryTimer);
+
+   //A timer is used to retransmit State-Change reports
+   netStopTimer(&context->stateChangeReportTimer);
 
    //Successful initialization
    return NO_ERROR;
@@ -78,136 +91,389 @@ error_t igmpHostInit(NetInterface *interface)
 
 
 /**
- * @brief Join the specified host group
- * @param[in] interface Underlying network interface
- * @param[in] entry IPv4 filter entry identifying the host group to join
- * @return Error code
- **/
-
-error_t igmpHostJoinGroup(NetInterface *interface, Ipv4FilterEntry *entry)
-{
-   //The all-systems group (address 224.0.0.1) is handled as a special
-   //case. The host starts in Idle Member state for that group on every
-   //interface and never transitions to another state
-   if(entry->addr == IGMP_ALL_SYSTEMS_ADDR)
-   {
-      //Clear flag
-      entry->flag = FALSE;
-      //Enter the Idle Member state
-      entry->state = IGMP_HOST_GROUP_STATE_IDLE_MEMBER;
-   }
-   else
-   {
-      //Link is up?
-      if(interface->linkState)
-      {
-         //When a host joins a multicast group, it should immediately transmit
-         //an unsolicited Membership Report for that group
-         igmpHostSendMembershipReport(interface, entry->addr);
-
-         //Set flag
-         entry->flag = TRUE;
-         //Start timer
-         entry->timer = osGetSystemTime() + IGMP_UNSOLICITED_REPORT_INTERVAL;
-         //Enter the Delaying Member state
-         entry->state = IGMP_HOST_GROUP_STATE_DELAYING_MEMBER;
-      }
-      //Link is down?
-      else
-      {
-         //Clear flag
-         entry->flag = FALSE;
-         //Enter the Idle Member state
-         entry->state = IGMP_HOST_GROUP_STATE_IDLE_MEMBER;
-      }
-   }
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief Leave the specified host group
- * @param[in] interface Underlying network interface
- * @param[in] entry IPv4 filter entry identifying the host group to leave
- * @return Error code
- **/
-
-error_t igmpHostLeaveGroup(NetInterface *interface, Ipv4FilterEntry *entry)
-{
-   //Check link state
-   if(interface->linkState)
-   {
-      //Send a Leave Group message if the flag is set
-      if(entry->flag)
-      {
-         igmpHostSendLeaveGroup(interface, entry->addr);
-      }
-   }
-
-   //Switch to the "Non-Member" state
-   entry->state = IGMP_HOST_GROUP_STATE_NON_MEMBER;
-
-   //Successful processing
-   return NO_ERROR;
-}
-
-
-/**
- * @brief IGMP timer handler
+ * @brief IGMP host timer handler
  *
  * This routine must be periodically called by the TCP/IP stack to
  * handle IGMP related timers
  *
- * @param[in] interface Underlying network interface
+ * @param[in] context Pointer to the IGMP host context
  **/
 
-void igmpHostTick(NetInterface *interface)
+void igmpHostTick(IgmpHostContext *context)
 {
    uint_t i;
-   systime_t time;
-   Ipv4FilterEntry *entry;
-   IgmpHostContext *context;
+   systime_t delay;
+   IgmpHostGroup *group;
+   NetInterface *interface;
 
-   //Point to the IGMP host context
-   context = &interface->igmpHostContext;
+   //Point to the underlying network interface
+   interface = context->interface;
 
-   //Get current time
-   time = osGetSystemTime();
-
-   //Check IGMP host state
-   if(context->igmpv1RouterPresent)
+   //In order to be compatible with older version routers, IGMPv3 hosts must
+   //operate in version 1 and version 2 compatibility modes (refer to RFC 3376,
+   //section 7.2.1)
+   if(netTimerExpired(&context->igmpv1QuerierPresentTimer))
    {
-      //Check IGMPv1 router present timer
-      if(netTimerExpired(&context->timer))
+      //Stop IGMPv1 Querier Present timer
+      netStopTimer(&context->igmpv1QuerierPresentTimer);
+
+      //Check whether IGMPv2 Querier Present timer is running
+      if(netTimerRunning(&context->igmpv2QuerierPresentTimer))
       {
-         context->igmpv1RouterPresent = FALSE;
+         //When the IGMPv1 Querier Present timer expires, a host switches to
+         //Host Compatibility mode of IGMPv2 if it has a running IGMPv2
+         //Querier Present timer
+         igmpHostChangeCompatibilityMode(context, IGMP_VERSION_2);
+      }
+      else
+      {
+         //If it does not have a running IGMPv2 Querier Present timer then it
+         //switches to Host Compatibility of IGMPv3
+         igmpHostChangeCompatibilityMode(context, IGMP_VERSION_3);
+      }
+   }
+   else if(netTimerExpired(&context->igmpv2QuerierPresentTimer))
+   {
+      //Stop IGMPv2 Querier Present timer
+      netStopTimer(&context->igmpv2QuerierPresentTimer);
+
+      //Check whether IGMPv1 Querier Present timer is running
+      if(netTimerRunning(&context->igmpv1QuerierPresentTimer))
+      {
+         //The Host Compatibility Mode is set IGMPv1 when the IGMPv1 Querier
+         //Present timer is running
+      }
+      else
+      {
+         //When the IGMPv2 Querier Present timer expires, a host switches to
+         //Host Compatibility mode of IGMPv3
+         igmpHostChangeCompatibilityMode(context, IGMP_VERSION_3);
+      }
+   }
+   else
+   {
+      //Just for sanity
+   }
+
+   //Check host compatibility mode
+   if(context->compatibilityMode <= IGMP_VERSION_2)
+   {
+      //Loop through multicast groups
+      for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
+      {
+         //Point to the current group
+         group = &context->groups[i];
+
+         //Check group state
+         if(group->state == IGMP_HOST_GROUP_STATE_INIT_MEMBER)
+         {
+            //Valid IPv4 address assigned to the interface?
+            if(interface->linkState && ipv4IsHostAddrValid(interface))
+            {
+               //When a host joins a multicast group, it should immediately
+               //transmit an unsolicited Membership Report for that group
+               igmpHostSendMembershipReport(context, group->addr);
+
+               //Start delay timer
+               netStartTimer(&group->timer, IGMP_UNSOLICITED_REPORT_INTERVAL);
+
+               //Set flag
+               group->flag = TRUE;
+               //Enter the Delaying Member state
+               group->state = IGMP_HOST_GROUP_STATE_DELAYING_MEMBER;
+            }
+         }
+         else if(group->state == IGMP_HOST_GROUP_STATE_DELAYING_MEMBER)
+         {
+            //Delay timer expired?
+            if(netTimerExpired(&group->timer))
+            {
+               //Send a Membership Report message for the group on the interface
+               igmpHostSendMembershipReport(context, group->addr);
+
+               //Stop delay timer
+               netStopTimer(&group->timer);
+
+               //Set flag
+               group->flag = TRUE;
+               //Switch to the Idle Member state
+               group->state = IGMP_HOST_GROUP_STATE_IDLE_MEMBER;
+            }
+         }
+         else
+         {
+            //Just for sanity
+         }
+      }
+   }
+   else
+   {
+      //If the expired timer is the interface timer, then one Current-State
+      //Record is sent for each multicast address for which the specified
+      //interface has reception state
+      if(netTimerExpired(&context->generalQueryTimer))
+      {
+         //Send Current-State report message
+         igmpHostSendCurrentStateReport(context, IPV4_UNSPECIFIED_ADDR);
+
+         //Stop interface timer
+         netStopTimer(&context->generalQueryTimer);
+      }
+
+      //If the expired timer is a group timer, then a single Current-State
+      //Record is sent for the corresponding group address
+      for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
+      {
+         //Point to the current group
+         group = &context->groups[i];
+
+         //Check group state
+         if(group->state == IGMP_HOST_GROUP_STATE_INIT_MEMBER)
+         {
+            //Valid IPv4 address assigned to the interface?
+            if(interface->linkState && ipv4IsHostAddrValid(interface))
+            {
+#if (IPV4_MAX_MULTICAST_SOURCES > 0)
+               //Once a valid address is available, a node should generate new
+               //IGMP Report messages for all multicast addresses joined on the
+               //interface
+               if(group->filterMode == IP_FILTER_MODE_INCLUDE &&
+                  group->filter.numSources > 0)
+               {
+                  uint_t j;
+
+                  //The State-Change report will include an ALLOW record
+                  group->retransmitCount = 0;
+                  group->allow.numSources = group->filter.numSources;
+                  group->block.numSources = 0;
+
+                  //List of the sources that the system wishes to hear from
+                  for(j = 0; j < group->filter.numSources; j++)
+                  {
+                     group->allow.sources[j].addr = group->filter.sources[j];
+                     group->allow.sources[j].retransmitCount = IGMP_ROBUSTNESS_VARIABLE;
+                  }
+
+                  //Send a State-Change report immediately
+                  netStartTimer(&context->stateChangeReportTimer, 0);
+               }
+               else if(group->filterMode == IP_FILTER_MODE_EXCLUDE)
+               {
+                  //The State-Change report will include a TO_EX record
+                  group->retransmitCount = IGMP_ROBUSTNESS_VARIABLE;
+                  group->allow.numSources = 0;
+                  group->block.numSources = 0;
+
+                  //Send a State-Change report immediately
+                  netStartTimer(&context->stateChangeReportTimer, 0);
+               }
+               else
+               {
+                  //Just for sanity
+               }
+#else
+               //Once a valid address is available, a node should generate new
+               //IGMP Report messages for all multicast addresses joined on the
+               //interface
+               if(group->filterMode == IP_FILTER_MODE_EXCLUDE)
+               {
+                  //The State-Change report will include a TO_EX record
+                  group->retransmitCount = IGMP_ROBUSTNESS_VARIABLE;
+                  //Send a State-Change report immediately
+                  netStartTimer(&context->stateChangeReportTimer, 0);
+               }
+#endif
+               //Enter the Idle Member state
+               group->state = IGMP_HOST_GROUP_STATE_IDLE_MEMBER;
+            }
+         }
+         else if(group->state == IGMP_HOST_GROUP_STATE_IDLE_MEMBER)
+         {
+            //Check whether the group timer has expired
+            if(netTimerExpired(&group->timer))
+            {
+               //Send Current-State report message
+               igmpHostSendCurrentStateReport(context, group->addr);
+
+               //Stop group timer
+               netStopTimer(&group->timer);
+            }
+         }
+         else
+         {
+            //Just for sanity
+         }
+      }
+
+      //If the expired timer is the retransmission timer, then the State-Change
+      //report is retransmitted
+      if(netTimerExpired(&context->stateChangeReportTimer))
+      {
+         //Retransmit the State-Change report message
+         igmpHostSendStateChangeReport(context);
+
+         //Retransmission state needs to be maintained until [Robustness
+         //Variable] State-Change reports have been sent by the host
+         if(igmpHostGetRetransmitStatus(context))
+         {
+            //Select a value in the range 0 - Unsolicited Report Interval
+            delay = igmpGetRandomDelay(IGMP_V3_UNSOLICITED_REPORT_INTERVAL);
+            //Restart retransmission timer
+            netStartTimer(&context->stateChangeReportTimer, delay);
+         }
+         else
+         {
+            //[Robustness Variable] State-Change reports have been sent by the
+            //host
+            netStopTimer(&context->stateChangeReportTimer);
+         }
+
+         //Delete groups in "non-existent" state
+         igmpHostFlushUnusedGroups(context);
+      }
+   }
+}
+
+
+/**
+ * @brief Process multicast reception state change
+ * @param[in] context Pointer to the IGMP host context
+ * @param[in] groupAddr Multicast group address
+ * @param[in] newFilterMode New filter mode for the affected group
+ * @param[in] newFilter New interface state for the affected group
+ **/
+
+void igmpHostStateChangeEvent(IgmpHostContext *context, Ipv4Addr groupAddr,
+   IpFilterMode newFilterMode, const Ipv4SrcAddrList *newFilter)
+{
+   systime_t delay;
+   IgmpHostGroup *group;
+   NetInterface *interface;
+
+   //Point to the underlying network interface
+   interface = context->interface;
+
+   //Search the list of groups for the specified multicast address
+   group = igmpHostFindGroup(context, groupAddr);
+
+   //Check whether the interface has reception state for that group address
+   if(newFilterMode == IP_FILTER_MODE_EXCLUDE || newFilter->numSources > 0)
+   {
+      //No matching group found?
+      if(group == NULL)
+      {
+         //Create a new group
+         group = igmpHostCreateGroup(context, groupAddr);
+
+         //Entry successfully created?
+         if(group != NULL)
+         {
+            //Valid IPv4 address assigned to the interface?
+            if(interface->linkState && ipv4IsHostAddrValid(interface))
+            {
+               //Check host compatibility mode
+               if(context->compatibilityMode <= IGMP_VERSION_2)
+               {
+                  //When a host joins a multicast group, it should immediately
+                  //transmit an unsolicited Membership Report for that group
+                  igmpHostSendMembershipReport(context, group->addr);
+
+                  //Start delay timer
+                  netStartTimer(&group->timer, IGMP_UNSOLICITED_REPORT_INTERVAL);
+
+                  //Set flag
+                  group->flag = TRUE;
+                  //Enter the Delaying Member state
+                  group->state = IGMP_HOST_GROUP_STATE_DELAYING_MEMBER;
+               }
+               else
+               {
+                  //Enter the Idle Member state
+                  group->state = IGMP_HOST_GROUP_STATE_IDLE_MEMBER;
+               }
+            }
+            else
+            {
+               //Clear flag
+               group->flag = FALSE;
+               //Enter the Init Member state
+               group->state = IGMP_HOST_GROUP_STATE_INIT_MEMBER;
+            }
+         }
       }
    }
 
-   //Go through the multicast filter table
-   for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
+   //Valid group?
+   if(group != NULL)
    {
-      //Point to the current entry
-      entry = &interface->ipv4Context.multicastFilter[i];
-
-      //Valid entry?
-      if(entry->refCount > 0)
+      //Any state change detected?
+      if(group->filterMode != newFilterMode ||
+         !ipv4CompareSrcAddrLists(&group->filter, newFilter))
       {
-         //Delaying Member state?
-         if(entry->state == IGMP_HOST_GROUP_STATE_DELAYING_MEMBER)
-         {
-            //Timer expired?
-            if(timeCompare(time, entry->timer) >= 0)
-            {
-               //Send a Membership Report message for the group on the interface
-               igmpHostSendMembershipReport(interface, entry->addr);
+         //Merge the difference report resulting from the state change and the
+         //pending report
+         igmpHostMergeReports(group, newFilterMode, newFilter);
 
-               //Set flag
-               entry->flag = TRUE;
-               //Switch to the "Idle Member" state
-               entry->state = IGMP_HOST_GROUP_STATE_IDLE_MEMBER;
+         //Save the new state
+         group->filterMode = newFilterMode;
+         group->filter = *newFilter;
+
+         //Check host compatibility mode
+         if(context->compatibilityMode <= IGMP_VERSION_2)
+         {
+            //The "non-existent" state is considered to have a filter mode of
+            //INCLUDE and an empty source list
+            if(group->filterMode == IP_FILTER_MODE_INCLUDE &&
+               group->filter.numSources == 0)
+            {
+               //Send a Leave Group message if the flag is set
+               if(group->flag)
+               {
+                  igmpHostSendLeaveGroup(context, group->addr);
+               }
+
+               //Delete the group
+               igmpHostDeleteGroup(group);
+            }
+         }
+         else
+         {
+            //Check group state
+            if(group->state == IGMP_HOST_GROUP_STATE_INIT_MEMBER)
+            {
+               //The "non-existent" state is considered to have a filter mode
+               //of INCLUDE and an empty source list
+               if(group->filterMode == IP_FILTER_MODE_INCLUDE &&
+                  group->filter.numSources == 0)
+               {
+                  //Delete the group
+                  igmpHostDeleteGroup(group);
+               }
+            }
+            else
+            {
+               //Send a State-Change report message
+               igmpHostSendStateChangeReport(context);
+
+               //To cover the possibility of the State-Change report being
+               //missed by one or more multicast routers, it is retransmitted
+               //[Robustness Variable] - 1 more times
+               if(igmpHostGetRetransmitStatus(context))
+               {
+                  //Select a value in the range 0 - Unsolicited Report Interval
+                  delay = igmpGetRandomDelay(IGMP_V3_UNSOLICITED_REPORT_INTERVAL);
+                  //Start retransmission timer
+                  netStartTimer(&context->stateChangeReportTimer, delay);
+               }
+               else
+               {
+                  //[Robustness Variable] State-Change reports have been sent
+                  //by the host
+                  netStopTimer(&context->stateChangeReportTimer);
+               }
+
+               //Delete groups in "non-existent" state
+               igmpHostFlushUnusedGroups(context);
             }
          }
       }
@@ -216,77 +482,53 @@ void igmpHostTick(NetInterface *interface)
 
 
 /**
- * @brief Callback function for link change event
- * @param[in] interface Underlying network interface
+ * @brief Process link state change
+ * @param[in] context Pointer to the IGMP host context
  **/
 
-void igmpHostLinkChangeEvent(NetInterface *interface)
+void igmpHostLinkChangeEvent(IgmpHostContext *context)
 {
    uint_t i;
-   systime_t time;
-   Ipv4FilterEntry *entry;
-   IgmpHostContext *context;
+   IgmpHostGroup *group;
 
-   //Point to the IGMP host context
-   context = &interface->igmpHostContext;
+   //The default host compatibility mode is IGMPv3
+   context->compatibilityMode = IGMP_VERSION_3;
 
-   //Get current time
-   time = osGetSystemTime();
+   //Stop timers
+   netStopTimer(&context->igmpv1QuerierPresentTimer);
+   netStopTimer(&context->igmpv2QuerierPresentTimer);
+   netStopTimer(&context->generalQueryTimer);
+   netStopTimer(&context->stateChangeReportTimer);
 
-   //Link up event?
-   if(interface->linkState)
+   //Loop through multicast groups
+   for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
    {
-      //The default host compatibility mode is IGMPv2
-      context->igmpv1RouterPresent = FALSE;
-      //Start IGMPv1 router present timer
-      netStartTimer(&context->timer, IGMP_V1_ROUTER_PRESENT_TIMEOUT);
+      //Point to the current group
+      group = &context->groups[i];
 
-      //Go through the multicast filter table
-      for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
+      //Valid group?
+      if(group->state != IGMP_HOST_GROUP_STATE_NON_MEMBER)
       {
-         //Point to the current entry
-         entry = &interface->ipv4Context.multicastFilter[i];
+         //Reset parameters
+         group->flag = FALSE;
+         group->retransmitCount = 0;
 
-         //Valid entry?
-         if(entry->refCount > 0)
-         {
-            //The all-systems group (address 224.0.0.1) is handled as a special
-            //case. The host starts in Idle Member state for that group on every
-            //interface and never transitions to another state
-            if(entry->addr != IGMP_ALL_SYSTEMS_ADDR)
-            {
-               //Send an unsolicited Membership Report for that group
-               igmpHostSendMembershipReport(interface, entry->addr);
+#if (IPV4_MAX_MULTICAST_SOURCES > 0)
+         //Clear source lists
+         group->allow.numSources = 0;
+         group->block.numSources = 0;
+         group->queriedSources.numSources = 0;
+#endif
+         //Stop delay timer
+         netStopTimer(&group->timer);
 
-               //Set flag
-               entry->flag = TRUE;
-               //Start timer
-               entry->timer = time + IGMP_UNSOLICITED_REPORT_INTERVAL;
-               //Enter the Delaying Member state
-               entry->state = IGMP_HOST_GROUP_STATE_DELAYING_MEMBER;
-            }
-         }
+         //Enter the Init Member state
+         group->state = IGMP_HOST_GROUP_STATE_INIT_MEMBER;
       }
    }
-   //Link down event?
-   else
-   {
-      //Go through the multicast filter table
-      for(i = 0; i < IPV4_MULTICAST_FILTER_SIZE; i++)
-      {
-         //Point to the current entry
-         entry = &interface->ipv4Context.multicastFilter[i];
 
-         //Valid entry?
-         if(entry->refCount > 0)
-         {
-            //Clear flag
-            entry->flag = FALSE;
-            //Enter the Idle Member state
-            entry->state = IGMP_HOST_GROUP_STATE_IDLE_MEMBER;
-         }
-      }
-   }
+   //Delete groups in "non-existent" state
+   igmpHostFlushUnusedGroups(context);
 }
 
 #endif

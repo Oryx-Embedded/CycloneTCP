@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -572,12 +572,13 @@ void ndpLinkChangeEvent(NetInterface *interface)
  * @param[in] pseudoHeader IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the Router Advertisement message
  * @param[in] offset Offset to the first byte of the message
- * @param[in] hopLimit Hop Limit field from IPv6 header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
 void ndpProcessRouterAdv(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit)
+   size_t offset, const NetRxAncillary *ancillary)
 {
    error_t error;
    uint32_t n;
@@ -598,7 +599,7 @@ void ndpProcessRouterAdv(NetInterface *interface,
       return;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;
@@ -615,7 +616,7 @@ void ndpProcessRouterAdv(NetInterface *interface,
 
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
-   if(hopLimit != NDP_HOP_LIMIT)
+   if(ancillary->ttl != NDP_HOP_LIMIT)
       return;
 
    //ICMPv6 Code must be 0. An advertisement that passes the validity
@@ -713,7 +714,7 @@ void ndpProcessRouterAdv(NetInterface *interface,
    //Search the Neighbor cache for the router
    entry = ndpFindNeighborCacheEntry(interface, &pseudoHeader->srcAddr);
 
-   //No matching entry has been found?
+   //No matching entry found?
    if(entry == NULL)
    {
       //If the advertisement contains a Source Link-Layer Address option,
@@ -723,7 +724,7 @@ void ndpProcessRouterAdv(NetInterface *interface,
          //Check whether Neighbor Discovery protocol is enabled
          if(interface->ndpContext.enable)
          {
-            //Create an entry for the router
+            //Create a new entry for the router
             entry = ndpCreateNeighborCacheEntry(interface);
 
             //Neighbor cache entry successfully created?
@@ -861,12 +862,13 @@ void ndpProcessRouterAdv(NetInterface *interface,
  * @param[in] pseudoHeader IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the Neighbor Solicitation message
  * @param[in] offset Offset to the first byte of the message
- * @param[in] hopLimit Hop Limit field from IPv6 header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
 void ndpProcessNeighborSol(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit)
+   size_t offset, const NetRxAncillary *ancillary)
 {
 #if (ETH_SUPPORT == ENABLED)
    error_t error;
@@ -887,7 +889,7 @@ void ndpProcessNeighborSol(NetInterface *interface,
       return;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;
@@ -899,7 +901,7 @@ void ndpProcessNeighborSol(NetInterface *interface,
 
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
-   if(hopLimit != NDP_HOP_LIMIT)
+   if(ancillary->ttl != NDP_HOP_LIMIT)
       return;
 
    //ICMPv6 Code must be 0
@@ -1008,13 +1010,13 @@ void ndpProcessNeighborSol(NetInterface *interface,
       neighborCacheEntry = ndpFindNeighborCacheEntry(interface,
          &pseudoHeader->srcAddr);
 
-      //No matching entry has been found?
+      //No matching entry found?
       if(neighborCacheEntry == NULL)
       {
          //Check whether Neighbor Discovery protocol is enabled
          if(interface->ndpContext.enable)
          {
-            //Create an entry
+            //Create a new entry
             neighborCacheEntry = ndpCreateNeighborCacheEntry(interface);
 
             //Neighbor cache entry successfully created?
@@ -1106,12 +1108,13 @@ void ndpProcessNeighborSol(NetInterface *interface,
  * @param[in] pseudoHeader IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the Neighbor Advertisement message
  * @param[in] offset Offset to the first byte of the message
- * @param[in] hopLimit Hop Limit field from IPv6 header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
 void ndpProcessNeighborAdv(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit)
+   size_t offset, const NetRxAncillary *ancillary)
 {
 #if (ETH_SUPPORT == ENABLED)
    error_t error;
@@ -1132,7 +1135,7 @@ void ndpProcessNeighborAdv(NetInterface *interface,
       return;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;
@@ -1144,7 +1147,7 @@ void ndpProcessNeighborAdv(NetInterface *interface,
 
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
-   if(hopLimit != NDP_HOP_LIMIT)
+   if(ancillary->ttl != NDP_HOP_LIMIT)
       return;
 
    //ICMPv6 Code must be 0
@@ -1353,12 +1356,13 @@ void ndpProcessNeighborAdv(NetInterface *interface,
  * @param[in] pseudoHeader IPv6 pseudo header
  * @param[in] buffer Multi-part buffer containing the Redirect message
  * @param[in] offset Offset to the first byte of the message
- * @param[in] hopLimit Hop Limit field from IPv6 header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
  **/
 
 void ndpProcessRedirect(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
-   size_t offset, uint8_t hopLimit)
+   size_t offset, const NetRxAncillary *ancillary)
 {
 #if (ETH_SUPPORT == ENABLED)
    error_t error;
@@ -1377,7 +1381,7 @@ void ndpProcessRedirect(NetInterface *interface,
       return;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;
@@ -1389,7 +1393,7 @@ void ndpProcessRedirect(NetInterface *interface,
 
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
-   if(hopLimit != NDP_HOP_LIMIT)
+   if(ancillary->ttl != NDP_HOP_LIMIT)
       return;
 
    //ICMPv6 Code must be 0
@@ -1480,13 +1484,13 @@ void ndpProcessRedirect(NetInterface *interface,
       neighborCacheEntry = ndpFindNeighborCacheEntry(interface,
          &message->targetAddr);
 
-      //No matching entry has been found?
+      //No matching entry found?
       if(neighborCacheEntry == NULL)
       {
          //Check whether Neighbor Discovery protocol is enabled
          if(interface->ndpContext.enable)
          {
-            //Create an entry for the target
+            //Create a new entry for the target
             neighborCacheEntry = ndpCreateNeighborCacheEntry(interface);
 
             //Neighbor cache entry successfully created?
@@ -1603,7 +1607,7 @@ error_t ndpSendRouterSol(NetInterface *interface)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Format Router Solicitation message
    message->type = ICMPV6_TYPE_ROUTER_SOL;
@@ -1739,7 +1743,7 @@ error_t ndpSendNeighborSol(NetInterface *interface,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Format Neighbor Solicitation message
    message->type = ICMPV6_TYPE_NEIGHBOR_SOL;
@@ -1877,7 +1881,7 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Format Neighbor Advertisement message
    message->type = ICMPV6_TYPE_NEIGHBOR_ADV;
@@ -2014,7 +2018,7 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
       return ERROR_INVALID_LENGTH;
 
    //Point to the header of the invoking packet
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset);
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
    //Sanity check
    if(ipHeader == NULL)
       return ERROR_FAILURE;
@@ -2031,7 +2035,7 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the beginning of the message
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Format Redirect message
    message->type = ICMPV6_TYPE_REDIRECT;

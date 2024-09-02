@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -257,7 +257,7 @@ error_t llmnrSendQuery(DnsCacheEntry *entry)
       return ERROR_OUT_OF_MEMORY;
 
    //Point to the LLMNR header
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, 0);
 
    //Format LLMNR query message
    message->id = htons(entry->id);
@@ -364,14 +364,12 @@ void llmnrProcessResponse(NetInterface *interface,
    //Retrieve the length of the LLMNR message
    length = netBufferGetLength(buffer) - offset;
 
-   //Ensure the LLMNR message is valid
+   //Malformed LLMNR message?
    if(length < sizeof(LlmnrHeader))
-      return;
-   if(length > LLMNR_MESSAGE_MAX_SIZE)
       return;
 
    //Point to the LLMNR message header
-   message = netBufferAt(buffer, offset);
+   message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
       return;

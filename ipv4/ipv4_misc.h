@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 #ifndef _IPV4_MISC_H
@@ -52,6 +52,7 @@ error_t ipv4SelectSourceAddr(NetInterface **interface,
 error_t ipv4SelectDefaultGateway(NetInterface *interface, Ipv4Addr srcAddr,
    Ipv4Addr *defaultGatewayAddr);
 
+bool_t ipv4IsHostAddrValid(NetInterface *interface);
 bool_t ipv4IsOnLink(NetInterface *interface, Ipv4Addr ipAddr);
 bool_t ipv4IsBroadcastAddr(NetInterface *interface, Ipv4Addr ipAddr);
 bool_t ipv4IsTentativeAddr(NetInterface *interface, Ipv4Addr ipAddr);
@@ -63,7 +64,6 @@ uint_t ipv4GetAddrScope(Ipv4Addr ipAddr);
 uint_t ipv4GetPrefixLength(Ipv4Addr mask);
 
 error_t ipv4GetBroadcastAddr(NetInterface *interface, Ipv4Addr *addr);
-error_t ipv4MapMulticastAddrToMac(Ipv4Addr ipAddr, MacAddr *macAddr);
 
 bool_t ipv4TrapIgmpPacket(Ipv4Header *header);
 

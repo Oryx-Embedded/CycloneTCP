@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.2
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -73,13 +73,13 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
       return ERROR_INVALID_SYNTAX;
 
    //Basic access authentication?
-   if(!osStrcasecmp(token, "Basic"))
+   if(osStrcasecmp(token, "Basic") == 0)
    {
       //Basic authentication is required by the WebSocket server
       authContext->requiredAuthMode = WS_AUTH_MODE_BASIC;
    }
    //Digest access authentication?
-   else if(!osStrcasecmp(token, "Digest"))
+   else if(osStrcasecmp(token, "Digest") == 0)
    {
       //Digest authentication is required by the WebSocket server
       authContext->requiredAuthMode = WS_AUTH_MODE_DIGEST;
@@ -120,26 +120,26 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
             value++;
 
          //Check parameter name
-         if(!osStrcasecmp(name, "realm"))
+         if(osStrcasecmp(name, "realm") == 0)
          {
             //Save realm
             strSafeCopy(authContext->realm, value, WEB_SOCKET_REALM_MAX_LEN);
          }
 #if (WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
-         else if(!osStrcasecmp(name, "nonce"))
+         else if(osStrcasecmp(name, "nonce") == 0)
          {
             //Save nonce
             strSafeCopy(authContext->nonce, value, WEB_SOCKET_NONCE_MAX_LEN + 1);
          }
-         else if(!osStrcasecmp(name, "opaque"))
+         else if(osStrcasecmp(name, "opaque") == 0)
          {
             //Save nonce
             strSafeCopy(authContext->opaque, value, WEB_SOCKET_OPAQUE_MAX_LEN + 1);
          }
-         else if(!osStrcasecmp(name, "stale"))
+         else if(osStrcasecmp(name, "stale") == 0)
          {
             //Save stale flag
-            if(!osStrcasecmp(value, "true"))
+            if(osStrcasecmp(value, "true") == 0)
             {
                authContext->stale = TRUE;
             }
