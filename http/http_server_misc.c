@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -487,6 +487,11 @@ void httpParseHeaderField(HttpConnection *connection,
       httpParseCookieField(connection, value);
    }
 #endif
+
+#if defined(HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK)
+   //Parse custom header fields
+   HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK(connection, name, value);
+#endif
 }
 
 
@@ -549,7 +554,15 @@ void httpParseContentTypeField(HttpConnection *connection,
    size_t n;
    char_t *p;
    char_t *token;
+#endif
 
+#if (HTTP_SERVER_CONTENT_TYPE_MAX_LEN > 0)
+   //Save the contents of the Content-Type header field
+   strSafeCopy(connection->request.contentType, value,
+      HTTP_SERVER_CONTENT_TYPE_MAX_LEN + 1);
+#endif
+
+#if (HTTP_SERVER_MULTIPART_TYPE_SUPPORT == ENABLED)
    //Retrieve type
    token = osStrtok_r(value, "/", &p);
    //Any parsing error?
@@ -928,8 +941,13 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       p += osSprintf(p, "Content-Length: %" PRIuSIZE "\r\n", connection->response.contentLength);
    }
 
+#if defined(HTTP_FORMAT_RESPONSE_HEADER_HOOK)
+   //Format custom header fields
+   HTTP_FORMAT_RESPONSE_HEADER_HOOK(connection, p);
+#endif
+
    //Terminate the header with an empty line
-   p += osSprintf(p, "\r\n");
+   osStrcat(p, "\r\n");
 
    //Successful processing
    return NO_ERROR;

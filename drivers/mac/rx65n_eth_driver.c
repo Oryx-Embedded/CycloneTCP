@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -494,8 +494,8 @@ void rx65nEthIrqHandler(void)
    //Packet received?
    if((status & EDMAC_EESR_FR) != 0)
    {
-      //Disable FR interrupts
-      EDMAC0.EESIPR.BIT.FRIP = 0;
+      //Clear FR interrupt flag
+      EDMAC0.EESR.LONG = EDMAC_EESR_FR;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -517,25 +517,14 @@ void rx65nEthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if((EDMAC0.EESR.LONG & EDMAC_EESR_FR) != 0)
+   //Process all pending packets
+   do
    {
-      //Clear FR interrupt flag
-      EDMAC0.EESR.LONG = EDMAC_EESR_FR;
+      //Read incoming packet
+      error = rx65nEthReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = rx65nEthReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable EDMAC interrupts
-   EDMAC0.EESIPR.BIT.TWBIP = 1;
-   EDMAC0.EESIPR.BIT.FRIP = 1;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 

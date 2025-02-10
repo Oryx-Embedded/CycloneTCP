@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -227,17 +227,26 @@ __weak_func void sam7xEthInitGpio(NetInterface *interface)
 {
 //SAM7-EX256 evaluation board?
 #if defined(USE_SAM7_EX256)
+   uint32_t mask;
+
    //Enable PIO peripheral clock
    AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_PIOB);
 
+   //Configure MII pins
+   mask = AT91C_PB17_ERXCK | AT91C_PB16_ECOL | AT91C_PB15_ERXDV_ECRSDV |
+      AT91C_PB14_ERX3 | AT91C_PB13_ERX2 | AT91C_PB12_ETXER | AT91C_PB11_ETX3 |
+      AT91C_PB10_ETX2 | AT91C_PB9_EMDIO | AT91C_PB8_EMDC | AT91C_PB7_ERXER |
+      AT91C_PB6_ERX1 | AT91C_PB5_ERX0 | AT91C_PB4_ECRS | AT91C_PB3_ETX1 |
+      AT91C_PB2_ETX0 | AT91C_PB1_ETXEN | AT91C_PB0_ETXCK_EREFCK;
+
    //Disable pull-up resistors on MII pins
-   AT91C_BASE_PIOB->PIO_PPUDR = AT91C_EMAC_MII_MASK;
+   AT91C_BASE_PIOB->PIO_PPUDR = mask;
    //Disable interrupts-on-change
-   AT91C_BASE_PIOB->PIO_IDR = AT91C_EMAC_MII_MASK;
+   AT91C_BASE_PIOB->PIO_IDR = mask;
    //Assign MII pins to peripheral A function
-   AT91C_BASE_PIOB->PIO_ASR = AT91C_EMAC_MII_MASK;
+   AT91C_BASE_PIOB->PIO_ASR = mask;
    //Disable the PIO from controlling the corresponding pins
-   AT91C_BASE_PIOB->PIO_PDR = AT91C_EMAC_MII_MASK;
+   AT91C_BASE_PIOB->PIO_PDR = mask;
 
    //Select MII operation mode and enable transceiver clock
    AT91C_BASE_EMAC->EMAC_USRIO = AT91C_EMAC_CLKEN;

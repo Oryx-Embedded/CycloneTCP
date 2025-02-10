@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -1017,6 +1017,7 @@ error_t webSocketGenerateServerKey(WebSocket *webSocket)
    size_t n;
    WebSocketHandshakeContext *handshakeContext;
    Sha1Context sha1Context;
+   uint8_t digest[SHA1_DIGEST_SIZE];
 
    //Debug message
    TRACE_DEBUG("WebSocket: Generating server's key...\r\n");
@@ -1032,11 +1033,10 @@ error_t webSocketGenerateServerKey(WebSocket *webSocket)
    sha1Init(&sha1Context);
    sha1Update(&sha1Context, handshakeContext->clientKey, n);
    sha1Update(&sha1Context, webSocketGuid, osStrlen(webSocketGuid));
-   sha1Final(&sha1Context, NULL);
+   sha1Final(&sha1Context, digest);
 
    //Encode the result using Base64
-   base64Encode(sha1Context.digest, SHA1_DIGEST_SIZE,
-      handshakeContext->serverKey, &n);
+   base64Encode(digest, SHA1_DIGEST_SIZE, handshakeContext->serverKey, &n);
 
    //Debug message
    TRACE_DEBUG("  Server key: %s\r\n", handshakeContext->serverKey);
@@ -1099,6 +1099,7 @@ error_t webSocketVerifyServerKey(WebSocket *webSocket)
    char_t *buffer;
    WebSocketHandshakeContext *handshakeContext;
    Sha1Context sha1Context;
+   uint8_t digest[SHA1_DIGEST_SIZE];
 
    //Debug message
    TRACE_DEBUG("WebSocket: Verifying server's key...\r\n");
@@ -1117,10 +1118,10 @@ error_t webSocketVerifyServerKey(WebSocket *webSocket)
    sha1Init(&sha1Context);
    sha1Update(&sha1Context, handshakeContext->clientKey, n);
    sha1Update(&sha1Context, webSocketGuid, osStrlen(webSocketGuid));
-   sha1Final(&sha1Context, NULL);
+   sha1Final(&sha1Context, digest);
 
    //Encode the result using Base64
-   base64Encode(sha1Context.digest, SHA1_DIGEST_SIZE, buffer, &n);
+   base64Encode(digest, SHA1_DIGEST_SIZE, buffer, &n);
 
    //Debug message
    TRACE_DEBUG("  Client key: %s\r\n", handshakeContext->clientKey);

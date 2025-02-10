@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -342,6 +342,7 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
    error_t error;
    size_t offset;
    size_t length;
+   Ipv4Addr srcIpAddr;
    Ipv4Header *ipHeader;
    NetBuffer *icmpMessage;
    IcmpErrorMessage *icmpHeader;
@@ -355,10 +356,37 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
       return ERROR_INVALID_LENGTH;
 
    //Point to the header of the invoking packet
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv4Header));
    //Sanity check
    if(ipHeader == NULL)
       return ERROR_FAILURE;
+
+   //Check the type of the invoking packet
+   if(ipHeader->protocol == IPV4_PROTOCOL_ICMP)
+   {
+      //Make sure the ICMP message is valid
+      if(length >= (ipHeader->headerLength * 4 + sizeof(IcmpHeader)))
+      {
+         //Point to the ICMP header
+         icmpHeader = netBufferAt(ipPacket, ipPacketOffset +
+            ipHeader->headerLength * 4, sizeof(IcmpHeader));
+
+         //Sanity check
+         if(icmpHeader != NULL)
+         {
+            //An ICMP error message must not be originated as a result of
+            //receiving an ICMP error or redirect message
+            if(icmpHeader->type == ICMP_TYPE_DEST_UNREACHABLE ||
+               icmpHeader->type == ICMP_TYPE_TIME_EXCEEDED ||
+               icmpHeader->type == ICMP_TYPE_PARAM_PROBLEM ||
+               icmpHeader->type == ICMP_TYPE_REDIRECT)
+            {
+               //Do not send any ICMP error message
+               return ERROR_INVALID_TYPE;
+            }
+         }
+      }
+   }
 
    //Never respond to a packet destined to a broadcast or a multicast address
    if(ipv4IsBroadcastAddr(interface, ipHeader->destAddr) ||
@@ -395,34 +423,54 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
    //Check status code
    if(!error)
    {
-      NetTxAncillary ancillary;
-
       //Get the length of the resulting message
       length = netBufferGetLength(icmpMessage) - offset;
       //Message checksum calculation
       icmpHeader->checksum = ipCalcChecksumEx(icmpMessage, offset, length);
 
-      //Format IPv4 pseudo header
-      pseudoHeader.srcAddr = ipHeader->destAddr;
-      pseudoHeader.destAddr = ipHeader->srcAddr;
-      pseudoHeader.reserved = 0;
-      pseudoHeader.protocol = IPV4_PROTOCOL_ICMP;
-      pseudoHeader.length = htons(length);
+      //Check whether the destination address of the invoking packet matches a
+      //valid unicast address assigned to the interface
+      error = ipv4CheckDestAddr(interface, ipHeader->destAddr);
 
-      //Update ICMP statistics
-      icmpUpdateOutStats(type);
+      //The source address must be the address of the gateway or host that
+      //composes the ICMP message (refer to RFC 792)
+      if(!error)
+      {
+         srcIpAddr = ipHeader->destAddr;
+      }
+      else
+      {
+         error = ipv4SelectSourceAddr(&interface, ipHeader->srcAddr,
+            &srcIpAddr);
+      }
 
-      //Debug message
-      TRACE_INFO("Sending ICMP Error message (%" PRIuSIZE " bytes)...\r\n", length);
-      //Dump message contents for debugging purpose
-      icmpDumpErrorMessage(icmpHeader);
+      //Check status code
+      if(!error)
+      {
+         NetTxAncillary ancillary;
 
-      //Additional options can be passed to the stack along with the packet
-      ancillary = NET_DEFAULT_TX_ANCILLARY;
+         //Format IPv4 pseudo header
+         pseudoHeader.srcAddr = srcIpAddr;
+         pseudoHeader.destAddr = ipHeader->srcAddr;
+         pseudoHeader.reserved = 0;
+         pseudoHeader.protocol = IPV4_PROTOCOL_ICMP;
+         pseudoHeader.length = htons(length);
 
-      //Send ICMP Error message
-      error = ipv4SendDatagram(interface, &pseudoHeader, icmpMessage, offset,
-         &ancillary);
+         //Update ICMP statistics
+         icmpUpdateOutStats(type);
+
+         //Debug message
+         TRACE_INFO("Sending ICMP Error message (%" PRIuSIZE " bytes)...\r\n", length);
+         //Dump message contents for debugging purpose
+         icmpDumpErrorMessage(icmpHeader);
+
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_TX_ANCILLARY;
+
+         //Send ICMP Error message
+         error = ipv4SendDatagram(interface, &pseudoHeader, icmpMessage, offset,
+            &ancillary);
+      }
    }
 
    //Free previously allocated memory

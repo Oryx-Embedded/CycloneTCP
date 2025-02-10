@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -176,6 +176,9 @@ Socket *socketAllocate(uint_t type, uint_t protocol)
          //Default TX and RX buffer size
          socket->txBufferSize = MIN(TCP_DEFAULT_TX_BUFFER_SIZE, TCP_MAX_TX_BUFFER_SIZE);
          socket->rxBufferSize = MIN(TCP_DEFAULT_RX_BUFFER_SIZE, TCP_MAX_RX_BUFFER_SIZE);
+
+         //Compute the window scale factor to use for the receive window
+         tcpComputeWindowScaleFactor(socket);
 #endif
       }
    }
@@ -555,7 +558,7 @@ void socketRemoveMulticastSrcAddr(SocketMulticastGroup *group,
 
 /**
  * @brief Search the list of multicast sources for a given IP address
- * @param[in] socket Handle to a socket
+ * @param[in] group Pointer to the multicast group
  * @param[in] srcAddr Source IP address
  * @return Index of the matching IP address is returned. -1 is
  *   returned if the specified IP address cannot be found

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -348,38 +348,38 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          {
             //The usmUserAuthProtocol object specifies the type of authentication
             //protocol which is used
-            if(!oidComp(value->oid, valueLen, usmNoAuthProtocolOid,
-               sizeof(usmNoAuthProtocolOid)))
+            if(OID_COMP(value->oid, valueLen,
+               usmNoAuthProtocolOid) == 0)
             {
                //No authentication
             }
-            else if(!oidComp(value->oid, valueLen, usmHMACMD5AuthProtocolOid,
-               sizeof(usmHMACMD5AuthProtocolOid)))
+            else if(OID_COMP(value->oid, valueLen,
+               usmHMACMD5AuthProtocolOid) == 0)
             {
                //HMAC-MD5-96 authentication protocol
             }
-            else if(!oidComp(value->oid, valueLen, usmHMACSHAAuthProtocolOid,
-               sizeof(usmHMACSHAAuthProtocolOid)))
+            else if(OID_COMP(value->oid, valueLen,
+               usmHMACSHAAuthProtocolOid) == 0)
             {
                //HMAC-SHA-1-96 authentication protocol
             }
-            else if(!oidComp(value->oid, valueLen, usmHMAC128SHA224AuthProtocolOid,
-               sizeof(usmHMAC128SHA224AuthProtocolOid)))
+            else if(OID_COMP(value->oid, valueLen,
+               usmHMAC128SHA224AuthProtocolOid) == 0)
             {
                //HMAC-SHA-224-128 authentication protocol
             }
-            else if(!oidComp(value->oid, valueLen, usmHMAC192SHA256AuthProtocolOid,
-               sizeof(usmHMAC192SHA256AuthProtocolOid)))
+            else if(OID_COMP(value->oid, valueLen,
+               usmHMAC192SHA256AuthProtocolOid) == 0)
             {
                //HMAC-SHA-256-192 authentication protocol
             }
-            else if(!oidComp(value->oid, valueLen, usmHMAC256SHA384AuthProtocolOid,
-               sizeof(usmHMAC256SHA384AuthProtocolOid)))
+            else if(OID_COMP(value->oid, valueLen,
+               usmHMAC256SHA384AuthProtocolOid) == 0)
             {
                //HMAC-SHA-384-256 authentication protocol
             }
-            else if(!oidComp(value->oid, valueLen, usmHMAC384SHA512AuthProtocolOid,
-               sizeof(usmHMAC384SHA512AuthProtocolOid)))
+            else if(OID_COMP(value->oid, valueLen,
+               usmHMAC384SHA512AuthProtocolOid) == 0)
             {
                //HMAC-SHA-512-384 authentication protocol
             }
@@ -472,18 +472,15 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          {
             //The usmUserPrivProtocol object specifies the type of privacy
             //protocol which is used
-            if(!oidComp(value->oid, valueLen, usmNoPrivProtocolOid,
-               sizeof(usmNoPrivProtocolOid)))
+            if(OID_COMP(value->oid, valueLen, usmNoPrivProtocolOid) == 0)
             {
                //No privacy
             }
-            else if(!oidComp(value->oid, valueLen, usmDESPrivProtocolOid,
-               sizeof(usmDESPrivProtocolOid)))
+            else if(OID_COMP(value->oid, valueLen, usmDESPrivProtocolOid) == 0)
             {
                //DES-CBC privacy protocol
             }
-            else if(!oidComp(value->oid, valueLen, usmAesCfb128ProtocolOid,
-               sizeof(usmAesCfb128ProtocolOid)))
+            else if(OID_COMP(value->oid, valueLen, usmAesCfb128ProtocolOid) == 0)
             {
                //AES-128-CFB privacy protocol
             }

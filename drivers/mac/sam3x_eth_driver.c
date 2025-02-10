@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -224,17 +224,24 @@ __weak_func void sam3xEthInitGpio(NetInterface *interface)
 {
 //SAM3X-EK evaluation board?
 #if defined(USE_SAM3X_EK)
+   uint32_t mask;
+
    //Enable PIO peripheral clock
    PMC->PMC_PCER0 = (1 << ID_PIOB);
 
+   //Configure RMII pins
+   mask = PIO_PB9A_EMDIO | PIO_PB8A_EMDC | PIO_PB7A_ERXER | PIO_PB6A_ERX1 |
+      PIO_PB5A_ERX0 | PIO_PB4A_ERXDV | PIO_PB3A_ETX1 | PIO_PB2A_ETX0 |
+      PIO_PB1A_ETXEN | PIO_PB0A_ETXCK;
+
    //Disable pull-up resistors on RMII pins
-   PIOB->PIO_PUDR = EMAC_RMII_MASK;
+   PIOB->PIO_PUDR = mask;
    //Disable interrupts-on-change
-   PIOB->PIO_IDR = EMAC_RMII_MASK;
+   PIOB->PIO_IDR = mask;
    //Assign RMII pins to peripheral A function
-   PIOB->PIO_ABSR &= ~EMAC_RMII_MASK;
+   PIOB->PIO_ABSR &= ~mask;
    //Disable the PIO from controlling the corresponding pins
-   PIOB->PIO_PDR = EMAC_RMII_MASK;
+   PIOB->PIO_PDR = mask;
 
    //Select RMII operation mode and enable transceiver clock
    EMAC->EMAC_USRIO = EMAC_USRIO_CLKEN | EMAC_USRIO_RMII;

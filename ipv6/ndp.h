@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _NDP_H
@@ -601,6 +601,9 @@ extern systime_t ndpTickCounter;
 //NDP related functions
 error_t ndpInit(NetInterface *interface);
 error_t ndpEnable(NetInterface *interface, bool_t enable);
+
+error_t ndpSetReachableTime(NetInterface *interface, systime_t reachableTime);
+error_t ndpSetRetransTimer(NetInterface *interface, systime_t retransTimer);
 
 error_t ndpAddStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr,
    const MacAddr *macAddr);

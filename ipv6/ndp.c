@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -120,6 +120,103 @@ error_t ndpEnable(NetInterface *interface, bool_t enable)
    if(!enable)
    {
       ndpFlushNeighborCache(interface);
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Configure the NDP reachable time
+ * @param[in] interface Underlying network interface
+ * @param[in] reachableTime The time, in milliseconds, a node assumes a
+ *   neighbor is reachable
+ * @return Error code
+ **/
+
+error_t ndpSetReachableTime(NetInterface *interface, systime_t reachableTime)
+{
+   uint_t i;
+   NdpNeighborCacheEntry *entry;
+
+   //Check parameters
+   if(interface == NULL || reachableTime == 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Save reachable time
+   interface->ndpContext.reachableTime = reachableTime;
+
+   //Loop through Neighbor cache entries
+   for(i = 0; i < NDP_NEIGHBOR_CACHE_SIZE; i++)
+   {
+      //Point to the current entry
+      entry = &interface->ndpContext.neighborCache[i];
+
+      //Check the state of the Neighbor cache entry
+      if(entry->state == NDP_STATE_REACHABLE)
+      {
+         //Adjust the reachable time, if necessary
+         if(entry->timeout > reachableTime)
+         {
+            entry->timeout = reachableTime;
+         }
+      }
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Configure the time interval between retransmission of NS messages
+ * @param[in] interface Underlying network interface
+ * @param[in] retransTimer The time, in milliseconds, between retransmissions
+ *   of NS messages
+ * @return Error code
+ **/
+
+error_t ndpSetRetransTimer(NetInterface *interface, systime_t retransTimer)
+{
+   uint_t i;
+   NdpNeighborCacheEntry *entry;
+
+   //Check parameters
+   if(interface == NULL || retransTimer == 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Save retransmission time
+   interface->ndpContext.retransTimer = retransTimer;
+
+   //Loop through Neighbor cache entries
+   for(i = 0; i < NDP_NEIGHBOR_CACHE_SIZE; i++)
+   {
+      //Point to the current entry
+      entry = &interface->ndpContext.neighborCache[i];
+
+      //Check the state of the Neighbor cache entry
+      if(entry->state == NDP_STATE_INCOMPLETE ||
+         entry->state == NDP_STATE_PROBE)
+      {
+         //Adjust the reachable time, if necessary
+         if(entry->timeout > retransTimer)
+         {
+            entry->timeout = retransTimer;
+         }
+      }
    }
 
    //Release exclusive access

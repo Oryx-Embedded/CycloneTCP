@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -1031,7 +1031,9 @@ error_t webSocketSendEx(WebSocket *webSocket, const void *data, size_t length,
          //with the FIN bit clear and the opcode set to 0, and terminated by
          //a single frame with the FIN bit set and an opcode of 0
          if(!firstFrag)
+         {
             type = WS_FRAME_TYPE_CONTINUATION;
+         }
 
          //Format WebSocket frame header
          error = webSocketFormatFrameHeader(webSocket, lastFrag, type, length - i);
@@ -1119,7 +1121,9 @@ error_t webSocketSendEx(WebSocket *webSocket, const void *data, size_t length,
 
                //Write operation complete?
                if(i >= length)
+               {
                   break;
+               }
             }
          }
       }
@@ -1131,12 +1135,16 @@ error_t webSocketSendEx(WebSocket *webSocket, const void *data, size_t length,
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Total number of data that have been written
    if(written != NULL)
+   {
       *written = i;
+   }
 
    //Return status code
    return error;
@@ -1194,7 +1202,9 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
    //Check the state of the WebSocket connection
    if(webSocket->state != WS_STATE_OPEN &&
       webSocket->state != WS_STATE_CLOSING_RX)
+   {
       return ERROR_NOT_CONNECTED;
+   }
 
    //Point to the RX context
    rxContext = &webSocket->rxContext;
@@ -1206,11 +1216,19 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
 
    //Initialize flags
    if(type != NULL)
+   {
       *type = WS_FRAME_TYPE_CONTINUATION;
+   }
+
    if(firstFrag != NULL)
+   {
       *firstFrag = FALSE;
+   }
+
    if(lastFrag != NULL)
+   {
       *lastFrag = FALSE;
+   }
 
    //No data has been read yet
    i = 0;
@@ -1255,7 +1273,9 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
 
             //Check whether the masking key is present
             if(frame->mask)
+            {
                rxContext->bufferLen += sizeof(uint32_t);
+            }
 
             //The Opcode field defines the interpretation of the payload data
             if(frame->opcode == WS_FRAME_TYPE_CLOSE)
@@ -1306,7 +1326,9 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
             else if(error == NO_ERROR)
             {
                if(firstFrag != NULL)
+               {
                   *firstFrag = TRUE;
+               }
             }
 
             //Flush the receive buffer
@@ -1391,7 +1413,9 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
             if(rxContext->fin || rxContext->controlFrameType != WS_FRAME_TYPE_CONTINUATION)
             {
                if(lastFrag != NULL)
+               {
                   *lastFrag = TRUE;
+               }
 
                //Exit immediately
                break;
@@ -1429,7 +1453,9 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
 
    //Return the total number of data that have been read
    if(received != NULL)
+   {
       *received = i;
+   }
 
    //Return status code
    return error;
@@ -1575,7 +1601,9 @@ error_t webSocketShutdown(WebSocket *webSocket)
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Return status code

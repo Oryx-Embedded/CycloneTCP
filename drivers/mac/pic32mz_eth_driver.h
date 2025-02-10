@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _PIC32MZ_ETH_DRIVER_H
@@ -74,6 +74,44 @@
    #define PIC32MZ_ETH_IRQ_SUB_PRIORITY 0
 #elif (PIC32MZ_ETH_IRQ_SUB_PRIORITY < 0)
    #error PIC32MZ_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#endif
+
+//Processor-specific definitions
+#if defined(__32MZ1025W104132__) || defined(__32MZ2051W104132__) || \
+   defined(__WFI32E01__) || defined(__WFI32E02__) || defined(__WFI32E03__)
+   //Enable Ethernet interrupts
+   #define ETH_SET_ETHIE() IEC5SET = _IEC5_ETHIE_MASK
+   //Disable Ethernet interrupts
+   #define ETH_CLEAR_ETHIE() IEC5CLR = _IEC5_ETHIE_MASK
+   //Clear Ethernet interrupt flag
+   #define ETH_CLEAR_ETHIF() IFS5CLR = _IFS5_ETHIF_MASK
+
+   //Set Ethernet interrupt priority
+   #define ETH_SET_ETHIP(n) \
+      IPC41CLR = _IPC41_ETHIP_MASK, \
+      IPC41SET = ((n) << _IPC41_ETHIP_POSITION)
+
+   //Set Ethernet interrupt subpriority
+   #define ETH_SET_ETHIS(n) \
+      IPC41CLR = _IPC41_ETHIS_MASK, \
+      IPC41SET = ((n) << _IPC41_ETHIS_POSITION)
+#else
+   //Enable Ethernet interrupts
+   #define ETH_SET_ETHIE() IEC4SET = _IEC4_ETHIE_MASK
+   //Disable Ethernet interrupts
+   #define ETH_CLEAR_ETHIE() IEC4CLR = _IEC4_ETHIE_MASK
+   //Clear Ethernet interrupt flag
+   #define ETH_CLEAR_ETHIF() IFS4CLR = _IFS4_ETHIF_MASK
+
+   //Set Ethernet interrupt priority
+   #define ETH_SET_ETHIP(n) \
+      IPC38CLR = _IPC38_ETHIP_MASK, \
+      IPC38SET = ((n) << _IPC38_ETHIP_POSITION)
+
+   //Set Ethernet interrupt subpriority
+   #define ETH_SET_ETHIS(n) \
+      IPC38CLR = _IPC38_ETHIS_MASK, \
+      IPC38SET = ((n) << _IPC38_ETHIS_POSITION)
 #endif
 
 //EMAC1MCFG register

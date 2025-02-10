@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -66,7 +66,7 @@ const NtpParamName ntpModeList[] =
 };
 
 //Stratum
-const NtpParamName ntpStartumList[] =
+const NtpParamName ntpStratumList[] =
 {
    {NTP_STRATUM_KISS_OF_DEATH, "kiss-of-death message"},
    {NTP_STRATUM_PRIMARY,       "primary"},
@@ -141,9 +141,9 @@ void ntpDumpPacket(const NtpHeader *packet, size_t length)
    //The Stratum field is significant only in server messages
    if(header->mode == NTP_MODE_SERVER)
    {
-      //Convert the Startum field to string representation
-      name = ntpGetParamName(header->stratum, ntpStartumList,
-         arraysize(ntpStartumList));
+      //Convert the Stratum field to string representation
+      name = ntpGetParamName(header->stratum, ntpStratumList,
+         arraysize(ntpStratumList));
 
       //Dump Stratum field
       TRACE_DEBUG("  Stratum = %" PRIu8 " (%s)\r\n", header->stratum, name);

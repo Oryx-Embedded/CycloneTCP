@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -228,18 +228,25 @@ __weak_func void sama5d3Eth1InitGpio(NetInterface *interface)
 {
 //SAMA5D3-Xplained or SAMA5D3-EDS evaluation board?
 #if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS)
+   uint32_t mask;
+
    //Enable PIO peripheral clock
    PMC->PMC_PCER0 = (1 << ID_PIOC);
 
+   //Configure RMII pins
+   mask = PIO_PC9A_EMDIO | PIO_PC8A_EMDC | PIO_PC7A_EREFCK | PIO_PC6A_ERXER |
+      PIO_PC5A_ECRSDV | PIO_PC4A_ETXEN | PIO_PC3A_ERX1 | PIO_PC2A_ERX0 |
+      PIO_PC1A_ETX1 | PIO_PC0A_ETX0;
+
    //Disable pull-up resistors on RMII pins
-   PIOC->PIO_PUDR = EMAC_RMII_MASK;
+   PIOC->PIO_PUDR = mask;
    //Disable interrupts-on-change
-   PIOC->PIO_IDR = EMAC_RMII_MASK;
+   PIOC->PIO_IDR = mask;
    //Assign RMII pins to peripheral A function
-   PIOC->PIO_ABCDSR[0] &= ~EMAC_RMII_MASK;
-   PIOC->PIO_ABCDSR[1] &= ~EMAC_RMII_MASK;
+   PIOC->PIO_ABCDSR[0] &= ~mask;
+   PIOC->PIO_ABCDSR[1] &= ~mask;
    //Disable the PIO from controlling the corresponding pins
-   PIOC->PIO_PDR = EMAC_RMII_MASK;
+   PIOC->PIO_PDR = mask;
 
    //Select RMII operation mode and enable transceiver clock
    EMAC->EMAC_USRIO = EMAC_USRIO_CLKEN | EMAC_USRIO_RMII;

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -45,13 +45,14 @@
 #include "igmp/igmp_host.h"
 #include "igmp/igmp_router.h"
 #include "igmp/igmp_snooping.h"
+#include "dhcp/dhcp_client_misc.h"
+#include "dhcp/dhcp_server_misc.h"
+#include "nat/nat_misc.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_routing.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv.h"
 #include "mld/mld_node.h"
-#include "dhcp/dhcp_client_misc.h"
-#include "dhcp/dhcp_server_misc.h"
 #include "dhcpv6/dhcpv6_client_misc.h"
 #include "dns/dns_cache.h"
 #include "dns/dns_client.h"
@@ -264,6 +265,9 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 #endif
 #if (IPV4_SUPPORT == ENABLED && DHCP_SERVER_SUPPORT == ENABLED)
    dhcpServerTickCounter = 0;
+#endif
+#if (IPV4_SUPPORT == ENABLED && NAT_SUPPORT == ENABLED)
+   natTickCounter = 0;
 #endif
 #if (IPV6_SUPPORT == ENABLED && IPV6_FRAG_SUPPORT == ENABLED)
    ipv6FragTickCounter = 0;

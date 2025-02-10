@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -53,6 +53,7 @@
 #include "ipv4/auto_ip_misc.h"
 #include "igmp/igmp_host.h"
 #include "dhcp/dhcp_client_misc.h"
+#include "nat/nat_misc.h"
 #include "mdns/mdns_responder.h"
 #include "mibs/mib2_module.h"
 #include "mibs/ip_mib_module.h"
@@ -721,8 +722,19 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
       }
       else
       {
-         //Destination address filtering
-         error = ipv4CheckDestAddr(interface, packet->destAddr);
+#if (NAT_SUPPORT == ENABLED)
+         //Packet received on the private interface of the NAT?
+         if(natIsPrivateInterface(netContext.natContext, interface))
+         {
+            //Accept any destination address
+            error = NO_ERROR;
+         }
+         else
+#endif
+         {
+            //Destination address filtering
+            error = ipv4CheckDestAddr(interface, packet->destAddr);
+         }
 
 #if defined(IPV4_PACKET_FORWARD_HOOK)
          IPV4_PACKET_FORWARD_HOOK(interface, packet, length);
@@ -861,6 +873,15 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    ancillary->ttl = header->timeToLive;
    //Save ToS value
    ancillary->tos = header->typeOfService;
+
+#if (NAT_SUPPORT == ENABLED)
+   //Route inbound/outbound packets across NAT
+   error = natProcessPacket(netContext.natContext, interface,
+      &pseudoHeader.ipv4Data, buffer, offset, ancillary);
+   //Successful address translation?
+   if(!error)
+      return;
+#endif
 
 #if defined(IPV4_DATAGRAM_FORWARD_HOOK)
    IPV4_DATAGRAM_FORWARD_HOOK(interface, &pseudoHeader, buffer, offset);

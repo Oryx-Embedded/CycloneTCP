@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _TCP_H
@@ -231,6 +231,13 @@
    #error TCP_DEFAULT_KEEP_ALIVE_PROBES parameter is not valid
 #endif
 
+//TCP window scale option support
+#ifndef TCP_WINDOW_SCALE_SUPPORT
+   #define TCP_WINDOW_SCALE_SUPPORT DISABLED
+#elif (TCP_WINDOW_SCALE_SUPPORT != ENABLED && TCP_WINDOW_SCALE_SUPPORT != DISABLED)
+   #error TCP_WINDOW_SCALE_SUPPORT parameter is not valid
+#endif
+
 //Selective acknowledgment support
 #ifndef TCP_SACK_SUPPORT
    #define TCP_SACK_SUPPORT DISABLED
@@ -405,6 +412,10 @@ typedef struct _TcpSynQueueItem
    IpAddr destAddr;
    uint32_t isn;
    uint16_t mss;
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+   uint8_t wndScaleFactor;
+   bool_t wndScaleOptionReceived;
+#endif
 #if (TCP_SACK_SUPPORT == ENABLED)
    bool_t sackPermitted;
 #endif

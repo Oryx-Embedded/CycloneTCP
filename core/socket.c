@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -1205,10 +1205,6 @@ error_t socketSetTxBufferSize(Socket *socket, size_t size)
    if(socket == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Check parameter value
-   if(size < 1 || size > TCP_MAX_TX_BUFFER_SIZE)
-      return ERROR_INVALID_PARAMETER;
-
    //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
       return ERROR_INVALID_SOCKET;
@@ -1217,8 +1213,13 @@ error_t socketSetTxBufferSize(Socket *socket, size_t size)
    if(tcpGetState(socket) != TCP_STATE_CLOSED)
       return ERROR_INVALID_SOCKET;
 
+   //Check parameter value
+   if(size < 1 || size > TCP_MAX_TX_BUFFER_SIZE)
+      return ERROR_INVALID_PARAMETER;
+
    //Use the specified buffer size
    socket->txBufferSize = size;
+
    //No error to report
    return NO_ERROR;
 #else
@@ -1241,10 +1242,6 @@ error_t socketSetRxBufferSize(Socket *socket, size_t size)
    if(socket == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Check parameter value
-   if(size < 1 || size > TCP_MAX_RX_BUFFER_SIZE)
-      return ERROR_INVALID_PARAMETER;
-
    //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
       return ERROR_INVALID_SOCKET;
@@ -1253,8 +1250,16 @@ error_t socketSetRxBufferSize(Socket *socket, size_t size)
    if(tcpGetState(socket) != TCP_STATE_CLOSED)
       return ERROR_INVALID_SOCKET;
 
+   //Check parameter value
+   if(size < 1 || size > TCP_MAX_RX_BUFFER_SIZE)
+      return ERROR_INVALID_PARAMETER;
+
    //Use the specified buffer size
    socket->rxBufferSize = size;
+
+   //Compute the window scale factor to use for the receive window
+   tcpComputeWindowScaleFactor(socket);
+
    //No error to report
    return NO_ERROR;
 #else

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -227,21 +227,36 @@ __weak_func void sam9263EthInitGpio(NetInterface *interface)
 {
 //SAM9263-EK evaluation board?
 #if defined(USE_SAM9263_EK)
+   uint32_t mask;
+
    //Enable PIO peripheral clocks
-   AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_PIOA) | (1 << AT91C_ID_PIOCDE);
+   AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_PIOCDE);
+
+   //Configure RMII pins (PIOC)
+   mask = AT91C_PC25_ERXDV;
 
    //Disable pull-up resistors on RMII pins
-   AT91C_BASE_PIOC->PIO_PPUDR = AT91C_EMAC_RMII_MASK_C;
-   AT91C_BASE_PIOE->PIO_PPUDR = AT91C_EMAC_RMII_MASK_E;
+   AT91C_BASE_PIOC->PIO_PPUDR = mask;
    //Disable interrupts-on-change
-   AT91C_BASE_PIOC->PIO_IDR = AT91C_EMAC_RMII_MASK_C;
-   AT91C_BASE_PIOE->PIO_IDR = AT91C_EMAC_RMII_MASK_E;
+   AT91C_BASE_PIOC->PIO_IDR = mask;
    //Assign RMII pins to to the relevant peripheral function
-   AT91C_BASE_PIOC->PIO_BSR = AT91C_EMAC_RMII_MASK_C;
-   AT91C_BASE_PIOE->PIO_ASR = AT91C_EMAC_RMII_MASK_E;
+   AT91C_BASE_PIOC->PIO_BSR = mask;
    //Disable the PIO from controlling the corresponding pins
-   AT91C_BASE_PIOC->PIO_PDR = AT91C_EMAC_RMII_MASK_C;
-   AT91C_BASE_PIOE->PIO_PDR = AT91C_EMAC_RMII_MASK_E;
+   AT91C_BASE_PIOC->PIO_PDR = mask;
+
+   //Configure RMII pins (PIOE)
+   mask = AT91C_PE30_EMDIO | AT91C_PE29_EMDC | AT91C_PE28_ETXEN |
+      AT91C_PE27_ERXER | AT91C_PE26_ERX1 | AT91C_PE25_ERX0 |
+      AT91C_PE24_ETX1 | AT91C_PE23_ETX0 | AT91C_PE21_ETXCK;
+
+   //Disable pull-up resistors on RMII pins
+   AT91C_BASE_PIOE->PIO_PPUDR = mask;
+   //Disable interrupts-on-change
+   AT91C_BASE_PIOE->PIO_IDR = mask;
+   //Assign RMII pins to to the relevant peripheral function
+   AT91C_BASE_PIOE->PIO_ASR = mask;
+   //Disable the PIO from controlling the corresponding pins
+   AT91C_BASE_PIOE->PIO_PDR = mask;
 
    //Select RMII operation mode and enable transceiver clock
    AT91C_BASE_EMAC->EMAC_USRIO = AT91C_EMAC_CLKEN | AT91C_EMAC_RMII;

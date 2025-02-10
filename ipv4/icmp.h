@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _ICMP_H
@@ -33,6 +33,20 @@
 
 //Dependencies
 #include "core/net.h"
+
+//ICMP query identifier range (lower limit)
+#ifndef ICMP_QUERY_ID_MIN
+   #define ICMP_QUERY_ID_MIN 0
+#elif (ICMP_QUERY_ID_MIN < 0)
+   #error ICMP_QUERY_ID_MIN parameter is not valid
+#endif
+
+//ICMP query identifier range (upper limit)
+#ifndef ICMP_QUERY_ID_MAX
+   #define ICMP_QUERY_ID_MAX 32767
+#elif (ICMP_QUERY_ID_MAX <= ICMP_QUERY_ID_MIN || ICMP_QUERY_ID_MAX > 65535)
+   #error ICMP_QUERY_ID_MAX parameter is not valid
+#endif
 
 //C++ guard
 #ifdef __cplusplus
@@ -50,19 +64,23 @@ extern "C" {
 
 typedef enum
 {
-   ICMP_TYPE_ECHO_REPLY        = 0,
-   ICMP_TYPE_DEST_UNREACHABLE  = 3,
-   ICMP_TYPE_SOURCE_QUENCH     = 4,
-   ICMP_TYPE_REDIRECT          = 5,
-   ICMP_TYPE_ECHO_REQUEST      = 8,
-   ICMP_TYPE_TIME_EXCEEDED     = 11,
-   ICMP_TYPE_PARAM_PROBLEM     = 12,
-   ICMP_TYPE_TIMESTAMP_REQUEST = 13,
-   ICMP_TYPE_TIMESTAMP_REPLY   = 14,
-   ICMP_TYPE_INFO_REQUEST      = 15,
-   ICMP_TYPE_INFO_REPLY        = 16,
-   ICMP_TYPE_ADDR_MASK_REQUEST = 17,
-   ICMP_TYPE_ADDR_MASK_REPLY   = 18
+   ICMP_TYPE_ECHO_REPLY          = 0,
+   ICMP_TYPE_DEST_UNREACHABLE    = 3,
+   ICMP_TYPE_SOURCE_QUENCH       = 4,
+   ICMP_TYPE_REDIRECT            = 5,
+   ICMP_TYPE_ALTERNATE_HOST_ADDR = 6,
+   ICMP_TYPE_ECHO_REQUEST        = 8,
+   ICMP_TYPE_ROUTER_ADV          = 9,
+   ICMP_TYPE_ROUTER_SOL          = 10,
+   ICMP_TYPE_TIME_EXCEEDED       = 11,
+   ICMP_TYPE_PARAM_PROBLEM       = 12,
+   ICMP_TYPE_TIMESTAMP_REQUEST   = 13,
+   ICMP_TYPE_TIMESTAMP_REPLY     = 14,
+   ICMP_TYPE_INFO_REQUEST        = 15,
+   ICMP_TYPE_INFO_REPLY          = 16,
+   ICMP_TYPE_ADDR_MASK_REQUEST   = 17,
+   ICMP_TYPE_ADDR_MASK_REPLY     = 18,
+   ICMP_TYPE_TRACEROUTE          = 30
 } IcmpType;
 
 
@@ -111,6 +129,36 @@ typedef __packed_struct
    uint16_t checksum; //2-3
    uint8_t data[];    //4
 } IcmpHeader;
+
+
+/**
+ * @brief ICMP Query message
+ **/
+
+typedef __packed_struct
+{
+   uint8_t type;        //0
+   uint8_t code;        //1
+   uint16_t checksum;   //2-3
+   uint16_t identifier; //4-5
+   uint16_t unused;     //6-7
+   uint8_t data[];      //8
+} IcmpQueryMessage;
+
+
+/**
+ * @brief ICMP Echo Request and Echo Reply messages
+ **/
+
+typedef __packed_struct
+{
+   uint8_t type;            //0
+   uint8_t code;            //1
+   uint16_t checksum;       //2-3
+   uint16_t identifier;     //4-5
+   uint16_t sequenceNumber; //6-7
+   uint8_t data[];          //8
+} IcmpEchoMessage;
 
 
 /**
@@ -169,21 +217,6 @@ typedef __packed_struct
    uint8_t unused[3]; //5-7
    uint8_t data[];    //8
 } IcmpParamProblemMessage;
-
-
-/**
- * @brief ICMP Echo Request and Echo Reply messages
- **/
-
-typedef __packed_struct
-{
-   uint8_t type;            //0
-   uint8_t code;            //1
-   uint16_t checksum;       //2-3
-   uint16_t identifier;     //4-5
-   uint16_t sequenceNumber; //6-7
-   uint8_t data[];          //8
-} IcmpEchoMessage;
 
 
 //CC-RX, CodeWarrior or Win32 compiler?

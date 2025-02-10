@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -116,12 +116,13 @@ error_t pic32mxEthInit(NetInterface *interface)
 
    //Enable the Ethernet controller by setting the ON bit
    ETHCON1SET = _ETHCON1_ON_MASK;
-
    //Clear Ethernet interrupt flag
    IFS1CLR = _IFS1_ETHIF_MASK;
+
    //Disable any Ethernet controller interrupt generation
    ETHIEN = 0;
    ETHIRQ = 0;
+
    //Clear the TX and RX start addresses
    ETHTXST = 0;
    ETHRXST = 0;

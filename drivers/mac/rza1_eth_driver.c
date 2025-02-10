@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -834,8 +834,8 @@ void rza1EthIrqHandler(uint32_t intSense)
    //Packet received?
    if((status & ETHER_EESR0_FR) != 0)
    {
-      //Disable FR interrupts
-      ETHER.EESIPR0 &= ~ETHER_EESIPR0_FRIP;
+      //Clear FR interrupt flag
+      ETHER.EESR0 = ETHER_EESR0_FR;
 
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -857,24 +857,14 @@ void rza1EthEventHandler(NetInterface *interface)
 {
    error_t error;
 
-   //Packet received?
-   if((ETHER.EESR0 & ETHER_EESR0_FR) != 0)
+   //Process all pending packets
+   do
    {
-      //Clear FR interrupt flag
-      ETHER.EESR0 = ETHER_EESR0_FR;
+      //Read incoming packet
+      error = rza1EthReceivePacket(interface);
 
-      //Process all pending packets
-      do
-      {
-         //Read incoming packet
-         error = rza1EthReceivePacket(interface);
-
-         //No more data in the receive buffer?
-      } while(error != ERROR_BUFFER_EMPTY);
-   }
-
-   //Re-enable EDMAC interrupts
-   ETHER.EESIPR0 = ETHER_EESIPR0_TWBIP | ETHER_EESIPR0_FRIP;
+      //No more data in the receive buffer?
+   } while(error != ERROR_BUFFER_EMPTY);
 }
 
 

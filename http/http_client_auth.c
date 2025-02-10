@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -597,11 +597,11 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
 {
 #if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED)
    size_t i;
+   const HashAlgo *hash;
+   HashContext hashContext;
    char_t buffer[9];
    uint8_t ha1[HTTP_CLIENT_MAX_HASH_DIGEST_SIZE];
    uint8_t ha2[HTTP_CLIENT_MAX_HASH_DIGEST_SIZE];
-   HashContext hashContext;
-   const HashAlgo *hash;
 
    //Point to the hash algorithm to be used
    hash = authParams->algorithm;

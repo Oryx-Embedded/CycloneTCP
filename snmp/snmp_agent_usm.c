@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 7860: HMAC-SHA-2 Authentication Protocols in the User-based Security Model
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -544,7 +544,7 @@ error_t snmpAuthIncomingMessage(const SnmpUserEntry *user, SnmpMessage *message)
 
    //The newly calculated MAC is compared with the MAC value that was
    //saved in the first step
-   if(osMemcmp(hmacContext.digest, mac, macLen))
+   if(osMemcmp(hmacContext.digest, mac, macLen) != 0)
       return ERROR_AUTHENTICATION_FAILED;
 
    //Successful message authentication

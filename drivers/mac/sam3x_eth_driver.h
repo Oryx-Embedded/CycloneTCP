@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _SAM3X_ETH_DRIVER_H
@@ -79,11 +79,6 @@
 #elif (SAM3X_ETH_IRQ_SUB_PRIORITY < 0)
    #error SAM3X_ETH_IRQ_SUB_PRIORITY parameter is not valid
 #endif
-
-//RMII signals
-#define EMAC_RMII_MASK (PIO_PB9A_EMDIO | PIO_PB8A_EMDC | \
-   PIO_PB7A_ERXER | PIO_PB6A_ERX1 | PIO_PB5A_ERX0 | PIO_PB4A_ERXDV | \
-   PIO_PB3A_ETX1 | PIO_PB2A_ETX0 | PIO_PB1A_ETXEN | PIO_PB0A_ETXCK)
 
 //TX buffer descriptor flags
 #define EMAC_TX_USED           0x80000000

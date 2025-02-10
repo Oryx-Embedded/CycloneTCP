@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -234,10 +234,13 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
       //Default congestion state
       socket->congestState = TCP_CONGEST_STATE_IDLE;
+
       //Initial congestion window
-      socket->cwnd = MIN(TCP_INITIAL_WINDOW * socket->smss, socket->txBufferSize);
+      socket->cwnd = MIN((uint32_t) socket->smss * TCP_INITIAL_WINDOW,
+         socket->txBufferSize);
+
       //Slow start threshold should be set arbitrarily high
-      socket->ssthresh = UINT16_MAX;
+      socket->ssthresh = UINT32_MAX;
       //Recover is set to the initial send sequence number
       socket->recover = socket->iss;
 #endif
@@ -388,6 +391,11 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
          newSocket->txBufferSize = socket->txBufferSize;
          newSocket->rxBufferSize = socket->rxBufferSize;
 
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+         //Save the window scale factor to use for the receive window
+         newSocket->rcvWndShift = socket->rcvWndShift;
+#endif
+
 #if (TCP_KEEP_ALIVE_SUPPORT == ENABLED)
          //Inherit keep-alive parameters from the listening socket
          newSocket->keepAliveEnabled = socket->keepAliveEnabled;
@@ -454,13 +462,21 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
             newSocket->congestState = TCP_CONGEST_STATE_IDLE;
 
             //Initial congestion window
-            newSocket->cwnd = MIN(TCP_INITIAL_WINDOW * newSocket->smss,
+            newSocket->cwnd = MIN((uint32_t) newSocket->smss * TCP_INITIAL_WINDOW,
                newSocket->txBufferSize);
 
             //Slow start threshold should be set arbitrarily high
-            newSocket->ssthresh = UINT16_MAX;
+            newSocket->ssthresh = UINT32_MAX;
             //Recover is set to the initial send sequence number
             newSocket->recover = newSocket->iss;
+#endif
+
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+            //If a Window Scale option is received with a shift.cnt value larger
+            //than 14, the TCP should log the error but must use 14 instead of
+            //the specified value (refer to RFC 7323, section 2.3)
+            newSocket->wndScaleOptionReceived = queueItem->wndScaleOptionReceived;
+            newSocket->sndWndShift = MIN(queueItem->wndScaleFactor, 14);
 #endif
 
 #if (TCP_SACK_SUPPORT == ENABLED)
@@ -477,7 +493,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
             MIB2_TCP_INC_COUNTER32(tcpPassiveOpens, 1);
             TCP_MIB_INC_COUNTER32(tcpPassiveOpens, 1);
 
-            //Send a SYN ACK control segment
+            //Send a SYN/ACK control segment
             error = tcpSendSegment(newSocket, TCP_FLAG_SYN | TCP_FLAG_ACK,
                newSocket->iss, newSocket->rcvNxt, 0, TRUE);
 

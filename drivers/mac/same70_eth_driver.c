@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -281,18 +281,26 @@ __weak_func void same70EthInitGpio(NetInterface *interface)
 {
 //SAME70-Xplained or SAME70-Xplained-Ultra evaluation board?
 #if defined(USE_SAME70_XPLAINED) || defined(USE_SAME70_XPLAINED_ULTRA)
+   uint32_t mask;
+
    //Enable PIO peripheral clocks
    PMC_REGS->PMC_PCER0 = (1 << ID_PIOC) | (1 << ID_PIOD);
 
+   //Configure RMII pins
+   mask = PIO_PD9A_GMAC_GMDIO | PIO_PD8A_GMAC_GMDC |
+      PIO_PD7A_GMAC_GRXER | PIO_PD6A_GMAC_GRX1 | PIO_PD5A_GMAC_GRX0 |
+      PIO_PD4A_GMAC_GRXDV | PIO_PD3A_GMAC_GTX1 | PIO_PD2A_GMAC_GTX0 |
+      PIO_PD1A_GMAC_GTXEN | PIO_PD0A_GMAC_GTXCK;
+
    //Disable pull-up resistors on RMII pins
-   PIOD_REGS->PIO_PUDR = GMAC_RMII_MASK;
+   PIOD_REGS->PIO_PUDR = mask;
    //Disable interrupts-on-change
-   PIOD_REGS->PIO_IDR = GMAC_RMII_MASK;
+   PIOD_REGS->PIO_IDR = mask;
    //Assign RMII pins to peripheral A function
-   PIOD_REGS->PIO_ABCDSR[0] &= ~GMAC_RMII_MASK;
-   PIOD_REGS->PIO_ABCDSR[1] &= ~GMAC_RMII_MASK;
+   PIOD_REGS->PIO_ABCDSR[0] &= ~mask;
+   PIOD_REGS->PIO_ABCDSR[1] &= ~mask;
    //Disable the PIO from controlling the corresponding pins
-   PIOD_REGS->PIO_PDR = GMAC_RMII_MASK;
+   PIOD_REGS->PIO_PDR = mask;
 
    //Select RMII operation mode
    GMAC_REGS->GMAC_UR &= ~GMAC_UR_RMII_Msk;

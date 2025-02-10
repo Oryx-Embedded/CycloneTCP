@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -27,7 +27,7 @@
  * @section Description
  *
  * IGMP is used by IP hosts to report their multicast group memberships to any
- * immediately-neighboring multicast routersRefer to the following RFCs for
+ * immediately-neighboring multicast routers. Refer to the following RFCs for
  * complete details:
  * - RFC 1112: Host Extensions for IP Multicasting
  * - RFC 2236: Internet Group Management Protocol, Version 2
@@ -35,7 +35,7 @@
  * - RFC 4541: Considerations for IGMP and MLD Snooping Switches
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level

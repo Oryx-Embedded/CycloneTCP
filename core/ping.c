@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -211,11 +211,11 @@ error_t pingSendRequest(PingContext *context,
    }
 
    //Identifier field is used to help matching requests and replies
-   context->identifier = netGetRand();
+   context->identifier = netGetRandRange(ICMP_QUERY_ID_MIN, ICMP_QUERY_ID_MAX);
 
    //Get exclusive access
    osAcquireMutex(&netMutex);
-   //Sequence Number field is increment each time an Echo Request is sent
+   //Sequence Number field is incremented each time an Echo Request is sent
    context->sequenceNumber = pingSequenceNumber++;
    //Release exclusive access
    osReleaseMutex(&netMutex);
@@ -227,8 +227,8 @@ error_t pingSendRequest(PingContext *context,
    message->type = ICMP_TYPE_ECHO_REQUEST;
    message->code = 0;
    message->checksum = 0;
-   message->identifier = context->identifier;
-   message->sequenceNumber = context->sequenceNumber;
+   message->identifier = htons(context->identifier);
+   message->sequenceNumber = htons(context->sequenceNumber);
 
    //Initialize data payload
    for(i = 0; i < context->dataPayloadSize; i++)
@@ -429,10 +429,11 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
    }
 
    //Make sure the response identifier matches the request identifier
-   if(message->identifier != context->identifier)
+   if(ntohs(message->identifier) != context->identifier)
       return ERROR_INVALID_MESSAGE;
+
    //Make sure the sequence number is correct
-   if(message->sequenceNumber != context->sequenceNumber)
+   if(ntohs(message->sequenceNumber) != context->sequenceNumber)
       return ERROR_INVALID_MESSAGE;
 
    //Verify data payload

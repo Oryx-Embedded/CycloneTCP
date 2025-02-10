@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _SOCKET_H
@@ -348,15 +348,15 @@ struct _Socket
 
    uint32_t sndUna;               ///<Data that have been sent but not yet acknowledged
    uint32_t sndNxt;               ///<Sequence number of the next byte to be sent
-   uint16_t sndUser;              ///<Amount of data buffered but not yet sent
-   uint16_t sndWnd;               ///<Size of the send window
-   uint16_t maxSndWnd;            ///<Maximum send window it has seen so far on the connection
+   uint32_t sndUser;              ///<Amount of data buffered but not yet sent
+   uint32_t sndWnd;               ///<Size of the send window
+   uint32_t maxSndWnd;            ///<Maximum send window it has seen so far on the connection
    uint32_t sndWl1;               ///<Segment sequence number used for last window update
    uint32_t sndWl2;               ///<Segment acknowledgment number used for last window update
 
    uint32_t rcvNxt;               ///<Receive next sequence number
-   uint16_t rcvUser;              ///<Number of data received but not yet consumed
-   uint16_t rcvWnd;               ///<Receive window
+   uint32_t rcvUser;              ///<Number of data received but not yet consumed
+   uint32_t rcvWnd;               ///<Receive window
 
    bool_t rttBusy;                ///<RTT measurement is being performed
    uint32_t rttSeqNum;            ///<Sequence number identifying a TCP segment
@@ -367,10 +367,10 @@ struct _Socket
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
    TcpCongestState congestState;  ///<Congestion state
-   uint16_t cwnd;                 ///<Congestion window
-   uint16_t ssthresh;             ///<Slow start threshold
+   uint32_t cwnd;                 ///<Congestion window
+   uint32_t ssthresh;             ///<Slow start threshold
    uint_t dupAckCount;            ///<Number of consecutive duplicate ACKs
-   uint_t n;                      ///<Number of bytes acknowledged during the whole round-trip
+   uint32_t n;                    ///<Number of bytes acknowledged during the whole round-trip
    uint32_t recover;              ///<NewReno modification to TCP's fast recovery algorithm
 #endif
 
@@ -381,6 +381,12 @@ struct _Socket
    uint_t keepAliveMaxProbes;     ///<Number of keep-alive probes
    uint_t keepAliveProbeCount;    ///<Keep-alive probe counter
    systime_t keepAliveTimestamp;  ///<Keep-alive timestamp
+#endif
+
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+   uint8_t sndWndShift;           ///<Send window scale factor
+   uint8_t rcvWndShift;           ///<Receive window scale factor
+   bool_t wndScaleOptionReceived; ///<A TCP window scale option has been received
 #endif
 
 #if (TCP_SACK_SUPPORT == ENABLED)

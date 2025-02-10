@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * a specific host when only its IPv4 address is known. Refer to RFC 826
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -61,6 +61,10 @@ error_t arpInit(NetInterface *interface)
 {
    //Enable ARP protocol
    interface->enableArp = TRUE;
+   //Set ARP reachable time
+   interface->arpReachableTime = ARP_REACHABLE_TIME;
+   //Set ARP probe timeout
+   interface->arpProbeTimeout = ARP_PROBE_TIMEOUT;
 
    //Initialize the ARP cache
    osMemset(interface->arpCache, 0, sizeof(interface->arpCache));
@@ -96,6 +100,102 @@ error_t arpEnable(NetInterface *interface, bool_t enable)
    if(!enable)
    {
       arpFlushCache(interface);
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Configure the ARP reachable time
+ * @param[in] interface Underlying network interface
+ * @param[in] reachableTime The time, in milliseconds, a node assumes a
+ *   neighbor is reachable
+ * @return Error code
+ **/
+
+error_t arpSetReachableTime(NetInterface *interface, systime_t reachableTime)
+{
+   uint_t i;
+   ArpCacheEntry *entry;
+
+   //Check parameters
+   if(interface == NULL || reachableTime == 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Save ARP reachable time
+   interface->arpReachableTime = reachableTime;
+
+   //Go through ARP cache
+   for(i = 0; i < ARP_CACHE_SIZE; i++)
+   {
+      //Point to the current entry
+      entry = &interface->arpCache[i];
+
+      //Check the state of the ARP entry
+      if(entry->state == ARP_STATE_REACHABLE)
+      {
+         //Adjust the reachable time, if necessary
+         if(entry->timeout > reachableTime)
+         {
+            entry->timeout = reachableTime;
+         }
+      }
+   }
+
+   //Release exclusive access
+   osReleaseMutex(&netMutex);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Configure the time interval between subsequent ARP probes
+ * @param[in] interface Underlying network interface
+ * @param[in] probeTimeout The time, in milliseconds, between subsequent
+ *   retransmissions of probes
+ * @return Error code
+ **/
+
+error_t arpSetProbeTimout(NetInterface *interface, systime_t probeTimeout)
+{
+   uint_t i;
+   ArpCacheEntry *entry;
+
+   //Check parameters
+   if(interface == NULL || probeTimeout == 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Get exclusive access
+   osAcquireMutex(&netMutex);
+
+   //Save ARP probe timeout
+   interface->arpProbeTimeout = probeTimeout;
+
+   //Go through ARP cache
+   for(i = 0; i < ARP_CACHE_SIZE; i++)
+   {
+      //Point to the current entry
+      entry = &interface->arpCache[i];
+
+      //Check the state of the ARP entry
+      if(entry->state == ARP_STATE_PROBE)
+      {
+         //Adjust the probe timeout, if necessary
+         if(entry->timeout > probeTimeout)
+         {
+            entry->timeout = probeTimeout;
+         }
+      }
    }
 
    //Release exclusive access
@@ -494,7 +594,7 @@ void arpTick(NetInterface *interface)
             arpSendRequest(interface, entry->ipAddr, &entry->macAddr);
 
             //Set timeout value
-            entry->timeout = ARP_PROBE_TIMEOUT;
+            entry->timeout = interface->arpProbeTimeout;
             //Switch to the PROBE state
             arpChangeState(entry, ARP_STATE_PROBE);
          }
@@ -517,7 +617,7 @@ void arpTick(NetInterface *interface)
                //Save the time at which the packet was sent
                entry->timestamp = time;
                //Set timeout value
-               entry->timeout = ARP_PROBE_TIMEOUT;
+               entry->timeout = interface->arpProbeTimeout;
             }
             else
             {
@@ -563,12 +663,15 @@ void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket,
    //Make sure the hardware type is valid
    if(arpPacket->hrd != HTONS(ARP_HARDWARE_TYPE_ETH))
       return;
+
    //Make sure the protocol type is valid
    if(arpPacket->pro != HTONS(ARP_PROTOCOL_TYPE_IPV4))
       return;
+
    //Check the length of the hardware address
    if(arpPacket->hln != sizeof(MacAddr))
       return;
+
    //Check the length of the protocol address
    if(arpPacket->pln != sizeof(Ipv4Addr))
       return;
@@ -673,10 +776,11 @@ void arpProcessRequest(NetInterface *interface, ArpPacket *arpRequest)
    TRACE_INFO("ARP Request received...\r\n");
 
    //Check sender protocol address
-   if(ipv4IsBroadcastAddr(interface, arpRequest->spa))
+   if(ipv4IsBroadcastAddr(interface, arpRequest->spa) ||
+      ipv4IsMulticastAddr(arpRequest->spa))
+   {
       return;
-   if(ipv4IsMulticastAddr(arpRequest->spa))
-      return;
+   }
 
    //Initialize flag
    validTarget = TRUE;
@@ -740,20 +844,20 @@ void arpProcessReply(NetInterface *interface, ArpPacket *arpReply)
    TRACE_INFO("ARP Reply received...\r\n");
 
    //Check sender protocol address
-   if(arpReply->spa == IPV4_UNSPECIFIED_ADDR)
+   if(arpReply->spa == IPV4_UNSPECIFIED_ADDR ||
+      ipv4IsBroadcastAddr(interface, arpReply->spa) ||
+      ipv4IsMulticastAddr(arpReply->spa))
+   {
       return;
-   if(ipv4IsBroadcastAddr(interface, arpReply->spa))
-      return;
-   if(ipv4IsMulticastAddr(arpReply->spa))
-      return;
+   }
 
    //Check sender hardware address
-   if(macCompAddr(&arpReply->sha, &MAC_UNSPECIFIED_ADDR))
+   if(macCompAddr(&arpReply->sha, &MAC_UNSPECIFIED_ADDR) ||
+      macCompAddr(&arpReply->sha, &MAC_BROADCAST_ADDR) ||
+      macIsMulticastAddr(&arpReply->sha))
+   {
       return;
-   if(macCompAddr(&arpReply->sha, &MAC_BROADCAST_ADDR))
-      return;
-   if(macIsMulticastAddr(&arpReply->sha))
-      return;
+   }
 
    //Check whether the target IP address is an address being probed for
    if(ipv4IsTentativeAddr(interface, arpReply->tpa))
@@ -775,7 +879,7 @@ void arpProcessReply(NetInterface *interface, ArpPacket *arpReply)
          arpSendQueuedPackets(interface, entry);
 
          //The validity of the ARP entry is limited in time
-         entry->timeout = ARP_REACHABLE_TIME;
+         entry->timeout = interface->arpReachableTime;
          //Switch to the REACHABLE state
          arpChangeState(entry, ARP_STATE_REACHABLE);
       }
@@ -795,7 +899,7 @@ void arpProcessReply(NetInterface *interface, ArpPacket *arpReply)
          entry->macAddr = arpReply->sha;
 
          //The validity of the ARP entry is limited in time
-         entry->timeout = ARP_REACHABLE_TIME;
+         entry->timeout = interface->arpReachableTime;
          //Switch to the REACHABLE state
          arpChangeState(entry, ARP_STATE_REACHABLE);
       }

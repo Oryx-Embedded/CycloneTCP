@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -445,9 +445,18 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
    requestOffset += sizeof(Icmpv6EchoMessage);
    requestLength -= sizeof(Icmpv6EchoMessage);
 
-   //The data received in the ICMPv6 Echo Request message must be returned
-   //entirely and unmodified in the ICMPv6 Echo Reply message
-   error = netBufferConcat(reply, request, requestOffset, requestLength);
+   //Check the length of the payload
+   if(requestLength > 0)
+   {
+      //The data received in the ICMPv6 Echo Request message must be returned
+      //entirely and unmodified in the ICMPv6 Echo Reply message
+      error = netBufferConcat(reply, request, requestOffset, requestLength);
+   }
+   else
+   {
+      //The Echo Request message is empty
+      error = NO_ERROR;
+   }
 
    //Check status code
    if(!error)
@@ -523,8 +532,7 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
       return ERROR_INVALID_LENGTH;
 
    //Point to the header of the invoking packet
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
-
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
    //Sanity check
    if(ipHeader == NULL)
       return ERROR_FAILURE;
@@ -536,28 +544,28 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
       if(length >= (sizeof(Ipv6Header) + sizeof(Icmpv6Header)))
       {
          //Point to the ICMPv6 header
-         icmpHeader = netBufferAt(ipPacket, ipPacketOffset + sizeof(Ipv6Header), 0);
+         icmpHeader = netBufferAt(ipPacket, ipPacketOffset + sizeof(Ipv6Header),
+            sizeof(Icmpv6Header));
 
          //Sanity check
          if(icmpHeader != NULL)
          {
-            //An ICMPv6 error message must not be originated as a result
-            //of receiving an ICMPv6 error or redirect message
+            //An ICMPv6 error message must not be originated as a result of
+            //receiving an ICMPv6 error or redirect message
             if(icmpHeader->type == ICMPV6_TYPE_DEST_UNREACHABLE ||
                icmpHeader->type == ICMPV6_TYPE_PACKET_TOO_BIG ||
                icmpHeader->type == ICMPV6_TYPE_TIME_EXCEEDED ||
                icmpHeader->type == ICMPV6_TYPE_PARAM_PROBLEM ||
                icmpHeader->type == ICMPV6_TYPE_REDIRECT)
             {
-               //Do not send the ICMPv6 error message...
                return ERROR_INVALID_TYPE;
             }
          }
       }
    }
 
-   //An ICMPv6 error message must not be originated as a result of
-   //receiving a packet destined to an IPv6 multicast address
+   //An ICMPv6 error message must not be originated as a result of receiving a
+   //packet destined to an IPv6 multicast address
    if(ipv6IsMulticastAddr(&ipHeader->destAddr))
    {
       //There are two exceptions to this rule
@@ -574,7 +582,7 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
       }
       else
       {
-         //Do not send the ICMPv6 error message...
+         //Report an error
          return ERROR_INVALID_ADDRESS;
       }
    }

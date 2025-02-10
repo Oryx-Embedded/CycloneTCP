@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -79,8 +79,16 @@ error_t modbusClientOpenConnection(ModbusClientContext *context)
       if(context->tlsContext == NULL)
          return ERROR_OPEN_FAILED;
 
+      //Devices must provide TLS v1.2 or better
+      error = tlsSetVersion(context->tlsContext, TLS_VERSION_1_2,
+         TLS_VERSION_1_3);
+      //Any error to report?
+      if(error)
+         return error;
+
       //Select client operation mode
-      error = tlsSetConnectionEnd(context->tlsContext, TLS_CONNECTION_END_CLIENT);
+      error = tlsSetConnectionEnd(context->tlsContext,
+         TLS_CONNECTION_END_CLIENT);
       //Any error to report?
       if(error)
          return error;

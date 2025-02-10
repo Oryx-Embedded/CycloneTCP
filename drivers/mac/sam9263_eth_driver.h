@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _SAM9263_ETH_DRIVER_H
@@ -59,15 +59,8 @@
    #error SAM9263_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 
-//EMAC controller base address
+//EMAC peripheral base address
 #define AT91C_BASE_EMAC AT91C_BASE_MACB
-
-//RMII signals
-#define AT91C_EMAC_RMII_MASK_C AT91C_PC25_ERXDV
-
-#define AT91C_EMAC_RMII_MASK_E (AT91C_PE30_EMDIO | \
-   AT91C_PE29_EMDC | AT91C_PE28_ETXEN | AT91C_PE27_ERXER | AT91C_PE26_ERX1 | \
-   AT91C_PE25_ERX0 | AT91C_PE24_ETX1 | AT91C_PE23_ETX0 | AT91C_PE21_ETXCK)
 
 //PHY maintenance register (EMAC_MAN)
 #define AT91C_EMAC_SOF_01    (1 << 30)

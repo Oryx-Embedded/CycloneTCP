@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _GD32F2XX_ETH_DRIVER_H
@@ -115,10 +115,10 @@ typedef struct
 } Gd32f2xxRxDmaDesc;
 
 
-//GD32F2XX Ethernet MAC driver
+//GD32F2 Ethernet MAC driver
 extern const NicDriver gd32f2xxEthDriver;
 
-//GD32F2XX Ethernet MAC related functions
+//GD32F2 Ethernet MAC related functions
 error_t gd32f2xxEthInit(NetInterface *interface);
 void gd32f2xxEthInitGpio(NetInterface *interface);
 void gd32f2xxEthInitDmaDesc(NetInterface *interface);

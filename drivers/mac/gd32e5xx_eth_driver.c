@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -81,7 +81,7 @@ static Gd32e5xxRxDmaDesc *rxCurDmaDesc;
 
 
 /**
- * @brief GD32E5XX Ethernet MAC driver
+ * @brief GD32E5 Ethernet MAC driver
  **/
 
 const NicDriver gd32e5xxEthDriver =
@@ -106,7 +106,7 @@ const NicDriver gd32e5xxEthDriver =
 
 
 /**
- * @brief GD32E5XX Ethernet MAC initialization
+ * @brief GD32E5 Ethernet MAC initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
@@ -116,7 +116,7 @@ error_t gd32e5xxEthInit(NetInterface *interface)
    error_t error;
 
    //Debug message
-   TRACE_INFO("Initializing GD32E5XX Ethernet MAC...\r\n");
+   TRACE_INFO("Initializing GD32E5 Ethernet MAC...\r\n");
 
    //Save underlying network interface
    nicDriverInterface = interface;
@@ -353,7 +353,7 @@ void gd32e5xxEthInitDmaDesc(NetInterface *interface)
 
 
 /**
- * @brief GD32E5XX Ethernet MAC timer handler
+ * @brief GD32E5 Ethernet MAC timer handler
  *
  * This routine is periodically called by the TCP/IP stack to handle periodic
  * operations such as polling the link state
@@ -438,7 +438,7 @@ void gd32e5xxEthDisableIrq(NetInterface *interface)
 
 
 /**
- * @brief GD32E5XX Ethernet MAC interrupt service routine
+ * @brief GD32E5 Ethernet MAC interrupt service routine
  **/
 
 void ENET_IRQHandler(void)
@@ -490,7 +490,7 @@ void ENET_IRQHandler(void)
 
 
 /**
- * @brief GD32E5XX Ethernet MAC event handler
+ * @brief GD32E5 Ethernet MAC event handler
  * @param[in] interface Underlying network interface
  **/
 

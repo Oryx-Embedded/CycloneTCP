@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * in the Internet. Refer to RFC 4330 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -64,8 +64,35 @@ error_t sntpClientInit(SntpClientContext *context)
    //Initialize SNTP client state
    context->state = SNTP_CLIENT_STATE_INIT;
 
+   //Default protocol version
+   context->version = NTP_VERSION_3;
    //Default timeout
    context->timeout = SNTP_CLIENT_DEFAULT_TIMEOUT;
+
+   //Successful initialization
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Set the NTP protocol version to be used
+ * @param[in] context Pointer to the SNTP client context
+ * @param[in] version NTP protocol version (2 or 3)
+ * @return Error code
+ **/
+
+error_t sntpClientSetVersion(SntpClientContext *context, NtpVersion version)
+{
+   //Make sure the SNTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Check NTP version
+   if(version != NTP_VERSION_3 && version != NTP_VERSION_4)
+      return ERROR_INVALID_VERSION;
+
+   //Save the protocol version to be used
+   context->version = version;
 
    //Successful initialization
    return NO_ERROR;

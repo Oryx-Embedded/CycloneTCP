@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -99,6 +99,7 @@ bool_t httpCheckPassword(HttpConnection *connection,
          {
             error_t error;
             Md5Context *md5Context;
+            uint8_t digest[MD5_DIGEST_SIZE];
             char_t ha1[2 * MD5_DIGEST_SIZE + 1];
             char_t ha2[2 * MD5_DIGEST_SIZE + 1];
 
@@ -115,10 +116,10 @@ bool_t httpCheckPassword(HttpConnection *connection,
                md5Update(md5Context, auth->realm, osStrlen(auth->realm));
                md5Update(md5Context, ":", 1);
                md5Update(md5Context, password, osStrlen(password));
-               md5Final(md5Context, NULL);
+               md5Final(md5Context, digest);
 
                //Convert MD5 hash to hex string
-               httpConvertArrayToHexString(md5Context->digest, MD5_DIGEST_SIZE, ha1);
+               httpConvertArrayToHexString(digest, MD5_DIGEST_SIZE, ha1);
                //Debug message
                TRACE_DEBUG("  HA1: %s\r\n", ha1);
 
@@ -127,10 +128,10 @@ bool_t httpCheckPassword(HttpConnection *connection,
                md5Update(md5Context, connection->request.method, osStrlen(connection->request.method));
                md5Update(md5Context, ":", 1);
                md5Update(md5Context, auth->uri, osStrlen(auth->uri));
-               md5Final(md5Context, NULL);
+               md5Final(md5Context, digest);
 
                //Convert MD5 hash to hex string
-               httpConvertArrayToHexString(md5Context->digest, MD5_DIGEST_SIZE, ha2);
+               httpConvertArrayToHexString(digest, MD5_DIGEST_SIZE, ha2);
                //Debug message
                TRACE_DEBUG("  HA2: %s\r\n", ha2);
 
@@ -147,10 +148,10 @@ bool_t httpCheckPassword(HttpConnection *connection,
                md5Update(md5Context, auth->qop, osStrlen(auth->qop));
                md5Update(md5Context, ":", 1);
                md5Update(md5Context, ha2, osStrlen(ha2));
-               md5Final(md5Context, NULL);
+               md5Final(md5Context, digest);
 
                //Convert MD5 hash to hex string
-               httpConvertArrayToHexString(md5Context->digest, MD5_DIGEST_SIZE, ha1);
+               httpConvertArrayToHexString(digest, MD5_DIGEST_SIZE, ha1);
                //Debug message
                TRACE_DEBUG("  response: %s\r\n", ha1);
 

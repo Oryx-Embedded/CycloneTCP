@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -99,7 +99,6 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    segment->dataOffset = sizeof(TcpHeader) / 4;
    segment->flags = flags;
    segment->reserved2 = 0;
-   segment->window = htons(socket->rcvWnd);
    segment->checksum = 0;
    segment->urgentPointer = 0;
 
@@ -107,8 +106,59 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    if((flags & TCP_FLAG_SYN) != 0)
    {
       //Append Maximum Segment Size option
-      tcpAddOption(segment, TCP_OPTION_MAX_SEGMENT_SIZE, &mss, sizeof(mss));
+      tcpAddOption(segment, TCP_OPTION_MAX_SEGMENT_SIZE, &mss,
+         sizeof(uint16_t));
    }
+
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+   //SYN flag set?
+   if((flags & TCP_FLAG_SYN) != 0)
+   {
+      //Check ACK flag
+      if((flags & TCP_FLAG_ACK) == 0)
+      {
+         //The TCP Window Scale option may be sent in an initial SYN segment
+         //(refer to RFC 7323, section 2.2)
+         tcpAddOption(segment, TCP_OPTION_WINDOW_SCALE_FACTOR,
+            &socket->rcvWndShift, sizeof(uint8_t));
+      }
+      else
+      {
+         //If a Window Scale option was received in the initial SYN segment,
+         //then this option may be sent in the SYN/ACK segment
+         if(socket->wndScaleOptionReceived)
+         {
+            tcpAddOption(segment, TCP_OPTION_WINDOW_SCALE_FACTOR,
+               &socket->rcvWndShift, sizeof(uint8_t));
+         }
+      }
+
+      //The window field in a segment where the SYN bit is set must not be
+      //scaled (refer to RFC 7323, section 2.2)
+      segment->window = htons(MIN(socket->rcvWnd, UINT16_MAX));
+   }
+   else
+   {
+      //Check whether window scaling is enabled
+      if(socket->wndScaleOptionReceived)
+      {
+         //The window field (SEG.WND) of every outgoing segment, with the
+         //exception of SYN segments, must be right-shifted by Rcv.Wind.Shift
+         //bits (refer to RFC 7323, section 2.3)
+         segment->window = htons(socket->rcvWnd >> socket->rcvWndShift);
+      }
+      else
+      {
+         //The maximum unscaled window is 2^16 - 1
+         segment->window = htons(MIN(socket->rcvWnd, UINT16_MAX));
+      }
+   }
+#else
+   //The window field indicates the number of data octets beginning with the
+   //one indicated in the acknowledgment field that the sender of this segment
+   //is willing to accept (refer to RFC 793, section 3.1)
+   segment->window = htons(MIN(socket->rcvWnd, UINT16_MAX));
+#endif
 
 #if (TCP_SACK_SUPPORT == ENABLED)
    //SYN flag set?
@@ -650,15 +700,22 @@ const TcpOption *tcpGetOption(const TcpHeader *segment, uint8_t kind)
          {
             //The option code is followed by a one-byte length field
             if((i + 1) >= length)
+            {
                break;
+            }
 
             //Check the length of the option
-            if(option->length < sizeof(TcpOption) || (i + option->length) > length)
+            if(option->length < sizeof(TcpOption) ||
+               (i + option->length) > length)
+            {
                break;
+            }
 
             //Matching option code?
             if(option->kind == kind)
+            {
                return option;
+            }
 
             //Jump to the next option
             i += option->length;
@@ -686,6 +743,7 @@ uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
 #if (TCP_SECURE_ISN_SUPPORT == ENABLED)
    uint32_t isn;
    Md5Context md5Context;
+   uint8_t digest[MD5_DIGEST_SIZE];
 
    //Generate the initial sequence number as per RFC 6528
    md5Init(&md5Context);
@@ -694,10 +752,10 @@ uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
    md5Update(&md5Context, remoteIpAddr, sizeof(IpAddr));
    md5Update(&md5Context, &remotePort, sizeof(uint16_t));
    md5Update(&md5Context, netContext.randSeed, NET_RAND_SEED_SIZE);
-   md5Final(&md5Context, NULL);
+   md5Final(&md5Context, digest);
 
    //Extract the first 32 bits from the digest value
-   isn = LOAD32BE(md5Context.digest);
+   isn = LOAD32BE(digest);
 
    //Calculate ISN = M + F(localip, localport, remoteip, remoteport, secretkey)
    return isn + netGetSystemTickCount();
@@ -846,9 +904,9 @@ error_t tcpCheckAck(Socket *socket, const TcpHeader *segment, size_t length)
    bool_t duplicateFlag;
    bool_t updateFlag;
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
-   uint_t n;
-   uint_t ownd;
-   uint_t thresh;
+   uint32_t n;
+   uint32_t ownd;
+   uint32_t thresh;
 #endif
 
    //If the ACK bit is off drop the segment and return
@@ -991,11 +1049,11 @@ error_t tcpCheckAck(Socket *socket, const TcpHeader *segment, size_t length)
          {
             //Compute the duplicate ACK threshold used to trigger a
             //retransmission
-            if(ownd <= (3 * socket->smss))
+            if(ownd <= ((uint32_t) socket->smss * 3))
             {
                thresh = 1;
             }
-            else if(ownd <= (4 * socket->smss))
+            else if(ownd <= ((uint32_t) socket->smss * 4))
             {
                thresh = 2;
             }
@@ -1182,7 +1240,7 @@ void tcpFastRetransmit(Socket *socket)
    //Amount of data that has been sent but not yet acknowledged
    flightSize = socket->sndNxt - socket->sndUna;
    //After receiving 3 duplicate ACKs, ssthresh must be adjusted
-   socket->ssthresh = MAX(flightSize / 2, 2 * socket->smss);
+   socket->ssthresh = MAX(flightSize / 2, (uint32_t) socket->smss * 2);
 
    //The value of recover is incremented to the value of the highest
    //sequence number transmitted by the TCP so far
@@ -1198,7 +1256,7 @@ void tcpFastRetransmit(Socket *socket)
    //cwnd must set to ssthresh plus 3*SMSS. This artificially inflates the
    //congestion window by the number of segments (three) that have left the
    //network and which the receiver has buffered
-   socket->cwnd = socket->ssthresh + TCP_FAST_RETRANSMIT_THRES * socket->smss;
+   socket->cwnd = socket->ssthresh + (socket->smss * TCP_FAST_RETRANSMIT_THRES);
 
    //Enter the fast recovery procedure
    socket->congestState = TCP_CONGEST_STATE_RECOVERY;
@@ -1213,7 +1271,7 @@ void tcpFastRetransmit(Socket *socket)
  * @param[in] n Number of bytes acknowledged by the incoming ACK
  **/
 
-void tcpFastRecovery(Socket *socket, const TcpHeader *segment, uint_t n)
+void tcpFastRecovery(Socket *socket, const TcpHeader *segment, uint32_t n)
 {
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
    //Check whether this ACK acknowledges all of the data up to and including
@@ -1522,6 +1580,34 @@ void tcpFlushSynQueue(Socket *socket)
 
 
 /**
+ * @brief Compute the window scale factor to use for the receive window
+ * @param[in] socket Handle referencing the socket
+ **/
+
+void tcpComputeWindowScaleFactor(Socket *socket)
+{
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+   uint32_t n;
+   uint32_t window;
+
+   //The window scale extension expands the definition of the TCP window to
+   //30 bits and then uses an implicit scale factor to carry this 30-bit
+   //value in the 16-bit window field of the TCP header
+   window = socket->rxBufferSize;
+
+   //The scale factor is determined by the maximum receive buffer space
+   for(n = 0; window > UINT16_MAX; n++)
+   {
+      window >>= 1;
+   }
+
+   //The window scale is fixed in each direction when a connection is opened
+   socket->rcvWndShift = n;
+#endif
+}
+
+
+/**
  * @brief Update the list of non-contiguous blocks that have been received
  * @param[in] socket Handle referencing the socket
  * @param[in,out] leftEdge First sequence number occupied by the incoming data
@@ -1585,22 +1671,34 @@ void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge
 
 void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment)
 {
+   uint32_t window;
+
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+   //The window field (SEG.WND) in the header of every incoming segment, with
+   //the exception of SYN segments, MUST be left-shifted by Snd.Wind.Shift bits
+   //before updating SND.WND (refer to RFC 7323, section 2.3)
+   window = (uint32_t) segment->window << socket->sndWndShift;
+#else
+   //The maximum unscaled window is 2^16 - 1
+   window = segment->window;
+#endif
+
    //Case where neither the sequence nor the acknowledgment number is increased
    if(segment->seqNum == socket->sndWl1 && segment->ackNum == socket->sndWl2)
    {
       //TCP may ignore a window update with a smaller window than previously
       //offered if neither the sequence number nor the acknowledgment number
       //is increased (refer to RFC 1122, section 4.2.2.16)
-      if(segment->window > socket->sndWnd)
+      if(window > socket->sndWnd)
       {
          //Update the send window and record the sequence number and the
          //acknowledgment number used to update SND.WND
-         socket->sndWnd = segment->window;
+         socket->sndWnd = window;
          socket->sndWl1 = segment->seqNum;
          socket->sndWl2 = segment->ackNum;
 
          //Maximum send window it has seen so far on the connection
-         socket->maxSndWnd = MAX(socket->maxSndWnd, segment->window);
+         socket->maxSndWnd = MAX(socket->maxSndWnd, window);
       }
    }
    //Case where the sequence or the acknowledgment number is increased
@@ -1608,7 +1706,7 @@ void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment)
       TCP_CMP_SEQ(segment->ackNum, socket->sndWl2) >= 0)
    {
       //Check whether the remote host advertises a zero window
-      if(segment->window == 0 && socket->sndWnd != 0)
+      if(window == 0 && socket->sndWnd != 0)
       {
          //Start the persist timer
          socket->wndProbeCount = 0;
@@ -1618,12 +1716,16 @@ void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment)
 
       //Update the send window and record the sequence number and the
       //acknowledgment number used to update SND.WND
-      socket->sndWnd = segment->window;
+      socket->sndWnd = window;
       socket->sndWl1 = segment->seqNum;
       socket->sndWl2 = segment->ackNum;
 
       //Maximum send window it has seen so far on the connection
-      socket->maxSndWnd = MAX(socket->maxSndWnd, segment->window);
+      socket->maxSndWnd = MAX(socket->maxSndWnd, window);
+   }
+   else
+   {
+      //Just for sanity
    }
 }
 
@@ -1635,7 +1737,7 @@ void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment)
 
 void tcpUpdateReceiveWindow(Socket *socket)
 {
-   uint16_t reduction;
+   uint32_t reduction;
 
    //Space available but not yet advertised
    reduction = socket->rxBufferSize - socket->rcvUser - socket->rcvWnd;
@@ -1704,12 +1806,12 @@ bool_t tcpComputeRto(Socket *socket)
             delta = (r > socket->srtt) ? (r - socket->srtt) : (socket->srtt - r);
 
             //Implement Van Jacobson's algorithm (as specified in RFC 6298 2.3)
-            socket->rttvar = (3 * socket->rttvar + delta) / 4;
-            socket->srtt = (7 * socket->srtt + r) / 8;
+            socket->rttvar = ((socket->rttvar * 3) + delta) / 4;
+            socket->srtt = ((socket->srtt * 7) + r) / 8;
          }
 
          //Calculate the next retransmission timeout
-         socket->rto = socket->srtt + 4 * socket->rttvar;
+         socket->rto = socket->srtt + (socket->rttvar * 4);
 
          //Whenever RTO is computed, if it is less than 1 second, then the RTO
          //should be rounded up to 1 second
@@ -1796,8 +1898,29 @@ error_t tcpRetransmitSegment(Socket *socket)
 
          //Update ACK number
          segment->ackNum = htonl(socket->rcvNxt);
-         //Update receive window
-         segment->window = htons(socket->rcvWnd);
+
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+         //The window field in a segment where the SYN bit is set must not be
+         //scaled (refer to RFC 7323, section 2.2)
+         if((segment->flags & TCP_FLAG_SYN) == 0 &&
+            socket->wndScaleOptionReceived)
+         {
+            //The window field (SEG.WND) of every outgoing segment, with the
+            //exception of SYN segments, must be right-shifted by Rcv.Wind.Shift
+            //bits (refer to RFC 7323, section 2.3)
+            segment->window = htons(socket->rcvWnd >> socket->rcvWndShift);
+         }
+         else
+         {
+            //The maximum unscaled window is 2^16 - 1
+            segment->window = htons(MIN(socket->rcvWnd, UINT16_MAX));
+         }
+#else
+         //The window field indicates the number of data octets beginning with
+         //the one indicated in the acknowledgment field that the sender of
+         //this segment is willing to accept (refer to RFC 793, section 3.1)
+         segment->window = htons(MIN(socket->rcvWnd, UINT16_MAX));
+#endif
          //The checksum field is replaced with zeros
          segment->checksum = 0;
 

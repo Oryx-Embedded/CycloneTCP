@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -105,7 +105,7 @@ error_t pic32mzEthInit(NetInterface *interface)
    pic32mzEthInitGpio(interface);
 
    //Disable Ethernet interrupts
-   IEC4CLR = _IEC4_ETHIE_MASK;
+   ETH_CLEAR_ETHIE();
    //Turn the Ethernet controller off
    ETHCON1CLR = _ETHCON1_ON_MASK | _ETHCON1_TXRTS_POSITION | _ETHCON1_RXEN_MASK;
 
@@ -116,12 +116,13 @@ error_t pic32mzEthInit(NetInterface *interface)
 
    //Enable the Ethernet controller by setting the ON bit
    ETHCON1SET = _ETHCON1_ON_MASK;
-
    //Clear Ethernet interrupt flag
-   IFS4CLR = _IFS4_ETHIF_MASK;
+   ETH_CLEAR_ETHIF();
+
    //Disable any Ethernet controller interrupt generation
    ETHIEN = 0;
    ETHIRQ = 0;
+
    //Clear the TX and RX start addresses
    ETHTXST = 0;
    ETHRXST = 0;
@@ -205,11 +206,9 @@ error_t pic32mzEthInit(NetInterface *interface)
    ETHIENSET = _ETHIEN_PKTPENDIE_MASK | _ETHIEN_TXDONEIE_MASK;
 
    //Set interrupt priority
-   IPC38CLR = _IPC38_ETHIP_MASK;
-   IPC38SET = (PIC32MZ_ETH_IRQ_PRIORITY << _IPC38_ETHIP_POSITION);
+   ETH_SET_ETHIP(PIC32MZ_ETH_IRQ_PRIORITY);
    //Set interrupt subpriority
-   IPC38CLR = _IPC38_ETHIS_MASK;
-   IPC38SET = (PIC32MZ_ETH_IRQ_SUB_PRIORITY << _IPC38_ETHIS_POSITION);
+   ETH_SET_ETHIS(PIC32MZ_ETH_IRQ_SUB_PRIORITY);
 
    //Enable the reception by setting the RXEN bit
    ETHCON1SET = _ETHCON1_RXEN_MASK;
@@ -449,7 +448,7 @@ void pic32mzEthTick(NetInterface *interface)
 void pic32mzEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
-   IEC4SET = _IEC4_ETHIE_MASK;
+   ETH_SET_ETHIE();
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -477,7 +476,7 @@ void pic32mzEthEnableIrq(NetInterface *interface)
 void pic32mzEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
-   IEC4CLR = _IEC4_ETHIE_MASK;
+   ETH_CLEAR_ETHIE();
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -542,7 +541,7 @@ void pic32mzEthIrqHandler(void)
    }
 
    //Clear ETHIF interrupt flag before exiting the service routine
-   IFS4CLR = _IFS4_ETHIF_MASK;
+   ETH_CLEAR_ETHIF();
 
    //Interrupt service routine epilogue
    osExitIsr(flag);

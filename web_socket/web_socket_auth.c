@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -212,6 +212,7 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
    if(authContext->selectedAuthMode == WS_AUTH_MODE_DIGEST)
    {
       Md5Context md5Context;
+      uint8_t digest[MD5_DIGEST_SIZE];
       char_t ha1[2 * MD5_DIGEST_SIZE + 1];
       char_t ha2[2 * MD5_DIGEST_SIZE + 1];
       char_t nc[9];
@@ -230,10 +231,10 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       md5Update(&md5Context, authContext->realm, osStrlen(authContext->realm));
       md5Update(&md5Context, ":", 1);
       md5Update(&md5Context, authContext->password, osStrlen(authContext->password));
-      md5Final(&md5Context, NULL);
+      md5Final(&md5Context, digest);
 
       //Convert MD5 hash to hex string
-      webSocketConvertArrayToHexString(md5Context.digest, MD5_DIGEST_SIZE, ha1);
+      webSocketConvertArrayToHexString(digest, MD5_DIGEST_SIZE, ha1);
       //Debug message
       TRACE_DEBUG("  HA1: %s\r\n", ha1);
 
@@ -242,10 +243,10 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       md5Update(&md5Context, "GET", 3);
       md5Update(&md5Context, ":", 1);
       md5Update(&md5Context, webSocket->uri, osStrlen(webSocket->uri));
-      md5Final(&md5Context, NULL);
+      md5Final(&md5Context, digest);
 
       //Convert MD5 hash to hex string
-      webSocketConvertArrayToHexString(md5Context.digest, MD5_DIGEST_SIZE, ha2);
+      webSocketConvertArrayToHexString(digest, MD5_DIGEST_SIZE, ha2);
       //Debug message
       TRACE_DEBUG("  HA2: %s\r\n", ha2);
 
@@ -262,10 +263,10 @@ size_t webSocketAddAuthorizationField(WebSocket *webSocket, char_t *output)
       md5Update(&md5Context, "auth", 4);
       md5Update(&md5Context, ":", 1);
       md5Update(&md5Context, ha2, osStrlen(ha2));
-      md5Final(&md5Context, NULL);
+      md5Final(&md5Context, digest);
 
       //Convert MD5 hash to hex string
-      webSocketConvertArrayToHexString(md5Context.digest, MD5_DIGEST_SIZE, ha1);
+      webSocketConvertArrayToHexString(digest, MD5_DIGEST_SIZE, ha1);
       //Debug message
       TRACE_DEBUG("  response: %s\r\n", ha1);
 

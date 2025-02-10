@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _TCP_MISC_H
@@ -67,7 +67,7 @@ bool_t tcpIsDuplicateAck(Socket *socket, const TcpHeader *segment,
    size_t length);
 
 void tcpFastRetransmit(Socket *socket);
-void tcpFastRecovery(Socket *socket, const TcpHeader *segment, uint_t n);
+void tcpFastRecovery(Socket *socket, const TcpHeader *segment, uint32_t n);
 void tcpFastLossRecovery(Socket *socket, const TcpHeader *segment);
 
 void tcpProcessSegmentData(Socket *socket, const TcpHeader *segment,
@@ -79,6 +79,8 @@ void tcpUpdateRetransmitQueue(Socket *socket);
 void tcpFlushRetransmitQueue(Socket *socket);
 
 void tcpFlushSynQueue(Socket *socket);
+
+void tcpComputeWindowScaleFactor(Socket *socket);
 
 void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge);
 void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment);

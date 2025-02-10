@@ -1,12 +1,12 @@
 /**
  * @file pic32cz_eth_driver.c
- * @brief PIC32CZ CA80/CA90 Gigabit Ethernet MAC driver
+ * @brief PIC32CZ CA70/CA80/CA90 Gigabit Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -157,6 +157,11 @@ error_t pic32czEthInit(NetInterface *interface)
    //Save underlying network interface
    nicDriverInterface = interface;
 
+#if defined(__PIC32CZ2051CA70064__) || defined(__PIC32CZ2051CA70100__) || \
+   defined(__PIC32CZ2051CA70144__)
+   //Enable GMAC peripheral clock
+   PMC_REGS->PMC_PCER1 = (1 << (ID_GMAC - 32));
+#else
    //Enable CLK_GMAC_TX core clock
    GCLK_REGS->GCLK_PCHCTRL[ETH_GCLK_ID_TX] = GCLK_PCHCTRL_GEN_GCLK2 |
       GCLK_PCHCTRL_CHEN_Msk;
@@ -186,17 +191,18 @@ error_t pic32czEthInit(NetInterface *interface)
    while(ETH_REGS->ETH_SYNCB != 0)
    {
    }
+#endif
 
    //Disable transmit and receive circuits
-   ETH_REGS->ETH_NCR = 0;
+   GMAC_REGS->GMAC_NCR = 0;
 
    //GPIO configuration
    pic32czEthInitGpio(interface);
 
    //Configure MDC clock speed
-   ETH_REGS->ETH_NCFGR = ETH_NCFGR_DBW(1) | ETH_NCFGR_CLK(6);
+   GMAC_REGS->GMAC_NCFGR = GMAC_NCFGR_DBW(1) | GMAC_NCFGR_CLK(6);
    //Enable management port (MDC and MDIO)
-   ETH_REGS->ETH_NCR |= ETH_NCR_MPE_Msk;
+   GMAC_REGS->GMAC_NCR |= GMAC_NCR_MPE_Msk;
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -222,74 +228,74 @@ error_t pic32czEthInit(NetInterface *interface)
    }
 
    //Set the MAC address of the station
-   ETH_REGS->SA[0].ETH_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   ETH_REGS->SA[0].ETH_SAT = interface->macAddr.w[2];
+   GMAC_REGS->GMAC_SA[0].GMAC_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   GMAC_REGS->GMAC_SA[0].GMAC_SAT = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
-   ETH_REGS->SA[1].ETH_SAB = 0;
-   ETH_REGS->SA[2].ETH_SAB = 0;
-   ETH_REGS->SA[3].ETH_SAB = 0;
+   GMAC_REGS->GMAC_SA[1].GMAC_SAB = 0;
+   GMAC_REGS->GMAC_SA[2].GMAC_SAB = 0;
+   GMAC_REGS->GMAC_SA[3].GMAC_SAB = 0;
 
    //Initialize hash table
-   ETH_REGS->ETH_HRB = 0;
-   ETH_REGS->ETH_HRT = 0;
+   GMAC_REGS->GMAC_HRB = 0;
+   GMAC_REGS->GMAC_HRT = 0;
 
    //Configure the receive filter
-   ETH_REGS->ETH_NCFGR |= ETH_NCFGR_MAXFS_Msk | ETH_NCFGR_MTIHEN_Msk;
+   GMAC_REGS->GMAC_NCFGR |= GMAC_NCFGR_MAXFS_Msk | GMAC_NCFGR_MTIHEN_Msk;
 
    //DMA configuration
-   ETH_REGS->ETH_DCFGR = ETH_DCFGR_DRBS(PIC32CZ_ETH_RX_BUFFER_SIZE / 64) |
-      ETH_DCFGR_TXPBMS_Msk | ETH_DCFGR_RXBMS(3) | ETH_DCFGR_FBLDO(4);
+   GMAC_REGS->GMAC_DCFGR = GMAC_DCFGR_DRBS(PIC32CZ_ETH_RX_BUFFER_SIZE / 64) |
+      GMAC_DCFGR_TXPBMS_Msk | GMAC_DCFGR_RXBMS(3) | GMAC_DCFGR_FBLDO(4);
 
-   ETH_REGS->ETH_RBQSZ[0] = ETH_RBQSZ_RXBUFSZ(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
-   ETH_REGS->ETH_RBQSZ[1] = ETH_RBQSZ_RXBUFSZ(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
-   ETH_REGS->ETH_RBQSZ[2] = ETH_RBQSZ_RXBUFSZ(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
-   ETH_REGS->ETH_RBQSZ[3] = ETH_RBQSZ_RXBUFSZ(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
-   ETH_REGS->ETH_RBQSZ[4] = ETH_RBQSZ_RXBUFSZ(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC_REGS->GMAC_RBSRPQ[0] = GMAC_RBSRPQ_RBS(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC_REGS->GMAC_RBSRPQ[1] = GMAC_RBSRPQ_RBS(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC_REGS->GMAC_RBSRPQ[2] = GMAC_RBSRPQ_RBS(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC_REGS->GMAC_RBSRPQ[3] = GMAC_RBSRPQ_RBS(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
+   GMAC_REGS->GMAC_RBSRPQ[4] = GMAC_RBSRPQ_RBS(PIC32CZ_ETH_DUMMY_BUFFER_SIZE / 64);
 
    //Initialize buffer descriptors
    pic32czEthInitBufferDesc(interface);
 
    //Clear transmit status register
-   ETH_REGS->ETH_TSR = ETH_TSR_HRESP_Msk | ETH_TSR_UND_Msk |
-      ETH_TSR_TXCOMP_Msk | ETH_TSR_TFC_Msk | ETH_TSR_TXGO_Msk |
-      ETH_TSR_RLE_Msk | ETH_TSR_COL_Msk | ETH_TSR_UBR_Msk;
+   GMAC_REGS->GMAC_TSR = GMAC_TSR_HRESP_Msk | GMAC_TSR_UND_Msk |
+      GMAC_TSR_TXCOMP_Msk | GMAC_TSR_TFC_Msk | GMAC_TSR_TXGO_Msk |
+      GMAC_TSR_RLE_Msk | GMAC_TSR_COL_Msk | GMAC_TSR_UBR_Msk;
 
    //Clear receive status register
-   ETH_REGS->ETH_RSR = ETH_RSR_HNO_Msk | ETH_RSR_RXOVR_Msk |
-      ETH_RSR_REC_Msk | ETH_RSR_BNA_Msk;
+   GMAC_REGS->GMAC_RSR = GMAC_RSR_HNO_Msk | GMAC_RSR_RXOVR_Msk |
+      GMAC_RSR_REC_Msk | GMAC_RSR_BNA_Msk;
 
-   //First disable all ETH interrupts
-   ETH_REGS->ETH_IDR = 0xFFFFFFFF;
-   ETH_REGS->ETH_IDRQ[0] = 0xFFFFFFFF;
-   ETH_REGS->ETH_IDRQ[1] = 0xFFFFFFFF;
-   ETH_REGS->ETH_IDRQ[2] = 0xFFFFFFFF;
-   ETH_REGS->ETH_IDRQ[3] = 0xFFFFFFFF;
-   ETH_REGS->ETH_IDRQ[4] = 0xFFFFFFFF;
+   //First disable all GMAC interrupts
+   GMAC_REGS->GMAC_IDR = 0xFFFFFFFF;
+   GMAC_REGS->GMAC_IDRPQ[0] = 0xFFFFFFFF;
+   GMAC_REGS->GMAC_IDRPQ[1] = 0xFFFFFFFF;
+   GMAC_REGS->GMAC_IDRPQ[2] = 0xFFFFFFFF;
+   GMAC_REGS->GMAC_IDRPQ[3] = 0xFFFFFFFF;
+   GMAC_REGS->GMAC_IDRPQ[4] = 0xFFFFFFFF;
 
    //Only the desired ones are enabled
-   ETH_REGS->ETH_IER = ETH_IER_HRESP_Msk | ETH_IER_ROVR_Msk |
-      ETH_IER_TCOMP_Msk | ETH_IER_TFC_Msk | ETH_IER_RLEX_Msk |
-      ETH_IER_TUR_Msk | ETH_IER_RXUBR_Msk | ETH_IER_RCOMP_Msk;
+   GMAC_REGS->GMAC_IER = GMAC_IER_HRESP_Msk | GMAC_IER_ROVR_Msk |
+      GMAC_IER_TCOMP_Msk | GMAC_IER_TFC_Msk | GMAC_IER_RLEX_Msk |
+      GMAC_IER_TUR_Msk | GMAC_IER_RXUBR_Msk | GMAC_IER_RCOMP_Msk;
 
-   //Read ETH_ISR register to clear any pending interrupt
-   status = ETH_REGS->ETH_ISR;
-   status = ETH_REGS->ETH_ISRQ[0];
-   status = ETH_REGS->ETH_ISRQ[1];
-   status = ETH_REGS->ETH_ISRQ[2];
-   status = ETH_REGS->ETH_ISRQ[3];
-   status = ETH_REGS->ETH_ISRQ[4];
+   //Read GMAC_ISR register to clear any pending interrupt
+   status = GMAC_REGS->GMAC_ISR;
+   status = GMAC_REGS->GMAC_ISRPQ[0];
+   status = GMAC_REGS->GMAC_ISRPQ[1];
+   status = GMAC_REGS->GMAC_ISRPQ[2];
+   status = GMAC_REGS->GMAC_ISRPQ[3];
+   status = GMAC_REGS->GMAC_ISRPQ[4];
    (void) status;
 
    //Set priority grouping (3 bits for pre-emption priority, no bits for subpriority)
    NVIC_SetPriorityGrouping(PIC32CZ_ETH_IRQ_PRIORITY_GROUPING);
 
-   //Configure ETH interrupt priority
-   NVIC_SetPriority(ETH_PRI_Q_0_IRQn, NVIC_EncodePriority(PIC32CZ_ETH_IRQ_PRIORITY_GROUPING,
+   //Configure GMAC interrupt priority
+   NVIC_SetPriority(GMAC_IRQn, NVIC_EncodePriority(PIC32CZ_ETH_IRQ_PRIORITY_GROUPING,
       PIC32CZ_ETH_IRQ_GROUP_PRIORITY, PIC32CZ_ETH_IRQ_SUB_PRIORITY));
 
-   //Enable the ETH to transmit and receive data
-   ETH_REGS->ETH_NCR |= ETH_NCR_TXEN_Msk | ETH_NCR_RXEN_Msk;
+   //Enable the GMAC to transmit and receive data
+   GMAC_REGS->GMAC_NCR |= GMAC_NCR_TXEN_Msk | GMAC_NCR_RXEN_Msk;
 
    //Accept any packets from the upper layer
    osSetEvent(&interface->nicTxEvent);
@@ -306,8 +312,44 @@ error_t pic32czEthInit(NetInterface *interface)
 
 __weak_func void pic32czEthInitGpio(NetInterface *interface)
 {
+//PIC32CZ CA70 Curiosity Ultra evaluation board?
+#if defined(USE_PIC32CZ_CA70_CURIOSITY_ULTRA)
+   uint32_t mask;
+
+   //Enable PIO peripheral clocks
+   PMC_REGS->PMC_PCER0 = (1 << ID_PIOC) | (1 << ID_PIOD);
+
+   //Configure RMII pins
+   mask = PIO_PD9A_GMAC_GMDIO | PIO_PD8A_GMAC_GMDC |
+      PIO_PD7A_GMAC_GRXER | PIO_PD6A_GMAC_GRX1 | PIO_PD5A_GMAC_GRX0 |
+      PIO_PD4A_GMAC_GRXDV | PIO_PD3A_GMAC_GTX1 | PIO_PD2A_GMAC_GTX0 |
+      PIO_PD1A_GMAC_GTXEN | PIO_PD0A_GMAC_GTXCK;
+
+   //Disable pull-up resistors on RMII pins
+   PIOD_REGS->PIO_PUDR = mask;
+   //Disable interrupts-on-change
+   PIOD_REGS->PIO_IDR = mask;
+   //Assign RMII pins to peripheral A function
+   PIOD_REGS->PIO_ABCDSR[0] &= ~mask;
+   PIOD_REGS->PIO_ABCDSR[1] &= ~mask;
+   //Disable the PIO from controlling the corresponding pins
+   PIOD_REGS->PIO_PDR = mask;
+
+   //Select RMII operation mode
+   GMAC_REGS->GMAC_UR &= ~GMAC_UR_RMII_Msk;
+
+   //Configure PHY_RESET as an output
+   PIOC_REGS->PIO_PER = PIO_PC10;
+   PIOC_REGS->PIO_OER = PIO_PC10;
+ 
+   //Reset PHY transceiver
+   PIOC_REGS->PIO_CODR = PIO_PC10;
+   sleep(10);
+   PIOC_REGS->PIO_SODR = PIO_PC10;
+   sleep(10);
+
 //PIC32CZ CA80/CA90 Curiosity Ultra evaluation board?
-#if defined(USE_PIC32CZ_CA80_CURIOSITY_ULTRA) || \
+#elif defined(USE_PIC32CZ_CA80_CURIOSITY_ULTRA) || \
    defined(USE_PIC32CZ_CA90_CURIOSITY_ULTRA)
    uint32_t temp;
 
@@ -512,11 +554,11 @@ void pic32czEthInitBufferDesc(NetInterface *interface)
       //Write the address to the descriptor entry
       txBufferDesc[i].address = address;
       //Initialize status field
-      txBufferDesc[i].status = ETH_TX_USED;
+      txBufferDesc[i].status = GMAC_TX_USED;
    }
 
    //Mark the last descriptor entry with the wrap flag
-   txBufferDesc[i - 1].status |= ETH_TX_WRAP;
+   txBufferDesc[i - 1].status |= GMAC_TX_WRAP;
    //Initialize TX buffer index
    txBufferIndex = 0;
 
@@ -526,13 +568,13 @@ void pic32czEthInitBufferDesc(NetInterface *interface)
       //Calculate the address of the current RX buffer
       address = (uint32_t) rxBuffer[i];
       //Write the address to the descriptor entry
-      rxBufferDesc[i].address = address & ETH_RX_ADDRESS;
+      rxBufferDesc[i].address = address & GMAC_RX_ADDRESS;
       //Clear status field
       rxBufferDesc[i].status = 0;
    }
 
    //Mark the last descriptor entry with the wrap flag
-   rxBufferDesc[i - 1].address |= ETH_RX_WRAP;
+   rxBufferDesc[i - 1].address |= GMAC_RX_WRAP;
    //Initialize RX buffer index
    rxBufferIndex = 0;
 
@@ -544,11 +586,11 @@ void pic32czEthInitBufferDesc(NetInterface *interface)
       //Write the address to the descriptor entry
       dummyTxBufferDesc[i].address = address;
       //Initialize status field
-      dummyTxBufferDesc[i].status = ETH_TX_USED;
+      dummyTxBufferDesc[i].status = GMAC_TX_USED;
    }
 
    //Mark the last descriptor entry with the wrap flag
-   dummyTxBufferDesc[i - 1].status |= ETH_TX_WRAP;
+   dummyTxBufferDesc[i - 1].status |= GMAC_TX_WRAP;
 
    //Initialize dummy RX buffer descriptors
    for(i = 0; i < PIC32CZ_ETH_DUMMY_BUFFER_COUNT; i++)
@@ -556,29 +598,29 @@ void pic32czEthInitBufferDesc(NetInterface *interface)
       //Calculate the address of the current RX buffer
       address = (uint32_t) dummyRxBuffer[i];
       //Write the address to the descriptor entry
-      dummyRxBufferDesc[i].address = (address & ETH_RX_ADDRESS) | ETH_RX_OWNERSHIP;
+      dummyRxBufferDesc[i].address = (address & GMAC_RX_ADDRESS) | GMAC_RX_OWNERSHIP;
       //Clear status field
       dummyRxBufferDesc[i].status = 0;
    }
 
    //Mark the last descriptor entry with the wrap flag
-   dummyRxBufferDesc[i - 1].address |= ETH_RX_WRAP;
+   dummyRxBufferDesc[i - 1].address |= GMAC_RX_WRAP;
 
    //Start location of the TX descriptor list
-   ETH_REGS->ETH_TBQB = (uint32_t) txBufferDesc;
-   ETH_REGS->ETH_TBPQB[0] = (uint32_t) dummyTxBufferDesc;
-   ETH_REGS->ETH_TBPQB[1] = (uint32_t) dummyTxBufferDesc;
-   ETH_REGS->ETH_TBPQB[2] = (uint32_t) dummyTxBufferDesc;
-   ETH_REGS->ETH_TBPQB[3] = (uint32_t) dummyTxBufferDesc;
-   ETH_REGS->ETH_TBPQB[4] = (uint32_t) dummyTxBufferDesc;
+   GMAC_REGS->GMAC_TBQB = (uint32_t) txBufferDesc;
+   GMAC_REGS->GMAC_TBQBAPQ[0] = (uint32_t) dummyTxBufferDesc;
+   GMAC_REGS->GMAC_TBQBAPQ[1] = (uint32_t) dummyTxBufferDesc;
+   GMAC_REGS->GMAC_TBQBAPQ[2] = (uint32_t) dummyTxBufferDesc;
+   GMAC_REGS->GMAC_TBQBAPQ[3] = (uint32_t) dummyTxBufferDesc;
+   GMAC_REGS->GMAC_TBQBAPQ[4] = (uint32_t) dummyTxBufferDesc;
 
    //Start location of the RX descriptor list
-   ETH_REGS->ETH_RBQB = (uint32_t) rxBufferDesc;
-   ETH_REGS->ETH_RBPQB[0] = (uint32_t) dummyRxBufferDesc;
-   ETH_REGS->ETH_RBPQB[1] = (uint32_t) dummyRxBufferDesc;
-   ETH_REGS->ETH_RBPQB[2] = (uint32_t) dummyRxBufferDesc;
-   ETH_REGS->ETH_RBPQB[3] = (uint32_t) dummyRxBufferDesc;
-   ETH_REGS->ETH_RBPQB[4] = (uint32_t) dummyRxBufferDesc;
+   GMAC_REGS->GMAC_RBQB = (uint32_t) rxBufferDesc;
+   GMAC_REGS->GMAC_RBQBAPQ[0] = (uint32_t) dummyRxBufferDesc;
+   GMAC_REGS->GMAC_RBQBAPQ[1] = (uint32_t) dummyRxBufferDesc;
+   GMAC_REGS->GMAC_RBQBAPQ[2] = (uint32_t) dummyRxBufferDesc;
+   GMAC_REGS->GMAC_RBQBAPQ[3] = (uint32_t) dummyRxBufferDesc;
+   GMAC_REGS->GMAC_RBQBAPQ[4] = (uint32_t) dummyRxBufferDesc;
 }
 
 
@@ -619,7 +661,7 @@ void pic32czEthTick(NetInterface *interface)
 void pic32czEthEnableIrq(NetInterface *interface)
 {
    //Enable Ethernet MAC interrupts
-   NVIC_EnableIRQ(ETH_PRI_Q_0_IRQn);
+   NVIC_EnableIRQ(GMAC_IRQn);
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -647,7 +689,7 @@ void pic32czEthEnableIrq(NetInterface *interface)
 void pic32czEthDisableIrq(NetInterface *interface)
 {
    //Disable Ethernet MAC interrupts
-   NVIC_DisableIRQ(ETH_PRI_Q_0_IRQn);
+   NVIC_DisableIRQ(GMAC_IRQn);
 
    //Valid Ethernet PHY or switch driver?
    if(interface->phyDriver != NULL)
@@ -671,7 +713,7 @@ void pic32czEthDisableIrq(NetInterface *interface)
  * @brief PIC32CZ Ethernet MAC interrupt service routine
  **/
 
-void ETH_PRI_Q_0_Handler(void)
+void GMAC_Handler(void)
 {
    bool_t flag;
    volatile uint32_t isr;
@@ -684,25 +726,40 @@ void ETH_PRI_Q_0_Handler(void)
    //This flag will be set if a higher priority task must be woken
    flag = FALSE;
 
-   //Each time the software reads ETH_ISR, it has to check the contents
-   //of ETH_TSR, ETH_RSR and ETH_NSR
-   isr = ETH_REGS->ETH_ISR;
-   tsr = ETH_REGS->ETH_TSR;
-   rsr = ETH_REGS->ETH_RSR;
+#if defined(__PIC32CZ2051CA70064__) || defined(__PIC32CZ2051CA70100__) || \
+   defined(__PIC32CZ2051CA70144__)
+   //Each time the software reads GMAC_ISR, it has to check the contents
+   //of GMAC_TSR, GMAC_RSR and GMAC_NSR
+   isr = GMAC_REGS->GMAC_ISRPQ[0];
+   isr = GMAC_REGS->GMAC_ISRPQ[1];
+   isr = GMAC_REGS->GMAC_ISRPQ[2];
+   isr = GMAC_REGS->GMAC_ISRPQ[3];
+   isr = GMAC_REGS->GMAC_ISRPQ[4];
+   isr = GMAC_REGS->GMAC_ISR;
+   tsr = GMAC_REGS->GMAC_TSR;
+   rsr = GMAC_REGS->GMAC_RSR;
+   (void) isr;
+#else
+   //Each time the software reads GMAC_ISR, it has to check the contents
+   //of GMAC_TSR, GMAC_RSR and GMAC_NSR
+   isr = GMAC_REGS->GMAC_ISR;
+   tsr = GMAC_REGS->GMAC_TSR;
+   rsr = GMAC_REGS->GMAC_RSR;
 
    //Clear interrupt flags
-   ETH_REGS->ETH_ISR = isr;
+   GMAC_REGS->GMAC_ISR = isr;
+#endif
 
    //Packet transmitted?
-   if((tsr & (ETH_TSR_HRESP_Msk | ETH_TSR_UND_Msk |
-      ETH_TSR_TXCOMP_Msk | ETH_TSR_TFC_Msk | ETH_TSR_TXGO_Msk |
-      ETH_TSR_RLE_Msk | ETH_TSR_COL_Msk | ETH_TSR_UBR_Msk)) != 0)
+   if((tsr & (GMAC_TSR_HRESP_Msk | GMAC_TSR_UND_Msk |
+      GMAC_TSR_TXCOMP_Msk | GMAC_TSR_TFC_Msk | GMAC_TSR_TXGO_Msk |
+      GMAC_TSR_RLE_Msk | GMAC_TSR_COL_Msk | GMAC_TSR_UBR_Msk)) != 0)
    {
       //Only clear TSR flags that are currently set
-      ETH_REGS->ETH_TSR = tsr;
+      GMAC_REGS->GMAC_TSR = tsr;
 
       //Check whether the TX buffer is available for writing
-      if((txBufferDesc[txBufferIndex].status & ETH_TX_USED) != 0)
+      if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) != 0)
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&nicDriverInterface->nicTxEvent);
@@ -710,8 +767,8 @@ void ETH_PRI_Q_0_Handler(void)
    }
 
    //Packet received?
-   if((rsr & (ETH_RSR_HNO_Msk | ETH_RSR_RXOVR_Msk | ETH_RSR_REC_Msk |
-      ETH_RSR_BNA_Msk)) != 0)
+   if((rsr & (GMAC_RSR_HNO_Msk | GMAC_RSR_RXOVR_Msk | GMAC_RSR_REC_Msk |
+      GMAC_RSR_BNA_Msk)) != 0)
    {
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
@@ -735,14 +792,14 @@ void pic32czEthEventHandler(NetInterface *interface)
    uint32_t rsr;
 
    //Read receive status
-   rsr = ETH_REGS->ETH_RSR;
+   rsr = GMAC_REGS->GMAC_RSR;
 
    //Packet received?
-   if((rsr & (ETH_RSR_HNO_Msk | ETH_RSR_RXOVR_Msk | ETH_RSR_REC_Msk |
-      ETH_RSR_BNA_Msk)) != 0)
+   if((rsr & (GMAC_RSR_HNO_Msk | GMAC_RSR_RXOVR_Msk | GMAC_RSR_REC_Msk |
+      GMAC_RSR_BNA_Msk)) != 0)
    {
       //Only clear RSR flags that are currently set
-      ETH_REGS->ETH_RSR = rsr;
+      GMAC_REGS->GMAC_RSR = rsr;
 
       //Process all pending packets
       do
@@ -784,7 +841,7 @@ error_t pic32czEthSendPacket(NetInterface *interface,
    }
 
    //Make sure the current buffer is available for writing
-   if((txBufferDesc[txBufferIndex].status & ETH_TX_USED) == 0)
+   if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) == 0)
    {
       return ERROR_FAILURE;
    }
@@ -796,8 +853,8 @@ error_t pic32czEthSendPacket(NetInterface *interface,
    if(txBufferIndex < (PIC32CZ_ETH_TX_BUFFER_COUNT - 1))
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status = ETH_TX_LAST |
-         (length & ETH_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = GMAC_TX_LAST |
+         (length & GMAC_TX_LENGTH);
 
       //Point to the next buffer
       txBufferIndex++;
@@ -805,8 +862,8 @@ error_t pic32czEthSendPacket(NetInterface *interface,
    else
    {
       //Write the status word
-      txBufferDesc[txBufferIndex].status = ETH_TX_WRAP | ETH_TX_LAST |
-         (length & ETH_TX_LENGTH);
+      txBufferDesc[txBufferIndex].status = GMAC_TX_WRAP | GMAC_TX_LAST |
+         (length & GMAC_TX_LENGTH);
 
       //Wrap around
       txBufferIndex = 0;
@@ -816,10 +873,10 @@ error_t pic32czEthSendPacket(NetInterface *interface,
    __DSB();
 
    //Set the TSTART bit to initiate transmission
-   ETH_REGS->ETH_NCR |= ETH_NCR_TSTART_Msk;
+   GMAC_REGS->GMAC_NCR |= GMAC_NCR_TSTART_Msk;
 
    //Check whether the next buffer is available for writing
-   if((txBufferDesc[txBufferIndex].status & ETH_TX_USED) != 0)
+   if((txBufferDesc[txBufferIndex].status & GMAC_TX_USED) != 0)
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -866,26 +923,26 @@ error_t pic32czEthReceivePacket(NetInterface *interface)
       }
 
       //No more entries to process?
-      if((rxBufferDesc[j].address & ETH_RX_OWNERSHIP) == 0)
+      if((rxBufferDesc[j].address & GMAC_RX_OWNERSHIP) == 0)
       {
          //Stop processing
          break;
       }
 
       //A valid SOF has been found?
-      if((rxBufferDesc[j].status & ETH_RX_SOF) != 0)
+      if((rxBufferDesc[j].status & GMAC_RX_SOF) != 0)
       {
          //Save the position of the SOF
          sofIndex = i;
       }
 
       //A valid EOF has been found?
-      if((rxBufferDesc[j].status & ETH_RX_EOF) != 0 && sofIndex != UINT_MAX)
+      if((rxBufferDesc[j].status & GMAC_RX_EOF) != 0 && sofIndex != UINT_MAX)
       {
          //Save the position of the EOF
          eofIndex = i;
          //Retrieve the length of the frame
-         size = rxBufferDesc[j].status & ETH_RX_LENGTH;
+         size = rxBufferDesc[j].status & GMAC_RX_LENGTH;
          //Limit the number of data to read
          size = MIN(size, ETH_MAX_FRAME_SIZE);
          //Stop processing since we have reached the end of the frame
@@ -926,7 +983,7 @@ error_t pic32czEthReceivePacket(NetInterface *interface)
       }
 
       //Mark the current buffer as free
-      rxBufferDesc[rxBufferIndex].address &= ~ETH_RX_OWNERSHIP;
+      rxBufferDesc[rxBufferIndex].address &= ~GMAC_RX_OWNERSHIP;
 
       //Point to the following entry
       rxBufferIndex++;
@@ -982,8 +1039,8 @@ error_t pic32czEthUpdateMacAddrFilter(NetInterface *interface)
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
    //Set the MAC address of the station
-   ETH_REGS->SA[0].ETH_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   ETH_REGS->SA[0].ETH_SAT = interface->macAddr.w[2];
+   GMAC_REGS->GMAC_SA[0].GMAC_SAB = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+   GMAC_REGS->GMAC_SA[0].GMAC_SAT = interface->macAddr.w[2];
 
    //The MAC supports 3 additional addresses for unicast perfect filtering
    unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
@@ -1062,58 +1119,58 @@ error_t pic32czEthUpdateMacAddrFilter(NetInterface *interface)
    if(j >= 1)
    {
       //The address is activated when SAT register is written
-      ETH_REGS->SA[1].ETH_SAB = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
-      ETH_REGS->SA[1].ETH_SAT = unicastMacAddr[0].w[2];
+      GMAC_REGS->GMAC_SA[1].GMAC_SAB = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+      GMAC_REGS->GMAC_SA[1].GMAC_SAT = unicastMacAddr[0].w[2];
    }
    else
    {
       //The address is deactivated when SAB register is written
-      ETH_REGS->SA[1].ETH_SAB = 0;
+      GMAC_REGS->GMAC_SA[1].GMAC_SAB = 0;
    }
 
    //Configure the second unicast address filter
    if(j >= 2)
    {
       //The address is activated when SAT register is written
-      ETH_REGS->SA[2].ETH_SAB = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
-      ETH_REGS->SA[2].ETH_SAT = unicastMacAddr[1].w[2];
+      GMAC_REGS->GMAC_SA[2].GMAC_SAB = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+      GMAC_REGS->GMAC_SA[2].GMAC_SAT = unicastMacAddr[1].w[2];
    }
    else
    {
       //The address is deactivated when SAB register is written
-      ETH_REGS->SA[2].ETH_SAB = 0;
+      GMAC_REGS->GMAC_SA[2].GMAC_SAB = 0;
    }
 
    //Configure the third unicast address filter
    if(j >= 3)
    {
       //The address is activated when SAT register is written
-      ETH_REGS->SA[3].ETH_SAB = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
-      ETH_REGS->SA[3].ETH_SAT = unicastMacAddr[2].w[2];
+      GMAC_REGS->GMAC_SA[3].GMAC_SAB = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+      GMAC_REGS->GMAC_SA[3].GMAC_SAT = unicastMacAddr[2].w[2];
    }
    else
    {
       //The address is deactivated when SAB register is written
-      ETH_REGS->SA[3].ETH_SAB = 0;
+      GMAC_REGS->GMAC_SA[3].GMAC_SAB = 0;
    }
 
    //The perfect MAC filter supports only 3 unicast addresses
    if(j >= 4)
    {
-      ETH_REGS->ETH_NCFGR |= ETH_NCFGR_UNIHEN_Msk;
+      GMAC_REGS->GMAC_NCFGR |= GMAC_NCFGR_UNIHEN_Msk;
    }
    else
    {
-      ETH_REGS->ETH_NCFGR &= ~ETH_NCFGR_UNIHEN_Msk;
+      GMAC_REGS->GMAC_NCFGR &= ~GMAC_NCFGR_UNIHEN_Msk;
    }
 
    //Configure the multicast hash table
-   ETH_REGS->ETH_HRB = hashTable[0];
-   ETH_REGS->ETH_HRT = hashTable[1];
+   GMAC_REGS->GMAC_HRB = hashTable[0];
+   GMAC_REGS->GMAC_HRT = hashTable[1];
 
    //Debug message
-   TRACE_DEBUG("  HRB = %08" PRIX32 "\r\n", ETH_REGS->ETH_HRB);
-   TRACE_DEBUG("  HRT = %08" PRIX32 "\r\n", ETH_REGS->ETH_HRT);
+   TRACE_DEBUG("  HRB = %08" PRIX32 "\r\n", GMAC_REGS->GMAC_HRB);
+   TRACE_DEBUG("  HRT = %08" PRIX32 "\r\n", GMAC_REGS->GMAC_HRT);
 
    //Successful processing
    return NO_ERROR;
@@ -1131,39 +1188,52 @@ error_t pic32czEthUpdateMacConfig(NetInterface *interface)
    uint32_t config;
 
    //Read network configuration register
-   config = ETH_REGS->ETH_NCFGR;
+   config = GMAC_REGS->GMAC_NCFGR;
 
+#if defined(__PIC32CZ2051CA70064__) || defined(__PIC32CZ2051CA70100__) || \
+   defined(__PIC32CZ2051CA70144__)
+   //10BASE-T or 100BASE-TX operation mode?
+   if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
+      config |= GMAC_NCFGR_SPD_Msk;
+   }
+   else
+   {
+      config &= ~GMAC_NCFGR_SPD_Msk;
+   }
+#else
    //1000BASE-T operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_1GBPS)
    {
-      config |= ETH_NCFGR_GIGE_Msk;
-      config &= ~ETH_NCFGR_SPD_Msk;
+      config |= GMAC_NCFGR_GIGE_Msk;
+      config &= ~GMAC_NCFGR_SPD_Msk;
    }
    //100BASE-TX operation mode?
    else if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)
    {
-      config &= ~ETH_NCFGR_GIGE_Msk;
-      config |= ETH_NCFGR_SPD_Msk;
+      config &= ~GMAC_NCFGR_GIGE_Msk;
+      config |= GMAC_NCFGR_SPD_Msk;
    }
    //10BASE-T operation mode?
    else
    {
-      config &= ~ETH_NCFGR_GIGE_Msk;
-      config &= ~ETH_NCFGR_SPD_Msk;
+      config &= ~GMAC_NCFGR_GIGE_Msk;
+      config &= ~GMAC_NCFGR_SPD_Msk;
    }
+#endif
 
    //Half-duplex or full-duplex mode?
    if(interface->duplexMode == NIC_FULL_DUPLEX_MODE)
    {
-      config |= ETH_NCFGR_FD_Msk;
+      config |= GMAC_NCFGR_FD_Msk;
    }
    else
    {
-      config &= ~ETH_NCFGR_FD_Msk;
+      config &= ~GMAC_NCFGR_FD_Msk;
    }
 
    //Write configuration value back to NCFGR register
-   ETH_REGS->ETH_NCFGR = config;
+   GMAC_REGS->GMAC_NCFGR = config;
 
    //Successful processing
    return NO_ERROR;
@@ -1187,18 +1257,18 @@ void pic32czEthWritePhyReg(uint8_t opcode, uint8_t phyAddr,
    if(opcode == SMI_OPCODE_WRITE)
    {
       //Set up a write operation
-      temp = ETH_MAN_CLTTO_Msk | ETH_MAN_OP(1) | ETH_MAN_WTN(2);
+      temp = GMAC_MAN_CLTTO_Msk | GMAC_MAN_OP(1) | GMAC_MAN_WTN(2);
       //PHY address
-      temp |= ETH_MAN_PHYA(phyAddr);
+      temp |= GMAC_MAN_PHYA(phyAddr);
       //Register address
-      temp |= ETH_MAN_REGA(regAddr);
+      temp |= GMAC_MAN_REGA(regAddr);
       //Register value
-      temp |= ETH_MAN_DATA(data);
+      temp |= GMAC_MAN_DATA(data);
 
       //Start a write operation
-      ETH_REGS->ETH_MAN = temp;
+      GMAC_REGS->GMAC_MAN = temp;
       //Wait for the write to complete
-      while((ETH_REGS->ETH_NSR & ETH_NSR_IDLE_Msk) == 0)
+      while((GMAC_REGS->GMAC_NSR & GMAC_NSR_IDLE_Msk) == 0)
       {
       }
    }
@@ -1227,21 +1297,21 @@ uint16_t pic32czEthReadPhyReg(uint8_t opcode, uint8_t phyAddr,
    if(opcode == SMI_OPCODE_READ)
    {
       //Set up a read operation
-      temp = ETH_MAN_CLTTO_Msk | ETH_MAN_OP(2) | ETH_MAN_WTN(2);
+      temp = GMAC_MAN_CLTTO_Msk | GMAC_MAN_OP(2) | GMAC_MAN_WTN(2);
       //PHY address
-      temp |= ETH_MAN_PHYA(phyAddr);
+      temp |= GMAC_MAN_PHYA(phyAddr);
       //Register address
-      temp |= ETH_MAN_REGA(regAddr);
+      temp |= GMAC_MAN_REGA(regAddr);
 
       //Start a read operation
-      ETH_REGS->ETH_MAN = temp;
+      GMAC_REGS->GMAC_MAN = temp;
       //Wait for the read to complete
-      while((ETH_REGS->ETH_NSR & ETH_NSR_IDLE_Msk) == 0)
+      while((GMAC_REGS->GMAC_NSR & GMAC_NSR_IDLE_Msk) == 0)
       {
       }
 
       //Get register value
-      data = ETH_REGS->ETH_MAN & ETH_MAN_DATA_Msk;
+      data = GMAC_REGS->GMAC_MAN & GMAC_MAN_DATA_Msk;
    }
    else
    {

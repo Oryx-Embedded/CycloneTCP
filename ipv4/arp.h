@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _ARP_H
@@ -76,7 +76,7 @@
    #error ARP_MAX_PROBES parameter is not valid
 #endif
 
-//time interval between subsequent retransmissions of probes
+//Time interval between subsequent retransmissions of probes
 #ifndef ARP_PROBE_TIMEOUT
    #define ARP_PROBE_TIMEOUT 60000
 #elif (ARP_PROBE_TIMEOUT < 1000)
@@ -190,7 +190,7 @@ typedef struct
    ArpState state;                              ///<Reachability state
    Ipv4Addr ipAddr;                             ///<Unicast IPv4 address
    MacAddr macAddr;                             ///<Link layer address associated with the IPv4 address
-   systime_t timestamp;                         ///<Time stamp to manage entry lifetime
+   systime_t timestamp;                         ///<Timestamp to manage entry lifetime
    systime_t timeout;                           ///<Timeout value
    uint_t retransmitCount;                      ///<Retransmission counter
    ArpQueueItem queue[ARP_MAX_PENDING_PACKETS]; ///<Packets waiting for address resolution to complete
@@ -203,7 +203,10 @@ extern systime_t arpTickCounter;
 
 //ARP related functions
 error_t arpInit(NetInterface *interface);
+
 error_t arpEnable(NetInterface *interface, bool_t enable);
+error_t arpSetReachableTime(NetInterface *interface, systime_t reachableTime);
+error_t arpSetProbeTimout(NetInterface *interface, systime_t probeTimeout);
 
 error_t arpAddStaticEntry(NetInterface *interface, Ipv4Addr ipAddr,
    const MacAddr *macAddr);

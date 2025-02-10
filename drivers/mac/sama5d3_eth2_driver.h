@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _SAMA5D3_ETH2_DRIVER_H
@@ -70,14 +70,6 @@
 #ifndef SAMA5D3_ETH2_RAM_SECTION
    #define SAMA5D3_ETH2_RAM_SECTION ".ram_no_cache"
 #endif
-
-//RGMII signals
-#define GMAC_RGMII_MASK (PIO_PB18A_G125CK | \
-   PIO_PB17A_GMDIO | PIO_PB16A_GMDC | PIO_PB13A_GRXER | \
-   PIO_PB12A_GRXDV | PIO_PB11A_GRXCK | PIO_PB9A_GTXEN | \
-   PIO_PB8A_GTXCK | PIO_PB7A_GRX3 | PIO_PB6A_GRX2 | \
-   PIO_PB5A_GRX1 | PIO_PB4A_GRX0 | PIO_PB3A_GTX3 | \
-   PIO_PB2A_GTX2 | PIO_PB1A_GTX1 | PIO_PB0A_GTX0)
 
 //TX buffer descriptor flags
 #define GMAC_TX_USED           0x80000000

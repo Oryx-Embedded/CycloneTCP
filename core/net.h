@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _NET_H
@@ -51,18 +51,19 @@ struct _NetInterface;
 #include "igmp/igmp_host.h"
 #include "igmp/igmp_router.h"
 #include "igmp/igmp_snooping.h"
+#include "dhcp/dhcp_client.h"
+#include "dhcp/dhcp_server.h"
+#include "nat/nat.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv.h"
 #include "ipv6/slaac.h"
 #include "mld/mld_node.h"
-#include "ppp/ppp.h"
-#include "dhcp/dhcp_client.h"
-#include "dhcp/dhcp_server.h"
 #include "dhcpv6/dhcpv6_client.h"
 #include "dns/dns_client.h"
 #include "mdns/mdns_responder.h"
 #include "mdns/mdns_common.h"
 #include "dns_sd/dns_sd_responder.h"
+#include "ppp/ppp.h"
 #include "cpu_endian.h"
 #include "error.h"
 
@@ -94,13 +95,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.4.4"
+#define CYCLONE_TCP_VERSION_STRING "2.5.0"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
-#define CYCLONE_TCP_MINOR_VERSION 4
+#define CYCLONE_TCP_MINOR_VERSION 5
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 4
+#define CYCLONE_TCP_REV_NUMBER 0
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -246,6 +247,8 @@ struct _NetInterface
    Ipv4Context ipv4Context;                       ///<IPv4 context
 #if (ETH_SUPPORT == ENABLED)
    bool_t enableArp;                              ///<Enable address resolution using ARP
+   systime_t arpReachableTime;                    ///<ARP reachable time
+   systime_t arpProbeTimeout;                     ///<ARP probe timeout
    ArpCacheEntry arpCache[ARP_CACHE_SIZE];        ///<ARP cache
 #endif
 #if (IGMP_HOST_SUPPORT == ENABLED)
@@ -329,6 +332,9 @@ typedef struct
    NetInterface interfaces[NET_INTERFACE_COUNT]; ///<Network interfaces
    NetLinkChangeCallbackEntry linkChangeCallbacks[NET_MAX_LINK_CHANGE_CALLBACKS];
    NetTimerCallbackEntry timerCallbacks[NET_MAX_TIMER_CALLBACKS];
+#if (NAT_SUPPORT == ENABLED)
+   NatContext *natContext;                       ///<NAT context
+#endif
 #if (IPV4_IPSEC_SUPPORT == ENABLED)
    void *ipsecContext;                           ///<IPsec context
    void *ikeContext;                             ///<IKE context

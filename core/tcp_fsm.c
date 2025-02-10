@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -612,6 +612,24 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
          queueItem->mss = MIN(socket->mss, TCP_DEFAULT_MSS);
       }
 
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+      //Get the TCP Window Scale option
+      option = tcpGetOption(segment, TCP_OPTION_WINDOW_SCALE_FACTOR);
+
+      //This option may be sent in an initial SYN segment to enable window
+      //scaling(refer to RFC 7323, section 2.2)
+      if(option != NULL && option->length == 3)
+      {
+         queueItem->wndScaleOptionReceived = TRUE;
+         queueItem->wndScaleFactor = option->value[0];
+      }
+      else
+      {
+         queueItem->wndScaleOptionReceived = FALSE;
+         queueItem->wndScaleFactor = 0;
+      }
+#endif
+
 #if (TCP_SACK_SUPPORT == ENABLED)
       //Get the SACK Permitted option
       option = tcpGetOption(segment, TCP_OPTION_SACK_PERMITTED);
@@ -730,6 +748,27 @@ void tcpStateSynSent(Socket *socket, const TcpHeader *segment, size_t length)
          socket->smss = MAX(socket->smss, TCP_MIN_MSS);
       }
 
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+      //Get the TCP Window Scale option
+      option = tcpGetOption(segment, TCP_OPTION_WINDOW_SCALE_FACTOR);
+
+      //This option may be sent in an initial SYN segment to enable window
+      //scaling (refer to RFC 7323, section 2.2)
+      if(option != NULL && option->length == 3)
+      {
+         //The maximum scale exponent is limited to 14 for a maximum permissible
+         //receive window size of 1 GiB
+         socket->wndScaleOptionReceived = TRUE;
+         socket->sndWndShift = MIN(option->value[0], 14);
+      }
+      else
+      {
+         //The TCP Window Scale option is not present
+         socket->wndScaleOptionReceived = FALSE;
+         socket->sndWndShift = 0;
+      }
+#endif
+
 #if (TCP_SACK_SUPPORT == ENABLED)
       //Get the SACK Permitted option
       option = tcpGetOption(segment, TCP_OPTION_SACK_PERMITTED);
@@ -746,7 +785,7 @@ void tcpStateSynSent(Socket *socket, const TcpHeader *segment, size_t length)
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
       //Initial congestion window
-      socket->cwnd = MIN(TCP_INITIAL_WINDOW * socket->smss,
+      socket->cwnd = MIN((uint32_t) socket->smss * TCP_INITIAL_WINDOW,
          socket->txBufferSize);
 #endif
 
@@ -771,7 +810,7 @@ void tcpStateSynSent(Socket *socket, const TcpHeader *segment, size_t length)
       }
       else
       {
-         //Form an SYN ACK segment and send it
+         //Form an SYN/ACK segment and send it
          tcpSendSegment(socket, TCP_FLAG_SYN | TCP_FLAG_ACK, socket->iss,
             socket->rcvNxt, 0, TRUE);
 
@@ -798,6 +837,7 @@ void tcpStateSynSent(Socket *socket, const TcpHeader *segment, size_t length)
 void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
    const NetBuffer *buffer, size_t offset, size_t length)
 {
+   uint32_t window;
    TcpHeader segment2;
 
    //Debug message
@@ -821,7 +861,7 @@ void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
       }
       else
       {
-         //A retransmitted SYN means our SYN ACK was lost
+         //A retransmitted SYN means our SYN/ACK was lost
          tcpSendSegment(socket, TCP_FLAG_SYN | TCP_FLAG_ACK, socket->iss,
             socket->rcvNxt, 0, FALSE);
 
@@ -868,14 +908,24 @@ void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
       return;
    }
 
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+   //The window field (SEG.WND) in the header of every incoming segment, with
+   //the exception of SYN segments, MUST be left-shifted by Snd.Wind.Shift bits
+   //before updating SND.WND (refer to RFC 7323, section 2.3)
+   window = (uint32_t) segment->window << socket->sndWndShift;
+#else
+   //The maximum unscaled window is 2^16 - 1
+   window = segment->window;
+#endif
+
    //Update the send window before entering ESTABLISHED state (refer to
    //RFC 1122, section 4.2.2.20)
-   socket->sndWnd = segment->window;
+   socket->sndWnd = window;
    socket->sndWl1 = segment->seqNum;
    socket->sndWl2 = segment->ackNum;
 
    //Maximum send window it has seen so far on the connection
-   socket->maxSndWnd = segment->window;
+   socket->maxSndWnd = window;
 
    //Enter ESTABLISHED state
    tcpChangeState(socket, TCP_STATE_ESTABLISHED);

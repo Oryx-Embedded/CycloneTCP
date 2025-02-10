@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,15 +33,14 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL FTP_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
-#include <ctype.h>
+#include "core/net.h"
 #include "ftp/ftp_client.h"
 #include "ftp/ftp_client_transport.h"
 #include "ftp/ftp_client_misc.h"

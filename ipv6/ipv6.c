@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -1275,18 +1275,28 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
 
       //Unrecognized header type?
       default:
-         //Debug message
-         TRACE_WARNING("Unrecognized Next Header type\r\n");
-
          //Packets addressed to the tentative address should be silently discarded
          if(!ipv6IsTentativeAddr(interface, &ipHeader->destAddr))
          {
-            //Compute the offset of the unrecognized Next Header field within the packet
-            size_t n = nextHeaderOffset - ipPacketOffset;
+#if (RAW_SOCKET_SUPPORT == ENABLED)
+            //Allow raw sockets to process IPv6 packets
+            error = rawSocketProcessIpPacket(interface, &pseudoHeader, ipPacket,
+               i, ancillary);
+#else
+            //Report an error
+            error = ERROR_PROTOCOL_UNREACHABLE;
+#endif
+            //Unreachable protocol?
+            if(error == ERROR_PROTOCOL_UNREACHABLE)
+            {
+               //Compute the offset of the unrecognized Next Header field within
+               //the packet
+               size_t n = nextHeaderOffset - ipPacketOffset;
 
-            //Send an ICMP Parameter Problem message
-            icmpv6SendErrorMessage(interface, ICMPV6_TYPE_PARAM_PROBLEM,
-               ICMPV6_CODE_UNKNOWN_NEXT_HEADER, n, ipPacket, ipPacketOffset);
+               //Send an ICMP Parameter Problem message
+               icmpv6SendErrorMessage(interface, ICMPV6_TYPE_PARAM_PROBLEM,
+                  ICMPV6_CODE_UNKNOWN_NEXT_HEADER, n, ipPacket, ipPacketOffset);
+            }
          }
          else
          {

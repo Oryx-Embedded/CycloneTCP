@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -230,19 +230,29 @@ error_t sama5d3Eth2Init(NetInterface *interface)
 __weak_func void sama5d3Eth2InitGpio(NetInterface *interface)
 {
 //SAMA5D3-Xplained, SAMA5D3-EDS or EVB-KSZ9477 evaluation board?
-#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS) || defined(USE_EVB_KSZ9477)
+#if defined(USE_SAMA5D3_XPLAINED) || defined(USE_SAMA5D3_EDS) || \
+   defined(USE_EVB_KSZ9477)
+   uint32_t mask;
+
    //Enable PIO peripheral clock
    PMC->PMC_PCER0 = (1 << ID_PIOB);
 
+   //Configure RGMII pins
+   mask = PIO_PB18A_G125CK | PIO_PB17A_GMDIO | PIO_PB16A_GMDC |
+      PIO_PB13A_GRXER | PIO_PB12A_GRXDV | PIO_PB11A_GRXCK | PIO_PB9A_GTXEN |
+      PIO_PB8A_GTXCK | PIO_PB7A_GRX3 | PIO_PB6A_GRX2 | PIO_PB5A_GRX1 |
+      PIO_PB4A_GRX0 | PIO_PB3A_GTX3 | PIO_PB2A_GTX2 | PIO_PB1A_GTX1 |
+      PIO_PB0A_GTX0;
+
    //Disable pull-up resistors on RGMII pins
-   PIOB->PIO_PUDR = GMAC_RGMII_MASK;
+   PIOB->PIO_PUDR = mask;
    //Disable interrupts-on-change
-   PIOB->PIO_IDR = GMAC_RGMII_MASK;
+   PIOB->PIO_IDR = mask;
    //Assign MII pins to peripheral A function
-   PIOB->PIO_ABCDSR[0] &= ~GMAC_RGMII_MASK;
-   PIOB->PIO_ABCDSR[1] &= ~GMAC_RGMII_MASK;
+   PIOB->PIO_ABCDSR[0] &= ~mask;
+   PIOB->PIO_ABCDSR[1] &= ~mask;
    //Disable the PIO from controlling the corresponding pins
-   PIOB->PIO_PDR = GMAC_RGMII_MASK;
+   PIOB->PIO_PDR = mask;
 
    //Select RGMII operation mode
    GMAC->GMAC_UR = GMAC_UR_RGMII;

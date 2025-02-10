@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -115,12 +115,12 @@ void tcpCheckRetransmitTimer(Socket *socket)
                //Amount of data that has been sent but not yet acknowledged
                flightSize = socket->sndNxt - socket->sndUna;
                //Adjust ssthresh value
-               socket->ssthresh = MAX(flightSize / 2, 2 * socket->smss);
+               socket->ssthresh = MAX(flightSize / 2, (uint32_t) socket->smss * 2);
             }
 
             //Furthermore, upon a timeout cwnd must be set to no more than the
             //loss window, LW, which equals 1 full-sized segment
-            socket->cwnd = MIN(TCP_LOSS_WINDOW * socket->smss,
+            socket->cwnd = MIN((uint32_t) socket->smss * TCP_LOSS_WINDOW,
                socket->txBufferSize);
 
             //After a retransmit timeout, record the highest sequence number

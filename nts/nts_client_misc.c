@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,23 +25,21 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL NTS_TRACE_LEVEL
 
 //Dependencies
-#include <ctype.h>
 #include "core/net.h"
 #include "nts/nts_client.h"
 #include "nts/nts_client_misc.h"
 #include "nts/nts_debug.h"
 #include "ntp/ntp_common.h"
 #include "ntp/ntp_debug.h"
-#include "tls_key_material.h"
-#include "cipher/aes.h"
-#include "aead/siv.h"
+#include "cipher/cipher_algorithms.h"
+#include "aead/aead_algorithms.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -768,6 +766,14 @@ error_t ntsClientShutdownNtsKeConnection(NtsClientContext *context)
 
 void ntsClientCloseNtsKeConnection(NtsClientContext *context)
 {
+   //Valid TLS context?
+   if(context->tlsContext != NULL)
+   {
+      //Release TLS context
+      tlsFree(context->tlsContext);
+      context->tlsContext = NULL;
+   }
+
    //Valid socket?
    if(context->ntsKeSocket != NULL)
    {

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -225,6 +225,13 @@
    #error HTTP_SERVER_USERNAME_MAX_LEN parameter is not valid
 #endif
 
+//Maximum content type length
+#ifndef HTTP_SERVER_CONTENT_TYPE_MAX_LEN
+   #define HTTP_SERVER_CONTENT_TYPE_MAX_LEN 31
+#elif (HTTP_SERVER_CONTENT_TYPE_MAX_LEN < 0)
+   #error HTTP_SERVER_CONTENT_TYPE_MAX_LEN parameter is not valid
+#endif
+
 //Maximum length of CGI parameters
 #ifndef HTTP_SERVER_CGI_PARAM_MAX_LEN
    #define HTTP_SERVER_CGI_PARAM_MAX_LEN 31
@@ -284,6 +291,16 @@
 //Application specific context
 #ifndef HTTP_SERVER_PRIVATE_CONTEXT
    #define HTTP_SERVER_PRIVATE_CONTEXT
+#endif
+
+//Application specific header fields (HTTP request)
+#ifndef HTTP_REQUEST_PRIVATE_HEADER_FIELDS
+   #define HTTP_REQUEST_PRIVATE_HEADER_FIELDS
+#endif
+
+//Application specific header fields (HTTP response)
+#ifndef HTTP_RESPONSE_PRIVATE_HEADER_FIELDS
+   #define HTTP_RESPONSE_PRIVATE_HEADER_FIELDS
 #endif
 
 //File system support?
@@ -484,6 +501,9 @@ typedef struct
    char_t uri[HTTP_SERVER_URI_MAX_LEN + 1];                  ///<Resource identifier
    char_t queryString[HTTP_SERVER_QUERY_STRING_MAX_LEN + 1]; ///<Query string
    char_t host[HTTP_SERVER_HOST_MAX_LEN + 1];                ///<Host name
+#if (HTTP_SERVER_CONTENT_TYPE_MAX_LEN > 0)
+   char_t contentType[HTTP_SERVER_CONTENT_TYPE_MAX_LEN + 1]; ///<Content type
+#endif
    bool_t keepAlive;
    bool_t chunkedEncoding;
    size_t contentLength;
@@ -508,6 +528,7 @@ typedef struct
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    char_t cookie[HTTP_SERVER_COOKIE_MAX_LEN + 1];            ///<Cookie header field
 #endif
+   HTTP_REQUEST_PRIVATE_HEADER_FIELDS                        ///<Application specific header fields
 } HttpRequest;
 
 
@@ -536,6 +557,7 @@ typedef struct
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    char_t setCookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///<Set-Cookie header field
 #endif
+   HTTP_RESPONSE_PRIVATE_HEADER_FIELDS               ///<Application specific header fields
 } HttpResponse;
 
 

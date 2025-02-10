@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -220,6 +220,7 @@ error_t chapProcessChallenge(PppContext *context,
 {
    size_t n;
    Md5Context md5Context;
+   uint8_t digest[MD5_DIGEST_SIZE];
 
    //Debug message
    TRACE_INFO("\r\nCHAP Challenge packet received\r\n");
@@ -249,10 +250,10 @@ error_t chapProcessChallenge(PppContext *context,
    md5Update(&md5Context, &challengePacket->identifier, sizeof(uint8_t));
    md5Update(&md5Context, context->password, n);
    md5Update(&md5Context, challengePacket->value, challengePacket->valueSize);
-   md5Final(&md5Context, NULL);
+   md5Final(&md5Context, digest);
 
    //Whenever a Challenge packet is received, the peer must send a Response packet
-   chapSendResponse(context, md5Context.digest);
+   chapSendResponse(context, digest);
 
    //Switch to the Response-Sent state
    context->chapFsm.peerState = CHAP_STATE_4_RESPONSE_SENT;
@@ -717,6 +718,7 @@ bool_t chapCheckPassword(PppContext *context, const char_t *password)
 {
    size_t n;
    Md5Context md5Context;
+   uint8_t digest[MD5_DIGEST_SIZE];
 
    //Retrieve the length of the password
    n = osStrlen(password);
@@ -728,10 +730,10 @@ bool_t chapCheckPassword(PppContext *context, const char_t *password)
    md5Update(&md5Context, &context->chapFsm.localIdentifier, sizeof(uint8_t));
    md5Update(&md5Context, password, n);
    md5Update(&md5Context, context->chapFsm.challenge, MD5_DIGEST_SIZE);
-   md5Final(&md5Context, NULL);
+   md5Final(&md5Context, digest);
 
    //Check the resulting digest value
-   if(!osMemcmp(md5Context.digest, context->chapFsm.response, MD5_DIGEST_SIZE))
+   if(osMemcmp(digest, context->chapFsm.response, MD5_DIGEST_SIZE) == 0)
    {
       return TRUE;
    }

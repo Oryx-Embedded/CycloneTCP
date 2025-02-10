@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _DNS_CACHE_H
@@ -104,7 +104,7 @@ typedef struct
    uint16_t id;                       ///<Identifier used to match queries and responses
    char_t name[DNS_MAX_NAME_LEN + 1]; ///<Domain name
    IpAddr ipAddr;                     ///<IP address
-   systime_t timestamp;               ///<Time stamp to manage entry lifetime
+   systime_t timestamp;               ///<Timestamp to manage entry lifetime
    systime_t timeout;                 ///<Retransmission timeout
    systime_t maxTimeout;              ///<Maximum retransmission timeout
    uint_t retransmitCount;            ///<Retransmission counter

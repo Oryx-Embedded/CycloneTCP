@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 #ifndef _STM32H7RSXX_ETH_DRIVER_H
@@ -90,24 +90,6 @@
 
 //ETH_MACCR register
 #define ETH_MACCR_RESERVED15 0x00008000
-
-//ETH_MMCRIMR register
-#ifndef ETH_MMCRIMR_RXLPITRCIM
-   #define ETH_MMCRIMR_RXLPITRCIM  0x08000000
-   #define ETH_MMCRIMR_RXLPIUSCIM  0x04000000
-   #define ETH_MMCRIMR_RXUCGPIM    0x00020000
-   #define ETH_MMCRIMR_RXALGNERPIM 0x00000040
-   #define ETH_MMCRIMR_RXCRCERPIM  0x00000020
-#endif
-
-//ETH_MMCTIMR register
-#ifndef ETH_MMCTIMR_TXLPITRCIM
-   #define ETH_MMCTIMR_TXLPITRCIM  0x08000000
-   #define ETH_MMCTIMR_TXLPIUSCIM  0x04000000
-   #define ETH_MMCTIMR_TXGPKTIM    0x00200000
-   #define ETH_MMCTIMR_TXMCOLGPIM  0x00008000
-   #define ETH_MMCTIMR_TXSCOLGPIM  0x00004000
-#endif
 
 //Transmit normal descriptor (read format)
 #define ETH_TDES0_BUF1AP        0xFFFFFFFF

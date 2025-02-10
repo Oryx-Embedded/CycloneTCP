@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -84,8 +84,8 @@ error_t modbusServerParseCertificate(TlsContext *tlsContext,
             return error;
 
          //Role OID extension found?
-         if(!oidComp(extension.oid.value, extension.oid.length, MODBUS_ROLE_OID,
-            sizeof(MODBUS_ROLE_OID)))
+         if(OID_COMP(extension.oid.value, extension.oid.length,
+            MODBUS_ROLE_OID) == 0)
          {
             //Extract the client role OID from the certificate
             error = modbusServerParseRoleOid(connection, extension.data.value,
@@ -166,6 +166,13 @@ error_t modbusServerOpenSecureConnection(ModbusServerContext *context,
    //Failed to allocate TLS context?
    if(connection->tlsContext == NULL)
       return ERROR_OPEN_FAILED;
+
+   //Devices must provide TLS v1.2 or better
+   error = tlsSetVersion(connection->tlsContext, TLS_VERSION_1_2,
+      TLS_VERSION_1_3);
+   //Any error to report?
+   if(error)
+      return error;
 
    //Select server operation mode
    error = tlsSetConnectionEnd(connection->tlsContext,

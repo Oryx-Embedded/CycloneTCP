@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.5.0
  **/
 
 //Switch to the appropriate trace level
@@ -227,18 +227,27 @@ __weak_func void sam4eEthInitGpio(NetInterface *interface)
 {
 //SAM4E-EK or SAM4E-Xplained-Pro evaluation board?
 #if defined(USE_SAM4E_EK) || defined(USE_SAM4E_XPLAINED_PRO)
+   uint32_t mask;
+
    //Enable PIO peripheral clock
    PMC->PMC_PCER0 = (1 << ID_PIOD);
 
+   //Configure MII pins
+   mask = PIO_PD16A_GTX3 | PIO_PD15A_GTX2 | PIO_PD14A_GRXCK | PIO_PD13A_GCOL |
+      PIO_PD12A_GRX3 | PIO_PD11A_GRX2 | PIO_PD10A_GCRS | PIO_PD9A_GMDIO |
+      PIO_PD8A_GMDC | PIO_PD7A_GRXER | PIO_PD6A_GRX1 | PIO_PD5A_GRX0 |
+      PIO_PD4A_GRXDV | PIO_PD3A_GTX1 | PIO_PD2A_GTX0 | PIO_PD1A_GTXEN |
+      PIO_PD0A_GTXCK;
+
    //Disable pull-up resistors on MII pins
-   PIOD->PIO_PUDR = GMAC_MII_MASK;
+   PIOD->PIO_PUDR = mask;
    //Disable interrupts-on-change
-   PIOD->PIO_IDR = GMAC_MII_MASK;
+   PIOD->PIO_IDR = mask;
    //Assign MII pins to peripheral A function
-   PIOD->PIO_ABCDSR[0] &= ~GMAC_MII_MASK;
-   PIOD->PIO_ABCDSR[1] &= ~GMAC_MII_MASK;
+   PIOD->PIO_ABCDSR[0] &= ~mask;
+   PIOD->PIO_ABCDSR[1] &= ~mask;
    //Disable the PIO from controlling the corresponding pins
-   PIOD->PIO_PDR = GMAC_MII_MASK;
+   PIOD->PIO_PDR = mask;
 
    //Select MII operation mode
    GMAC->GMAC_UR = GMAC_UR_RMIIMII;
