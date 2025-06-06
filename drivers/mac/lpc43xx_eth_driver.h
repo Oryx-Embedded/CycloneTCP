@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _LPC43XX_ETH_DRIVER_H
@@ -81,6 +81,11 @@
    #define LPC43XX_ETH_IRQ_SUB_PRIORITY 0
 #elif (LPC43XX_ETH_IRQ_SUB_PRIORITY < 0)
    #error LPC43XX_ETH_IRQ_SUB_PRIORITY parameter is not valid
+#endif
+
+//Name of the section where to place DMA buffers
+#ifndef LPC43XX_ETH_RAM_SECTION
+   #define LPC43XX_ETH_RAM_SECTION ".eth_ram"
 #endif
 
 //CREG6 register

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _NCN26010_DRIVER_H
@@ -116,7 +116,7 @@
 //NCN26010 Standard Control and Status registers (MMS 0)
 #define NCN26010_IDVER                                    0x00, 0x0000
 #define NCN26010_PHYID                                    0x00, 0x0001
-#define NCN26010_STDCAP                                   0x00, 0x0002
+#define NCN26010_SPICAP                                   0x00, 0x0002
 #define NCN26010_RESET                                    0x00, 0x0003
 #define NCN26010_CONFIG0                                  0x00, 0x0004
 #define NCN26010_STATUS0                                  0x00, 0x0008
@@ -173,7 +173,7 @@
 #define NCN26010_STFRAMESRX256                            0x01, 0x0049
 #define NCN26010_STFRAMESRX512                            0x01, 0x004A
 #define NCN26010_STFRAMESRX1024                           0x01, 0x004B
-#define NCN26010_STRUNTSERR                               0x01, 0x004C
+#define NCN26010_STRUNTERR                                0x01, 0x004C
 #define NCN26010_STRXTOOLONG                              0x01, 0x004D
 #define NCN26010_STFCSERRS                                0x01, 0x004E
 #define NCN26010_STSYMBOLERRS                             0x01, 0x004F
@@ -197,7 +197,7 @@
 #define NCN26010_T1SPMASTS                                0x03, 0x08FA
 #define NCN26010_T1STMCTL                                 0x03, 0x08FB
 
-//NCN26010 PHY PCLA registers (MMS 4)
+//NCN26010 PHY PLCA registers (MMS 4)
 #define NCN26010_CHIPREV                                  0x04, 0x8000
 #define NCN26010_PHYCFG1                                  0x04, 0x8001
 #define NCN26010_PLCAEXT                                  0x04, 0x8002
@@ -206,7 +206,7 @@
 #define NCN26010_PLCAREGMAP                               0x04, 0xCA00
 #define NCN26010_PLCACTRL0                                0x04, 0xCA01
 #define NCN26010_PLCACTRL1                                0x04, 0xCA02
-#define NCN26010_PLCASTS                                  0x04, 0xCA03
+#define NCN26010_PLCASTATUS                               0x04, 0xCA03
 #define NCN26010_PLCATOTMR                                0x04, 0xCA04
 #define NCN26010_PLCABURST                                0x04, 0xCA05
 
@@ -235,14 +235,14 @@
 #define NCN26010_PHYID_REV_DEFAULT                        0x00000001
 
 //SPI Capabilities register
-#define NCN26010_STDCAP_TXFCSVC                           0x00000400
-#define NCN26010_STDCAP_IPRAC                             0x00000200
-#define NCN26010_STDCAP_DPRAC                             0x00000100
-#define NCN26010_STDCAP_CTC                               0x00000080
-#define NCN26010_STDCAP_FTC                               0x00000040
-#define NCN26010_STDCAP_AIDC                              0x00000020
-#define NCN26010_STDCAP_SEQ                               0x00000010
-#define NCN26010_STDCAP_MINCPS                            0x00000007
+#define NCN26010_SPICAP_TXFCSVC                           0x00000400
+#define NCN26010_SPICAP_IPRAC                             0x00000200
+#define NCN26010_SPICAP_DPRAC                             0x00000100
+#define NCN26010_SPICAP_CTC                               0x00000080
+#define NCN26010_SPICAP_FTC                               0x00000040
+#define NCN26010_SPICAP_AIDC                              0x00000020
+#define NCN26010_SPICAP_SEQ                               0x00000010
+#define NCN26010_SPICAP_MINCPS                            0x00000007
 
 //Reset Control And Status register
 #define NCN26010_RESET_RESET                              0x00000001
@@ -363,7 +363,7 @@
 //Statistic Sent Bytes Counter High register
 #define NCN26010_STOCTETSTXH_STOCTETSTXL_47_32            0x0000FFFF
 
-//Statistic Aborted Frames Due To Tx-buffer underflow register
+//Statistic Aborted Frames Due To TX-buffer Underflow register
 #define NCN26010_STUNDERFLOW_STUNDERFLOW                  0x000003FF
 
 //Statistic Frames Transmitted After Single Collision register
@@ -378,7 +378,7 @@
 //Statistic Frames Transmitted After Deferral register
 #define NCN26010_STDEFERREDTX_STDEFERREDTX                0x0003FFFF
 
-//Statistic Counter Of Crs De-assertion During Frame Transmission register
+//Statistic Counter Of CRS De-assertion During Frame Transmission register
 #define NCN26010_STCRSERR_STCRSERR                        0x000003FF
 
 //Statistic Received Bytes Counter Low register
@@ -388,12 +388,12 @@
 #define NCN26010_STOCTETSRXH_STOCTETSRX_47_32             0x0000FFFF
 
 //Statistic Dropped Too Short Frames register
-#define NCN26010_STRUNTSERR_STRUNTERR                     0x000003FF
+#define NCN26010_STRUNTERR_STRUNTERR                      0x000003FF
 
 //Statistic Dropped Too Long Frames register
 #define NCN26010_STRXTOOLONG_STRXTOOLONG                  0x000003FF
 
-//Statistic Dropped Fcs Error Frames register
+//Statistic Dropped FCS Error Frames register
 #define NCN26010_STFCSERRS_STFCSERRS                      0x000003FF
 
 //Statistic Symbol Errors During Frame Reception register
@@ -488,7 +488,7 @@
 #define NCN26010_PLCAREGMAP_MAPVER                        0x00FF
 
 //PLCA Control 0 register
-#define NCN26010_PLCACTRL0_PCLA_EN                        0x8000
+#define NCN26010_PLCACTRL0_PLCA_EN                        0x8000
 #define NCN26010_PLCACTRL0_PLCA_RESET                     0x4000
 
 //PLCA Control 1 register
@@ -496,7 +496,7 @@
 #define NCN26010_PLCACTRL1_ID                             0x00FF
 
 //PLCA Status register
-#define NCN26010_PLCASTS_PST                              0x8000
+#define NCN26010_PLCASTATUS_PST                           0x8000
 
 //PLCA Transmit Opportunity Timer register
 #define NCN26010_PLCATOTMR_TOTMR                          0x00FF

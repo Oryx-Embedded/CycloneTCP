@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -97,10 +97,10 @@ error_t ftpServerOpenSecureChannel(FtpServerContext *context,
 #endif
 
    //Invoke user-defined callback, if any
-   if(context->settings.tlsInitCallback != NULL)
+   if(context->tlsInitCallback != NULL)
    {
       //Perform TLS related initialization
-      error = context->settings.tlsInitCallback(NULL, channel->tlsContext);
+      error = context->tlsInitCallback(NULL, channel->tlsContext);
       //Any error to report?
       if(error)
          return error;

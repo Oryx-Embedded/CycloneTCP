@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -184,21 +184,21 @@ typedef error_t (*ModbusServerTlsInitCallback)
  * @brief Lock Modbus table callback function
  **/
 
-typedef void (*ModbusServerLockCallback)(void);
+typedef void (*ModbusServerLockCallback)(ModbusClientConnection *connection);
 
 
 /**
  * @brief Unlock Modbus table callback function
  **/
 
-typedef void (*ModbusServerUnlockCallback)(void);
+typedef void (*ModbusServerUnlockCallback)(ModbusClientConnection *connection);
 
 
 /**
  * @brief Get coil state callback function
  **/
 
-typedef error_t (*ModbusServerReadCoilCallback)(const char_t *role,
+typedef error_t (*ModbusServerReadCoilCallback)(ModbusClientConnection *connection,
    uint16_t address, bool_t *state);
 
 
@@ -206,7 +206,7 @@ typedef error_t (*ModbusServerReadCoilCallback)(const char_t *role,
  * @brief Set coil state callback function
  **/
 
-typedef error_t (*ModbusServerWriteCoilCallback)(const char_t *role,
+typedef error_t (*ModbusServerWriteCoilCallback)(ModbusClientConnection *connection,
    uint16_t address, bool_t state, bool_t commit);
 
 
@@ -214,7 +214,7 @@ typedef error_t (*ModbusServerWriteCoilCallback)(const char_t *role,
  * @brief Get register value callback function
  **/
 
-typedef error_t (*ModbusServerReadRegCallback)(const char_t *role,
+typedef error_t (*ModbusServerReadRegCallback)(ModbusClientConnection *connection,
    uint16_t address, uint16_t *value);
 
 
@@ -222,7 +222,7 @@ typedef error_t (*ModbusServerReadRegCallback)(const char_t *role,
  * @brief Set register value callback function
  **/
 
-typedef error_t (*ModbusServerWriteRegCallback)(const char_t *role,
+typedef error_t (*ModbusServerWriteRegCallback)(ModbusClientConnection *connection,
    uint16_t address, uint16_t value, bool_t commit);
 
 
@@ -230,8 +230,9 @@ typedef error_t (*ModbusServerWriteRegCallback)(const char_t *role,
  * @brief PDU processing callback function
  **/
 
-typedef error_t (*ModbusServerProcessPduCallback)(const uint8_t *request,
-   size_t requestLen, uint8_t *response, size_t *responseLen);
+typedef error_t (*ModbusServerProcessPduCallback)(ModbusClientConnection *connection,
+   const uint8_t *request, size_t requestLen, uint8_t *response,
+   size_t *responseLen);
 
 
 /**

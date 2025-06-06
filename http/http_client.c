@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -1277,7 +1277,9 @@ error_t httpClientWriteBody(HttpClientContext *context, const void *data,
 
    //Total number of data that have been written
    if(written != NULL)
+   {
       *written = totalLength;
+   }
 
    //Return status code
    return error;

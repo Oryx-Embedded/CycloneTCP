@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -289,6 +289,7 @@ __weak_func void stm32n6xxEthInitGpio(NetInterface *interface)
 //STM32N6570-DK evaluation board?
 #elif defined(USE_STM32N6570_DK)
    GPIO_InitTypeDef GPIO_InitStructure;
+   GPIO_DelayTypeDef GPIO_DelayStructure;
 
    //Enable GPIO clocks
    __HAL_RCC_GPIOD_CLK_ENABLE();
@@ -302,16 +303,11 @@ __weak_func void stm32n6xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
    GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH1;
 
    //Configure ETH1_MDC (PD1) and ETH1_MDIO (PD12)
    GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_12;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH1;
    HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-   //Configure ETH1_RGMII_GTX_CLK (PF0)
-   GPIO_InitStructure.Pin = GPIO_PIN_0;
-   GPIO_InitStructure.Alternate = GPIO_AF12_ETH1;
-   HAL_GPIO_Init(GPIOF, &GPIO_InitStructure);
 
    //Configure ETH1_RGMII_CLK125 (PF2), ETH1_RGMII_RX_CLK (PF7),
    //ETH1_RGMII_RXD2 (PF8), ETH1_RGMII_RXD3 (PF9), ETH1_RGMII_RX_CTL (PF10),
@@ -320,13 +316,22 @@ __weak_func void stm32n6xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_2 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9 |
       GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 |
       GPIO_PIN_15;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH1;
    HAL_GPIO_Init(GPIOF, &GPIO_InitStructure);
 
    //Configure ETH1_RGMII_TXD2 (PG3) and ETH1_RGMII_TXD3 (PG4)
    GPIO_InitStructure.Pin = GPIO_PIN_3 | GPIO_PIN_4;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH1;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+   //Configure ETH1_RGMII_GTX_CLK (PF0)
+   GPIO_InitStructure.Pin = GPIO_PIN_0;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_MEDIUM;
+   GPIO_InitStructure.Alternate = GPIO_AF12_ETH1;
+   HAL_GPIO_Init(GPIOF, &GPIO_InitStructure);
+
+   //Configure GPIO delay on ETH1_RGMII_RX_CLK (PF7)
+   GPIO_DelayStructure.Delay = GPIO_DELAY_PS_500;
+   GPIO_DelayStructure.Path = GPIO_PATH_IN;
+   HAL_GPIO_SetDelay(GPIOF, GPIO_PIN_7, &GPIO_DelayStructure);
 #endif
 }
 

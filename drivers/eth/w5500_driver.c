@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -130,7 +130,7 @@ error_t w5500Init(NetInterface *interface)
 
    //Configure socket 0 in MACRAW mode
    w5500WriteReg8(interface, W5500_CTRL_BSB_S0_REG, W5500_Sn_MR,
-      W5500_Sn_MR_MFEN | W5500_Sn_MR_PROTOCOL_MACRAW);
+      W5500_Sn_MR_PROTOCOL_MACRAW);
 
    //Open socket 0
    w5500WriteReg8(interface, W5500_CTRL_BSB_S0_REG, W5500_Sn_CR,

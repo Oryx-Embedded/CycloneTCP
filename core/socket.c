@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -1516,7 +1516,9 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
 
    //No data has been transmitted yet
    if(written != NULL)
+   {
       *written = 0;
+   }
 
    //Make sure the socket handle is valid
    if(socket == NULL)
@@ -1616,7 +1618,9 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
       {
          //Total number of data bytes successfully transmitted
          if(written != NULL)
+         {
             *written = message.length;
+         }
       }
    }
 

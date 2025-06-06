@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,7 @@ void ftpServerTick(FtpServerContext *context)
    time = osGetSystemTime();
 
    //Loop through the connection table
-   for(i = 0; i < context->settings.maxConnections; i++)
+   for(i = 0; i < context->maxConnections; i++)
    {
       //Point to the current entry
       connection = &context->connections[i];
@@ -94,16 +94,14 @@ uint16_t ftpServerGetPassivePort(FtpServerContext *context)
    port = context->passivePort;
 
    //Invalid port number?
-   if(port < context->settings.passivePortMin ||
-      port > context->settings.passivePortMax)
+   if(port < context->passivePortMin || port > context->passivePortMax)
    {
       //Generate a random port number
-      port = netGetRandRange(context->settings.passivePortMin,
-         context->settings.passivePortMax);
+      port = netGetRandRange(context->passivePortMin, context->passivePortMax);
    }
 
    //Next passive port to use
-   if(port < context->settings.passivePortMax)
+   if(port < context->passivePortMax)
    {
       //Increment port number
       context->passivePort = port + 1;
@@ -111,7 +109,7 @@ uint16_t ftpServerGetPassivePort(FtpServerContext *context)
    else
    {
       //Wrap around if necessary
-      context->passivePort = context->settings.passivePortMin;
+      context->passivePort = context->passivePortMin;
    }
 
    //Return the passive port number
@@ -148,11 +146,11 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
    else
    {
       //Sanity check
-      if(osStrlen(connection->homeDir) > maxLen)
+      if(osStrlen(connection->rootDir) > maxLen)
          return ERROR_FAILURE;
 
-      //Copy home directory
-      osStrcpy(outputPath, connection->homeDir);
+      //Copy root directory
+      osStrcpy(outputPath, connection->rootDir);
       //Append the specified path
       pathCombine(outputPath, inputPath, maxLen);
    }
@@ -161,11 +159,11 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
    pathCanonicalize(outputPath);
    pathRemoveSlash(outputPath);
 
-   //Calculate the length of the home directory
-   n = osStrlen(connection->homeDir);
+   //Calculate the length of the root directory
+   n = osStrlen(connection->rootDir);
 
    //Make sure the pathname is valid
-   if(osStrncmp(outputPath, connection->homeDir, n) != 0)
+   if(osStrncmp(outputPath, connection->rootDir, n) != 0)
       return ERROR_INVALID_PATH;
 
    //Successful processing
@@ -190,21 +188,21 @@ uint_t ftpServerGetFilePermissions(FtpClientConnection *connection,
    //Point to the FTP server context
    context = connection->context;
 
-   //Calculate the length of the home directory
-   n = osStrlen(connection->homeDir);
+   //Calculate the length of the root directory
+   n = osStrlen(connection->rootDir);
 
    //Make sure the pathname is valid
-   if(osStrncmp(path, connection->homeDir, n) == 0)
+   if(osStrncmp(path, connection->rootDir, n) == 0)
    {
       //Strip root directory from the pathname
       path = ftpServerStripRootDir(context, path);
 
       //Invoke user-defined callback, if any
-      if(context->settings.getFilePermCallback != NULL)
+      if(context->getFilePermCallback != NULL)
       {
          //Retrieve access rights for the specified file
-         perm = context->settings.getFilePermCallback(connection,
-            connection->user, path);
+         perm = context->getFilePermCallback(connection, connection->user,
+            path);
       }
       else
       {
@@ -316,10 +314,10 @@ size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
 
 
 /**
- * @brief Strip root dir from specified pathname
+ * @brief Strip root directory from specified pathname
  * @param[in] context Pointer to the FTP server context
  * @param[in] path input pathname
- * @return Resulting pathname with root dir stripped
+ * @return Resulting pathname with root directory stripped
  **/
 
 const char_t *ftpServerStripRootDir(FtpServerContext *context,
@@ -333,7 +331,7 @@ const char_t *ftpServerStripRootDir(FtpServerContext *context,
    size_t n;
 
    //Retrieve the length of the root directory
-   n = osStrlen(context->settings.rootDir);
+   n = osStrlen(context->rootDir);
    //Retrieve the length of the specified pathname
    m = osStrlen(path);
 
@@ -354,13 +352,13 @@ const char_t *ftpServerStripRootDir(FtpServerContext *context,
 
 
 /**
- * @brief Strip home directory from specified pathname
+ * @brief Strip user's root directory from specified pathname
  * @param[in] connection Pointer to the client connection
  * @param[in] path input pathname
- * @return Resulting pathname with home directory stripped
+ * @return Resulting pathname with user's root directory stripped
  **/
 
-const char_t *ftpServerStripHomeDir(FtpClientConnection *connection,
+const char_t *ftpServerStripUserRootDir(FtpClientConnection *connection,
    const char_t *path)
 {
    //Default directory
@@ -370,12 +368,12 @@ const char_t *ftpServerStripHomeDir(FtpClientConnection *connection,
    size_t m;
    size_t n;
 
-   //Retrieve the length of the home directory
-   n = osStrlen(connection->homeDir);
+   //Retrieve the length of the user's root directory
+   n = osStrlen(connection->rootDir);
    //Retrieve the length of the specified pathname
    m = osStrlen(path);
 
-   //Strip the home directory from the specified pathname
+   //Strip the user's root directory from the specified pathname
    if(n <= 1)
    {
       return path;

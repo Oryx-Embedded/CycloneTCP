@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _COAP_OPTION_H
@@ -176,7 +176,7 @@ typedef enum
    COAP_CONTENT_FORMAT_APP_PKCS7_MIME_CMC_REQ    = 282,
    COAP_CONTENT_FORMAT_APP_PKCS7_MIME_CMC_RESP   = 283,
    COAP_CONTENT_FORMAT_APP_PKCS8                 = 284,
-   COAP_CONTENT_FORMAT_APP_CSRATTRS              = 285,
+   COAP_CONTENT_FORMAT_APP_CSR_ATTRS             = 285,
    COAP_CONTENT_FORMAT_APP_PKCS10                = 286,
    COAP_CONTENT_FORMAT_APP_PKIX_CERT             = 287,
    COAP_CONTENT_FORMAT_APP_SENML_XML             = 310,

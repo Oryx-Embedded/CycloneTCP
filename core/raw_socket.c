@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -738,6 +738,7 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
    size_t offset;
    NetBuffer *buffer;
    NetInterface *interface;
+   NetInterface *physicalInterface;
 
    //Select the relevant network interface
    if(message->interface != NULL)
@@ -753,12 +754,12 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
       interface = netGetDefaultInterface();
    }
 
-   //Forward the frame to the physical interface
-   interface = nicGetPhysicalInterface(interface);
+   //Point to the physical interface
+   physicalInterface = nicGetPhysicalInterface(interface);
 
    //Ethernet interface?
-   if(interface->nicDriver != NULL &&
-      interface->nicDriver->type == NIC_TYPE_ETHERNET)
+   if(physicalInterface->nicDriver != NULL &&
+      physicalInterface->nicDriver->type == NIC_TYPE_ETHERNET)
    {
       //Allocate a buffer to hold the raw Ethernet packet
       buffer = ethAllocBuffer(0, &offset);

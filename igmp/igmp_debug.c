@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -169,8 +169,12 @@ void igmpDumpMembershipQueryV3(const IgmpMembershipQueryV3 *message,
    TRACE_DEBUG("  Group Address = %s\r\n",
       ipv4AddrToString(message->groupAddr, NULL));
 
+   //Dump Flags field
+   TRACE_DEBUG("  Flags = 0x%" PRIX8 "\r\n", message->flags);
    //Dump S field
    TRACE_DEBUG("  S = %" PRIu8 "\r\n", message->s);
+   //Dump QRV field
+   TRACE_DEBUG("  QRV = %" PRIu8 "\r\n", message->qrv);
 
    //The Querier's Query Interval Code field specifies the [Query Interval]
    //used by the querier
@@ -185,11 +189,8 @@ void igmpDumpMembershipQueryV3(const IgmpMembershipQueryV3 *message,
       qqic = igmpDecodeFloatingPointValue(message->maxRespCode);
    }
 
-   //Dump QRV field
-   TRACE_DEBUG("  QRV = %" PRIu8 " (%us)\r\n", message->qrv, qqic);
-
    //Dump QQIC field
-   TRACE_DEBUG("  QQIC = %" PRIu8 "\r\n", message->qqic);
+   TRACE_DEBUG("  QQIC = %" PRIu8 " (%us)\r\n", message->qqic, qqic);
 
    //The Number of Sources field specifies how many source addresses are
    //present in the Query
@@ -235,6 +236,8 @@ void igmpDumpMessageMembershipReportV3(const IgmpMembershipReportV3 *message,
 
    //Dump Checksum field
    TRACE_DEBUG("  Checksum = 0x%04" PRIX16 "\r\n", ntohs(message->checksum));
+   //Dump Flags field
+   TRACE_DEBUG("  Flags = 0x%04" PRIX16 "\r\n", ntohs(message->flags));
 
    //The Number of Group Records field specifies how many Group Records are
    //present in this Report

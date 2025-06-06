@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -44,6 +44,27 @@
 
 //Check TCP/IP stack configuration
 #if (IPV6_SUPPORT == ENABLED)
+
+
+/**
+ * @brief Update IPv6 address state
+ * @param[in] entry Pointer to an IPv6 address entry
+ * @param[in] newState New state to switch to
+ **/
+
+void ipv6ChangeAddrState(Ipv6AddrEntry *entry, Ipv6AddrState newState)
+{
+   //Any state change?
+   if(newState != entry->state)
+   {
+#if defined(IPV6_CHANGE_ADDR_STATE_HOOK)
+      IPV6_CHANGE_ADDR_STATE_HOOK(entry, newState);
+#endif
+
+      //Switch to the new state
+      entry->state = newState;
+   }
+}
 
 
 /**
@@ -142,7 +163,7 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
    }
 
    //The current IPv6 address is no more valid
-   entry->state = IPV6_ADDR_STATE_INVALID;
+   ipv6ChangeAddrState(entry, IPV6_ADDR_STATE_INVALID);
    entry->validLifetime = 0;
    entry->preferredLifetime = 0;
    entry->permanent = FALSE;
@@ -179,7 +200,7 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
       if(!error)
       {
          //Set the state of the IPv6 address
-         entry->state = state;
+         ipv6ChangeAddrState(entry, state);
 
          //Clear duplicate flag
          entry->duplicate = FALSE;
@@ -285,7 +306,7 @@ void ipv6AddAddr(NetInterface *interface, const Ipv6Addr *addr,
                //Save current time
                entry->timestamp = osGetSystemTime();
                //Update the state of the IPv6 address
-               entry->state = IPV6_ADDR_STATE_PREFERRED;
+               ipv6ChangeAddrState(entry, IPV6_ADDR_STATE_PREFERRED);
             }
 
             //Exit immediately

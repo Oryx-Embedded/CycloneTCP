@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -325,7 +325,7 @@ error_t ftpServerOpenDataChannel(FtpClientConnection *connection)
 
       //The server initiates the data connection from port 20
       error = socketBind(connection->dataChannel.socket, &IP_ADDR_ANY,
-         context->settings.dataPort);
+         context->dataPort);
       //Any error to report?
       if(error)
          break;

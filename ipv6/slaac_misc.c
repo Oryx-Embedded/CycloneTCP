@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -352,7 +352,7 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
                //Save current time
                entry->timestamp = time;
                //Update the state of the IPv6 address
-               entry->state = IPV6_ADDR_STATE_PREFERRED;
+               ipv6ChangeAddrState(entry, IPV6_ADDR_STATE_PREFERRED);
             }
             else if(remainingLifetime <= SLAAC_LIFETIME_2_HOURS)
             {
@@ -368,7 +368,7 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
                //Save current time
                entry->timestamp = time;
                //Update the state of the IPv6 address
-               entry->state = IPV6_ADDR_STATE_PREFERRED;
+               ipv6ChangeAddrState(entry, IPV6_ADDR_STATE_PREFERRED);
             }
          }
          //Tentative address?

@@ -24,8 +24,19 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
+ * @section Description
+ *
+ * MLD is used by an IPv6 router to discover the presence of multicast
+ * listeners on its directly attached links, and to discover specifically
+ * which multicast addresses are of interest to those neighboring nodes.
+ * Refer to the following RFCs for complete details:
+ * - RFC 2710: Multicast Listener Discovery (MLD) for IPv6
+ * - RFC 3590: Source Address Selection for MLD Protocol
+ * - RFC 3810: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
+ * - RFC 9777: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
+ *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level

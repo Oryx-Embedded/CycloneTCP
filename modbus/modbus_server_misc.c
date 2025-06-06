@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -510,7 +510,7 @@ void modbusServerLock(ModbusClientConnection *connection)
    if(context->settings.lockCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.lockCallback();
+      context->settings.lockCallback(connection);
    }
 }
 
@@ -531,7 +531,7 @@ void modbusServerUnlock(ModbusClientConnection *connection)
    if(context->settings.unlockCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.unlockCallback();
+      context->settings.unlockCallback(connection);
    }
 }
 
@@ -557,8 +557,7 @@ error_t modbusServerReadCoil(ModbusClientConnection *connection,
    if(context->settings.readCoilCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readCoilCallback(connection->role, address,
-         state);
+      error = context->settings.readCoilCallback(connection, address, state);
    }
    else
    {
@@ -592,14 +591,13 @@ error_t modbusServerReadDiscreteInput(ModbusClientConnection *connection,
    if(context->settings.readDiscreteInputCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readDiscreteInputCallback(connection->role,
-         address, state);
+      error = context->settings.readDiscreteInputCallback(connection, address,
+         state);
    }
    else if(context->settings.readCoilCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readCoilCallback(connection->role, address,
-         state);
+      error = context->settings.readCoilCallback(connection, address, state);
    }
    else
    {
@@ -635,8 +633,8 @@ error_t modbusServerWriteCoil(ModbusClientConnection *connection,
    if(context->settings.writeCoilCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.writeCoilCallback(connection->role, address,
-         state, commit);
+      error = context->settings.writeCoilCallback(connection, address, state,
+         commit);
    }
    else
    {
@@ -670,14 +668,13 @@ error_t modbusServerReadHoldingReg(ModbusClientConnection *connection,
    if(context->settings.readHoldingRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readHoldingRegCallback(connection->role,
-         address, value);
+      error = context->settings.readHoldingRegCallback(connection, address,
+         value);
    }
    else if(context->settings.readRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readRegCallback(connection->role, address,
-         value);
+      error = context->settings.readRegCallback(connection, address, value);
    }
    else
    {
@@ -711,14 +708,13 @@ error_t modbusServerReadInputReg(ModbusClientConnection *connection,
    if(context->settings.readInputRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readInputRegCallback(connection->role,
-         address, value);
+      error = context->settings.readInputRegCallback(connection, address,
+         value);
    }
    else if(context->settings.readRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readRegCallback(connection->role, address,
-         value);
+      error = context->settings.readRegCallback(connection, address, value);
    }
    else
    {
@@ -754,8 +750,8 @@ error_t modbusServerWriteReg(ModbusClientConnection *connection,
    if(context->settings.writeRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.writeRegCallback(connection->role, address,
-         value, commit);
+      error = context->settings.writeRegCallback(connection, address, value,
+         commit);
    }
    else
    {

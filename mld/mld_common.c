@@ -33,9 +33,10 @@
  * - RFC 2710: Multicast Listener Discovery (MLD) for IPv6
  * - RFC 3590: Source Address Selection for MLD Protocol
  * - RFC 3810: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
+ * - RFC 9777: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level

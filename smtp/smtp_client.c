@@ -33,7 +33,7 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -773,7 +773,9 @@ error_t smtpClientWriteMailBody(SmtpClientContext *context,
 
    //Total number of data that have been written
    if(written != NULL)
+   {
       *written = n;
+   }
 
    //Return status code
    return error;
@@ -1061,7 +1063,9 @@ error_t smtpClientWriteMultipartBody(SmtpClientContext *context,
 
    //Total number of data that have been written
    if(written != NULL)
+   {
       *written = totalLength;
+   }
 
    //Return status code
    return error;

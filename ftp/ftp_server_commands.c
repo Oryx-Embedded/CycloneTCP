@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -353,8 +353,8 @@ void ftpServerProcessFeat(FtpClientConnection *connection, char_t *param)
 
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED)
    //TLS security mode supported by the server?
-   if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
-      (context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
+   if((context->mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
+      (context->mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
    {
       //If a server supports the FEAT command, then it must advertise
       //supported AUTH, PBSZ, and PROT commands in the reply (refer to
@@ -388,13 +388,13 @@ void ftpServerProcessAuth(FtpClientConnection *connection, char_t *param)
    context = connection->context;
 
    //TLS security mode supported by the server?
-   if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0)
+   if((context->mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0)
    {
       //When using implicit FTPS, a TLS connection is immediately established
       //via port 990 before any command is exchanged
       osStrcpy(connection->response, "534 Secure connection already negotiated\r\n");
    }
-   else if((context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
+   else if((context->mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
    {
       //The argument specifies the security mechanism
       if(*param != '\0')
@@ -450,8 +450,8 @@ void ftpServerProcessPbsz(FtpClientConnection *connection, char_t *param)
    context = connection->context;
 
    //TLS security mode supported by the server?
-   if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
-      (context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
+   if((context->mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
+      (context->mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
    {
       //The argument specifies the maximum size of the encoded data blocks
       if(*param != '\0')
@@ -492,8 +492,8 @@ void ftpServerProcessProt(FtpClientConnection *connection, char_t *param)
    context = connection->context;
 
    //TLS security mode supported by the server?
-   if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
-      (context->settings.mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
+   if((context->mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0 ||
+      (context->mode & FTP_SERVER_MODE_EXPLICIT_TLS) != 0)
    {
       //The argument specifies the data protection level
       if(*param != '\0')
@@ -681,7 +681,7 @@ void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
       //If the server needs AUTH, then it refuses to accept certain commands
       //until it gets a successfully protected session (refer to RFC 4217,
       //section 11.1)
-      if((context->settings.mode & FTP_SERVER_MODE_PLAINTEXT) == 0)
+      if((context->mode & FTP_SERVER_MODE_PLAINTEXT) == 0)
       {
          //Format response message
          osStrcpy(connection->response, "421 Cleartext sessions are not accepted\r\n");
@@ -696,18 +696,18 @@ void ftpServerProcessUser(FtpClientConnection *connection, char_t *param)
    //Log out the user
    connection->userLoggedIn = FALSE;
 
-   //Set home directory
-   pathCopy(connection->homeDir, context->settings.rootDir,
-      FTP_SERVER_MAX_HOME_DIR_LEN);
+   //Set default user's root directory
+   pathCopy(connection->rootDir, context->rootDir,
+      FTP_SERVER_MAX_ROOT_DIR_LEN);
 
-   //Set current directory
-   pathCopy(connection->currentDir, context->settings.rootDir,
+   //Set default user's home directory
+   pathCopy(connection->currentDir, context->rootDir,
       FTP_SERVER_MAX_PATH_LEN);
 
    //Invoke user-defined callback, if any
-   if(context->settings.checkUserCallback != NULL)
+   if(context->checkUserCallback != NULL)
    {
-      status = context->settings.checkUserCallback(connection, param);
+      status = context->checkUserCallback(connection, param);
    }
    else
    {
@@ -780,10 +780,10 @@ void ftpServerProcessPass(FtpClientConnection *connection, char_t *param)
    }
 
    //Invoke user-defined callback, if any
-   if(context->settings.checkPasswordCallback != NULL)
+   if(context->checkPasswordCallback != NULL)
    {
-      status = context->settings.checkPasswordCallback(connection,
-         connection->user, param);
+      status = context->checkPasswordCallback(connection, connection->user,
+         param);
    }
    else
    {
@@ -1274,10 +1274,10 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
       //If the server is behind a NAT router, make sure the server knows
       //its external IP address
       if(!ipv4IsOnLink(connection->interface, ipAddr.ipv4Addr) &&
-         context->settings.publicIpv4Addr != IPV4_UNSPECIFIED_ADDR)
+         context->publicIpv4Addr != IPV4_UNSPECIFIED_ADDR)
       {
          //The server must return the public IP address in the PASV reply
-         ipAddr.ipv4Addr = context->settings.publicIpv4Addr;
+         ipAddr.ipv4Addr = context->publicIpv4Addr;
       }
       else
       {
@@ -1523,7 +1523,7 @@ void ftpServerProcessPwd(FtpClientConnection *connection, char_t *param)
 
    //A successful PWD command uses the 257 reply code
    osSprintf(connection->response, "257 \"%s\" is current directory\r\n",
-      ftpServerStripHomeDir(connection, connection->currentDir));
+      ftpServerStripUserRootDir(connection, connection->currentDir));
 }
 
 
@@ -1595,11 +1595,12 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    }
 
    //Change current working directory
-   osStrcpy(connection->currentDir, connection->path);
+   pathCopy(connection->currentDir, connection->path,
+      FTP_SERVER_MAX_PATH_LEN);
 
    //A successful PWD command uses the 250 reply code
    osSprintf(connection->response, "250 Directory changed to %s\r\n",
-      ftpServerStripHomeDir(connection, connection->currentDir));
+      ftpServerStripUserRootDir(connection, connection->currentDir));
 }
 
 
@@ -1639,12 +1640,13 @@ void ftpServerProcessCdup(FtpClientConnection *connection, char_t *param)
    if((perm & FTP_FILE_PERM_READ) != 0)
    {
       //Update current directory
-      osStrcpy(connection->currentDir, connection->path);
+      pathCopy(connection->currentDir, connection->path,
+         FTP_SERVER_MAX_PATH_LEN);
    }
 
    //A successful PWD command uses the 250 reply code
    osSprintf(connection->response, "250 Directory changed to %s\r\n",
-      ftpServerStripHomeDir(connection, connection->currentDir));
+      ftpServerStripUserRootDir(connection, connection->currentDir));
 }
 
 
@@ -1968,7 +1970,7 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
 
    //The specified directory was successfully created
    osSprintf(connection->response, "257 \"%s\" created\r\n",
-      ftpServerStripHomeDir(connection, connection->path));
+      ftpServerStripUserRootDir(connection, connection->path));
 }
 
 
@@ -2725,11 +2727,11 @@ void ftpServerProcessUnknownCmd(FtpClientConnection *connection, char_t *param)
    context = connection->context;
 
    //Invoke user-defined callback, if any
-   if(context->settings.unknownCommandCallback != NULL)
+   if(context->unknownCommandCallback != NULL)
    {
       //Custom command processing
-      error = context->settings.unknownCommandCallback(connection,
-         connection->command, param);
+      error = context->unknownCommandCallback(connection, connection->command,
+         param);
    }
    else
    {

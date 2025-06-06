@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -45,15 +45,19 @@ static NetInterface *nicDriverInterface;
 
 //Transmit buffer
 #pragma data_alignment = 4
+#pragma location = LPC43XX_ETH_RAM_SECTION
 static uint8_t txBuffer[LPC43XX_ETH_TX_BUFFER_COUNT][LPC43XX_ETH_TX_BUFFER_SIZE];
 //Receive buffer
 #pragma data_alignment = 4
+#pragma location = LPC43XX_ETH_RAM_SECTION
 static uint8_t rxBuffer[LPC43XX_ETH_RX_BUFFER_COUNT][LPC43XX_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
 #pragma data_alignment = 4
+#pragma location = LPC43XX_ETH_RAM_SECTION
 static Lpc43xxTxDmaDesc txDmaDesc[LPC43XX_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
 #pragma data_alignment = 4
+#pragma location = LPC43XX_ETH_RAM_SECTION
 static Lpc43xxRxDmaDesc rxDmaDesc[LPC43XX_ETH_RX_BUFFER_COUNT];
 
 //ARM or GCC compiler?
@@ -61,16 +65,16 @@ static Lpc43xxRxDmaDesc rxDmaDesc[LPC43XX_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer
 static uint8_t txBuffer[LPC43XX_ETH_TX_BUFFER_COUNT][LPC43XX_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(4), __section__(LPC43XX_ETH_RAM_SECTION)));
 //Receive buffer
 static uint8_t rxBuffer[LPC43XX_ETH_RX_BUFFER_COUNT][LPC43XX_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(4), __section__(LPC43XX_ETH_RAM_SECTION)));
 //Transmit DMA descriptors
 static Lpc43xxTxDmaDesc txDmaDesc[LPC43XX_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(4), __section__(LPC43XX_ETH_RAM_SECTION)));
 //Receive DMA descriptors
 static Lpc43xxRxDmaDesc rxDmaDesc[LPC43XX_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(4), __section__(LPC43XX_ETH_RAM_SECTION)));
 
 #endif
 

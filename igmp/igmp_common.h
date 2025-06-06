@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _IGMP_COMMON_H
@@ -226,13 +226,13 @@ typedef __packed_struct
    uint16_t checksum;     //2-3
    Ipv4Addr groupAddr;    //4-7
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
-   uint8_t reserved : 4;  //8
+   uint8_t flags : 4;     //8
    uint8_t s : 1;
    uint8_t qrv : 3;
 #else
    uint8_t qrv : 3;       //8
    uint8_t s : 1;
-   uint8_t reserved : 4;
+   uint8_t flags : 4;
 #endif
    uint8_t qqic;          //9
    uint16_t numOfSources; //10-11
@@ -247,9 +247,9 @@ typedef __packed_struct
 typedef __packed_struct
 {
    uint8_t type;               //0
-   uint8_t reserved1;          //1
+   uint8_t reserved;          //1
    uint16_t checksum;          //2-3
-   uint16_t reserved2;         //4-5
+   uint16_t flags;             //4-5
    uint16_t numOfGroupRecords; //6-7
    uint8_t groupRecords[];     //8
 } IgmpMembershipReportV3;

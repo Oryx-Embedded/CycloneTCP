@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -220,9 +220,9 @@ void igmpHostSendCurrentStateReport(IgmpHostContext *context,
 
    //Format the Version 3 Membership Report message
    message->type = IGMP_TYPE_MEMBERSHIP_REPORT_V3;
-   message->reserved1 = 0;
+   message->reserved = 0;
    message->checksum = 0;
-   message->reserved2 = 0;
+   message->flags = 0;
    message->numOfGroupRecords = 0;
 
    //Total length of the message
@@ -448,9 +448,9 @@ void igmpHostSendStateChangeReport(IgmpHostContext *context)
 
    //Format the Version 3 Membership Report message
    message->type = IGMP_TYPE_MEMBERSHIP_REPORT_V3;
-   message->reserved1 = 0;
+   message->reserved = 0;
    message->checksum = 0;
-   message->reserved2 = 0;
+   message->flags = 0;
    message->numOfGroupRecords = 0;
 
    //Total length of the message

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -198,7 +198,8 @@ void echoServerProcessTcpConnectionEvents(EchoTcpConnection *connection)
          //Send more data
          error = socketSend(connection->socket,
             connection->buffer + connection->bufferPos,
-            connection->bufferLen - connection->bufferPos, &n, 0);
+            connection->bufferLen - connection->bufferPos, &n,
+            SOCKET_FLAG_NO_DELAY);
 
          //Check status code
          if(error == NO_ERROR || error == ERROR_TIMEOUT)

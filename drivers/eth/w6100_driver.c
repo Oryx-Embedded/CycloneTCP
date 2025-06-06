@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -139,7 +139,7 @@ error_t w6100Init(NetInterface *interface)
 
    //Configure socket 0 in MACRAW mode
    w6100WriteReg8(interface, W6100_CTRL_BSB_S0_REG, W6100_Sn_MR,
-      W6100_Sn_MR_MF | W6100_Sn_MR_PROTOCOL_MACRAW);
+      W6100_Sn_MR_PROTOCOL_MACRAW);
 
    //Open socket 0
    w6100WriteReg8(interface, W6100_CTRL_BSB_S0_REG, W6100_Sn_CR,

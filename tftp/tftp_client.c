@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -342,7 +342,9 @@ error_t tftpClientWriteFile(TftpClientContext *context,
 
    //Total number of bytes successfully written
    if(written != NULL)
+   {
       *written = totalLength;
+   }
 
    //Return status code
    return error;

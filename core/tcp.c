@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -619,7 +619,9 @@ error_t tcpSend(Socket *socket, const uint8_t *data, size_t length,
 
          //Total number of data that have been written
          if(written != NULL)
+         {
             *written = totalLength;
+         }
 
          //Update TX events
          tcpUpdateEvents(socket);

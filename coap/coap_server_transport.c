@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -441,7 +441,7 @@ error_t coapServerCookieGenerateCallback(TlsContext *context,
    if(session->context->cookieSecretLen == 0)
    {
       //Generate a cookie secret
-      error = context->prngAlgo->read(context->prngContext,
+      error = context->prngAlgo->generate(context->prngContext,
          session->context->cookieSecret, COAP_SERVER_MAX_COOKIE_SECRET_SIZE);
       //Any error to report?
       if(error)
@@ -510,7 +510,7 @@ error_t coapServerCookieVerifyCallback(TlsContext *context,
    if(session->context->cookieSecretLen == 0)
    {
       //Generate a cookie secret
-      error = context->prngAlgo->read(context->prngContext,
+      error = context->prngAlgo->generate(context->prngContext,
          session->context->cookieSecret, COAP_SERVER_MAX_COOKIE_SECRET_SIZE);
       //Any error to report?
       if(error)

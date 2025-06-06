@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _FTP_SERVER_H
@@ -109,13 +109,6 @@
    #define FTP_SERVER_MAX_ROOT_DIR_LEN 63
 #elif (FTP_SERVER_MAX_ROOT_DIR_LEN < 7)
    #error FTP_SERVER_MAX_ROOT_DIR_LEN parameter is not valid
-#endif
-
-//Maximum size of home directory
-#ifndef FTP_SERVER_MAX_HOME_DIR_LEN
-   #define FTP_SERVER_MAX_HOME_DIR_LEN 63
-#elif (FTP_SERVER_MAX_HOME_DIR_LEN < 7)
-   #error FTP_SERVER_MAX_HOME_DIR_LEN parameter is not valid
 #endif
 
 //Maximum user name length
@@ -359,7 +352,7 @@ typedef struct
    uint_t mode;                                            ///<Security modes
    uint_t maxConnections;                                  ///<Maximum number of client connections
    FtpClientConnection *connections;                       ///<Client connections
-   char_t rootDir[FTP_SERVER_MAX_ROOT_DIR_LEN + 1];        ///<Root directory
+   const char_t *rootDir;                                  ///<Root directory
    FtpServerConnectCallback connectCallback;               ///<Connection callback function
    FtpServerDisconnectCallback disconnectCallback;         ///<Disconnection callback function
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED)
@@ -404,7 +397,7 @@ struct _FtpClientConnection
    IpAddr remoteIpAddr;                             ///<Remote IP address
    uint16_t remotePort;                             ///<Remote port number
    char_t user[FTP_SERVER_MAX_USERNAME_LEN + 1];    ///<User name
-   char_t homeDir[FTP_SERVER_MAX_HOME_DIR_LEN + 1]; ///<Home directory
+   char_t rootDir[FTP_SERVER_MAX_ROOT_DIR_LEN + 1]; ///<Root directory
    char_t currentDir[FTP_SERVER_MAX_PATH_LEN + 1];  ///<Current directory
    char_t path[FTP_SERVER_MAX_PATH_LEN + 1];        ///<Pathname
    char_t command[FTP_SERVER_MAX_LINE_LEN + 1];     ///<Incoming command
@@ -424,20 +417,37 @@ struct _FtpClientConnection
 
 struct _FtpServerContext
 {
-   FtpServerSettings settings;                                    ///<User settings
-   bool_t running;                                                ///<Operational state of the FTP server
-   bool_t stop;                                                   ///<Stop request
-   OsEvent event;                                                 ///<Event object used to poll the sockets
-   OsTaskParameters taskParams;                                   ///<Task parameters
-   OsTaskId taskId;                                               ///<Task identifier
-   Socket *socket;                                                ///<Listening socket
-   uint16_t passivePort;                                          ///<Current passive port number
-   FtpClientConnection *connections;                              ///<Client connections
+   NetInterface *interface;                                ///<Underlying network interface
+   uint16_t port;                                          ///<FTP command port number
+   uint16_t dataPort;                                      ///<FTP data port number
+   uint16_t passivePortMin;                                ///<Passive port range (lower value)
+   uint16_t passivePortMax;                                ///<Passive port range (upper value)
+   Ipv4Addr publicIpv4Addr;                                ///<Public IPv4 address to be used in PASV replies
+   uint_t mode;                                            ///<Security modes
+   uint_t maxConnections;                                  ///<Maximum number of client connections
+   FtpClientConnection *connections;                       ///<Client connections
+   char_t rootDir[FTP_SERVER_MAX_ROOT_DIR_LEN + 1];        ///<Root directory
+   FtpServerConnectCallback connectCallback;               ///<Connection callback function
+   FtpServerDisconnectCallback disconnectCallback;         ///<Disconnection callback function
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   FtpServerTlsInitCallback tlsInitCallback;               ///<TLS initialization callback function
+#endif
+   FtpServerCheckUserCallback checkUserCallback;           ///<User verification callback function
+   FtpServerCheckPasswordCallback checkPasswordCallback;   ///<Password verification callback function
+   FtpServerGetFilePermCallback getFilePermCallback;       ///<Callback used to retrieve file permissions
+   FtpServerUnknownCommandCallback unknownCommandCallback; ///<Unknown command callback function
+   bool_t running;                                         ///<Operational state of the FTP server
+   bool_t stop;                                            ///<Stop request
+   OsEvent event;                                          ///<Event object used to poll the sockets
+   OsTaskParameters taskParams;                            ///<Task parameters
+   OsTaskId taskId;                                        ///<Task identifier
+   Socket *socket;                                         ///<Listening socket
+   uint16_t passivePort;                                   ///<Current passive port number
    SocketEventDesc eventDesc[2 * FTP_SERVER_MAX_CONNECTIONS + 1]; ///<The events the application is interested in
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
-   TlsTicketContext tlsTicketContext;                             ///<TLS ticket encryption context
+   TlsTicketContext tlsTicketContext;                      ///<TLS ticket encryption context
 #endif
-   FTP_SERVER_PRIVATE_CONTEXT                                     ///<Application specific context
+   FTP_SERVER_PRIVATE_CONTEXT                              ///<Application specific context
 };
 
 
@@ -449,6 +459,9 @@ error_t ftpServerInit(FtpServerContext *context,
 
 error_t ftpServerStart(FtpServerContext *context);
 error_t ftpServerStop(FtpServerContext *context);
+
+error_t ftpServerSetRootDir(FtpClientConnection *connection,
+   const char_t *rootDir);
 
 error_t ftpServerSetHomeDir(FtpClientConnection *connection,
    const char_t *homeDir);

@@ -1,6 +1,6 @@
 /**
  * @file pef7071_driver.c
- * @brief XWAY PHY11G (PEF7071) Gigabit Ethernet PHY driver
+ * @brief PEF7071 Gigabit Ethernet PHY driver
  *
  * @section License
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level

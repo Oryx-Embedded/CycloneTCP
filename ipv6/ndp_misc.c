@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -153,7 +153,7 @@ void ndpUpdateAddrList(NetInterface *interface)
                else
                {
                   //Do not perform Duplicate Address Detection
-                  entry->state = IPV6_ADDR_STATE_PREFERRED;
+                  ipv6ChangeAddrState(entry, IPV6_ADDR_STATE_PREFERRED);
                }
             }
             else
@@ -207,7 +207,7 @@ void ndpUpdateAddrList(NetInterface *interface)
                   else
                   {
                      //The use of the IPv6 address is now unrestricted
-                     entry->state = IPV6_ADDR_STATE_PREFERRED;
+                     ipv6ChangeAddrState(entry, IPV6_ADDR_STATE_PREFERRED);
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
                      //Restart mDNS probing process
@@ -230,7 +230,7 @@ void ndpUpdateAddrList(NetInterface *interface)
                //A deprecated address should continue to be used as a source
                //address in existing communications, but should not be used
                //to initiate new communications
-               entry->state = IPV6_ADDR_STATE_DEPRECATED;
+               ipv6ChangeAddrState(entry, IPV6_ADDR_STATE_DEPRECATED);
             }
          }
       }

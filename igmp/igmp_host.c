@@ -26,14 +26,16 @@
  *
  * @section Description
  *
- * IGMP is used by IP hosts to report their multicast group memberships
- * to routers. Refer to the following RFCs for complete details:
+ * IGMP is used by IP hosts to report their multicast group memberships to any
+ * immediately-neighboring multicast routers. Refer to the following RFCs for
+ * complete details:
  * - RFC 1112: Host Extensions for IP Multicasting
  * - RFC 2236: Internet Group Management Protocol, Version 2
  * - RFC 3376: Internet Group Management Protocol, Version 3
+ * - RFC 9776: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level

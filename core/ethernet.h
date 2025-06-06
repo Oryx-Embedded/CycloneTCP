@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _ETHERNET_H
@@ -161,15 +161,17 @@ typedef enum
 
 typedef enum
 {
-   ETH_TYPE_IPV4  = 0x0800,
-   ETH_TYPE_ARP   = 0x0806,
-   ETH_TYPE_RARP  = 0x8035,
-   ETH_TYPE_VLAN  = 0x8100,
-   ETH_TYPE_IPV6  = 0x86DD,
-   ETH_TYPE_EAPOL = 0x888E,
-   ETH_TYPE_VMAN  = 0x88A8,
-   ETH_TYPE_LLDP  = 0x88CC,
-   ETH_TYPE_PTP   = 0x88F7
+   ETH_TYPE_IPV4            = 0x0800,
+   ETH_TYPE_ARP             = 0x0806,
+   ETH_TYPE_RARP            = 0x8035,
+   ETH_TYPE_VLAN            = 0x8100,
+   ETH_TYPE_IPV6            = 0x86DD,
+   ETH_TYPE_PPPOE_DISCOVERY = 0x8863,
+   ETH_TYPE_PPPOE_SESSION   = 0x8864,
+   ETH_TYPE_EAPOL           = 0x888E,
+   ETH_TYPE_VMAN            = 0x88A8,
+   ETH_TYPE_LLDP            = 0x88CC,
+   ETH_TYPE_PTP             = 0x88F7
 } EthType;
 
 

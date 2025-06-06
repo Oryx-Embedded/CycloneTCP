@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -147,6 +147,13 @@ error_t smtpClientSendCommand(SmtpClientContext *context,
                osIsdigit(reply[1]) &&
                osIsdigit(reply[2]))
             {
+               //Any callback function defined?
+               if(callback != NULL)
+               {
+                  //Parse intermediary line
+                  error = callback(context, reply);
+               }
+
                //A space character follows the response code for the last line
                if(reply[3] == ' ' || reply[3] == '\0')
                {
@@ -156,24 +163,14 @@ error_t smtpClientSendCommand(SmtpClientContext *context,
                   //A valid SMTP response has been received
                   break;
                }
-               else
-               {
-                  //Any callback function defined?
-                  if(callback)
-                  {
-                     //Parse intermediary line
-                     error = callback(context, reply);
-                  }
-
-                  //Flush receive buffer
-                  context->replyLen = 0;
-               }
             }
             else
             {
                //Ignore incorrectly formatted lines
-               context->replyLen = 0;
             }
+
+            //Flush receive buffer
+            context->replyLen = 0;
          }
       }
    }
@@ -282,14 +279,14 @@ error_t smtpClientParseEhloReply(SmtpClientContext *context,
    //contains a keyword
    if(osStrcasecmp(token, "STARTTLS") == 0)
    {
-      //The STARTTLS keyword is used to tell the SMTP client that the
-      //SMTP server allows use of TLS
+      //The STARTTLS keyword is used to tell the SMTP client that the SMTP
+      //server allows use of TLS
       context->startTlsSupported = TRUE;
    }
    else if(osStrcasecmp(token, "AUTH") == 0)
    {
-      //The AUTH keyword contains a space-separated list of names of
-      //available authentication mechanisms
+      //The AUTH keyword contains a space-separated list of names of available
+      //authentication mechanisms
       token = osStrtok_r(NULL, " ", &p);
 
       //Parse the list of keywords

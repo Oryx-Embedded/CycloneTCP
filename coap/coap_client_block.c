@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -191,7 +191,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
 
    //Total number of bytes that have been written
    if(written != NULL)
+   {
       *written = 0;
+   }
 
    //Block-wise transfers are realized as combinations of exchanges, each
    //of which is performed according to the CoAP base protocol
@@ -241,7 +243,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
 
          //Total number of bytes that have been written
          if(written != NULL)
+         {
             *written += n;
+         }
       }
       else
       {

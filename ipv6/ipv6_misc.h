@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _IPV6_MISC_H
@@ -41,6 +41,7 @@ extern "C" {
 #endif
 
 //IPv6 related functions
+void ipv6ChangeAddrState(Ipv6AddrEntry *entry, Ipv6AddrState newState);
 Ipv6AddrState ipv6GetAddrState(NetInterface *interface, const Ipv6Addr *addr);
 
 error_t ipv6SetAddr(NetInterface *interface, uint_t index,

@@ -33,7 +33,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -1366,7 +1366,9 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
 
    //Total number of data that have been written
    if(written != NULL)
+   {
       *written = n;
+   }
 
    //Return status code
    return error;

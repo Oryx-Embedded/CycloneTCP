@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _MLD_COMMON_H
@@ -144,16 +144,16 @@ typedef __packed_struct
    uint8_t code;           //1
    uint16_t checksum;      //2-3
    uint16_t maxRespCode;   //4-5
-   uint16_t reserved1;     //6-7
+   uint16_t reserved;     //6-7
    Ipv6Addr multicastAddr; //8-23
 #if defined(_CPU_BIG_ENDIAN) && !defined(__ICCRX__)
-   uint8_t reserved2 : 4;  //24
+   uint8_t flags : 4;      //24
    uint8_t s : 1;
    uint8_t qrv : 3;
 #else
    uint8_t qrv : 3;        //24
    uint8_t s : 1;
-   uint8_t reserved2 : 4;
+   uint8_t flags : 4;
 #endif
    uint8_t qqic;           //25
    uint16_t numOfSources;  //26-27
@@ -168,9 +168,9 @@ typedef __packed_struct
 typedef __packed_struct
 {
    uint8_t type;                   //0
-   uint8_t reserved1;              //1
+   uint8_t reserved;              //1
    uint16_t checksum;              //2-3
-   uint16_t reserved2;             //4-5
+   uint16_t flags;                 //4-5
    uint16_t numOfMcastAddrRecords; //6-7
    uint8_t mcastAddrRecords[];     //8
 } MldListenerReportV2;

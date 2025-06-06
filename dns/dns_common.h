@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 #ifndef _DNS_COMMON_H
@@ -134,26 +134,28 @@ typedef enum
 
 typedef enum
 {
-   DNS_RR_TYPE_A     = 1,   ///<Host address
-   DNS_RR_TYPE_NS    = 2,   ///<Authoritative name server
-   DNS_RR_TYPE_CNAME = 5,   ///<Canonical name for an alias
-   DNS_RR_TYPE_SOA   = 6,   ///<Start of a zone of authority
-   DNS_RR_TYPE_WKS   = 11,  ///<Well known service description
-   DNS_RR_TYPE_PTR   = 12,  ///<Domain name pointer
-   DNS_RR_TYPE_HINFO = 13,  ///<Host information
-   DNS_RR_TYPE_MINFO = 14,  ///<Mailbox or mail list information
-   DNS_RR_TYPE_MX    = 15,  ///<Mail exchange
-   DNS_RR_TYPE_TXT   = 16,  ///<Text strings
-   DNS_RR_TYPE_AAAA  = 28,  ///<IPv6 address
-   DNS_RR_TYPE_NB    = 32,  ///<NetBIOS name service
-   DNS_RR_TYPE_SRV   = 33,  ///<Server selection
-   DNS_RR_TYPE_NAPTR = 35,  ///<Naming authority pointer
-   DNS_RR_TYPE_NSEC  = 47,  ///<NSEC record
-   DNS_RR_TYPE_EUI48 = 108, ///<EUI-48 address
-   DNS_RR_TYPE_EUI64 = 109, ///<EUI-64 address
-   DNS_RR_TYPE_AXFR  = 252, ///<Transfer of an entire zone
-   DNS_RR_TYPE_ANY   = 255, ///<A request for all records
-   DNS_RR_TYPE_URI   = 256  ///<Uniform resource identifier
+   DNS_RR_TYPE_A      = 1,   ///<Host address
+   DNS_RR_TYPE_NS     = 2,   ///<Authoritative name server
+   DNS_RR_TYPE_CNAME  = 5,   ///<Canonical name for an alias
+   DNS_RR_TYPE_SOA    = 6,   ///<Start of a zone of authority
+   DNS_RR_TYPE_WKS    = 11,  ///<Well known service description
+   DNS_RR_TYPE_PTR    = 12,  ///<Domain name pointer
+   DNS_RR_TYPE_HINFO  = 13,  ///<Host information
+   DNS_RR_TYPE_MINFO  = 14,  ///<Mailbox or mail list information
+   DNS_RR_TYPE_MX     = 15,  ///<Mail exchange
+   DNS_RR_TYPE_TXT    = 16,  ///<Text strings
+   DNS_RR_TYPE_AAAA   = 28,  ///<IPv6 address
+   DNS_RR_TYPE_NB     = 32,  ///<NetBIOS name service
+   DNS_RR_TYPE_SRV    = 33,  ///<Server selection
+   DNS_RR_TYPE_NAPTR  = 35,  ///<Naming authority pointer
+   DNS_RR_TYPE_RRSIG  = 46,  ///<RRSIG record
+   DNS_RR_TYPE_NSEC   = 47,  ///<NSEC record
+   DNS_RR_TYPE_DNSKEY = 48,  ///<DNSKEY record
+   DNS_RR_TYPE_EUI48  = 108, ///<EUI-48 address
+   DNS_RR_TYPE_EUI64  = 109, ///<EUI-64 address
+   DNS_RR_TYPE_AXFR   = 252, ///<Transfer of an entire zone
+   DNS_RR_TYPE_ANY    = 255, ///<A request for all records
+   DNS_RR_TYPE_URI    = 256  ///<Uniform resource identifier
 } DnsResourceRecordType;
 
 

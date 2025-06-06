@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -38,6 +38,7 @@
 #include "ftp/ftp_server_control.h"
 #include "ftp/ftp_server_transport.h"
 #include "ftp/ftp_server_misc.h"
+#include "path.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -297,7 +298,7 @@ void ftpServerAcceptControlChannel(FtpServerContext *context)
       connection = NULL;
 
       //Loop through the connection table
-      for(i = 0; i < context->settings.maxConnections; i++)
+      for(i = 0; i < context->maxConnections; i++)
       {
          //Check the state of the current connection
          if(context->connections[i].controlChannel.state == FTP_CHANNEL_STATE_CLOSED &&
@@ -324,18 +325,23 @@ void ftpServerAcceptControlChannel(FtpServerContext *context)
          connection->controlChannel.socket = socket;
          //Initialize time stamp
          connection->timestamp = osGetSystemTime();
-         //Set home directory
-         osStrcpy(connection->homeDir, context->settings.rootDir);
-         //Set current directory
-         osStrcpy(connection->currentDir, context->settings.rootDir);
+
+         //Set default user's root directory
+         pathCopy(connection->rootDir, context->rootDir,
+            FTP_SERVER_MAX_ROOT_DIR_LEN);
+
+         //Set default user's home directory
+         pathCopy(connection->currentDir, context->rootDir,
+            FTP_SERVER_MAX_PATH_LEN);
+
          //Format greeting message
          osStrcpy(connection->response, "220 Service ready for new user\r\n");
 
          //Any registered callback?
-         if(context->settings.connectCallback != NULL)
+         if(context->connectCallback != NULL)
          {
             //Invoke user callback function
-            error = context->settings.connectCallback(connection, &clientIpAddr,
+            error = context->connectCallback(connection, &clientIpAddr,
                clientPort);
          }
          else
@@ -359,7 +365,7 @@ void ftpServerAcceptControlChannel(FtpServerContext *context)
             connection->responsePos = 0;
 
             //Implicit TLS mode supported by the server?
-            if((context->settings.mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0)
+            if((context->mode & FTP_SERVER_MODE_IMPLICIT_TLS) != 0)
             {
                //TLS initialization
                error = ftpServerOpenSecureChannel(context,
@@ -436,11 +442,10 @@ void ftpServerCloseControlChannel(FtpClientConnection *connection)
          PRIu16 "...\r\n", ipAddrToString(&clientIpAddr, NULL), clientPort);
 
       //Any registered callback?
-      if(context->settings.disconnectCallback != NULL)
+      if(context->disconnectCallback != NULL)
       {
          //Invoke user callback function
-         context->settings.disconnectCallback(connection, &clientIpAddr,
-            clientPort);
+         context->disconnectCallback(connection, &clientIpAddr, clientPort);
       }
 
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED)

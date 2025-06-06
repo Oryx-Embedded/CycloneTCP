@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -87,8 +87,8 @@ error_t modbusServerProcessRequest(ModbusClientConnection *connection)
       responseLen = 0;
 
       //Process request PDU
-      error = context->settings.processPduCallback(request, requestLen,
-         response, &responseLen);
+      error = context->settings.processPduCallback(connection, request,
+         requestLen, response, &responseLen);
 
       //Check status code
       if(!error)

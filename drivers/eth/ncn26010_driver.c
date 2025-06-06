@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -210,7 +210,7 @@ __weak_func void ncn26010InitHook(NetInterface *interface)
       (NCN26010_LOCAL_ID & NCN26010_PLCACTRL1_ID));
 
    //Enable PLCA
-   ncn26010WriteReg(interface, NCN26010_PLCACTRL0, NCN26010_PLCACTRL0_PCLA_EN);
+   ncn26010WriteReg(interface, NCN26010_PLCACTRL0, NCN26010_PLCACTRL0_PLCA_EN);
 #else
    //Disable PLCA
    ncn26010WriteReg(interface, NCN26010_PLCACTRL0, 0);

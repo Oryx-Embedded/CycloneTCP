@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -243,9 +243,9 @@ void mldNodeSendCurrentStateReport(MldNodeContext *context,
 
    //Format the Version 2 Multicast Listener Report message
    message->type = ICMPV6_TYPE_MCAST_LISTENER_REPORT_V2;
-   message->reserved1 = 0;
+   message->reserved = 0;
    message->checksum = 0;
-   message->reserved2 = 0;
+   message->flags = 0;
    message->numOfMcastAddrRecords = 0;
 
    //Total length of the message
@@ -476,9 +476,9 @@ void mldNodeSendStateChangeReport(MldNodeContext *context,
 
    //Format the Version 2 Multicast Listener Report message
    message->type = ICMPV6_TYPE_MCAST_LISTENER_REPORT_V2;
-   message->reserved1 = 0;
+   message->reserved = 0;
    message->checksum = 0;
-   message->reserved2 = 0;
+   message->flags = 0;
    message->numOfMcastAddrRecords = 0;
 
    //Total length of the message

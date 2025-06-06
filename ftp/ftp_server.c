@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.0
+ * @version 2.5.2
  **/
 
 //Switch to the appropriate trace level
@@ -88,7 +88,7 @@ void ftpServerGetDefaultSettings(FtpServerSettings *settings)
    settings->connections = NULL;
 
    //Set root directory
-   osStrcpy(settings->rootDir, "/");
+   settings->rootDir = NULL;
 
    //Connection callback function
    settings->connectCallback = NULL;
@@ -138,15 +138,18 @@ error_t ftpServerInit(FtpServerContext *context,
    }
 
    //Invalid number of client connections?
-   if(settings->maxConnections < 1 ||
+   if(settings->connections == NULL || settings->maxConnections < 1 ||
       settings->maxConnections > FTP_SERVER_MAX_CONNECTIONS)
    {
       return ERROR_INVALID_PARAMETER;
    }
 
-   //Invalid pointer?
-   if(settings->connections == NULL)
+   //Invalid root directory?
+   if(settings->rootDir == NULL ||
+      osStrlen(settings->rootDir) > FTP_SERVER_MAX_ROOT_DIR_LEN)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear the FTP server context
    osMemset(context, 0, sizeof(FtpServerContext));
@@ -156,16 +159,34 @@ error_t ftpServerInit(FtpServerContext *context,
    context->taskId = OS_INVALID_TASK_ID;
 
    //Save user settings
-   context->settings = *settings;
-   //Client connections
+   context->interface = settings->interface;
+   context->port = settings->port;
+   context->dataPort = settings->dataPort;
+   context->passivePortMin = settings->passivePortMin;
+   context->passivePortMax = settings->passivePortMax;
+   context->publicIpv4Addr = settings->publicIpv4Addr;
+   context->mode = settings->mode;
+   context->maxConnections = settings->maxConnections;
    context->connections = settings->connections;
+   context->connectCallback = settings->connectCallback;
+   context->disconnectCallback = settings->disconnectCallback;
+#if (FTP_SERVER_TLS_SUPPORT == ENABLED)
+   context->tlsInitCallback = settings->tlsInitCallback;
+#endif
+   context->checkUserCallback = settings->checkUserCallback;
+   context->checkPasswordCallback = settings->checkPasswordCallback;
+   context->getFilePermCallback = settings->getFilePermCallback;
+   context->unknownCommandCallback = settings->unknownCommandCallback;
+
+   //Set root directory
+   osStrcpy(context->rootDir, settings->rootDir);
 
    //Clean the root directory path
-   pathCanonicalize(context->settings.rootDir);
-   pathRemoveSlash(context->settings.rootDir);
+   pathCanonicalize(context->rootDir);
+   pathRemoveSlash(context->rootDir);
 
    //Loop through client connections
-   for(i = 0; i < context->settings.maxConnections; i++)
+   for(i = 0; i < context->maxConnections; i++)
    {
       //Initialize the structure representing the client connection
       osMemset(&context->connections[i], 0, sizeof(FtpClientConnection));
@@ -257,15 +278,13 @@ error_t ftpServerStart(FtpServerContext *context)
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket,
-         context->settings.interface);
+      error = socketBindToInterface(context->socket, context->interface);
       //Any error to report?
       if(error)
          break;
 
       //The FTP server listens for connection requests on port 21
-      error = socketBind(context->socket, &IP_ADDR_ANY,
-         context->settings.port);
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Any error to report?
       if(error)
          break;
@@ -345,7 +364,7 @@ error_t ftpServerStop(FtpServerContext *context)
 #endif
 
       //Loop through the connection table
-      for(i = 0; i < context->settings.maxConnections; i++)
+      for(i = 0; i < context->maxConnections; i++)
       {
          //Close client connection
          ftpServerCloseConnection(&context->connections[i]);
@@ -362,7 +381,43 @@ error_t ftpServerStop(FtpServerContext *context)
 
 
 /**
- * @brief Set home directory
+ * @brief Set user's root directory
+ * @param[in] connection Pointer to the client connection
+ * @param[in] rootDir NULL-terminated string specifying the root directory
+ * @return Error code
+ **/
+
+error_t ftpServerSetRootDir(FtpClientConnection *connection,
+   const char_t *rootDir)
+{
+   FtpServerContext *context;
+
+   //Check parameters
+   if(connection == NULL || rootDir == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Point to the FTP server context
+   context = connection->context;
+
+   //Set user's root directory
+   pathCopy(connection->rootDir, context->rootDir, FTP_SERVER_MAX_ROOT_DIR_LEN);
+   pathCombine(connection->rootDir, rootDir, FTP_SERVER_MAX_ROOT_DIR_LEN);
+
+   //Clean the resulting path
+   pathCanonicalize(connection->rootDir);
+   pathRemoveSlash(connection->rootDir);
+
+   //Set default user's home directory
+   pathCopy(connection->currentDir, connection->rootDir,
+      FTP_SERVER_MAX_PATH_LEN);
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Set user's home directory
  * @param[in] connection Pointer to the client connection
  * @param[in] homeDir NULL-terminated string specifying the home directory
  * @return Error code
@@ -371,19 +426,22 @@ error_t ftpServerStop(FtpServerContext *context)
 error_t ftpServerSetHomeDir(FtpClientConnection *connection,
    const char_t *homeDir)
 {
+   FtpServerContext *context;
+
    //Check parameters
    if(connection == NULL || homeDir == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Set home directory
-   pathCombine(connection->homeDir, homeDir, FTP_SERVER_MAX_HOME_DIR_LEN);
+   //Point to the FTP server context
+   context = connection->context;
+
+   //Set user's home directory
+   pathCopy(connection->currentDir, context->rootDir, FTP_SERVER_MAX_PATH_LEN);
+   pathCombine(connection->currentDir, homeDir, FTP_SERVER_MAX_PATH_LEN);
 
    //Clean the resulting path
-   pathCanonicalize(connection->homeDir);
-   pathRemoveSlash(connection->homeDir);
-
-   //Set current directory
-   osStrcpy(connection->currentDir, connection->homeDir);
+   pathCanonicalize(connection->currentDir);
+   pathRemoveSlash(connection->currentDir);
 
    //Successful processing
    return NO_ERROR;
@@ -418,7 +476,7 @@ void ftpServerTask(FtpServerContext *context)
       osMemset(context->eventDesc, 0, sizeof(context->eventDesc));
 
       //Specify the events the application is interested in
-      for(i = 0; i < context->settings.maxConnections; i++)
+      for(i = 0; i < context->maxConnections; i++)
       {
          //Point to the structure describing the current connection
          connection = &context->connections[i];
@@ -459,8 +517,8 @@ void ftpServerTask(FtpServerContext *context)
       context->eventDesc[2 * i].eventMask = SOCKET_EVENT_RX_READY;
 
       //Wait for one of the set of sockets to become ready to perform I/O
-      error = socketPoll(context->eventDesc,
-         2 * context->settings.maxConnections + 1, &context->event, timeout);
+      error = socketPoll(context->eventDesc, 2 * context->maxConnections + 1,
+         &context->event, timeout);
 
       //Get current time
       time = osGetSystemTime();
@@ -481,7 +539,7 @@ void ftpServerTask(FtpServerContext *context)
          }
 
          //Event-driven processing
-         for(i = 0; i < context->settings.maxConnections; i++)
+         for(i = 0; i < context->maxConnections; i++)
          {
             //Point to the structure describing the current connection
             connection = &context->connections[i];
