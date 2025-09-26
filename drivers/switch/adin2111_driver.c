@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -235,7 +235,7 @@ __weak_func void adin2111InitHook(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void adin2111Tick(NetInterface *interface)
+__weak_func void adin2111Tick(NetInterface *interface)
 {
 }
 
@@ -380,7 +380,7 @@ bool_t adin2111IrqHandler(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void adin2111EventHandler(NetInterface *interface)
+__weak_func void adin2111EventHandler(NetInterface *interface)
 {
    uint32_t status0;
    uint32_t status1;

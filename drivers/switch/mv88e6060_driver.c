@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -216,7 +216,7 @@ __weak_func void mv88e6060InitHook(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void mv88e6060Tick(NetInterface *interface)
+__weak_func void mv88e6060Tick(NetInterface *interface)
 {
    uint_t port;
    bool_t linkState;
@@ -306,7 +306,7 @@ void mv88e6060DisableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void mv88e6060EventHandler(NetInterface *interface)
+__weak_func void mv88e6060EventHandler(NetInterface *interface)
 {
    uint_t port;
    bool_t linkState;

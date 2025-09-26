@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -1531,6 +1531,60 @@ int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen)
 
          //Copy IPv6 address
          ipv6CopyAddr(sa->sin6_addr.s6_addr, &sock->localIpAddr.ipv6Addr);
+
+         //Return the actual length of the address
+         *addrlen = sizeof(SOCKADDR_IN6);
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+      }
+      else
+#endif
+      {
+         //The specified length is not valid
+         socketSetErrnoCode(sock, EINVAL);
+         ret = SOCKET_ERROR;
+      }
+   }
+   else if(sock->remoteIpAddr.length != 0)
+   {
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 address?
+      if(sock->remoteIpAddr.length == sizeof(Ipv4Addr) &&
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN))
+      {
+         //Point to the IPv4 address information
+         SOCKADDR_IN *sa = (SOCKADDR_IN *) addr;
+
+         //Set address family and port number
+         sa->sin_family = AF_INET;
+         sa->sin_port = htons(sock->localPort);
+
+         //The socket is not bound to any address
+         sa->sin_addr.s_addr = INADDR_ANY;
+
+         //Return the actual length of the address
+         *addrlen = sizeof(SOCKADDR_IN);
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 address?
+      if(sock->remoteIpAddr.length == sizeof(Ipv6Addr) &&
+         *addrlen >= (socklen_t) sizeof(SOCKADDR_IN6))
+      {
+         //Point to the IPv6 address information
+         SOCKADDR_IN6 *sa = (SOCKADDR_IN6 *) addr;
+
+         //Set address family and port number
+         sa->sin6_family = AF_INET6;
+         sa->sin6_port = htons(sock->localPort);
+         sa->sin6_flowinfo = 0;
+         sa->sin6_scope_id = 0;
+
+         //The socket is not bound to any address
+         ipv6CopyAddr(sa->sin6_addr.s6_addr, &in6addr_any);
 
          //Return the actual length of the address
          *addrlen = sizeof(SOCKADDR_IN6);
@@ -3662,7 +3716,7 @@ int_t getnameinfo(const struct sockaddr *addr, socklen_t addrlen,
 {
    uint16_t port;
 
-   //At least one of hostname or service name must be requested
+   //At least one of host name or service name must be requested
    if(host == NULL && serv == NULL)
       return EAI_NONAME;
 

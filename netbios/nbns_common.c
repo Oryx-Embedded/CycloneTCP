@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -157,23 +157,44 @@ size_t nbnsEncodeName(const char_t *src, uint8_t *dest)
    //NetBIOS names are 32-byte long
    dest[j++] = 32;
 
-   //Parse input name
-   for(i = 0; i < 15 && src[i] != '\0'; i++)
+   //Broadcast NetBIOS name?
+   if(osStrcmp(src, "*") == 0)
    {
-      //Convert current character to uppercase
-      c = osToupper(src[i]);
+      //Format Broadcast NetBIOS name
+      dest[j++] = NBNS_ENCODE_H('*');
+      dest[j++] = NBNS_ENCODE_L('*');
 
-      //Encode character
-      dest[j++] = NBNS_ENCODE_H(c);
-      dest[j++] = NBNS_ENCODE_L(c);
+      //The '*' character (hexadecimal 2A) is followed by 15 bytes of
+      //hexidecimal 00 (refer to RFC 1001, section 17.2)
+      for(i = 1; i < 15; i++)
+      {
+         dest[j++] = NBNS_ENCODE_H(0);
+         dest[j++] = NBNS_ENCODE_L(0);
+      }
    }
-
-   //Pad NetBIOS name with space characters
-   for(; i < 15; i++)
+   else
    {
-      //Encoded space character
-      dest[j++] = NBNS_ENCODE_H(' ');
-      dest[j++] = NBNS_ENCODE_L(' ');
+      //The 16 byte NetBIOS name is mapped into a 32 byte wide field using a
+      //reversible, half-ASCII, biased encoding (refer to RFC 1001,
+      //section 14.1)
+      for(i = 0; i < 15 && src[i] != '\0'; i++)
+      {
+         //Convert current character to uppercase
+         c = osToupper(src[i]);
+
+         //Each half-octet of the NetBIOS name is encoded into one byte of the
+         //32 byte field. The first half octet is encoded into the first byte,
+         //the second half-octet into the second byte, etc
+         dest[j++] = NBNS_ENCODE_H(c);
+         dest[j++] = NBNS_ENCODE_L(c);
+      }
+
+      //Pad NetBIOS name with space characters
+      for(; i < 15; i++)
+      {
+         dest[j++] = NBNS_ENCODE_H(' ');
+         dest[j++] = NBNS_ENCODE_L(' ');
+      }
    }
 
    //The 16th character is the NetBIOS suffix
@@ -194,11 +215,12 @@ size_t nbnsEncodeName(const char_t *src, uint8_t *dest)
  * @param[in] length Length of the NBNS message
  * @param[in] pos Offset of the name to decode
  * @param[out] dest Pointer to the decoded name (optional)
- * @return The position of the resource record that immediately follows the NetBIOS name
+ * @return The position of the resource record that immediately follows the
+ *   NetBIOS name
  **/
 
-size_t nbnsParseName(const NbnsHeader *message,
-   size_t length, size_t pos, char_t *dest)
+size_t nbnsParseName(const NbnsHeader *message, size_t length, size_t pos,
+   char_t *dest)
 {
    size_t i;
    size_t n;
@@ -218,16 +240,21 @@ size_t nbnsParseName(const NbnsHeader *message,
    if(n != 32)
       return 0;
 
-   //Parse the NetBIOS name
+   //The 16 byte NetBIOS name is mapped into a 32 byte wide field using a
+   //reversible, half-ASCII, biased encoding (refer to RFC 1001, section 14.1)
    for(i = 0; i < 15; i++)
    {
-      //Make sure the characters of the sequence are valid
-      if(src[pos] < 'A' || src[pos] > 'P')
+      //The NetBIOS name is represented as a sequence of 32 ASCII, upper-case
+      //characters from the set {A,B,C...N,O,P}
+      if(src[pos] < 'A' || src[pos + 1] < 'A' ||
+         src[pos] > 'P' || src[pos + 1] > 'P')
+      {
          return 0;
-      if(src[pos + 1] < 'A' || src[pos + 1] > 'P')
-         return 0;
+      }
 
-      //Combine nibbles to restore the original ASCII character
+      //Each half-octet of the NetBIOS name is encoded into one byte of the
+      //32 byte field. The first half octet is encoded into the first byte,
+      //the second half-octet into the second byte, etc
       c = ((src[pos] - 'A') << 4) | (src[pos + 1] - 'A');
 
       //Padding character found?
@@ -236,7 +263,9 @@ size_t nbnsParseName(const NbnsHeader *message,
 
       //Save current ASCII character
       if(dest != NULL)
+      {
          *(dest++) = c;
+      }
 
       //Advance data pointer
       pos += 2;
@@ -246,10 +275,11 @@ size_t nbnsParseName(const NbnsHeader *message,
    for(; i < 16; i++)
    {
       //Make sure the nibbles are valid
-      if(src[pos] < 'A' || src[pos] > 'P')
+      if(src[pos] < 'A' || src[pos + 1] < 'A' ||
+         src[pos] > 'P' || src[pos + 1] > 'P')
+      {
          return 0;
-      if(src[pos + 1] < 'A' || src[pos + 1] > 'P')
-         return 0;
+      }
 
       //Advance data pointer
       pos += 2;
@@ -264,10 +294,12 @@ size_t nbnsParseName(const NbnsHeader *message,
 
    //Properly terminate the string
    if(dest != NULL)
+   {
       *(dest++) = '\0';
+   }
 
-   //Return the position of the resource record that
-   //is immediately following the NetBIOS name
+   //Return the position of the resource record that is immediately following
+   //the NetBIOS name
    return pos;
 }
 
@@ -281,8 +313,8 @@ size_t nbnsParseName(const NbnsHeader *message,
  * @return TRUE if the NetBIOS names match, else FALSE
  **/
 
-bool_t nbnsCompareName(const NbnsHeader *message,
-   size_t length, size_t pos, const char_t *name)
+bool_t nbnsCompareName(const NbnsHeader *message, size_t length, size_t pos,
+   const char_t *name)
 {
    size_t i;
    size_t n;
@@ -302,16 +334,21 @@ bool_t nbnsCompareName(const NbnsHeader *message,
    if(n != 32)
       return FALSE;
 
-   //Parse the NetBIOS name
+   //The 16 byte NetBIOS name is mapped into a 32 byte wide field using a
+   //reversible, half-ASCII, biased encoding (refer to RFC 1001, section 14.1)
    for(i = 0; i < 15; i++)
    {
-      //Make sure the characters of the sequence are valid
-      if(src[pos] < 'A' || src[pos] > 'P')
+      //The NetBIOS name is represented as a sequence of 32 ASCII, upper-case
+      //characters from the set {A,B,C...N,O,P}
+      if(src[pos] < 'A' || src[pos + 1] < 'A' ||
+         src[pos] > 'P' || src[pos + 1] > 'P')
+      {
          return FALSE;
-      if(src[pos + 1] < 'A' || src[pos + 1] > 'P')
-         return FALSE;
+      }
 
-      //Combine nibbles to restore the original ASCII character
+      //Each half-octet of the NetBIOS name is encoded into one byte of the
+      //32 byte field. The first half octet is encoded into the first byte,
+      //the second half-octet into the second byte, etc
       c = ((src[pos] - 'A') << 4) | (src[pos + 1] - 'A');
 
       //Padding character found?
@@ -331,10 +368,11 @@ bool_t nbnsCompareName(const NbnsHeader *message,
    for(; i < 16; i++)
    {
       //Make sure the nibbles are valid
-      if(src[pos] < 'A' || src[pos] > 'P')
+      if(src[pos] < 'A' || src[pos + 1] < 'A' ||
+         src[pos] > 'P' || src[pos + 1] > 'P')
+      {
          return FALSE;
-      if(src[pos + 1] < 'A' || src[pos + 1] > 'P')
-         return FALSE;
+      }
 
       //Advance data pointer
       pos += 2;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -951,13 +951,15 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
  * @param[in] topic Topic name
  * @param[in] message Message payload
  * @param[in] length Length of the message payload
+ * @param[in] dup DUP flag
  * @param[in] qos QoS level to be used when publishing the message
  * @param[in] retain This flag specifies if the message is to be retained
  * @return Error code
  **/
 
 error_t mqttClientFormatPublish(MqttClientContext *context, const char_t *topic,
-   const void *message, size_t length, MqttQosLevel qos, bool_t retain)
+   const void *message, size_t length, bool_t dup, MqttQosLevel qos,
+   bool_t retain)
 {
    error_t error;
    size_t n;
@@ -979,7 +981,14 @@ error_t mqttClientFormatPublish(MqttClientContext *context, const char_t *topic,
    {
       //Each time a client sends a new PUBLISH packet it must assign it
       //a currently unused packet identifier
-      context->packetId++;
+      if(context->packetId < UINT16_MAX)
+      {
+         context->packetId++;
+      }
+      else
+      {
+         context->packetId = 1;
+      }
 
       //The Packet Identifier field is only present in PUBLISH packets
       //where the QoS level is 1 or 2
@@ -1007,7 +1016,7 @@ error_t mqttClientFormatPublish(MqttClientContext *context, const char_t *topic,
 
    //Prepend the variable header and the payload with the fixed header
    error = mqttSerializeHeader(context->buffer, &n, MQTT_PACKET_TYPE_PUBLISH,
-      FALSE, qos, retain, context->packetLen);
+      dup, qos, retain, context->packetLen);
 
    //Failed to serialize fixed header?
    if(error)
@@ -1235,7 +1244,14 @@ error_t mqttClientFormatSubscribe(MqttClientContext *context,
 
    //Each time a client sends a new SUBSCRIBE packet it must assign it
    //a currently unused packet identifier
-   context->packetId++;
+   if(context->packetId < UINT16_MAX)
+   {
+      context->packetId++;
+   }
+   else
+   {
+      context->packetId = 1;
+   }
 
    //Write Packet Identifier to the output buffer
    error = mqttSerializeShort(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
@@ -1303,7 +1319,14 @@ error_t mqttClientFormatUnsubscribe(MqttClientContext *context,
 
    //Each time a client sends a new UNSUBSCRIBE packet it must assign it
    //a currently unused packet identifier
-   context->packetId++;
+   if(context->packetId < UINT16_MAX)
+   {
+      context->packetId++;
+   }
+   else
+   {
+      context->packetId = 1;
+   }
 
    //Write Packet Identifier to the output buffer
    error = mqttSerializeShort(context->buffer, MQTT_CLIENT_BUFFER_SIZE,

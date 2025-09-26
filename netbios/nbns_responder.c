@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -51,10 +51,13 @@
  * @param[in] length Length of the message
  **/
 
-void nbnsProcessQuery(NetInterface *interface, const Ipv4PseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NbnsHeader *message, size_t length)
+void nbnsProcessQuery(NetInterface *interface,
+   const Ipv4PseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
+   const NbnsHeader *message, size_t length)
 {
    size_t pos;
+   uint16_t destPort;
+   IpAddr destIpAddr;
    DnsQuestion *question;
 
    //The NBNS query shall contain one question
@@ -74,28 +77,39 @@ void nbnsProcessQuery(NetInterface *interface, const Ipv4PseudoHeader *pseudoHea
    //Point to the corresponding entry
    question = DNS_GET_QUESTION(message, pos);
 
-   //Check the class and the type of the request
+   //Check the class of the request
    if(ntohs(question->qclass) != DNS_RR_CLASS_IN)
       return;
-   if(ntohs(question->qtype) != DNS_RR_TYPE_NB)
-      return;
 
-   //Compare NetBIOS names
-   if(nbnsCompareName(message, length, sizeof(DnsHeader), interface->hostname))
+   //A response packet is always sent to the source UDP port and source IP
+   //address of the request packet
+   destIpAddr.length = sizeof(Ipv4Addr);
+   destIpAddr.ipv4Addr = pseudoHeader->srcAddr;
+
+   //Convert the port number to host byte order
+   destPort = ntohs(udpHeader->srcPort);
+
+   //Check the type of the request
+   if(ntohs(question->qtype) == DNS_RR_TYPE_NB)
    {
-      uint16_t destPort;
-      IpAddr destIpAddr;
-
-      //A response packet is always sent to the source UDP port and source IP
-      //address of the request packet
-      destIpAddr.length = sizeof(Ipv4Addr);
-      destIpAddr.ipv4Addr = pseudoHeader->srcAddr;
-
-      //Convert the port number to host byte order
-      destPort = ntohs(udpHeader->srcPort);
-
-      //Send NBNS response
-      nbnsSendResponse(interface, &destIpAddr, destPort, message->id);
+      //Compare NetBIOS names
+      if(nbnsCompareName(message, length, sizeof(DnsHeader),
+         interface->hostname))
+      {
+         //Send positive name query response
+         nbnsSendResponse(interface, &destIpAddr, destPort, message->id,
+            DNS_RR_TYPE_NB);
+      }
+   }
+   else if(ntohs(question->qtype) == DNS_RR_TYPE_NBSTAT)
+   {
+      //Send node status response
+      nbnsSendResponse(interface, &destIpAddr, destPort, message->id,
+         DNS_RR_TYPE_NBSTAT);
+   }
+   else
+   {
+      //Unknown request
    }
 }
 
@@ -106,20 +120,18 @@ void nbnsProcessQuery(NetInterface *interface, const Ipv4PseudoHeader *pseudoHea
  * @param[in] destIpAddr Destination IP address
  * @param[in] destPort destination port
  * @param[in] id 16-bit identifier to be used when sending NBNS query
+ * @param[in] qtype Resource record type
  **/
 
-error_t nbnsSendResponse(NetInterface *interface,
-   const IpAddr *destIpAddr, uint16_t destPort, uint16_t id)
+error_t nbnsSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
+   uint16_t destPort, uint16_t id, uint16_t qtype)
 {
    error_t error;
-   uint_t i;
    size_t length;
    size_t offset;
    NetBuffer *buffer;
    NbnsHeader *message;
-   NbnsAddrEntry *addrEntry;
    DnsResourceRecord *record;
-   Ipv4AddrEntry *entry;
    NetTxAncillary ancillary;
 
    //Initialize status code
@@ -142,8 +154,8 @@ error_t nbnsSendResponse(NetInterface *interface,
    message->opcode = DNS_OPCODE_QUERY;
    message->aa = 1;
    message->tc = 0;
-   message->rd = 1;
-   message->ra = 1;
+   message->rd = 0;
+   message->ra = 0;
    message->z = 0;
    message->b = 0;
    message->rcode = DNS_RCODE_NOERROR;
@@ -155,46 +167,135 @@ error_t nbnsSendResponse(NetInterface *interface,
    //NBNS response message length
    length = sizeof(DnsHeader);
 
-   //The NBNS response contains 1 answer resource record
-   for(i = 0; i < IPV4_ADDR_LIST_SIZE && message->ancount == 0; i++)
+   //Check the type of the requested resource record
+   if(qtype == DNS_RR_TYPE_NB)
    {
-      //Point to the current entry
-      entry = &interface->ipv4Context.addrList[i];
+      uint_t i;
+      Ipv4AddrEntry *entry;
+      NbnsAddrEntry *addrEntry;
 
-      //Check the state of the address
-      if(entry->state == IPV4_ADDR_STATE_VALID)
+      //Set RD and RA flags
+      message->rd = 1;
+      message->ra = 1;
+
+      //Loop through the list of IPv4 addresses assigned to the interface
+      for(i = 0; i < IPV4_ADDR_LIST_SIZE && message->ancount == 0; i++)
       {
-         //Check whether the address belongs to the same subnet as the source
-         //address of the query
-         if(ipv4IsOnSubnet(entry, destIpAddr->ipv4Addr))
+         //Point to the current entry
+         entry = &interface->ipv4Context.addrList[i];
+
+         //Check the state of the address
+         if(entry->state == IPV4_ADDR_STATE_VALID)
          {
-            //Encode the host name using the NBNS name notation
-            length += nbnsEncodeName(interface->hostname,
-               (uint8_t *) message + length);
+            //Check whether the address belongs to the same subnet as the source
+            //address of the query
+            if(ipv4IsOnSubnet(entry, destIpAddr->ipv4Addr))
+            {
+               //Encode the host name using the NBNS name notation
+               length += nbnsEncodeName(interface->hostname,
+                  (uint8_t *) message + length);
 
-            //Point to the corresponding resource record
-            record = DNS_GET_RESOURCE_RECORD(message, length);
+               //Point to the corresponding resource record
+               record = DNS_GET_RESOURCE_RECORD(message, length);
 
-            //Fill in resource record
-            record->rtype = HTONS(DNS_RR_TYPE_NB);
-            record->rclass = HTONS(DNS_RR_CLASS_IN);
-            record->ttl = HTONL(NBNS_DEFAULT_RESOURCE_RECORD_TTL);
-            record->rdlength = HTONS(sizeof(NbnsAddrEntry));
+               //Fill in resource record
+               record->rtype = HTONS(DNS_RR_TYPE_NB);
+               record->rclass = HTONS(DNS_RR_CLASS_IN);
+               record->ttl = HTONL(NBNS_DEFAULT_RESOURCE_RECORD_TTL);
+               record->rdlength = HTONS(sizeof(NbnsAddrEntry));
 
-            //Point to the address entry array
-            addrEntry = (NbnsAddrEntry *) record->rdata;
+               //The ADDR_ENTRY ARRAY a sequence of zero or more ADDR_ENTRY
+               //records (refer to RFC 1002, section 4.2.13)
+               addrEntry = (NbnsAddrEntry *) record->rdata;
 
-            //Fill in address entry
-            addrEntry->flags = HTONS(NBNS_G_UNIQUE | NBNS_ONT_BNODE);
-            addrEntry->addr = entry->addr;
+               //Each ADDR_ENTRY record represents an owner of a name
+               addrEntry->flags = HTONS(NBNS_FLAG_ONT_BNODE);
+               addrEntry->addr = entry->addr;
 
-            //Update the length of the NBNS response message
-            length += sizeof(DnsResourceRecord) + sizeof(NbnsAddrEntry);
+               //Update the length of the NBNS response message
+               length += sizeof(DnsResourceRecord) + sizeof(NbnsAddrEntry);
 
-            //Number of resource records in the answer section
-            message->ancount++;
+               //Number of resource records in the answer section
+               message->ancount++;
+            }
          }
       }
+   }
+   else if(qtype == DNS_RR_TYPE_NBSTAT)
+   {
+      size_t i;
+      size_t n;
+      NbnsNodeNameArray *nodeNameArray;
+      NbnsStatistics *statistics;
+
+      //Determine the length of the host name
+      n = osStrlen(interface->hostname);
+
+      //Valid host name assigned to the interface?
+      if(n >= 1 && n <= 15)
+      {
+         //RR_NAME is the requesting name
+         length += nbnsEncodeName("*", (uint8_t *) message + length);
+
+         //Point to the corresponding resource record
+         record = DNS_GET_RESOURCE_RECORD(message, length);
+
+         //Fill in resource record
+         record->rtype = HTONS(DNS_RR_TYPE_NBSTAT);
+         record->rclass = HTONS(DNS_RR_CLASS_IN);
+         record->ttl = HTONL(0);
+
+         //Calculate the length of the resource record
+         record->rdlength = HTONS(sizeof(NbnsNodeNameArray) +
+            sizeof(NbnsNodeNameEntry) + sizeof(NbnsStatistics));
+
+         //The NODE_NAME ARRAY is an array of zero or more NUM_NAMES entries
+         //of NODE_NAME records (refer to RFC 1002, section 4.2.18)
+         nodeNameArray = (NbnsNodeNameArray *) record->rdata;
+
+         //Set NUM_NAMES field
+         nodeNameArray->numNames = 1;
+
+         //Each NODE_NAME entry represents an active name in the same NetBIOS
+         //scope as the requesting name in the local name table of the responder
+         for(i = 0; i < n; i++)
+         {
+            nodeNameArray->names[0].name[i] = osToupper(interface->hostname[i]);
+         }
+
+         //Pad NetBIOS name with space characters
+         for(; i < 15; i++)
+         {
+            nodeNameArray->names[0].name[i] = ' ';
+         }
+
+         //The 16th character is the NetBIOS suffix
+         nodeNameArray->names[0].name[15] = 0;
+
+         //Set NAME_FLAGS field
+         nodeNameArray->names[0].flags = HTONS(NBNS_NAME_FLAG_ONT_BNODE |
+            NBNS_NAME_FLAG_ACT);
+
+         //Point to the STATISTICS field
+         statistics = (NbnsStatistics *) (record->rdata +
+            sizeof(NbnsNodeNameArray) + sizeof(NbnsNodeNameEntry));
+
+         //Clear statistics
+         osMemset(statistics, 0, sizeof(NbnsStatistics));
+         //The UNIT_ID field specifies the unique unit ID
+         statistics->unitId = interface->macAddr;
+
+         //Update the length of the NBNS response message
+         length += sizeof(DnsResourceRecord) + sizeof(NbnsNodeNameArray) +
+            sizeof(NbnsNodeNameEntry) + sizeof(NbnsStatistics);
+
+         //Number of resource records in the answer section
+         message->ancount++;
+      }
+   }
+   else
+   {
+      //Just for sanity
    }
 
    //Valid NBNS response?

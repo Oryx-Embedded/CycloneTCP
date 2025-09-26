@@ -25,11 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _MIMXRT1160_ETH1_DRIVER_H
 #define _MIMXRT1160_ETH1_DRIVER_H
+
+//Dependencies
+#include "core/nic.h"
 
 //Number of TX buffers
 #ifndef MIMXRT1160_ETH1_TX_BUFFER_COUNT

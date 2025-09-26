@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _NTP_COMMON_H
@@ -38,8 +38,14 @@
 #define NTP_PORT 123
 //Maximum size of NTP messages
 #define NTP_MAX_MSG_SIZE 68
+
 //Difference between NTP and Unix time scales
 #define NTP_UNIX_EPOCH 2208988800U
+
+//NTP area 0 (1 Jan 1900 00:00:00)
+#define NTP_AREA_0 0ULL
+//NTP area 1 (7 Feb 2036 06:28:16)
+#define NTP_AREA_1 4294967296ULL
 
 //Kiss code definition
 #define NTP_KISS_CODE(a, b, c, d) (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))

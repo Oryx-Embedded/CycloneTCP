@@ -30,7 +30,7 @@
  * of an SNMP entity. Refer to RFC 3418 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _SNMP_COMMUNITY_MIB_MODULE_H

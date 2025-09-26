@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _KSZ8895_DRIVER_H
@@ -813,6 +813,56 @@ typedef struct
 } Ksz8895DynamicMacEntry;
 
 
+/**
+ * @brief Set of VLAN entries
+ **/
+
+typedef struct
+{
+#if defined(_CPU_BIG_ENDIAN) && !defined(__IAR_SYSTEMS_ICC__)
+   uint8_t reserved : 4;          //0
+   uint8_t entry3Valid : 1;
+   uint8_t entry3MembershipH : 3;
+   uint8_t entry3MembershipL : 2; //1
+   uint8_t entry3FidH : 6;
+   uint8_t entry3FidL : 1;        //2
+   uint8_t entry2Valid : 1;
+   uint8_t entry2Membership : 5;
+   uint8_t entry2FidH : 1;
+   uint8_t entry2FidL : 6;        //3
+   uint8_t entry1Valid : 1;
+   uint8_t entry1MembershipH : 1;
+   uint8_t entry1MembershipL : 4; //4
+   uint8_t entry1FidH : 4;
+   uint8_t entry1FidL : 3;        //5
+   uint8_t entry0Valid : 1;
+   uint8_t entry0MembershipH : 4;
+   uint8_t entry0MembershipL : 1; //6
+   uint8_t entry0Fid : 7;
+#else
+   uint8_t entry3MembershipH : 3; //0
+   uint8_t entry3Valid : 1;
+   uint8_t reserved : 4;
+   uint8_t entry3FidH : 6;        //1
+   uint8_t entry3MembershipL : 2;
+   uint8_t entry2FidH : 1;        //2
+   uint8_t entry2Membership : 5;
+   uint8_t entry2Valid : 1;
+   uint8_t entry3FidL : 1;
+   uint8_t entry1MembershipH : 1; //3
+   uint8_t entry1Valid : 1;
+   uint8_t entry2FidL : 6;
+   uint8_t entry1FidH : 4;        //4
+   uint8_t entry1MembershipL : 4;
+   uint8_t entry0MembershipH : 4; //5
+   uint8_t entry0Valid : 1;
+   uint8_t entry1FidL : 3;
+   uint8_t entry0Fid : 7;         //6
+   uint8_t entry0MembershipL : 1;
+#endif
+} Ksz8895VlanEntrySet;
+
+
 //CC-RX, CodeWarrior or Win32 compiler?
 #if defined(__CCRX__)
    #pragma unpack
@@ -873,6 +923,9 @@ void ksz8895FlushDynamicFdbTable(NetInterface *interface, uint8_t port);
 
 void ksz8895SetUnknownMcastFwdPorts(NetInterface *interface,
    bool_t enable, uint32_t forwardPorts);
+
+error_t ksz8895WriteVlanEntry(NetInterface *interface,
+   const SwitchVlanEntry *entry);
 
 void ksz8895WritePhyReg(NetInterface *interface, uint8_t port,
    uint8_t address, uint16_t data);

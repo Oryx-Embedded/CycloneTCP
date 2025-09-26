@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -66,6 +66,15 @@ error_t sntpClientOpenConnection(SntpClientContext *context)
       //Report an error
       error = ERROR_OPEN_FAILED;
    }
+
+#if (SNTP_CLIENT_SRC_PORT != 0)
+   //Check status code
+   if(!error)
+   {
+      //Set client's source port
+      error = socketBind(context->socket, &IP_ADDR_ANY, SNTP_CLIENT_SRC_PORT);
+   }
+#endif
 
    //Return status code
    return error;

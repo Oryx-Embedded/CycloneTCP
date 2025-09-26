@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -84,6 +84,12 @@ error_t httpClientInit(HttpClientContext *context)
       return error;
 #endif
 
+#if (HTTP_CLIENT_AUTH_SUPPORT == ENABLED)
+   //Set allowed HTTP authentication modes
+   context->authParams.allowedModes = HTTP_AUTH_MODE_BASIC |
+      HTTP_AUTH_MODE_DIGEST;
+#endif
+
    //Initialize HTTP connection state
    context->state = HTTP_CLIENT_STATE_DISCONNECTED;
    //Initialize HTTP request state
@@ -105,11 +111,12 @@ error_t httpClientInit(HttpClientContext *context)
  * @brief Register TLS initialization callback function
  * @param[in] context Pointer to the HTTP client context
  * @param[in] callback TLS initialization callback function
+ * @param[in] param An opaque pointer passed to the callback function
  * @return Error code
  **/
 
 error_t httpClientRegisterTlsInitCallback(HttpClientContext *context,
-   HttpClientTlsInitCallback callback)
+   HttpClientTlsInitCallback callback, void *param)
 {
    //Make sure the HTTP client context is valid
    if(context == NULL)
@@ -117,6 +124,8 @@ error_t httpClientRegisterTlsInitCallback(HttpClientContext *context,
 
    //Save callback function
    context->tlsInitCallback = callback;
+   //This opaque pointer will be directly passed to the callback function
+   context->tlsInitParam = param;
 
    //Successful processing
    return NO_ERROR;
@@ -199,6 +208,41 @@ error_t httpClientSetTimeout(HttpClientContext *context, systime_t timeout)
 
 
 /**
+ * @brief Set allowed HTTP authentication modes
+ * @param[in] context Pointer to the HTTP client context
+ * @param[in] allowedAuthModes Logic OR of allowed HTTP authentication schemes
+ * @return Error code
+ **/
+
+
+error_t httpClientSetAllowedAuthModes(HttpClientContext *context,
+   uint_t allowedAuthModes)
+{
+#if (HTTP_CLIENT_AUTH_SUPPORT == ENABLED)
+   //Make sure the HTTP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Save allowed HTTP authentication modes
+   context->authParams.allowedModes = allowedAuthModes;
+
+   //Basic authentication scheme?
+   if(context->authParams.allowedModes == HTTP_AUTH_MODE_BASIC &&
+      context->authParams.username[0] != '\0')
+   {
+      context->authParams.selectedMode = HTTP_AUTH_MODE_BASIC;
+   }
+
+   //Successful processing
+   return NO_ERROR;
+#else
+   //HTTP authentication is not implemented
+   return ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+
+/**
  * @brief Set authentication information
  * @param[in] context Pointer to the HTTP client context
  * @param[in] username NULL-terminated string containing the user name to be used
@@ -226,6 +270,13 @@ error_t httpClientSetAuthInfo(HttpClientContext *context,
    osStrcpy(context->authParams.username, username);
    //Save password
    osStrcpy(context->authParams.password, password);
+
+   //Basic authentication scheme?
+   if(context->authParams.allowedModes == HTTP_AUTH_MODE_BASIC &&
+      context->authParams.username[0] != '\0')
+   {
+      context->authParams.selectedMode = HTTP_AUTH_MODE_BASIC;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -1041,7 +1092,7 @@ error_t httpClientWriteHeader(HttpClientContext *context)
          {
 #if (HTTP_CLIENT_AUTH_SUPPORT == ENABLED)
             //HTTP authentication requested by the server?
-            if(context->authParams.mode != HTTP_AUTH_MODE_NONE &&
+            if(context->authParams.selectedMode != HTTP_AUTH_MODE_NONE &&
                context->authParams.username[0] != '\0')
             {
                //Format Authorization header field

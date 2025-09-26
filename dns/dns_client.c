@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -81,6 +81,13 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
          *ipAddr = entry->ipAddr;
          //Successful host name resolution
          error = NO_ERROR;
+      }
+      else if(entry->state == DNS_STATE_FAILED)
+      {
+         //The entry should be deleted since name resolution has failed
+         dnsDeleteEntry(entry);
+         //Report an error
+         error = ERROR_FAILURE;
       }
       else
       {
@@ -141,7 +148,7 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
          }
          else
          {
-            //Unregister callback function
+            //Unregister UDP callback function
             udpDetachRxCallback(interface, entry->port);
          }
       }
@@ -176,6 +183,17 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
             *ipAddr = entry->ipAddr;
             //Successful host name resolution
             error = NO_ERROR;
+         }
+         else if(entry->state == DNS_STATE_FAILED)
+         {
+            //The entry should be deleted since name resolution has failed
+            dnsDeleteEntry(entry);
+            //Report an error
+            error = ERROR_FAILURE;
+         }
+         else
+         {
+            //Host name resolution is in progress
          }
       }
       else
@@ -523,15 +541,14 @@ void dnsProcessResponse(NetInterface *interface,
                      entry->timeout = ntohl(record->ttl) * 1000;
 
                      //Limit the lifetime of the DNS cache entries
-                     if(entry->timeout >= DNS_MAX_LIFETIME)
-                        entry->timeout = DNS_MAX_LIFETIME;
-                     if(entry->timeout <= DNS_MIN_LIFETIME)
-                        entry->timeout = DNS_MIN_LIFETIME;
+                     entry->timeout = MIN(entry->timeout, DNS_MAX_LIFETIME);
+                     entry->timeout = MAX(entry->timeout, DNS_MIN_LIFETIME);
 
                      //Unregister UDP callback function
                      udpDetachRxCallback(interface, entry->port);
                      //Host name successfully resolved
                      entry->state = DNS_STATE_RESOLVED;
+
                      //Exit immediately
                      break;
                   }
@@ -555,15 +572,14 @@ void dnsProcessResponse(NetInterface *interface,
                      entry->timeout = ntohl(record->ttl) * 1000;
 
                      //Limit the lifetime of the DNS cache entries
-                     if(entry->timeout >= DNS_MAX_LIFETIME)
-                        entry->timeout = DNS_MAX_LIFETIME;
-                     if(entry->timeout <= DNS_MIN_LIFETIME)
-                        entry->timeout = DNS_MIN_LIFETIME;
+                     entry->timeout = MIN(entry->timeout, DNS_MAX_LIFETIME);
+                     entry->timeout = MAX(entry->timeout, DNS_MIN_LIFETIME);
 
                      //Unregister UDP callback function
                      udpDetachRxCallback(interface, entry->port);
                      //Host name successfully resolved
                      entry->state = DNS_STATE_RESOLVED;
+
                      //Exit immediately
                      break;
                   }
@@ -618,8 +634,10 @@ void dnsSelectNextServer(DnsCacheEntry *entry)
    }
    else
    {
-      //The entry should be deleted since name resolution has failed
-      dnsDeleteEntry(entry);
+      //Unregister UDP callback function
+      udpDetachRxCallback(entry->interface, entry->port);
+      //Host name resolution failed
+      entry->state = DNS_STATE_FAILED;
    }
 }
 

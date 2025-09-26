@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _DNS_CACHE_H
@@ -85,7 +85,8 @@ typedef enum
    DNS_STATE_NONE        = 0,
    DNS_STATE_IN_PROGRESS = 1,
    DNS_STATE_RESOLVED    = 2,
-   DNS_STATE_PERMANENT   = 3
+   DNS_STATE_FAILED      = 3,
+   DNS_STATE_PERMANENT   = 4
 } DnsState;
 
 

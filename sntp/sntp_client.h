@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _SNTP_CLIENT_H
@@ -61,6 +61,13 @@
    #define SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT 15000
 #elif (SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT < 1000)
    #error SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT parameter is not valid
+#endif
+
+//SNTP client's source cport
+#ifndef SNTP_CLIENT_SRC_PORT
+   #define SNTP_CLIENT_SRC_PORT 0
+#elif (SNTP_CLIENT_SRC_PORT < 0 || SNTP_CLIENT_SRC_PORT > 65535)
+   #error SNTP_CLIENT_SRC_PORT parameter is not valid
 #endif
 
 //Application specific context

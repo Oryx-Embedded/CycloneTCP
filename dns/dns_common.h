@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _DNS_COMMON_H
@@ -145,7 +145,8 @@ typedef enum
    DNS_RR_TYPE_MX     = 15,  ///<Mail exchange
    DNS_RR_TYPE_TXT    = 16,  ///<Text strings
    DNS_RR_TYPE_AAAA   = 28,  ///<IPv6 address
-   DNS_RR_TYPE_NB     = 32,  ///<NetBIOS name service
+   DNS_RR_TYPE_NB     = 32,  ///<NetBIOS name
+   DNS_RR_TYPE_NBSTAT = 33,  ///<NetBIOS node status
    DNS_RR_TYPE_SRV    = 33,  ///<Server selection
    DNS_RR_TYPE_NAPTR  = 35,  ///<Naming authority pointer
    DNS_RR_TYPE_RRSIG  = 46,  ///<RRSIG record

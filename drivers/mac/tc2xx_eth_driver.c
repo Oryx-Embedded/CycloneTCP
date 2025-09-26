@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -307,7 +307,7 @@ __weak_func void tc2xxEthInitGpio(NetInterface *interface)
    MODULE_P11.IOCR8.B.PC11 = 0;
    MODULE_ETH.GPCTL.B.ALTI4 = 0;
 
-   //Configure ETHRXCLKA (P11.12)
+   //Configure ETHREFCLK (P11.12)
    MODULE_P11.IOCR12.B.PC12 = 0;
    MODULE_ETH.GPCTL.B.ALTI1 = 0;
 
@@ -383,7 +383,7 @@ __weak_func void tc2xxEthInitGpio(NetInterface *interface)
    MODULE_P11.IOCR8.B.PC11 = 0;
    MODULE_ETH.GPCTL.B.ALTI4 = 0;
 
-   //Configure ETHRXCLKA (P11.12)
+   //Configure ETHREFCLK (P11.12)
    MODULE_P11.IOCR12.B.PC12 = 0;
    MODULE_ETH.GPCTL.B.ALTI1 = 0;
 

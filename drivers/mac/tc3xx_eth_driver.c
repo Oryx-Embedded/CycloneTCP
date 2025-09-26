@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -296,8 +296,84 @@ error_t tc3xxEthInit(NetInterface *interface)
 
 __weak_func void tc3xxEthInitGpio(NetInterface *interface)
 {
+//AURIX TC375 Lite Kit?
+#if defined(USE_KIT_A2G_TC375_LITE)
+   //Configure GETH_TXD1 (P11.2)
+   MODULE_P11.IOCR0.B.PC2 = 22;
+
+   //Configure GETH_TXD0 (P11.3)
+   MODULE_P11.IOCR0.B.PC3 = 22;
+
+   //Configure GETH_TXEN (P11.6)
+   MODULE_P11.IOCR4.B.PC6 = 22;
+
+   //Configure GETH_RXD1A (P11.9)
+   MODULE_P11.IOCR8.B.PC9 = 0;
+   MODULE_GETH.GPCTL.B.ALTI7 = 0;
+
+   //Configure GETH_RXD0A (P11.10)
+   MODULE_P11.IOCR8.B.PC10 = 0;
+   MODULE_GETH.GPCTL.B.ALTI6 = 0;
+
+   //Configure GETH_CRSDVA (P11.11)
+   MODULE_P11.IOCR8.B.PC11 = 0;
+   MODULE_GETH.GPCTL.B.ALTI4 = 0;
+
+   //Configure GETH_REFCLKA (P11.12)
+   MODULE_P11.IOCR12.B.PC12 = 0;
+   MODULE_GETH.GPCTL.B.ALTI1 = 0;
+
+   //Configure GETH_MDC (P21.2)
+   MODULE_P21.IOCR0.B.PC2 = 21;
+
+   //Configure GETH_MDIOD (P21.3)
+   MODULE_P21.IOCR0.B.PC3 = 0;
+   MODULE_GETH.GPCTL.B.ALTI0 = 3;
+
+   //Unlock sequence
+   unlock_safety_wdtcon();
+
+   //Set bit SELx for TXD[1:0] and TXEN signals
+   MODULE_P11.PCSR.B.SEL2 = 1;
+   MODULE_P11.PCSR.B.SEL3 = 1;
+   MODULE_P11.PCSR.B.SEL6 = 1;
+
+   //Lock sequence
+   lock_safety_wdtcon();
+
+   //Unlock sequence
+   unlock_wdtcon();
+
+   //Set speed grade
+   MODULE_P11.PDR0.B.PD2 = 3;
+   MODULE_P11.PDR0.B.PL2 = 0;
+   MODULE_P11.PDR0.B.PD3 = 3;
+   MODULE_P11.PDR0.B.PL3 = 0;
+   MODULE_P11.PDR0.B.PD6 = 3;
+   MODULE_P11.PDR0.B.PL6 = 0;
+
+   MODULE_P11.PDR1.B.PD9 = 3;
+   MODULE_P11.PDR1.B.PL9 = 0;
+   MODULE_P11.PDR1.B.PD10 = 3;
+   MODULE_P11.PDR1.B.PL10 = 0;
+   MODULE_P11.PDR1.B.PD11 = 3;
+   MODULE_P11.PDR1.B.PL11 = 0;
+   MODULE_P11.PDR1.B.PD12 = 3;
+   MODULE_P11.PDR1.B.PL12 = 0;
+
+   MODULE_P21.PDR0.B.PD2 = 3;
+   MODULE_P21.PDR0.B.PL2 = 0;
+   MODULE_P21.PDR0.B.PD3 = 3;
+   MODULE_P21.PDR0.B.PL3 = 0;
+
+   //Lock sequence
+   lock_wdtcon();
+
+   //Select RMII operation mode
+   MODULE_GETH.GPCTL.B.EPR = 4;
+
 //AURIX TC397 TFT Application Kit?
-#if defined(USE_KIT_A2G_TC397_TFT)
+#elif defined(USE_KIT_A2G_TC397_TFT)
    //Configure GETH_TXD3 (P11.0)
    MODULE_P11.IOCR0.B.PC0 = 22;
 
@@ -353,7 +429,7 @@ __weak_func void tc3xxEthInitGpio(NetInterface *interface)
    //Unlock sequence
    unlock_safety_wdtcon();
 
-   //Set bit SELx for TXD[3:0] TXCLK and TCTL signals
+   //Set bit SELx for TXD[3:0], TXCLK and TCTL signals
    MODULE_P11.PCSR.B.SEL0 = 1;
    MODULE_P11.PCSR.B.SEL1 = 1;
    MODULE_P11.PCSR.B.SEL2 = 1;
@@ -384,6 +460,7 @@ __weak_func void tc3xxEthInitGpio(NetInterface *interface)
    MODULE_P11.PDR0.B.PL6 = 0;
    MODULE_P11.PDR0.B.PD7 = 3;
    MODULE_P11.PDR0.B.PL7 = 0;
+
    MODULE_P11.PDR1.B.PD8 = 3;
    MODULE_P11.PDR1.B.PL8 = 0;
    MODULE_P11.PDR1.B.PD9 = 3;

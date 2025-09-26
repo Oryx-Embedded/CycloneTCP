@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _HTTP_CLIENT_H
@@ -224,7 +224,7 @@ typedef enum
  **/
 
 typedef error_t (*HttpClientTlsInitCallback)(HttpClientContext *context,
-   TlsContext *tlsContext);
+   TlsContext *tlsContext, void *param);
 
 #endif
 
@@ -242,7 +242,8 @@ typedef error_t (*HttpClientRandCallback)(uint8_t *data, size_t length);
 
 typedef struct
 {
-   HttpAuthMode mode;                                 ///<HTTP authentication mode
+   uint_t allowedModes;                               ///<Allowed HTTP authentication modes
+   HttpAuthMode selectedMode;                         ///<Selected HTTP authentication mode
    char_t username[HTTP_CLIENT_MAX_USERNAME_LEN + 1]; ///<User name
    char_t password[HTTP_CLIENT_MAX_PASSWORD_LEN + 1]; ///<Password
    char_t realm[HTTP_CLIENT_MAX_REALM_LEN + 1];       ///<Realm
@@ -274,6 +275,7 @@ struct _HttpClientContext
    TlsContext *tlsContext;                        ///<TLS context
    TlsSessionState tlsSession;                    ///<TLS session state
    HttpClientTlsInitCallback tlsInitCallback;     ///<TLS initialization callback function
+   void *tlsInitParam;                            ///<Opaque pointer passed to the callback function
 #endif
    IpAddr serverIpAddr;                           ///<IP address of the HTTP server
    uint16_t serverPort;                           ///<TCP port number
@@ -303,7 +305,7 @@ error_t httpClientInit(HttpClientContext *context);
 #if (HTTP_CLIENT_TLS_SUPPORT == ENABLED)
 
 error_t httpClientRegisterTlsInitCallback(HttpClientContext *context,
-   HttpClientTlsInitCallback callback);
+   HttpClientTlsInitCallback callback, void *param);
 
 #endif
 
@@ -312,6 +314,9 @@ error_t httpClientRegisterRandCallback(HttpClientContext *context,
 
 error_t httpClientSetVersion(HttpClientContext *context, HttpVersion version);
 error_t httpClientSetTimeout(HttpClientContext *context, systime_t timeout);
+
+error_t httpClientSetAllowedAuthModes(HttpClientContext *context,
+   uint_t allowedAuthModes);
 
 error_t httpClientSetAuthInfo(HttpClientContext *context,
    const char_t *username, const char_t *password);

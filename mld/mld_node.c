@@ -36,7 +36,7 @@
  * - RFC 9777: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level

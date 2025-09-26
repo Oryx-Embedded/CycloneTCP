@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -386,15 +386,21 @@ error_t mqttClientBindToInterface(MqttClientContext *context,
 error_t mqttClientConnect(MqttClientContext *context,
    const IpAddr *serverIpAddr, uint16_t serverPort, bool_t cleanSession);
 
-error_t mqttClientPublish(MqttClientContext *context,
-   const char_t *topic, const void *message, size_t length,
-   MqttQosLevel qos, bool_t retain, uint16_t *packetId);
+error_t mqttClientSetPacketId(MqttClientContext *context, uint16_t packetId);
 
-error_t mqttClientSubscribe(MqttClientContext *context,
-   const char_t *topic, MqttQosLevel qos, uint16_t *packetId);
+error_t mqttClientPublish(MqttClientContext *context, const char_t *topic,
+   const void *message, size_t length, MqttQosLevel qos, bool_t retain,
+   uint16_t *packetId);
 
-error_t mqttClientUnsubscribe(MqttClientContext *context,
-   const char_t *topic, uint16_t *packetId);
+error_t mqttClientPublishEx(MqttClientContext *context, const char_t *topic,
+   const void *message, size_t length, bool_t dup, MqttQosLevel qos,
+   bool_t retain, uint16_t *packetId);
+
+error_t mqttClientSubscribe(MqttClientContext *context, const char_t *topic,
+   MqttQosLevel qos, uint16_t *packetId);
+
+error_t mqttClientUnsubscribe(MqttClientContext *context, const char_t *topic,
+   uint16_t *packetId);
 
 error_t mqttClientPing(MqttClientContext *context, systime_t *rtt);
 

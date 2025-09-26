@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -595,6 +595,34 @@ error_t mqttClientConnect(MqttClientContext *context,
 
 
 /**
+ * @brief Set packet identifier
+ * @param[in] context Pointer to the MQTT client context
+ * @param[out] packetId Packet identifier to be used
+ * @return Error code
+ **/
+
+error_t mqttClientSetPacketId(MqttClientContext *context, uint16_t packetId)
+{
+   //Check parameters
+   if(context == NULL || packetId == 0)
+      return ERROR_INVALID_PARAMETER;
+
+   //Restore packet identifier
+   if(context->packetId > 1)
+   {
+      context->packetId = packetId - 1;
+   }
+   else
+   { 
+      context->packetId = UINT16_MAX;
+   }
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
  * @brief Publish message
  * @param[in] context Pointer to the MQTT client context
  * @param[in] topic Topic name
@@ -606,15 +634,39 @@ error_t mqttClientConnect(MqttClientContext *context,
  * @return Error code
  **/
 
-error_t mqttClientPublish(MqttClientContext *context,
-   const char_t *topic, const void *message, size_t length,
-   MqttQosLevel qos, bool_t retain, uint16_t *packetId)
+error_t mqttClientPublish(MqttClientContext *context, const char_t *topic,
+   const void *message, size_t length, MqttQosLevel qos, bool_t retain,
+   uint16_t *packetId)
+{
+   //Publish message
+   return mqttClientPublishEx(context, topic, message, length, FALSE,
+      qos, retain, packetId);
+}
+
+
+/**
+ * @brief Publish message
+ * @param[in] context Pointer to the MQTT client context
+ * @param[in] topic Topic name
+ * @param[in] message Message payload
+ * @param[in] length Length of the message payload
+ * @param[in] dup DUP flag
+ * @param[in] qos QoS level to be used when publishing the message
+ * @param[in] retain This flag specifies if the message is to be retained
+ * @param[out] packetId Packet identifier used to send the PUBLISH packet
+ * @return Error code
+ **/
+
+error_t mqttClientPublishEx(MqttClientContext *context, const char_t *topic,
+   const void *message, size_t length, bool_t dup, MqttQosLevel qos,
+   bool_t retain, uint16_t *packetId)
 {
    error_t error;
 
    //Check parameters
    if(context == NULL || topic == NULL)
       return ERROR_INVALID_PARAMETER;
+
    if(message == NULL && length != 0)
       return ERROR_INVALID_PARAMETER;
 
@@ -631,15 +683,17 @@ error_t mqttClientPublish(MqttClientContext *context,
          if(context->packetType == MQTT_PACKET_TYPE_INVALID)
          {
             //Format PUBLISH packet
-            error = mqttClientFormatPublish(context, topic, message,
-               length, qos, retain);
+            error = mqttClientFormatPublish(context, topic, message, length,
+               dup, qos, retain);
 
             //Check status code
             if(!error)
             {
                //Save the packet identifier used to send the PUBLISH packet
                if(packetId != NULL)
+               {
                   *packetId = context->packetId;
+               }
 
                //Debug message
                TRACE_INFO("MQTT: Sending PUBLISH packet (%" PRIuSIZE " bytes)...\r\n",
@@ -734,8 +788,8 @@ error_t mqttClientPublish(MqttClientContext *context,
  * @return Error code
  **/
 
-error_t mqttClientSubscribe(MqttClientContext *context,
-   const char_t *topic, MqttQosLevel qos, uint16_t *packetId)
+error_t mqttClientSubscribe(MqttClientContext *context, const char_t *topic,
+   MqttQosLevel qos, uint16_t *packetId)
 {
    error_t error;
 
@@ -763,7 +817,9 @@ error_t mqttClientSubscribe(MqttClientContext *context,
             {
                //Save the packet identifier used to send the SUBSCRIBE packet
                if(packetId != NULL)
+               {
                   *packetId = context->packetId;
+               }
 
                //Debug message
                TRACE_INFO("MQTT: Sending SUBSCRIBE packet (%" PRIuSIZE " bytes)...\r\n",
@@ -847,8 +903,8 @@ error_t mqttClientSubscribe(MqttClientContext *context,
  * @return Error code
  **/
 
-error_t mqttClientUnsubscribe(MqttClientContext *context,
-   const char_t *topic, uint16_t *packetId)
+error_t mqttClientUnsubscribe(MqttClientContext *context, const char_t *topic,
+   uint16_t *packetId)
 {
    error_t error;
 
@@ -876,7 +932,9 @@ error_t mqttClientUnsubscribe(MqttClientContext *context,
             {
                //Save the packet identifier used to send the UNSUBSCRIBE packet
                if(packetId != NULL)
+               {
                   *packetId = context->packetId;
+               }
 
                //Debug message
                TRACE_INFO("MQTT: Sending UNSUBSCRIBE packet (%" PRIuSIZE " bytes)...\r\n",

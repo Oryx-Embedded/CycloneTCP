@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _NBNS_RESPONDER_H
@@ -50,11 +50,12 @@ extern "C" {
 #endif
 
 //NBNS related functions
-void nbnsProcessQuery(NetInterface *interface, const Ipv4PseudoHeader *pseudoHeader,
-   const UdpHeader *udpHeader, const NbnsHeader *message, size_t length);
+void nbnsProcessQuery(NetInterface *interface,
+   const Ipv4PseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
+   const NbnsHeader *message, size_t length);
 
-error_t nbnsSendResponse(NetInterface *interface,
-   const IpAddr *destIpAddr, uint16_t destPort, uint16_t id);
+error_t nbnsSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
+   uint16_t destPort, uint16_t id, uint16_t qtype);
 
 //C++ guard
 #ifdef __cplusplus

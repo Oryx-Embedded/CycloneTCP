@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -82,6 +82,13 @@ error_t mdnsClientResolve(NetInterface *interface, const char_t *name,
          *ipAddr = entry->ipAddr;
          //Successful host name resolution
          error = NO_ERROR;
+      }
+      else if(entry->state == DNS_STATE_FAILED)
+      {
+         //The entry should be deleted since name resolution has failed
+         dnsDeleteEntry(entry);
+         //Report an error
+         error = ERROR_FAILURE;
       }
       else
       {
@@ -154,6 +161,17 @@ error_t mdnsClientResolve(NetInterface *interface, const char_t *name,
             *ipAddr = entry->ipAddr;
             //Successful host name resolution
             error = NO_ERROR;
+         }
+         else if(entry->state == DNS_STATE_FAILED)
+         {
+            //The entry should be deleted since name resolution has failed
+            dnsDeleteEntry(entry);
+            //Report an error
+            error = ERROR_FAILURE;
+         }
+         else
+         {
+            //Host name resolution is in progress
          }
       }
       else

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -201,7 +201,7 @@ __weak_func void ksz8895InitHook(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ksz8895Tick(NetInterface *interface)
+__weak_func void ksz8895Tick(NetInterface *interface)
 {
    uint_t port;
    bool_t linkState;
@@ -291,7 +291,7 @@ void ksz8895DisableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ksz8895EventHandler(NetInterface *interface)
+__weak_func void ksz8895EventHandler(NetInterface *interface)
 {
    uint_t port;
    bool_t linkState;
@@ -1305,6 +1305,109 @@ void ksz8895FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
          ksz8895WriteSwitchReg(interface, KSZ8895_PORTn_CTRL2(i), state[i - 1]);
       }
    }
+}
+
+
+/**
+ * @brief Write VLAN entry
+ * @param[in] interface Underlying network interface
+ * @param[in] entry VLAN entry
+ * @return Error code
+ **/
+
+error_t ksz8895WriteVlanEntry(NetInterface *interface,
+   const SwitchVlanEntry *entry)
+{
+   error_t error;
+   uint_t i;
+   uint8_t *p;
+   Ksz8895VlanEntrySet vlanSet;
+
+   //The VLAN table supports up to 4096 VLAN entries
+   if(entry->vlanId < KSZ8895_VLAN_TABLE_SIZE)
+   {
+      //Select the VLAN table for reading
+      ksz8895WriteSwitchReg(interface, KSZ8895_INDIRECT_CTRL0,
+         KSZ8895_INDIRECT_CTRL0_READ |
+         KSZ8895_INDIRECT_CTRL0_TABLE_SEL_VLAN);
+
+      //Trigger the read operation
+      ksz8895WriteSwitchReg(interface, KSZ8895_INDIRECT_CTRL1,
+         entry->vlanId / 4);
+
+      //Point to the VLAN set
+      p = (uint8_t *) &vlanSet;
+
+      //Read indirect data registers
+      for(i = 0; i < sizeof(Ksz8895VlanEntrySet); i++)
+      {
+         p[i] = ksz8895ReadSwitchReg(interface, KSZ8895_INDIRECT_DATA6 + i);
+      }
+
+      //Each VLAN set consists of 4 VLAN entries
+      switch(entry->vlanId % 4)
+      {
+      case 0:
+         //Modify the first VLAN entry of the VLAN set
+         vlanSet.entry0Valid = entry->valid;
+         vlanSet.entry0MembershipL = entry->ports & 0x01;
+         vlanSet.entry0MembershipH = (entry->ports >> 1) & 0x0F;
+         vlanSet.entry0Fid = entry->fid & 0x7F;
+         break;
+
+      case 1:
+         //Modify the second VLAN entry of the VLAN set
+         vlanSet.entry1Valid = entry->valid;
+         vlanSet.entry1MembershipL = entry->ports & 0x0F;
+         vlanSet.entry1MembershipH = (entry->ports >> 4) & 0x01;
+         vlanSet.entry1FidL = entry->fid & 0x07;
+         vlanSet.entry1FidH = (entry->fid >> 3) & 0x0F;
+         break;
+
+      case 2:
+         //Modify the third VLAN entry of the VLAN set
+         vlanSet.entry2Valid = entry->valid;
+         vlanSet.entry2Membership = entry->ports & 0x01F;
+         vlanSet.entry2FidL = entry->fid & 0x03F;
+         vlanSet.entry2FidH = (entry->fid >> 6) & 0x01;
+         break;
+
+      default:
+         //Modify the fourth VLAN entry of the VLAN set
+         vlanSet.entry3Valid = entry->valid;
+         vlanSet.entry3MembershipL = entry->ports & 0x03;
+         vlanSet.entry3MembershipH = (entry->ports >> 2) & 0x07;
+         vlanSet.entry3FidL = entry->fid & 0x01;
+         vlanSet.entry3FidH = (entry->fid >> 1) & 0x3F;
+         break;
+      }
+
+      //Write indirect data registers
+      for(i = 0; i < sizeof(Ksz8895VlanEntrySet); i++)
+      {
+         ksz8895WriteSwitchReg(interface, KSZ8895_INDIRECT_DATA6 + i, p[i]);
+      }
+
+      //Select the VLAN table for writing
+      ksz8895WriteSwitchReg(interface, KSZ8895_INDIRECT_CTRL0,
+         KSZ8895_INDIRECT_CTRL0_WRITE |
+         KSZ8895_INDIRECT_CTRL0_TABLE_SEL_VLAN);
+
+      //Trigger the write operation
+      ksz8895WriteSwitchReg(interface, KSZ8895_INDIRECT_CTRL1,
+         entry->vlanId / 4);
+
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //The VLAN identifier is invalid
+      error = ERROR_INVALID_PARAMETER;
+   }
+
+   //Return status code
+   return error;
 }
 
 

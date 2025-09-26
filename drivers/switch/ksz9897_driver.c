@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -255,7 +255,7 @@ __weak_func void ksz9897InitHook(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ksz9897Tick(NetInterface *interface)
+__weak_func void ksz9897Tick(NetInterface *interface)
 {
    uint_t port;
    bool_t linkState;
@@ -345,7 +345,7 @@ void ksz9897DisableIrq(NetInterface *interface)
  * @param[in] interface Underlying network interface
  **/
 
-void ksz9897EventHandler(NetInterface *interface)
+__weak_func void ksz9897EventHandler(NetInterface *interface)
 {
    uint_t port;
    bool_t linkState;

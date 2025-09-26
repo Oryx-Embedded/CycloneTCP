@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _KSZ9477_DRIVER_H
@@ -1873,6 +1873,13 @@
 #define KSZ9477_PORTn_STATUS_DUPLEX                                  0x04
 #define KSZ9477_PORTn_STATUS_TX_FLOW_CTRL_EN                         0x02
 #define KSZ9477_PORTn_STATUS_RX_FLOW_CTRL_EN                         0x01
+
+//Port 7 SGMII Address register
+#define KSZ9477_PORT7_SGMII_ADDR_AUTO_INC_ENB                        0x00800000
+#define KSZ9477_PORT7_SGMII_ADDR_SGMII_ADDR                          0x001FFFFF
+
+//Port 7 SGMII Data register
+#define KSZ9477_PORT7_SGMII_DATA_SGMII_DATA                          0xFFFF
 
 //XMII Port N Control 0 register
 #define KSZ9477_PORTn_XMII_CTRL0_DUPLEX                              0x40

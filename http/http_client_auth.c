@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -64,7 +64,15 @@
 void httpClientInitAuthParams(HttpClientAuthParams *authParams)
 {
    //Reset authentication scheme to its default value
-   authParams->mode = HTTP_AUTH_MODE_NONE;
+   if(authParams->allowedModes == HTTP_AUTH_MODE_BASIC &&
+      authParams->username[0] != '\0')
+   {
+      authParams->selectedMode = HTTP_AUTH_MODE_BASIC;
+   }
+   else
+   {
+      authParams->selectedMode = HTTP_AUTH_MODE_NONE;
+   }
 
    //Clear realm
    osStrcpy(authParams->realm, "");
@@ -104,7 +112,8 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 
 #if (HTTP_CLIENT_BASIC_AUTH_SUPPORT == ENABLED)
    //Basic authentication scheme?
-   if(authParams->mode == HTTP_AUTH_MODE_BASIC)
+   if((authParams->allowedModes & HTTP_AUTH_MODE_BASIC) != 0 &&
+      authParams->selectedMode == HTTP_AUTH_MODE_BASIC)
    {
       size_t k;
       size_t m;
@@ -152,7 +161,8 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 #endif
 #if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED)
    //Digest authentication scheme?
-   if(authParams->mode == HTTP_AUTH_MODE_DIGEST)
+   if((authParams->allowedModes & HTTP_AUTH_MODE_DIGEST) != 0 &&
+      authParams->selectedMode == HTTP_AUTH_MODE_DIGEST)
    {
       error_t error;
       const char_t *q;
@@ -425,12 +435,18 @@ error_t httpClientParseWwwAuthenticateField(HttpClientContext *context,
             authHeader.realmLen > 0 &&
             authHeader.realmLen <= HTTP_CLIENT_MAX_REALM_LEN)
          {
-            //Save authentication mode
-            context->authParams.mode = authHeader.mode;
+            //Acceptable HTTP authentication mode?
+            if((context->authParams.allowedModes & HTTP_AUTH_MODE_BASIC) != 0)
+            {
+               //Save HTTP authentication mode
+               context->authParams.selectedMode = authHeader.mode;
 
-            //Save realm
-            osStrncpy(context->authParams.realm, authHeader.realm, authHeader.realmLen);
-            context->authParams.realm[authHeader.realmLen] = '\0';
+               //Save realm
+               osStrncpy(context->authParams.realm, authHeader.realm,
+                  authHeader.realmLen);
+
+               context->authParams.realm[authHeader.realmLen] = '\0';
+            }
          }
          else
 #endif
@@ -444,27 +460,37 @@ error_t httpClientParseWwwAuthenticateField(HttpClientContext *context,
             authHeader.nonceLen <= HTTP_CLIENT_MAX_NONCE_LEN &&
             authHeader.opaqueLen <= HTTP_CLIENT_MAX_OPAQUE_LEN)
          {
-            //Save authentication mode
-            context->authParams.mode = authHeader.mode;
-            //Save qop parameter
-            context->authParams.qop = authHeader.qop;
-            //Save digest algorithm
-            context->authParams.algorithm = authHeader.algorithm;
+            //Acceptable HTTP authentication mode?
+            if((context->authParams.allowedModes & HTTP_AUTH_MODE_DIGEST) != 0)
+            {
+               //Save HTTP authentication mode
+               context->authParams.selectedMode = authHeader.mode;
+               //Save qop parameter
+               context->authParams.qop = authHeader.qop;
+               //Save digest algorithm
+               context->authParams.algorithm = authHeader.algorithm;
 
-            //Save realm
-            osStrncpy(context->authParams.realm, authHeader.realm, authHeader.realmLen);
-            context->authParams.realm[authHeader.realmLen] = '\0';
+               //Save realm
+               osStrncpy(context->authParams.realm, authHeader.realm,
+                  authHeader.realmLen);
 
-            //Save nonce value
-            osStrncpy(context->authParams.nonce, authHeader.nonce, authHeader.nonceLen);
-            context->authParams.nonce[authHeader.nonceLen] = '\0';
+               context->authParams.realm[authHeader.realmLen] = '\0';
 
-            //Save opaque parameter
-            osStrncpy(context->authParams.opaque, authHeader.opaque, authHeader.opaqueLen);
-            context->authParams.opaque[authHeader.opaqueLen] = '\0';
+               //Save nonce value
+               osStrncpy(context->authParams.nonce, authHeader.nonce,
+                  authHeader.nonceLen);
 
-            //Save stale flag
-            context->authParams.stale = authHeader.stale;
+               context->authParams.nonce[authHeader.nonceLen] = '\0';
+
+               //Save opaque parameter
+               osStrncpy(context->authParams.opaque, authHeader.opaque,
+                  authHeader.opaqueLen);
+
+               context->authParams.opaque[authHeader.opaqueLen] = '\0';
+
+               //Save stale flag
+               context->authParams.stale = authHeader.stale;
+            }
          }
          else
 #endif

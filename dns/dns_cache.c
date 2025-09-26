@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 //Switch to the appropriate trace level
@@ -139,6 +139,7 @@ DnsCacheEntry *dnsCreateEntry(void)
    dnsDeleteEntry(oldestEntry);
    //Erase contents
    osMemset(oldestEntry, 0, sizeof(DnsCacheEntry));
+
    //Return a pointer to the DNS entry
    return oldestEntry;
 }
@@ -154,19 +155,16 @@ void dnsDeleteEntry(DnsCacheEntry *entry)
    //Make sure the specified entry is valid
    if(entry != NULL)
    {
-#if (DNS_CLIENT_SUPPORT == ENABLED || LLMNR_CLIENT_SUPPORT == ENABLED)
-      //DNS or LLMNR resolver?
-      if(entry->protocol == HOST_NAME_RESOLVER_DNS ||
-         entry->protocol == HOST_NAME_RESOLVER_LLMNR)
+      //Name resolution in progress?
+      if(entry->state == DNS_STATE_IN_PROGRESS)
       {
-         //Name resolution in progress?
-         if(entry->state == DNS_STATE_IN_PROGRESS)
+         //Unregister UDP callback function
+         if(entry->port != 0)
          {
-            //Unregister user callback
             udpDetachRxCallback(entry->interface, entry->port);
          }
       }
-#endif
+
       //Delete DNS cache entry
       entry->state = DNS_STATE_NONE;
    }
@@ -303,8 +301,14 @@ void dnsTick(void)
                }
                else
                {
-                  //The entry should be deleted since name resolution has failed
-                  dnsDeleteEntry(entry);
+                  //Unregister UDP callback function
+                  if(entry->port != 0)
+                  {
+                     udpDetachRxCallback(entry->interface, entry->port);
+                  }
+
+                  //Host name resolution failed
+                  entry->state = DNS_STATE_FAILED;
                }
             }
 #if (DNS_CLIENT_SUPPORT == ENABLED)
@@ -317,8 +321,14 @@ void dnsTick(void)
 #endif
             else
             {
-               //The maximum number of retransmissions has been exceeded
-               dnsDeleteEntry(entry);
+               //Unregister UDP callback function
+               if(entry->port != 0)
+               {
+                  udpDetachRxCallback(entry->interface, entry->port);
+               }
+
+               //Host name resolution failed
+               entry->state = DNS_STATE_FAILED;
             }
          }
       }

@@ -25,11 +25,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.2
+ * @version 2.5.4
  **/
 
 #ifndef _SAME70_ETH_DRIVER_H
 #define _SAME70_ETH_DRIVER_H
+
+//Dependencies
+#include "core/nic.h"
 
 //Number of TX buffers
 #ifndef SAME70_ETH_TX_BUFFER_COUNT
