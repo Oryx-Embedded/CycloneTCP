@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -372,8 +372,8 @@ __weak_func void tc3xxEthInitGpio(NetInterface *interface)
    //Select RMII operation mode
    MODULE_GETH.GPCTL.B.EPR = 4;
 
-//AURIX TC397 TFT Application Kit?
-#elif defined(USE_KIT_A2G_TC397_TFT)
+//AURIX TC387 TFT Application Kit or AURIX TC397 TFT Application Kit?
+#elif defined(USE_KIT_A2G_TC387_TFT) || defined(USE_KIT_A2G_TC397_TFT)
    //Configure GETH_TXD3 (P11.0)
    MODULE_P11.IOCR0.B.PC0 = 22;
 
@@ -664,7 +664,7 @@ void tc3xxEthIrqHandler(int_t arg)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Clear NIS interrupt flag

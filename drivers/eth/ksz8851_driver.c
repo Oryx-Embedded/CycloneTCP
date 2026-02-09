@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -168,7 +168,7 @@ error_t ksz8851Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->nicEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -258,7 +258,7 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
       //Set event flag
       interface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&interface->netContext->event);
    }
 
    //Packet transmission complete?
@@ -287,7 +287,7 @@ bool_t ksz8851IrqHandler(NetInterface *interface)
       //Set event flag
       interface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&interface->netContext->event);
    }
 
    //Re-enable interrupts once the interrupt has been serviced

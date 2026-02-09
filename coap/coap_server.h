@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _COAP_SERVER_H
@@ -166,6 +166,7 @@ typedef error_t (*CoapServerRequestCallback)(CoapServerContext *context,
 typedef struct
 {
    OsTaskParameters task;                       ///<Task parameters
+   NetContext *netContext;                      ///<TCP/IP stack context
    NetInterface *interface;                     ///<Underlying network interface
    uint16_t port;                               ///<CoAP port number
    CoapServerUdpInitCallback udpInitCallback;   ///<UDP initialization callback
@@ -199,7 +200,14 @@ struct _CoapDtlsSession
 
 struct _CoapServerContext
 {
-   CoapServerSettings settings;                              ///<User settings
+   NetContext *netContext;                                   ///<TCP/IP stack context
+   NetInterface *interface;                                  ///<Underlying network interface
+   uint16_t port;                                            ///<CoAP port number
+   CoapServerUdpInitCallback udpInitCallback;                ///<UDP initialization callback
+#if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
+   CoapServerDtlsInitCallback dtlsInitCallback;              ///<DTLS initialization callback
+#endif
+   CoapServerRequestCallback requestCallback;                ///<CoAP request callback
    bool_t running;                                           ///<Operational state of the CoAP server
    bool_t stop;                                              ///<Stop request
    OsEvent event;                                            ///<Event object used to poll the underlying socket

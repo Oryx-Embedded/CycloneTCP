@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -35,8 +35,6 @@
 #include "core/net.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_misc.h"
-#include "mibs/mib2_module.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -164,6 +162,7 @@ error_t ipv4CheckDestAddr(NetInterface *interface, Ipv4Addr ipAddr)
  * This function selects the source address and the relevant network interface
  * to be used in order to join the specified destination address
  *
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in,out] interface A pointer to a valid network interface may be provided as
  *   a hint. The function returns a pointer identifying the interface to be used
  * @param[in] destAddr Destination IPv4 address
@@ -171,7 +170,7 @@ error_t ipv4CheckDestAddr(NetInterface *interface, Ipv4Addr ipAddr)
  * @return Error code
  **/
 
-error_t ipv4SelectSourceAddr(NetInterface **interface,
+error_t ipv4SelectSourceAddr(NetContext *context, NetInterface **interface,
    Ipv4Addr destAddr, Ipv4Addr *srcAddr)
 {
    error_t error;
@@ -187,10 +186,10 @@ error_t ipv4SelectSourceAddr(NetInterface **interface,
    bestAddr = NULL;
 
    //Loop through network interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Point to the current interface
-      currentInterface = &netInterface[i];
+      currentInterface = &context->interfaces[i];
 
       //A network interface may be provided as a hint
       if(*interface != currentInterface && *interface != NULL)
@@ -561,12 +560,13 @@ bool_t ipv4IsTentativeAddr(NetInterface *interface, Ipv4Addr ipAddr)
 
 /**
  * @brief Check whether the specified IPv4 is assigned to the host
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] ipAddr IPv4 address to be checked
  * @return TRUE if the IPv4 address matches any address assigned to the host,
  *   else FALSE
  **/
 
-bool_t ipv4IsLocalHostAddr(Ipv4Addr ipAddr)
+bool_t ipv4IsLocalHostAddr(NetContext *context, Ipv4Addr ipAddr)
 {
    uint_t i;
    uint_t j;
@@ -588,10 +588,10 @@ bool_t ipv4IsLocalHostAddr(Ipv4Addr ipAddr)
    else
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT && !flag; i++)
+      for(i = 0; i < context->numInterfaces && !flag; i++)
       {
          //Point to the current interface
-         interface = &netInterface[i];
+         interface = &context->interfaces[i];
 
          //Iterate through the list of addresses assigned to the interface
          for(j = 0; j < IPV4_ADDR_LIST_SIZE && !flag; j++)
@@ -839,24 +839,18 @@ void ipv4UpdateInStats(NetInterface *interface, Ipv4Addr destIpAddr,
    if(ipv4IsBroadcastAddr(interface, destIpAddr))
    {
       //Number of IP broadcast datagrams transmitted
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInBcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInBcastPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInBcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInBcastPkts, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER64(inBcastPkts, 1);
+      IPV4_IF_STATS_INC_COUNTER64(inBcastPkts, 1);
    }
    else if(ipv4IsMulticastAddr(destIpAddr))
    {
       //Number of IP multicast datagrams transmitted
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInMcastPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInMcastPkts, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER64(inMcastPkts, 1);
+      IPV4_IF_STATS_INC_COUNTER64(inMcastPkts, 1);
 
       //Total number of octets transmitted in IP multicast datagrams
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInMcastOctets, length);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInMcastOctets, length);
+      IPV4_SYSTEM_STATS_INC_COUNTER64(inMcastOctets, length);
+      IPV4_IF_STATS_INC_COUNTER64(inMcastOctets, length);
    }
    else
    {
@@ -880,43 +874,33 @@ void ipv4UpdateOutStats(NetInterface *interface, Ipv4Addr destIpAddr,
    if(ipv4IsBroadcastAddr(interface, destIpAddr))
    {
       //Number of IP broadcast datagrams transmitted
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutBcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutBcastPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutBcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutBcastPkts, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER64(outBcastPkts, 1);
+      IPV4_IF_STATS_INC_COUNTER64(outBcastPkts, 1);
    }
    else if(ipv4IsMulticastAddr(destIpAddr))
    {
       //Number of IP multicast datagrams transmitted
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutMcastPkts, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER64(outMcastPkts, 1);
+      IPV4_IF_STATS_INC_COUNTER64(outMcastPkts, 1);
 
       //Total number of octets transmitted in IP multicast datagrams
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutMcastOctets, length);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutMcastOctets, length);
+      IPV4_SYSTEM_STATS_INC_COUNTER64(outMcastOctets, length);
+      IPV4_IF_STATS_INC_COUNTER64(outMcastOctets, length);
    }
    else
    {
       //The destination address is a unicast address
    }
 
-   //Total number of IP datagrams that this entity supplied to the lower
-   //layers for transmission
-   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutTransmits, 1);
-   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutTransmits, 1);
-   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutTransmits, 1);
-   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutTransmits, 1);
-
-   //Total number of octets in IP datagrams delivered to the lower layers
+   //Total number of IP datagrams that this entity supplied to the lower layers
    //for transmission
-   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutOctets, length);
-   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutOctets, length);
-   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutOctets, length);
-   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutOctets, length);
+   IPV4_SYSTEM_STATS_INC_COUNTER64(outTransmits, 1);
+   IPV4_IF_STATS_INC_COUNTER64(outTransmits, 1);
+
+   //Total number of octets in IP datagrams delivered to the lower layers for
+   //transmission
+   IPV4_SYSTEM_STATS_INC_COUNTER64(outOctets, length);
+   IPV4_IF_STATS_INC_COUNTER64(outOctets, length);
 }
 
 
@@ -933,32 +917,29 @@ void ipv4UpdateErrorStats(NetInterface *interface, error_t error)
    {
    case ERROR_INVALID_HEADER:
       //Number of input datagrams discarded due to errors in their IP headers
-      MIB2_IP_INC_COUNTER32(ipInHdrErrors, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInHdrErrors, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(inHdrErrors, 1);
+      IPV4_IF_STATS_INC_COUNTER32(inHdrErrors, 1);
       break;
 
    case ERROR_INVALID_ADDRESS:
       //Number of input datagrams discarded because the destination IP address
       //was not a valid address
-      MIB2_IP_INC_COUNTER32(ipInAddrErrors, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInAddrErrors, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(inAddrErrors, 1);
+      IPV4_IF_STATS_INC_COUNTER32(inAddrErrors, 1);
       break;
 
    case ERROR_PROTOCOL_UNREACHABLE:
-      //Number of locally-addressed datagrams received successfully but discarded
-      //because of an unknown or unsupported protocol
-      MIB2_IP_INC_COUNTER32(ipInUnknownProtos, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInUnknownProtos, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInUnknownProtos, 1);
+      //Number of locally-addressed datagrams received successfully but
+      //discarded because of an unknown or unsupported protocol
+      IPV4_SYSTEM_STATS_INC_COUNTER32(inUnknownProtos, 1);
+      IPV4_IF_STATS_INC_COUNTER32(inUnknownProtos, 1);
       break;
 
    case ERROR_INVALID_LENGTH:
       //Number of input IP datagrams discarded because the datagram frame
       //didn't carry enough data
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInTruncatedPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInTruncatedPkts, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(inTruncatedPkts, 1);
+      IPV4_IF_STATS_INC_COUNTER32(inTruncatedPkts, 1);
       break;
 
    default:

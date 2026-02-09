@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IPV6_H
@@ -51,6 +51,13 @@ struct _Ipv6PseudoHeader;
    #define IPV6_SUPPORT DISABLED
 #elif (IPV6_SUPPORT != ENABLED && IPV6_SUPPORT != DISABLED)
    #error IPV6_SUPPORT parameter is not valid
+#endif
+
+//IPv6 statistics support
+#ifndef IPV6_STATS_SUPPORT
+   #define IPV6_STATS_SUPPORT DISABLED
+#elif (IPV6_STATS_SUPPORT != ENABLED && IPV6_STATS_SUPPORT != DISABLED)
+   #error IPV6_STATS_SUPPORT parameter is not valid
 #endif
 
 //Default IPv6 Hop Limit field
@@ -114,7 +121,7 @@ struct _Ipv6PseudoHeader;
 //Minimum MTU that routers and physical links are required to handle
 #define IPV6_DEFAULT_MTU 1280
 
-//Macro used for defining an IPv6 address
+//IPv6 address definition
 #define IPV6_ADDR(a, b, c, d, e, f, g, h) {{{ \
    MSB(a), LSB(a), MSB(b), LSB(b), MSB(c), LSB(c), MSB(d), LSB(d), \
    MSB(e), LSB(e), MSB(f), LSB(f), MSB(g), LSB(g), MSB(h), LSB(h)}}}
@@ -142,6 +149,19 @@ struct _Ipv6PseudoHeader;
 //Determine whether an IPv6 address is a solicited-node address
 #define ipv6IsSolicitedNodeAddr(ipAddr) \
    ipv6CompPrefix(ipAddr, &IPV6_SOLICITED_NODE_ADDR_PREFIX, 104)
+
+//IPv6 statistics
+#if (IPV6_STATS_SUPPORT == ENABLED)
+   #define IPV6_SYSTEM_STATS_INC_COUNTER32(name, value) interface->netContext->ipv6SystemStats.name += value
+   #define IPV6_SYSTEM_STATS_INC_COUNTER64(name, value) interface->netContext->ipv6SystemStats.name += value
+   #define IPV6_IF_STATS_INC_COUNTER32(name, value) interface->ipv6IfStats.name += value
+   #define IPV6_IF_STATS_INC_COUNTER64(name, value) interface->ipv6IfStats.name += value
+#else
+   #define IPV6_SYSTEM_STATS_INC_COUNTER32(name, value)
+   #define IPV6_SYSTEM_STATS_INC_COUNTER64(name, value)
+   #define IPV6_IF_STATS_INC_COUNTER32(name, value)
+   #define IPV6_IF_STATS_INC_COUNTER64(name, value)
+#endif
 
 //C++ guard
 #ifdef __cplusplus

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IGMP_SNOOPING_H
@@ -107,7 +107,7 @@ typedef struct
 
 typedef struct
 {
-   bool_t running;
+   NetContext *netContext;              ///<TCP/IP stack context
    NetInterface *interface;             ///<The primary interface on an attached network
    uint_t numPorts;                     ///<Number of ports
    IgmpSnoopingPort *ports;             ///<Ports
@@ -116,6 +116,7 @@ typedef struct
    bool_t floodReports;                 ///<Flood IGMP report messages to all ports (not only to router ports)
    bool_t floodUnknownMulticastPackets; ///<Flood unregistered multicast traffic to all ports
    systime_t lastMemberQueryTime;       ///<Leave latency
+   bool_t running;                      ///<Operational state of the IGMP snooping switch
 } IgmpSnoopingContext;
 
 
@@ -129,6 +130,8 @@ error_t igmpSnoopingStart(IgmpSnoopingContext *context);
 error_t igmpSnoopingStop(IgmpSnoopingContext *context);
 
 void igmpSnoopingTick(IgmpSnoopingContext *context);
+
+void igmpSnoopingDeinit(IgmpSnoopingContext *context);
 
 //C++ guard
 #ifdef __cplusplus

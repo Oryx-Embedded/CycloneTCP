@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -44,12 +44,13 @@
 
 /**
  * @brief Allocate a socket
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] type Type specification for the new socket
  * @param[in] protocol Protocol to be used
  * @return Handle referencing the new socket
  **/
 
-Socket *socketAllocate(uint_t type, uint_t protocol)
+Socket *socketAllocate(NetContext *context, uint_t type, uint_t protocol)
 {
    error_t error;
    uint_t i;
@@ -66,7 +67,7 @@ Socket *socketAllocate(uint_t type, uint_t protocol)
       //Always use TCP as underlying transport protocol
       protocol = SOCKET_IP_PROTO_TCP;
       //Get an ephemeral port number
-      port = tcpGetDynamicPort();
+      port = tcpGetDynamicPort(context);
       //Continue processing
       error = NO_ERROR;
    }
@@ -79,7 +80,7 @@ Socket *socketAllocate(uint_t type, uint_t protocol)
       //Always use UDP as underlying transport protocol
       protocol = SOCKET_IP_PROTO_UDP;
       //Get an ephemeral port number
-      port = udpGetDynamicPort();
+      port = udpGetDynamicPort(context);
       //Continue processing
       error = NO_ERROR;
    }
@@ -139,7 +140,8 @@ Socket *socketAllocate(uint_t type, uint_t protocol)
          osMemset((uint8_t *) socket + offsetof(Socket, event) + sizeof(OsEvent),
             0, sizeof(Socket) - offsetof(Socket, event) - sizeof(OsEvent));
 
-         //Save socket characteristics
+         //Save parameters
+         socket->netContext = context;
          socket->descriptor = i;
          socket->type = type;
          socket->protocol = protocol;
@@ -201,7 +203,7 @@ void socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask)
    if(socket != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //An user event may have been previously registered...
       if(socket->userEvent != NULL)
@@ -240,7 +242,7 @@ void socketRegisterEvents(Socket *socket, OsEvent *event, uint_t eventMask)
 #endif
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
    }
 }
 
@@ -256,13 +258,13 @@ void socketUnregisterEvents(Socket *socket)
    if(socket != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //Unsuscribe socket events
       socket->userEvent = NULL;
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
    }
 }
 
@@ -281,13 +283,13 @@ uint_t socketGetEvents(Socket *socket)
    if(socket != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //Read event flags for the specified socket
       eventFlags = socket->eventFlags;
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
    }
    else
    {

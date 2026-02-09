@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -65,6 +65,8 @@ void ftpServerGetDefaultSettings(FtpServerSettings *settings)
    settings->task.stackSize = FTP_SERVER_STACK_SIZE;
    settings->task.priority = FTP_SERVER_PRIORITY;
 
+   //TCP/IP stack context
+   settings->netContext = NULL;
    //The FTP server is not bound to any interface
    settings->interface = NULL;
 
@@ -151,12 +153,29 @@ error_t ftpServerInit(FtpServerContext *context,
       return ERROR_INVALID_PARAMETER;
    }
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Clear the FTP server context
    osMemset(context, 0, sizeof(FtpServerContext));
 
    //Initialize task parameters
    context->taskParams = settings->task;
    context->taskId = OS_INVALID_TASK_ID;
+
+   //Attach TCP/IP stack context
+   if(settings->netContext != NULL)
+   {
+      context->netContext = settings->netContext;
+   }
+   else if(settings->interface != NULL)
+   {
+      context->netContext = settings->interface->netContext;
+   }
+   else
+   {
+      context->netContext = netGetDefaultContext();
+   }
 
    //Save user settings
    context->interface = settings->interface;
@@ -191,9 +210,6 @@ error_t ftpServerInit(FtpServerContext *context,
       //Initialize the structure representing the client connection
       osMemset(&context->connections[i], 0, sizeof(FtpClientConnection));
    }
-
-   //Initialize status code
-   error = NO_ERROR;
 
    //Create an event object to poll the state of sockets
    if(!osCreateEvent(&context->event))
@@ -248,7 +264,8 @@ error_t ftpServerStart(FtpServerContext *context)
    do
    {
       //Open a TCP socket
-      context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_STREAM,
+         SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
       if(context->socket == NULL)
       {

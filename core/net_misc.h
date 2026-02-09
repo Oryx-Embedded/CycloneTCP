@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _NET_MISC_H
@@ -195,20 +195,21 @@ extern const NetTxAncillary NET_DEFAULT_TX_ANCILLARY;
 extern const NetRxAncillary NET_DEFAULT_RX_ANCILLARY;
 
 //TCP/IP stack related functions
-error_t netAttachLinkChangeCallback(NetInterface *interface,
-   NetLinkChangeCallback callback, void *param);
+error_t netAttachLinkChangeCallback(NetContext *context,
+   NetInterface *interface, NetLinkChangeCallback callback, void *param);
 
-error_t netDetachLinkChangeCallback(NetInterface *interface,
-   NetLinkChangeCallback callback, void *param);
+error_t netDetachLinkChangeCallback(NetContext *context,
+   NetInterface *interface, NetLinkChangeCallback callback, void *param);
 
 void netProcessLinkChange(NetInterface *interface);
 
-error_t netAttachTimerCallback(systime_t period, NetTimerCallback callback,
-   void *param);
+error_t netAttachTimerCallback(NetContext *context, systime_t period,
+   NetTimerCallback callback, void *param);
 
-error_t netDetachTimerCallback(NetTimerCallback callback, void *param);
+error_t netDetachTimerCallback(NetContext *context, NetTimerCallback callback,
+  void *param);
 
-void netTick(void);
+void netTick(NetContext *context);
 
 void netStartTimer(NetTimer *timer, systime_t interval);
 void netStopTimer(NetTimer *timer);
@@ -216,10 +217,10 @@ bool_t netTimerRunning(NetTimer *timer);
 bool_t netTimerExpired(NetTimer *timer);
 systime_t netGetRemainingTime(NetTimer *timer);
 
-void netInitRand(void);
-uint32_t netGenerateRand(void);
-uint32_t netGenerateRandRange(uint32_t min, uint32_t max);
-void netGenerateRandData(uint8_t *data, size_t length);
+void netInitRand(NetContext *context);
+uint32_t netGenerateRand(NetContext *context);
+uint32_t netGenerateRandRange(NetContext *context, uint32_t min, uint32_t max);
+void netGenerateRandData(NetContext *context, uint8_t *data, size_t length);
 uint32_t netGenerateRandBit(NetRandState *state);
 
 //C++ guard

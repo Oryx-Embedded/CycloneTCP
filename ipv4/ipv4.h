@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IPV4_H
@@ -48,6 +48,17 @@ struct _Ipv4PseudoHeader;
    #define IPV4_SUPPORT ENABLED
 #elif (IPV4_SUPPORT != ENABLED && IPV4_SUPPORT != DISABLED)
    #error IPV4_SUPPORT parameter is not valid
+#endif
+
+//IPv4 statistics support
+#ifndef IPV4_STATS_SUPPORT
+#if (MIB2_SUPPORT == ENABLED || IP_MIB_SUPPORT == ENABLED)
+   #define IPV4_STATS_SUPPORT ENABLED
+#else
+   #define IPV4_STATS_SUPPORT DISABLED
+#endif
+#elif (IPV4_STATS_SUPPORT != ENABLED && IPV4_STATS_SUPPORT != DISABLED)
+   #error IPV4_STATS_SUPPORT parameter is not valid
 #endif
 
 //IPsec support
@@ -106,7 +117,7 @@ struct _Ipv4PseudoHeader;
 //Shortcut to data field
 #define IPV4_DATA(packet) ((uint8_t *) packet + packet->headerLength * 4)
 
-//Macro used for defining an IPv4 address
+//IPv4 address definition
 #ifdef _CPU_BIG_ENDIAN
    #define IPV4_ADDR(a, b, c, d) (((uint32_t) (a) << 24) | ((b) << 16) | ((c) << 8) | (d))
 #else
@@ -174,6 +185,19 @@ struct _Ipv4PseudoHeader;
 //Determine whether an IPv4 address is a multicast address
 #define ipv4IsMulticastAddr(ipAddr) \
    (((ipAddr) & IPV4_MULTICAST_MASK) == IPV4_MULTICAST_PREFIX)
+
+//IPv4 statistics
+#if (IPV4_STATS_SUPPORT == ENABLED)
+   #define IPV4_SYSTEM_STATS_INC_COUNTER32(name, value) interface->netContext->ipv4SystemStats.name += value
+   #define IPV4_SYSTEM_STATS_INC_COUNTER64(name, value) interface->netContext->ipv4SystemStats.name += value
+   #define IPV4_IF_STATS_INC_COUNTER32(name, value) interface->ipv4IfStats.name += value
+   #define IPV4_IF_STATS_INC_COUNTER64(name, value) interface->ipv4IfStats.name += value
+#else
+   #define IPV4_SYSTEM_STATS_INC_COUNTER32(name, value)
+   #define IPV4_SYSTEM_STATS_INC_COUNTER64(name, value)
+   #define IPV4_IF_STATS_INC_COUNTER32(name, value)
+   #define IPV4_IF_STATS_INC_COUNTER64(name, value)
+#endif
 
 //C++ guard
 #ifdef __cplusplus

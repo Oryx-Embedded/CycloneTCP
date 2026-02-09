@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -100,7 +100,7 @@ error_t dp83td510Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -141,7 +141,7 @@ void dp83td510Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
       //Link down event?
       else if(!linkState && interface->linkState)
@@ -149,7 +149,7 @@ void dp83td510Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
    }
 }
@@ -197,7 +197,7 @@ void dp83td510EventHandler(NetInterface *interface)
    //Read PHY status register
    value = dp83td510ReadPhyReg(interface, DP83TD510_PHY_STS);
 
-   //Link is up?
+   //Check link state
    if((value & DP83TD510_PHY_STS_LINK_STATUS) != 0)
    {
       //The PHY is only able to operate in 10 Mbps mode

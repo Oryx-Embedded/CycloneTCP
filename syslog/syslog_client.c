@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * provided in a structured way. Refer to RFC 3164 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -62,10 +62,13 @@ error_t syslogClientInit(SyslogClientContext *context)
    //Debug message
    TRACE_INFO("Initializing Syslog client...\r\n");
 
-   //Initialize context
+   //Clear Syslog client context
    osMemset(context, 0, sizeof(SyslogClientContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = netGetDefaultContext();
    //Use default interface
-   context->interface = netGetDefaultInterface();
+   context->interface = netGetDefaultInterface(context->netContext);
 
    //Create a mutex to prevent simultaneous access to the context
    if(!osCreateMutex(&context->mutex))
@@ -119,7 +122,8 @@ error_t syslogClientConnect(SyslogClientContext *context,
    do
    {
       //Open a UDP socket
-      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_DGRAM,
+         SOCKET_IP_PROTO_UDP);
       //Failed to open socket?
       if(context->socket == NULL)
       {

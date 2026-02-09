@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IGMP_ROUTER_H
@@ -129,13 +129,14 @@ typedef struct
 
 struct _IgmpRouterContext
 {
+   NetContext *netContext;                                      ///<TCP/IP stack context
    NetInterface *interface;                                     ///<The primary interface on an attached network
    IgmpVersion version;                                         ///<IGMP version
    uint_t numGroups;                                            ///<Maximum number of multicast groups
    IgmpRouterGroup *groups;                                     ///<Multicast groups
    IgmpRouterAddMcastRouteCallback addMcastRouteCallback;       ///<Add multicast route callback
    IgmpRouterDeleteMcastRouteCallback deleteMcastRouteCallback; ///<Delete multicast route callback
-   bool_t running;                                              ///<IGMP router operation state
+   bool_t running;                                              ///<Operational state of the IGMP router
    IgmpRouterState state;                                       ///<IGMP router state
    uint_t startupQueryCount;                                    ///<Number of General Queries to be sent on startup
    NetTimer generalQueryTimer;                                  ///<General Query timer
@@ -155,6 +156,8 @@ error_t igmpRouterStop(IgmpRouterContext *context);
 void igmpRouterTick(IgmpRouterContext *context);
 void igmpRouterFsm(IgmpRouterContext *context);
 void igmpRouterGroupFsm(IgmpRouterContext *context, IgmpRouterGroup *group);
+
+void igmpRouterDeinit(IgmpRouterContext *context);
 
 //C++ guard
 #ifdef __cplusplus

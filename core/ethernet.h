@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _ETHERNET_H
@@ -294,10 +294,10 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
 error_t ethAcceptMacAddr(NetInterface *interface, const MacAddr *macAddr);
 error_t ethDropMacAddr(NetInterface *interface, const MacAddr *macAddr);
 
-error_t ethAttachLlcRxCalback(NetInterface *interface, LlcRxCallback callback,
+error_t ethAttachLlcRxCallback(NetInterface *interface, LlcRxCallback callback,
    void *param);
 
-error_t ethDetachLlcRxCalback(NetInterface *interface);
+error_t ethDetachLlcRxCallback(NetInterface *interface);
 
 NetBuffer *ethAllocBuffer(size_t length, size_t *offset);
 

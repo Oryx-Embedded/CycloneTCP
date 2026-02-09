@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,9 +42,6 @@
 
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED && DHCP_SERVER_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t dhcpServerTickCounter;
 
 
 /**
@@ -71,9 +68,9 @@ void dhcpServerTick(DhcpServerContext *context)
    time = osGetSystemTime();
 
    //Convert the lease time to milliseconds
-   if(context->settings.leaseTime < (MAX_DELAY / 1000))
+   if(context->leaseTime < (MAX_DELAY / 1000))
    {
-      leaseTime = context->settings.leaseTime * 1000;
+      leaseTime = context->leaseTime * 1000;
    }
    else
    {
@@ -175,10 +172,10 @@ void dhcpServerProcessMessage(NetInterface *interface,
    type = (DhcpMessageType) option->value[0];
 
    //Any registered callback?
-   if(context->settings.parseOptionsCallback != NULL)
+   if(context->parseOptionsCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.parseOptionsCallback(context, message, length,
+      error = context->parseOptionsCallback(context, message, length,
          type);
       //Check status code
       if(error)
@@ -238,9 +235,9 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
    DhcpServerBinding *binding;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Index of the IP address assigned to the DHCP server
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Retrieve Server Identifier option
    option = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
@@ -277,8 +274,8 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
       if(requestedIpAddr != binding->ipAddr)
       {
          //Ensure the IP address is in the server's pool of available addresses
-         if(ntohl(requestedIpAddr) >= ntohl(context->settings.ipAddrRangeMin) &&
-            ntohl(requestedIpAddr) <= ntohl(context->settings.ipAddrRangeMax))
+         if(ntohl(requestedIpAddr) >= ntohl(context->ipAddrRangeMin) &&
+            ntohl(requestedIpAddr) <= ntohl(context->ipAddrRangeMax))
          {
             //Make sure the IP address is not already allocated
             if(!dhcpServerFindBindingByIpAddr(context, requestedIpAddr))
@@ -303,8 +300,8 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
       if(binding != NULL)
       {
          //Ensure the IP address is in the server's pool of available addresses
-         if(ntohl(requestedIpAddr) >= ntohl(context->settings.ipAddrRangeMin) &&
-            ntohl(requestedIpAddr) <= ntohl(context->settings.ipAddrRangeMax))
+         if(ntohl(requestedIpAddr) >= ntohl(context->ipAddrRangeMin) &&
+            ntohl(requestedIpAddr) <= ntohl(context->ipAddrRangeMax))
          {
             //Make sure the IP address is not already allocated
             if(!dhcpServerFindBindingByIpAddr(context, requestedIpAddr))
@@ -371,9 +368,9 @@ void dhcpServerParseRequest(DhcpServerContext *context,
    DhcpServerBinding *binding;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Index of the IP address assigned to the DHCP server
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Retrieve Server Identifier option
    option = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
@@ -427,8 +424,8 @@ void dhcpServerParseRequest(DhcpServerContext *context,
 
             //The server responds with a DHCPACK message containing the
             //configuration parameters for the requesting client
-            dhcpServerSendReply(context, DHCP_MSG_TYPE_ACK,
-               binding->ipAddr, message, length);
+            dhcpServerSendReply(context, DHCP_MSG_TYPE_ACK, binding->ipAddr,
+               message, length);
 
             //Exit immediately
             return;
@@ -437,8 +434,8 @@ void dhcpServerParseRequest(DhcpServerContext *context,
       else
       {
          //Ensure the IP address is in the server's pool of available addresses
-         if(ntohl(clientIpAddr) >= ntohl(context->settings.ipAddrRangeMin) &&
-            ntohl(clientIpAddr) <= ntohl(context->settings.ipAddrRangeMax))
+         if(ntohl(clientIpAddr) >= ntohl(context->ipAddrRangeMin) &&
+            ntohl(clientIpAddr) <= ntohl(context->ipAddrRangeMax))
          {
             //Make sure the IP address is not already allocated
             if(!dhcpServerFindBindingByIpAddr(context, clientIpAddr))
@@ -595,9 +592,9 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    NetTxAncillary ancillary;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Index of the IP address assigned to the DHCP server
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Allocate a memory buffer to hold the DHCP message
    buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
@@ -644,7 +641,7 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    if(type == DHCP_MSG_TYPE_OFFER || type == DHCP_MSG_TYPE_ACK)
    {
       //Convert the lease time to network byte order
-      value = htonl(context->settings.leaseTime);
+      value = htonl(context->leaseTime);
 
       //When responding to a DHCPINFORM message, the server must not
       //send a lease expiration time to the client
@@ -656,24 +653,24 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
       }
 
       //Add Subnet Mask option
-      if(context->settings.subnetMask != IPV4_UNSPECIFIED_ADDR)
+      if(context->subnetMask != IPV4_UNSPECIFIED_ADDR)
       {
          dhcpAddOption(reply, &replyLen, DHCP_OPT_SUBNET_MASK,
-            &context->settings.subnetMask, sizeof(Ipv4Addr));
+            &context->subnetMask, sizeof(Ipv4Addr));
       }
 
       //Add Router option
-      if(context->settings.defaultGateway != IPV4_UNSPECIFIED_ADDR)
+      if(context->defaultGateway != IPV4_UNSPECIFIED_ADDR)
       {
          dhcpAddOption(reply, &replyLen, DHCP_OPT_ROUTER,
-            &context->settings.defaultGateway, sizeof(Ipv4Addr));
+            &context->defaultGateway, sizeof(Ipv4Addr));
       }
 
       //Retrieve the number of DNS servers
       for(n = 0; n < DHCP_SERVER_MAX_DNS_SERVERS; n++)
       {
          //Check whether the current DNS server is valid
-         if(context->settings.dnsServer[n] == IPV4_UNSPECIFIED_ADDR)
+         if(context->dnsServer[n] == IPV4_UNSPECIFIED_ADDR)
             break;
       }
 
@@ -681,15 +678,15 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
       if(n > 0)
       {
          dhcpAddOption(reply, &replyLen, DHCP_OPT_DNS_SERVER,
-            context->settings.dnsServer, n * sizeof(Ipv4Addr));
+            context->dnsServer, n * sizeof(Ipv4Addr));
       }
    }
 
    //Any registered callback?
-   if(context->settings.addOptionsCallback != NULL)
+   if(context->addOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.addOptionsCallback(context, reply, &replyLen,
+      context->addOptionsCallback(context, reply, &replyLen,
          (DhcpMessageType) type);
    }
 
@@ -778,8 +775,8 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    dhcpDumpMessage(reply, replyLen);
 
    //Send DHCP reply
-   error = udpSendBuffer(interface, &srcIpAddr, DHCP_SERVER_PORT, &destIpAddr,
-      destPort, buffer, offset, &ancillary);
+   error = udpSendBuffer(context->netContext, interface, &srcIpAddr,
+      DHCP_SERVER_PORT, &destIpAddr, destPort, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -944,13 +941,15 @@ error_t dhcpServerGetNextIpAddr(DhcpServerContext *context, Ipv4Addr *ipAddr)
 
       //If the IP address is available, then it can be assigned to a new client
       if(binding == NULL)
+      {
          *ipAddr = context->nextIpAddr;
+      }
 
       //Compute the next IP address that will be assigned by the DHCP server
-      if(ntohl(context->nextIpAddr) >= ntohl(context->settings.ipAddrRangeMax))
+      if(ntohl(context->nextIpAddr) >= ntohl(context->ipAddrRangeMax))
       {
          //Wrap around to the beginning of the pool
-         context->nextIpAddr = context->settings.ipAddrRangeMin;
+         context->nextIpAddr = context->ipAddrRangeMin;
       }
       else
       {

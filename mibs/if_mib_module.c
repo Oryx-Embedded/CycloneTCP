@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * - RFC 2863: The Interfaces Group MIB
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -73,11 +73,11 @@ const MibObject ifMibObjects[] =
       ASN1_CLASS_UNIVERSAL,
       ASN1_TYPE_INTEGER,
       MIB_ACCESS_READ_ONLY,
-      &ifMibBase.ifNumber,
+      NULL,
       NULL,
       sizeof(int32_t),
       NULL,
-      NULL,
+      ifMibGetIfNumber,
       NULL
    },
    //ifIndex object (1.3.6.1.2.1.2.2.1.1)

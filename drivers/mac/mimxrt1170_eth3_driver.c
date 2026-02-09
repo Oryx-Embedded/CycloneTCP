@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -210,11 +210,13 @@ error_t mimxrt1170Eth3Init(NetInterface *interface)
    //Initialize DMA descriptor lists
    mimxrt1170Eth3InitDmaDesc(interface);
 
-   //Prevent interrupts from being generated when the statistic counters reach
+   //Prevent interrupts from being generated when statistic counters reach
    //half their maximum value
    ENET_QOS->MAC_MMC_TX_INTERRUPT_MASK = 0xFFFFFFFF;
    ENET_QOS->MAC_MMC_RX_INTERRUPT_MASK = 0xFFFFFFFF;
    ENET_QOS->MAC_MMC_IPC_RX_INTERRUPT_MASK = 0xFFFFFFFF;
+   ENET_QOS->MAC_MMC_FPE_TX_INTERRUPT_MASK = 0xFFFFFFFF;
+   ENET_QOS->MAC_MMC_FPE_RX_INTERRUPT_MASK = 0xFFFFFFFF;
 
    //Disable MAC interrupts
    ENET_QOS->MAC_INTERRUPT_ENABLE = 0;
@@ -669,7 +671,7 @@ void ENET_QOS_IRQHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Clear NIS interrupt flag

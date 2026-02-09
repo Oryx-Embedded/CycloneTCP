@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IPV6_MISC_H
@@ -73,13 +73,13 @@ void ipv6FlushDnsServerList(NetInterface *interface);
 error_t ipv6CheckSourceAddr(NetInterface *interface, const Ipv6Addr *ipAddr);
 error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr);
 
-error_t ipv6SelectSourceAddr(NetInterface **interface,
+error_t ipv6SelectSourceAddr(NetContext *context, NetInterface **interface,
    const Ipv6Addr *destAddr, Ipv6Addr *srcAddr);
 
 bool_t ipv6IsOnLink(NetInterface *interface, const Ipv6Addr *ipAddr);
 bool_t ipv6IsAnycastAddr(NetInterface *interface, const Ipv6Addr *ipAddr);
 bool_t ipv6IsTentativeAddr(NetInterface *interface, const Ipv6Addr *ipAddr);
-bool_t ipv6IsLocalHostAddr(const Ipv6Addr *ipAddr);
+bool_t ipv6IsLocalHostAddr(NetContext *context, const Ipv6Addr *ipAddr);
 
 bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2,
    size_t length);

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -90,7 +90,7 @@ error_t sja1105Init(NetInterface *interface)
    //Wait for the serial interface to be ready
    do
    {
-      //Read CHIP_ID0 register
+      //Read Device ID register
       temp = sja1105ReadSingleReg(interface, SJA1105_DEVICE_ID);
 
       //The returned data is invalid until the serial interface is ready
@@ -109,7 +109,7 @@ error_t sja1105Init(NetInterface *interface)
       //Force the TCP/IP stack to poll the link state at startup
       interface->phyEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      osSetEvent(&netEvent);
+      osSetEvent(&interface->netContext->event);
    }
 
    //Return status code
@@ -545,7 +545,7 @@ __weak_func void sja1105Tick(NetInterface *interface)
       //Set event flag
       interface->phyEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      osSetEvent(&netEvent);
+      osSetEvent(&interface->netContext->event);
    }
 }
 
@@ -1081,11 +1081,6 @@ void sja1105WriteMultipleRegs(NetInterface *interface, uint32_t address,
 {
    uint_t i;
    uint32_t control;
-
-   //Set up a write operation
-   control = SJA1105_SPI_CTRL_WRITE;
-   //Specify the address
-   control |= (address << 4) & SJA1105_SPI_CTRL_ADDR;
 
    //Pull the CS pin low
    interface->spiDriver->assertCs();

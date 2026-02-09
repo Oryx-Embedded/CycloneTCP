@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -1488,7 +1488,7 @@ int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen)
    sock = &socketTable[s];
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(sock->netContext);
 
    //Check whether the socket has been bound to an address
    if(sock->localIpAddr.length != 0)
@@ -1607,7 +1607,7 @@ int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(sock->netContext);
 
    //return status code
    return ret;
@@ -1638,7 +1638,7 @@ int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen)
    sock = &socketTable[s];
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(sock->netContext);
 
    //Check whether the socket is connected to a peer
    if(sock->remoteIpAddr.length != 0)
@@ -1703,7 +1703,7 @@ int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(sock->netContext);
 
    //return status code
    return ret;
@@ -1784,6 +1784,11 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
          {
             //Set SO_NO_CHECK option
             ret = socketSetSoNoCheckOption(sock, optval, optlen);
+         }
+         else if(optname == SO_BINDTODEVICE)
+         {
+            //Set SO_BINDTODEVICE option
+            ret = socketSetSoBindToDeviceOption(sock, optval, optlen);
          }
          else
          {
@@ -2091,7 +2096,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
    sock = &socketTable[s];
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(sock->netContext);
 
    //Make sure the option is valid
    if(optval != NULL)
@@ -2344,7 +2349,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(sock->netContext);
 
    //return status code
    return ret;
@@ -2902,7 +2907,7 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
    sock = &socketTable[s];
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(sock->netContext);
 
    //Make sure the parameter is valid
    if(arg != NULL)
@@ -2970,7 +2975,7 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(sock->netContext);
 
    //return status code
    return ret;
@@ -3001,7 +3006,7 @@ int_t fcntl(int_t s, int_t cmd, int_t arg)
    sock = &socketTable[s];
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(sock->netContext);
 
    //Check command type
    switch(cmd)
@@ -3029,7 +3034,7 @@ int_t fcntl(int_t s, int_t cmd, int_t arg)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(sock->netContext);
 
    //return status code
    return ret;
@@ -3318,7 +3323,7 @@ int_t gethostname(char_t *name, size_t len)
    }
 
    //Select the default network interface
-   interface = netGetDefaultInterface();
+   interface = netGetDefaultInterface(NULL);
 
    //Retrieve the length of the host name
    n = osStrlen(interface->hostname);
@@ -3813,6 +3818,7 @@ uint_t if_nametoindex(const char_t *ifname)
 {
    uint_t i;
    uint_t index;
+   NetContext *context;
 
    //Initialize interface index
    index = 0;
@@ -3820,14 +3826,17 @@ uint_t if_nametoindex(const char_t *ifname)
    //Valid parameter?
    if(ifname != NULL)
    {
+      //Point to the TCP/IP stack context
+      context = netGetDefaultContext();
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Matching interface name?
-         if(osStrcmp(netInterface[i].name, ifname) == 0)
+         if(osStrcmp(context->interfaces[i].name, ifname) == 0)
          {
             //Save the interface index
-            index = netInterface[i].index + 1;
+            index = context->interfaces[i].index + 1;
             //We are done
             break;
          }
@@ -3852,6 +3861,7 @@ char_t *if_indextoname(uint_t ifindex, char_t *ifname)
 {
    uint_t i;
    char_t *name;
+   NetContext *context;
 
    //Initialize interface name
    name = NULL;
@@ -3859,14 +3869,17 @@ char_t *if_indextoname(uint_t ifindex, char_t *ifname)
    //Valid parameters?
    if(ifindex != 0 && ifname != NULL)
    {
+      //Point to the TCP/IP stack context
+      context = netGetDefaultContext();
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Matching interface index?
-         if((netInterface[i].index + 1) == ifindex)
+         if((context->interfaces[i].index + 1) == ifindex)
          {
             //Copy the name of the interface
-            osStrcpy(ifname, netInterface[i].name);
+            osStrcpy(ifname, context->interfaces[i].name);
             name = ifname;
 
             //We are done

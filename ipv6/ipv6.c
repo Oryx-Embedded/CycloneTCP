@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,6 @@
 #include "ipv6/slaac_misc.h"
 #include "mld/mld_node.h"
 #include "dhcpv6/dhcpv6_client_misc.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -157,7 +156,7 @@ error_t ipv6SetMtu(NetInterface *interface, size_t mtu)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
@@ -178,7 +177,7 @@ error_t ipv6SetMtu(NetInterface *interface, size_t mtu)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -199,11 +198,11 @@ error_t ipv6GetMtu(NetInterface *interface, size_t *mtu)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Return the current MTU value
    *mtu = interface->ipv6Context.linkMtu;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -224,14 +223,14 @@ error_t ipv6SetDefaultHopLimit(NetInterface *interface, uint8_t hopLimit)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Set default Hop Limit value
    interface->ipv6Context.defaultHopLimit = hopLimit;
    interface->ipv6Context.curHopLimit = hopLimit;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -249,8 +248,12 @@ error_t ipv6SetLinkLocalAddr(NetInterface *interface, const Ipv6Addr *addr)
 {
    error_t error;
 
+   //Check parameters
+   if(interface == NULL || addr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
 #if (NDP_SUPPORT == ENABLED)
    //Check whether Duplicate Address Detection should be performed
@@ -269,7 +272,7 @@ error_t ipv6SetLinkLocalAddr(NetInterface *interface, const Ipv6Addr *addr)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -292,7 +295,7 @@ error_t ipv6GetLinkLocalAddr(NetInterface *interface, Ipv6Addr *addr)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the corresponding entry
    entry = &interface->ipv6Context.addrList[0];
@@ -311,7 +314,7 @@ error_t ipv6GetLinkLocalAddr(NetInterface *interface, Ipv6Addr *addr)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -356,8 +359,12 @@ error_t ipv6SetGlobalAddr(NetInterface *interface, uint_t index,
 {
    error_t error;
 
+   //Check parameters
+   if(interface == NULL || addr == NULL)
+      return ERROR_INVALID_PARAMETER;
+
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
 #if (NDP_SUPPORT == ENABLED)
    //Check whether Duplicate Address Detection should be performed
@@ -376,7 +383,7 @@ error_t ipv6SetGlobalAddr(NetInterface *interface, uint_t index,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -410,7 +417,7 @@ error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index,
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the corresponding entry
    entry = &interface->ipv6Context.addrList[index + 1];
@@ -429,7 +436,7 @@ error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -494,7 +501,7 @@ error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index,
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
@@ -534,7 +541,7 @@ error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -566,11 +573,11 @@ error_t ipv6GetAnycastAddr(NetInterface *interface, uint_t index,
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Return the corresponding entry
    *addr = interface->ipv6Context.anycastAddrList[index];
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -603,7 +610,7 @@ error_t ipv6SetPrefix(NetInterface *interface, uint_t index,
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the corresponding entry
    entry = &interface->ipv6Context.prefixList[index];
@@ -633,7 +640,7 @@ error_t ipv6SetPrefix(NetInterface *interface, uint_t index,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -669,7 +676,7 @@ error_t ipv6GetPrefix(NetInterface *interface, uint_t index, Ipv6Addr *prefix,
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the corresponding entry
    entry = &interface->ipv6Context.prefixList[index];
@@ -689,7 +696,7 @@ error_t ipv6GetPrefix(NetInterface *interface, uint_t index, Ipv6Addr *prefix,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -722,7 +729,7 @@ error_t ipv6SetDefaultRouter(NetInterface *interface, uint_t index,
       return ERROR_INVALID_ADDRESS;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the corresponding entry
    entry = &interface->ipv6Context.routerList[index];
@@ -747,7 +754,7 @@ error_t ipv6SetDefaultRouter(NetInterface *interface, uint_t index,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -781,7 +788,7 @@ error_t ipv6GetDefaultRouter(NetInterface *interface, uint_t index,
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the corresponding entry
    entry = &interface->ipv6Context.routerList[index];
@@ -799,7 +806,7 @@ error_t ipv6GetDefaultRouter(NetInterface *interface, uint_t index,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -830,11 +837,11 @@ error_t ipv6SetDnsServer(NetInterface *interface, uint_t index,
       return ERROR_INVALID_ADDRESS;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set up DNS server address
    interface->ipv6Context.dnsServerList[index] = *addr;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -865,11 +872,11 @@ error_t ipv6GetDnsServer(NetInterface *interface, uint_t index, Ipv6Addr *addr)
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Get DNS server address
    *addr = interface->ipv6Context.dnsServerList[index];
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -985,27 +992,23 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    IpPseudoHeader pseudoHeader;
 
    //Total number of input datagrams received, including those received in error
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInReceives, 1);
-   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInReceives, 1);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInReceives, 1);
-   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInReceives, 1);
+   IPV6_SYSTEM_STATS_INC_COUNTER64(inReceives, 1);
+   IPV6_IF_STATS_INC_COUNTER64(inReceives, 1);
 
    //Retrieve the length of the IPv6 packet
    length = netBufferGetLength(ipPacket);
 
    //Total number of octets received in input IP datagrams
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInOctets, length);
-   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInOctets, length);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInOctets, length);
-   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInOctets, length);
+   IPV6_SYSTEM_STATS_INC_COUNTER64(inOctets, length);
+   IPV6_IF_STATS_INC_COUNTER64(inOctets, length);
 
    //Ensure the packet length is greater than 40 bytes
    if(length < sizeof(Ipv6Header))
    {
       //Number of input IP datagrams discarded because the datagram frame
       //didn't carry enough data
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInTruncatedPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInTruncatedPkts, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(inTruncatedPkts, 1);
+      IPV6_IF_STATS_INC_COUNTER32(inTruncatedPkts, 1);
 
       //Discard the received packet
       return;
@@ -1026,8 +1029,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    if(ipHeader->version != IPV6_VERSION)
    {
       //Number of input datagrams discarded due to errors in their IP headers
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInHdrErrors, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(inHdrErrors, 1);
+      IPV6_IF_STATS_INC_COUNTER32(inHdrErrors, 1);
 
       //Discard the received packet
       return;
@@ -1038,8 +1041,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    {
       //Number of input IP datagrams discarded because the datagram frame
       //didn't carry enough data
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInTruncatedPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInTruncatedPkts, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(inTruncatedPkts, 1);
+      IPV6_IF_STATS_INC_COUNTER32(inTruncatedPkts, 1);
 
       //Discard the received packet
       return;
@@ -1049,8 +1052,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    if(ipv6CheckSourceAddr(interface, &ipHeader->srcAddr))
    {
       //Number of input datagrams discarded due to errors in their IP headers
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInHdrErrors, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInHdrErrors, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(inHdrErrors, 1);
+      IPV6_IF_STATS_INC_COUNTER32(inHdrErrors, 1);
 
       //Discard the received packet
       return;
@@ -1092,8 +1095,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    {
       //Number of input datagrams discarded because the destination IP address
       //was not a valid address
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInAddrErrors, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(inAddrErrors, 1);
+      IPV6_IF_STATS_INC_COUNTER32(inAddrErrors, 1);
 
       //Discard the received packet
       return;
@@ -1227,8 +1230,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
          {
             //Number of input datagrams discarded because the destination IP address
             //was not a valid address
-            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInAddrErrors, 1);
-            IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
+            IPV6_SYSTEM_STATS_INC_COUNTER32(inAddrErrors, 1);
+            IPV6_IF_STATS_INC_COUNTER32(inAddrErrors, 1);
          }
 
          //Exit immediately
@@ -1259,8 +1262,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
          {
             //Number of input datagrams discarded because the destination IP address
             //was not a valid address
-            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInAddrErrors, 1);
-            IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
+            IPV6_SYSTEM_STATS_INC_COUNTER32(inAddrErrors, 1);
+            IPV6_IF_STATS_INC_COUNTER32(inAddrErrors, 1);
          }
 
          //Exit immediately
@@ -1302,8 +1305,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
          {
             //Number of input datagrams discarded because the destination IP address
             //was not a valid address
-            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInAddrErrors, 1);
-            IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInAddrErrors, 1);
+            IPV6_SYSTEM_STATS_INC_COUNTER32(inAddrErrors, 1);
+            IPV6_IF_STATS_INC_COUNTER32(inAddrErrors, 1);
          }
 
          //Discard incoming packet
@@ -1720,10 +1723,8 @@ error_t ipv6SendDatagram(NetInterface *interface,
 
    //Total number of IP datagrams which local IP user-protocols supplied to IP
    //in requests for transmission
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutRequests, 1);
-   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutRequests, 1);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutRequests, 1);
-   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutRequests, 1);
+   IPV6_SYSTEM_STATS_INC_COUNTER64(outRequests, 1);
+   IPV6_IF_STATS_INC_COUNTER64(outRequests, 1);
 
    //Retrieve the length of payload
    length = netBufferGetLength(buffer) - offset;
@@ -1796,9 +1797,13 @@ error_t ipv6SendPacket(NetInterface *interface,
    uint8_t nextHeader;
    size_t length;
    Ipv6Header *packet;
+   NetContext *context;
 #if (ETH_SUPPORT == ENABLED)
    NetInterface *physicalInterface;
 #endif
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Get the value of the Next Header field
    nextHeader = pseudoHeader->nextHeader;
@@ -1869,7 +1874,7 @@ error_t ipv6SendPacket(NetInterface *interface,
       //The unspecified address must not appear on the public Internet
       error = ERROR_INVALID_ADDRESS;
    }
-   else if(ipv6IsLocalHostAddr(&pseudoHeader->destAddr))
+   else if(ipv6IsLocalHostAddr(context, &pseudoHeader->destAddr))
    {
 #if (NET_LOOPBACK_IF_SUPPORT == ENABLED)
       uint_t i;
@@ -1878,10 +1883,10 @@ error_t ipv6SendPacket(NetInterface *interface,
       error = ERROR_NO_ROUTE;
 
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         interface = &netInterface[i];
+         interface = &context->interfaces[i];
 
          //Loopback interface?
          if(interface->nicDriver != NULL &&
@@ -1956,7 +1961,7 @@ error_t ipv6SendPacket(NetInterface *interface,
             {
                //Number of IP datagrams discarded because no route could be found
                //to transmit them to their destination
-               IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutNoRoutes, 1);
+               IPV6_SYSTEM_STATS_INC_COUNTER32(outNoRoutes, 1);
             }
          }
 

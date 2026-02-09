@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _MIB2_IMPL_IP_H
@@ -41,6 +41,54 @@ extern "C" {
 #endif
 
 //MIB-II related functions
+error_t mib2GetIpInReceives(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpInHdrErrors(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpInAddrErrors(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpForwDatagrams(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpInUnknownProtos(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpInDiscards(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpInDelivers(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpOutRequests(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpOutDiscards(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpOutNoRoutes(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpReasmReqds(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpReasmOKs(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpReasmFails(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpFragOKs(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpFragFails(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
+error_t mib2GetIpFragCreates(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen);
+
 error_t mib2GetIpAddrEntry(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen);
 

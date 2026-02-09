@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -67,10 +67,10 @@ static uint8_t txBuffer[S7G2_ETH1_TX_BUFFER_COUNT][S7G2_ETH1_TX_BUFFER_SIZE]
 static uint8_t rxBuffer[S7G2_ETH1_RX_BUFFER_COUNT][S7G2_ETH1_RX_BUFFER_SIZE]
    __attribute__((aligned(32)));
 //Transmit DMA descriptors
-static S7g22Eth1TxDmaDesc txDmaDesc[S7G2_ETH1_TX_BUFFER_COUNT]
+static S7g2Eth1TxDmaDesc txDmaDesc[S7G2_ETH1_TX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 //Receive DMA descriptors
-static S7g22Eth1RxDmaDesc rxDmaDesc[S7G2_ETH1_RX_BUFFER_COUNT]
+static S7g2Eth1RxDmaDesc rxDmaDesc[S7G2_ETH1_RX_BUFFER_COUNT]
    __attribute__((aligned(32)));
 
 #endif
@@ -472,7 +472,7 @@ void EDMAC0_EINT_IRQHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Clear IR flag

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -74,14 +74,16 @@ const SwitchDriver ksz9567SwitchDriver =
  * @brief Tail tag rules (host to KSZ9567)
  **/
 
-const uint16_t ksz9567IngressTailTag[6] =
+const uint16_t ksz9567IngressTailTag[8] =
 {
    HTONS(KSZ9567_TAIL_TAG_NORMAL_ADDR_LOOKUP),
    HTONS(KSZ9567_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9567_TAIL_TAG_DEST_PORT1),
    HTONS(KSZ9567_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9567_TAIL_TAG_DEST_PORT2),
    HTONS(KSZ9567_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9567_TAIL_TAG_DEST_PORT3),
    HTONS(KSZ9567_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9567_TAIL_TAG_DEST_PORT4),
-   HTONS(KSZ9567_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9567_TAIL_TAG_DEST_PORT5)
+   HTONS(KSZ9567_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9567_TAIL_TAG_DEST_PORT5),
+   HTONS(0),
+   HTONS(KSZ9567_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9567_TAIL_TAG_DEST_PORT7)
 };
 
 
@@ -137,20 +139,26 @@ error_t ksz9567Init(NetInterface *interface)
 #endif
 
       //Loop through the ports
-      for(port = KSZ9567_PORT1; port <= KSZ9567_PORT5; port++)
+      for(port = KSZ9567_PORT1; port <= KSZ9567_PORT7; port++)
       {
+         //Skip host port
+         if(port != KSZ9567_PORT6)
+         {
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-         //Port separation mode?
-         if(interface->port != 0)
-         {
-            //Disable packet transmission and address learning
-            ksz9567SetPortState(interface, port, SWITCH_PORT_STATE_LISTENING);
-         }
-         else
+            //Port separation mode?
+            if(interface->port != 0)
+            {
+               //Disable packet transmission and address learning
+               ksz9567SetPortState(interface, port,
+                  SWITCH_PORT_STATE_LISTENING);
+            }
+            else
 #endif
-         {
-            //Enable transmission, reception and address learning
-            ksz9567SetPortState(interface, port, SWITCH_PORT_STATE_FORWARDING);
+            {
+               //Enable transmission, reception and address learning
+               ksz9567SetPortState(interface, port,
+                  SWITCH_PORT_STATE_FORWARDING);
+            }
          }
       }
 
@@ -233,7 +241,7 @@ error_t ksz9567Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -265,13 +273,17 @@ __weak_func void ksz9567Tick(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -287,7 +299,7 @@ __weak_func void ksz9567Tick(NetInterface *interface)
                //Set event flag
                interface->phyEvent = TRUE;
                //Notify the TCP/IP stack of the event
-               osSetEvent(&netEvent);
+               osSetEvent(&interface->netContext->event);
             }
          }
       }
@@ -299,12 +311,16 @@ __weak_func void ksz9567Tick(NetInterface *interface)
       linkState = FALSE;
 
       //Loop through the ports
-      for(port = KSZ9567_PORT1; port <= KSZ9567_PORT5; port++)
+      for(port = KSZ9567_PORT1; port <= KSZ9567_PORT7; port++)
       {
-         //Retrieve current link state
-         if(ksz9567GetLinkState(interface, port))
+         //Skip host port
+         if(port != KSZ9567_PORT6)
          {
-            linkState = TRUE;
+            //Retrieve current link state
+            if(ksz9567GetLinkState(interface, port))
+            {
+               linkState = TRUE;
+            }
          }
       }
 
@@ -314,7 +330,7 @@ __weak_func void ksz9567Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
    }
 }
@@ -355,13 +371,17 @@ __weak_func void ksz9567EventHandler(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -372,7 +392,8 @@ __weak_func void ksz9567EventHandler(NetInterface *interface)
             port = virtualInterface->port;
 
             //Valid port?
-            if(port >= KSZ9567_PORT1 && port <= KSZ9567_PORT5)
+            if((port >= KSZ9567_PORT1 && port <= KSZ9567_PORT5) ||
+               port == KSZ9567_PORT7)
             {
                //Retrieve current link state
                linkState = ksz9567GetLinkState(interface, port);
@@ -425,12 +446,16 @@ __weak_func void ksz9567EventHandler(NetInterface *interface)
       linkState = FALSE;
 
       //Loop through the ports
-      for(port = KSZ9567_PORT1; port <= KSZ9567_PORT5; port++)
+      for(port = KSZ9567_PORT1; port <= KSZ9567_PORT7; port++)
       {
-         //Retrieve current link state
-         if(ksz9567GetLinkState(interface, port))
+         //Skip host port
+         if(port != KSZ9567_PORT6)
          {
-            linkState = TRUE;
+            //Retrieve current link state
+            if(ksz9567GetLinkState(interface, port))
+            {
+               linkState = TRUE;
+            }
          }
       }
 
@@ -483,7 +508,7 @@ error_t ksz9567TagFrame(NetInterface *interface, NetBuffer *buffer,
    if(interface->spiDriver != NULL)
    {
       //Valid port?
-      if(ancillary->port <= KSZ9567_PORT5)
+      if(ancillary->port <= KSZ9567_PORT7)
       {
          size_t length;
          const uint16_t *tailTag;
@@ -597,6 +622,11 @@ bool_t ksz9567GetLinkState(NetInterface *interface, uint8_t port)
       //Retrieve current link state
       linkState = (value & KSZ9567_BMSR_LINK_STATUS) ? TRUE : FALSE;
    }
+   else if(port == KSZ9567_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      linkState = ksz9567GetPort7LinkState(interface);
+   }
    else
    {
       //The specified port number is not valid
@@ -692,13 +722,18 @@ uint32_t ksz9567GetLinkSpeed(NetInterface *interface, uint8_t port)
          linkSpeed = NIC_LINK_SPEED_100MBPS;
       }
    }
+   else if(port == KSZ9567_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      linkSpeed = ksz9567GetPort7LinkSpeed(interface);
+   }
    else
    {
       //The specified port number is not valid
       linkSpeed = NIC_LINK_SPEED_UNKNOWN;
    }
 
-   //Return link status
+   //Return link speed
    return linkSpeed;
 }
 
@@ -756,6 +791,11 @@ NicDuplexMode ksz9567GetDuplexMode(NetInterface *interface, uint8_t port)
          duplexMode = NIC_FULL_DUPLEX_MODE;
       }
    }
+   else if(port == KSZ9567_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      duplexMode = ksz9567GetPort7DuplexMode(interface);
+   }
    else
    {
       //The specified port number is not valid
@@ -764,6 +804,45 @@ NicDuplexMode ksz9567GetDuplexMode(NetInterface *interface, uint8_t port)
 
    //Return duplex mode
    return duplexMode;
+}
+
+
+/**
+ * @brief Get port 7 link state
+ * @param[in] interface Underlying network interface
+ * @return Link state
+ **/
+
+__weak_func bool_t ksz9567GetPort7LinkState(NetInterface *interface)
+{
+   //Return current link status
+   return FALSE;
+}
+
+
+/**
+ * @brief Get port 7 link speed
+ * @param[in] interface Underlying network interface
+ * @return Link speed
+ **/
+
+__weak_func uint32_t ksz9567GetPort7LinkSpeed(NetInterface *interface)
+{
+   //Return current link speed
+   return NIC_LINK_SPEED_UNKNOWN;
+}
+
+
+/**
+ * @brief Get port 7 duplex mode
+ * @param[in] interface Underlying network interface
+ * @return Duplex mode
+ **/
+
+__weak_func NicDuplexMode ksz9567GetPort7DuplexMode(NetInterface *interface)
+{
+   //Return current duplex mode
+   return NIC_UNKNOWN_DUPLEX_MODE;
 }
 
 
@@ -780,7 +859,8 @@ void ksz9567SetPortState(NetInterface *interface, uint8_t port,
    uint8_t temp;
 
    //Check port number
-   if(port >= KSZ9567_PORT1 && port <= KSZ9567_PORT5)
+   if((port >= KSZ9567_PORT1 && port <= KSZ9567_PORT5) ||
+      port == KSZ9567_PORT7)
    {
       //Read MSTP state register
       temp = ksz9567ReadSwitchReg8(interface, KSZ9567_PORTn_MSTP_STATE(port));
@@ -836,7 +916,8 @@ SwitchPortState ksz9567GetPortState(NetInterface *interface, uint8_t port)
    SwitchPortState state;
 
    //Check port number
-   if(port >= KSZ9567_PORT1 && port <= KSZ9567_PORT5)
+   if((port >= KSZ9567_PORT1 && port <= KSZ9567_PORT5) ||
+      port == KSZ9567_PORT7)
    {
       //Read MSTP state register
       temp = ksz9567ReadSwitchReg8(interface, KSZ9567_PORTn_MSTP_STATE(port));
@@ -1690,6 +1771,41 @@ uint16_t ksz9567ReadMmdReg(NetInterface *interface, uint8_t port,
 
    //Read the content of the MMD register
    return ksz9567ReadPhyReg(interface, port, KSZ9567_MMDAADR);
+}
+
+
+/**
+ * @brief Write SGMII register
+ * @param[in] interface Underlying network interface
+ * @param[in] address SGMII register address
+ * @param[in] data Register value
+ **/
+
+void ksz9567WriteSgmiiReg(NetInterface *interface, uint32_t address,
+   uint16_t data)
+{
+   //Write the SGMII register address to the Port SGMII Address register
+   ksz9567WriteSwitchReg32(interface, KSZ9567_PORT7_SGMII_ADDR, address);
+
+   //Write the SGMII register data to the Port SGMII Data register
+   ksz9567WriteSwitchReg16(interface, KSZ9567_PORT7_SGMII_DATA, data);
+}
+
+
+/**
+ * @brief Read SGMII register
+ * @param[in] interface Underlying network interface
+ * @param[in] address SGMII register address
+ * @return Register value
+ **/
+
+uint16_t ksz9567ReadSgmiiReg(NetInterface *interface, uint32_t address)
+{
+   //Write the SGMII register address to the Port SGMII Address register
+   ksz9567WriteSwitchReg32(interface, KSZ9567_PORT7_SGMII_ADDR, address);
+
+   //Read the SGMII register data from the Port SGMII Data register
+   return ksz9567ReadSwitchReg16(interface, KSZ9567_PORT7_SGMII_DATA);
 }
 
 

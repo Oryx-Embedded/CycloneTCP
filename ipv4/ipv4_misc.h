@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IPV4_MISC_H
@@ -46,7 +46,7 @@ error_t ipv4AddRouterAlertOption(NetBuffer *buffer, size_t *offset);
 error_t ipv4CheckSourceAddr(NetInterface *interface, Ipv4Addr ipAddr);
 error_t ipv4CheckDestAddr(NetInterface *interface, Ipv4Addr ipAddr);
 
-error_t ipv4SelectSourceAddr(NetInterface **interface,
+error_t ipv4SelectSourceAddr(NetContext *context, NetInterface **interface,
    Ipv4Addr destAddr, Ipv4Addr *srcAddr);
 
 error_t ipv4SelectDefaultGateway(NetInterface *interface, Ipv4Addr srcAddr,
@@ -56,7 +56,7 @@ bool_t ipv4IsHostAddrValid(NetInterface *interface);
 bool_t ipv4IsOnLink(NetInterface *interface, Ipv4Addr ipAddr);
 bool_t ipv4IsBroadcastAddr(NetInterface *interface, Ipv4Addr ipAddr);
 bool_t ipv4IsTentativeAddr(NetInterface *interface, Ipv4Addr ipAddr);
-bool_t ipv4IsLocalHostAddr(Ipv4Addr ipAddr);
+bool_t ipv4IsLocalHostAddr(NetContext *context, Ipv4Addr ipAddr);
 
 bool_t ipv4CompPrefix(Ipv4Addr ipAddr1, Ipv4Addr ipAddr2, size_t length);
 

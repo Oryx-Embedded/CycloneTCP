@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -48,7 +48,6 @@
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv_misc.h"
 #include "mld/mld_node_misc.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -71,11 +70,11 @@ error_t icmpv6EnableEchoRequests(NetInterface *interface, bool_t enable)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Enable or disable support for Echo Request messages
    interface->ipv6Context.enableEchoReq = enable;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -100,11 +99,11 @@ error_t icmpv6EnableMulticastEchoRequests(NetInterface *interface,
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Enable or disable support for multicast Echo Request messages
    interface->ipv6Context.enableMulticastEchoReq = enable;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -129,7 +128,7 @@ void icmpv6ProcessMessage(NetInterface *interface,
    Icmpv6Header *header;
 
    //Total number of ICMP messages which the entity received
-   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsInMsgs, 1);
+   ICMPV6_STATS_INC_COUNTER32(inMsgs, 1);
 
    //Retrieve the length of the ICMPv6 message
    length = netBufferGetLength(buffer) - offset;
@@ -139,7 +138,7 @@ void icmpv6ProcessMessage(NetInterface *interface,
    {
       //Number of ICMP messages which the entity received but determined
       //as having ICMP-specific errors
-      IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsInErrors, 1);
+      ICMPV6_STATS_INC_COUNTER32(inErrors, 1);
 
       //Silently discard incoming message
       return;
@@ -166,7 +165,7 @@ void icmpv6ProcessMessage(NetInterface *interface,
 
       //Number of ICMP messages which the entity received but determined
       //as having ICMP-specific errors
-      IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsInErrors, 1);
+      ICMPV6_STATS_INC_COUNTER32(inErrors, 1);
 
       //Exit immediately
       return;
@@ -187,7 +186,7 @@ void icmpv6ProcessMessage(NetInterface *interface,
    }
 
    //Increment per-message type ICMP counter
-   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsInPkts[header->type], 1);
+   ICMPV6_STATS_INC_COUNTER32(inPkts[header->type], 1);
 
    //Check the type of message
    switch(header->type)
@@ -197,16 +196,19 @@ void icmpv6ProcessMessage(NetInterface *interface,
       //Process Destination Unreachable message
       icmpv6ProcessDestUnreachable(interface, pseudoHeader, buffer, offset);
       break;
+
    //Packet Too Big message?
    case ICMPV6_TYPE_PACKET_TOO_BIG:
       //Process Packet Too Big message
       icmpv6ProcessPacketTooBig(interface, pseudoHeader, buffer, offset);
       break;
+
    //Echo Request message?
    case ICMPV6_TYPE_ECHO_REQUEST:
       //Process Echo Request message
       icmpv6ProcessEchoRequest(interface, pseudoHeader, buffer, offset);
       break;
+
 #if (MLD_NODE_SUPPORT == ENABLED)
    //MLD message?
    case ICMPV6_TYPE_MCAST_LISTENER_QUERY:
@@ -230,22 +232,26 @@ void icmpv6ProcessMessage(NetInterface *interface,
       //Process Router Advertisement message
       ndpProcessRouterAdv(interface, pseudoHeader, buffer, offset, ancillary);
       break;
+
    //Neighbor Solicitation message?
    case ICMPV6_TYPE_NEIGHBOR_SOL:
       //Process Neighbor Solicitation message
       ndpProcessNeighborSol(interface, pseudoHeader, buffer, offset, ancillary);
       break;
+
    //Neighbor Advertisement message?
    case ICMPV6_TYPE_NEIGHBOR_ADV:
       //Process Neighbor Advertisement message
       ndpProcessNeighborAdv(interface, pseudoHeader, buffer, offset, ancillary);
       break;
+
    //Redirect message?
    case ICMPV6_TYPE_REDIRECT:
       //Process Redirect message
       ndpProcessRedirect(interface, pseudoHeader, buffer, offset, ancillary);
       break;
 #endif
+
    //Unknown type?
    default:
       //Debug message
@@ -413,8 +419,8 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
 
       //The source address of the reply must be a unicast address belonging to
       //the interface on which the multicast Echo Request message was received
-      error = ipv6SelectSourceAddr(&interface, &requestPseudoHeader->srcAddr,
-         &replyPseudoHeader.srcAddr);
+      error = ipv6SelectSourceAddr(interface->netContext, &interface,
+         &requestPseudoHeader->srcAddr, &replyPseudoHeader.srcAddr);
       //Any error to report?
       if(error)
          return;
@@ -479,9 +485,9 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
          sizeof(Ipv6PseudoHeader), reply, replyOffset, replyLength);
 
       //Total number of ICMP messages which this entity attempted to send
-      IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+      ICMPV6_STATS_INC_COUNTER32(outMsgs, 1);
       //Increment per-message type ICMP counter
-      IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_ECHO_REPLY], 1);
+      ICMPV6_STATS_INC_COUNTER32(outPkts[ICMPV6_TYPE_ECHO_REPLY], 1);
 
       //Debug message
       TRACE_INFO("Sending ICMPv6 Echo Reply message (%" PRIuSIZE " bytes)...\r\n", replyLength);
@@ -633,8 +639,8 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
       pseudoHeader.nextHeader = IPV6_ICMPV6_HEADER;
 
       //Select the relevant source address
-      error = ipv6SelectSourceAddr(&interface, &pseudoHeader.destAddr,
-         &pseudoHeader.srcAddr);
+      error = ipv6SelectSourceAddr(interface->netContext, &interface,
+         &pseudoHeader.destAddr, &pseudoHeader.srcAddr);
 
       //Check status code
       if(!error)
@@ -646,9 +652,9 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
             sizeof(Ipv6PseudoHeader), icmpMessage, offset, length);
 
          //Total number of ICMP messages which this entity attempted to send
-         IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+         ICMPV6_STATS_INC_COUNTER32(outMsgs, 1);
          //Increment per-message type ICMP counter
-         IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[type], 1);
+         ICMPV6_STATS_INC_COUNTER32(outPkts[type], 1);
 
          //Debug message
          TRACE_INFO("Sending ICMPv6 Error message (%" PRIuSIZE " bytes)...\r\n", length);

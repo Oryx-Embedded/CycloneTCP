@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _KSZ8794_DRIVER_H
@@ -584,6 +584,24 @@
 #define KSZ8794_PORTn_CTRL11_STAT3_OP_MODE_10BT_FD               0x05
 #define KSZ8794_PORTn_CTRL11_STAT3_OP_MODE_100BTX_FD             0x06
 
+//MAC Address 0 register
+#define KSZ8794_MAC_ADDR0_MACA_47_40                             0xFF
+
+//MAC Address 1 register
+#define KSZ8794_MAC_ADDR1_MACA_39_32                             0xFF
+
+//MAC Address 2 register
+#define KSZ8794_MAC_ADDR2_MACA_31_24                             0xFF
+
+//MAC Address 3 register
+#define KSZ8794_MAC_ADDR3_MACA_23_16                             0xFF
+
+//MAC Address 4 register
+#define KSZ8794_MAC_ADDR4_MACA_15_8                              0xFF
+
+//MAC Address 5 register
+#define KSZ8794_MAC_ADDR5_MACA_7_0                               0xFF
+
 //Indirect Access Control 0 register
 #define KSZ8794_INDIRECT_CTRL0_FUNC_SEL                          0xE0
 #define KSZ8794_INDIRECT_CTRL0_FUNC_SEL_INDIRECT_MODE            0x00
@@ -691,6 +709,102 @@
 #define KSZ8794_GLOBAL_CTRL19_IG_RATE_LIMIT_PERIOD_256MS         0x20
 #define KSZ8794_GLOBAL_CTRL19_QUEUE_BASED_EG_RATE_LIMITE_EN      0x08
 #define KSZ8794_GLOBAL_CTRL19_INSERT_SRC_PORT_PVID_TAG_EN        0x04
+
+//TOS Priority Control 0 register
+#define KSZ8794_TOS_PRIO_CTRL0_DSCP_7_6                          0xC0
+#define KSZ8794_TOS_PRIO_CTRL0_DSCP_5_4                          0x30
+#define KSZ8794_TOS_PRIO_CTRL0_DSCP_3_2                          0x0C
+#define KSZ8794_TOS_PRIO_CTRL0_DSCP_1_0                          0x03
+
+//TOS Priority Control 1 register
+#define KSZ8794_TOS_PRIO_CTRL1_DSCP_15_14                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL1_DSCP_13_12                        0x30
+#define KSZ8794_TOS_PRIO_CTRL1_DSCP_11_10                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL1_DSCP_9_8                          0x03
+
+//TOS Priority Control 2 register
+#define KSZ8794_TOS_PRIO_CTRL2_DSCP_23_22                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL2_DSCP_21_20                        0x30
+#define KSZ8794_TOS_PRIO_CTRL2_DSCP_19_18                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL2_DSCP_17_16                        0x03
+
+//TOS Priority Control 3 register
+#define KSZ8794_TOS_PRIO_CTRL3_DSCP_31_30                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL3_DSCP_29_28                        0x30
+#define KSZ8794_TOS_PRIO_CTRL3_DSCP_27_26                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL3_DSCP_25_24                        0x03
+
+//TOS Priority Control 4 register
+#define KSZ8794_TOS_PRIO_CTRL4_DSCP_39_38                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL4_DSCP_37_36                        0x30
+#define KSZ8794_TOS_PRIO_CTRL4_DSCP_35_34                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL4_DSCP_33_32                        0x03
+
+//TOS Priority Control 5 register
+#define KSZ8794_TOS_PRIO_CTRL5_DSCP_47_46                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL5_DSCP_45_44                        0x30
+#define KSZ8794_TOS_PRIO_CTRL5_DSCP_43_42                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL5_DSCP_41_40                        0x03
+
+//TOS Priority Control 6 register
+#define KSZ8794_TOS_PRIO_CTRL6_DSCP_55_54                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL6_DSCP_53_52                        0x30
+#define KSZ8794_TOS_PRIO_CTRL6_DSCP_51_50                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL6_DSCP_49_48                        0x03
+
+//TOS Priority Control 7 register
+#define KSZ8794_TOS_PRIO_CTRL7_DSCP_63_62                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL7_DSCP_61_60                        0x30
+#define KSZ8794_TOS_PRIO_CTRL7_DSCP_59_58                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL7_DSCP_57_56                        0x03
+
+//TOS Priority Control 8 register
+#define KSZ8794_TOS_PRIO_CTRL8_DSCP_71_70                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL8_DSCP_69_68                        0x30
+#define KSZ8794_TOS_PRIO_CTRL8_DSCP_67_66                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL8_DSCP_65_64                        0x03
+
+//TOS Priority Control 9 register
+#define KSZ8794_TOS_PRIO_CTRL9_DSCP_79_78                        0xC0
+#define KSZ8794_TOS_PRIO_CTRL9_DSCP_77_76                        0x30
+#define KSZ8794_TOS_PRIO_CTRL9_DSCP_75_74                        0x0C
+#define KSZ8794_TOS_PRIO_CTRL9_DSCP_73_72                        0x03
+
+//TOS Priority Control 10 register
+#define KSZ8794_TOS_PRIO_CTRL10_DSCP_87_86                       0xC0
+#define KSZ8794_TOS_PRIO_CTRL10_DSCP_85_84                       0x30
+#define KSZ8794_TOS_PRIO_CTRL10_DSCP_83_82                       0x0C
+#define KSZ8794_TOS_PRIO_CTRL10_DSCP_81_80                       0x03
+
+//TOS Priority Control 11 register
+#define KSZ8794_TOS_PRIO_CTRL11_DSCP_95_94                       0xC0
+#define KSZ8794_TOS_PRIO_CTRL11_DSCP_93_92                       0x30
+#define KSZ8794_TOS_PRIO_CTRL11_DSCP_91_90                       0x0C
+#define KSZ8794_TOS_PRIO_CTRL11_DSCP_89_88                       0x03
+
+//TOS Priority Control 12 register
+#define KSZ8794_TOS_PRIO_CTRL12_DSCP_103_102                     0xC0
+#define KSZ8794_TOS_PRIO_CTRL12_DSCP_101_100                     0x30
+#define KSZ8794_TOS_PRIO_CTRL12_DSCP_99_98                       0x0C
+#define KSZ8794_TOS_PRIO_CTRL12_DSCP_97_96                       0x03
+
+//TOS Priority Control 13 register
+#define KSZ8794_TOS_PRIO_CTRL13_DSCP_111_110                     0xC0
+#define KSZ8794_TOS_PRIO_CTRL13_DSCP_109_108                     0x30
+#define KSZ8794_TOS_PRIO_CTRL13_DSCP_107_106                     0x0C
+#define KSZ8794_TOS_PRIO_CTRL13_DSCP_105_104                     0x03
+
+//TOS Priority Control 14 register
+#define KSZ8794_TOS_PRIO_CTRL14_DSCP_119_118                     0xC0
+#define KSZ8794_TOS_PRIO_CTRL14_DSCP_117_116                     0x30
+#define KSZ8794_TOS_PRIO_CTRL14_DSCP_115_114                     0x0C
+#define KSZ8794_TOS_PRIO_CTRL14_DSCP_113_112                     0x03
+
+//TOS Priority Control 15 register
+#define KSZ8794_TOS_PRIO_CTRL15_DSCP_127_126                     0xC0
+#define KSZ8794_TOS_PRIO_CTRL15_DSCP_125_124                     0x30
+#define KSZ8794_TOS_PRIO_CTRL15_DSCP_123_122                     0x0C
+#define KSZ8794_TOS_PRIO_CTRL15_DSCP_121_120                     0x03
 
 //Global Control 20 register
 #define KSZ8794_GLOBAL_CTRL20_HIGH_SPEED_DRIVE_STRENGTH          0x70

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -55,6 +55,8 @@ void coapServerGetDefaultSettings(CoapServerSettings *settings)
    settings->task.stackSize = COAP_SERVER_STACK_SIZE;
    settings->task.priority = COAP_SERVER_PRIORITY;
 
+   //TCP/IP stack context
+   settings->netContext = NULL;
    //The CoAP server is not bound to any interface
    settings->interface = NULL;
 
@@ -93,6 +95,9 @@ error_t coapServerInit(CoapServerContext *context,
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Clear the CoAP server context
    osMemset(context, 0, sizeof(CoapServerContext));
 
@@ -100,11 +105,28 @@ error_t coapServerInit(CoapServerContext *context,
    context->taskParams = settings->task;
    context->taskId = OS_INVALID_TASK_ID;
 
-   //Save user settings
-   context->settings = *settings;
+   //Attach TCP/IP stack context
+   if(settings->netContext != NULL)
+   {
+      context->netContext = settings->netContext;
+   }
+   else if(settings->interface != NULL)
+   {
+      context->netContext = settings->interface->netContext;
+   }
+   else
+   {
+      context->netContext = netGetDefaultContext();
+   }
 
-   //Initialize status code
-   error = NO_ERROR;
+   //Save user settings
+   context->interface = settings->interface;
+   context->port = settings->port;
+   context->udpInitCallback = settings->udpInitCallback;
+#if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
+   context->dtlsInitCallback = settings->dtlsInitCallback;
+#endif
+   context->requestCallback = settings->requestCallback;
 
    //Create an event object to poll the state of the UDP socket
    if(!osCreateEvent(&context->event))
@@ -186,7 +208,8 @@ error_t coapServerStart(CoapServerContext *context)
    do
    {
       //Open a UDP socket
-      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_DGRAM,
+         SOCKET_IP_PROTO_UDP);
       //Failed to open socket?
       if(context->socket == NULL)
       {
@@ -202,23 +225,22 @@ error_t coapServerStart(CoapServerContext *context)
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket,
-         context->settings.interface);
+      error = socketBindToInterface(context->socket, context->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
          break;
 
       //The CoAP server listens for datagrams on port 5683
-      error = socketBind(context->socket, &IP_ADDR_ANY, context->settings.port);
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Unable to bind the socket to the desired port?
       if(error)
          break;
 
       //Any registered callback?
-      if(context->settings.udpInitCallback != NULL)
+      if(context->udpInitCallback != NULL)
       {
          //Invoke user callback function
-         error = context->settings.udpInitCallback(context, context->socket);
+         error = context->udpInitCallback(context, context->socket);
          //Any error to report?
          if(error)
             break;
@@ -367,7 +389,7 @@ void coapServerTask(CoapServerContext *context)
             {
    #if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
                //DTLS-secured communication?
-               if(context->settings.dtlsInitCallback != NULL)
+               if(context->dtlsInitCallback != NULL)
                {
                   //Demultiplexing of incoming datagrams into separate DTLS sessions
                   error = coapServerDemultiplexSession(context);

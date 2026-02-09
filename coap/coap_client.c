@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -58,11 +58,14 @@ error_t coapClientInit(CoapClientContext *context)
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Clear CoAP client context
    osMemset(context, 0, sizeof(CoapClientContext));
 
-   //Initialize status code
-   error = NO_ERROR;
+   //Attach TCP/IP stack context
+   context->netContext = netGetDefaultContext();
 
    //Start of exception handling block
    do
@@ -103,7 +106,7 @@ error_t coapClientInit(CoapClientContext *context)
 
       //It is strongly recommended that the initial value of the message ID
       //be randomized (refer to RFC 7252, section 4.4)
-      context->mid = (uint16_t) netGetRand();
+      context->mid = (uint16_t) netGetRand(context->netContext);
 
       //End of exception handling block
    } while(0);

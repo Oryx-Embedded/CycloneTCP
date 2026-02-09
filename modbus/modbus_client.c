@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -61,6 +61,9 @@ error_t modbusClientInit(ModbusClientContext *context)
    //Clear Modbus/TCP client context
    osMemset(context, 0, sizeof(ModbusClientContext));
 
+   //Attach TCP/IP stack context
+   context->netContext = netGetDefaultContext();
+
 #if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
    //Initialize TLS session state
    error = tlsInitSessionState(&context->tlsSession);
@@ -79,7 +82,7 @@ error_t modbusClientInit(ModbusClientContext *context)
 
    //The transaction identifier is used to uniquely identify the matching
    //requests and responses
-   context->transactionId = (uint16_t) netGetRand();
+   context->transactionId = (uint16_t) netGetRand(context->netContext);
 
    //Successful initialization
    return NO_ERROR;

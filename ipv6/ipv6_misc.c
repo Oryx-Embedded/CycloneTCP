@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -39,7 +39,6 @@
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_cache.h"
 #include "mdns/mdns_responder.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -881,6 +880,7 @@ error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
  * This function selects the source address and the relevant network interface
  * to be used in order to join the specified destination address
  *
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in,out] interface A pointer to a valid network interface may be provided as
  *   a hint. The function returns a pointer identifying the interface to be used
  * @param[in] destAddr Destination IPv6 address
@@ -888,7 +888,7 @@ error_t ipv6CheckDestAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
  * @return Error code
  **/
 
-error_t ipv6SelectSourceAddr(NetInterface **interface,
+error_t ipv6SelectSourceAddr(NetContext *context, NetInterface **interface,
    const Ipv6Addr *destAddr, Ipv6Addr *srcAddr)
 {
    error_t error;
@@ -904,10 +904,10 @@ error_t ipv6SelectSourceAddr(NetInterface **interface,
    bestAddr = NULL;
 
    //Loop through network interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Point to the current interface
-      currentInterface = &netInterface[i];
+      currentInterface = &context->interfaces[i];
 
       //A network interface may be provided as a hint
       if(*interface != currentInterface && *interface != NULL)
@@ -1149,12 +1149,13 @@ bool_t ipv6IsTentativeAddr(NetInterface *interface, const Ipv6Addr *ipAddr)
 
 /**
  * @brief Check whether the specified IPv6 is assigned to the host
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] ipAddr IPv6 address to be checked
  * @return TRUE if the IPv6 address matches any address assigned to the host,
  *   else FALSE
  **/
 
-bool_t ipv6IsLocalHostAddr(const Ipv6Addr *ipAddr)
+bool_t ipv6IsLocalHostAddr(NetContext *context, const Ipv6Addr *ipAddr)
 {
    uint_t i;
    uint_t j;
@@ -1175,10 +1176,10 @@ bool_t ipv6IsLocalHostAddr(const Ipv6Addr *ipAddr)
    else
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT && !flag; i++)
+      for(i = 0; i < context->numInterfaces && !flag; i++)
       {
          //Point to the current interface
-         interface = &netInterface[i];
+         interface = &context->interfaces[i];
 
          //Iterate through the list of addresses assigned to the interface
          for(j = 0; j < IPV6_ADDR_LIST_SIZE && !flag; j++)
@@ -1449,16 +1450,12 @@ void ipv6UpdateInStats(NetInterface *interface, const Ipv6Addr *destIpAddr,
    if(ipv6IsMulticastAddr(destIpAddr))
    {
       //Number of IP multicast datagrams transmitted
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInMcastPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInMcastPkts, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER64(inMcastPkts, 1);
+      IPV6_IF_STATS_INC_COUNTER64(inMcastPkts, 1);
 
       //Total number of octets transmitted in IP multicast datagrams
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsInMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCInMcastOctets, length);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsInMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCInMcastOctets, length);
+      IPV6_SYSTEM_STATS_INC_COUNTER64(inMcastOctets, length);
+      IPV6_IF_STATS_INC_COUNTER64(inMcastOctets, length);
    }
 }
 
@@ -1477,31 +1474,23 @@ void ipv6UpdateOutStats(NetInterface *interface, const Ipv6Addr *destIpAddr,
    if(ipv6IsMulticastAddr(destIpAddr))
    {
       //Number of IP multicast datagrams transmitted
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutMcastPkts, 1);
-      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutMcastPkts, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER64(outMcastPkts, 1);
+      IPV6_IF_STATS_INC_COUNTER64(outMcastPkts, 1);
 
       //Total number of octets transmitted in IP multicast datagrams
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutMcastOctets, length);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutMcastOctets, length);
-      IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutMcastOctets, length);
+      IPV6_SYSTEM_STATS_INC_COUNTER64(outMcastOctets, length);
+      IPV6_IF_STATS_INC_COUNTER64(outMcastOctets, length);
    }
 
-   //Total number of IP datagrams that this entity supplied to the lower
-   //layers for transmission
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutTransmits, 1);
-   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutTransmits, 1);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutTransmits, 1);
-   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutTransmits, 1);
-
-   //Total number of octets in IP datagrams delivered to the lower layers
+   //Total number of IP datagrams that this entity supplied to the lower layers
    //for transmission
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutOctets, length);
-   IP_MIB_INC_COUNTER64(ipv6SystemStats.ipSystemStatsHCOutOctets, length);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutOctets, length);
-   IP_MIB_INC_COUNTER64(ipv6IfStatsTable[interface->index].ipIfStatsHCOutOctets, length);
+   IPV6_SYSTEM_STATS_INC_COUNTER64(outTransmits, 1);
+   IPV6_IF_STATS_INC_COUNTER64(outTransmits, 1);
+
+   //Total number of octets in IP datagrams delivered to the lower layers for
+   //transmission
+   IPV6_SYSTEM_STATS_INC_COUNTER64(outOctets, length);
+   IPV6_IF_STATS_INC_COUNTER64(outOctets, length);
 }
 
 #endif

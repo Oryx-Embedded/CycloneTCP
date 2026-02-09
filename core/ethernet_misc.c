@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -43,8 +43,6 @@
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
-#include "mibs/mib2_module.h"
-#include "mibs/if_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -386,27 +384,21 @@ void ethUpdateInStats(NetInterface *interface, const MacAddr *destMacAddr)
    if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
    {
       //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInNUcastPkts, 1);
-
+      NET_IF_STATS_INC_COUNTER32(inNUcastPkts, 1);
       //Number of broadcast packets delivered to a higher-layer protocol
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInBroadcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInBroadcastPkts, 1);
+      NET_IF_STATS_INC_COUNTER64(inBroadcastPkts, 1);
    }
    else if(macIsMulticastAddr(destMacAddr))
    {
       //Number of non-unicast packets delivered to a higher-layer protocol
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInNUcastPkts, 1);
-
+      NET_IF_STATS_INC_COUNTER32(inNUcastPkts, 1);
       //Number of multicast packets delivered to a higher-layer protocol
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifInMulticastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInMulticastPkts, 1);
+      NET_IF_STATS_INC_COUNTER64(inMulticastPkts, 1);
    }
    else
    {
       //Number of unicast packets delivered to a higher-layer protocol
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInUcastPkts, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInUcastPkts, 1);
+      NET_IF_STATS_INC_COUNTER64(inUcastPkts, 1);
    }
 }
 
@@ -422,35 +414,27 @@ void ethUpdateOutStats(NetInterface *interface, const MacAddr *destMacAddr,
    size_t length)
 {
    //Total number of octets transmitted out of the interface
-   MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
-   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
-   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutOctets, length);
+   NET_IF_STATS_INC_COUNTER64(outOctets, length);
 
    //Check whether the destination address is a unicast, broadcast or multicast address
    if(macCompAddr(destMacAddr, &MAC_BROADCAST_ADDR))
    {
       //Number of non-unicast packets that higher-level protocols requested be transmitted
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutNUcastPkts, 1);
-
+      NET_IF_STATS_INC_COUNTER32(outNUcastPkts, 1);
       //Number of broadcast packets that higher-level protocols requested be transmitted
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutBroadcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutBroadcastPkts, 1);
+      NET_IF_STATS_INC_COUNTER64(outBroadcastPkts, 1);
    }
    else if(macIsMulticastAddr(destMacAddr))
    {
       //Number of non-unicast packets that higher-level protocols requested be transmitted
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutNUcastPkts, 1);
-
+      NET_IF_STATS_INC_COUNTER32(outNUcastPkts, 1);
       //Number of multicast packets that higher-level protocols requested be transmitted
-      IF_MIB_INC_COUNTER32(ifXTable[interface->index].ifOutMulticastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutMulticastPkts, 1);
+      NET_IF_STATS_INC_COUNTER64(outMulticastPkts, 1);
    }
    else
    {
       //Number of unicast packets that higher-level protocols requested be transmitted
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutUcastPkts, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutUcastPkts, 1);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutUcastPkts, 1);
+      NET_IF_STATS_INC_COUNTER64(outUcastPkts, 1);
    }
 }
 
@@ -468,23 +452,23 @@ void ethUpdateErrorStats(NetInterface *interface, error_t error)
    {
    case ERROR_INVALID_ADDRESS:
    case ERROR_WRONG_IDENTIFIER:
-      //Number of inbound packets which were chosen to be discarded even
-      //though no errors had been detected
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+      //Number of inbound packets which were chosen to be discarded even though
+      //no errors had been detected
+      NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
       break;
+
    case ERROR_INVALID_LENGTH:
    case ERROR_WRONG_CHECKSUM:
       //Number of inbound packets that contained errors
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInErrors, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInErrors, 1);
+      NET_IF_STATS_INC_COUNTER32(inErrors, 1);
       break;
+
    case ERROR_INVALID_PROTOCOL:
       //Number of packets received via the interface which were discarded
       //because of an unknown or unsupported protocol
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInUnknownProtos, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInUnknownProtos, 1);
+      NET_IF_STATS_INC_COUNTER32(inUnknownProtos, 1);
       break;
+
    default:
       //Just for sanity
       break;
@@ -644,8 +628,6 @@ uint32_t ethCalcCrcEx(const NetBuffer *buffer, size_t offset, size_t length)
 error_t ethCheckCrc(NetInterface *interface, const uint8_t *frame,
    size_t length)
 {
-   uint32_t crc;
-
    //Malformed Ethernet frame?
    if(length < (sizeof(EthHeader) + ETH_CRC_SIZE))
    {
@@ -656,20 +638,13 @@ error_t ethCheckCrc(NetInterface *interface, const uint8_t *frame,
    //CRC verification not supported by hardware?
    if(!interface->nicDriver->autoCrcVerif)
    {
-      //The value of the residue is 0x2144DF1C when no CRC errors
-      //are detected
+      //The value of the residue is 0x2144DF1C when no CRC errors are detected
       if(ethCalcCrc(frame, length) != 0x2144DF1C)
       {
          //Drop the received frame
          return ERROR_WRONG_CHECKSUM;
       }
    }
-
-   //Retrieve CRC value
-   crc = LOAD32BE(frame + length - ETH_CRC_SIZE);
-
-   //Gather entropy
-   netContext.entropy += crc;
 
    //Successful CRC verification
    return NO_ERROR;

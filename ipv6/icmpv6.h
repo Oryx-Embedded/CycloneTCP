@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _ICMPV6_H
@@ -33,6 +33,24 @@
 
 //Dependencies
 #include "core/net.h"
+
+//ICMPv6 statistics support
+#ifndef ICMPV6_STATS_SUPPORT
+#if (IP_MIB_SUPPORT == ENABLED)
+   #define ICMPV6_STATS_SUPPORT ENABLED
+#else
+   #define ICMPV6_STATS_SUPPORT DISABLED
+#endif
+#elif (ICMPV6_STATS_SUPPORT != ENABLED && ICMPV6_STATS_SUPPORT != DISABLED)
+   #error ICMPV6_STATS_SUPPORT parameter is not valid
+#endif
+
+//ICMPv6 statistics
+#if (ICMPV6_STATS_SUPPORT == ENABLED)
+   #define ICMPV6_STATS_INC_COUNTER32(name, value) interface->netContext->icmpv6Stats.name += value
+#else
+   #define ICMPV6_STATS_INC_COUNTER32(name, value)
+#endif
 
 //C++ guard
 #ifdef __cplusplus

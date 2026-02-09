@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -83,47 +83,54 @@ error_t tja1103Init(NetInterface *interface)
       interface->extIntDriver->init();
    }
 
-   //Wait for the MII interface to be ready
-   do
-   {
-      //Read PHY identification register 1
-      value = tja1103ReadPhyReg(interface, TJA1103_PHY_ID1);
+   //Reset PHY transceiver
+   tja1103WriteMmdReg(interface, TJA1103_DEVICE_CONTROL,
+      TJA1103_DEVICE_CONTROL_DEVICE_RESET);
 
-      //Check identifier value
-   } while (value != TJA1103_PHY_ID1_OUI_MSB_DEFAULT);
+   //Wait for the reset to complete
+   while(tja1103ReadMmdReg(interface, TJA1103_DEVICE_CONTROL) &
+      TJA1103_DEVICE_CONTROL_DEVICE_RESET)
+   {
+   }
 
    //Dump PHY registers for debugging purpose
    tja1103DumpPhyReg(interface);
 
    //Enable configuration register access
-   tja1103WriteMmdReg(interface, TJA1103_DEVICE_CTRL,
-      TJA1103_DEVICE_CTRL_CONFIG_GLOBAL_EN | TJA1103_DEVICE_CTRL_CONFIG_ALL_EN);
+   tja1103WriteMmdReg(interface, TJA1103_DEVICE_CONTROL,
+      TJA1103_DEVICE_CONTROL_GLOBAL_CONFIG_ENABLE |
+      TJA1103_DEVICE_CONTROL_SUPER_CONFIG_ENABLE);
 
-   tja1103WriteMmdReg(interface, TJA1103_PORT_CTRL, TJA1103_PORT_CTRL_EN);
-   tja1103WriteMmdReg(interface, TJA1103_PHY_CTRL, TJA1103_PHY_CTRL_CONFIG_EN);
-   tja1103WriteMmdReg(interface, TJA1103_INFRA_CTRL, TJA1103_INFRA_CTRL_EN);
+   tja1103WriteMmdReg(interface, TJA1103_PORT_CONTROL,
+      TJA1103_PORT_CONTROL_CONFIG_ENABLE);
+
+   tja1103WriteMmdReg(interface, TJA1103_PHY_CONTROL,
+      TJA1103_PHY_CONTROL_CONFIG_ENABLE);
+
+   tja1103WriteMmdReg(interface, TJA1103_PORT_INFRA_CONTROL,
+      TJA1103_PORT_INFRA_CONTROL_CONFIG_ENABLE);
 
    //Perform custom configuration
    tja1103InitHook(interface);
 
    //The PHY is configured for autonomous operation
    value = tja1103ReadMmdReg(interface, TJA1103_PHY_CONFIG);
-   value |= TJA1103_PHY_CONFIG_AUTO;
+   value |= TJA1103_PHY_CONFIG_AUTO_OPERATION;
    tja1103WriteMmdReg(interface, TJA1103_PHY_CONFIG, value);
 
-   //Clear FUSA_PASS interrupt flag
-   tja1103WriteMmdReg(interface, TJA1103_ALWAYS_ACCESSIBLE,
-      TJA1103_ALWAYS_ACCESSIBLE_FUSA_PASS);
+   //Clear FUSA_PASS_IRQ flag
+   tja1103WritePhyReg(interface, TJA1103_ALWAYS_ACCESSIBLE,
+      TJA1103_ALWAYS_ACCESSIBLE_FUSA_PASS_IRQ);
 
    //Start operation
-   value = tja1103ReadMmdReg(interface, TJA1103_PHY_CTRL);
-   value |= TJA1103_PHY_CTRL_START_OP;
-   tja1103WriteMmdReg(interface, TJA1103_PHY_CTRL, value);
+   value = tja1103ReadMmdReg(interface, TJA1103_PHY_CONTROL);
+   value |= TJA1103_PHY_CONTROL_START_OPERATION;
+   tja1103WriteMmdReg(interface, TJA1103_PHY_CONTROL, value);
 
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -154,9 +161,9 @@ void tja1103Tick(NetInterface *interface)
    if(interface->extIntDriver == NULL)
    {
       //Read status register
-      value = tja1103ReadMmdReg(interface, TJA1103_PHY_STAT);
+      value = tja1103ReadMmdReg(interface, TJA1103_PHY_STATUS);
       //Retrieve current link state
-      linkState = (value & TJA1103_PHY_STAT_LINK_STATUS) ? TRUE : FALSE;
+      linkState = (value & TJA1103_PHY_STATUS_LINK_STATUS) ? TRUE : FALSE;
 
       //Link up event?
       if(linkState && !interface->linkState)
@@ -164,7 +171,7 @@ void tja1103Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
       //Link down event?
       else if(!linkState && interface->linkState)
@@ -172,7 +179,7 @@ void tja1103Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
    }
 }
@@ -218,10 +225,10 @@ void tja1103EventHandler(NetInterface *interface)
    uint16_t value;
 
    //Read status register
-   value = tja1103ReadMmdReg(interface, TJA1103_PHY_STAT);
+   value = tja1103ReadMmdReg(interface, TJA1103_PHY_STATUS);
 
-   //Link is up?
-   if((value & TJA1103_PHY_STAT_LINK_STATUS) != 0)
+   //Check link state
+   if((value & TJA1103_PHY_STATUS_LINK_STATUS) != 0)
    {
       //Adjust MAC configuration parameters for proper operation
       interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
@@ -328,18 +335,20 @@ void tja1103WriteMmdReg(NetInterface *interface, uint8_t devAddr,
    uint16_t regAddr, uint16_t data)
 {
    //Select register operation
-   tja1103WritePhyReg(interface, TJA1103_MMDCTRL,
-      TJA1103_MMDCTRL_FNCTN_ADDR | (devAddr & TJA1103_MMDCTRL_DEVAD));
+   tja1103WritePhyReg(interface, TJA1103_CL45_ACCESS_CONTROL,
+      TJA1103_CL45_ACCESS_CONTROL_OP_ADDR |
+      (devAddr & TJA1103_CL45_ACCESS_CONTROL_MMD));
 
    //Write MMD register address
-   tja1103WritePhyReg(interface, TJA1103_MMDAD, regAddr);
+   tja1103WritePhyReg(interface, TJA1103_CL45_ADDRESS_DATA, regAddr);
 
    //Select data operation
-   tja1103WritePhyReg(interface, TJA1103_MMDCTRL,
-      TJA1103_MMDCTRL_FNCTN_DATA_NO_POST_INC | (devAddr & TJA1103_MMDCTRL_DEVAD));
+   tja1103WritePhyReg(interface, TJA1103_CL45_ACCESS_CONTROL,
+      TJA1103_CL45_ACCESS_CONTROL_OP_DATA_NO_POST_INC |
+      (devAddr & TJA1103_CL45_ACCESS_CONTROL_MMD));
 
    //Write the content of the MMD register
-   tja1103WritePhyReg(interface, TJA1103_MMDAD, data);
+   tja1103WritePhyReg(interface, TJA1103_CL45_ADDRESS_DATA, data);
 }
 
 
@@ -355,16 +364,18 @@ uint16_t tja1103ReadMmdReg(NetInterface *interface, uint8_t devAddr,
    uint16_t regAddr)
 {
    //Select register operation
-   tja1103WritePhyReg(interface, TJA1103_MMDCTRL,
-      TJA1103_MMDCTRL_FNCTN_ADDR | (devAddr & TJA1103_MMDCTRL_DEVAD));
+   tja1103WritePhyReg(interface, TJA1103_CL45_ACCESS_CONTROL,
+      TJA1103_CL45_ACCESS_CONTROL_OP_ADDR |
+      (devAddr & TJA1103_CL45_ACCESS_CONTROL_MMD));
 
    //Write MMD register address
-   tja1103WritePhyReg(interface, TJA1103_MMDAD, regAddr);
+   tja1103WritePhyReg(interface, TJA1103_CL45_ADDRESS_DATA, regAddr);
 
    //Select data operation
-   tja1103WritePhyReg(interface, TJA1103_MMDCTRL,
-      TJA1103_MMDCTRL_FNCTN_DATA_NO_POST_INC | (devAddr & TJA1103_MMDCTRL_DEVAD));
+   tja1103WritePhyReg(interface, TJA1103_CL45_ACCESS_CONTROL,
+      TJA1103_CL45_ACCESS_CONTROL_OP_DATA_NO_POST_INC |
+      (devAddr & TJA1103_CL45_ACCESS_CONTROL_MMD));
 
    //Read the content of the MMD register
-   return tja1103ReadPhyReg(interface, TJA1103_MMDAD);
+   return tja1103ReadPhyReg(interface, TJA1103_CL45_ADDRESS_DATA);
 }

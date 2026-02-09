@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -50,7 +50,7 @@
 void ndpRouterAdvGetDefaultSettings(NdpRouterAdvSettings *settings)
 {
    //Underlying network interface
-   settings->interface = netGetDefaultInterface();
+   settings->interface = NULL;
 
    //The maximum time allowed between sending unsolicited multicast Router
    //Advertisements from the interface
@@ -135,31 +135,53 @@ error_t ndpRouterAdvInit(NdpRouterAdvContext *context,
    TRACE_INFO("Initializing Router Advertisement service...\r\n");
 
    //Ensure the parameters are valid
-   if(!context || !settings)
+   if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Valid network interface?
-   if(!settings->interface)
+   //Invalid network interface?
+   if(settings->interface == NULL)
       return ERROR_INVALID_PARAMETER;
-
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
 
    //Point to the underlying network interface
    interface = settings->interface;
 
    //Clear the RA service context
    osMemset(context, 0, sizeof(NdpRouterAdvContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
    //Save user settings
-   context->settings = *settings;
+   context->interface = settings->interface;
+   context->maxRtrAdvInterval = settings->maxRtrAdvInterval;
+   context->minRtrAdvInterval = settings->minRtrAdvInterval;
+   context->curHopLimit = settings->curHopLimit;
+   context->managedFlag = settings->managedFlag;
+   context->otherConfigFlag = settings->otherConfigFlag;
+   context->homeAgentFlag = settings->homeAgentFlag;
+   context->preference = settings->preference;
+   context->proxyFlag = settings->proxyFlag;
+   context->defaultLifetime = settings->defaultLifetime;
+   context->reachableTime = settings->reachableTime;
+   context->retransTimer = settings->retransTimer;
+   context->linkMtu = settings->linkMtu;
+   context->prefixList = settings->prefixList;
+   context->prefixListLength = settings->prefixListLength;
+   context->routeList = settings->routeList;
+   context->routeListLength = settings->routeListLength;
+   context->contextList = settings->contextList;
+   context->contextListLength = settings->contextListLength;
+   context->addOptionsCallback = settings->addOptionsCallback;
 
    //The RA service is currently disabled on the interface
    context->running = FALSE;
+
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the RA service context to the network interface
    interface->ndpRouterAdvContext = context;
-
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -185,13 +207,13 @@ error_t ndpRouterAdvStart(NdpRouterAdvContext *context)
    TRACE_INFO("Starting Router Advertisement service...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Check whether the service is running
    if(!context->running)
    {
       //Point to the underlying network interface
-      interface = context->settings.interface;
+      interface = context->interface;
 
       //Join the All-Routers multicast address
       error = ipv6JoinMulticastGroup(interface,
@@ -209,21 +231,21 @@ error_t ndpRouterAdvStart(NdpRouterAdvContext *context)
          interface->ipv6Context.isRouter = TRUE;
 
          //Default Hop Limit value
-         if(context->settings.curHopLimit != 0)
+         if(context->curHopLimit != 0)
          {
-            interface->ipv6Context.curHopLimit = context->settings.curHopLimit;
+            interface->ipv6Context.curHopLimit = context->curHopLimit;
          }
 
          //The time a node assumes a neighbor is reachable
-         if(context->settings.reachableTime != 0)
+         if(context->reachableTime != 0)
          {
-            interface->ndpContext.reachableTime = context->settings.reachableTime;
+            interface->ndpContext.reachableTime = context->reachableTime;
          }
 
          //The time between retransmissions of NS messages
-         if(context->settings.retransTimer != 0)
+         if(context->retransTimer != 0)
          {
-            interface->ndpContext.retransTimer = context->settings.retransTimer;
+            interface->ndpContext.retransTimer = context->retransTimer;
          }
 
          //Start transmitting Router Advertisements
@@ -237,7 +259,7 @@ error_t ndpRouterAdvStart(NdpRouterAdvContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return status code
    return error;
@@ -263,13 +285,13 @@ error_t ndpRouterAdvStop(NdpRouterAdvContext *context)
    TRACE_INFO("Stopping Router Advertisement service...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Check whether the service is running
    if(context->running)
    {
       //Point to the underlying network interface
-      interface = context->settings.interface;
+      interface = context->interface;
 
       //The router should transmit one or more final multicast Router
       //Advertisements with a Router Lifetime field of zero
@@ -294,10 +316,39 @@ error_t ndpRouterAdvStop(NdpRouterAdvContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return status code
    return error;
+}
+
+
+/**
+ * @brief Release RA service
+ * @param[in] context Pointer to the RA service context
+ **/
+
+void ndpRouterAdvDeinit(NdpRouterAdvContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the RA service context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the RA service context from the network interface
+      interface->ndpRouterAdvContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear RA service context
+      osMemset(context, 0, sizeof(NdpRouterAdvContext));
+   }
 }
 
 #endif

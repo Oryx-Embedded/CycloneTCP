@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,9 +42,6 @@
 //Check TCP/IP stack configuration
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
 
-//Tick counter to handle periodic operations
-systime_t mdnsResponderTickCounter;
-
 
 /**
  * @brief Initialize settings with default values
@@ -53,8 +50,8 @@ systime_t mdnsResponderTickCounter;
 
 void mdnsResponderGetDefaultSettings(MdnsResponderSettings *settings)
 {
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Underlying network interface
+   settings->interface = NULL;
 
    //Number of announcement packets
    settings->numAnnouncements = MDNS_ANNOUNCE_NUM;
@@ -93,16 +90,27 @@ error_t mdnsResponderInit(MdnsResponderContext *context,
 
    //Clear the mDNS responder context
    osMemset(context, 0, sizeof(MdnsResponderContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
    //Save user settings
-   context->settings = *settings;
+   context->interface = settings->interface;
+   context->numAnnouncements = settings->numAnnouncements;
+   context->ttl = settings->ttl;
+   context->stateChangeEvent = settings->stateChangeEvent;
 
    //mDNS responder is currently suspended
    context->running = FALSE;
    //Initialize state machine
    context->state = MDNS_STATE_INIT;
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the mDNS responder context to the network interface
    interface->mdnsResponderContext = context;
+   //Release exclusive access
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -125,7 +133,7 @@ error_t mdnsResponderStart(MdnsResponderContext *context)
    TRACE_INFO("Starting mDNS responder...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Start mDNS responder
    context->running = TRUE;
@@ -133,7 +141,7 @@ error_t mdnsResponderStart(MdnsResponderContext *context)
    context->state = MDNS_STATE_INIT;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -156,7 +164,7 @@ error_t mdnsResponderStop(MdnsResponderContext *context)
    TRACE_INFO("Stopping mDNS responder...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Suspend mDNS responder
    context->running = FALSE;
@@ -164,7 +172,7 @@ error_t mdnsResponderStop(MdnsResponderContext *context)
    context->state = MDNS_STATE_INIT;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -182,11 +190,11 @@ MdnsState mdnsResponderGetState(MdnsResponderContext *context)
    MdnsState state;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
    //Get current state
    state = context->state;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return current state
    return state;
@@ -203,8 +211,6 @@ MdnsState mdnsResponderGetState(MdnsResponderContext *context)
 error_t mdnsResponderSetHostname(MdnsResponderContext *context,
    const char_t *hostname)
 {
-   NetInterface *interface;
-
    //Check parameters
    if(context == NULL || hostname == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -214,16 +220,13 @@ error_t mdnsResponderSetHostname(MdnsResponderContext *context,
       return ERROR_INVALID_LENGTH;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
+   netLock(context->netContext);
 
    //Check whether a host name is already assigned
    if(context->hostname[0] != '\0')
    {
       //Check whether the link is up
-      if(interface->linkState)
+      if(context->interface->linkState)
       {
          //Send a goodbye packet
          mdnsResponderSendGoodbye(context);
@@ -234,10 +237,10 @@ error_t mdnsResponderSetHostname(MdnsResponderContext *context,
    osStrcpy(context->hostname, hostname);
 
    //Restart probing process (host name)
-   mdnsResponderStartProbing(interface->mdnsResponderContext);
+   mdnsResponderStartProbing(context);
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -260,7 +263,7 @@ error_t mdnsResponderStartProbing(MdnsResponderContext *context)
       return ERROR_INVALID_PARAMETER;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Reset variables
    context->ipv4AddrCount = 0;
@@ -379,7 +382,7 @@ void mdnsResponderTick(MdnsResponderContext *context)
       return;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Get current time
    time = osGetSystemTime();
@@ -407,7 +410,9 @@ void mdnsResponderTick(MdnsResponderContext *context)
       if(timeCompare(time, context->timestamp + MDNS_INIT_DELAY) >= 0)
       {
          //Initial random delay
-         delay = netGenerateRandRange(MDNS_RAND_DELAY_MIN, MDNS_RAND_DELAY_MAX);
+         delay = netGenerateRandRange(context->netContext, MDNS_RAND_DELAY_MIN,
+            MDNS_RAND_DELAY_MAX);
+
          //Start probing
          mdnsResponderChangeState(context, MDNS_STATE_PROBING, delay);
       }
@@ -464,7 +469,7 @@ void mdnsResponderTick(MdnsResponderContext *context)
             {
                //The mDNS responder must send unsolicited mDNS responses
                //containing all of its newly registered resource records
-               if(context->settings.numAnnouncements > 0)
+               if(context->numAnnouncements > 0)
                {
                   mdnsResponderChangeState(context, MDNS_STATE_ANNOUNCING, 0);
                }
@@ -516,7 +521,7 @@ void mdnsResponderTick(MdnsResponderContext *context)
             }
 
             //Last announcement packet?
-            if(context->retransmitCount >= context->settings.numAnnouncements)
+            if(context->retransmitCount >= context->numAnnouncements)
             {
                //A mDNS responder must not send regular periodic announcements
                mdnsResponderChangeState(context, MDNS_STATE_IDLE, 0);
@@ -624,6 +629,35 @@ void mdnsResponderLinkChangeEvent(MdnsResponderContext *context)
    //Whenever a mDNS responder receives an indication of a link
    //change event, it must perform probing and announcing
    mdnsResponderChangeState(context, MDNS_STATE_INIT, 0);
+}
+
+
+/**
+ * @brief Release mDNS responder context
+ * @param[in] context Pointer to the mDNS responder context
+ **/
+
+void mdnsResponderDeinit(MdnsResponderContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the mDNS responder context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the mDNS responder context from the network interface
+      interface->mdnsResponderContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear mDNS responder context
+      osMemset(context, 0, sizeof(MdnsResponderContext));
+   }
 }
 
 #endif

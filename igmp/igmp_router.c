@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 3376: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -111,7 +111,10 @@ error_t igmpRouterInit(IgmpRouterContext *context,
    //Clear the IGMP router context
    osMemset(context, 0, sizeof(IgmpRouterContext));
 
-   //Initialize IGMP router context
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
+   //Save user settings
    context->interface = settings->interface;
    context->version = settings->version;
    context->numGroups = settings->numGroups;
@@ -132,8 +135,12 @@ error_t igmpRouterInit(IgmpRouterContext *context,
       context->groups[i].state = IGMP_ROUTER_GROUP_STATE_NO_MEMBERS_PRESENT;
    }
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the IGMP router context to the network interface
    interface->igmpRouterContext = context;
+   //Release exclusive access
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -156,7 +163,7 @@ error_t igmpRouterStart(IgmpRouterContext *context)
    TRACE_INFO("Starting IGMP router...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Accept all frames with a multicast destination address
    context->interface->acceptAllMulticast = TRUE;
@@ -167,7 +174,7 @@ error_t igmpRouterStart(IgmpRouterContext *context)
    context->running = TRUE;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -190,7 +197,7 @@ error_t igmpRouterStop(IgmpRouterContext *context)
    TRACE_INFO("Stopping IGMP router...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Revert to default configuration
    context->interface->acceptAllMulticast = FALSE;
@@ -201,7 +208,7 @@ error_t igmpRouterStop(IgmpRouterContext *context)
    context->running = FALSE;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -384,6 +391,35 @@ void igmpRouterGroupFsm(IgmpRouterContext *context, IgmpRouterGroup *group)
    {
       //Invalid state
       group->state = IGMP_ROUTER_GROUP_STATE_NO_MEMBERS_PRESENT;
+   }
+}
+
+
+/**
+ * @brief Release IGMP router context
+ * @param[in] context Pointer to the IGMP router context
+ **/
+
+void igmpRouterDeinit(IgmpRouterContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the IGMP router context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the IGMP router context from the network interface
+      interface->igmpRouterContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear IGMP router context
+      osMemset(context, 0, sizeof(IgmpRouterContext));
    }
 }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,28 +42,26 @@
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
 #include "mibs/mib2_module.h"
-#include "mibs/if_mib_module.h"
 #include "mibs/udp_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
 #if (UDP_SUPPORT == ENABLED)
 
-//Ephemeral ports are used for dynamic port assignment
-static uint16_t udpDynamicPort;
 //Table that holds the registered user callbacks
 UdpRxCallbackEntry udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
 
 
 /**
  * @brief UDP related initialization
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Error code
  **/
 
-error_t udpInit(void)
+error_t udpInit(NetContext *context)
 {
    //Reset ephemeral port number
-   udpDynamicPort = 0;
+   context->udpDynamicPort = 0;
 
    //Initialize callback table
    osMemset(udpCallbackTable, 0, sizeof(udpCallbackTable));
@@ -75,21 +73,22 @@ error_t udpInit(void)
 
 /**
  * @brief Get an ephemeral port number
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Ephemeral port
  **/
 
-uint16_t udpGetDynamicPort(void)
+uint16_t udpGetDynamicPort(NetContext *context)
 {
    uint_t port;
 
    //Retrieve current port number
-   port = udpDynamicPort;
+   port = context->udpDynamicPort;
 
    //Invalid port number?
    if(port < SOCKET_EPHEMERAL_PORT_MIN || port > SOCKET_EPHEMERAL_PORT_MAX)
    {
       //Generate a random port number
-      port = netGenerateRandRange(SOCKET_EPHEMERAL_PORT_MIN,
+      port = netGenerateRandRange(context, SOCKET_EPHEMERAL_PORT_MIN,
          SOCKET_EPHEMERAL_PORT_MAX);
    }
 
@@ -97,12 +96,12 @@ uint16_t udpGetDynamicPort(void)
    if(port < SOCKET_EPHEMERAL_PORT_MAX)
    {
       //Increment port number
-      udpDynamicPort = port + 1;
+      context->udpDynamicPort = port + 1;
    }
    else
    {
       //Wrap around if necessary
-      udpDynamicPort = SOCKET_EPHEMERAL_PORT_MIN;
+      context->udpDynamicPort = SOCKET_EPHEMERAL_PORT_MIN;
    }
 
    //Return an ephemeral port number
@@ -413,8 +412,7 @@ error_t udpProcessDatagram(NetInterface *interface,
       {
          //Number of inbound packets which were chosen to be discarded even
          //though no errors had been detected
-         MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-         IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+         NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
 
          //Report an error
          return ERROR_RECEIVE_QUEUE_FULL;
@@ -444,8 +442,7 @@ error_t udpProcessDatagram(NetInterface *interface,
    {
       //Number of inbound packets which were chosen to be discarded even
       //though no errors had been detected
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+      NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
 
       //Report an error
       return ERROR_OUT_OF_MEMORY;
@@ -629,8 +626,9 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
 #endif
 
       //Send UDP datagram
-      error = udpSendBuffer(interface, &message->srcIpAddr, socket->localPort,
-         &message->destIpAddr, message->destPort, buffer, offset, &ancillary);
+      error = udpSendBuffer(socket->netContext, interface, &message->srcIpAddr,
+         socket->localPort, &message->destIpAddr, message->destPort, buffer,
+         offset, &ancillary);
    }
 
    //Free previously allocated memory
@@ -643,6 +641,7 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
 
 /**
  * @brief Send a UDP datagram
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] interface Underlying network interface
  * @param[in] srcIpAddr Source IP address (optional parameter)
  * @param[in] srcPort Source port
@@ -655,9 +654,10 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
  * @return Error code
  **/
 
-error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
-   uint16_t srcPort, const IpAddr *destIpAddr, uint16_t destPort,
-   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
+error_t udpSendBuffer(NetContext *context, NetInterface *interface,
+   const IpAddr *srcIpAddr, uint16_t srcPort, const IpAddr *destIpAddr,
+   uint16_t destPort, NetBuffer *buffer, size_t offset,
+   NetTxAncillary *ancillary)
 {
    error_t error;
    size_t length;
@@ -695,7 +695,7 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
          //Use default network interface?
          if(interface == NULL)
          {
-            interface = netGetDefaultInterface();
+            interface = netGetDefaultInterface(context);
          }
 
          //Copy the source IP address
@@ -707,7 +707,7 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
 
          //Select the source IPv4 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv4SelectSourceAddr(&interface, destIpAddr->ipv4Addr,
+         error = ipv4SelectSourceAddr(context, &interface, destIpAddr->ipv4Addr,
             &ipAddr);
 
          //Check status code
@@ -768,7 +768,7 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
          //Use default network interface?
          if(interface == NULL)
          {
-            interface = netGetDefaultInterface();
+            interface = netGetDefaultInterface(context);
          }
 
          //Copy the source IP address
@@ -778,7 +778,7 @@ error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
       {
          //Select the source IPv6 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv6SelectSourceAddr(&interface, &destIpAddr->ipv6Addr,
+         error = ipv6SelectSourceAddr(context, &interface, &destIpAddr->ipv6Addr,
             &pseudoHeader.ipv6Data.srcAddr);
          //Any error to report?
          if(error)
@@ -858,11 +858,11 @@ error_t udpReceiveDatagram(Socket *socket, SocketMsg *message, uint_t flags)
          osResetEvent(&socket->event);
 
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(socket->netContext);
          //Wait until an event is triggered
          osWaitForEvent(&socket->event, socket->timeout);
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(socket->netContext);
       }
    }
 
@@ -1018,7 +1018,7 @@ void udpUpdateEvents(Socket *socket)
  * @return Error code
  **/
 
-error_t udpAttachRxCallback(NetInterface *interface, uint16_t port,
+error_t udpRegisterRxCallback(NetInterface *interface, uint16_t port,
    UdpRxCallback callback, void *param)
 {
    uint_t i;
@@ -1059,7 +1059,7 @@ error_t udpAttachRxCallback(NetInterface *interface, uint16_t port,
  * @return Error code
  **/
 
-error_t udpDetachRxCallback(NetInterface *interface, uint16_t port)
+error_t udpUnregisterRxCallback(NetInterface *interface, uint16_t port)
 {
    error_t error;
    uint_t i;

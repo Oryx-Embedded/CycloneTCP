@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _AUTO_IP_MISC_H
@@ -40,9 +40,6 @@
 extern "C" {
 #endif
 
-//Tick counter to handle periodic operations
-extern systime_t autoIpTickCounter;
-
 //Auto-IP related functions
 void autoIpTick(AutoIpContext *context);
 void autoIpLinkChangeEvent(AutoIpContext *context);
@@ -50,7 +47,7 @@ void autoIpLinkChangeEvent(AutoIpContext *context);
 void autoIpChangeState(AutoIpContext *context, AutoIpState newState,
    systime_t delay);
 
-void autoIpGenerateAddr(Ipv4Addr *ipAddr);
+void autoIpGenerateAddr(AutoIpContext *context);
 
 void autoIpResetConfig(AutoIpContext *context);
 void autoIpDumpConfig(AutoIpContext *context);

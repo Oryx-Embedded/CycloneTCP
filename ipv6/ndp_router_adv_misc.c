@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -41,14 +41,10 @@
 #include "ipv6/ndp_misc.h"
 #include "ipv6/ndp_router_adv.h"
 #include "ipv6/ndp_router_adv_misc.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
 #if (IPV6_SUPPORT == ENABLED && NDP_ROUTER_ADV_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t ndpRouterAdvTickCounter;
 
 
 /**
@@ -60,16 +56,13 @@ void ndpRouterAdvTick(NdpRouterAdvContext *context)
 {
    systime_t time;
    NetInterface *interface;
-   NdpRouterAdvSettings *settings;
 
    //Make sure the RA service has been properly instantiated
    if(context == NULL)
       return;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
-   //Point to the router configuration variables
-   settings = &context->settings;
+   interface = context->interface;
 
    //Get current time
    time = osGetSystemTime();
@@ -85,7 +78,7 @@ void ndpRouterAdvTick(NdpRouterAdvContext *context)
          if(timeCompare(time, context->timestamp + context->timeout) >= 0)
          {
             //Send an unsolicited Router Advertisement
-            ndpSendRouterAdv(context, context->settings.defaultLifetime);
+            ndpSendRouterAdv(context, context->defaultLifetime);
 
             //Save the time at which the message was sent
             context->timestamp = time;
@@ -93,8 +86,8 @@ void ndpRouterAdvTick(NdpRouterAdvContext *context)
             //Whenever a multicast advertisement is sent from an interface, the
             //timer is reset to a uniformly distributed random value between
             //MinRtrAdvInterval and MaxRtrAdvInterval
-            context->timeout = netGenerateRandRange(settings->minRtrAdvInterval,
-               settings->maxRtrAdvInterval);
+            context->timeout = netGenerateRandRange(context->netContext,
+               context->minRtrAdvInterval, context->maxRtrAdvInterval);
 
             //First Router Advertisements to be sent from this interface?
             if(context->routerAdvCount < NDP_MAX_INITIAL_RTR_ADVERTISEMENTS)
@@ -128,7 +121,7 @@ void ndpRouterAdvLinkChangeEvent(NdpRouterAdvContext *context)
       return;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Reset variables
    context->timestamp = osGetSystemTime();
@@ -136,21 +129,21 @@ void ndpRouterAdvLinkChangeEvent(NdpRouterAdvContext *context)
    context->routerAdvCount = 0;
 
    //Default Hop Limit value
-   if(context->settings.curHopLimit != 0)
+   if(context->curHopLimit != 0)
    {
-      interface->ipv6Context.curHopLimit = context->settings.curHopLimit;
+      interface->ipv6Context.curHopLimit = context->curHopLimit;
    }
 
    //The time a node assumes a neighbor is reachable
-   if(context->settings.reachableTime != 0)
+   if(context->reachableTime != 0)
    {
-      interface->ndpContext.reachableTime = context->settings.reachableTime;
+      interface->ndpContext.reachableTime = context->reachableTime;
    }
 
    //The time between retransmissions of NS messages
-   if(context->settings.retransTimer != 0)
+   if(context->retransTimer != 0)
    {
-      interface->ndpContext.retransTimer = context->settings.retransTimer;
+      interface->ndpContext.retransTimer = context->retransTimer;
    }
 }
 
@@ -317,7 +310,7 @@ void ndpProcessRouterSol(NetInterface *interface,
 
    //Upon receipt of a Router Solicitation, compute a random delay within the
    //range 0 through MAX_RA_DELAY_TIME
-   delay = netGenerateRandRange(0, NDP_MAX_RA_DELAY_TIME);
+   delay = netGenerateRandRange(context->netContext,0, NDP_MAX_RA_DELAY_TIME);
 
    //If the computed value corresponds to a time later than the time the next
    //multicast Router Advertisement is scheduled to be sent, ignore the random
@@ -361,7 +354,6 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    NetBuffer *buffer;
    NetInterface *interface;
    NdpRouterAdvMessage *message;
-   NdpRouterAdvSettings *settings;
    Ipv6PseudoHeader pseudoHeader;
    NetTxAncillary ancillary;
 #if (ETH_SUPPORT == ENABLED)
@@ -369,17 +361,15 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
 #endif
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
-   //Point to the router configuration variables
-   settings = &context->settings;
+   interface = context->interface;
 
    //The destination address is typically the all-nodes multicast address
    pseudoHeader.destAddr = IPV6_LINK_LOCAL_ALL_NODES_ADDR;
 
    //Routers must use their link-local address as the source for Router
    //Advertisement messages so that hosts can uniquely identify routers
-   error = ipv6SelectSourceAddr(&interface, &pseudoHeader.destAddr,
-      &pseudoHeader.srcAddr);
+   error = ipv6SelectSourceAddr(interface->netContext, &interface,
+      &pseudoHeader.destAddr, &pseudoHeader.srcAddr);
 
    //No link-local address assigned to the interface?
    if(error)
@@ -401,21 +391,23 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    message->type = ICMPV6_TYPE_ROUTER_ADV;
    message->code = 0;
    message->checksum = 0;
-   message->curHopLimit = settings->curHopLimit;
-   message->m = settings->managedFlag;
-   message->o = settings->otherConfigFlag;
-   message->h = settings->homeAgentFlag;
-   message->prf = settings->preference;
-   message->p = settings->proxyFlag;
+   message->curHopLimit = context->curHopLimit;
+   message->m = context->managedFlag;
+   message->o = context->otherConfigFlag;
+   message->h = context->homeAgentFlag;
+   message->prf = context->preference;
+   message->p = context->proxyFlag;
    message->reserved = 0;
    message->routerLifetime = htons(routerLifetime);
-   message->reachableTime = htonl(settings->reachableTime);
-   message->retransTimer = htonl(settings->retransTimer);
+   message->reachableTime = htonl(context->reachableTime);
+   message->retransTimer = htonl(context->retransTimer);
 
    //If the Router Lifetime is zero, the preference value must be set to
    //zero by the sender
    if(routerLifetime == 0)
+   {
       message->prf = NDP_ROUTER_SEL_PREFERENCE_MEDIUM;
+   }
 
    //Length of the message, excluding any option
    length = sizeof(NdpRouterAdvMessage);
@@ -434,13 +426,13 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
 #endif
 
    //A value of zero indicates that no MTU option is sent
-   if(settings->linkMtu > 0)
+   if(context->linkMtu > 0)
    {
       NdpMtuOption mtuOption;
 
       //The MTU option specifies the recommended MTU for the link
       mtuOption.reserved = 0;
-      mtuOption.mtu = htonl(settings->linkMtu);
+      mtuOption.mtu = htonl(context->linkMtu);
 
       //Add MTU option
       ndpAddOption(message, &length, NDP_OPT_MTU,
@@ -449,21 +441,21 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    }
 
    //Loop through the list of IPv6 prefixes
-   for(i = 0; i < settings->prefixListLength; i++)
+   for(i = 0; i < context->prefixListLength; i++)
    {
       NdpPrefixInfoOption prefixInfoOption;
 
       //The Prefix Information option provide hosts with on-link prefixes and
       //prefixes for Address Autoconfiguration
-      prefixInfoOption.prefixLength = settings->prefixList[i].length;
-      prefixInfoOption.l = settings->prefixList[i].onLinkFlag;
-      prefixInfoOption.a = settings->prefixList[i].autonomousFlag;
+      prefixInfoOption.prefixLength = context->prefixList[i].length;
+      prefixInfoOption.l = context->prefixList[i].onLinkFlag;
+      prefixInfoOption.a = context->prefixList[i].autonomousFlag;
       prefixInfoOption.r = 0;
       prefixInfoOption.reserved1 = 0;
-      prefixInfoOption.validLifetime = htonl(settings->prefixList[i].validLifetime);
-      prefixInfoOption.preferredLifetime = htonl(settings->prefixList[i].preferredLifetime);
+      prefixInfoOption.validLifetime = htonl(context->prefixList[i].validLifetime);
+      prefixInfoOption.preferredLifetime = htonl(context->prefixList[i].preferredLifetime);
       prefixInfoOption.reserved2 = 0;
-      prefixInfoOption.prefix = settings->prefixList[i].prefix;
+      prefixInfoOption.prefix = context->prefixList[i].prefix;
 
       //Add Prefix Information option (PIO)
       ndpAddOption(message, &length, NDP_OPT_PREFIX_INFORMATION,
@@ -472,18 +464,18 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    }
 
    //Loop through the list of routes
-   for(i = 0; i < settings->routeListLength; i++)
+   for(i = 0; i < context->routeListLength; i++)
    {
       NdpRouteInfoOption routeInfoOption;
 
       //The Route Information option specifies prefixes that are reachable via
       //the router
-      routeInfoOption.prefixLength = settings->routeList[i].length;
+      routeInfoOption.prefixLength = context->routeList[i].length;
       routeInfoOption.reserved1 = 0;
-      routeInfoOption.prf = settings->routeList[i].preference;
+      routeInfoOption.prf = context->routeList[i].preference;
       routeInfoOption.reserved2 = 0;
-      routeInfoOption.routeLifetime = htonl(settings->routeList[i].routeLifetime);
-      routeInfoOption.prefix = settings->routeList[i].prefix;
+      routeInfoOption.routeLifetime = htonl(context->routeList[i].routeLifetime);
+      routeInfoOption.prefix = context->routeList[i].prefix;
 
       //Add Route Information option (RIO)
       ndpAddOption(message, &length, NDP_OPT_ROUTE_INFORMATION,
@@ -492,19 +484,19 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    }
 
    //Loop through the list of 6LoWPAN compression contexts
-   for(i = 0; i < settings->contextListLength; i++)
+   for(i = 0; i < context->contextListLength; i++)
    {
       NdpContextOption contextOption;
 
       //The 6LoWPAN Context option (6CO) carries prefix information for LoWPAN
       //header compression
-      contextOption.contextLength = settings->contextList[i].length;
+      contextOption.contextLength = context->contextList[i].length;
       contextOption.reserved1 = 0;
-      contextOption.c = settings->contextList[i].compression;
-      contextOption.cid = settings->contextList[i].cid;
+      contextOption.c = context->contextList[i].compression;
+      contextOption.cid = context->contextList[i].cid;
       contextOption.reserved2 = 0;
-      contextOption.validLifetime = htons(settings->contextList[i].validLifetime);
-      contextOption.contextPrefix = settings->contextList[i].prefix;
+      contextOption.validLifetime = htons(context->contextList[i].validLifetime);
+      contextOption.contextPrefix = context->contextList[i].prefix;
 
       //Calculate the length of the option in bytes
       n = sizeof(NdpContextOption) - sizeof(Ipv6Addr) + (contextOption.contextLength / 8);
@@ -515,10 +507,10 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    }
 
    //Any registered callback?
-   if(context->settings.addOptionsCallback != NULL)
+   if(context->addOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.addOptionsCallback(context, message, &length);
+      context->addOptionsCallback(context, message, &length);
    }
 
    //Adjust the length of the multi-part buffer
@@ -536,9 +528,9 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
 
    //Total number of ICMP messages which this entity attempted to send
-   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   ICMPV6_STATS_INC_COUNTER32(outMsgs, 1);
    //Increment per-message type ICMP counter
-   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_ROUTER_ADV], 1);
+   ICMPV6_STATS_INC_COUNTER32(outPkts[ICMPV6_TYPE_ROUTER_ADV], 1);
 
    //Debug message
    TRACE_INFO("Sending Router Advertisement message (%" PRIuSIZE " bytes)...\r\n",

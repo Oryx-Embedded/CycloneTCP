@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 7860: HMAC-SHA-2 Authentication Protocols in the User-based Security Model
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -561,12 +561,13 @@ error_t snmpAuthIncomingMessage(const SnmpUserEntry *user, SnmpMessage *message)
  **/
 
 error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
-   uint64_t *salt)
+   uint8_t *salt)
 {
    error_t error;
    uint_t i;
    size_t n;
    Asn1Tag tag;
+   uint16_t temp;
 
    //Debug message
    TRACE_DEBUG("Scoped PDU (%" PRIuSIZE " bytes):\r\n", message->length);
@@ -597,7 +598,7 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
       //The 32-bit snmpEngineBoots is converted to the first 4 octets of our salt
       STORE32BE(message->msgAuthEngineBoots, message->msgPrivParameters);
       //The 32-bit integer is then converted to the last 4 octet of our salt
-      STORE32BE(*salt, message->msgPrivParameters + 4);
+      osMemcpy((uint8_t *) message->msgPrivParameters + 4, salt + 4, 4);
 
       //The resulting salt is then put into the msgPrivacyParameters field
       message->msgPrivParametersLen = 8;
@@ -639,12 +640,12 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
       //The 32-bit snmpEngineTime is converted to the subsequent 4 octets
       STORE32BE(message->msgAuthEngineTime, iv + 4);
       //The 64-bit integer is then converted to the last 8 octets
-      STORE64BE(*salt, iv + 8);
+      osMemcpy(iv + 8, salt, 8);
 
       //The 64-bit integer must be placed in the msgPrivacyParameters field to
       //enable the receiving entity to compute the correct IV and to decrypt
       //the message
-      STORE64BE(*salt, message->msgPrivParameters);
+      osMemcpy((uint8_t *) message->msgPrivParameters, salt, 8);
       message->msgPrivParametersLen = 8;
 
       //Initialize AES context
@@ -686,9 +687,14 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
    //Total length of the encryptedPDU
    message->length += n;
 
-   //The salt integer is then modified. It is incremented by one and wrap
-   //when it reaches its maximum value
-   *salt += 1;
+   //The salt integer is then modified. It is incremented by one and wrap when
+   //it reaches its maximum value (refer to RFC 3414, section 8.1.1.1)
+   for(temp = 1, i = 0; i < 8; i++)
+   {
+      temp += salt[7 - i];
+      salt[7 - i] = temp & 0xFF;
+      temp >>= 8;
+   }
 
    //Successful encryption
    return NO_ERROR;

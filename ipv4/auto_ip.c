@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 5227: IPv4 Address Conflict Detection
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -58,8 +58,8 @@
 
 void autoIpGetDefaultSettings(AutoIpSettings *settings)
 {
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Network interface to configure
+   settings->interface = NULL;
    //Index of the IP address to be configured
    settings->ipAddrIndex = 0;
 
@@ -99,8 +99,15 @@ error_t autoIpInit(AutoIpContext *context, const AutoIpSettings *settings)
 
    //Clear the Auto-IP context
    osMemset(context, 0, sizeof(AutoIpContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
    //Save user settings
-   context->settings = *settings;
+   context->interface = settings->interface;
+   context->ipAddrIndex = settings->ipAddrIndex;
+   context->linkChangeEvent = settings->linkChangeEvent;
+   context->stateChangeEvent = settings->stateChangeEvent;
 
    //Use default link-local address
    context->linkLocalAddr = settings->linkLocalAddr;
@@ -112,8 +119,12 @@ error_t autoIpInit(AutoIpContext *context, const AutoIpSettings *settings)
    //Initialize state machine
    context->state = AUTO_IP_STATE_INIT;
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the Auto-IP context to the network interface
    interface->autoIpContext = context;
+   //Release exclusive access
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -136,7 +147,7 @@ error_t autoIpStart(AutoIpContext *context)
    TRACE_INFO("Starting Auto-IP...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Reset Auto-IP configuration
    autoIpResetConfig(context);
@@ -149,7 +160,7 @@ error_t autoIpStart(AutoIpContext *context)
    context->running = TRUE;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -172,7 +183,7 @@ error_t autoIpStop(AutoIpContext *context)
    TRACE_INFO("Stopping Auto-IP...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Suspend Auto-IP operation
    context->running = FALSE;
@@ -180,7 +191,7 @@ error_t autoIpStop(AutoIpContext *context)
    context->state = AUTO_IP_STATE_INIT;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -198,14 +209,43 @@ AutoIpState autoIpGetState(AutoIpContext *context)
    AutoIpState state;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
    //Get current state
    state = context->state;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return current state
    return state;
+}
+
+
+/**
+ * @brief Release Auto-IP context
+ * @param[in] context Pointer to the Auto-IP context
+ **/
+
+void autoIpDeinit(AutoIpContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the Auto-IP context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the Auto-IP context from the network interface
+      interface->autoIpContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear Auto-IP context
+      osMemset(context, 0, sizeof(AutoIpContext));
+   }
 }
 
 #endif

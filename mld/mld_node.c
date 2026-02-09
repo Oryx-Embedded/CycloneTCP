@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -36,7 +36,7 @@
  * - RFC 9777: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -71,6 +71,8 @@ error_t mldNodeInit(NetInterface *interface)
    //Clear the MLD node context
    osMemset(context, 0, sizeof(MldNodeContext));
 
+   //Pointer to the TCP/IP stack context
+   context->netContext = interface->netContext;
    //Underlying network interface
    context->interface = interface;
    //The default host compatibility mode is MLDv2
@@ -288,7 +290,9 @@ void mldNodeTick(MldNodeContext *context)
          if(mldNodeGetRetransmitStatus(context))
          {
             //Select a value in the range 0 - Unsolicited Report Interval
-            delay = mldGetRandomDelay(MLD_V2_UNSOLICITED_REPORT_INTERVAL);
+            delay = mldGetRandomDelay(context->netContext,
+               MLD_V2_UNSOLICITED_REPORT_INTERVAL);
+
             //Restart retransmission timer
             netStartTimer(&context->stateChangeReportTimer, delay);
          }
@@ -434,7 +438,9 @@ void mldNodeStateChangeEvent(MldNodeContext *context, const Ipv6Addr *groupAddr,
                if(mldNodeGetRetransmitStatus(context))
                {
                   //Select a value in the range 0 - Unsolicited Report Interval
-                  delay = mldGetRandomDelay(MLD_V2_UNSOLICITED_REPORT_INTERVAL);
+                  delay = mldGetRandomDelay(context->netContext,
+                     MLD_V2_UNSOLICITED_REPORT_INTERVAL);
+
                   //Start retransmission timer
                   netStartTimer(&context->stateChangeReportTimer, delay);
                }

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -249,6 +249,7 @@ typedef void (*ModbusServerTickCallback)(ModbusServerContext *context);
 typedef struct
 {
    OsTaskParameters task;                                  ///<Task parameters
+   NetContext *netContext;                                 ///<TCP/IP stack context
    NetInterface *interface;                                ///<Underlying network interface
    uint16_t port;                                          ///<Modbus/TCP port number
    uint8_t unitId;                                         ///<Unit identifier
@@ -302,24 +303,44 @@ struct _ModbusClientConnection
 
 struct _ModbusServerContext
 {
-   ModbusServerSettings settings;     ///<User settings
-   bool_t running;                    ///<Operational state of the Modbus/TCP server
-   bool_t stop;                       ///<Stop request
-   OsEvent event;                     ///<Event object used to poll the sockets
-   OsTaskParameters taskParams;       ///<Task parameters
-   OsTaskId taskId;                   ///<Task identifier
-   Socket *socket;                    ///<Listening socket
+   NetContext *netContext;                                 ///<TCP/IP stack context
+   NetInterface *interface;                                ///<Underlying network interface
+   uint16_t port;                                          ///<Modbus/TCP port number
+   uint8_t unitId;                                         ///<Unit identifier
+   systime_t timeout;                                      ///<Idle connection timeout
+   ModbusServerOpenCallback openCallback;                  ///<TCP connection open callback function
+   ModbusServerCloseCallback closeCallback;                ///<TCP connection close callback function
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+   ModbusServerTlsInitCallback tlsInitCallback;            ///<TLS initialization callback function
+#endif
+   ModbusServerLockCallback lockCallback;                  ///<Lock Modbus table callback function
+   ModbusServerUnlockCallback unlockCallback;              ///<Unlock Modbus table callback function
+   ModbusServerReadCoilCallback readCoilCallback;          ///<Get coil state callback function
+   ModbusServerReadCoilCallback readDiscreteInputCallback; ///<Get discrete input state callback function
+   ModbusServerWriteCoilCallback writeCoilCallback;        ///<Set coil state callback function
+   ModbusServerReadRegCallback readRegCallback;            ///<Get register value callback function
+   ModbusServerReadRegCallback readHoldingRegCallback;     ///<Get holding register value callback function
+   ModbusServerReadRegCallback readInputRegCallback;       ///<Get input register value callback function
+   ModbusServerWriteRegCallback writeRegCallback;          ///<Set register value callback function
+   ModbusServerProcessPduCallback processPduCallback;      ///<PDU processing callback function
+   ModbusServerTickCallback tickCallback;                  ///<Tick callback function
+   bool_t running;                                         ///<Operational state of the Modbus/TCP server
+   bool_t stop;                                            ///<Stop request
+   OsEvent event;                                          ///<Event object used to poll the sockets
+   OsTaskParameters taskParams;                            ///<Task parameters
+   OsTaskId taskId;                                        ///<Task identifier
+   Socket *socket;                                         ///<Listening socket
    ModbusClientConnection connection[MODBUS_SERVER_MAX_CONNECTIONS]; ///<Client connections
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
-   TlsTicketContext tlsTicketContext; ///<TLS ticket encryption context
+   TlsTicketContext tlsTicketContext;                      ///<TLS ticket encryption context
 #endif
 #if (MODBUS_SERVER_DIAG_SUPPORT == ENABLED)
-   uint32_t rxMessageCount;           ///<Total number of messages received
-   uint32_t txMessageCount;           ///<Total number of messages sent
-   uint32_t commErrorCount;           ///<Total number of communication errors
-   uint32_t exceptionErrorCount;      ///<Total number of exception errors
+   uint32_t rxMessageCount;                                ///<Total number of messages received
+   uint32_t txMessageCount;                                ///<Total number of messages sent
+   uint32_t commErrorCount;                                ///<Total number of communication errors
+   uint32_t exceptionErrorCount;                           ///<Total number of exception errors
 #endif
-   MODBUS_SERVER_PRIVATE_CONTEXT      ///<Application specific context
+   MODBUS_SERVER_PRIVATE_CONTEXT                           ///<Application specific context
 };
 
 

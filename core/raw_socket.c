@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -46,8 +46,6 @@
 #include "ipv4/ipv4_misc.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
-#include "mibs/mib2_module.h"
-#include "mibs/if_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -285,8 +283,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       {
          //Number of inbound packets which were chosen to be discarded even
          //though no errors had been detected
-         MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-         IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+         NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
 
          //Report an error
          return ERROR_RECEIVE_QUEUE_FULL;
@@ -316,8 +313,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
    {
       //Number of inbound packets which were chosen to be discarded even
       //though no errors had been detected
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+      NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
 
       //Report an error
       return ERROR_OUT_OF_MEMORY;
@@ -462,8 +458,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
          {
             //Number of inbound packets which were chosen to be discarded even
             //though no errors had been detected
-            MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-            IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+            NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
 
             //Exit immediately
             break;
@@ -494,8 +489,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
       {
          //Number of inbound packets which were chosen to be discarded even
          //though no errors had been detected
-         MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
-         IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInDiscards, 1);
+         NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
 
          //Exit immediately
          break;
@@ -578,8 +572,8 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
 
          //Select the source IPv4 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv4SelectSourceAddr(&interface, message->destIpAddr.ipv4Addr,
-            &srcIpAddr);
+         error = ipv4SelectSourceAddr(socket->netContext, &interface,
+            message->destIpAddr.ipv4Addr, &srcIpAddr);
          //Any error to report?
          if(error)
             break;
@@ -600,8 +594,8 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
       {
          //Select the source IPv6 address and the relevant network interface
          //to use when sending data to the specified destination host
-         error = ipv6SelectSourceAddr(&interface, &message->destIpAddr.ipv6Addr,
-            &pseudoHeader.ipv6Data.srcAddr);
+         error = ipv6SelectSourceAddr(socket->netContext, &interface,
+            &message->destIpAddr.ipv6Addr, &pseudoHeader.ipv6Data.srcAddr);
          //Any error to report?
          if(error)
             break;
@@ -751,7 +745,7 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
    }
    else
    {
-      interface = netGetDefaultInterface();
+      interface = netGetDefaultInterface(socket->netContext);
    }
 
    //Point to the physical interface
@@ -841,11 +835,11 @@ error_t rawSocketReceiveIpPacket(Socket *socket, SocketMsg *message,
          osResetEvent(&socket->event);
 
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(socket->netContext);
          //Wait until an event is triggered
          osWaitForEvent(&socket->event, socket->timeout);
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(socket->netContext);
       }
    }
 
@@ -947,11 +941,11 @@ error_t rawSocketReceiveEthPacket(Socket *socket, SocketMsg *message,
          osResetEvent(&socket->event);
 
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(socket->netContext);
          //Wait until an event is triggered
          osWaitForEvent(&socket->event, socket->timeout);
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(socket->netContext);
       }
    }
 

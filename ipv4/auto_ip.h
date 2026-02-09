@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _AUTO_IP_H
@@ -194,14 +194,18 @@ typedef struct
 
 struct _AutoIpContext
 {
-   AutoIpSettings settings; ///<Auto-IP settings
-   bool_t running;          ///<Auto-IP is currently running
-   AutoIpState state;       ///<Current state of the FSM
-   Ipv4Addr linkLocalAddr;  ///<Link-local address
-   systime_t timestamp;     ///<Timestamp to manage retransmissions
-   systime_t timeout;       ///<Timeout value
-   uint_t retransmitCount;  ///<Retransmission counter
-   uint_t conflictCount;    ///<Number of conflicts
+   NetContext *netContext;                     ///<TCP/IP stack context
+   NetInterface *interface;                    ///<Network interface to configure
+   uint_t ipAddrIndex;                         ///<Index of the IP address to be configured
+   AutoIpLinkChangeCallback linkChangeEvent;   ///<Link state change event
+   AutoIpStateChangeCallback stateChangeEvent; ///<FSM state change event
+   bool_t running;                             ///<Auto-IP is currently running
+   AutoIpState state;                          ///<Current state of the FSM
+   Ipv4Addr linkLocalAddr;                     ///<Link-local address
+   systime_t timestamp;                        ///<Timestamp to manage retransmissions
+   systime_t timeout;                          ///<Timeout value
+   uint_t retransmitCount;                     ///<Retransmission counter
+   uint_t conflictCount;                       ///<Number of conflicts
 };
 
 
@@ -213,6 +217,8 @@ error_t autoIpStart(AutoIpContext *context);
 error_t autoIpStop(AutoIpContext *context);
 
 AutoIpState autoIpGetState(AutoIpContext *context);
+
+void autoIpDeinit(AutoIpContext *context);
 
 //C++ guard
 #ifdef __cplusplus

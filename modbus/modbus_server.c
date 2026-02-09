@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -53,6 +53,8 @@ void modbusServerGetDefaultSettings(ModbusServerSettings *settings)
    settings->task.stackSize = MODBUS_SERVER_STACK_SIZE;
    settings->task.priority = MODBUS_SERVER_PRIORITY;
 
+   //TCP/IP stack context
+   settings->netContext = NULL;
    //The Modbus/TCP server is not bound to any interface
    settings->interface = NULL;
 
@@ -117,6 +119,9 @@ error_t modbusServerInit(ModbusServerContext *context,
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Clear Modbus/TCP server context
    osMemset(context, 0, sizeof(ModbusServerContext));
 
@@ -124,11 +129,41 @@ error_t modbusServerInit(ModbusServerContext *context,
    context->taskParams = settings->task;
    context->taskId = OS_INVALID_TASK_ID;
 
-   //Save user settings
-   context->settings = *settings;
+   //Attach TCP/IP stack context
+   if(settings->netContext != NULL)
+   {
+      context->netContext = settings->netContext;
+   }
+   else if(settings->interface != NULL)
+   {
+      context->netContext = settings->interface->netContext;
+   }
+   else
+   {
+      context->netContext = netGetDefaultContext();
+   }
 
-   //Initialize status code
-   error = NO_ERROR;
+   //Save user settings
+   context->interface = settings->interface;
+   context->port = settings->port;
+   context->unitId = settings->unitId;
+   context->timeout = settings->timeout;
+   context->openCallback = settings->openCallback;
+   context->closeCallback = settings->closeCallback;
+#if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
+   context->tlsInitCallback = settings->tlsInitCallback;
+#endif
+   context->lockCallback = settings->lockCallback;
+   context->unlockCallback = settings->unlockCallback;
+   context->readCoilCallback = settings->readCoilCallback;
+   context->readDiscreteInputCallback = settings->readDiscreteInputCallback;
+   context->writeCoilCallback = settings->writeCoilCallback;
+   context->readRegCallback = settings->readRegCallback;
+   context->readHoldingRegCallback = settings->readHoldingRegCallback;
+   context->readInputRegCallback = settings->readInputRegCallback;
+   context->writeRegCallback = settings->writeRegCallback;
+   context->processPduCallback = settings->processPduCallback;
+   context->tickCallback = settings->tickCallback;
 
    //Create an event object to poll the state of sockets
    if(!osCreateEvent(&context->event))
@@ -183,7 +218,8 @@ error_t modbusServerStart(ModbusServerContext *context)
    do
    {
       //Open a TCP socket
-      context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_STREAM,
+         SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
       if(context->socket == NULL)
       {
@@ -199,14 +235,13 @@ error_t modbusServerStart(ModbusServerContext *context)
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket,
-         context->settings.interface);
+      error = socketBindToInterface(context->socket, context->interface);
       //Any error to report?
       if(error)
          break;
 
       //The Modbus/TCP server listens for connection requests on port 502
-      error = socketBind(context->socket, &IP_ADDR_ANY, context->settings.port);
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Any error to report?
       if(error)
          break;

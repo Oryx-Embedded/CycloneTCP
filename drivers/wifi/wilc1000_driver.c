@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -336,15 +336,16 @@ bool_t wilc1000IrqHandler(void)
    //STA and/or AP mode?
    if(wilc1000StaInterface != NULL)
    {
+      //Notify the TCP/IP stack of the event
       wilc1000StaInterface->nicEvent = TRUE;
+      flag = osSetEventFromIsr(&wilc1000StaInterface->netContext->event);
    }
    else if(wilc1000ApInterface != NULL)
    {
+      //Notify the TCP/IP stack of the event
       wilc1000ApInterface->nicEvent = TRUE;
+      flag = osSetEventFromIsr(&wilc1000ApInterface->netContext->event);
    }
-
-   //Notify the TCP/IP stack of the event
-   flag = osSetEventFromIsr(&netEvent);
 
    //A higher priority task must be woken?
    return flag;
@@ -629,11 +630,33 @@ void wilc1000AppWifiEvent(uint8_t msgType, void *msg)
 
 #if defined(CONF_WILC_EVENT_HOOK)
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   if(wilc1000StaInterface != NULL)
+   {
+      netUnlock(wilc1000StaInterface->netContext);
+   }
+   else if(wilc1000ApInterface != NULL)
+   {
+      netUnlock(wilc1000ApInterface->netContext);
+   }
+   else
+   {
+   }
+
    //Invoke user callback function
    CONF_WILC_EVENT_HOOK(msgType, msg);
+
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   if(wilc1000StaInterface != NULL)
+   {
+      netLock(wilc1000StaInterface->netContext);
+   }
+   else if(wilc1000ApInterface != NULL)
+   {
+      netLock(wilc1000ApInterface->netContext);
+   }
+   else
+   {
+   }
 #endif
 }
 
@@ -734,5 +757,47 @@ void wilc1000AppEthEvent(uint8_t msgType, void *msg, void *ctrlBuf)
             nicProcessPacket(wilc1000ApInterface, packet, length, &ancillary);
          }
       }
+   }
+}
+
+
+/**
+ * @brief Get exclusive access to the Wi-Fi controller
+ **/
+
+void wilc1000Lock(void)
+{
+   //Get exclusive access
+   if(wilc1000StaInterface != NULL)
+   {
+      netLock(wilc1000StaInterface->netContext);
+   }
+   else if(wilc1000ApInterface != NULL)
+   {
+      netLock(wilc1000ApInterface->netContext);
+   }
+   else
+   {
+   }
+}
+
+
+/**
+ * @brief Release exclusive access to the Wi-Fi controller
+ **/
+
+void wilc1000Unlock(void)
+{
+   //Release exclusive access
+   if(wilc1000StaInterface != NULL)
+   {
+      netUnlock(wilc1000StaInterface->netContext);
+   }
+   else if(wilc1000ApInterface != NULL)
+   {
+      netUnlock(wilc1000ApInterface->netContext);
+   }
+   else
+   {
    }
 }

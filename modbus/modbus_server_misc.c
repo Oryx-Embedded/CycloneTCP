@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -68,7 +68,7 @@ void modbusServerTick(ModbusServerContext *context)
       if(connection->state != MODBUS_CONNECTION_STATE_CLOSED)
       {
          //Retrieve idle connection timeout
-         timeout = context->settings.timeout;
+         timeout = context->timeout;
 
          //A value of zero means no timeout
          if(timeout != 0)
@@ -86,10 +86,10 @@ void modbusServerTick(ModbusServerContext *context)
    }
 
    //Any registered callback?
-   if(context->settings.tickCallback != NULL)
+   if(context->tickCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.tickCallback(context);
+      context->tickCallback(context);
    }
 }
 
@@ -257,9 +257,9 @@ void modbusServerProcessConnectionEvents(ModbusClientConnection *connection)
                context->rxMessageCount++;
 #endif
                //Check unit identifier
-               if(context->settings.unitId == 0 ||
-                  context->settings.unitId == 255 ||
-                  context->settings.unitId == connection->requestUnitId)
+               if(context->unitId == 0 ||
+                  context->unitId == 255 ||
+                  context->unitId == connection->requestUnitId)
                {
                   //Process Modbus request
                   error = modbusServerProcessRequest(connection);
@@ -507,10 +507,10 @@ void modbusServerLock(ModbusClientConnection *connection)
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.lockCallback != NULL)
+   if(context->lockCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.lockCallback(connection);
+      context->lockCallback(connection);
    }
 }
 
@@ -528,10 +528,10 @@ void modbusServerUnlock(ModbusClientConnection *connection)
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.unlockCallback != NULL)
+   if(context->unlockCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.unlockCallback(connection);
+      context->unlockCallback(connection);
    }
 }
 
@@ -554,10 +554,10 @@ error_t modbusServerReadCoil(ModbusClientConnection *connection,
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.readCoilCallback != NULL)
+   if(context->readCoilCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readCoilCallback(connection, address, state);
+      error = context->readCoilCallback(connection, address, state);
    }
    else
    {
@@ -588,16 +588,15 @@ error_t modbusServerReadDiscreteInput(ModbusClientConnection *connection,
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.readDiscreteInputCallback != NULL)
+   if(context->readDiscreteInputCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readDiscreteInputCallback(connection, address,
-         state);
+      error = context->readDiscreteInputCallback(connection, address, state);
    }
-   else if(context->settings.readCoilCallback != NULL)
+   else if(context->readCoilCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readCoilCallback(connection, address, state);
+      error = context->readCoilCallback(connection, address, state);
    }
    else
    {
@@ -630,11 +629,10 @@ error_t modbusServerWriteCoil(ModbusClientConnection *connection,
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.writeCoilCallback != NULL)
+   if(context->writeCoilCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.writeCoilCallback(connection, address, state,
-         commit);
+      error = context->writeCoilCallback(connection, address, state, commit);
    }
    else
    {
@@ -665,16 +663,15 @@ error_t modbusServerReadHoldingReg(ModbusClientConnection *connection,
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.readHoldingRegCallback != NULL)
+   if(context->readHoldingRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readHoldingRegCallback(connection, address,
-         value);
+      error = context->readHoldingRegCallback(connection, address, value);
    }
-   else if(context->settings.readRegCallback != NULL)
+   else if(context->readRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readRegCallback(connection, address, value);
+      error = context->readRegCallback(connection, address, value);
    }
    else
    {
@@ -705,16 +702,15 @@ error_t modbusServerReadInputReg(ModbusClientConnection *connection,
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.readInputRegCallback != NULL)
+   if(context->readInputRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readInputRegCallback(connection, address,
-         value);
+      error = context->readInputRegCallback(connection, address, value);
    }
-   else if(context->settings.readRegCallback != NULL)
+   else if(context->readRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.readRegCallback(connection, address, value);
+      error = context->readRegCallback(connection, address, value);
    }
    else
    {
@@ -747,11 +743,10 @@ error_t modbusServerWriteReg(ModbusClientConnection *connection,
    context = connection->context;
 
    //Any registered callback?
-   if(context->settings.writeRegCallback != NULL)
+   if(context->writeRegCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.writeRegCallback(connection, address, value,
-         commit);
+      error = context->writeRegCallback(connection, address, value, commit);
    }
    else
    {

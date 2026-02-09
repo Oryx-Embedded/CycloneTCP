@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -74,13 +74,16 @@ const SwitchDriver lan9646SwitchDriver =
  * @brief Tail tag rules (host to LAN9646)
  **/
 
-const uint16_t lan9646IngressTailTag[6] =
+const uint16_t lan9646IngressTailTag[8] =
 {
    HTONS(LAN9646_TAIL_TAG_NORMAL_ADDR_LOOKUP),
    HTONS(LAN9646_TAIL_TAG_PORT_BLOCKING_OVERRIDE | LAN9646_TAIL_TAG_DEST_PORT1),
    HTONS(LAN9646_TAIL_TAG_PORT_BLOCKING_OVERRIDE | LAN9646_TAIL_TAG_DEST_PORT2),
    HTONS(LAN9646_TAIL_TAG_PORT_BLOCKING_OVERRIDE | LAN9646_TAIL_TAG_DEST_PORT3),
-   HTONS(LAN9646_TAIL_TAG_PORT_BLOCKING_OVERRIDE | LAN9646_TAIL_TAG_DEST_PORT4)
+   HTONS(LAN9646_TAIL_TAG_PORT_BLOCKING_OVERRIDE | LAN9646_TAIL_TAG_DEST_PORT4),
+   HTONS(0),
+   HTONS(0),
+   HTONS(LAN9646_TAIL_TAG_PORT_BLOCKING_OVERRIDE | LAN9646_TAIL_TAG_DEST_PORT7)
 };
 
 
@@ -136,20 +139,26 @@ error_t lan9646Init(NetInterface *interface)
 #endif
 
       //Loop through the ports
-      for(port = LAN9646_PORT1; port <= LAN9646_PORT4; port++)
+      for(port = LAN9646_PORT1; port <= LAN9646_PORT7; port++)
       {
+         //Skip unused ports
+         if(port != LAN9646_PORT5 && port != LAN9646_PORT6)
+         {
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-         //Port separation mode?
-         if(interface->port != 0)
-         {
-            //Disable packet transmission and address learning
-            lan9646SetPortState(interface, port, SWITCH_PORT_STATE_LISTENING);
-         }
-         else
+            //Port separation mode?
+            if(interface->port != 0)
+            {
+               //Disable packet transmission and address learning
+               lan9646SetPortState(interface, port,
+                  SWITCH_PORT_STATE_LISTENING);
+            }
+            else
 #endif
-         {
-            //Enable transmission, reception and address learning
-            lan9646SetPortState(interface, port, SWITCH_PORT_STATE_FORWARDING);
+            {
+               //Enable transmission, reception and address learning
+               lan9646SetPortState(interface, port,
+                  SWITCH_PORT_STATE_FORWARDING);
+            }
          }
       }
 
@@ -167,6 +176,11 @@ error_t lan9646Init(NetInterface *interface)
       temp |= LAN9646_PORTn_XMII_CTRL1_RGMII_ID_IG;
       temp |= LAN9646_PORTn_XMII_CTRL1_RGMII_ID_EG;
       lan9646WriteSwitchReg8(interface, LAN9646_PORT6_XMII_CTRL1, temp);
+
+      //Reset SGMII registers (silicon errata workaround 15)
+      lan9646WriteSgmiiReg(interface, LAN9646_SGMII_CTRL,
+         LAN9646_SGMII_CTRL_SOFT_RESET | LAN9646_SGMII_CTRL_AN_EN |
+         LAN9646_SGMII_CTRL_DUPLEX_MODE | LAN9646_SGMII_CTRL_SPEED_SEL_MSB);
 
       //Start switch operation
       lan9646WriteSwitchReg8(interface, LAN9646_SWITCH_OP,
@@ -232,7 +246,7 @@ error_t lan9646Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -264,13 +278,17 @@ __weak_func void lan9646Tick(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -286,7 +304,7 @@ __weak_func void lan9646Tick(NetInterface *interface)
                //Set event flag
                interface->phyEvent = TRUE;
                //Notify the TCP/IP stack of the event
-               osSetEvent(&netEvent);
+               osSetEvent(&interface->netContext->event);
             }
          }
       }
@@ -298,12 +316,16 @@ __weak_func void lan9646Tick(NetInterface *interface)
       linkState = FALSE;
 
       //Loop through the ports
-      for(port = LAN9646_PORT1; port <= LAN9646_PORT4; port++)
+      for(port = LAN9646_PORT1; port <= LAN9646_PORT7; port++)
       {
-         //Retrieve current link state
-         if(lan9646GetLinkState(interface, port))
+         //Skip unused ports
+         if(port != LAN9646_PORT5 && port != LAN9646_PORT6)
          {
-            linkState = TRUE;
+            //Retrieve current link state
+            if(lan9646GetLinkState(interface, port))
+            {
+               linkState = TRUE;
+            }
          }
       }
 
@@ -313,7 +335,7 @@ __weak_func void lan9646Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
    }
 }
@@ -354,13 +376,17 @@ __weak_func void lan9646EventHandler(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -371,7 +397,8 @@ __weak_func void lan9646EventHandler(NetInterface *interface)
             port = virtualInterface->port;
 
             //Valid port?
-            if(port >= LAN9646_PORT1 && port <= LAN9646_PORT4)
+            if((port >= LAN9646_PORT1 && port <= LAN9646_PORT4) ||
+               port == LAN9646_PORT7)
             {
                //Retrieve current link state
                linkState = lan9646GetLinkState(interface, port);
@@ -424,12 +451,16 @@ __weak_func void lan9646EventHandler(NetInterface *interface)
       linkState = FALSE;
 
       //Loop through the ports
-      for(port = LAN9646_PORT1; port <= LAN9646_PORT4; port++)
+      for(port = LAN9646_PORT1; port <= LAN9646_PORT7; port++)
       {
-         //Retrieve current link state
-         if(lan9646GetLinkState(interface, port))
+         //Skip unused ports
+         if(port != LAN9646_PORT5 && port != LAN9646_PORT6)
          {
-            linkState = TRUE;
+            //Retrieve current link state
+            if(lan9646GetLinkState(interface, port))
+            {
+               linkState = TRUE;
+            }
          }
       }
 
@@ -482,7 +513,7 @@ error_t lan9646TagFrame(NetInterface *interface, NetBuffer *buffer,
    if(interface->spiDriver != NULL)
    {
       //Valid port?
-      if(ancillary->port <= LAN9646_PORT4)
+      if(ancillary->port <= LAN9646_PORT7)
       {
          size_t length;
          const uint16_t *tailTag;
@@ -596,6 +627,11 @@ bool_t lan9646GetLinkState(NetInterface *interface, uint8_t port)
       //Retrieve current link state
       linkState = (value & LAN9646_BMSR_LINK_STATUS) ? TRUE : FALSE;
    }
+   else if(port == LAN9646_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      linkState = lan9646GetPort7LinkState(interface);
+   }
    else
    {
       //The specified port number is not valid
@@ -691,13 +727,18 @@ uint32_t lan9646GetLinkSpeed(NetInterface *interface, uint8_t port)
          linkSpeed = NIC_LINK_SPEED_100MBPS;
       }
    }
+   else if(port == LAN9646_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      linkSpeed = lan9646GetPort7LinkSpeed(interface);
+   }
    else
    {
       //The specified port number is not valid
       linkSpeed = NIC_LINK_SPEED_UNKNOWN;
    }
 
-   //Return link status
+   //Return link speed
    return linkSpeed;
 }
 
@@ -755,6 +796,11 @@ NicDuplexMode lan9646GetDuplexMode(NetInterface *interface, uint8_t port)
          duplexMode = NIC_FULL_DUPLEX_MODE;
       }
    }
+   else if(port == LAN9646_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      duplexMode = lan9646GetPort7DuplexMode(interface);
+   }
    else
    {
       //The specified port number is not valid
@@ -762,6 +808,165 @@ NicDuplexMode lan9646GetDuplexMode(NetInterface *interface, uint8_t port)
    }
 
    //Return duplex mode
+   return duplexMode;
+}
+
+
+/**
+ * @brief Get port 7 link state
+ * @param[in] interface Underlying network interface
+ * @return Link state
+ **/
+
+__weak_func bool_t lan9646GetPort7LinkState(NetInterface *interface)
+{
+   uint16_t value;
+   bool_t linkState;
+
+   //Read SGMII Status register
+   value = lan9646ReadSgmiiReg(interface, LAN9646_SGMII_STATUS);
+
+   //Check whether the SGMII link is up
+   if((value & LAN9646_SGMII_STATUS_LINK_STATUS) != 0)
+   {
+      //Read SGMII Auto-Negotiation Status register
+      value = lan9646ReadSgmiiReg(interface, LAN9646_SGMII_AN_STATUS);
+
+      //Check the link status reported by the PHY-side device
+      if((value & LAN9646_SGMII_AN_STATUS_LINK_STATUS) != 0)
+      {
+         //The link is up
+         linkState = TRUE;
+      }
+      else
+      {
+         //The link is down
+         linkState = FALSE;
+      }
+   }
+   else
+   {
+      //The SGMII link is down
+      linkState = FALSE;
+   }
+
+   //Return current link status
+   return linkState;
+}
+
+
+/**
+ * @brief Get port 7 link speed
+ * @param[in] interface Underlying network interface
+ * @return Link speed
+ **/
+
+__weak_func uint32_t lan9646GetPort7LinkSpeed(NetInterface *interface)
+{
+   uint16_t value;
+   uint32_t linkSpeed;
+
+   //Read SGMII Auto-Negotiation Status register
+   value = lan9646ReadSgmiiReg(interface, LAN9646_SGMII_AN_STATUS);
+
+   //Retrieve current link speed
+   switch(value & LAN9646_SGMII_AN_STATUS_LINK_SPEED)
+   {
+   //10 Mbps?
+   case LAN9646_SGMII_AN_STATUS_LINK_SPEED_10MBPS:
+      linkSpeed = NIC_LINK_SPEED_10MBPS;
+      break;
+
+   //100 Mbps?
+   case LAN9646_SGMII_AN_STATUS_LINK_SPEED_100MBPS:
+      linkSpeed = NIC_LINK_SPEED_100MBPS;
+      break;
+
+   //1000 Mbps?
+  case LAN9646_SGMII_AN_STATUS_LINK_SPEED_1000MBPS:
+      linkSpeed = NIC_LINK_SPEED_1GBPS;
+      break;
+
+   //Unknown speed?
+   default:
+      linkSpeed = NIC_LINK_SPEED_UNKNOWN;
+      break;
+   }
+
+   //Read SGMII Control register
+   value = lan9646ReadSgmiiReg(interface, LAN9646_SGMII_CTRL);
+
+   //If the SGMII speed is variable or less than 1000 Mbps, software must
+   //update GMAC parameters when there is a change to the link speed (silicon
+   //errata workaround 8)
+   if(linkSpeed == NIC_LINK_SPEED_10MBPS)
+   {
+      value &= ~LAN9646_SGMII_CTRL_SPEED_SEL_LSB;
+      value &= ~LAN9646_SGMII_CTRL_SPEED_SEL_MSB;
+   }
+   else if(linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
+      value |= LAN9646_SGMII_CTRL_SPEED_SEL_LSB;
+      value &= ~LAN9646_SGMII_CTRL_SPEED_SEL_MSB;
+   }
+   else if(linkSpeed == NIC_LINK_SPEED_1GBPS)
+   {
+      value &= ~LAN9646_SGMII_CTRL_SPEED_SEL_LSB;
+      value |= LAN9646_SGMII_CTRL_SPEED_SEL_MSB;
+   }
+   else
+   {
+   }
+
+   //Write the modified value to the SGMII Control register
+   lan9646WriteSgmiiReg(interface, LAN9646_SGMII_CTRL, value);
+
+   //Return current link speed
+   return linkSpeed;
+}
+
+
+/**
+ * @brief Get port 7 duplex mode
+ * @param[in] interface Underlying network interface
+ * @return Duplex mode
+ **/
+
+__weak_func NicDuplexMode lan9646GetPort7DuplexMode(NetInterface *interface)
+{
+   uint16_t value;
+   NicDuplexMode duplexMode;
+
+   //Read SGMII Auto-Negotiation Status register
+   value = lan9646ReadSgmiiReg(interface, LAN9646_SGMII_AN_STATUS);
+
+   //Retrieve current duplex mode
+   if((value & LAN9646_SGMII_AN_STATUS_FULL_DUPLEX) != 0)
+   {
+      duplexMode = NIC_FULL_DUPLEX_MODE;
+   }
+   else
+   {
+      duplexMode = NIC_HALF_DUPLEX_MODE;
+   }
+
+   //Read SGMII Control register
+   value = lan9646ReadSgmiiReg(interface, LAN9646_SGMII_CTRL);
+
+   //Update GMAC duplex mode (silicon errata workaround 8)
+   if(duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
+      value |= LAN9646_SGMII_CTRL_DUPLEX_MODE;
+   }
+   else
+   {
+      value &= ~LAN9646_SGMII_CTRL_DUPLEX_MODE;
+   }
+
+   //Write the modified value to the SGMII Control register
+   lan9646WriteSgmiiReg(interface, LAN9646_SGMII_CTRL, value);
+
+   //Return current duplex mode
    return duplexMode;
 }
 
@@ -779,7 +984,8 @@ void lan9646SetPortState(NetInterface *interface, uint8_t port,
    uint8_t temp;
 
    //Check port number
-   if(port >= LAN9646_PORT1 && port <= LAN9646_PORT4)
+   if((port >= LAN9646_PORT1 && port <= LAN9646_PORT4) ||
+      port == LAN9646_PORT7)
    {
       //Read MSTP state register
       temp = lan9646ReadSwitchReg8(interface, LAN9646_PORTn_MSTP_STATE(port));
@@ -835,7 +1041,8 @@ SwitchPortState lan9646GetPortState(NetInterface *interface, uint8_t port)
    SwitchPortState state;
 
    //Check port number
-   if(port >= LAN9646_PORT1 && port <= LAN9646_PORT4)
+   if((port >= LAN9646_PORT1 && port <= LAN9646_PORT4) ||
+      port == LAN9646_PORT7)
    {
       //Read MSTP state register
       temp = lan9646ReadSwitchReg8(interface, LAN9646_PORTn_MSTP_STATE(port));
@@ -1686,6 +1893,41 @@ uint16_t lan9646ReadMmdReg(NetInterface *interface, uint8_t port,
 
    //Read the content of the MMD register
    return lan9646ReadPhyReg(interface, port, LAN9646_MMDAADR);
+}
+
+
+/**
+ * @brief Write SGMII register
+ * @param[in] interface Underlying network interface
+ * @param[in] address SGMII register address
+ * @param[in] data Register value
+ **/
+
+void lan9646WriteSgmiiReg(NetInterface *interface, uint32_t address,
+   uint16_t data)
+{
+   //Write the SGMII register address to the Port SGMII Address register
+   lan9646WriteSwitchReg32(interface, LAN9646_PORT7_SGMII_ADDR, address);
+
+   //Write the SGMII register data to the Port SGMII Data register
+   lan9646WriteSwitchReg16(interface, LAN9646_PORT7_SGMII_DATA, data);
+}
+
+
+/**
+ * @brief Read SGMII register
+ * @param[in] interface Underlying network interface
+ * @param[in] address SGMII register address
+ * @return Register value
+ **/
+
+uint16_t lan9646ReadSgmiiReg(NetInterface *interface, uint32_t address)
+{
+   //Write the SGMII register address to the Port SGMII Address register
+   lan9646WriteSwitchReg32(interface, LAN9646_PORT7_SGMII_ADDR, address);
+
+   //Read the SGMII register data from the Port SGMII Data register
+   return lan9646ReadSwitchReg16(interface, LAN9646_PORT7_SGMII_DATA);
 }
 
 

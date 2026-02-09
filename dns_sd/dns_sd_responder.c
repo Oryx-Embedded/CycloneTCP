@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 2782: A DNS RR for specifying the location of services (DNS SRV)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -49,9 +49,6 @@
 //Check TCP/IP stack configuration
 #if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
 
-//Tick counter to handle periodic operations
-systime_t dnsSdResponderTickCounter;
-
 
 /**
  * @brief Initialize settings with default values
@@ -60,8 +57,8 @@ systime_t dnsSdResponderTickCounter;
 
 void dnsSdResponderGetDefaultSettings(DnsSdResponderSettings *settings)
 {
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Underlying network interface
+   settings->interface = NULL;
 
    //DNS-SD services
    settings->numServices = 0;
@@ -110,7 +107,10 @@ error_t dnsSdResponderInit(DnsSdResponderContext *context,
    //Clear the DNS-SD responder context
    osMemset(context, 0, sizeof(DnsSdResponderContext));
 
-   //Initialize DNS-SD responder context
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
+   //Save user settings
    context->interface = settings->interface;
    context->numServices = settings->numServices;
    context->services = settings->services;
@@ -136,8 +136,12 @@ error_t dnsSdResponderInit(DnsSdResponderContext *context,
       service->state = MDNS_STATE_INIT;
    }
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the DNS-SD responder context to the network interface
    interface->dnsSdResponderContext = context;
+   //Release exclusive access
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -162,7 +166,7 @@ error_t dnsSdResponderStart(DnsSdResponderContext *context)
    TRACE_INFO("Starting DNS-SD...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Start DNS-SD responder
    context->running = TRUE;
@@ -175,7 +179,7 @@ error_t dnsSdResponderStart(DnsSdResponderContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -200,7 +204,7 @@ error_t dnsSdResponderStop(DnsSdResponderContext *context)
    TRACE_INFO("Stopping DNS-SD...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Suspend DNS-SD responder
    context->running = FALSE;
@@ -213,7 +217,7 @@ error_t dnsSdResponderStop(DnsSdResponderContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -266,7 +270,7 @@ error_t dnsSdResponderRegisterService(DnsSdResponderContext *context,
       return ERROR_INVALID_LENGTH;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Point to the specified entry
    service = &context->services[index];
@@ -348,7 +352,7 @@ error_t dnsSdResponderRegisterService(DnsSdResponderContext *context,
    dnsSdResponderStartProbing(context);
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -376,7 +380,7 @@ error_t dnsSdResponderUnregisterService(DnsSdResponderContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Point to the specified entry
    service = &context->services[index];
@@ -394,7 +398,7 @@ error_t dnsSdResponderUnregisterService(DnsSdResponderContext *context,
    service->serviceName[0] = '\0';
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -474,8 +478,8 @@ void dnsSdResponderTick(DnsSdResponderContext *context)
                if(interface->mdnsResponderContext->state == MDNS_STATE_IDLE)
                {
                   //Initial random delay
-                  delay = netGenerateRandRange(MDNS_RAND_DELAY_MIN,
-                     MDNS_RAND_DELAY_MAX);
+                  delay = netGenerateRandRange(context->netContext,
+                     MDNS_RAND_DELAY_MIN, MDNS_RAND_DELAY_MAX);
 
                   //Perform probing
                   dnsSdResponderChangeState(service, MDNS_STATE_PROBING, delay);
@@ -633,6 +637,35 @@ void dnsSdResponderLinkChangeEvent(DnsSdResponderContext *context)
       //Whenever a mDNS responder receives an indication of a link change
       //event, it must perform probing and announcing
       context->services[i].state = MDNS_STATE_INIT;
+   }
+}
+
+
+/**
+ * @brief Release DNS-SD responder context
+ * @param[in] context Pointer to the DNS-SD responder context
+ **/
+
+void dnsSdResponderDeinit(DnsSdResponderContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the DNS-SD responder context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the DNS-SD responder context from the network interface
+      interface->dnsSdResponderContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear DNS-SD responder context
+      osMemset(context, 0, sizeof(DnsSdResponderContext));
    }
 }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -36,7 +36,7 @@
  * - RFC 4541: Considerations for IGMP and MLD Snooping Switches
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -121,7 +121,10 @@ error_t igmpSnoopingInit(IgmpSnoopingContext *context,
    //Clear the IGMP snooping switch context
    osMemset(context, 0, sizeof(IgmpSnoopingContext));
 
-   //Initialize IGMP snooping switch context
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
+   //Save user settings
    context->interface = settings->interface;
    context->numPorts = settings->numPorts;
    context->ports = settings->ports;
@@ -140,8 +143,12 @@ error_t igmpSnoopingInit(IgmpSnoopingContext *context,
       context->groups[i].state = IGMP_SNOOPING_GROUP_STATE_NO_MEMBERS_PRESENT;
    }
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the IGMP snooping switch context to the network interface
    interface->igmpSnoopingContext = context;
+   //Release exclusive access
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -164,7 +171,7 @@ error_t igmpSnoopingStart(IgmpSnoopingContext *context)
    TRACE_INFO("Starting IGMP snooping switch...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Enable IGMP monitoring
    igmpSnoopingEnableMonitoring(context, TRUE);
@@ -186,7 +193,7 @@ error_t igmpSnoopingStart(IgmpSnoopingContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -211,7 +218,7 @@ error_t igmpSnoopingStop(IgmpSnoopingContext *context)
    TRACE_INFO("Stopping IGMP snooping switch...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Disable IGMP monitoring
    igmpSnoopingEnableMonitoring(context, FALSE);
@@ -240,7 +247,7 @@ error_t igmpSnoopingStop(IgmpSnoopingContext *context)
    context->running = FALSE;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -337,6 +344,35 @@ void igmpSnoopingTick(IgmpSnoopingContext *context)
             }
          }
       }
+   }
+}
+
+
+/**
+ * @brief Release IGMP snooping switch context
+ * @param[in] context Pointer to the IGMP snooping switch context
+ **/
+
+void igmpSnoopingDeinit(IgmpSnoopingContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the IGMP snooping switch context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the IGMP snooping switch context from the network interface
+      interface->igmpSnoopingContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear IGMP snooping switch context
+      osMemset(context, 0, sizeof(IgmpSnoopingContext));
    }
 }
 

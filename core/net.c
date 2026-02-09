@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -71,8 +71,8 @@
    #include "web_socket/web_socket.h"
 #endif
 
-//TCP/IP stack context
-NetContext netContext;
+//Global variable
+static NetContext *netDefaultContext;
 
 
 /**
@@ -86,34 +86,10 @@ void netGetDefaultSettings(NetSettings *settings)
    settings->task = OS_TASK_DEFAULT_PARAMS;
    settings->task.stackSize = NET_TASK_STACK_SIZE;
    settings->task.priority = NET_TASK_PRIORITY;
-}
 
-
-/**
- * @brief Initialize TCP/IP stack (deprecated)
- * @return Error code
- **/
-
-error_t netInit(void)
-{
-   error_t error;
-   NetSettings netSettings;
-
-   //Get default settings
-   netGetDefaultSettings(&netSettings);
-
-   //Initialize TCP/IP stack
-   error = netInitEx(&netContext, &netSettings);
-
-   //Check status code
-   if(!error)
-   {
-      //Start TCP/IP stack
-      error = netStart(&netContext);
-   }
-
-   //Return status code
-   return error;
+   //Network interfaces
+   settings->interfaces = NULL;
+   settings->numInterfaces = 0;
 }
 
 
@@ -124,11 +100,24 @@ error_t netInit(void)
  * @return Error code
  **/
 
-error_t netInitEx(NetContext *context, const NetSettings *settings)
+error_t netInit(NetContext *context, const NetSettings *settings)
 {
    error_t error;
    uint_t i;
    NetInterface *interface;
+
+   //Ensure the parameters are valid
+   if(context == NULL || settings == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Check settings
+   if(settings->interfaces == NULL || settings->numInterfaces < 1)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
+
+   //Set default TCP/IP stack context
+   netDefaultContext = context;
 
    //Clear TCP/IP stack context
    osMemset(context, 0, sizeof(NetContext));
@@ -137,20 +126,24 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
    context->taskParams = settings->task;
    context->taskId = OS_INVALID_TASK_ID;
 
+   //Save user settings
+   context->interfaces = settings->interfaces;
+   context->numInterfaces = settings->numInterfaces;
+
    //The TCP/IP process is currently suspended
-   netTaskRunning = FALSE;
+   context->running = FALSE;
    //Get current time
-   netTimestamp = osGetSystemTime();
+   context->timestamp = osGetSystemTime();
 
    //Create a mutex to prevent simultaneous access to the TCP/IP stack
-   if(!osCreateMutex(&netMutex))
+   if(!osCreateMutex(&context->mutex))
    {
       //Failed to create mutex
       return ERROR_OUT_OF_RESOURCES;
    }
 
    //Create a event object to receive notifications from device drivers
-   if(!osCreateEvent(&netEvent))
+   if(!osCreateEvent(&context->event))
    {
       //Failed to create mutex
       return ERROR_OUT_OF_RESOURCES;
@@ -162,22 +155,25 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
    if(error)
       return error;
 
-   //Clear configuration data for each interface
-   osMemset(netInterface, 0, sizeof(netInterface));
-
    //Loop through network interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
-      //Point to the current interface
-      interface = &netInterface[i];
+      //Point to the current network interface
+      interface = &context->interfaces[i];
 
-      //Default interface name
-      osSprintf(interface->name, "eth%u", i);
+      //Initialize the structure representing the network interface
+      osMemset(interface, 0, sizeof(NetInterface));
+
+      //Attach TCP/IP stack context
+      interface->netContext = context;
 
       //Zero-based index
       interface->index = i;
       //Unique number identifying the interface
       interface->id = i;
+
+      //Default interface name
+      osSprintf(interface->name, "eth%u", i);
 
 #if (ETH_SUPPORT == ENABLED)
       //Default PHY address
@@ -190,7 +186,7 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
    }
 
    //Socket related initialization
-   error = socketInit();
+   error = socketInit(context);
    //Any error to report?
    if(error)
       return error;
@@ -202,7 +198,7 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 
 #if (IPV4_SUPPORT == ENABLED && IPV4_ROUTING_SUPPORT == ENABLED)
    //Initialize IPv4 routing table
-   error = ipv4InitRouting();
+   error = ipv4InitRouting(context);
    //Any error to report?
    if(error)
       return error;
@@ -210,7 +206,7 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 
 #if (IPV6_SUPPORT == ENABLED && IPV6_ROUTING_SUPPORT == ENABLED)
    //Initialize IPv6 routing table
-   error = ipv6InitRouting();
+   error = ipv6InitRouting(context);
    //Any error to report?
    if(error)
       return error;
@@ -218,7 +214,7 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 
 #if (UDP_SUPPORT == ENABLED)
    //UDP related initialization
-   error = udpInit();
+   error = udpInit(context);
    //Any error to report?
    if(error)
       return error;
@@ -226,7 +222,7 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 
 #if (TCP_SUPPORT == ENABLED)
    //TCP related initialization
-   error = tcpInit();
+   error = tcpInit(context);
    //Any error to report?
    if(error)
       return error;
@@ -242,64 +238,88 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 #endif
 
    //Initialize tick counters
-   nicTickCounter = 0;
+   context->nicTickCounter = 0;
 
 #if (PPP_SUPPORT == ENABLED)
-   pppTickCounter = 0;
+   context->pppTickCounter = 0;
 #endif
 #if (IPV4_SUPPORT == ENABLED && ETH_SUPPORT == ENABLED)
-   arpTickCounter = 0;
+   context->arpTickCounter = 0;
 #endif
 #if (IPV4_SUPPORT == ENABLED && IPV4_FRAG_SUPPORT == ENABLED)
-   ipv4FragTickCounter = 0;
+   context->ipv4FragTickCounter = 0;
 #endif
 #if (IPV4_SUPPORT == ENABLED && (IGMP_HOST_SUPPORT == ENABLED || \
    IGMP_ROUTER_SUPPORT == ENABLED || IGMP_SNOOPING_SUPPORT == ENABLED))
-   igmpTickCounter = 0;
+   context->igmpTickCounter = 0;
 #endif
 #if (IPV4_SUPPORT == ENABLED && AUTO_IP_SUPPORT == ENABLED)
-   autoIpTickCounter = 0;
+   context->autoIpTickCounter = 0;
 #endif
 #if (IPV4_SUPPORT == ENABLED && DHCP_CLIENT_SUPPORT == ENABLED)
-   dhcpClientTickCounter = 0;
+   context->dhcpClientTickCounter = 0;
 #endif
 #if (IPV4_SUPPORT == ENABLED && DHCP_SERVER_SUPPORT == ENABLED)
-   dhcpServerTickCounter = 0;
+   context->dhcpServerTickCounter = 0;
 #endif
 #if (IPV4_SUPPORT == ENABLED && NAT_SUPPORT == ENABLED)
-   natTickCounter = 0;
+   context->natTickCounter = 0;
 #endif
 #if (IPV6_SUPPORT == ENABLED && IPV6_FRAG_SUPPORT == ENABLED)
-   ipv6FragTickCounter = 0;
+   context->ipv6FragTickCounter = 0;
 #endif
 #if (IPV6_SUPPORT == ENABLED && MLD_NODE_SUPPORT == ENABLED)
-   mldTickCounter = 0;
+   context->mldTickCounter = 0;
 #endif
 #if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
-   ndpTickCounter = 0;
+   context->ndpTickCounter = 0;
 #endif
 #if (IPV6_SUPPORT == ENABLED && NDP_ROUTER_ADV_SUPPORT == ENABLED)
-   ndpRouterAdvTickCounter = 0;
+   context->ndpRouterAdvTickCounter = 0;
 #endif
 #if (IPV6_SUPPORT == ENABLED && DHCPV6_CLIENT_SUPPORT == ENABLED)
-   dhcpv6ClientTickCounter = 0;
+   context->dhcpv6ClientTickCounter = 0;
 #endif
 #if (TCP_SUPPORT == ENABLED)
-   tcpTickCounter = 0;
+   context->tcpTickCounter = 0;
 #endif
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
    NBNS_CLIENT_SUPPORT == ENABLED)
-   dnsTickCounter = 0;
+   context->dnsTickCounter = 0;
 #endif
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
-   mdnsResponderTickCounter = 0;
+   context->mdnsResponderTickCounter = 0;
 #endif
 #if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
-   dnsSdResponderTickCounter = 0;
+   context->dnsSdResponderTickCounter = 0;
 #endif
 
    //Successful initialization
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Get exclusive access to the core of the TCP/IP stack
+ * @param[in] context Pointer to the TCP/IP stack context
+ **/
+
+void netLock(NetContext *context)
+{
+   //Get exclusive access
+   osAcquireMutex(&context->mutex);
+}
+
+
+/**
+ * @brief Release exclusive access to the core of the TCP/IP stack
+ * @param[in] context Pointer to the TCP/IP stack context
+ **/
+
+void netUnlock(NetContext *context)
+{
+   //Release exclusive access
+   osReleaseMutex(&context->mutex);
 }
 
 
@@ -311,51 +331,85 @@ error_t netInitEx(NetContext *context, const NetSettings *settings)
 
 error_t netStart(NetContext *context)
 {
-   //Create a task
-   context->taskId = osCreateTask("TCP/IP", (OsTaskCode) netTaskEx, context,
-      &context->taskParams);
+   error_t error;
 
-   //Unable to create the task?
-   if(context->taskId == OS_INVALID_TASK_ID)
-      return ERROR_OUT_OF_RESOURCES;
+   //Initialize status code
+   error = NO_ERROR;
 
+   //Make sure the TCP/IP stack context is valid
+   if(context != NULL)
+   {
+      //Make sure the TCP/IP stack service is not already running
+      if(!context->running)
+      {
+         //Start the TCP/IP stack
+         context->stop = FALSE;
 #if (NET_RTOS_SUPPORT == DISABLED)
-   //The TCP/IP process is now running
-   netTaskRunning = TRUE;
+         context->running = TRUE;
 #endif
+         //Create a task
+         context->taskId = osCreateTask("TCP/IP", (OsTaskCode) netTask, context,
+            &context->taskParams);
 
-   //Successful processing
-   return NO_ERROR;
+         //Failed to create task?
+         if(context->taskId == OS_INVALID_TASK_ID)
+         {
+            //Report an error
+            error = ERROR_OUT_OF_RESOURCES;
+         }
+
+         //Any error to report?
+         if(error)
+         {
+            //Clean up side effects
+            context->running = FALSE;
+         }
+      }
+      else
+      {
+         //The TCP/IP stack is already running
+         error = ERROR_ALREADY_RUNNING;
+      }
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_PARAMETER;
+   }
+
+   //Return status code
+   return error;
 }
 
 
 /**
  * @brief Seed the pseudo-random number generator
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] seed Pointer to the random seed
  * @param[in] length Length of the random seed, in bytes
  * @return Error code
  **/
 
-error_t netSeedRand(const uint8_t *seed, size_t length)
+error_t netSeedRand(NetContext *context, const uint8_t *seed, size_t length)
 {
    size_t i;
    size_t j;
 
    //Check parameters
-   if(seed == NULL || length == 0)
+   if(context == NULL || seed == NULL || length == 0)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   if(netTaskRunning)
+   if(context->running)
    {
-      osAcquireMutex(&netMutex);
+      netLock(context);
    }
 
    //Save random seed
    for(i = 0, j = 0; i < NET_RAND_SEED_SIZE; i++)
    {
       //Copy current byte
-      netContext.randSeed[i] = seed[j];
+      context->randSeed[i] = seed[j];
 
       //Increment index and wrap around if necessary
       if(++j >= length)
@@ -365,12 +419,12 @@ error_t netSeedRand(const uint8_t *seed, size_t length)
    }
 
    //Initialize pseudo-random generator
-   netInitRand();
+   netInitRand(context);
 
    //Release exclusive access
-   if(netTaskRunning)
+   if(context->running)
    {
-      osReleaseMutex(&netMutex);
+      netUnlock(context);
    }
 
    //Successful processing
@@ -380,26 +434,27 @@ error_t netSeedRand(const uint8_t *seed, size_t length)
 
 /**
  * @brief Generate a random 32-bit value
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Random value
  **/
 
-uint32_t netGetRand(void)
+uint32_t netGetRand(NetContext *context)
 {
    uint32_t value;
 
    //Get exclusive access
-   if(netTaskRunning)
+   if(context->running)
    {
-      osAcquireMutex(&netMutex);
+      netLock(context);
    }
 
    //Generate a random 32-bit value
-   value = netGenerateRand();
+   value = netGenerateRand(context);
 
    //Release exclusive access
-   if(netTaskRunning)
+   if(context->running)
    {
-      osReleaseMutex(&netMutex);
+      netUnlock(context);
    }
 
    //Return the random value
@@ -409,28 +464,29 @@ uint32_t netGetRand(void)
 
 /**
  * @brief Generate a random value in the specified range
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] min Lower bound
  * @param[in] max Upper bound
  * @return Random value in the specified range
  **/
 
-uint32_t netGetRandRange(uint32_t min, uint32_t max)
+uint32_t netGetRandRange(NetContext *context, uint32_t min, uint32_t max)
 {
    uint32_t value;
 
    //Get exclusive access
-   if(netTaskRunning)
+   if(context->running)
    {
-      osAcquireMutex(&netMutex);
+      netLock(context);
    }
 
    //Generate a random value in the specified range
-   value = netGenerateRandRange(min, max);
+   value = netGenerateRandRange(context, min, max);
 
    //Release exclusive access
-   if(netTaskRunning)
+   if(context->running)
    {
-      osReleaseMutex(&netMutex);
+      netUnlock(context);
    }
 
    //Return the random value
@@ -440,38 +496,67 @@ uint32_t netGetRandRange(uint32_t min, uint32_t max)
 
 /**
  * @brief Get a string of random data
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[out] data Buffer where to store random data
  * @param[in] length Number of random bytes to generate
  **/
 
-void netGetRandData(uint8_t *data, size_t length)
+void netGetRandData(NetContext *context, uint8_t *data, size_t length)
 {
    //Get exclusive access
-   if(netTaskRunning)
+   if(context->running)
    {
-      osAcquireMutex(&netMutex);
+      netLock(context);
    }
 
    //Generate a random value in the specified range
-   netGenerateRandData(data, length);
+   netGenerateRandData(context, data, length);
 
    //Release exclusive access
-   if(netTaskRunning)
+   if(context->running)
    {
-      osReleaseMutex(&netMutex);
+      netUnlock(context);
    }
 }
 
 
 /**
+ * @brief Get default TCP/IP stack context
+ **/
+
+NetContext *netGetDefaultContext(void)
+{
+   //Return a pointer to the default TCP/IP stack context
+   return netDefaultContext;
+}
+
+
+/**
  * @brief Get default network interface
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Pointer to the default network interface to be used
  **/
 
-NetInterface *netGetDefaultInterface(void)
+NetInterface *netGetDefaultInterface(NetContext *context)
 {
-   //Default network interface
-   return &netInterface[0];
+   NetInterface *interface;
+
+   //Select the default network interface
+   if(context != NULL)
+   {
+      interface = &context->interfaces[0];
+   }
+   else if(netDefaultContext != NULL)
+   {
+      interface = &netDefaultContext->interfaces[0];
+   }
+   else
+   {
+      interface = NULL;
+   }
+
+   //Return a pointer to the network interface
+   return interface;
 }
 
 
@@ -490,7 +575,7 @@ error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Set MAC address
    interface->macAddr = *macAddr;
@@ -499,7 +584,7 @@ error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr)
    macAddrToEui64(macAddr, &interface->eui64);
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -527,7 +612,7 @@ error_t netGetMacAddr(NetInterface *interface, MacAddr *macAddr)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
@@ -536,7 +621,7 @@ error_t netGetMacAddr(NetInterface *interface, MacAddr *macAddr)
    *macAddr = logicalInterface->macAddr;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -561,11 +646,11 @@ error_t netSetEui64(NetInterface *interface, const Eui64 *eui64)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set interface identifier
    interface->eui64 = *eui64;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -588,7 +673,7 @@ error_t netGetEui64(NetInterface *interface, Eui64 *eui64)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
@@ -597,7 +682,7 @@ error_t netGetEui64(NetInterface *interface, Eui64 *eui64)
    *eui64 = logicalInterface->eui64;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -618,11 +703,11 @@ error_t netSetInterfaceId(NetInterface *interface, uint32_t id)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set interface identifier
    interface->id = id;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -647,11 +732,11 @@ error_t netSetInterfaceName(NetInterface *interface, const char_t *name)
       return ERROR_INVALID_LENGTH;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set interface name
    osStrcpy(interface->name, name);
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -676,11 +761,11 @@ error_t netSetHostname(NetInterface *interface, const char_t *name)
       return ERROR_INVALID_LENGTH;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set host name
    osStrcpy(interface->hostname, name);
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -706,11 +791,11 @@ error_t netSetVlanId(NetInterface *interface, uint16_t vlanId)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set VLAN identifier
    interface->vlanId = vlanId;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -740,11 +825,11 @@ error_t netSetVmanId(NetInterface *interface, uint16_t vmanId)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set VMAN identifier
    interface->vmanId = vmanId;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -773,11 +858,11 @@ error_t netSetParentInterface(NetInterface *interface,
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Bind the virtual interface to the physical interface
    interface->parent = physicalInterface;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -802,11 +887,11 @@ error_t netSetDriver(NetInterface *interface, const NicDriver *driver)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set Ethernet MAC driver
    interface->nicDriver = driver;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -828,11 +913,11 @@ error_t netSetPhyDriver(NetInterface *interface, const PhyDriver *driver)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set Ethernet PHY driver
    interface->phyDriver = driver;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -862,11 +947,11 @@ error_t netSetPhyAddr(NetInterface *interface, uint8_t phyAddr)
       return ERROR_OUT_OF_RANGE;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set PHY address
    interface->phyAddr = phyAddr;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -892,11 +977,11 @@ error_t netSetSwitchDriver(NetInterface *interface, const SwitchDriver *driver)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set Ethernet switch driver
    interface->switchDriver = driver;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -922,11 +1007,11 @@ error_t netSetSwitchPort(NetInterface *interface, uint8_t port)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set switch port identifier
    interface->port = port;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -952,11 +1037,11 @@ error_t netSetSmiDriver(NetInterface *interface, const SmiDriver *driver)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set SMI driver
    interface->smiDriver = driver;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -981,11 +1066,11 @@ error_t netSetSpiDriver(NetInterface *interface, const SpiDriver *driver)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set SPI driver
    interface->spiDriver = driver;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -1006,11 +1091,11 @@ error_t netSetUartDriver(NetInterface *interface, const UartDriver *driver)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set UART driver
    interface->uartDriver = driver;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -1031,11 +1116,11 @@ error_t netSetExtIntDriver(NetInterface *interface, const ExtIntDriver *driver)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set external interrupt line driver
    interface->extIntDriver = driver;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -1056,7 +1141,7 @@ error_t netSetLinkState(NetInterface *interface, bool_t linkState)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Any change detected?
    if(linkState != interface->linkState)
@@ -1068,7 +1153,7 @@ error_t netSetLinkState(NetInterface *interface, bool_t linkState)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -1089,11 +1174,11 @@ bool_t netGetLinkState(NetInterface *interface)
    if(interface != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
       //Retrieve link state
       linkState = interface->linkState;
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
    else
    {
@@ -1120,11 +1205,11 @@ uint_t netGetLinkSpeed(NetInterface *interface)
    if(interface != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
       //Retrieve link speed
       linkSpeed = interface->linkSpeed;
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
    else
    {
@@ -1151,11 +1236,11 @@ NicDuplexMode netGetDuplexMode(NetInterface *interface)
    if(interface != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
       //Retrieve duplex mode
       duplexMode = interface->duplexMode;
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
    else
    {
@@ -1183,11 +1268,11 @@ error_t netEnablePromiscuousMode(NetInterface *interface, bool_t enable)
 
 #if (ETH_SUPPORT == ENABLED)
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Enable or disable promiscuous mode
    interface->promiscuous = enable;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 #endif
 
    //Successful processing
@@ -1210,11 +1295,13 @@ error_t netConfigInterface(NetInterface *interface)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Disable hardware interrupts
    if(interface->nicDriver != NULL)
+   {
       interface->nicDriver->disableIrq(interface);
+   }
 
    //Start of exception handling block
    do
@@ -1350,17 +1437,19 @@ error_t netConfigInterface(NetInterface *interface)
    if(!error)
    {
       //Initialize pseudo-random generator
-      netInitRand();
+      netInitRand(interface->netContext);
 
       //The network interface is now fully configured
       interface->configured = TRUE;
 
       //Check whether the TCP/IP process is running
-      if(netTaskRunning)
+      if(interface->netContext->running)
       {
          //Interrupts can be safely enabled
          if(interface->nicDriver != NULL)
+         {
             interface->nicDriver->enableIrq(interface);
+         }
       }
    }
    else
@@ -1370,7 +1459,7 @@ error_t netConfigInterface(NetInterface *interface)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -1395,7 +1484,7 @@ error_t netStartInterface(NetInterface *interface)
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
 #if (ETH_SUPPORT == ENABLED)
    //Check whether the interface is enabled for operation
@@ -1442,15 +1531,17 @@ error_t netStartInterface(NetInterface *interface)
    interface->configured = TRUE;
 
    //Check whether the TCP/IP process is running
-   if(netTaskRunning)
+   if(interface->netContext->running)
    {
       //Interrupts can be safely enabled
       if(interface->nicDriver != NULL)
+      {
          interface->nicDriver->enableIrq(interface);
+      }
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -1472,7 +1563,7 @@ error_t netStopInterface(NetInterface *interface)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
@@ -1508,20 +1599,10 @@ error_t netStopInterface(NetInterface *interface)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful operation
    return NO_ERROR;
-}
-
-
-/**
- * @brief TCP/IP events handling (deprecated)
- **/
-
-void netTask(void)
-{
-   netTaskEx(&netContext);
 }
 
 
@@ -1530,7 +1611,7 @@ void netTask(void)
  * @param[in] context Pointer to the TCP/IP stack context
  **/
 
-void netTaskEx(NetContext *context)
+void netTask(NetContext *context)
 {
    uint_t i;
    bool_t status;
@@ -1543,16 +1624,16 @@ void netTaskEx(NetContext *context)
    osEnterTask();
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context);
 
    //The TCP/IP process is now running
-   netTaskRunning = TRUE;
+   context->running = TRUE;
 
    //Loop through network interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Point to the current network interface
-      interface = &netInterface[i];
+      interface = &context->interfaces[i];
 
       //Check whether the interface is fully configured
       if(interface->configured)
@@ -1566,7 +1647,7 @@ void netTaskEx(NetContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context);
 
    //Main loop
    while(1)
@@ -1576,30 +1657,30 @@ void netTaskEx(NetContext *context)
       time = osGetSystemTime();
 
       //Compute the maximum blocking time when waiting for an event
-      if(timeCompare(time, netTimestamp) < 0)
+      if(timeCompare(time, context->timestamp) < 0)
       {
-         timeout = netTimestamp - time;
+         timeout = context->timestamp - time;
       }
       else
       {
          timeout = 0;
       }
 
-      //Receive notifications when a frame has been received, or the
-      //link state of any network interfaces has changed
-      status = osWaitForEvent(&netEvent, timeout);
+      //Receive notifications when a frame has been received, or the link state
+      //of any network interfaces has changed
+      status = osWaitForEvent(&context->event, timeout);
 
       //Check whether the specified event is in signaled state
       if(status)
       {
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(context);
 
          //Process events
-         for(i = 0; i < NET_INTERFACE_COUNT; i++)
+         for(i = 0; i < context->numInterfaces; i++)
          {
             //Point to the current network interface
-            interface = &netInterface[i];
+            interface = &context->interfaces[i];
 
             //Check whether a NIC event is pending
             if(interface->nicEvent)
@@ -1656,24 +1737,35 @@ void netTaskEx(NetContext *context)
          }
 
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(context);
+      }
+
+      //Stop request?
+      if(context->stop)
+      {
+         //Stop TCP/IP stack
+         context->running = FALSE;
+         //Task epilogue
+         osExitTask();
+         //Kill ourselves
+         osDeleteTask(OS_SELF_TASK_ID);
       }
 
       //Get current time
       time = osGetSystemTime();
 
       //Check current time
-      if(timeCompare(time, netTimestamp) >= 0)
+      if(timeCompare(time, context->timestamp) >= 0)
       {
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(context);
          //Handle periodic operations
-         netTick();
+         netTick(context);
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(context);
 
          //Next event
-         netTimestamp = time + NET_TICK_INTERVAL;
+         context->timestamp = time + NET_TICK_INTERVAL;
       }
 #if (NET_RTOS_SUPPORT == ENABLED)
    }

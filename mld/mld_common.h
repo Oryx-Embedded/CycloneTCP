@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _MLD_COMMON_H
@@ -168,7 +168,7 @@ typedef __packed_struct
 typedef __packed_struct
 {
    uint8_t type;                   //0
-   uint8_t reserved;              //1
+   uint8_t reserved;               //1
    uint16_t checksum;              //2-3
    uint16_t flags;                 //4-5
    uint16_t numOfMcastAddrRecords; //6-7
@@ -200,9 +200,6 @@ typedef __packed_struct
 //MLD related constants
 extern const Ipv6Addr MLD_V2_ALL_ROUTERS_ADDR;
 
-//Tick counter to handle periodic operations
-extern systime_t mldTickCounter;
-
 //MLD related functions
 error_t mldInit(NetInterface *interface);
 void mldTick(NetInterface *interface);
@@ -215,7 +212,7 @@ void mldProcessMessage(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, const NetBuffer *buffer,
    size_t offset, const NetRxAncillary *ancillary);
 
-systime_t mldGetRandomDelay(systime_t maxDelay);
+systime_t mldGetRandomDelay(NetContext *context, systime_t maxDelay);
 
 uint32_t mldDecodeFloatingPointValue8(uint8_t code);
 uint32_t mldDecodeFloatingPointValue16(uint16_t code);

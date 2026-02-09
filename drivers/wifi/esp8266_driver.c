@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -328,11 +328,11 @@ void netif_set_up(struct netif *netif)
       interface->linkState = TRUE;
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
       //Process link state change event
       nicNotifyLinkChange(interface);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
 }
 
@@ -367,11 +367,11 @@ void netif_set_down(struct netif *netif)
       interface->linkState = FALSE;
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
       //Process link state change event
       nicNotifyLinkChange(interface);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
 }
 
@@ -408,7 +408,7 @@ void ethernetif_input(struct netif *netif, struct pbuf *p)
       if(interface != NULL)
       {
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(interface->netContext);
 
          //Additional options can be passed to the stack along with the packet
          ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -417,7 +417,7 @@ void ethernetif_input(struct netif *netif, struct pbuf *p)
          nicProcessPacket(interface, p->payload, p->len, &ancillary);
 
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(interface->netContext);
       }
 
       //Release buffer

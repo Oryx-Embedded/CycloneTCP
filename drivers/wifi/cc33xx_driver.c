@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -412,7 +412,7 @@ void cc33xxStaRxCallback(WlanRole_e role, uint8_t *data, uint32_t length)
    if(cc33xxStaInterface != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(cc33xxStaInterface->netContext);
 
       //Additional options can be passed to the stack along with the packet
       ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -421,7 +421,7 @@ void cc33xxStaRxCallback(WlanRole_e role, uint8_t *data, uint32_t length)
       nicProcessPacket(cc33xxStaInterface, data, length, &ancillary);
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(cc33xxStaInterface->netContext);
    }
 }
 
@@ -444,7 +444,7 @@ void cc33xxApRxCallback(WlanRole_e role, uint8_t *data, uint32_t length)
    if(cc33xxApInterface != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(cc33xxApInterface->netContext);
 
       //Additional options can be passed to the stack along with the packet
       ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -453,6 +453,6 @@ void cc33xxApRxCallback(WlanRole_e role, uint8_t *data, uint32_t length)
       nicProcessPacket(cc33xxApInterface, data, length, &ancillary);
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(cc33xxApInterface->netContext);
    }
 }

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _DHCP_SERVER_H
@@ -143,8 +143,19 @@ typedef struct
 
 struct _DhcpServerContext
 {
-   DhcpServerSettings settings;                              ///<DHCP server settings
-   bool_t running;                                           ///<This flag tells whether the DHCP server is running or not
+   NetContext *netContext;                                   ///<TCP/IP stack context
+   NetInterface *interface;                                  ///<Underlying network interface
+   uint_t ipAddrIndex;                                       ///<Index of the IP address assigned to the DHCP server
+   bool_t rapidCommit;                                       ///<Quick configuration using rapid commit
+   uint32_t leaseTime;                                       ///<Lease time, in seconds, assigned to the DHCP clients
+   Ipv4Addr ipAddrRangeMin;                                  ///<Lowest IP address in the pool that is available for dynamic address assignment
+   Ipv4Addr ipAddrRangeMax;                                  ///<Highest IP address in the pool that is available for dynamic address assignment
+   Ipv4Addr subnetMask;                                      ///<Subnet mask
+   Ipv4Addr defaultGateway;                                  ///<Default gateway
+   Ipv4Addr dnsServer[DHCP_SERVER_MAX_DNS_SERVERS];          ///<DNS servers
+   DhcpServerAddOptionsCallback addOptionsCallback;          ///<Add DHCP options callback
+   DhcpServerParseOptionsCallback parseOptionsCallback;      ///<Parse DHCP options callback
+   bool_t running;                                           ///<Operational state of the DHCP server
    Ipv4Addr nextIpAddr;                                      ///<Next IP address to be assigned
    DhcpServerBinding clientBinding[DHCP_SERVER_MAX_CLIENTS]; ///<List of bindings
    DHCP_SERVER_PRIVATE_CONTEXT                               ///<Application specific context

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -798,7 +798,7 @@ void igmpHostProcessMembershipQuery(IgmpHostContext *context,
             if(maxRespTime < netGetRemainingTime(&group->timer))
             {
                //Select a random value in the range 0 - Max Response Time
-               delay = igmpGetRandomDelay(maxRespTime);
+               delay = igmpGetRandomDelay(context->netContext, maxRespTime);
                //Restart delay timer
                netStartTimer(&group->timer, delay);
             }
@@ -806,7 +806,7 @@ void igmpHostProcessMembershipQuery(IgmpHostContext *context,
          else if(group->state == IGMP_HOST_GROUP_STATE_IDLE_MEMBER)
          {
             //Select a random value in the range 0 - Max Response Time
-            delay = igmpGetRandomDelay(maxRespTime);
+            delay = igmpGetRandomDelay(context->netContext, maxRespTime);
             //Start delay timer
             netStartTimer(&group->timer, delay);
 
@@ -891,7 +891,7 @@ void igmpHostProcessMembershipQueryV3(IgmpHostContext *context,
    //When a new Query arrives on an interface, provided the system has state
    //to report, a delay for a response is randomly selected in the range
    //0 - Max Resp Time (refer to RFC 3376, section 5.2)
-   delay = igmpGetRandomDelay(maxRespTime);
+   delay = igmpGetRandomDelay(context->netContext, maxRespTime);
 
    //The following rules are then used to determine if a Report needs to be
    //scheduled and the type of Report to schedule

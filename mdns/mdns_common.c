@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -87,7 +87,7 @@ error_t mdnsInit(NetInterface *interface)
 #endif
 
    //Callback function to be called when a mDNS message is received
-   error = udpAttachRxCallback(interface, MDNS_PORT, mdnsProcessMessage, NULL);
+   error = udpRegisterRxCallback(interface, MDNS_PORT, mdnsProcessMessage, NULL);
    //Any error to report?
    if(error)
       return error;
@@ -490,8 +490,8 @@ error_t mdnsSendMessage(NetInterface *interface, const MdnsMessage *message,
          ancillary.ttl = MDNS_DEFAULT_IP_TTL;
 
          //Send mDNS message
-         udpSendBuffer(interface, NULL, MDNS_PORT, destIpAddr, destPort,
-            message->buffer, message->offset, &ancillary);
+         udpSendBuffer(interface->netContext, interface, NULL, MDNS_PORT,
+            destIpAddr, destPort, message->buffer, message->offset, &ancillary);
       }
       else
       {
@@ -506,8 +506,8 @@ error_t mdnsSendMessage(NetInterface *interface, const MdnsMessage *message,
          ancillary.ttl = MDNS_DEFAULT_IP_TTL;
 
          //Send mDNS message
-         udpSendBuffer(interface, NULL, MDNS_PORT, &ipAddr, MDNS_PORT,
-            message->buffer, message->offset, &ancillary);
+         udpSendBuffer(interface->netContext, interface, NULL, MDNS_PORT,
+            &ipAddr, MDNS_PORT, message->buffer, message->offset, &ancillary);
 #endif
 
 #if (IPV6_SUPPORT == ENABLED)
@@ -521,8 +521,8 @@ error_t mdnsSendMessage(NetInterface *interface, const MdnsMessage *message,
          ancillary.ttl = MDNS_DEFAULT_IP_TTL;
 
          //Send mDNS message
-         udpSendBuffer(interface, NULL, MDNS_PORT, &ipAddr, MDNS_PORT,
-            message->buffer, message->offset, &ancillary);
+         udpSendBuffer(interface->netContext, interface, NULL, MDNS_PORT,
+            &ipAddr, MDNS_PORT, message->buffer, message->offset, &ancillary);
 #endif
       }
    }

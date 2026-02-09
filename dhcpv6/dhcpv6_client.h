@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _DHCPV6_CLIENT_H
@@ -340,8 +340,17 @@ typedef struct
 
 struct _Dhcpv6ClientContext
 {
-   Dhcpv6ClientSettings settings;                   ///<DHCPv6 client settings
-   bool_t running;                                  ///<This flag tells whether the DHCP client is running or not
+   NetContext *netContext;                          ///<TCP/IP stack context
+   NetInterface *interface;                         ///<Network interface to configure
+   bool_t rapidCommit;                              ///<Quick configuration using rapid commit
+   bool_t manualDnsConfig;                          ///<Force manual DNS configuration
+   systime_t configTimeout;                         ///<DHCPv6 configuration timeout
+   Dhcpv6TimeoutCallback timeoutEvent;              ///<DHCPv6 configuration timeout event
+   Dhcpv6LinkChangeCallback linkChangeEvent;        ///<Link state change event
+   Dhcpv6StateChangeCallback stateChangeEvent;      ///<FSM state change event
+   Dhcpv6AddOptionsCallback addOptionsCallback;     ///<Add DHCPv6 options callback
+   Dhcpv6ParseOptionsCallback parseOptionsCallback; ///<Parse DHCPv6 options callback
+   bool_t running;                                  ///<Operational state of the DHCPv6 client
    Dhcpv6State state;                               ///<Current state of the FSM
    bool_t timeoutEventDone;                         ///<Timeout callback function has been called
    systime_t timestamp;                             ///<Timestamp to manage retransmissions
@@ -372,6 +381,8 @@ error_t dhcpv6ClientStop(Dhcpv6ClientContext *context);
 
 error_t dhcpv6ClientRelease(Dhcpv6ClientContext *context);
 Dhcpv6State dhcpv6ClientGetState(Dhcpv6ClientContext *context);
+
+void dhcpv6ClientDeinit(Dhcpv6ClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus

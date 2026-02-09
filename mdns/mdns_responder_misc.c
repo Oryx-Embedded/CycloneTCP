@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -53,11 +53,6 @@
 void mdnsResponderChangeState(MdnsResponderContext *context,
    MdnsState newState, systime_t delay)
 {
-   NetInterface *interface;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
-
    //Set time stamp
    context->timestamp = osGetSystemTime();
    //Set initial delay
@@ -68,14 +63,14 @@ void mdnsResponderChangeState(MdnsResponderContext *context,
    context->state = newState;
 
    //Any registered callback?
-   if(context->settings.stateChangeEvent != NULL)
+   if(context->stateChangeEvent != NULL)
    {
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
-      context->settings.stateChangeEvent(context, interface, newState);
+      context->stateChangeEvent(context, context->interface, newState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
@@ -150,12 +145,8 @@ void mdnsResponderChangeHostname(MdnsResponderContext *context)
 error_t mdnsResponderSendProbe(MdnsResponderContext *context)
 {
    error_t error;
-   NetInterface *interface;
    DnsQuestion *dnsQuestion;
    MdnsMessage message;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Create an empty mDNS query message
    error = mdnsCreateMessage(&message, FALSE);
@@ -203,7 +194,7 @@ error_t mdnsResponderSendProbe(MdnsResponderContext *context)
       message.dnsHeader->ancount = 0;
 
       //Send mDNS message
-      error = mdnsSendMessage(interface, &message, NULL, MDNS_PORT);
+      error = mdnsSendMessage(context->interface, &message, NULL, MDNS_PORT);
 
       //End of exception handling block
    } while(0);
@@ -225,11 +216,7 @@ error_t mdnsResponderSendProbe(MdnsResponderContext *context)
 error_t mdnsResponderSendAnnouncement(MdnsResponderContext *context)
 {
    error_t error;
-   NetInterface *interface;
    MdnsMessage message;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Create an empty mDNS response message
    error = mdnsCreateMessage(&message, TRUE);
@@ -269,7 +256,7 @@ error_t mdnsResponderSendAnnouncement(MdnsResponderContext *context)
          break;
 
       //Send mDNS message
-      error = mdnsSendMessage(interface, &message, NULL, MDNS_PORT);
+      error = mdnsSendMessage(context->interface, &message, NULL, MDNS_PORT);
 
       //End of exception handling block
    } while(0);
@@ -291,11 +278,7 @@ error_t mdnsResponderSendAnnouncement(MdnsResponderContext *context)
 error_t mdnsResponderSendGoodbye(MdnsResponderContext *context)
 {
    error_t error;
-   NetInterface *interface;
    MdnsMessage message;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Create an empty mDNS response message
    error = mdnsCreateMessage(&message, TRUE);
@@ -331,7 +314,7 @@ error_t mdnsResponderSendGoodbye(MdnsResponderContext *context)
          break;
 
       //Send mDNS message
-      error = mdnsSendMessage(interface, &message, NULL, MDNS_PORT);
+      error = mdnsSendMessage(context->interface, &message, NULL, MDNS_PORT);
 
       //End of exception handling block
    } while(0);
@@ -589,7 +572,8 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
             //responders should delay their responses by a random amount of
             //time selected with uniform random distribution in the range
             //400-500 ms
-            response->timeout = netGenerateRandRange(400, 500);
+            response->timeout = netGenerateRandRange(context->netContext,
+               400, 500);
 
             //Save current time
             response->timestamp = osGetSystemTime();
@@ -600,7 +584,8 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
             //where the answer is a member of a shared resource record set, each
             //responder should delay its response by a random amount of time
             //selected with uniform random distribution in the range 20-120 ms
-            response->timeout = netGenerateRandRange(20, 120);
+            response->timeout = netGenerateRandRange(context->netContext,
+               20, 120);
 
             //Save current time
             response->timestamp = osGetSystemTime();
@@ -671,7 +656,7 @@ error_t mdnsResponderParseQuestion(NetInterface *interface,
    qtype = ntohs(question->qtype);
 
    //Get the TTL resource record
-   ttl = context->settings.ttl;
+   ttl = context->ttl;
 
    //Check whether the querier originating the query is a simple resolver
    if(ntohs(query->udpHeader->srcPort) != MDNS_PORT)
@@ -1257,7 +1242,7 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
    DnsResourceRecord *record;
 
    //Get the TTL resource record
-   ttl = context->settings.ttl;
+   ttl = context->ttl;
 
    //Check whether the querier originating the query is a simple resolver
    if(legacyUnicast)

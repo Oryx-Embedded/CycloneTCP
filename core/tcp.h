@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _TCP_H
@@ -457,15 +457,12 @@ typedef struct
 } TcpRxBuffer;
 
 
-//Tick counter to handle periodic operations
-extern systime_t tcpTickCounter;
-
 //TCP related functions
-error_t tcpInit(void);
+error_t tcpInit(NetContext *context);
 
 error_t tcpSetInitialRto(NetInterface *interface, systime_t initialRto);
 
-uint16_t tcpGetDynamicPort(void);
+uint16_t tcpGetDynamicPort(NetContext *context);
 
 error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
    uint16_t remotePort);

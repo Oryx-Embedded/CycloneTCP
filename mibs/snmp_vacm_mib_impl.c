@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -54,14 +54,22 @@
 
 error_t snmpVacmMibInit(void)
 {
+   NetContext *context;
+
    //Debug message
    TRACE_INFO("Initializing SNMP VACM MIB base...\r\n");
 
    //Clear SNMP VACM MIB base
    osMemset(&snmpVacmMibBase, 0, sizeof(snmpVacmMibBase));
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //usmUserSpinLock object
-   snmpVacmMibBase.vacmViewSpinLock = netGetRandRange(1, INT32_MAX);
+   if(context != NULL)
+   {
+      snmpVacmMibBase.vacmViewSpinLock = netGetRandRange(context, 1, INT32_MAX);
+   }
 
    //Successful processing
    return NO_ERROR;

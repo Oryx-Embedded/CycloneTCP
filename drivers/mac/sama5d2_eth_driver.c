@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -34,8 +34,9 @@
 //Dependencies
 #include <limits.h>
 #include "chip.h"
-#include "peripherals/aic.h"
-#include "peripherals/pio.h"
+#include "barriers.h"
+#include "irq/aic.h"
+#include "gpio/pio.h"
 #include "core/net.h"
 #include "drivers/mac/sama5d2_eth_driver.h"
 #include "debug.h"
@@ -248,10 +249,10 @@ error_t sama5d2EthInit(NetInterface *interface)
 
    //Register interrupt handler
    aic_set_source_vector(ID_GMAC0, sama5d2EthIrqHandler);
-
+   //Configure interrupt mode
+   aic_configure_mode(ID_GMAC0, IRQ_MODE_LOW_LEVEL);
    //Configure interrupt priority
-   aic_configure(ID_GMAC0, AIC_SMR_SRCTYPE_INT_LEVEL_SENSITIVE |
-      AIC_SMR_PRIOR(SAMA5D2_ETH_IRQ_PRIORITY));
+   aic_configure_priority(ID_GMAC0, SAMA5D2_ETH_IRQ_PRIORITY);
 
    //Enable the GMAC to transmit and receive data
    GMAC0->GMAC_NCR |= GMAC_NCR_TXEN | GMAC_NCR_RXEN;
@@ -498,7 +499,7 @@ void sama5d2EthIrqHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Write AIC_EOICR register before exiting
@@ -597,7 +598,7 @@ error_t sama5d2EthSendPacket(NetInterface *interface,
    }
 
    //Data synchronization barrier
-   __DSB();
+   dsb();
 
    //Set the TSTART bit to initiate transmission
    GMAC0->GMAC_NCR |= GMAC_NCR_TSTART;
@@ -864,8 +865,8 @@ error_t sama5d2EthUpdateMacAddrFilter(NetInterface *interface)
    GMAC0->GMAC_HRT = hashTable[1];
 
    //Debug message
-   TRACE_DEBUG("  HRB = %08" PRIX32 "\r\n", GMAC0->GMAC_HRB);
-   TRACE_DEBUG("  HRT = %08" PRIX32 "\r\n", GMAC0->GMAC_HRT);
+   TRACE_DEBUG("  HRB = 0x%08" PRIX32 "\r\n", GMAC0->GMAC_HRB);
+   TRACE_DEBUG("  HRT = 0x%08" PRIX32 "\r\n", GMAC0->GMAC_HRT);
 
    //Successful processing
    return NO_ERROR;

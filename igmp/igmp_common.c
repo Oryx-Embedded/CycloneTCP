@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -36,7 +36,7 @@
  * - RFC 9776: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -59,9 +59,6 @@
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED && (IGMP_HOST_SUPPORT == ENABLED || \
    IGMP_ROUTER_SUPPORT == ENABLED || IGMP_SNOOPING_SUPPORT == ENABLED))
-
-//Tick counter to handle periodic operations
-systime_t igmpTickCounter;
 
 
 /**
@@ -174,7 +171,8 @@ error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
       return ERROR_FAILURE;
 
    //Select the source IPv4 address to use
-   error = ipv4SelectSourceAddr(&interface, destAddr, &srcIpAddr);
+   error = ipv4SelectSourceAddr(interface->netContext, &interface, destAddr,
+      &srcIpAddr);
 
    //Check status code
    if(!error)
@@ -367,18 +365,19 @@ void igmpProcessMessage(NetInterface *interface,
 
 /**
  * @brief Generate a random delay
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] maxDelay maximum delay
  * @return Random amount of time
  **/
 
-systime_t igmpGetRandomDelay(systime_t maxDelay)
+systime_t igmpGetRandomDelay(NetContext *context, systime_t maxDelay)
 {
    systime_t delay;
 
    //Generate a random delay in the specified range
    if(maxDelay > IGMP_TICK_INTERVAL)
    {
-      delay = netGenerateRandRange(0, maxDelay - IGMP_TICK_INTERVAL);
+      delay = netGenerateRandRange(context, 0, maxDelay - IGMP_TICK_INTERVAL);
    }
    else
    {

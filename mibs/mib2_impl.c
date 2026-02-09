@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -61,11 +61,6 @@ error_t mib2Init(void)
 #if (MIB2_SYS_GROUP_SUPPORT == ENABLED)
    //System group initialization
    mib2InitSysGroup(&mib2Base.sysGroup);
-#endif
-
-#if (MIB2_IF_GROUP_SUPPORT == ENABLED)
-   //Interface group initialization
-   mib2InitIfGroup(&mib2Base.ifGroup);
 #endif
 
 #if (MIB2_IP_GROUP_SUPPORT == ENABLED)
@@ -127,28 +122,6 @@ void mib2InitSysGroup(Mib2SysGroup *sysGroup)
 
    //sysServices object
    sysGroup->sysServices = MIB2_SYS_SERVICE_INTERNET;
-}
-
-
-/**
- * @brief Interface group initialization
- * @param[in] ifGroup Pointer to the Interface group
- **/
-
-void mib2InitIfGroup(Mib2IfGroup *ifGroup)
-{
-   uint_t i;
-
-   //ifNumber object
-   ifGroup->ifNumber = NET_INTERFACE_COUNT;
-
-   //Interfaces table entry
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
-   {
-      //ifSpecific object
-      ifGroup->ifTable[i].ifSpecific[0] = 0;
-      ifGroup->ifTable[i].ifSpecificLen = 1;
-   }
 }
 
 

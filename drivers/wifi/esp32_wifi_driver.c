@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -361,7 +361,7 @@ esp_err_t esp32WifiStaRxCallback(void *buffer, uint16_t length, void *eb)
    if(esp32WifiStaInterface != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(esp32WifiStaInterface->netContext);
 
       //Additional options can be passed to the stack along with the packet
       ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -370,7 +370,7 @@ esp_err_t esp32WifiStaRxCallback(void *buffer, uint16_t length, void *eb)
       nicProcessPacket(esp32WifiStaInterface, buffer, length, &ancillary);
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(esp32WifiStaInterface->netContext);
    }
 
    //Valid buffer?
@@ -401,7 +401,7 @@ esp_err_t esp32WifiApRxCallback(void *buffer, uint16_t length, void *eb)
    if(esp32WifiApInterface != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(esp32WifiApInterface->netContext);
 
       //Additional options can be passed to the stack along with the packet
       ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -410,7 +410,7 @@ esp_err_t esp32WifiApRxCallback(void *buffer, uint16_t length, void *eb)
       nicProcessPacket(esp32WifiApInterface, buffer, length, &ancillary);
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(esp32WifiApInterface->netContext);
    }
 
    //Valid buffer?
@@ -486,11 +486,11 @@ void esp32WifiStaConnectedEvent(void *arg, esp_event_base_t eventBase,
          esp32WifiStaInterface->linkState = TRUE;
 
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(esp32WifiStaInterface->netContext);
          //Process link state change event
          nicNotifyLinkChange(esp32WifiStaInterface);
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(esp32WifiStaInterface->netContext);
       }
    }
 }
@@ -525,11 +525,11 @@ void esp32WifiStaDisconnectedEvent(void *arg, esp_event_base_t eventBase,
          esp32WifiStaInterface->linkState = FALSE;
 
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(esp32WifiStaInterface->netContext);
          //Process link state change event
          nicNotifyLinkChange(esp32WifiStaInterface);
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(esp32WifiStaInterface->netContext);
       }
    }
 }
@@ -564,11 +564,11 @@ void esp32WifiApStartEvent(void *arg, esp_event_base_t eventBase,
          esp32WifiApInterface->linkState = TRUE;
 
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(esp32WifiApInterface->netContext);
          //Process link state change event
          nicNotifyLinkChange(esp32WifiApInterface);
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(esp32WifiApInterface->netContext);
       }
    }
 }
@@ -603,11 +603,11 @@ void esp32WifiApStopEvent(void *arg, esp_event_base_t eventBase,
          esp32WifiApInterface->linkState = FALSE;
 
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(esp32WifiApInterface->netContext);
          //Process link state change event
          nicNotifyLinkChange(esp32WifiApInterface);
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(esp32WifiApInterface->netContext);
       }
    }
 }

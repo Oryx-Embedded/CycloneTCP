@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,11 +25,15 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _NET_H
 #define _NET_H
+
+//Forward declaration of NetContext structure
+struct _NetContext;
+#define NetContext struct _NetContext
 
 //Forward declaration of NetInterface structure
 struct _NetInterface;
@@ -43,17 +47,23 @@ struct _NetInterface;
 #include "core/net_misc.h"
 #include "core/nic.h"
 #include "core/ethernet.h"
+#include "core/ip.h"
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_frag.h"
-#include "ipv4/auto_ip.h"
-#include "ipv6/ipv6.h"
+#include "ipv4/ipv4_routing.h"
+#include "ipv4/icmp.h"
 #include "ipv4/arp.h"
+#include "ipv4/auto_ip.h"
 #include "igmp/igmp_host.h"
 #include "igmp/igmp_router.h"
 #include "igmp/igmp_snooping.h"
 #include "dhcp/dhcp_client.h"
 #include "dhcp/dhcp_server.h"
 #include "nat/nat.h"
+#include "ipv6/ipv6.h"
+#include "ipv6/ipv6_frag.h"
+#include "ipv6/ipv6_routing.h"
+#include "ipv6/icmpv6.h"
 #include "ipv6/ndp.h"
 #include "ipv6/ndp_router_adv.h"
 #include "ipv6/slaac.h"
@@ -95,13 +105,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.5.4"
+#define CYCLONE_TCP_VERSION_STRING "2.6.0"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
-#define CYCLONE_TCP_MINOR_VERSION 5
+#define CYCLONE_TCP_MINOR_VERSION 6
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 4
+#define CYCLONE_TCP_REV_NUMBER 0
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -110,11 +120,15 @@ struct _NetInterface;
    #error NET_RTOS_SUPPORT parameter is not valid
 #endif
 
-//Number of network adapters
-#ifndef NET_INTERFACE_COUNT
-   #define NET_INTERFACE_COUNT 1
-#elif (NET_INTERFACE_COUNT < 1)
-   #error NET_INTERFACE_COUNT parameter is not valid
+//Network interface statistics support
+#ifndef NET_IF_STATS_SUPPORT
+#if (MIB2_SUPPORT == ENABLED || IF_MIB_SUPPORT == ENABLED)
+   #define NET_IF_STATS_SUPPORT ENABLED
+#else
+   #define NET_IF_STATS_SUPPORT DISABLED
+#endif
+#elif (NET_IF_STATS_SUPPORT != ENABLED && NET_IF_STATS_SUPPORT != DISABLED)
+   #error NET_IF_STATS_SUPPORT parameter is not valid
 #endif
 
 //Loopback interface support
@@ -126,14 +140,14 @@ struct _NetInterface;
 
 //Maximum number of link change callback functions that can be registered
 #ifndef NET_MAX_LINK_CHANGE_CALLBACKS
-   #define NET_MAX_LINK_CHANGE_CALLBACKS (6 * NET_INTERFACE_COUNT)
+   #define NET_MAX_LINK_CHANGE_CALLBACKS 6
 #elif (NET_MAX_LINK_CHANGE_CALLBACKS < 1)
    #error NET_MAX_LINK_CHANGE_CALLBACKS parameter is not valid
 #endif
 
 //Maximum number of timer callback functions that can be registered
 #ifndef NET_MAX_TIMER_CALLBACKS
-   #define NET_MAX_TIMER_CALLBACKS (6 * NET_INTERFACE_COUNT)
+   #define NET_MAX_TIMER_CALLBACKS 6
 #elif (NET_MAX_TIMER_CALLBACKS < 1)
    #error NET_MAX_TIMER_CALLBACKS parameter is not valid
 #endif
@@ -183,6 +197,17 @@ struct _NetInterface;
    #define netGetSystemTickCount() osGetSystemTime()
 #endif
 
+//Network interface statistics
+#if (NET_IF_STATS_SUPPORT == ENABLED)
+   #define NET_IF_STATS_SET_TIME_TICKS(name, value) interface->ifStats.name = value
+   #define NET_IF_STATS_INC_COUNTER32(name, value) interface->ifStats.name += value
+   #define NET_IF_STATS_INC_COUNTER64(name, value) interface->ifStats.name += value
+#else
+   #define NET_IF_STATS_SET_TIME_TICKS(name, value)
+   #define NET_IF_STATS_INC_COUNTER32(name, value)
+   #define NET_IF_STATS_INC_COUNTER64(name, value)
+#endif
+
 //C++ guard
 #ifdef __cplusplus
 extern "C" {
@@ -190,11 +215,37 @@ extern "C" {
 
 
 /**
- * @brief Structure describing a network interface
+ * @brief Network interface statistics
+ **/
+
+typedef struct
+{
+   uint32_t lastChange;
+   uint64_t inOctets;
+   uint64_t inUcastPkts;
+   uint32_t inNUcastPkts;
+   uint64_t inMulticastPkts;
+   uint64_t inBroadcastPkts;
+   uint32_t inUnknownProtos;
+   uint32_t inDiscards;
+   uint32_t inErrors;
+   uint64_t outOctets;
+   uint64_t outUcastPkts;
+   uint32_t outNUcastPkts;
+   uint64_t outMulticastPkts;
+   uint64_t outBroadcastPkts;
+   uint32_t outDiscards;
+   uint32_t outErrors;
+} NetIfStats;
+
+
+/**
+ * @brief Network interface
  **/
 
 struct _NetInterface
 {
+   NetContext *netContext;                        ///<TCP/IP stack context
    uint_t index;                                  ///<Zero-based index
    uint32_t id;                                   ///<A unique number identifying the interface
    Eui64 eui64;                                   ///<EUI-64 interface identifier
@@ -213,7 +264,6 @@ struct _NetInterface
    NicDuplexMode duplexMode;                      ///<Duplex mode
    bool_t configured;                             ///<Configuration done
    systime_t initialRto;                          ///<TCP initial retransmission timeout
-
 #if (ETH_SUPPORT == ENABLED)
    const PhyDriver *phyDriver;                    ///<Ethernet PHY driver
    uint8_t phyAddr;                               ///<PHY address
@@ -242,64 +292,68 @@ struct _NetInterface
    ETH_PORT_TAGGING_SUPPORT == ENABLED)
    NetInterface *parent;                          ///<Interface on top of which the virtual interface runs
 #endif
-
+#if (PPP_SUPPORT == ENABLED)
+   PppContext *pppContext;                        ///<PPP context
+#endif
 #if (IPV4_SUPPORT == ENABLED)
    Ipv4Context ipv4Context;                       ///<IPv4 context
-#if (ETH_SUPPORT == ENABLED)
+#endif
+#if (IPV4_SUPPORT == ENABLED && IPV4_STATS_SUPPORT == ENABLED)
+   IpIfStats ipv4IfStats;                         ///<Per-interface IPv4 statistics
+#endif
+#if (IPV4_SUPPORT == ENABLED && ETH_SUPPORT == ENABLED)
    bool_t enableArp;                              ///<Enable address resolution using ARP
    systime_t arpReachableTime;                    ///<ARP reachable time
    systime_t arpProbeTimeout;                     ///<ARP probe timeout
    ArpCacheEntry arpCache[ARP_CACHE_SIZE];        ///<ARP cache
 #endif
-#if (IGMP_HOST_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && IGMP_HOST_SUPPORT == ENABLED)
    IgmpHostContext igmpHostContext;               ///<IGMP host context
 #endif
-#if (IGMP_ROUTER_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && IGMP_ROUTER_SUPPORT == ENABLED)
    IgmpRouterContext *igmpRouterContext;          ///<IGMP router context
 #endif
-#if (IGMP_SNOOPING_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && IGMP_SNOOPING_SUPPORT == ENABLED)
    IgmpSnoopingContext *igmpSnoopingContext;      ///<IGMP snooping switch context
 #endif
-#if (AUTO_IP_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && AUTO_IP_SUPPORT == ENABLED)
    AutoIpContext *autoIpContext;                  ///<Auto-IP context
 #endif
-#if (DHCP_CLIENT_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && DHCP_CLIENT_SUPPORT == ENABLED)
    DhcpClientContext *dhcpClientContext;          ///<DHCP client context
 #endif
-#if (DHCP_SERVER_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && DHCP_SERVER_SUPPORT == ENABLED)
    DhcpServerContext *dhcpServerContext;          ///<DHCP server context
 #endif
-#endif
-
 #if (IPV6_SUPPORT == ENABLED)
    Ipv6Context ipv6Context;                       ///<IPv6 context
-#if (NDP_SUPPORT == ENABLED)
+#endif
+#if (IPV6_SUPPORT == ENABLED && IPV6_STATS_SUPPORT == ENABLED)
+   IpIfStats ipv6IfStats;                         ///<Per-interface IPv6 statistics
+#endif
+#if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
    NdpContext ndpContext;                         ///<NDP context
 #endif
-#if (NDP_ROUTER_ADV_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && NDP_ROUTER_ADV_SUPPORT == ENABLED)
    NdpRouterAdvContext *ndpRouterAdvContext;      ///<RA service context
 #endif
-#if (MLD_NODE_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && MLD_NODE_SUPPORT == ENABLED)
    MldNodeContext mldNodeContext;                 ///<MLD node context
 #endif
-#if (SLAAC_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && SLAAC_SUPPORT == ENABLED)
    SlaacContext *slaacContext;                    ///<SLAAC context
 #endif
-#if (DHCPV6_CLIENT_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && DHCPV6_CLIENT_SUPPORT == ENABLED)
    Dhcpv6ClientContext *dhcpv6ClientContext;      ///<DHCPv6 client context
 #endif
-#endif
-
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
    MdnsResponderContext *mdnsResponderContext;    ///<mDNS responder context
 #endif
-
 #if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
    DnsSdResponderContext *dnsSdResponderContext;  ///<DNS-SD responder context
 #endif
-
-#if (PPP_SUPPORT == ENABLED)
-   PppContext *pppContext;                        ///<PPP context
+#if (NET_IF_STATS_SUPPORT == ENABLED)
+   NetIfStats ifStats;                            ///<Network interface statistics
 #endif
 };
 
@@ -310,7 +364,9 @@ struct _NetInterface
 
 typedef struct
 {
-   OsTaskParameters task; ///<Task parameters
+   OsTaskParameters task;    ///<Task parameters
+   NetInterface *interfaces; ///<Network interfaces
+   uint_t numInterfaces;     ///<Number of network interfaces
 } NetSettings;
 
 
@@ -318,46 +374,122 @@ typedef struct
  * @brief TCP/IP stack context
  **/
 
-typedef struct
+struct _NetContext
 {
-   OsMutex mutex;                                ///<Mutex preventing simultaneous access to the TCP/IP stack
-   OsEvent event;                                ///<Event object to receive notifications from drivers
-   bool_t running;                               ///<The TCP/IP stack is currently running
-   OsTaskParameters taskParams;                  ///<Task parameters
-   OsTaskId taskId;                              ///<Task identifier
+   bool_t running;                       ///<Operational state of the TCP/IP stack
+   bool_t stop;                          ///<Stop request
+   OsMutex mutex;                        ///<Mutex preventing simultaneous access to the TCP/IP stack
+   OsEvent event;                        ///<Event object to receive notifications from drivers
+   OsTaskParameters taskParams;          ///<Task parameters
+   OsTaskId taskId;                      ///<Task identifier
    uint32_t entropy;
    systime_t timestamp;
-   uint8_t randSeed[NET_RAND_SEED_SIZE];         ///<Random seed
-   NetRandState randState;                       ///<Pseudo-random number generator state
-   NetInterface interfaces[NET_INTERFACE_COUNT]; ///<Network interfaces
+   uint8_t randSeed[NET_RAND_SEED_SIZE]; ///<Random seed
+   NetRandState randState;               ///<Pseudo-random number generator state
+   NetInterface *interfaces;             ///<Network interfaces
+   uint_t numInterfaces;                 ///<Number of network interfaces
    NetLinkChangeCallbackEntry linkChangeCallbacks[NET_MAX_LINK_CHANGE_CALLBACKS];
    NetTimerCallbackEntry timerCallbacks[NET_MAX_TIMER_CALLBACKS];
-#if (NAT_SUPPORT == ENABLED)
-   NatContext *natContext;                       ///<NAT context
+   systime_t nicTickCounter;             ///<Tick counter to handle periodic operations
+#if (PPP_SUPPORT == ENABLED)
+   systime_t pppTickCounter;
 #endif
-#if (IPV4_IPSEC_SUPPORT == ENABLED)
-   void *ipsecContext;                           ///<IPsec context
-   void *ikeContext;                             ///<IKE context
+#if (IPV4_SUPPORT == ENABLED && ETH_SUPPORT == ENABLED)
+   systime_t arpTickCounter;
 #endif
-} NetContext;
+#if (IPV4_SUPPORT == ENABLED && IPV4_FRAG_SUPPORT == ENABLED)
+   systime_t ipv4FragTickCounter;
+#endif
+#if (IPV4_SUPPORT == ENABLED && IPV4_ROUTING_SUPPORT == ENABLED)
+   Ipv4RoutingTableEntry ipv4RoutingTable[IPV4_ROUTING_TABLE_SIZE];
+#endif
+#if (IPV4_SUPPORT == ENABLED && (IGMP_HOST_SUPPORT == ENABLED || \
+   IGMP_ROUTER_SUPPORT == ENABLED || IGMP_SNOOPING_SUPPORT == ENABLED))
+   systime_t igmpTickCounter;
+#endif
+#if (IPV4_SUPPORT == ENABLED && AUTO_IP_SUPPORT == ENABLED)
+   systime_t autoIpTickCounter;
+#endif
+#if (IPV4_SUPPORT == ENABLED && DHCP_CLIENT_SUPPORT == ENABLED)
+   systime_t dhcpClientTickCounter;
+#endif
+#if (IPV4_SUPPORT == ENABLED && DHCP_SERVER_SUPPORT == ENABLED)
+   systime_t dhcpServerTickCounter;
+#endif
+#if (IPV4_SUPPORT == ENABLED && NAT_SUPPORT == ENABLED)
+   NatContext *natContext;               ///<NAT context
+   systime_t natTickCounter;
+#endif
+#if (IPV4_SUPPORT == ENABLED && IPV4_IPSEC_SUPPORT == ENABLED)
+   void *ipsecContext;                   ///<IPsec context
+   void *ikeContext;                     ///<IKE context
+#endif
+#if (IPV6_SUPPORT == ENABLED && IPV6_FRAG_SUPPORT == ENABLED)
+   systime_t ipv6FragTickCounter;
+#endif
+#if (IPV6_SUPPORT == ENABLED && IPV6_ROUTING_SUPPORT == ENABLED)
+   Ipv6RoutingTableEntry ipv6RoutingTable[IPV6_ROUTING_TABLE_SIZE];
+#endif
+#if (IPV6_SUPPORT == ENABLED && MLD_NODE_SUPPORT == ENABLED)
+   systime_t mldTickCounter;
+#endif
+#if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
+   systime_t ndpTickCounter;
+#endif
+#if (IPV6_SUPPORT == ENABLED && NDP_ROUTER_ADV_SUPPORT == ENABLED)
+   systime_t ndpRouterAdvTickCounter;
+#endif
+#if (IPV6_SUPPORT == ENABLED && DHCPV6_CLIENT_SUPPORT == ENABLED)
+   systime_t dhcpv6ClientTickCounter;
+#endif
+#if (TCP_SUPPORT == ENABLED)
+   uint16_t tcpDynamicPort;              ///<TCP ephemeral port number
+   systime_t tcpTickCounter;
+#endif
+#if (UDP_SUPPORT == ENABLED)
+   uint16_t udpDynamicPort;              ///<UDP ephemeral port number
+#endif
+#if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
+   NBNS_CLIENT_SUPPORT == ENABLED)
+   systime_t dnsTickCounter;
+#endif
+#if (MDNS_RESPONDER_SUPPORT == ENABLED)
+   systime_t mdnsResponderTickCounter;
+#endif
+#if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
+   systime_t dnsSdResponderTickCounter;
+#endif
+#if (IPV4_SUPPORT == ENABLED && IPV4_STATS_SUPPORT == ENABLED)
+   IpSystemStats ipv4SystemStats;        ///<System-wide IPv4 statistics
+#endif
+#if (IPV4_SUPPORT == ENABLED && ICMP_STATS_SUPPORT == ENABLED)
+   IcmpStats icmpStats;                  ///<ICMP statistics
+#endif
+#if (IPV6_SUPPORT == ENABLED && IPV6_STATS_SUPPORT == ENABLED)
+   IpSystemStats ipv6SystemStats;        ///<System-wide IPv6 statistics
+#endif
+#if (IPV6_SUPPORT == ENABLED && ICMPV6_STATS_SUPPORT == ENABLED)
+   IcmpStats icmpv6Stats;                ///<ICMPv6 statistics
+#endif
+};
 
-
-//Global variables
-extern NetContext netContext;
 
 //TCP/IP stack related functions
 void netGetDefaultSettings(NetSettings *settings);
-error_t netInit(void);
-error_t netInitEx(NetContext *context, const NetSettings *settings);
+error_t netInit(NetContext *context, const NetSettings *settings);
+
+void netLock(NetContext *context);
+void netUnlock(NetContext *context);
 
 error_t netStart(NetContext *context);
 
-error_t netSeedRand(const uint8_t *seed, size_t length);
-uint32_t netGetRand(void);
-uint32_t netGetRandRange(uint32_t min, uint32_t max);
-void netGetRandData(uint8_t *data, size_t length);
+error_t netSeedRand(NetContext *context, const uint8_t *seed, size_t length);
+uint32_t netGetRand(NetContext *context);
+uint32_t netGetRandRange(NetContext *context, uint32_t min, uint32_t max);
+void netGetRandData(NetContext *context, uint8_t *data, size_t length);
 
-NetInterface *netGetDefaultInterface(void);
+NetContext *netGetDefaultContext(void);
+NetInterface *netGetDefaultInterface(NetContext *context);
 
 error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr);
 error_t netGetMacAddr(NetInterface *interface, MacAddr *macAddr);
@@ -400,8 +532,7 @@ error_t netConfigInterface(NetInterface *interface);
 error_t netStartInterface(NetInterface *interface);
 error_t netStopInterface(NetInterface *interface);
 
-void netTask(void);
-void netTaskEx(NetContext *context);
+void netTask(NetContext *context);
 
 //C++ guard
 #ifdef __cplusplus

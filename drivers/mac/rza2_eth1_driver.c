@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -306,7 +306,7 @@ void rza2Eth1InitDmaDesc(NetInterface *interface)
       //Transmit buffer length
       txDmaDesc[i].td1 = 0;
       //Transmit buffer address
-      txDmaDesc[i].td2 = RZA2_ETH1_GET_PHYSICAL_ADDR(txBuffer[i]);
+      txDmaDesc[i].td2 = RZA2_ETH1_REMAP_ADDR(txBuffer[i]);
       //Clear padding field
       txDmaDesc[i].padding = 0;
    }
@@ -324,7 +324,7 @@ void rza2Eth1InitDmaDesc(NetInterface *interface)
       //Receive buffer length
       rxDmaDesc[i].rd1 = (RZA2_ETH1_RX_BUFFER_SIZE << 16) & EDMAC_RD1_RBL;
       //Receive buffer address
-      rxDmaDesc[i].rd2 = RZA2_ETH1_GET_PHYSICAL_ADDR(rxBuffer[i]);
+      rxDmaDesc[i].rd2 = RZA2_ETH1_REMAP_ADDR(rxBuffer[i]);
       //Clear padding field
       rxDmaDesc[i].padding = 0;
    }
@@ -335,9 +335,9 @@ void rza2Eth1InitDmaDesc(NetInterface *interface)
    rxIndex = 0;
 
    //Start address of the TX descriptor list
-   EDMAC0.TDLAR.LONG = RZA2_ETH1_GET_PHYSICAL_ADDR(txDmaDesc);
+   EDMAC0.TDLAR.LONG = RZA2_ETH1_REMAP_ADDR(txDmaDesc);
    //Start address of the RX descriptor list
-   EDMAC0.RDLAR.LONG = RZA2_ETH1_GET_PHYSICAL_ADDR(rxDmaDesc);
+   EDMAC0.RDLAR.LONG = RZA2_ETH1_REMAP_ADDR(rxDmaDesc);
 }
 
 
@@ -468,7 +468,7 @@ void rza2Eth1IrqHandler(uint32_t intSense)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Interrupt service routine epilogue

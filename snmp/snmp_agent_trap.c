@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -134,7 +134,7 @@ error_t snmpFormatTrapMessage(SnmpAgentContext *context, SnmpVersion version,
       {
          //Encrypt data
          error = snmpEncryptData(&context->user, &context->response,
-            &context->salt);
+            context->salt);
          //Any error to report?
          if(error)
             return error;
@@ -206,7 +206,7 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
       NetInterface *interface;
 
       //Point to the underlying network interface
-      interface = context->settings.interface;
+      interface = context->interface;
 #endif
 
       //Community name
@@ -222,7 +222,9 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
 #if (IPV4_SUPPORT == ENABLED)
       //Address of object generating trap
       if(interface != NULL)
+      {
          message->agentAddr = interface->ipv4Context.addrList[0].addr;
+      }
 #endif
 
       //Generic trap type
@@ -255,7 +257,9 @@ error_t snmpFormatTrapPdu(SnmpAgentContext *context, SnmpVersion version,
       message->msgId = context->msgId++;
       //Wrap around if necessary
       if(context->msgId < 0)
+      {
          context->msgId = 0;
+      }
 
       //Maximum message size supported by the sender
       message->msgMaxSize = SNMP_MAX_MSG_SIZE;

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -58,8 +58,8 @@
 
 void dhcpv6ClientGetDefaultSettings(Dhcpv6ClientSettings *settings)
 {
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Network interface to configure
+   settings->interface = NULL;
 
    //Support for quick configuration using rapid commit
    settings->rapidCommit = FALSE;
@@ -111,8 +111,20 @@ error_t dhcpv6ClientInit(Dhcpv6ClientContext *context,
 
    //Clear the DHCPv6 client context
    osMemset(context, 0, sizeof(Dhcpv6ClientContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
    //Save user settings
-   context->settings = *settings;
+   context->interface = settings->interface;
+   context->rapidCommit = settings->rapidCommit;
+   context->manualDnsConfig = settings->manualDnsConfig;
+   context->configTimeout = settings->timeout;
+   context->timeoutEvent = settings->timeoutEvent;
+   context->linkChangeEvent = settings->linkChangeEvent;
+   context->stateChangeEvent = settings->stateChangeEvent;
+   context->addOptionsCallback = settings->addOptionsCallback;
+   context->parseOptionsCallback = settings->parseOptionsCallback;
 
    //Generate client's DUID
    error = dhcpv6ClientGenerateDuid(context);
@@ -125,8 +137,12 @@ error_t dhcpv6ClientInit(Dhcpv6ClientContext *context,
    //Initialize state machine
    context->state = DHCPV6_STATE_INIT;
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the DHCPv6 client context to the network interface
    interface->dhcpv6ClientContext = context;
+   //Release exclusive access
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -152,10 +168,10 @@ error_t dhcpv6ClientStart(Dhcpv6ClientContext *context)
    TRACE_INFO("Starting DHCPv6 client...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check the operational state of the DHCPv6 client
    if(!context->running)
@@ -164,7 +180,7 @@ error_t dhcpv6ClientStart(Dhcpv6ClientContext *context)
       dhcpv6ClientFlushAddrList(context);
 
       //Automatic DNS server configuration?
-      if(!context->settings.manualDnsConfig)
+      if(!context->manualDnsConfig)
       {
          //Clear the list of DNS servers
          ipv6FlushDnsServerList(interface);
@@ -183,7 +199,7 @@ error_t dhcpv6ClientStart(Dhcpv6ClientContext *context)
 
       //Register the callback function to be called whenever a UDP datagram
       //is received on port 546
-      error = udpAttachRxCallback(interface, DHCPV6_CLIENT_PORT,
+      error = udpRegisterRxCallback(interface, DHCPV6_CLIENT_PORT,
          dhcpv6ClientProcessMessage, context);
 
       //Check status code
@@ -200,7 +216,7 @@ error_t dhcpv6ClientStart(Dhcpv6ClientContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return status code
    return error;
@@ -215,8 +231,6 @@ error_t dhcpv6ClientStart(Dhcpv6ClientContext *context)
 
 error_t dhcpv6ClientStop(Dhcpv6ClientContext *context)
 {
-   NetInterface *interface;
-
    //Make sure the DHCPv6 client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -225,16 +239,13 @@ error_t dhcpv6ClientStop(Dhcpv6ClientContext *context)
    TRACE_INFO("Stopping DHCPv6 client...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
+   netLock(context->netContext);
 
    //Check whether the DHCPv6 client is running
    if(context->running)
    {
       //Unregister callback function
-      udpDetachRxCallback(interface, DHCPV6_CLIENT_PORT);
+      udpUnregisterRxCallback(context->interface, DHCPV6_CLIENT_PORT);
 
       //Stop DHCPv6 client
       context->running = FALSE;
@@ -243,7 +254,7 @@ error_t dhcpv6ClientStop(Dhcpv6ClientContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -259,7 +270,6 @@ error_t dhcpv6ClientStop(Dhcpv6ClientContext *context)
 error_t dhcpv6ClientRelease(Dhcpv6ClientContext *context)
 {
    uint_t i;
-   NetInterface *interface;
    Dhcpv6ClientAddrEntry *entry;
 
    //Check parameter
@@ -270,10 +280,7 @@ error_t dhcpv6ClientRelease(Dhcpv6ClientContext *context)
    TRACE_INFO("Releasing DHCPv6 lease...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
+   netLock(context->netContext);
 
    //Check whether the DHCPv6 client is running
    if(context->running)
@@ -292,7 +299,7 @@ error_t dhcpv6ClientRelease(Dhcpv6ClientContext *context)
             {
                //The client must stop using the addresses being released as soon
                //as the client begins the Release message exchange process
-               ipv6RemoveAddr(interface, &entry->addr);
+               ipv6RemoveAddr(context->interface, &entry->addr);
             }
          }
 
@@ -309,7 +316,7 @@ error_t dhcpv6ClientRelease(Dhcpv6ClientContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -327,14 +334,43 @@ Dhcpv6State dhcpv6ClientGetState(Dhcpv6ClientContext *context)
    Dhcpv6State state;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
    //Get current state
    state = context->state;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return current state
    return state;
+}
+
+
+/**
+ * @brief Release DHCPv6 client context
+ * @param[in] context Pointer to the DHCPv6 client context
+ **/
+
+void dhcpv6ClientDeinit(Dhcpv6ClientContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the DHCPv6 client context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the DHCPv6 client context from the network interface
+      interface->dhcpv6ClientContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear DHCPv6 client context
+      osMemset(context, 0, sizeof(Dhcpv6ClientContext));
+   }
 }
 
 #endif

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -1206,8 +1206,8 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
    do
    {
       //Open data socket
-      connection->dataChannel.socket = socketOpen(SOCKET_TYPE_STREAM,
-         SOCKET_IP_PROTO_TCP);
+      connection->dataChannel.socket = socketOpenEx(context->netContext,
+         SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
       if(!connection->dataChannel.socket)
       {
@@ -1370,8 +1370,8 @@ void ftpServerProcessEpsv(FtpClientConnection *connection, char_t *param)
    do
    {
       //Open data socket
-      connection->dataChannel.socket = socketOpen(SOCKET_TYPE_STREAM,
-         SOCKET_IP_PROTO_TCP);
+      connection->dataChannel.socket = socketOpenEx(context->netContext,
+         SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
       if(!connection->dataChannel.socket)
       {

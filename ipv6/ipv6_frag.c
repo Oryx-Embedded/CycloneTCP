@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -37,14 +37,10 @@
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_frag.h"
 #include "ipv6/icmpv6.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
 #if (IPV6_SUPPORT == ENABLED && IPV6_FRAG_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t ipv6FragTickCounter;
 
 
 /**
@@ -73,8 +69,8 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
    NetBuffer *fragment;
 
    //Number of IP datagrams that would require fragmentation in order to be transmitted
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutFragReqds, 1);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutFragReqds, 1);
+   IPV6_SYSTEM_STATS_INC_COUNTER32(outFragReqds, 1);
+   IPV6_IF_STATS_INC_COUNTER32(outFragReqds, 1);
 
    //Retrieve the length of the payload
    payloadLen = netBufferGetLength(payload) - payloadOffset;
@@ -138,8 +134,8 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
 
       //Number of IP datagram fragments that have been generated as a result
       //of fragmentation at this entity
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutFragCreates, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutFragCreates, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(outFragCreates, 1);
+      IPV6_IF_STATS_INC_COUNTER32(outFragCreates, 1);
    }
 
    //Check status code
@@ -147,15 +143,15 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
    {
       //Number of IP datagrams that have been discarded because they needed
       //to be fragmented at this entity but could not be
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutFragFails, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutFragFails, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(outFragFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(outFragFails, 1);
    }
    else
    {
       //Number of IP datagrams that have been successfully fragmented at this
       //entity
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsOutFragOKs, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsOutFragOKs, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(outFragOKs, 1);
+      IPV6_IF_STATS_INC_COUNTER32(outFragOKs, 1);
    }
 
    //Free previously allocated memory
@@ -193,8 +189,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    Ipv6FragmentHeader *fragHeader;
 
    //Number of IP fragments received which needed to be reassembled
-   IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmReqds, 1);
-   IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmReqds, 1);
+   IPV6_SYSTEM_STATS_INC_COUNTER32(reasmReqds, 1);
+   IPV6_IF_STATS_INC_COUNTER32(reasmReqds, 1);
 
    //Remaining bytes to process in the payload
    length = netBufferGetLength(ipPacket) - fragHeaderOffset;
@@ -203,8 +199,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    if(length < sizeof(Ipv6FragmentHeader))
    {
       //Number of failures detected by the IP reassembly algorithm
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
       //Drop the incoming fragment
       return;
@@ -231,8 +227,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    if((offset & IPV6_FLAG_M) != 0 && (length % 8) != 0)
    {
       //Number of failures detected by the IP reassembly algorithm
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
       //Compute the offset of the Payload Length field within the packet
       n = (uint8_t *) &ipHeader->payloadLen - (uint8_t *) ipHeader;
@@ -256,8 +252,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    if(dataLast < dataFirst)
    {
       //Number of failures detected by the IP reassembly algorithm
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
       //Drop the incoming fragment
       return;
@@ -270,8 +266,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    if(frag == NULL)
    {
       //Number of failures detected by the IP reassembly algorithm
-      IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+      IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
       //Drop the incoming fragment
       return;
@@ -289,8 +285,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       if((frag->unfragPartLength + frag->fragPartLength) > IPV6_MAX_FRAG_DATAGRAM_SIZE)
       {
          //Number of failures detected by the IP reassembly algorithm
-         IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
          //Retrieve the offset of the Fragment header within the packet
          n = fragHeaderOffset - ipPacketOffset;
@@ -313,8 +309,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       if(frag->unfragPartLength > frag->buffer.chunk[0].size)
       {
          //Number of failures detected by the IP reassembly algorithm
-         IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
          //Drop the reconstructed datagram
          netBufferSetLength((NetBuffer *) &frag->buffer, 0);
@@ -348,8 +344,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       if((frag->unfragPartLength + dataLast) > IPV6_MAX_FRAG_DATAGRAM_SIZE)
       {
          //Number of failures detected by the IP reassembly algorithm
-         IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
          //Retrieve the offset of the Fragment header within the packet
          n = fragHeaderOffset - ipPacketOffset;
@@ -376,8 +372,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       if(error)
       {
          //Number of failures detected by the IP reassembly algorithm
-         IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
          //Drop the reconstructed datagram
          netBufferSetLength((NetBuffer *) &frag->buffer, 0);
@@ -412,8 +408,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
          if(dataFirst < holeFirst || dataLast > holeLast)
          {
             //Number of failures detected by the IP reassembly algorithm
-            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-            IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+            IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+            IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
             //Drop the reconstructed datagram
             netBufferSetLength((NetBuffer *) &frag->buffer, 0);
@@ -511,8 +507,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       if(error)
       {
          //Number of failures detected by the IP reassembly algorithm
-         IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
       }
       else
       {
@@ -524,8 +520,8 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
             frag->fragPartLength - sizeof(Ipv6Header));
 
          //Number of IP datagrams successfully reassembled
-         IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmOKs, 1);
-         IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmOKs, 1);
+         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmOKs, 1);
+         IPV6_IF_STATS_INC_COUNTER32(reasmOKs, 1);
 
          //Pass the original IPv6 datagram to the higher protocol layer
          ipv6ProcessPacket(interface, (NetBuffer *) &frag->buffer, 0,
@@ -576,8 +572,8 @@ void ipv6FragTick(NetInterface *interface)
             ipv6DumpHeader(frag->buffer.chunk[0].address);
 
             //Number of failures detected by the IP reassembly algorithm
-            IP_MIB_INC_COUNTER32(ipv6SystemStats.ipSystemStatsReasmFails, 1);
-            IP_MIB_INC_COUNTER32(ipv6IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+            IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+            IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
             //Point to the first hole descriptor
             hole = ipv6FindHole(frag, frag->firstHole);
@@ -659,14 +655,14 @@ Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
       //Point to the current entry in the reassembly queue
       frag = &interface->ipv6Context.fragQueue[i];
 
-      //The current entry is free?
-      if(!frag->buffer.chunkCount)
+      //Check whether the current entry is free
+      if(frag->buffer.chunkCount == 0)
       {
          //Number of chunks that comprise the reassembly buffer
          frag->buffer.maxChunkCount = arraysize(frag->buffer.chunk);
 
-         //Allocate sufficient memory to hold the IPv6 header and
-         //the first hole descriptor
+         //Allocate sufficient memory to hold the IPv6 header and the first
+         //hole descriptor
          error = netBufferSetLength((NetBuffer *) &frag->buffer,
             NET_MEM_POOL_BUFFER_SIZE + sizeof(Ipv6HoleDesc));
 

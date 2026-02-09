@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _SOCKET_H
@@ -306,7 +306,8 @@ struct _Socket
    uint_t descriptor;
    uint_t type;
    uint_t protocol;
-   NetInterface *interface;
+   NetContext *netContext;       ///<TCP/IP stack context
+   NetInterface *interface;      ///<Underlying network interface
    IpAddr localIpAddr;
    uint16_t localPort;
    IpAddr remoteIpAddr;
@@ -443,9 +444,10 @@ extern const SocketMsg SOCKET_DEFAULT_MSG;
 extern Socket socketTable[SOCKET_MAX_COUNT];
 
 //Socket related functions
-error_t socketInit(void);
+error_t socketInit(NetContext *context);
 
 Socket *socketOpen(uint_t type, uint_t protocol);
+Socket *socketOpenEx(NetContext *context, uint_t type, uint_t protocol);
 
 error_t socketSetTimeout(Socket *socket, systime_t timeout);
 

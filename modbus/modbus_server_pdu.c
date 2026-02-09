@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -79,7 +79,7 @@ error_t modbusServerProcessRequest(ModbusClientConnection *connection)
    functionCode = (ModbusFunctionCode) ((uint8_t *) request)[0];
 
    //Any registered callback?
-   if(context->settings.processPduCallback != NULL)
+   if(context->processPduCallback != NULL)
    {
       //Point to the Modbus response PDU
       response = modbusServerGetResponsePdu(connection);
@@ -87,8 +87,8 @@ error_t modbusServerProcessRequest(ModbusClientConnection *connection)
       responseLen = 0;
 
       //Process request PDU
-      error = context->settings.processPduCallback(connection, request,
-         requestLen, response, &responseLen);
+      error = context->processPduCallback(connection, request, requestLen,
+         response, &responseLen);
 
       //Check status code
       if(!error)

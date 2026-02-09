@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 9776: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -70,6 +70,8 @@ error_t igmpHostInit(NetInterface *interface)
    //Clear the IGMP host context
    osMemset(context, 0, sizeof(IgmpHostContext));
 
+   //Pointer to the TCP/IP stack context
+   context->netContext = interface->netContext;
    //Underlying network interface
    context->interface = interface;
    //The default host compatibility mode is IGMPv3
@@ -319,7 +321,9 @@ void igmpHostTick(IgmpHostContext *context)
          if(igmpHostGetRetransmitStatus(context))
          {
             //Select a value in the range 0 - Unsolicited Report Interval
-            delay = igmpGetRandomDelay(IGMP_V3_UNSOLICITED_REPORT_INTERVAL);
+            delay = igmpGetRandomDelay(context->netContext,
+               IGMP_V3_UNSOLICITED_REPORT_INTERVAL);
+
             //Restart retransmission timer
             netStartTimer(&context->stateChangeReportTimer, delay);
          }
@@ -463,7 +467,9 @@ void igmpHostStateChangeEvent(IgmpHostContext *context, Ipv4Addr groupAddr,
                if(igmpHostGetRetransmitStatus(context))
                {
                   //Select a value in the range 0 - Unsolicited Report Interval
-                  delay = igmpGetRandomDelay(IGMP_V3_UNSOLICITED_REPORT_INTERVAL);
+                  delay = igmpGetRandomDelay(context->netContext,
+                     IGMP_V3_UNSOLICITED_REPORT_INTERVAL);
+
                   //Start retransmission timer
                   netStartTimer(&context->stateChangeReportTimer, delay);
                }

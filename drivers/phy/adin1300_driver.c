@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -115,7 +115,7 @@ error_t adin1300Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -156,7 +156,7 @@ void adin1300Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
       //Link down event?
       else if(!linkState && interface->linkState)
@@ -164,7 +164,7 @@ void adin1300Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
    }
 }
@@ -218,7 +218,7 @@ void adin1300EventHandler(NetInterface *interface)
       //Read PHY status register
       value = adin1300ReadPhyReg(interface, ADIN1300_PHY_STATUS_1);
 
-      //Link is up?
+      //Check link state
       if((value & ADIN1300_PHY_STATUS_1_LINK_STAT) != 0)
       {
          //The HCD_TECH field indicates the resolved technology after the link
@@ -251,13 +251,13 @@ void adin1300EventHandler(NetInterface *interface)
 
          //1000BASE-T half-duplex
          case ADIN1300_PHY_STATUS_1_HCD_TECH_1000BT_HD:
-            interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+            interface->linkSpeed = NIC_LINK_SPEED_1GBPS;
             interface->duplexMode = NIC_HALF_DUPLEX_MODE;
             break;
 
          //1000BASE-T full-duplex
          case ADIN1300_PHY_STATUS_1_HCD_TECH_1000BT_FD:
-            interface->linkSpeed = NIC_LINK_SPEED_100MBPS;
+            interface->linkSpeed = NIC_LINK_SPEED_1GBPS;
             interface->duplexMode = NIC_FULL_DUPLEX_MODE;
             break;
 

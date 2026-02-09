@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -78,7 +78,8 @@ error_t ntsClientOpenNtsKeConnection(NtsClientContext *context)
       return ERROR_OPEN_FAILED;
 
    //Open a TCP socket
-   context->ntsKeSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+   context->ntsKeSocket = socketOpenEx(context->netContext, SOCKET_TYPE_STREAM,
+      SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(context->ntsKeSocket == NULL)
       return ERROR_OPEN_FAILED;
@@ -843,7 +844,8 @@ error_t ntsClientOpenNtpConnection(NtsClientContext *context)
       return error;
 
    //Open a UDP socket
-   context->ntpSocket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+   context->ntpSocket = socketOpenEx(context->netContext, SOCKET_TYPE_DGRAM,
+      SOCKET_IP_PROTO_UDP);
    //Failed to open socket?
    if(context->ntpSocket == NULL)
       return ERROR_OPEN_FAILED;

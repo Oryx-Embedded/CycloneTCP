@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _NET_LEGACY_H
@@ -192,12 +192,6 @@
 
 #define socketBindToInterface socketSetInterface
 
-#define netMutex (netContext.mutex)
-#define netEvent (netContext.event)
-#define netTaskRunning (netContext.running)
-#define netTimestamp (netContext.timestamp)
-#define netInterface (netContext.interfaces)
-
 #ifdef IGMP_SUPPORT
    #define IGMP_HOST_SUPPORT IGMP_SUPPORT
 #endif
@@ -278,5 +272,9 @@
 #ifdef DNS_SD_SUPPORT
    #define DNS_SD_RESPONDER_SUPPORT DNS_SD_SUPPORT
 #endif
+
+#define netInitEx netInit
+#define netTaskEx netTask
+#define udpAttachRxCallback udpRegisterRxCallback
 
 #endif

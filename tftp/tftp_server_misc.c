@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -170,14 +170,14 @@ TftpClientConnection *tftpServerOpenConnection(TftpServerContext *context,
    osMemset(connection, 0, sizeof(TftpClientConnection));
 
    //Open a UDP socket
-   connection->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
-
+   connection->socket = socketOpenEx(context->netContext, SOCKET_TYPE_DGRAM,
+      SOCKET_IP_PROTO_UDP);
    //Failed to open socket?
    if(connection->socket == NULL)
       return NULL;
 
    //Associate the socket with the relevant interface
-   error = socketBindToInterface(connection->socket, context->settings.interface);
+   error = socketBindToInterface(connection->socket, context->interface);
 
    //Any error to report?
    if(error)
@@ -202,8 +202,8 @@ TftpClientConnection *tftpServerOpenConnection(TftpServerContext *context,
       return NULL;
    }
 
-   //Reference to the TFTP server settings
-   connection->settings = &context->settings;
+   //Attach TFTP server context
+   connection->context = context;
    //Update connection state
    connection->state = TFTP_STATE_OPEN;
 
@@ -237,10 +237,10 @@ void tftpServerCloseConnection(TftpClientConnection *connection)
       if(connection->file != NULL)
       {
          //Properly close the file before closing the connection
-         if(connection->settings->closeFileCallback != NULL)
+         if(connection->context->closeFileCallback != NULL)
          {
             //Invoke user callback function
-            connection->settings->closeFileCallback(connection->file);
+            connection->context->closeFileCallback(connection->file);
          }
 
          //Mark the file as closed
@@ -422,11 +422,11 @@ void tftpServerProcessRrqPacket(TftpServerContext *context, const IpAddr *client
       return;
 
    //Open the specified file for reading
-   if(context->settings.openFileCallback != NULL)
+   if(context->openFileCallback != NULL)
    {
       //Invoke user callback function
-      connection->file = context->settings.openFileCallback(rrqPacket->filename,
-         mode, FALSE);
+      connection->file = context->openFileCallback(rrqPacket->filename, mode,
+         FALSE);
    }
    else
    {
@@ -513,11 +513,11 @@ void tftpServerProcessWrqPacket(TftpServerContext *context, const IpAddr *client
       return;
 
    //Open the specified file for writing
-   if(context->settings.openFileCallback != NULL)
+   if(context->openFileCallback != NULL)
    {
       //Invoke user callback function
-      connection->file = context->settings.openFileCallback(wrqPacket->filename,
-         mode, TRUE);
+      connection->file = context->openFileCallback(wrqPacket->filename, mode,
+         TRUE);
    }
    else
    {
@@ -587,13 +587,13 @@ void tftpServerProcessDataPacket(TftpClientConnection *connection,
       if(ntohs(dataPacket->block) == connection->block)
       {
          //Write data to the output file
-         if(connection->settings->writeFileCallback != NULL)
+         if(connection->context->writeFileCallback != NULL)
          {
             //Calculate the offset relative to the beginning of the file
             offset = (connection->block - 1) * TFTP_SERVER_BLOCK_SIZE;
 
             //Invoke user callback function
-            error = connection->settings->writeFileCallback(connection->file,
+            error = connection->context->writeFileCallback(connection->file,
                offset, dataPacket->data, length);
          }
          else
@@ -615,10 +615,10 @@ void tftpServerProcessDataPacket(TftpClientConnection *connection,
             if(length < TFTP_SERVER_BLOCK_SIZE)
             {
                //Properly close the file
-               if(connection->settings->closeFileCallback != NULL)
+               if(connection->context->closeFileCallback != NULL)
                {
                   //Invoke user callback function
-                  connection->settings->closeFileCallback(connection->file);
+                  connection->context->closeFileCallback(connection->file);
                }
 
                //Mark the file as closed
@@ -768,13 +768,13 @@ error_t tftpServerSendDataPacket(TftpClientConnection *connection)
    dataPacket->block = htons(connection->block);
 
    //Read more data from the input file
-   if(connection->settings->readFileCallback != NULL)
+   if(connection->context->readFileCallback != NULL)
    {
       //Calculate the offset relative to the beginning of the file
       offset = (connection->block - 1) * TFTP_SERVER_BLOCK_SIZE;
 
       //Invoke user callback function
-      error = connection->settings->readFileCallback(connection->file, offset,
+      error = connection->context->readFileCallback(connection->file, offset,
          dataPacket->data, TFTP_SERVER_BLOCK_SIZE, &connection->packetLen);
    }
    else
@@ -799,10 +799,10 @@ error_t tftpServerSendDataPacket(TftpClientConnection *connection)
       if(connection->packetLen < TFTP_SERVER_BLOCK_SIZE)
       {
          //Properly close the file
-         if(connection->settings->closeFileCallback != NULL)
+         if(connection->context->closeFileCallback != NULL)
          {
             //Invoke user callback function
-            connection->settings->closeFileCallback(connection->file);
+            connection->context->closeFileCallback(connection->file);
          }
 
          //Mark the file as closed

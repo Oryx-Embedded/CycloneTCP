@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -37,11 +37,6 @@
 #include "core/net.h"
 #include "drivers/mac/stm32mp13xx_eth1_driver.h"
 #include "debug.h"
-
-#if defined(USE_STM32MP13XX_DK)
-   #include "stm32mp13xx_disco.h"
-   #include "stm32mp13xx_disco_io.h"
-#endif
 
 //Underlying network interface
 static NetInterface *nicDriverInterface;
@@ -66,7 +61,7 @@ static Stm32mp13xxEth1TxDmaDesc txDmaDesc[STM32MP13XX_ETH1_TX_BUFFER_COUNT];
 #pragma location = STM32MP13XX_ETH1_RAM_SECTION
 static Stm32mp13xxEth1RxDmaDesc rxDmaDesc[STM32MP13XX_ETH1_RX_BUFFER_COUNT];
 
-//Keil MDK-ARM or GCC compiler?
+//GCC compiler?
 #else
 
 //Transmit buffer
@@ -262,7 +257,6 @@ __weak_func void stm32mp13xxEth1InitGpio(NetInterface *interface)
 //STM32MP135F-DK evaluation board?
 #if defined(USE_STM32MP13XX_DK)
    GPIO_InitTypeDef GPIO_InitStructure;
-   BSP_IO_Init_t IO_InitStructure;
 
    //Enable SYSCFG clock
    __HAL_RCC_SYSCFG_CLK_ENABLE();
@@ -306,18 +300,19 @@ __weak_func void stm32mp13xxEth1InitGpio(NetInterface *interface)
    GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 
-   //Configure ETH1_NRST pin
-   IO_InitStructure.Pin = MCP23x17_GPIO_PIN_9;
-   IO_InitStructure.Pull = IO_NOPULL;
-   IO_InitStructure.Mode = IO_MODE_OUTPUT_PP;
-   BSP_IO_Init(0, &IO_InitStructure);
-
    //Reset PHY transceiver (hard reset)
-   BSP_IO_WritePin(0, MCP23x17_GPIO_PIN_9, IO_PIN_RESET);
-   sleep(10);
-   BSP_IO_WritePin(0, MCP23x17_GPIO_PIN_9, IO_PIN_SET);
-   sleep(10);
+   stm32mp13xxEth1ResetPhy(interface);
 #endif
+}
+
+
+/**
+ * @brief Reset PHY transceiver
+ * @param[in] interface Underlying network interface
+ **/
+
+__weak_func void stm32mp13xxEth1ResetPhy(NetInterface *interface)
+{
 }
 
 
@@ -494,7 +489,7 @@ void ETH1_IRQHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Clear NIS interrupt flag
@@ -803,8 +798,8 @@ error_t stm32mp13xxEth1UpdateMacAddrFilter(NetInterface *interface)
          ETH->MACHT1R = hashTable[1];
 
          //Debug message
-         TRACE_DEBUG("  MACHT0R = %08" PRIX32 "\r\n", ETH->MACHT0R);
-         TRACE_DEBUG("  MACHT1R = %08" PRIX32 "\r\n", ETH->MACHT1R);
+         TRACE_DEBUG("  MACHT0R = 0x%08" PRIX32 "\r\n", ETH->MACHT0R);
+         TRACE_DEBUG("  MACHT1R = 0x%08" PRIX32 "\r\n", ETH->MACHT1R);
       }
    }
 

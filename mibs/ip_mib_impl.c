@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -59,14 +59,22 @@
 
 error_t ipMibInit(void)
 {
+   NetContext *context;
+
    //Debug message
    TRACE_INFO("Initializing IP-MIB base...\r\n");
 
    //Clear IP MIB base
    osMemset(&ipMibBase, 0, sizeof(ipMibBase));
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //ipAddressSpinLock object
-   ipMibBase.ipAddressSpinLock = netGetRandRange(1, INT32_MAX);
+   if(context != NULL)
+   {
+      ipMibBase.ipAddressSpinLock = netGetRandRange(context, 1, INT32_MAX);
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //ipForwarding object
@@ -84,7 +92,11 @@ error_t ipMibInit(void)
    ipMibBase.ipv6IpDefaultHopLimit = IPV6_DEFAULT_HOP_LIMIT;
 
    //ipv6RouterAdvertSpinLock object
-   ipMibBase.ipv6RouterAdvertSpinLock = netGetRandRange(1, INT32_MAX);
+   if(context != NULL)
+   {
+      ipMibBase.ipv6RouterAdvertSpinLock = netGetRandRange(context, 1,
+         INT32_MAX);
+   }
 #endif
 
    //Successful processing
@@ -128,6 +140,10 @@ error_t ipMibGetIpv4InterfaceEntry(const MibObject *object, const uint8_t *oid,
    error_t error;
    size_t n;
    uint_t index;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -143,7 +159,7 @@ error_t ipMibGetIpv4InterfaceEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
 #if (IPV4_SUPPORT == ENABLED)
@@ -194,6 +210,10 @@ error_t ipMibGetNextIpv4InterfaceEntry(const MibObject *object, const uint8_t *o
    error_t error;
    size_t n;
    uint_t index;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -203,7 +223,7 @@ error_t ipMibGetNextIpv4InterfaceEntry(const MibObject *object, const uint8_t *o
    osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
-   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+   for(index = 1; index <= context->numInterfaces; index++)
    {
       //Append the instance identifier to the OID prefix
       n = object->oidLen;
@@ -267,7 +287,11 @@ error_t ipMibGetIpv6InterfaceEntry(const MibObject *object, const uint8_t *oid,
    error_t error;
    size_t n;
    uint_t index;
+   NetContext *context;
    NetInterface *interface;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -283,11 +307,11 @@ error_t ipMibGetIpv6InterfaceEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Point to the underlying interface
-   interface = &netInterface[index - 1];
+   interface = &context->interfaces[index - 1];
    //Avoid warnings from the compiler
    (void) interface;
 
@@ -380,6 +404,10 @@ error_t ipMibGetNextIpv6InterfaceEntry(const MibObject *object, const uint8_t *o
    error_t error;
    size_t n;
    uint_t index;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -389,7 +417,7 @@ error_t ipMibGetNextIpv6InterfaceEntry(const MibObject *object, const uint8_t *o
    osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
-   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+   for(index = 1; index <= context->numInterfaces; index++)
    {
       //Append the instance identifier to the OID prefix
       n = object->oidLen;
@@ -433,7 +461,11 @@ error_t ipMibGetIpSystemStatsEntry(const MibObject *object, const uint8_t *oid,
    error_t error;
    size_t n;
    uint_t version;
-   IpMibIpSystemStatsEntry *entry;
+   NetContext *context;
+   IpSystemStats *ipSystemStats;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -448,257 +480,257 @@ error_t ipMibGetIpSystemStatsEntry(const MibObject *object, const uint8_t *oid,
    if(n != oidLen)
       return ERROR_INSTANCE_NOT_FOUND;
 
-#if (IPV4_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && IPV4_STATS_SUPPORT == ENABLED)
    //IPv4 version?
    if(version == INET_VERSION_IPV4)
    {
-      //Point to the IPv4 statistics table entry
-      entry = &ipMibBase.ipv4SystemStats;
+      //Point to the system-wide IPv4 statistics
+      ipSystemStats = &context->ipv4SystemStats;
    }
    else
 #endif
-#if (IPV6_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && IPV6_STATS_SUPPORT == ENABLED)
    //IPv6 version?
    if(version == INET_VERSION_IPV6)
    {
-      //Point to the IPv6 statistics table entry
-      entry = &ipMibBase.ipv6SystemStats;
+      //Point to the system-wide IPv6 statistics
+      ipSystemStats = &context->ipv6SystemStats;
    }
    else
 #endif
    //Invalid IP version?
    {
       //No statistics available
-      entry = NULL;
+      ipSystemStats = NULL;
    }
 
    //Sanity check
-   if(entry != NULL)
+   if(ipSystemStats != NULL)
    {
       //ipSystemStatsInReceives object?
       if(osStrcmp(object->name, "ipSystemStatsInReceives") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInReceives;
+         value->counter32 = (uint32_t) ipSystemStats->inReceives;
       }
       //ipSystemStatsHCInReceives object?
       else if(osStrcmp(object->name, "ipSystemStatsHCInReceives") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCInReceives;
+         value->counter64 = ipSystemStats->inReceives;
       }
       //ipSystemStatsInOctets object?
       else if(osStrcmp(object->name, "ipSystemStatsInOctets") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInOctets;
+         value->counter32 = (uint32_t) ipSystemStats->inOctets;
       }
       //ipSystemStatsHCInOctets object?
       else if(osStrcmp(object->name, "ipSystemStatsHCInOctets") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCInOctets;
+         value->counter64 = ipSystemStats->inOctets;
       }
       //ipSystemStatsInHdrErrors object?
       else if(osStrcmp(object->name, "ipSystemStatsInHdrErrors") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInHdrErrors;
+         value->counter32 = ipSystemStats->inHdrErrors;
       }
       //ipSystemStatsInNoRoutes object?
       else if(osStrcmp(object->name, "ipSystemStatsInNoRoutes") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInNoRoutes;
+         value->counter32 = ipSystemStats->inNoRoutes;
       }
       //ipSystemStatsInAddrErrors object?
       else if(osStrcmp(object->name, "ipSystemStatsInAddrErrors") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInAddrErrors;
+         value->counter32 = ipSystemStats->inAddrErrors;
       }
       //ipSystemStatsInUnknownProtos object?
       else if(osStrcmp(object->name, "ipSystemStatsInUnknownProtos") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInUnknownProtos;
+         value->counter32 = ipSystemStats->inUnknownProtos;
       }
       //ipSystemStatsInTruncatedPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsInTruncatedPkts") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInTruncatedPkts;
+         value->counter32 = ipSystemStats->inTruncatedPkts;
       }
       //ipSystemStatsInForwDatagrams object?
       else if(osStrcmp(object->name, "ipSystemStatsInForwDatagrams") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInForwDatagrams;
+         value->counter32 = (uint32_t) ipSystemStats->inForwDatagrams;
       }
       //ipSystemStatsHCInForwDatagrams object?
       else if(osStrcmp(object->name, "ipSystemStatsHCInForwDatagrams") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCInForwDatagrams;
+         value->counter64 = ipSystemStats->inForwDatagrams;
       }
       //ipSystemStatsReasmReqds object?
       else if(osStrcmp(object->name, "ipSystemStatsReasmReqds") == 0)
       {
-         value->counter32 = entry->ipSystemStatsReasmReqds;
+         value->counter32 = ipSystemStats->reasmReqds;
       }
       //ipSystemStatsReasmOKs object?
       else if(osStrcmp(object->name, "ipSystemStatsReasmOKs") == 0)
       {
-         value->counter32 = entry->ipSystemStatsReasmOKs;
+         value->counter32 = ipSystemStats->reasmOKs;
       }
       //ipSystemStatsReasmFails object?
       else if(osStrcmp(object->name, "ipSystemStatsReasmFails") == 0)
       {
-         value->counter32 = entry->ipSystemStatsReasmFails;
+         value->counter32 = ipSystemStats->reasmFails;
       }
       //ipSystemStatsInDiscards object?
       else if(osStrcmp(object->name, "ipSystemStatsInDiscards") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInDiscards;
+         value->counter32 = ipSystemStats->inDiscards;
       }
       //ipSystemStatsInDelivers object?
       else if(osStrcmp(object->name, "ipSystemStatsInDelivers") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInDelivers;
+         value->counter32 = (uint32_t) ipSystemStats->inDelivers;
       }
       //ipSystemStatsHCInDelivers object?
       else if(osStrcmp(object->name, "ipSystemStatsHCInDelivers") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCInDelivers;
+         value->counter64 = ipSystemStats->inDelivers;
       }
       //ipSystemStatsOutRequests object?
       else if(osStrcmp(object->name, "ipSystemStatsOutRequests") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutRequests;
+         value->counter32 = (uint32_t) ipSystemStats->outRequests;
       }
       //ipSystemStatsHCOutRequests object?
       else if(osStrcmp(object->name, "ipSystemStatsHCOutRequests") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCOutRequests;
+         value->counter64 = ipSystemStats->outRequests;
       }
       //ipSystemStatsOutNoRoutes object?
       else if(osStrcmp(object->name, "ipSystemStatsOutNoRoutes") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutNoRoutes;
+         value->counter32 = ipSystemStats->outNoRoutes;
       }
       //ipSystemStatsOutForwDatagrams object?
       else if(osStrcmp(object->name, "ipSystemStatsOutForwDatagrams") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutForwDatagrams;
+         value->counter32 = (uint32_t) ipSystemStats->outForwDatagrams;
       }
       //ipSystemStatsHCOutForwDatagrams object?
       else if(osStrcmp(object->name, "ipSystemStatsHCOutForwDatagrams") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCOutForwDatagrams;
+         value->counter64 = ipSystemStats->outForwDatagrams;
       }
       //ipSystemStatsOutDiscards object?
       else if(osStrcmp(object->name, "ipSystemStatsOutDiscards") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutDiscards;
+         value->counter32 = ipSystemStats->outDiscards;
       }
       //ipSystemStatsOutFragReqds object?
       else if(osStrcmp(object->name, "ipSystemStatsOutFragReqds") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutFragReqds;
+         value->counter32 = ipSystemStats->outFragReqds;
       }
       //ipSystemStatsOutFragOKs object?
       else if(osStrcmp(object->name, "ipSystemStatsOutFragOKs") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutFragOKs;
+         value->counter32 = ipSystemStats->outFragOKs;
       }
       //ipSystemStatsOutFragFails object?
       else if(osStrcmp(object->name, "ipSystemStatsOutFragFails") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutFragFails;
+         value->counter32 = ipSystemStats->outFragFails;
       }
       //ipSystemStatsOutFragCreates object?
       else if(osStrcmp(object->name, "ipSystemStatsOutFragCreates") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutFragCreates;
+         value->counter32 = ipSystemStats->outFragCreates;
       }
       //ipSystemStatsOutTransmits object?
       else if(osStrcmp(object->name, "ipSystemStatsOutTransmits") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutTransmits;
+         value->counter32 = (uint32_t) ipSystemStats->outTransmits;
       }
       //ipSystemStatsHCOutTransmits object?
       else if(osStrcmp(object->name, "ipSystemStatsHCOutTransmits") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCOutTransmits;
+         value->counter64 = ipSystemStats->outTransmits;
       }
       //ipSystemStatsOutOctets object?
       else if(osStrcmp(object->name, "ipSystemStatsOutOctets") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutOctets;
+         value->counter32 = (uint32_t) ipSystemStats->outOctets;
       }
       //ipSystemStatsHCOutOctets object?
       else if(osStrcmp(object->name, "ipSystemStatsHCOutOctets") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCOutOctets;
+         value->counter64 = ipSystemStats->outOctets;
       }
       //ipSystemStatsInMcastPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsInMcastPkts") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInMcastPkts;
+         value->counter32 = (uint32_t) ipSystemStats->inMcastPkts;
       }
       //ipSystemStatsHCInMcastPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsHCInMcastPkts") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCInMcastPkts;
+         value->counter64 = ipSystemStats->inMcastPkts;
       }
       //ipSystemStatsInMcastOctets object?
       else if(osStrcmp(object->name, "ipSystemStatsInMcastOctets") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInMcastOctets;
+         value->counter32 = (uint32_t) ipSystemStats->inMcastOctets;
       }
       //ipSystemStatsHCInMcastOctets object?
       else if(osStrcmp(object->name, "ipSystemStatsHCInMcastOctets") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCInMcastOctets;
+         value->counter64 = ipSystemStats->inMcastOctets;
       }
       //ipSystemStatsOutMcastPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsOutMcastPkts") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutMcastPkts;
+         value->counter32 = (uint32_t) ipSystemStats->outMcastPkts;
       }
       //ipSystemStatsHCOutMcastPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsHCOutMcastPkts") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCOutMcastPkts;
+         value->counter64 = ipSystemStats->outMcastPkts;
       }
       //ipSystemStatsOutMcastOctets object?
       else if(osStrcmp(object->name, "ipSystemStatsOutMcastOctets") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutMcastOctets;
+         value->counter32 = (uint32_t) ipSystemStats->outMcastOctets;
       }
       //ipSystemStatsHCOutMcastOctets object?
       else if(osStrcmp(object->name, "ipSystemStatsHCOutMcastOctets") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCOutMcastOctets;
+         value->counter64 = ipSystemStats->outMcastOctets;
       }
       //ipSystemStatsInBcastPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsInBcastPkts") == 0)
       {
-         value->counter32 = entry->ipSystemStatsInBcastPkts;
+         value->counter32 = (uint32_t) ipSystemStats->inBcastPkts;
       }
       //ipSystemStatsHCInBcastPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsHCInBcastPkts") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCInBcastPkts;
+         value->counter64 = ipSystemStats->inBcastPkts;
       }
       //ipSystemStatsOutBcastPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsOutBcastPkts") == 0)
       {
-         value->counter32 = entry->ipSystemStatsOutBcastPkts;
+         value->counter32 = (uint32_t) ipSystemStats->outBcastPkts;
       }
       //ipSystemStatsHCOutBcastPkts object?
       else if(osStrcmp(object->name, "ipSystemStatsHCOutBcastPkts") == 0)
       {
-         value->counter64 = entry->ipSystemStatsHCOutBcastPkts;
+         value->counter64 = ipSystemStats->outBcastPkts;
       }
       //ipSystemStatsDiscontinuityTime object?
       else if(osStrcmp(object->name, "ipSystemStatsDiscontinuityTime") == 0)
       {
-         value->timeTicks = entry->ipSystemStatsDiscontinuityTime;
+         value->timeTicks = ipSystemStats->discontinuityTime;
       }
       //ipSystemStatsRefreshRate object?
       else if(osStrcmp(object->name, "ipSystemStatsRefreshRate") == 0)
       {
-         value->unsigned32 = entry->ipSystemStatsRefreshRate;
+         value->unsigned32 = ipSystemStats->refreshRate;
       }
       //Unknown object?
       else
@@ -744,7 +776,7 @@ error_t ipMibGetNextIpSystemStatsEntry(const MibObject *object, const uint8_t *o
    //IP version-neutral table
    for(version = INET_VERSION_IPV4; version <= INET_VERSION_IPV6; version++)
    {
-#if (IPV4_SUPPORT == DISABLED)
+#if (IPV4_SUPPORT == DISABLED || IPV4_STATS_SUPPORT == DISABLED)
       //IPv4 version?
       if(version == INET_VERSION_IPV4)
       {
@@ -752,7 +784,7 @@ error_t ipMibGetNextIpSystemStatsEntry(const MibObject *object, const uint8_t *o
          continue;
       }
 #endif
-#if (IPV6_SUPPORT == DISABLED)
+#if (IPV6_SUPPORT == DISABLED || IPV6_STATS_SUPPORT == DISABLED)
       //IPv6 version?
       if(version == INET_VERSION_IPV6)
       {
@@ -804,7 +836,11 @@ error_t ipMibGetIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    uint_t version;
    uint_t index;
-   IpMibIpIfStatsEntry *entry;
+   NetContext *context;
+   IpIfStats *ipIfStats;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -826,255 +862,255 @@ error_t ipMibGetIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
-#if (IPV4_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && IPV4_STATS_SUPPORT == ENABLED)
    //IPv4 version?
    if(version == INET_VERSION_IPV4)
    {
-      //Point to the IPv4 statistics table entry
-      entry = &ipMibBase.ipv4IfStatsTable[index - 1];
+      //Point to the per-interface IPv4 statistics
+      ipIfStats = &context->interfaces[index - 1].ipv4IfStats;
    }
    else
 #endif
-#if (IPV6_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && IPV6_STATS_SUPPORT == ENABLED)
    //IPv6 version?
    if(version == INET_VERSION_IPV6)
    {
       //Point to the IPv6 statistics table entry
-      entry = &ipMibBase.ipv6IfStatsTable[index - 1];
+      ipIfStats = &context->interfaces[index - 1].ipv6IfStats;
    }
    else
 #endif
    //Invalid IP version?
    {
       //No statistics available
-      entry = NULL;
+      ipIfStats = NULL;
    }
 
    //Sanity check
-   if(entry != NULL)
+   if(ipIfStats != NULL)
    {
       //ipIfStatsInReceives object?
       if(osStrcmp(object->name, "ipIfStatsInReceives") == 0)
       {
-         value->counter32 = entry->ipIfStatsInReceives;
+         value->counter32 = (uint32_t) ipIfStats->inReceives;
       }
       //ipIfStatsHCInReceives object?
       else if(osStrcmp(object->name, "ipIfStatsHCInReceives") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCInReceives;
+         value->counter64 = ipIfStats->inReceives;
       }
       //ipIfStatsInOctets object?
       else if(osStrcmp(object->name, "ipIfStatsInOctets") == 0)
       {
-         value->counter32 = entry->ipIfStatsInOctets;
+         value->counter32 = (uint32_t) ipIfStats->inOctets;
       }
       //ipIfStatsHCInOctets object?
       else if(osStrcmp(object->name, "ipIfStatsHCInOctets") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCInOctets;
+         value->counter64 = ipIfStats->inOctets;
       }
       //ipIfStatsInHdrErrors object?
       else if(osStrcmp(object->name, "ipIfStatsInHdrErrors") == 0)
       {
-         value->counter32 = entry->ipIfStatsInHdrErrors;
+         value->counter32 = ipIfStats->inHdrErrors;
       }
       //ipIfStatsInNoRoutes object?
       else if(osStrcmp(object->name, "ipIfStatsInNoRoutes") == 0)
       {
-         value->counter32 = entry->ipIfStatsInNoRoutes;
+         value->counter32 = ipIfStats->inNoRoutes;
       }
       //ipIfStatsInAddrErrors object?
       else if(osStrcmp(object->name, "ipIfStatsInAddrErrors") == 0)
       {
-         value->counter32 = entry->ipIfStatsInAddrErrors;
+         value->counter32 = ipIfStats->inAddrErrors;
       }
       //ipIfStatsInUnknownProtos object?
       else if(osStrcmp(object->name, "ipIfStatsInUnknownProtos") == 0)
       {
-         value->counter32 = entry->ipIfStatsInUnknownProtos;
+         value->counter32 = ipIfStats->inUnknownProtos;
       }
       //ipIfStatsInTruncatedPkts object?
       else if(osStrcmp(object->name, "ipIfStatsInTruncatedPkts") == 0)
       {
-         value->counter32 = entry->ipIfStatsInTruncatedPkts;
+         value->counter32 = ipIfStats->inTruncatedPkts;
       }
       //ipIfStatsInForwDatagrams object?
       else if(osStrcmp(object->name, "ipIfStatsInForwDatagrams") == 0)
       {
-         value->counter32 = entry->ipIfStatsInForwDatagrams;
+         value->counter32 = (uint32_t) ipIfStats->inForwDatagrams;
       }
       //ipIfStatsHCInForwDatagrams object?
       else if(osStrcmp(object->name, "ipIfStatsHCInForwDatagrams") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCInForwDatagrams;
+         value->counter64 = ipIfStats->inForwDatagrams;
       }
       //ipIfStatsReasmReqds object?
       else if(osStrcmp(object->name, "ipIfStatsReasmReqds") == 0)
       {
-         value->counter32 = entry->ipIfStatsReasmReqds;
+         value->counter32 = ipIfStats->reasmReqds;
       }
       //ipIfStatsReasmOKs object?
       else if(osStrcmp(object->name, "ipIfStatsReasmOKs") == 0)
       {
-         value->counter32 = entry->ipIfStatsReasmOKs;
+         value->counter32 = ipIfStats->reasmOKs;
       }
       //ipIfStatsReasmFails object?
       else if(osStrcmp(object->name, "ipIfStatsReasmFails") == 0)
       {
-         value->counter32 = entry->ipIfStatsReasmFails;
+         value->counter32 = ipIfStats->reasmFails;
       }
       //ipIfStatsInDiscards object?
       else if(osStrcmp(object->name, "ipIfStatsInDiscards") == 0)
       {
-         value->counter32 = entry->ipIfStatsInDiscards;
+         value->counter32 = ipIfStats->inDiscards;
       }
       //ipIfStatsInDelivers object?
       else if(osStrcmp(object->name, "ipIfStatsInDelivers") == 0)
       {
-         value->counter32 = entry->ipIfStatsInDelivers;
+         value->counter32 = (uint32_t) ipIfStats->inDelivers;
       }
       //ipIfStatsHCInDelivers object?
       else if(osStrcmp(object->name, "ipIfStatsHCInDelivers") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCInDelivers;
+         value->counter64 = ipIfStats->inDelivers;
       }
       //ipIfStatsOutRequests object?
       else if(osStrcmp(object->name, "ipIfStatsOutRequests") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutRequests;
+         value->counter32 = (uint32_t) ipIfStats->outRequests;
       }
       //ipIfStatsHCOutRequests object?
       else if(osStrcmp(object->name, "ipIfStatsHCOutRequests") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCOutRequests;
+         value->counter64 = ipIfStats->outRequests;
       }
       //ipIfStatsOutForwDatagrams object?
       else if(osStrcmp(object->name, "ipIfStatsOutForwDatagrams") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutForwDatagrams;
+         value->counter32 = (uint32_t) ipIfStats->outForwDatagrams;
       }
       //ipIfStatsHCOutForwDatagrams object?
       else if(osStrcmp(object->name, "ipIfStatsHCOutForwDatagrams") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCOutForwDatagrams;
+         value->counter64 = ipIfStats->outForwDatagrams;
       }
       //ipIfStatsOutDiscards object?
       else if(osStrcmp(object->name, "ipIfStatsOutDiscards") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutDiscards;
+         value->counter32 = ipIfStats->outDiscards;
       }
       //ipIfStatsOutFragReqds object?
       else if(osStrcmp(object->name, "ipIfStatsOutFragReqds") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutFragReqds;
+         value->counter32 = ipIfStats->outFragReqds;
       }
       //ipIfStatsOutFragOKs object?
       else if(osStrcmp(object->name, "ipIfStatsOutFragOKs") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutFragOKs;
+         value->counter32 = ipIfStats->outFragOKs;
       }
       //ipIfStatsOutFragFails object?
       else if(osStrcmp(object->name, "ipIfStatsOutFragFails") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutFragFails;
+         value->counter32 = ipIfStats->outFragFails;
       }
       //ipIfStatsOutFragCreates object?
       else if(osStrcmp(object->name, "ipIfStatsOutFragCreates") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutFragCreates;
+         value->counter32 = ipIfStats->outFragCreates;
       }
       //ipIfStatsOutTransmits object?
       else if(osStrcmp(object->name, "ipIfStatsOutTransmits") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutTransmits;
+         value->counter32 = (uint32_t) ipIfStats->outTransmits;
       }
       //ipIfStatsHCOutTransmits object?
       else if(osStrcmp(object->name, "ipIfStatsHCOutTransmits") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCOutTransmits;
+         value->counter64 = ipIfStats->outTransmits;
       }
       //ipIfStatsOutOctets object?
       else if(osStrcmp(object->name, "ipIfStatsOutOctets") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutOctets;
+         value->counter32 = (uint32_t) ipIfStats->outOctets;
       }
       //ipIfStatsHCOutOctets object?
       else if(osStrcmp(object->name, "ipIfStatsHCOutOctets") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCOutOctets;
+         value->counter64 = ipIfStats->outOctets;
       }
       //ipIfStatsInMcastPkts object?
       else if(osStrcmp(object->name, "ipIfStatsInMcastPkts") == 0)
       {
-         value->counter32 = entry->ipIfStatsInMcastPkts;
+         value->counter32 = (uint32_t) ipIfStats->inMcastPkts;
       }
       //ipIfStatsHCInMcastPkts object?
       else if(osStrcmp(object->name, "ipIfStatsHCInMcastPkts") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCInMcastPkts;
+         value->counter64 = ipIfStats->inMcastPkts;
       }
       //ipIfStatsInMcastOctets object?
       else if(osStrcmp(object->name, "ipIfStatsInMcastOctets") == 0)
       {
-         value->counter32 = entry->ipIfStatsInMcastOctets;
+         value->counter32 = (uint32_t) ipIfStats->inMcastOctets;
       }
       //ipIfStatsHCInMcastOctets object?
       else if(osStrcmp(object->name, "ipIfStatsHCInMcastOctets") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCInMcastOctets;
+         value->counter64 = ipIfStats->inMcastOctets;
       }
       //ipIfStatsOutMcastPkts object?
       else if(osStrcmp(object->name, "ipIfStatsOutMcastPkts") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutMcastPkts;
+         value->counter32 = (uint32_t) ipIfStats->outMcastPkts;
       }
       //ipIfStatsHCOutMcastPkts object?
       else if(osStrcmp(object->name, "ipIfStatsHCOutMcastPkts") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCOutMcastPkts;
+         value->counter64 = ipIfStats->outMcastPkts;
       }
       //ipIfStatsOutMcastOctets object?
       else if(osStrcmp(object->name, "ipIfStatsOutMcastOctets") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutMcastOctets;
+         value->counter32 = (uint32_t) ipIfStats->outMcastOctets;
       }
       //ipIfStatsHCOutMcastOctets object?
       else if(osStrcmp(object->name, "ipIfStatsHCOutMcastOctets") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCOutMcastOctets;
+         value->counter64 = ipIfStats->outMcastOctets;
       }
       //ipIfStatsInBcastPkts object?
       else if(osStrcmp(object->name, "ipIfStatsInBcastPkts") == 0)
       {
-         value->counter32 = entry->ipIfStatsInBcastPkts;
+         value->counter32 = (uint32_t) ipIfStats->inBcastPkts;
       }
       //ipIfStatsHCInBcastPkts object?
       else if(osStrcmp(object->name, "ipIfStatsHCInBcastPkts") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCInBcastPkts;
+         value->counter64 = ipIfStats->inBcastPkts;
       }
       //ipIfStatsOutBcastPkts object?
       else if(osStrcmp(object->name, "ipIfStatsOutBcastPkts") == 0)
       {
-         value->counter32 = entry->ipIfStatsOutBcastPkts;
+         value->counter32 = (uint32_t) ipIfStats->outBcastPkts;
       }
       //ipIfStatsHCOutBcastPkts object?
       else if(osStrcmp(object->name, "ipIfStatsHCOutBcastPkts") == 0)
       {
-         value->counter64 = entry->ipIfStatsHCOutBcastPkts;
+         value->counter64 = ipIfStats->outBcastPkts;
       }
       //ipIfStatsDiscontinuityTime object?
       else if(osStrcmp(object->name, "ipIfStatsDiscontinuityTime") == 0)
       {
-         value->timeTicks = entry->ipIfStatsDiscontinuityTime;
+         value->timeTicks = ipIfStats->discontinuityTime;
       }
       //ipIfStatsRefreshRate object?
       else if(osStrcmp(object->name, "ipIfStatsRefreshRate") == 0)
       {
-         value->unsigned32 = entry->ipIfStatsRefreshRate;
+         value->unsigned32 = ipIfStats->refreshRate;
       }
       //Unknown object?
       else
@@ -1110,6 +1146,10 @@ error_t ipMibGetNextIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    uint_t version;
    uint_t index;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -1121,7 +1161,7 @@ error_t ipMibGetNextIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
    //IP version-neutral table
    for(version = INET_VERSION_IPV4; version <= INET_VERSION_IPV6; version++)
    {
-#if (IPV4_SUPPORT == DISABLED)
+#if (IPV4_SUPPORT == DISABLED || IPV4_STATS_SUPPORT == DISABLED)
       //IPv4 version?
       if(version == INET_VERSION_IPV4)
       {
@@ -1129,7 +1169,7 @@ error_t ipMibGetNextIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
          continue;
       }
 #endif
-#if (IPV6_SUPPORT == DISABLED)
+#if (IPV6_SUPPORT == DISABLED || IPV6_STATS_SUPPORT == DISABLED)
       //IPv6 version?
       if(version == INET_VERSION_IPV6)
       {
@@ -1139,7 +1179,7 @@ error_t ipMibGetNextIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
 #endif
 
       //Loop through network interfaces
-      for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+      for(index = 1; index <= context->numInterfaces; index++)
       {
          //Append the instance identifier to the OID prefix
          n = object->oidLen;
@@ -1193,7 +1233,11 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
    uint_t index;
    IpAddr prefix;
    uint32_t prefixLen;
+   NetContext *context;
    NetInterface *interface;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -1222,11 +1266,11 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Point to the underlying interface
-   interface = &netInterface[index - 1];
+   interface = &context->interfaces[index - 1];
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 prefix?
@@ -1455,12 +1499,16 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
    bool_t acceptable;
    IpAddr prefix;
    IpAddr curPrefix;
+   NetContext *context;
    NetInterface *interface;
 
    //Initialize variables
    index = 0;
    prefix = IP_ADDR_UNSPECIFIED;
    length = 0;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -1471,12 +1519,12 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
 
 #if (IPV4_SUPPORT == ENABLED)
    //Loop through network interfaces
-   for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
+   for(curIndex = 1; curIndex <= context->numInterfaces; curIndex++)
    {
       Ipv4AddrEntry *entry;
 
       //Point to the current interface
-      interface = &netInterface[curIndex - 1];
+      interface = &context->interfaces[curIndex - 1];
 
       //Loop through the list of IPv4 addresses assigned to the interface
       for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
@@ -1565,12 +1613,12 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
 
 #if (IPV6_SUPPORT == ENABLED)
    //Loop through network interfaces
-   for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
+   for(curIndex = 1; curIndex <= context->numInterfaces; curIndex++)
    {
       Ipv6PrefixEntry *entry;
 
       //Point to the current interface
-      interface = &netInterface[curIndex - 1];
+      interface = &context->interfaces[curIndex - 1];
 
       //Loop through the IPv6 prefix list
       for(i = 0; i < IPV6_PREFIX_LIST_SIZE; i++)
@@ -1770,7 +1818,11 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    uint_t index;
    IpAddr ipAddr;
+   NetContext *context;
    NetInterface *interface;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -1792,10 +1844,10 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
       Ipv4AddrEntry *entry;
 
       //Loop through network interfaces
-      for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+      for(index = 1; index <= context->numInterfaces; index++)
       {
          //Point to the current interface
-         interface = &netInterface[index - 1];
+         interface = &context->interfaces[index - 1];
 
          //Loop through the list of IPv4 addresses assigned to the interface
          for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
@@ -1818,7 +1870,7 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
       }
 
       //IPv4 address found?
-      if(index <= NET_INTERFACE_COUNT)
+      if(index <= context->numInterfaces)
       {
          //ipAddressIfIndex object?
          if(osStrcmp(object->name, "ipAddressIfIndex") == 0)
@@ -1972,10 +2024,10 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
       Ipv6AddrEntry *entry;
 
       //Loop through network interfaces
-      for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+      for(index = 1; index <= context->numInterfaces; index++)
       {
          //Point to the current interface
-         interface = &netInterface[index - 1];
+         interface = &context->interfaces[index - 1];
 
          //Loop through the list of IPv6 addresses assigned to the interface
          for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
@@ -1998,7 +2050,7 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
       }
 
       //IPv6 address found?
-      if(index <= NET_INTERFACE_COUNT)
+      if(index <= context->numInterfaces)
       {
          //ipAddressIfIndex object?
          if(osStrcmp(object->name, "ipAddressIfIndex") == 0)
@@ -2125,7 +2177,11 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
    bool_t acceptable;
    IpAddr ipAddr;
    IpAddr curIpAddr;
+   NetContext *context;
    NetInterface *interface;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Initialize variable
    ipAddr = IP_ADDR_UNSPECIFIED;
@@ -2139,12 +2195,12 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
 
 #if (IPV4_SUPPORT == ENABLED)
    //Loop through network interfaces
-   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+   for(index = 1; index <= context->numInterfaces; index++)
    {
       Ipv4AddrEntry *entry;
 
       //Point to the current interface
-      interface = &netInterface[index - 1];
+      interface = &context->interfaces[index - 1];
 
       //Loop through the list of IPv4 addresses assigned to the interface
       for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
@@ -2198,12 +2254,12 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
 
 #if (IPV6_SUPPORT == ENABLED)
    //Loop through network interfaces
-   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+   for(index = 1; index <= context->numInterfaces; index++)
    {
       Ipv6AddrEntry *entry;
 
       //Point to the current interface
-      interface = &netInterface[index - 1];
+      interface = &context->interfaces[index - 1];
 
       //Loop through the list of IPv6 addresses assigned to the interface
       for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
@@ -2313,7 +2369,11 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
    size_t n;
    uint_t index;
    IpAddr ipAddr;
+   NetContext *context;
    NetInterface *interface;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -2336,11 +2396,11 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Point to the network interface
-   interface = &netInterface[index - 1];
+   interface = &context->interfaces[index - 1];
    //Avoid warnings from the compiler
    (void) interface;
 
@@ -2535,11 +2595,15 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
    bool_t acceptable;
    IpAddr ipAddr;
    IpAddr curIpAddr;
+   NetContext *context;
    NetInterface *interface;
 
    //Initialize variables
    index = 0;
    ipAddr = IP_ADDR_UNSPECIFIED;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -2549,10 +2613,10 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
    osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
-   for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
+   for(curIndex = 1; curIndex <= context->numInterfaces; curIndex++)
    {
       //Point to the current interface
-      interface = &netInterface[curIndex - 1];
+      interface = &context->interfaces[curIndex - 1];
 
       //Avoid warnings from the compiler
       (void) i;
@@ -2745,6 +2809,10 @@ error_t ipMibGetIpv6ScopeZoneIndexEntry(const MibObject *object, const uint8_t *
    error_t error;
    size_t n;
    uint_t index;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -2760,7 +2828,7 @@ error_t ipMibGetIpv6ScopeZoneIndexEntry(const MibObject *object, const uint8_t *
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //ipv6ScopeZoneIndexLinkLocal object?
@@ -2850,6 +2918,10 @@ error_t ipMibGetNextIpv6ScopeZoneIndexEntry(const MibObject *object, const uint8
    error_t error;
    size_t n;
    uint_t index;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -2859,7 +2931,7 @@ error_t ipMibGetNextIpv6ScopeZoneIndexEntry(const MibObject *object, const uint8
    osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
-   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+   for(index = 1; index <= context->numInterfaces; index++)
    {
       //Append the instance identifier to the OID prefix
       n = object->oidLen;
@@ -2905,7 +2977,11 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
    size_t n;
    uint_t index;
    IpAddr ipAddr;
+   NetContext *context;
    NetInterface *interface;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -2928,11 +3004,11 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Point to the network interface
-   interface = &netInterface[index - 1];
+   interface = &context->interfaces[index - 1];
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
@@ -3091,11 +3167,15 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
    bool_t acceptable;
    IpAddr ipAddr;
    IpAddr curIpAddr;
+   NetContext *context;
    NetInterface *interface;
 
    //Initialize variables
    index = 0;
    ipAddr = IP_ADDR_UNSPECIFIED;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -3106,12 +3186,12 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
 
 #if (IPV4_SUPPORT == ENABLED)
    //Loop through network interfaces
-   for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
+   for(curIndex = 1; curIndex <= context->numInterfaces; curIndex++)
    {
       Ipv4AddrEntry *entry;
 
       //Point to the current interface
-      interface = &netInterface[curIndex - 1];
+      interface = &context->interfaces[curIndex - 1];
 
       //Loop through the list of default gateways
       for(i = 0; i < IPV4_ADDR_LIST_SIZE; i++)
@@ -3184,12 +3264,12 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
 
 #if (IPV6_SUPPORT == ENABLED)
    //Loop through network interfaces
-   for(curIndex = 1; curIndex <= NET_INTERFACE_COUNT; curIndex++)
+   for(curIndex = 1; curIndex <= context->numInterfaces; curIndex++)
    {
       Ipv6RouterEntry *entry;
 
       //Point to the current interface
-      interface = &netInterface[curIndex - 1];
+      interface = &context->interfaces[curIndex - 1];
 
       //Loop through the Default Router List
       for(i = 0; i < IPV6_ROUTER_LIST_SIZE; i++)
@@ -3377,7 +3457,11 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
 #if (IPV6_SUPPORT == ENABLED && NDP_ROUTER_ADV_SUPPORT == ENABLED)
    size_t n;
    uint_t index;
+   NetContext *context;
    NdpRouterAdvContext *routerAdvContext;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -3393,11 +3477,11 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Point to the RA service context
-   routerAdvContext = netInterface[index - 1].ndpRouterAdvContext;
+   routerAdvContext = context->interfaces[index - 1].ndpRouterAdvContext;
 
    //Any RA service instantiated?
    if(routerAdvContext != NULL)
@@ -3422,21 +3506,21 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
       {
          //Maximum time allowed between sending unsolicited router
          //advertisements from this interface
-         value->unsigned32 = routerAdvContext->settings.maxRtrAdvInterval;
+         value->unsigned32 = routerAdvContext->maxRtrAdvInterval;
       }
       //ipv6RouterAdvertMinInterval object?
       else if(osStrcmp(object->name, "ipv6RouterAdvertMinInterval") == 0)
       {
          //Minimum time allowed between sending unsolicited router
          //advertisements from this interface
-         value->unsigned32 = routerAdvContext->settings.minRtrAdvInterval;
+         value->unsigned32 = routerAdvContext->minRtrAdvInterval;
       }
       //ipv6RouterAdvertManagedFlag object?
       else if(osStrcmp(object->name, "ipv6RouterAdvertManagedFlag") == 0)
       {
          //Value to be placed into the Managed Address Configuration flag
          //field in router advertisements sent from this interface
-         if(routerAdvContext->settings.managedFlag)
+         if(routerAdvContext->managedFlag)
          {
             value->integer = MIB_TRUTH_VALUE_TRUE;
          }
@@ -3450,7 +3534,7 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
       {
          //Value to be placed into the Other Configuration flag field in
          //router advertisements sent from this interface
-         if(routerAdvContext->settings.otherConfigFlag)
+         if(routerAdvContext->otherConfigFlag)
          {
             value->integer = MIB_TRUTH_VALUE_TRUE;
          }
@@ -3464,35 +3548,35 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
       {
          //Value to be placed in the MTU option sent by the router on this
          //interface
-         value->unsigned32 = routerAdvContext->settings.linkMtu;
+         value->unsigned32 = routerAdvContext->linkMtu;
       }
       //ipv6RouterAdvertReachableTime object?
       else if(osStrcmp(object->name, "ipv6RouterAdvertReachableTime") == 0)
       {
          //Value to be placed in the Reachable Time field in router
          //advertisement messages sent from this interface
-         value->unsigned32 = routerAdvContext->settings.reachableTime;
+         value->unsigned32 = routerAdvContext->reachableTime;
       }
       //ipv6RouterAdvertRetransmitTime object?
       else if(osStrcmp(object->name, "ipv6RouterAdvertRetransmitTime") == 0)
       {
          //Value to be placed in the Retrans Timer field in router
          //advertisements sent from this interface
-         value->unsigned32 = routerAdvContext->settings.retransTimer;
+         value->unsigned32 = routerAdvContext->retransTimer;
       }
       //ipv6RouterAdvertCurHopLimit object?
       else if(osStrcmp(object->name, "ipv6RouterAdvertCurHopLimit") == 0)
       {
          //Value to be placed in the Cur Hop Limit field in router
          //advertisements sent from this interface
-         value->unsigned32 = routerAdvContext->settings.curHopLimit;
+         value->unsigned32 = routerAdvContext->curHopLimit;
       }
       //ipv6RouterAdvertDefaultLifetime object?
       else if(osStrcmp(object->name, "ipv6RouterAdvertDefaultLifetime") == 0)
       {
          //Value to be placed in the Router Lifetime field of router
          //advertisements sent from this interface
-         value->unsigned32 = routerAdvContext->settings.defaultLifetime;
+         value->unsigned32 = routerAdvContext->defaultLifetime;
       }
       //ipv6RouterAdvertRowStatus object?
       else if(osStrcmp(object->name, "ipv6RouterAdvertRowStatus") == 0)
@@ -3539,6 +3623,10 @@ error_t ipMibGetNextIpv6RouterAdvertEntry(const MibObject *object, const uint8_t
    error_t error;
    size_t n;
    uint_t index;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -3548,10 +3636,10 @@ error_t ipMibGetNextIpv6RouterAdvertEntry(const MibObject *object, const uint8_t
    osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
-   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+   for(index = 1; index <= context->numInterfaces; index++)
    {
       //Any RA service instantiated?
-      if(netInterface[index - 1].ndpRouterAdvContext != NULL)
+      if(context->interfaces[index - 1].ndpRouterAdvContext != NULL)
       {
          //Append the instance identifier to the OID prefix
          n = object->oidLen;
@@ -3597,7 +3685,11 @@ error_t ipMibGetIcmpStatsEntry(const MibObject *object, const uint8_t *oid,
    error_t error;
    size_t n;
    uint_t version;
-   IpMibIcmpStatsEntry *entry;
+   NetContext *context;
+   IcmpStats *icmpStats;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -3612,52 +3704,52 @@ error_t ipMibGetIcmpStatsEntry(const MibObject *object, const uint8_t *oid,
    if(n != oidLen)
       return ERROR_INSTANCE_NOT_FOUND;
 
-#if (IPV4_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && ICMP_STATS_SUPPORT == ENABLED)
    //IPv4 version?
    if(version == INET_VERSION_IPV4)
    {
-      //Point to the ICMP statistics table entry
-      entry = &ipMibBase.icmpStats;
+      //Point to the ICMP statistics
+      icmpStats = &context->icmpStats;
    }
    else
 #endif
-#if (IPV6_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && ICMPV6_STATS_SUPPORT == ENABLED)
    //IPv6 version?
    if(version == INET_VERSION_IPV6)
    {
-      //Point to the ICMPv6 statistics table entry
-      entry = &ipMibBase.icmpv6Stats;
+      //Point to the ICMPv6 statistics
+      icmpStats = &context->icmpv6Stats;
    }
    else
 #endif
    //Invalid IP version?
    {
       //No statistics available
-      entry = NULL;
+      icmpStats = NULL;
    }
 
    //Sanity check
-   if(entry != NULL)
+   if(icmpStats != NULL)
    {
       //icmpStatsInMsgs object?
       if(osStrcmp(object->name, "icmpStatsInMsgs") == 0)
       {
-         value->counter32 = entry->icmpStatsInMsgs;
+         value->counter32 = icmpStats->inMsgs;
       }
       //icmpStatsInErrors object?
       else if(osStrcmp(object->name, "icmpStatsInErrors") == 0)
       {
-         value->counter32 = entry->icmpStatsInErrors;
+         value->counter32 = icmpStats->inErrors;
       }
       //icmpStatsOutMsgs object?
       else if(osStrcmp(object->name, "icmpStatsOutMsgs") == 0)
       {
-         value->counter32 = entry->icmpStatsOutMsgs;
+         value->counter32 = icmpStats->outMsgs;
       }
       //icmpStatsOutErrors object?
       else if(osStrcmp(object->name, "icmpStatsOutErrors") == 0)
       {
-         value->counter32 = entry->icmpStatsOutErrors;
+         value->counter32 = icmpStats->outErrors;
       }
       //Unknown object?
       else
@@ -3703,7 +3795,7 @@ error_t ipMibGetNextIcmpStatsEntry(const MibObject *object, const uint8_t *oid,
    //IP version-neutral table
    for(version = INET_VERSION_IPV4; version <= INET_VERSION_IPV6; version++)
    {
-#if (IPV4_SUPPORT == DISABLED)
+#if (IPV4_SUPPORT == DISABLED || ICMP_STATS_SUPPORT == DISABLED)
       //IPv4 version?
       if(version == INET_VERSION_IPV4)
       {
@@ -3711,7 +3803,7 @@ error_t ipMibGetNextIcmpStatsEntry(const MibObject *object, const uint8_t *oid,
          continue;
       }
 #endif
-#if (IPV6_SUPPORT == DISABLED)
+#if (IPV6_SUPPORT == DISABLED || ICMPV6_STATS_SUPPORT == DISABLED)
       //IPv6 version?
       if(version == INET_VERSION_IPV6)
       {
@@ -3763,7 +3855,11 @@ error_t ipMibGetIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    uint_t version;
    uint_t type;
-   IpMibIcmpMsgStatsEntry *entry;
+   NetContext *context;
+   IcmpStats *icmpStats;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -3788,42 +3884,42 @@ error_t ipMibGetIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oid,
    if(type >= 256)
       return ERROR_INSTANCE_NOT_FOUND;
 
-#if (IPV4_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && ICMP_STATS_SUPPORT == ENABLED)
    //IPv4 version?
    if(version == INET_VERSION_IPV4)
    {
-      //Point to the ICMP message statistics table entry
-      entry = &ipMibBase.icmpMsgStatsTable;
+      //Point to the ICMP statistics
+      icmpStats = &context->icmpStats;
    }
    else
 #endif
-#if (IPV6_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && ICMPV6_STATS_SUPPORT == ENABLED)
    //IPv6 version?
    if(version == INET_VERSION_IPV6)
    {
-      //Point to the ICMPv6 message statistics table entry
-      entry = &ipMibBase.icmpv6MsgStatsTable;
+      //Point to the ICMPv6 statistics
+      icmpStats = &context->icmpv6Stats;
    }
    else
 #endif
    //Invalid IP version?
    {
       //No statistics available
-      entry = NULL;
+      icmpStats = NULL;
    }
 
    //Sanity check
-   if(entry != NULL)
+   if(icmpStats != NULL)
    {
       //icmpMsgStatsInPkts object?
       if(osStrcmp(object->name, "icmpMsgStatsInPkts") == 0)
       {
-         value->counter32 = entry->icmpMsgStatsInPkts[type];
+         value->counter32 = icmpStats->inPkts[type];
       }
       //icmpMsgStatsOutPkts object?
       else if(osStrcmp(object->name, "icmpMsgStatsOutPkts") == 0)
       {
-         value->counter32 = entry->icmpMsgStatsOutPkts[type];
+         value->counter32 = icmpStats->outPkts[type];
       }
       //Unknown object?
       else
@@ -3859,7 +3955,11 @@ error_t ipMibGetNextIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oi
    size_t n;
    uint_t version;
    uint_t type;
-   IpMibIcmpMsgStatsEntry *table;
+   NetContext *context;
+   IcmpStats *icmpStats;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -3871,40 +3971,39 @@ error_t ipMibGetNextIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oi
    //IP version-neutral table
    for(version = INET_VERSION_IPV4; version <= INET_VERSION_IPV6; version++)
    {
-#if (IPV4_SUPPORT == ENABLED)
+#if (IPV4_SUPPORT == ENABLED && ICMP_STATS_SUPPORT == ENABLED)
       //IPv4 version?
       if(version == INET_VERSION_IPV4)
       {
-         //ICMP statistics table
-         table = &ipMibBase.icmpMsgStatsTable;
+         //Point to the ICMP statistics
+         icmpStats = &context->icmpStats;
       }
       else
 #endif
-#if (IPV6_SUPPORT == ENABLED)
+#if (IPV6_SUPPORT == ENABLED && ICMPV6_STATS_SUPPORT == ENABLED)
       //IPv6 version?
       if(version == INET_VERSION_IPV6)
       {
-         //ICMPv6 statistics table
-         table = &ipMibBase.icmpv6MsgStatsTable;
+         //Point to the ICMPv6 statistics
+         icmpStats = &context->icmpv6Stats;
       }
       else
 #endif
       //Invalid IP version?
       {
          //No statistics available
-         table = NULL;
+         icmpStats = NULL;
       }
 
       //Sanity check
-      if(table != NULL)
+      if(icmpStats != NULL)
       {
          //The system should track each ICMP type value
          for(type = 0; type < 256; type++)
          {
             //a given row need not be instantiated unless an ICMP message of
             //that type has been processed
-            if(table->icmpMsgStatsInPkts[type] != 0 ||
-               table->icmpMsgStatsOutPkts[type] != 0)
+            if(icmpStats->inPkts[type] != 0 || icmpStats->outPkts[type] != 0)
             {
                //Append the instance identifier to the OID prefix
                n = object->oidLen;

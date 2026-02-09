@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -37,11 +37,9 @@
 #include "core/ethernet.h"
 #include "ipv4/ipv4_multicast.h"
 #include "ipv4/ipv4_misc.h"
+#include "ipv6/ipv6_multicast.h"
 #include "ipv6/ipv6_misc.h"
 #include "debug.h"
-
-//Tick counter to handle periodic operations
-systime_t nicTickCounter;
 
 
 /**
@@ -54,9 +52,13 @@ NetInterface *nicGetLogicalInterface(NetInterface *interface)
 {
 #if (ETH_VLAN_SUPPORT == ENABLED)
    uint_t i;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //A virtual interface can inherit from multiple parent interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Check whether a valid MAC address has been assigned to the interface
       if(!macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
@@ -87,9 +89,13 @@ NetInterface *nicGetPhysicalInterface(NetInterface *interface)
 #if (ETH_VIRTUAL_IF_SUPPORT == ENABLED || ETH_VLAN_SUPPORT == ENABLED || \
    ETH_PORT_TAGGING_SUPPORT == ENABLED)
    uint_t i;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //A virtual interface can inherit from multiple parent interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Physical interface?
       if(interface->nicDriver != NULL || interface->parent == NULL)
@@ -115,9 +121,13 @@ uint8_t nicGetSwitchPort(NetInterface *interface)
 {
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    uint_t i;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //A virtual interface can inherit from multiple parent interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Valid switch port identifier?
       if(interface->port != 0 || interface->parent == NULL)
@@ -146,9 +156,13 @@ uint16_t nicGetVlanId(NetInterface *interface)
 {
 #if (ETH_VLAN_SUPPORT == ENABLED)
    uint_t i;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //A virtual interface can inherit from multiple parent interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Valid VLAN identifier?
       if(interface->vlanId != 0 || interface->parent == NULL)
@@ -177,9 +191,13 @@ uint16_t nicGetVmanId(NetInterface *interface)
 {
 #if (ETH_VMAN_SUPPORT == ENABLED)
    uint_t i;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //A virtual interface can inherit from multiple parent interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Valid VMAN identifier?
       if(interface->vmanId != 0 || interface->parent == NULL)
@@ -211,9 +229,13 @@ bool_t nicIsParentInterface(NetInterface *interface, NetInterface *parent)
    ETH_PORT_TAGGING_SUPPORT == ENABLED)
    uint_t i;
    bool_t flag;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Iterate through the parent interfaces
-   for(flag = FALSE, i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(flag = FALSE, i = 0; i < context->numInterfaces; i++)
    {
       //Any parent/child relationship?
       if(interface == parent)
@@ -283,6 +305,7 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
 {
    error_t error;
    bool_t status;
+   NetContext *context;
 
 #if (TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
    //Retrieve the length of the packet
@@ -293,8 +316,11 @@ error_t nicSendPacket(NetInterface *interface, const NetBuffer *buffer,
    TRACE_DEBUG_NET_BUFFER("  ", buffer, offset, length);
 #endif
 
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
+
    //Gather entropy
-   netContext.entropy += netGetSystemTickCount();
+   context->entropy += netGetSystemTickCount();
 
    //Check whether the interface is enabled for operation
    if(interface->configured && interface->nicDriver != NULL)
@@ -393,9 +419,13 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
    NetRxAncillary *ancillary)
 {
    NicType type;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Gather entropy
-   netContext.entropy += netGetSystemTickCount();
+   context->entropy += netGetSystemTickCount();
 
    //Check whether the interface is enabled for operation
    if(interface->configured)
@@ -472,27 +502,28 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
             header = (Ipv4Header *) packet;
 
             //Loop through network interfaces
-            for(i = 0; i < NET_INTERFACE_COUNT; i++)
+            for(i = 0; i < context->numInterfaces; i++)
             {
                //Multicast packet?
                if(ipv4IsMulticastAddr(header->destAddr))
                {
                   //Multicast address filtering
-                  error = ipv4MulticastFilter(interface, header->destAddr,
-                     header->srcAddr);
+                  error = ipv4MulticastFilter(&context->interfaces[i],
+                     header->destAddr, header->srcAddr);
                }
                else
                {
-                  //Destination address filtering
-                  error = ipv4CheckDestAddr(&netInterface[i], header->destAddr);
+                  //Unicast address filtering
+                  error = ipv4CheckDestAddr(&context->interfaces[i],
+                     header->destAddr);
                }
 
                //Valid destination address?
                if(!error)
                {
                   //Process incoming IPv4 packet
-                  ipv4ProcessPacket(&netInterface[i], (Ipv4Header *) packet,
-                     length, ancillary);
+                  ipv4ProcessPacket(&context->interfaces[i],
+                     (Ipv4Header *) packet, length, ancillary);
                }
             }
          }
@@ -511,10 +542,21 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
             header = (Ipv6Header *) packet;
 
             //Loop through network interfaces
-            for(i = 0; i < NET_INTERFACE_COUNT; i++)
+            for(i = 0; i < context->numInterfaces; i++)
             {
-               //Check destination address
-               error = ipv6CheckDestAddr(&netInterface[i], &header->destAddr);
+               //Multicast packet?
+               if(ipv6IsMulticastAddr(&header->destAddr))
+               {
+                  //Multicast address filtering
+                  error = ipv6MulticastFilter(&context->interfaces[i],
+                     &header->destAddr, &header->srcAddr);
+               }
+               else
+               {
+                  //Unicast address filtering
+                  error = ipv6CheckDestAddr(&context->interfaces[i],
+                     &header->destAddr);
+               }
 
                //Valid destination address?
                if(!error)
@@ -527,8 +569,8 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
                   buffer.chunk[0].size = 0;
 
                   //Process incoming IPv6 packet
-                  ipv6ProcessPacket(&netInterface[i], (NetBuffer *) &buffer, 0,
-                     ancillary);
+                  ipv6ProcessPacket(&context->interfaces[i],
+                     (NetBuffer *) &buffer, 0, ancillary);
                }
             }
          }
@@ -559,11 +601,15 @@ void nicProcessPacket(NetInterface *interface, uint8_t *packet, size_t length,
 void nicNotifyLinkChange(NetInterface *interface)
 {
    uint_t i;
+   NetContext *context;
    NetInterface *physicalInterface;
    NetInterface *virtualInterface;
 
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
+
    //Gather entropy
-   netContext.entropy += netGetSystemTickCount();
+   context->entropy += netGetSystemTickCount();
 
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
@@ -575,10 +621,10 @@ void nicNotifyLinkChange(NetInterface *interface)
    }
 
    //Loop through network interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Point to the current interface
-      virtualInterface = &netInterface[i];
+      virtualInterface = &context->interfaces[i];
 
       //Check whether the current virtual interface is attached to the physical
       //interface

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IP_H
@@ -122,6 +122,100 @@ typedef struct
 } IpPseudoHeader;
 
 
+/**
+ * @brief System-wide IP statistics
+ **/
+
+typedef struct
+{
+   uint64_t inReceives;
+   uint64_t inOctets;
+   uint32_t inHdrErrors;
+   uint32_t inNoRoutes;
+   uint32_t inAddrErrors;
+   uint32_t inUnknownProtos;
+   uint32_t inTruncatedPkts;
+   uint64_t inForwDatagrams;
+   uint32_t reasmReqds;
+   uint32_t reasmOKs;
+   uint32_t reasmFails;
+   uint32_t inDiscards;
+   uint64_t inDelivers;
+   uint64_t outRequests;
+   uint32_t outNoRoutes;
+   uint64_t outForwDatagrams;
+   uint32_t outDiscards;
+   uint32_t outFragReqds;
+   uint32_t outFragOKs;
+   uint32_t outFragFails;
+   uint32_t outFragCreates;
+   uint64_t outTransmits;
+   uint64_t outOctets;
+   uint64_t inMcastPkts;
+   uint64_t inMcastOctets;
+   uint64_t outMcastPkts;
+   uint64_t outMcastOctets;
+   uint64_t inBcastPkts;
+   uint64_t outBcastPkts;
+   uint32_t discontinuityTime;
+   uint32_t refreshRate;
+} IpSystemStats;
+
+
+/**
+ * @brief Per-interface IP statistics
+ **/
+
+typedef struct
+{
+   uint64_t inReceives;
+   uint64_t inOctets;
+   uint32_t inHdrErrors;
+   uint32_t inNoRoutes;
+   uint32_t inAddrErrors;
+   uint32_t inUnknownProtos;
+   uint32_t inTruncatedPkts;
+   uint64_t inForwDatagrams;
+   uint32_t reasmReqds;
+   uint32_t reasmOKs;
+   uint32_t reasmFails;
+   uint32_t inDiscards;
+   uint64_t inDelivers;
+   uint64_t outRequests;
+   uint64_t outForwDatagrams;
+   uint32_t outDiscards;
+   uint32_t outFragReqds;
+   uint32_t outFragOKs;
+   uint32_t outFragFails;
+   uint32_t outFragCreates;
+   uint64_t outTransmits;
+   uint64_t outOctets;
+   uint64_t inMcastPkts;
+   uint64_t inMcastOctets;
+   uint64_t outMcastPkts;
+   uint64_t outMcastOctets;
+   uint64_t inBcastPkts;
+   uint64_t outBcastPkts;
+   uint32_t discontinuityTime;
+   uint32_t refreshRate;
+} IpIfStats;
+
+
+/**
+ * @brief ICMP statistics
+ **/
+
+typedef struct
+{
+   uint32_t inMsgs;
+   uint32_t inErrors;
+   uint32_t outMsgs;
+   uint32_t outErrors;
+   uint32_t inPkts[256];
+   uint32_t outPkts[256];
+} IcmpStats;
+
+
 //IP related constants
 extern const IpAddr IP_ADDR_ANY;
 extern const IpAddr IP_ADDR_UNSPECIFIED;
@@ -131,8 +225,8 @@ error_t ipSendDatagram(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, NetBuffer *buffer, size_t offset,
    NetTxAncillary *ancillary);
 
-error_t ipSelectSourceAddr(NetInterface **interface, const IpAddr *destAddr,
-   IpAddr *srcAddr);
+error_t ipSelectSourceAddr(NetContext *context, NetInterface **interface,
+   const IpAddr *destAddr, IpAddr *srcAddr);
 
 bool_t ipIsUnspecifiedAddr(const IpAddr *ipAddr);
 bool_t ipIsLinkLocalAddr(const IpAddr *ipAddr);
@@ -144,7 +238,8 @@ bool_t ipCompAddr(const IpAddr *ipAddr1, const IpAddr *ipAddr2);
 bool_t ipCompPrefix(const IpAddr *ipAddr1, const IpAddr *ipAddr2,
    size_t length);
 
-void ipUpdateMulticastFilter(NetInterface *interface, const IpAddr *groupAddr);
+void ipUpdateMulticastFilter(NetContext *context, NetInterface *interface,
+   const IpAddr *groupAddr);
 
 uint16_t ipCalcChecksum(const void *data, size_t length);
 uint16_t ipCalcChecksumEx(const NetBuffer *buffer, size_t offset, size_t length);

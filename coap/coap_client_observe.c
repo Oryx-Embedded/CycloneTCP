@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -93,8 +93,8 @@ error_t coapClientProcessNotification(CoapClientRequest *request,
          //Additionally, the client should at least wait for a random amount
          //of time between 5 and 15 seconds after Max-Age expired to reduce
          //collisions with other clients (refer to RFC 7641, section 3.3.1)
-         request->retransmitTimeout += netGetRandRange(COAP_CLIENT_RAND_DELAY_MIN,
-            COAP_CLIENT_RAND_DELAY_MAX);
+         request->retransmitTimeout += netGetRandRange(request->context->netContext,
+            COAP_CLIENT_RAND_DELAY_MIN, COAP_CLIENT_RAND_DELAY_MAX);
 
          //The user is notified of changes to the resource state
          error = coapClientChangeRequestState(request,

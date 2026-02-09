@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -44,9 +44,6 @@
 
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED && DHCP_CLIENT_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t dhcpClientTickCounter;
 
 //Requested DHCP options
 const uint8_t dhcpOptionList[] =
@@ -173,7 +170,7 @@ void dhcpClientLinkChangeEvent(DhcpClientContext *context)
       return;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check whether the DHCP client is running
    if(context->running)
@@ -200,14 +197,14 @@ void dhcpClientLinkChangeEvent(DhcpClientContext *context)
    }
 
    //Any registered callback?
-   if(context->settings.linkChangeEvent != NULL)
+   if(context->linkChangeEvent != NULL)
    {
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
-      context->settings.linkChangeEvent(context, interface, interface->linkState);
+      context->linkChangeEvent(context, interface, interface->linkState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
@@ -235,7 +232,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    const uint8_t type = DHCP_MSG_TYPE_DISCOVER;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
@@ -274,7 +271,7 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
       &type, sizeof(type));
 
    //Check whether rapid commit is enabled
-   if(context->settings.rapidCommit)
+   if(context->rapidCommit)
    {
       //Include the Rapid Commit option if the client is prepared
       //to perform the DHCPDISCOVER-DHCPACK message exchange
@@ -282,10 +279,10 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    }
 
    //Any registered callback?
-   if(context->settings.addOptionsCallback != NULL)
+   if(context->addOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.addOptionsCallback(context, message, &length,
+      context->addOptionsCallback(context, message, &length,
          DHCP_MSG_TYPE_DISCOVER);
    }
 
@@ -317,8 +314,9 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    ancillary = NET_DEFAULT_TX_ANCILLARY;
 
    //Broadcast DHCPDISCOVER message
-   error = udpSendBuffer(interface, &srcIpAddr, DHCP_CLIENT_PORT, &destIpAddr,
-      DHCP_SERVER_PORT, buffer, offset, &ancillary);
+   error = udpSendBuffer(context->netContext, interface, &srcIpAddr,
+      DHCP_CLIENT_PORT, &destIpAddr, DHCP_SERVER_PORT, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -352,12 +350,12 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    const uint8_t type = DHCP_MSG_TYPE_REQUEST;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Allocate a memory buffer to hold the DHCP message
    buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
@@ -422,10 +420,10 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    }
 
    //Any registered callback?
-   if(context->settings.addOptionsCallback != NULL)
+   if(context->addOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.addOptionsCallback(context, message, &length,
+      context->addOptionsCallback(context, message, &length,
          DHCP_MSG_TYPE_REQUEST);
    }
 
@@ -480,8 +478,9 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    ancillary = NET_DEFAULT_TX_ANCILLARY;
 
    //Send DHCPREQUEST message
-   error = udpSendBuffer(interface, &srcIpAddr, DHCP_CLIENT_PORT, &destIpAddr,
-      DHCP_SERVER_PORT, buffer, offset, &ancillary);
+   error = udpSendBuffer(context->netContext, interface, &srcIpAddr,
+      DHCP_CLIENT_PORT, &destIpAddr, DHCP_SERVER_PORT, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -514,7 +513,7 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    const uint8_t type = DHCP_MSG_TYPE_DECLINE;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
@@ -561,10 +560,10 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
       &context->requestedIpAddr, sizeof(Ipv4Addr));
 
    //Any registered callback?
-   if(context->settings.addOptionsCallback != NULL)
+   if(context->addOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.addOptionsCallback(context, message, &length,
+      context->addOptionsCallback(context, message, &length,
          DHCP_MSG_TYPE_DECLINE);
    }
 
@@ -594,8 +593,9 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    ancillary = NET_DEFAULT_TX_ANCILLARY;
 
    //Broadcast DHCPDECLINE message
-   error = udpSendBuffer(interface, &srcIpAddr, DHCP_CLIENT_PORT, &destIpAddr,
-      DHCP_SERVER_PORT, buffer, offset, &ancillary);
+   error = udpSendBuffer(context->netContext, interface, &srcIpAddr,
+      DHCP_CLIENT_PORT, &destIpAddr, DHCP_SERVER_PORT, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -629,12 +629,12 @@ error_t dhcpClientSendRelease(DhcpClientContext *context)
    const uint8_t type = DHCP_MSG_TYPE_RELEASE;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Allocate a memory buffer to hold the DHCP message
    buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
@@ -675,10 +675,10 @@ error_t dhcpClientSendRelease(DhcpClientContext *context)
       &context->serverIpAddr, sizeof(Ipv4Addr));
 
    //Any registered callback?
-   if(context->settings.addOptionsCallback != NULL)
+   if(context->addOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.addOptionsCallback(context, message, &length,
+      context->addOptionsCallback(context, message, &length,
          DHCP_MSG_TYPE_RELEASE);
    }
 
@@ -709,8 +709,9 @@ error_t dhcpClientSendRelease(DhcpClientContext *context)
    ancillary = NET_DEFAULT_TX_ANCILLARY;
 
    //Broadcast DHCP message
-   error = udpSendBuffer(interface, &srcIpAddr, DHCP_CLIENT_PORT, &destIpAddr,
-      DHCP_SERVER_PORT, buffer, offset, &ancillary);
+   error = udpSendBuffer(context->netContext, interface, &srcIpAddr,
+      DHCP_CLIENT_PORT, &destIpAddr, DHCP_SERVER_PORT, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -829,7 +830,7 @@ void dhcpClientParseOffer(DhcpClientContext *context,
    NetInterface *logicalInterface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
@@ -858,10 +859,10 @@ void dhcpClientParseOffer(DhcpClientContext *context,
       return;
 
    //Any registered callback?
-   if(context->settings.parseOptionsCallback != NULL)
+   if(context->parseOptionsCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.parseOptionsCallback(context, message, length,
+      error = context->parseOptionsCallback(context, message, length,
          DHCP_MSG_TYPE_OFFER);
       //Check status code
       if(error)
@@ -899,14 +900,14 @@ void dhcpClientParseAck(DhcpClientContext *context,
    NetInterface *physicalInterface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
 
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
@@ -931,7 +932,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
    if(context->state == DHCP_STATE_SELECTING)
    {
       //A DHCPACK message is not acceptable when rapid commit is disallowed
-      if(!context->settings.rapidCommit)
+      if(!context->rapidCommit)
          return;
 
       //Search for the Rapid Commit option
@@ -969,10 +970,10 @@ void dhcpClientParseAck(DhcpClientContext *context,
       return;
 
    //Any registered callback?
-   if(context->settings.parseOptionsCallback != NULL)
+   if(context->parseOptionsCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.parseOptionsCallback(context, message, length,
+      error = context->parseOptionsCallback(context, message, length,
          DHCP_MSG_TYPE_ACK);
       //Check status code
       if(error)
@@ -1050,7 +1051,7 @@ void dhcpClientParseAck(DhcpClientContext *context,
    }
 
    //Automatic DNS server configuration?
-   if(!context->settings.manualDnsConfig)
+   if(!context->manualDnsConfig)
    {
       //Retrieve DNS Server option
       option = dhcpGetOption(message, length, DHCP_OPT_DNS_SERVER);
@@ -1142,7 +1143,7 @@ void dhcpClientParseNak(DhcpClientContext *context,
    NetInterface *logicalInterface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
 
@@ -1181,10 +1182,10 @@ void dhcpClientParseNak(DhcpClientContext *context,
    }
 
    //Any registered callback?
-   if(context->settings.parseOptionsCallback != NULL)
+   if(context->parseOptionsCallback != NULL)
    {
       //Invoke user callback function
-      error = context->settings.parseOptionsCallback(context, message, length,
+      error = context->parseOptionsCallback(context, message, length,
          DHCP_MSG_TYPE_NAK);
       //Check status code
       if(error)
@@ -1212,29 +1213,25 @@ void dhcpClientParseNak(DhcpClientContext *context,
 void dhcpClientCheckTimeout(DhcpClientContext *context)
 {
    systime_t time;
-   NetInterface *interface;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Get current time
    time = osGetSystemTime();
 
    //Any registered callback?
-   if(context->settings.timeoutEvent != NULL)
+   if(context->timeoutEvent != NULL)
    {
       //DHCP configuration timeout?
-      if(timeCompare(time, context->configStartTime + context->settings.timeout) >= 0)
+      if(timeCompare(time, context->configStartTime + context->configTimeout) >= 0)
       {
          //Ensure the callback function is only called once
          if(!context->timeoutEventDone)
          {
             //Release exclusive access
-            osReleaseMutex(&netMutex);
+            netUnlock(context->netContext);
             //Invoke user callback function
-            context->settings.timeoutEvent(context, interface);
+            context->timeoutEvent(context, context->interface);
             //Get exclusive access
-            osAcquireMutex(&netMutex);
+            netLock(context->netContext);
 
             //Set flag
             context->timeoutEventDone = TRUE;
@@ -1320,19 +1317,14 @@ void dhcpClientChangeState(DhcpClientContext *context,
    context->state = newState;
 
    //Any registered callback?
-   if(context->settings.stateChangeEvent != NULL)
+   if(context->stateChangeEvent != NULL)
    {
-      NetInterface *interface;
-
-      //Point to the underlying network interface
-      interface = context->settings.interface;
-
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
-      context->settings.stateChangeEvent(context, interface, newState);
+      context->stateChangeEvent(context, context->interface, newState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
@@ -1349,9 +1341,9 @@ void dhcpClientResetConfig(DhcpClientContext *context)
    NetInterface *interface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //The host address is not longer valid
    interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
@@ -1364,7 +1356,7 @@ void dhcpClientResetConfig(DhcpClientContext *context)
    interface->ipv4Context.addrList[i].defaultGateway = IPV4_UNSPECIFIED_ADDR;
 
    //Automatic DNS server configuration?
-   if(!context->settings.manualDnsConfig)
+   if(!context->manualDnsConfig)
    {
       //Loop through the list of DNS servers
       for(j = 0; j < IPV4_DNS_SERVER_LIST_SIZE; j++)
@@ -1386,16 +1378,12 @@ void dhcpClientDumpConfig(DhcpClientContext *context)
 #if (DHCP_TRACE_LEVEL >= TRACE_LEVEL_INFO)
    uint_t i;
    uint_t j;
-   NetInterface *interface;
    Ipv4Context *ipv4Context;
 
-   //Point to the underlying network interface
-   interface = context->settings.interface;
    //Point to the IPv4 context
-   ipv4Context = &interface->ipv4Context;
-
+   ipv4Context = &context->interface->ipv4Context;
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Debug message
    TRACE_INFO("\r\n");
@@ -1432,7 +1420,7 @@ void dhcpClientDumpConfig(DhcpClientContext *context)
    }
 
    //Maximum transmit unit
-   TRACE_INFO("  MTU = %" PRIuSIZE "\r\n", interface->ipv4Context.linkMtu);
+   TRACE_INFO("  MTU = %" PRIuSIZE "\r\n", ipv4Context->linkMtu);
    TRACE_INFO("\r\n");
 #endif
 }

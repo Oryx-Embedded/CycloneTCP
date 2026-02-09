@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,9 +42,6 @@
 
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED && AUTO_IP_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t autoIpTickCounter;
 
 
 /**
@@ -68,9 +65,9 @@ void autoIpTick(AutoIpContext *context)
       return;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Get current time
    time = osGetSystemTime();
@@ -89,7 +86,7 @@ void autoIpTick(AutoIpContext *context)
             ntohl(context->linkLocalAddr) > NTOHL(AUTO_IP_ADDR_MAX))
          {
             //Generate a random link-local address
-            autoIpGenerateAddr(&context->linkLocalAddr);
+            autoIpGenerateAddr(context);
          }
 
          //Use the link-local address as a tentative address
@@ -100,7 +97,8 @@ void autoIpTick(AutoIpContext *context)
          interface->ipv4Context.addrList[i].conflict = FALSE;
 
          //Initial random delay
-         delay = netGenerateRandRange(0, AUTO_IP_PROBE_WAIT);
+         delay = netGenerateRandRange(context->netContext, 0,
+            AUTO_IP_PROBE_WAIT);
 
          //Check whether the number of conflicts exceeds the maximum acceptable
          //value
@@ -128,7 +126,7 @@ void autoIpTick(AutoIpContext *context)
          context->conflictCount++;
 
          //The host must pick a new random address and repeat the process
-         autoIpGenerateAddr(&context->linkLocalAddr);
+         autoIpGenerateAddr(context);
          //Update state machine
          autoIpChangeState(context, AUTO_IP_STATE_INIT, 0);
       }
@@ -157,8 +155,8 @@ void autoIpTick(AutoIpContext *context)
                else
                {
                   //Maximum delay till repeated probe
-                  context->timeout = netGenerateRandRange(AUTO_IP_PROBE_MIN,
-                     AUTO_IP_PROBE_MAX);
+                  context->timeout = netGenerateRandRange(context->netContext,
+                     AUTO_IP_PROBE_MIN, AUTO_IP_PROBE_MAX);
                }
             }
             else
@@ -245,7 +243,7 @@ void autoIpTick(AutoIpContext *context)
          mdnsResponderStartProbing(interface->mdnsResponderContext);
 #endif
          //The host must pick a new random address and probes/announces again
-         autoIpGenerateAddr(&context->linkLocalAddr);
+         autoIpGenerateAddr(context);
          //Update state machine
          autoIpChangeState(context, AUTO_IP_STATE_INIT, 0);
       }
@@ -276,7 +274,7 @@ void autoIpLinkChangeEvent(AutoIpContext *context)
       return;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check whether Auto-IP is enabled
    if(context->running)
@@ -296,14 +294,14 @@ void autoIpLinkChangeEvent(AutoIpContext *context)
    context->conflictCount = 0;
 
    //Any registered callback?
-   if(context->settings.linkChangeEvent != NULL)
+   if(context->linkChangeEvent != NULL)
    {
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
-      context->settings.linkChangeEvent(context, interface, interface->linkState);
+      context->linkChangeEvent(context, interface, interface->linkState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
@@ -318,11 +316,6 @@ void autoIpLinkChangeEvent(AutoIpContext *context)
 void autoIpChangeState(AutoIpContext *context, AutoIpState newState,
    systime_t delay)
 {
-   NetInterface *interface;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
-
    //Set time stamp
    context->timestamp = osGetSystemTime();
    //Set initial delay
@@ -333,33 +326,33 @@ void autoIpChangeState(AutoIpContext *context, AutoIpState newState,
    context->state = newState;
 
    //Any registered callback?
-   if(context->settings.stateChangeEvent != NULL)
+   if(context->stateChangeEvent != NULL)
    {
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
-      context->settings.stateChangeEvent(context, interface, newState);
+      context->stateChangeEvent(context, context->interface, newState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
 
 /**
  * @brief Generate a random link-local address
- * @param[out] ipAddr Random link-local address
+ * @param[in] context Pointer to the Auto-IP context
  **/
 
-void autoIpGenerateAddr(Ipv4Addr *ipAddr)
+void autoIpGenerateAddr(AutoIpContext *context)
 {
    uint32_t n;
 
    //Generate a random address in the range from 169.254.1.0 to 169.254.254.255
-   n = netGenerateRand() % (NTOHL(AUTO_IP_ADDR_MAX - AUTO_IP_ADDR_MIN) + 1);
+   n = netGenerateRand(context->netContext) % (NTOHL(AUTO_IP_ADDR_MAX - AUTO_IP_ADDR_MIN) + 1);
    n += NTOHL(AUTO_IP_ADDR_MIN);
 
    //Convert the resulting address to network byte order
-   *ipAddr = htonl(n);
+   context->linkLocalAddr = htonl(n);
 }
 
 
@@ -374,9 +367,9 @@ void autoIpResetConfig(AutoIpContext *context)
    NetInterface *interface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //The host address is not longer valid
    interface->ipv4Context.addrList[i].addr = IPV4_UNSPECIFIED_ADDR;
@@ -400,16 +393,12 @@ void autoIpDumpConfig(AutoIpContext *context)
 {
 #if (AUTO_IP_TRACE_LEVEL >= TRACE_LEVEL_INFO)
    uint_t i;
-   NetInterface *interface;
    Ipv4Context *ipv4Context;
 
-   //Point to the underlying network interface
-   interface = context->settings.interface;
    //Point to the IPv4 context
-   ipv4Context = &interface->ipv4Context;
-
+   ipv4Context = &context->interface->ipv4Context;
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Debug message
    TRACE_INFO("\r\n");

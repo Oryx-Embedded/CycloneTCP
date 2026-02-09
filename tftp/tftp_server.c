@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -63,6 +63,8 @@ void tftpServerGetDefaultSettings(TftpServerSettings *settings)
    settings->task.stackSize = TFTP_SERVER_STACK_SIZE;
    settings->task.priority = TFTP_SERVER_PRIORITY;
 
+   //TCP/IP stack context
+   settings->netContext = NULL;
    //The TFTP server is not bound to any interface
    settings->interface = NULL;
 
@@ -99,6 +101,9 @@ error_t tftpServerInit(TftpServerContext *context,
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Clear the TFTP server context
    osMemset(context, 0, sizeof(TftpServerContext));
 
@@ -106,11 +111,27 @@ error_t tftpServerInit(TftpServerContext *context,
    context->taskParams = settings->task;
    context->taskId = OS_INVALID_TASK_ID;
 
-   //Save user settings
-   context->settings = *settings;
+   //Attach TCP/IP stack context
+   if(settings->netContext != NULL)
+   {
+      context->netContext = settings->netContext;
+   }
+   else if(settings->interface != NULL)
+   {
+      context->netContext = settings->interface->netContext;
+   }
+   else
+   {
+      context->netContext = netGetDefaultContext();
+   }
 
-   //Initialize status code
-   error = NO_ERROR;
+   //Save user settings
+   context->interface = settings->interface;
+   context->port = settings->port;
+   context->openFileCallback = settings->openFileCallback;
+   context->writeFileCallback = settings->writeFileCallback;
+   context->readFileCallback = settings->readFileCallback;
+   context->closeFileCallback = settings->closeFileCallback;
 
    //Create an event object to poll the state of sockets
    if(!osCreateEvent(&context->event))
@@ -156,7 +177,8 @@ error_t tftpServerStart(TftpServerContext *context)
    do
    {
       //Open a UDP socket
-      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_DGRAM,
+         SOCKET_IP_PROTO_UDP);
       //Failed to open socket?
       if(context->socket == NULL)
       {
@@ -166,14 +188,13 @@ error_t tftpServerStart(TftpServerContext *context)
       }
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket,
-         context->settings.interface);
+      error = socketBindToInterface(context->socket, context->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
          break;
 
       //The TFTP server listens for connection requests on port 69
-      error = socketBind(context->socket, &IP_ADDR_ANY, context->settings.port);
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Unable to bind the socket to the desired port?
       if(error)
          break;

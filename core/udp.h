@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _UDP_H
@@ -45,7 +45,7 @@
 //Maximum number of callback functions that can be registered
 //to process incoming UDP datagrams
 #ifndef UDP_CALLBACK_TABLE_SIZE
-   #define UDP_CALLBACK_TABLE_SIZE 10
+   #define UDP_CALLBACK_TABLE_SIZE 20
 #elif (UDP_CALLBACK_TABLE_SIZE < 1)
    #error UDP_CALLBACK_TABLE_SIZE parameter is not valid
 #endif
@@ -120,8 +120,8 @@ typedef struct
 extern UdpRxCallbackEntry udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
 
 //UDP related functions
-error_t udpInit(void);
-uint16_t udpGetDynamicPort(void);
+error_t udpInit(NetContext *context);
+uint16_t udpGetDynamicPort(NetContext *context);
 
 error_t udpProcessDatagram(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
@@ -129,9 +129,10 @@ error_t udpProcessDatagram(NetInterface *interface,
 
 error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags);
 
-error_t udpSendBuffer(NetInterface *interface, const IpAddr *srcIpAddr,
-   uint16_t srcPort, const IpAddr *destIpAddr, uint16_t destPort,
-   NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
+error_t udpSendBuffer(NetContext *context, NetInterface *interface,
+   const IpAddr *srcIpAddr, uint16_t srcPort, const IpAddr *destIpAddr,
+   uint16_t destPort, NetBuffer *buffer, size_t offset,
+   NetTxAncillary *ancillary);
 
 error_t udpReceiveDatagram(Socket *socket, SocketMsg *message, uint_t flags);
 
@@ -139,10 +140,10 @@ NetBuffer *udpAllocBuffer(size_t length, size_t *offset);
 
 void udpUpdateEvents(Socket *socket);
 
-error_t udpAttachRxCallback(NetInterface *interface, uint16_t port,
+error_t udpRegisterRxCallback(NetInterface *interface, uint16_t port,
    UdpRxCallback callback, void *param);
 
-error_t udpDetachRxCallback(NetInterface *interface, uint16_t port);
+error_t udpUnregisterRxCallback(NetInterface *interface, uint16_t port);
 
 error_t udpInvokeRxCallback(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *header,

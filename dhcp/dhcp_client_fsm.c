@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -56,23 +56,20 @@
 void dhcpClientStateInit(DhcpClientContext *context)
 {
    systime_t delay;
-   NetInterface *interface;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Check whether the DHCP client is running
    if(context->running)
    {
       //Wait for the link to be up before starting DHCP configuration
-      if(interface->linkState)
+      if(context->interface->linkState)
       {
-         //The client should wait for a random time to desynchronize
-         //the use of DHCP at startup
-         delay = netGenerateRandRange(0, DHCP_CLIENT_INIT_DELAY);
+         //The client should wait for a random time to desynchronize the use of
+         //DHCP at startup
+         delay = netGenerateRandRange(context->netContext, 0,
+            DHCP_CLIENT_INIT_DELAY);
 
-         //Record the time at which the client started the address
-         //acquisition process
+         //Record the time at which the client started the address acquisition
+         //process
          context->configStartTime = osGetSystemTime();
          //Clear flag
          context->timeoutEventDone = FALSE;
@@ -87,8 +84,8 @@ void dhcpClientStateInit(DhcpClientContext *context)
 /**
  * @brief SELECTING state
  *
- * The client is waiting to receive DHCPOFFER messages from
- * one or more DHCP servers, so it can choose one
+ * The client is waiting to receive DHCPOFFER messages from one or more DHCP
+ * servers, so it can choose one
  *
  * @param[in] context Pointer to the DHCP client context
  **/
@@ -108,7 +105,7 @@ void dhcpClientStateSelecting(DhcpClientContext *context)
       {
          //The client generates and records a random transaction identifier
          //(refer to RFC 2131, section 4.4.1)
-         context->transactionId = netGenerateRand();
+         context->transactionId = netGenerateRand(context->netContext);
 
          //Send a DHCPDISCOVER message
          dhcpClientSendDiscover(context);
@@ -136,7 +133,7 @@ void dhcpClientStateSelecting(DhcpClientContext *context)
 
       //The timeout value should be randomized by the value of a uniform
       //number chosen from the range -1 to +1
-      context->timeout = netGenerateRandRange(
+      context->timeout = netGenerateRandRange(context->netContext,
          context->retransmitTimeout - DHCP_CLIENT_RAND_FACTOR,
          context->retransmitTimeout + DHCP_CLIENT_RAND_FACTOR);
 
@@ -183,7 +180,7 @@ void dhcpClientStateRequesting(DhcpClientContext *context)
 
          //The timeout value should be randomized by the value of a uniform
          //number chosen from the range -1 to +1
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->retransmitTimeout - DHCP_CLIENT_RAND_FACTOR,
             context->retransmitTimeout + DHCP_CLIENT_RAND_FACTOR);
 
@@ -209,7 +206,7 @@ void dhcpClientStateRequesting(DhcpClientContext *context)
 
          //The timeout value should be randomized by the value of a uniform
          //number chosen from the range -1 to +1
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->retransmitTimeout - DHCP_CLIENT_RAND_FACTOR,
             context->retransmitTimeout + DHCP_CLIENT_RAND_FACTOR);
 
@@ -241,23 +238,20 @@ void dhcpClientStateRequesting(DhcpClientContext *context)
 void dhcpClientStateInitReboot(DhcpClientContext *context)
 {
    systime_t delay;
-   NetInterface *interface;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Check whether the DHCP client is running
    if(context->running)
    {
       //Wait for the link to be up before starting DHCP configuration
-      if(interface->linkState)
+      if(context->interface->linkState)
       {
-         //The client should wait for a random time to desynchronize
-         //the use of DHCP at startup
-         delay = netGenerateRandRange(0, DHCP_CLIENT_INIT_DELAY);
+         //The client should wait for a random time to desynchronize the use of
+         //DHCP at startup
+         delay = netGenerateRandRange(context->netContext, 0,
+            DHCP_CLIENT_INIT_DELAY);
 
-         //Record the time at which the client started the address
-         //acquisition process
+         //Record the time at which the client started the address acquisition
+         //process
          context->configStartTime = osGetSystemTime();
          //Clear flag
          context->timeoutEventDone = FALSE;
@@ -293,7 +287,7 @@ void dhcpClientStateRebooting(DhcpClientContext *context)
       {
          //The client generates and records a random transaction identifier
          //(refer to RFC 2131, section 4.4.2)
-         context->transactionId = netGenerateRand();
+         context->transactionId = netGenerateRand(context->netContext);
 
          //Send a DHCPREQUEST message
          dhcpClientSendRequest(context);
@@ -306,7 +300,7 @@ void dhcpClientStateRebooting(DhcpClientContext *context)
 
          //The timeout value should be randomized by the value of a uniform
          //number chosen from the range -1 to +1
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->retransmitTimeout - DHCP_CLIENT_RAND_FACTOR,
             context->retransmitTimeout + DHCP_CLIENT_RAND_FACTOR);
 
@@ -332,7 +326,7 @@ void dhcpClientStateRebooting(DhcpClientContext *context)
 
          //The timeout value should be randomized by the value of a uniform
          //number chosen from the range -1 to +1
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->retransmitTimeout - DHCP_CLIENT_RAND_FACTOR,
             context->retransmitTimeout + DHCP_CLIENT_RAND_FACTOR);
 
@@ -367,9 +361,9 @@ void dhcpClientStateProbing(DhcpClientContext *context)
    NetInterface *interface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Get current time
    time = osGetSystemTime();
@@ -381,7 +375,7 @@ void dhcpClientStateProbing(DhcpClientContext *context)
       if(interface->ipv4Context.addrList[i].conflict)
       {
          //Select a new transaction identifier
-         context->transactionId = netGenerateRand();
+         context->transactionId = netGenerateRand(context->netContext);
 
          //If the client detects that the address is already in use, the
          //client must send a DHCPDECLINE message to the server and
@@ -434,9 +428,9 @@ void dhcpClientStateAnnouncing(DhcpClientContext *context)
    NetInterface *interface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
    //Index of the IP address in the list of addresses assigned to the interface
-   i = context->settings.ipAddrIndex;
+   i = context->ipAddrIndex;
 
    //Get current time
    time = osGetSystemTime();
@@ -561,7 +555,7 @@ void dhcpClientStateRenewing(DhcpClientContext *context)
          {
             //A transaction identifier is used by the client to match incoming
             //DHCP messages with pending requests
-            context->transactionId = netGenerateRand();
+            context->transactionId = netGenerateRand(context->netContext);
          }
 
          //Send a DHCPREQUEST message
@@ -611,7 +605,7 @@ void dhcpClientStateRebinding(DhcpClientContext *context)
    NetInterface *interface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 #endif
 
    //Get current time
@@ -638,7 +632,7 @@ void dhcpClientStateRebinding(DhcpClientContext *context)
          {
             //A transaction identifier is used by the client to match incoming
             //DHCP messages with pending requests
-            context->transactionId = netGenerateRand();
+            context->transactionId = netGenerateRand(context->netContext);
          }
 
          //Send a DHCPREQUEST message

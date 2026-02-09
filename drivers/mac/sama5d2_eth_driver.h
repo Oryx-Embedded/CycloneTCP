@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _SAMA5D2_ETH_DRIVER_H
@@ -36,7 +36,7 @@
 
 //Number of TX buffers
 #ifndef SAMA5D2_ETH_TX_BUFFER_COUNT
-   #define SAMA5D2_ETH_TX_BUFFER_COUNT 4
+   #define SAMA5D2_ETH_TX_BUFFER_COUNT 8
 #elif (SAMA5D2_ETH_TX_BUFFER_COUNT < 1)
    #error SAMA5D2_ETH_TX_BUFFER_COUNT parameter is not valid
 #endif
@@ -85,7 +85,7 @@
 
 //Name of the section where to place DMA buffers
 #ifndef SAMA5D2_ETH_RAM_SECTION
-   #define SAMA5D2_ETH_RAM_SECTION ".region_ddr_nocache"
+   #define SAMA5D2_ETH_RAM_SECTION ".region_nocache"
 #endif
 
 //TX buffer descriptor flags

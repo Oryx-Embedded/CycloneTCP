@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -62,7 +62,7 @@ void dhcpv6ClientStateInit(Dhcpv6ClientContext *context)
    NetInterface *interface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check whether the DHCPv6 client is running
    if(context->running)
@@ -79,7 +79,8 @@ void dhcpv6ClientStateInit(Dhcpv6ClientContext *context)
 
             //The first Solicit message from the client on the interface must be
             //delayed by a random amount of time between 0 and SOL_MAX_DELAY
-            delay = netGenerateRandRange(0, DHCPV6_CLIENT_SOL_MAX_DELAY);
+            delay = netGenerateRandRange(context->netContext, 0,
+               DHCPV6_CLIENT_SOL_MAX_DELAY);
 
             //Record the time at which the client started
             //the address acquisition process
@@ -118,8 +119,10 @@ void dhcpv6ClientStateSolicit(Dhcpv6ClientContext *context)
       {
          //Reset server preference value
          context->serverPreference = -1;
+
          //Generate a 24-bit transaction ID
-         context->transactionId = netGenerateRand() & 0x00FFFFFF;
+         context->transactionId = netGenerateRand(context->netContext) &
+            0x00FFFFFF;
 
          //Send a Solicit message
          dhcpv6ClientSendMessage(context, DHCPV6_MSG_TYPE_SOLICIT);
@@ -130,7 +133,8 @@ void dhcpv6ClientStateSolicit(Dhcpv6ClientContext *context)
 
          //If the client is waiting for an Advertise message, the first RT must
          //be selected to be strictly greater than IRT
-         context->timeout = netGenerateRandRange(DHCPV6_CLIENT_SOL_TIMEOUT,
+         context->timeout = netGenerateRandRange(context->netContext,
+            DHCPV6_CLIENT_SOL_TIMEOUT,
             DHCPV6_CLIENT_SOL_TIMEOUT + DHCPV6_CLIENT_SOL_TIMEOUT / 10);
 
          //Increment retransmission counter
@@ -153,7 +157,7 @@ void dhcpv6ClientStateSolicit(Dhcpv6ClientContext *context)
             context->timestamp = time;
 
             //The RT is doubled for each subsequent retransmission
-            context->timeout = netGenerateRandRange(
+            context->timeout = netGenerateRandRange(context->netContext,
                context->timeout * 2 - context->timeout / 10,
                context->timeout * 2 + context->timeout / 10);
 
@@ -161,7 +165,7 @@ void dhcpv6ClientStateSolicit(Dhcpv6ClientContext *context)
             if(context->timeout > DHCPV6_CLIENT_SOL_MAX_RT)
             {
                //Each computation of a new RT includes a randomization factor
-               context->timeout = netGenerateRandRange(
+               context->timeout = netGenerateRandRange(context->netContext,
                   DHCPV6_CLIENT_SOL_MAX_RT - DHCPV6_CLIENT_SOL_MAX_RT / 10,
                   DHCPV6_CLIENT_SOL_MAX_RT + DHCPV6_CLIENT_SOL_MAX_RT / 10);
             }
@@ -202,7 +206,8 @@ void dhcpv6ClientStateRequest(Dhcpv6ClientContext *context)
       if(context->retransmitCount == 0)
       {
          //Generate a 24-bit transaction ID
-         context->transactionId = netGenerateRand() & 0x00FFFFFF;
+         context->transactionId = netGenerateRand(context->netContext) &
+            0x00FFFFFF;
 
          //Send a Request message
          dhcpv6ClientSendMessage(context, DHCPV6_MSG_TYPE_REQUEST);
@@ -212,7 +217,7 @@ void dhcpv6ClientStateRequest(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //Initial retransmission timeout
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             DHCPV6_CLIENT_REQ_TIMEOUT - DHCPV6_CLIENT_REQ_TIMEOUT / 10,
             DHCPV6_CLIENT_REQ_TIMEOUT + DHCPV6_CLIENT_REQ_TIMEOUT / 10);
 
@@ -228,7 +233,7 @@ void dhcpv6ClientStateRequest(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //The RT is doubled for each subsequent retransmission
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->timeout * 2 - context->timeout / 10,
             context->timeout * 2 + context->timeout / 10);
 
@@ -236,7 +241,7 @@ void dhcpv6ClientStateRequest(Dhcpv6ClientContext *context)
          if(context->timeout > DHCPV6_CLIENT_REQ_MAX_RT)
          {
             //Each computation of a new RT includes a randomization factor
-            context->timeout = netGenerateRandRange(
+            context->timeout = netGenerateRandRange(context->netContext,
                DHCPV6_CLIENT_REQ_MAX_RT - DHCPV6_CLIENT_REQ_MAX_RT / 10,
                DHCPV6_CLIENT_REQ_MAX_RT + DHCPV6_CLIENT_REQ_MAX_RT / 10);
          }
@@ -272,7 +277,7 @@ void dhcpv6ClientStateInitConfirm(Dhcpv6ClientContext *context)
    NetInterface *interface;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check whether the DHCPv6 client is running
    if(context->running)
@@ -286,7 +291,8 @@ void dhcpv6ClientStateInitConfirm(Dhcpv6ClientContext *context)
          {
             //The first Confirm message from the client on the interface must be
             //delayed by a random amount of time between 0 and CNF_MAX_DELAY
-            delay = netGenerateRandRange(0, DHCPV6_CLIENT_CNF_MAX_DELAY);
+            delay = netGenerateRandRange(context->netContext, 0,
+               DHCPV6_CLIENT_CNF_MAX_DELAY);
 
             //Record the time at which the client started the address
             //acquisition process
@@ -327,7 +333,8 @@ void dhcpv6ClientStateConfirm(Dhcpv6ClientContext *context)
       if(context->retransmitCount == 0)
       {
          //Generate a 24-bit transaction ID
-         context->transactionId = netGenerateRand() & 0x00FFFFFF;
+         context->transactionId = netGenerateRand(context->netContext) &
+            0x00FFFFFF;
 
          //Send a Confirm message
          dhcpv6ClientSendMessage(context, DHCPV6_MSG_TYPE_CONFIRM);
@@ -337,7 +344,7 @@ void dhcpv6ClientStateConfirm(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //Initial retransmission timeout
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             DHCPV6_CLIENT_CNF_TIMEOUT - DHCPV6_CLIENT_CNF_TIMEOUT / 10,
             DHCPV6_CLIENT_CNF_TIMEOUT + DHCPV6_CLIENT_CNF_TIMEOUT / 10);
 
@@ -353,7 +360,7 @@ void dhcpv6ClientStateConfirm(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //The RT is doubled for each subsequent retransmission
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->timeout * 2 - context->timeout / 10,
             context->timeout * 2 + context->timeout / 10);
 
@@ -361,7 +368,7 @@ void dhcpv6ClientStateConfirm(Dhcpv6ClientContext *context)
          if(context->timeout > DHCPV6_CLIENT_CNF_MAX_RT)
          {
             //Each computation of a new RT includes a randomization factor
-            context->timeout = netGenerateRandRange(
+            context->timeout = netGenerateRandRange(context->netContext,
                DHCPV6_CLIENT_CNF_MAX_RT - DHCPV6_CLIENT_CNF_MAX_RT / 10,
                DHCPV6_CLIENT_CNF_MAX_RT + DHCPV6_CLIENT_CNF_MAX_RT / 10);
          }
@@ -405,12 +412,8 @@ void dhcpv6ClientStateConfirm(Dhcpv6ClientContext *context)
 void dhcpv6ClientStateDad(Dhcpv6ClientContext *context)
 {
    uint_t i;
-   NetInterface *interface;
    Ipv6AddrState state;
    Dhcpv6ClientAddrEntry *entry;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Loop through the IPv6 addresses recorded by the DHCPv6 client
    for(i = 0; i < DHCPV6_CLIENT_ADDR_LIST_SIZE; i++)
@@ -422,7 +425,7 @@ void dhcpv6ClientStateDad(Dhcpv6ClientContext *context)
       if(entry->validLifetime > 0)
       {
          //Get the state of the current IPv6 address
-         state = ipv6GetAddrState(interface, &entry->addr);
+         state = ipv6GetAddrState(context->interface, &entry->addr);
 
          //Duplicate Address Detection in progress?
          if(state == IPV6_ADDR_STATE_TENTATIVE)
@@ -518,7 +521,8 @@ void dhcpv6ClientStateRenew(Dhcpv6ClientContext *context)
       if(context->retransmitCount == 0)
       {
          //Generate a 24-bit transaction ID
-         context->transactionId = netGenerateRand() & 0x00FFFFFF;
+         context->transactionId = netGenerateRand(context->netContext) &
+            0x00FFFFFF;
 
          //Send a Renew message
          dhcpv6ClientSendMessage(context, DHCPV6_MSG_TYPE_RENEW);
@@ -528,7 +532,7 @@ void dhcpv6ClientStateRenew(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //Initial retransmission timeout
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             DHCPV6_CLIENT_REN_TIMEOUT - DHCPV6_CLIENT_REN_TIMEOUT / 10,
             DHCPV6_CLIENT_REN_TIMEOUT + DHCPV6_CLIENT_REN_TIMEOUT / 10);
       }
@@ -541,7 +545,7 @@ void dhcpv6ClientStateRenew(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //The RT is doubled for each subsequent retransmission
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->timeout * 2 - context->timeout / 10,
             context->timeout * 2 + context->timeout / 10);
 
@@ -549,7 +553,7 @@ void dhcpv6ClientStateRenew(Dhcpv6ClientContext *context)
          if(context->timeout > DHCPV6_CLIENT_REN_MAX_RT)
          {
             //Each computation of a new RT includes a randomization factor
-            context->timeout = netGenerateRandRange(
+            context->timeout = netGenerateRandRange(context->netContext,
                DHCPV6_CLIENT_REN_MAX_RT - DHCPV6_CLIENT_REN_MAX_RT / 10,
                DHCPV6_CLIENT_REN_MAX_RT + DHCPV6_CLIENT_REN_MAX_RT / 10);
          }
@@ -605,7 +609,7 @@ void dhcpv6ClientStateRebind(Dhcpv6ClientContext *context)
    Dhcpv6ClientAddrEntry *entry;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Get current time
    time = osGetSystemTime();
@@ -617,7 +621,8 @@ void dhcpv6ClientStateRebind(Dhcpv6ClientContext *context)
       if(context->retransmitCount == 0)
       {
          //Generate a 24-bit transaction ID
-         context->transactionId = netGenerateRand() & 0x00FFFFFF;
+         context->transactionId = netGenerateRand(context->netContext) &
+            0x00FFFFFF;
 
          //Send a Rebind message
          dhcpv6ClientSendMessage(context, DHCPV6_MSG_TYPE_REBIND);
@@ -627,7 +632,7 @@ void dhcpv6ClientStateRebind(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //Initial retransmission timeout
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             DHCPV6_CLIENT_REB_TIMEOUT - DHCPV6_CLIENT_REB_TIMEOUT / 10,
             DHCPV6_CLIENT_REB_TIMEOUT + DHCPV6_CLIENT_REB_TIMEOUT / 10);
       }
@@ -640,7 +645,7 @@ void dhcpv6ClientStateRebind(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //The RT is doubled for each subsequent retransmission
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->timeout * 2 - context->timeout / 10,
             context->timeout * 2 + context->timeout / 10);
 
@@ -648,7 +653,7 @@ void dhcpv6ClientStateRebind(Dhcpv6ClientContext *context)
          if(context->timeout > DHCPV6_CLIENT_REB_MAX_RT)
          {
             //Each computation of a new RT includes a randomization factor
-            context->timeout = netGenerateRandRange(
+            context->timeout = netGenerateRandRange(context->netContext,
                DHCPV6_CLIENT_REB_MAX_RT - DHCPV6_CLIENT_REB_MAX_RT / 10,
                DHCPV6_CLIENT_REB_MAX_RT + DHCPV6_CLIENT_REB_MAX_RT / 10);
          }
@@ -703,7 +708,8 @@ void dhcpv6ClientStateRelease(Dhcpv6ClientContext *context)
       if(context->retransmitCount == 0)
       {
          //Generate a 24-bit transaction ID
-         context->transactionId = netGenerateRand() & 0x00FFFFFF;
+         context->transactionId = netGenerateRand(context->netContext) &
+            0x00FFFFFF;
 
          //Send a Release message
          dhcpv6ClientSendMessage(context, DHCPV6_MSG_TYPE_RELEASE);
@@ -713,7 +719,7 @@ void dhcpv6ClientStateRelease(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //Initial retransmission timeout
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             DHCPV6_CLIENT_REL_TIMEOUT - DHCPV6_CLIENT_REL_TIMEOUT / 10,
             DHCPV6_CLIENT_REL_TIMEOUT + DHCPV6_CLIENT_REL_TIMEOUT / 10);
 
@@ -729,7 +735,7 @@ void dhcpv6ClientStateRelease(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //The RT is doubled for each subsequent retransmission
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->timeout * 2 - context->timeout / 10,
             context->timeout * 2 + context->timeout / 10);
 
@@ -773,7 +779,8 @@ void dhcpv6ClientStateDecline(Dhcpv6ClientContext *context)
       if(context->retransmitCount == 0)
       {
          //Generate a 24-bit transaction ID
-         context->transactionId = netGenerateRand() & 0x00FFFFFF;
+         context->transactionId = netGenerateRand(context->netContext) &
+            0x00FFFFFF;
 
          //Send a Decline message
          dhcpv6ClientSendMessage(context, DHCPV6_MSG_TYPE_DECLINE);
@@ -783,7 +790,7 @@ void dhcpv6ClientStateDecline(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //Initial retransmission timeout
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             DHCPV6_CLIENT_DEC_TIMEOUT - DHCPV6_CLIENT_DEC_TIMEOUT / 10,
             DHCPV6_CLIENT_DEC_TIMEOUT + DHCPV6_CLIENT_DEC_TIMEOUT / 10);
 
@@ -799,7 +806,7 @@ void dhcpv6ClientStateDecline(Dhcpv6ClientContext *context)
          context->timestamp = time;
 
          //The RT is doubled for each subsequent retransmission
-         context->timeout = netGenerateRandRange(
+         context->timeout = netGenerateRandRange(context->netContext,
             context->timeout * 2 - context->timeout / 10,
             context->timeout * 2 + context->timeout / 10);
 

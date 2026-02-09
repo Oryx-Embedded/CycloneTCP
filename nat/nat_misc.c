@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -41,9 +41,6 @@
 
 //Check TCP/IP stack configuration
 #if (NAT_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t natTickCounter;
 
 
 /**
@@ -470,8 +467,8 @@ error_t natTranslateOutboundPacket(NatContext *context, NatIpPacket *packet)
             //A private address is bound to an external address, when the first
             //outgoing session is initiated from the private host (refer to
             //RFC 3022, section 3.1)
-            error = ipv4SelectSourceAddr(&context->publicInterface,
-               packet->destIpAddr, &session->publicIpAddr);
+            error = ipv4SelectSourceAddr(context->publicInterface->netContext,
+               &context->publicInterface, packet->destIpAddr, &session->publicIpAddr);
 
             //Check status code
             if(error)
@@ -835,7 +832,8 @@ uint16_t natAllocatePort(NatContext *context)
    do
    {
       //Generate a random port number
-      port = netGenerateRandRange(NAT_TCP_UDP_PORT_MIN, NAT_TCP_UDP_PORT_MAX);
+      port = netGenerateRandRange(context->netContext, NAT_TCP_UDP_PORT_MIN,
+         NAT_TCP_UDP_PORT_MAX);
 
       //Loop through the NAT sessions
       for(valid = TRUE, i = 0; i < context->numSessions; i++)
@@ -880,7 +878,8 @@ uint16_t natAllocateIcmpQueryId(NatContext *context)
    do
    {
       //Generate a random identifier
-      id = netGenerateRandRange(NAT_ICMP_QUERY_ID_MIN, NAT_ICMP_QUERY_ID_MAX);
+      id = netGenerateRandRange(context->netContext, NAT_ICMP_QUERY_ID_MIN,
+         NAT_ICMP_QUERY_ID_MAX);
 
       //Loop through the NAT sessions
       for(valid = TRUE, i = 0; i < context->numSessions; i++)
@@ -916,7 +915,6 @@ uint16_t natAllocateIcmpQueryId(NatContext *context)
 error_t natParseTransportHeader(NatIpPacket *packet)
 {
    error_t error;
-   size_t length;
 
    //Initialize status code
    error = NO_ERROR;

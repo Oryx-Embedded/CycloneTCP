@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -37,6 +37,7 @@
 #include "core/ip.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_misc.h"
+#include "ipv6/ipv6_multicast.h"
 #include "ipv6/ipv6_routing.h"
 #include "ipv6/icmpv6.h"
 #include "ipv6/ndp.h"
@@ -45,19 +46,22 @@
 //Check TCP/IP stack configuration
 #if (IPV6_SUPPORT == ENABLED && IPV6_ROUTING_SUPPORT == ENABLED)
 
-//IPv6 routing table
-static Ipv6RoutingTableEntry ipv6RoutingTable[IPV6_ROUTING_TABLE_SIZE];
-
 
 /**
  * @brief Initialize IPv6 routing table
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Error code
  **/
 
-error_t ipv6InitRouting(void)
+error_t ipv6InitRouting(NetContext *context)
 {
+   uint_t i;
+
    //Clear the routing table
-   osMemset(ipv6RoutingTable, 0, sizeof(ipv6RoutingTable));
+   for(i = 0; i < IPV6_ROUTING_TABLE_SIZE; i++)
+   {
+      osMemset(&context->ipv6RoutingTable[i], 0, sizeof(Ipv6RoutingTableEntry));
+   }
 
    //Successful initialization
    return NO_ERROR;
@@ -79,11 +83,11 @@ error_t ipv6EnableRouting(NetInterface *interface, bool_t enable)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Enable or disable routing
    interface->ipv6Context.isRouter = enable;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -92,6 +96,7 @@ error_t ipv6EnableRouting(NetInterface *interface, bool_t enable)
 
 /**
  * @brief Add a new entry in the IPv6 routing table
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] prefix Network destination
  * @param[in] prefixLen Length of the prefix, in bits
  * @param[in] interface Network interface where to forward the packet
@@ -100,8 +105,9 @@ error_t ipv6EnableRouting(NetInterface *interface, bool_t enable)
  * @return Error code
  **/
 
-error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
-   NetInterface *interface, const Ipv6Addr *nextHop, uint_t metric)
+error_t ipv6AddRoute(NetContext *context, const Ipv6Addr *prefix,
+   uint_t prefixLen, NetInterface *interface, const Ipv6Addr *nextHop,
+   uint_t metric)
 {
    error_t error;
    uint_t i;
@@ -109,20 +115,20 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
    Ipv6RoutingTableEntry *firstFreeEntry;
 
    //Check parameters
-   if(prefix == NULL || interface == NULL)
+   if(context == NULL || prefix == NULL || interface == NULL)
       return ERROR_INVALID_PARAMETER;
 
    //Keep track of the first free entry
    firstFreeEntry = NULL;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context);
 
    //Loop through routing table entries
    for(i = 0; i < IPV6_ROUTING_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &ipv6RoutingTable[i];
+      entry = &context->ipv6RoutingTable[i];
 
       //Valid entry?
       if(entry->valid)
@@ -139,14 +145,18 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
       {
          //Keep track of the first free entry
          if(firstFreeEntry == NULL)
+         {
             firstFreeEntry = entry;
+         }
       }
    }
 
    //If the routing table does not contain the specified destination,
    //then a new entry should be created
    if(i >= IPV6_ROUTING_TABLE_SIZE)
+   {
       entry = firstFreeEntry;
+   }
 
    //Check whether the routing table runs out of space
    if(entry != NULL)
@@ -183,7 +193,7 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context);
 
    //Return status code
    return error;
@@ -192,49 +202,60 @@ error_t ipv6AddRoute(const Ipv6Addr *prefix, uint_t prefixLen,
 
 /**
  * @brief Remove an entry from the IPv6 routing table
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] prefix Network destination
  * @param[in] prefixLen Length of the prefix, in bits
  * @return Error code
  **/
 
-error_t ipv6DeleteRoute(const Ipv6Addr *prefix, uint_t prefixLen)
+error_t ipv6DeleteRoute(NetContext *context, const Ipv6Addr *prefix,
+   uint_t prefixLen)
 {
    error_t error;
    uint_t i;
    Ipv6RoutingTableEntry *entry;
 
-   //Initialize status code
-   error = ERROR_NOT_FOUND;
-
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Loop through routing table entries
-   for(i = 0; i < IPV6_ROUTING_TABLE_SIZE; i++)
+   //Valid TCP/IP stack context?
+   if(context != NULL)
    {
-      //Point to the current entry
-      entry = &ipv6RoutingTable[i];
+      //Initialize status code
+      error = ERROR_NOT_FOUND;
 
-      //Valid entry?
-      if(entry->valid)
+      //Get exclusive access
+      netLock(context);
+
+      //Loop through routing table entries
+      for(i = 0; i < IPV6_ROUTING_TABLE_SIZE; i++)
       {
-         //Check prefix length
-         if(entry->prefixLen == prefixLen)
+         //Point to the current entry
+         entry = &context->ipv6RoutingTable[i];
+
+         //Valid entry?
+         if(entry->valid)
          {
-            //Check whether the current entry matches the specified destination
-            if(ipv6CompPrefix(&entry->prefix, prefix, prefixLen))
+            //Check prefix length
+            if(entry->prefixLen == prefixLen)
             {
-               //Delete current entry
-               entry->valid = FALSE;
-               //The route was successfully deleted from the routing table
-               error = NO_ERROR;
+               //Check whether the current entry matches the specified destination
+               if(ipv6CompPrefix(&entry->prefix, prefix, prefixLen))
+               {
+                  //Delete current entry
+                  entry->valid = FALSE;
+                  //The route was successfully deleted from the routing table
+                  error = NO_ERROR;
+               }
             }
          }
       }
-   }
 
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
+      //Release exclusive access
+      netUnlock(context);
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_PARAMETER;
+   }
 
    //Return status code
    return error;
@@ -243,20 +264,42 @@ error_t ipv6DeleteRoute(const Ipv6Addr *prefix, uint_t prefixLen)
 
 /**
  * @brief Delete all routes from the IPv6 routing table
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Error code
  **/
 
-error_t ipv6DeleteAllRoutes(void)
+error_t ipv6DeleteAllRoutes(NetContext *context)
 {
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
-   //Clear the routing table
-   osMemset(ipv6RoutingTable, 0, sizeof(ipv6RoutingTable));
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
+   error_t error;
+   uint_t i;
+ 
+   //Valid TCP/IP stack context?
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context);
 
-   //Successful processing
-   return NO_ERROR;
+      //Clear the routing table
+      for(i = 0; i < IPV6_ROUTING_TABLE_SIZE; i++)
+      {
+         osMemset(&context->ipv6RoutingTable[i], 0,
+            sizeof(Ipv6RoutingTableEntry));
+      }
+
+      //Release exclusive access
+      netUnlock(context);
+ 
+      //Successful processing
+      error = NO_ERROR;
+   }
+   else
+   {
+      //Report an error
+      error = ERROR_INVALID_PARAMETER;
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -278,6 +321,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
    bool_t match;
    size_t length;
    size_t destOffset;
+   NetContext *context;
    NetInterface *destInterface;
    NetBuffer *destBuffer;
    Ipv6Header *ipHeader;
@@ -287,15 +331,18 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
    NetInterface *physicalInterface;
 #endif
 
-   //Silently drop any IP packets received on an interface that has
-   //not been assigned a valid link-local address
-   if(ipv6GetLinkLocalAddrState(srcInterface) != IPV6_ADDR_STATE_PREFERRED)
-      return ERROR_NOT_CONFIGURED;
+   //Point to the TCP/IP stack context
+   context = srcInterface->netContext;
 
    //If routing is not enabled on the interface, then the router cannot
    //forward packets from the interface
    if(!srcInterface->ipv6Context.isRouter)
       return ERROR_FAILURE;
+
+   //Silently drop any IP packets received on an interface that has
+   //not been assigned a valid link-local address
+   if(ipv6GetLinkLocalAddrState(srcInterface) != IPV6_ADDR_STATE_PREFERRED)
+      return ERROR_NOT_CONFIGURED;
 
    //Calculate the length of the IPv6 packet
    length = netBufferGetLength(ipPacket) - ipPacketOffset;
@@ -347,7 +394,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
       for(i = 0; i < IPV6_ROUTING_TABLE_SIZE; i++)
       {
          //Point to the current entry
-         entry = &ipv6RoutingTable[i];
+         entry = &context->ipv6RoutingTable[i];
 
          //Valid entry?
          if(entry->valid && entry->interface != NULL)
@@ -584,7 +631,7 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
                ipv6DumpHeader(ipHeader);
 
                //Send Ethernet frame
-               error = ethSendFrame(destInterface, NULL, &destMacAddr, ETH_TYPE_IPV6,
+               error = ethSendFrame(destInterface, &destMacAddr, ETH_TYPE_IPV6,
                   destBuffer, destOffset, &ancillary);
             }
             //Address resolution in progress?

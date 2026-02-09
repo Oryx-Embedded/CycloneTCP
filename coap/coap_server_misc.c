@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -176,11 +176,10 @@ error_t coapServerProcessRequest(CoapServerContext *context,
             }
 
             //Any registered callback?
-            if(context->settings.requestCallback != NULL)
+            if(context->requestCallback != NULL)
             {
                //Invoke user callback function
-               error = context->settings.requestCallback(context, code,
-                  context->uri);
+               error = context->requestCallback(context, code, context->uri);
             }
             else
             {
@@ -353,7 +352,7 @@ error_t coapServerSendResponse(CoapServerContext *context,
 
 #if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
    //DTLS-secured communication?
-   if(context->settings.dtlsInitCallback != NULL)
+   if(context->dtlsInitCallback != NULL)
    {
       uint_t i;
       CoapDtlsSession *session;

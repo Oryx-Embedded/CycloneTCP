@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _MIB2_MODULE_H
@@ -148,29 +148,6 @@
    #define MIB2_IP_ADDRESS_SIZE 4
 #elif (MIB2_IP_ADDRESS_SIZE != 4)
    #error MIB2_IP_ADDRESS_SIZE parameter is not valid
-#endif
-
-//Macro definitions (Interface group)
-#if (MIB2_SUPPORT == ENABLED && MIB2_IF_GROUP_SUPPORT == ENABLED)
-   #define MIB2_IF_SET_TIME_TICKS(name, value) mib2Base.ifGroup.name = value
-   #define MIB2_IF_INC_COUNTER32(name, value) mib2Base.ifGroup.name += value
-#else
-   #define MIB2_IF_SET_TIME_TICKS(name, value)
-   #define MIB2_IF_INC_COUNTER32(name, value)
-#endif
-
-//Macro definitions (IP group)
-#if (MIB2_SUPPORT == ENABLED && MIB2_IP_GROUP_SUPPORT == ENABLED)
-   #define MIB2_IP_INC_COUNTER32(name, value) mib2Base.ipGroup.name += value
-#else
-   #define MIB2_IP_INC_COUNTER32(name, value)
-#endif
-
-//Macro definitions (ICMP group)
-#if (MIB2_SUPPORT == ENABLED && MIB2_ICMP_GROUP_SUPPORT == ENABLED)
-   #define MIB2_ICMP_INC_COUNTER32(name, value) mib2Base.icmpGroup.name += value
-#else
-   #define MIB2_ICMP_INC_COUNTER32(name, value)
 #endif
 
 //Macro definitions (TCP group)
@@ -364,41 +341,6 @@ typedef struct
 
 
 /**
- * @brief Interfaces table entry
- **/
-
-typedef struct
-{
-   uint32_t ifLastChange;
-   uint32_t ifInOctets;
-   uint32_t ifInUcastPkts;
-   uint32_t ifInNUcastPkts;
-   uint32_t ifInDiscards;
-   uint32_t ifInErrors;
-   uint32_t ifInUnknownProtos;
-   uint32_t ifOutOctets;
-   uint32_t ifOutUcastPkts;
-   uint32_t ifOutNUcastPkts;
-   uint32_t ifOutDiscards;
-   uint32_t ifOutErrors;
-   uint32_t ifOutQLen;
-   uint8_t ifSpecific[MIB2_IF_SPECIFIC_SIZE];
-   size_t ifSpecificLen;
-} Mib2IfEntry;
-
-
-/**
- * @brief Interfaces group
- **/
-
-typedef struct
-{
-   int32_t ifNumber;
-   Mib2IfEntry ifTable[NET_INTERFACE_COUNT];
-} Mib2IfGroup;
-
-
-/**
  * @brief IP group
  **/
 
@@ -406,60 +348,9 @@ typedef struct
 {
    int32_t ipForwarding;
    int32_t ipDefaultTTL;
-   uint32_t ipInReceives;
-   uint32_t ipInHdrErrors;
-   uint32_t ipInAddrErrors;
-   uint32_t ipForwDatagrams;
-   uint32_t ipInUnknownProtos;
-   uint32_t ipInDiscards;
-   uint32_t ipInDelivers;
-   uint32_t ipOutRequests;
-   uint32_t ipOutDiscards;
-   uint32_t ipOutNoRoutes;
    int32_t ipReasmTimeout;
-   uint32_t ipReasmReqds;
-   uint32_t ipReasmOKs;
-   uint32_t ipReasmFails;
-   uint32_t ipFragOKs;
-   uint32_t ipFragFails;
-   uint32_t ipFragCreates;
    uint32_t ipRoutingDiscards;
 } Mib2IpGroup;
-
-
-/**
- * @brief ICMP group
- **/
-
-typedef struct
-{
-   uint32_t icmpInMsgs;
-   uint32_t icmpInErrors;
-   uint32_t icmpInDestUnreachs;
-   uint32_t icmpInTimeExcds;
-   uint32_t icmpInParmProbs;
-   uint32_t icmpInSrcQuenchs;
-   uint32_t icmpInRedirects;
-   uint32_t icmpInEchos;
-   uint32_t icmpInEchoReps;
-   uint32_t icmpInTimestamps;
-   uint32_t icmpInTimestampReps;
-   uint32_t icmpInAddrMasks;
-   uint32_t icmpInAddrMaskReps;
-   uint32_t icmpOutMsgs;
-   uint32_t icmpOutErrors;
-   uint32_t icmpOutDestUnreachs;
-   uint32_t icmpOutTimeExcds;
-   uint32_t icmpOutParmProbs;
-   uint32_t icmpOutSrcQuenchs;
-   uint32_t icmpOutRedirects;
-   uint32_t icmpOutEchos;
-   uint32_t icmpOutEchoReps;
-   uint32_t icmpOutTimestamps;
-   uint32_t icmpOutTimestampReps;
-   uint32_t icmpOutAddrMasks;
-   uint32_t icmpOutAddrMaskReps;
-} Mib2IcmpGroup;
 
 
 /**
@@ -543,14 +434,8 @@ typedef struct
 #if (MIB2_SYS_GROUP_SUPPORT == ENABLED)
    Mib2SysGroup sysGroup;
 #endif
-#if (MIB2_IF_GROUP_SUPPORT == ENABLED)
-   Mib2IfGroup ifGroup;
-#endif
 #if (MIB2_IP_GROUP_SUPPORT == ENABLED)
    Mib2IpGroup ipGroup;
-#endif
-#if (MIB2_ICMP_GROUP_SUPPORT == ENABLED)
-   Mib2IcmpGroup icmpGroup;
 #endif
 #if (MIB2_TCP_GROUP_SUPPORT == ENABLED)
    Mib2TcpGroup tcpGroup;

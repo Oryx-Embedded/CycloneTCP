@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _STM32N6XX_ETH_DRIVER_H
@@ -36,7 +36,7 @@
 
 //Number of TX buffers
 #ifndef STM32N6XX_ETH_TX_BUFFER_COUNT
-   #define STM32N6XX_ETH_TX_BUFFER_COUNT 3
+   #define STM32N6XX_ETH_TX_BUFFER_COUNT 8
 #elif (STM32N6XX_ETH_TX_BUFFER_COUNT < 1)
    #error STM32N6XX_ETH_TX_BUFFER_COUNT parameter is not valid
 #endif
@@ -50,7 +50,7 @@
 
 //Number of RX buffers
 #ifndef STM32N6XX_ETH_RX_BUFFER_COUNT
-   #define STM32N6XX_ETH_RX_BUFFER_COUNT 6
+   #define STM32N6XX_ETH_RX_BUFFER_COUNT 8
 #elif (STM32N6XX_ETH_RX_BUFFER_COUNT < 1)
    #error STM32N6XX_ETH_RX_BUFFER_COUNT parameter is not valid
 #endif

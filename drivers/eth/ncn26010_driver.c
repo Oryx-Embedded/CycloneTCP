@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -185,7 +185,7 @@ error_t ncn26010Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the status at startup
    interface->nicEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -301,7 +301,7 @@ bool_t ncn26010IrqHandler(NetInterface *interface)
    interface->nicEvent = TRUE;
 
    //Notify the TCP/IP stack of the event
-   return osSetEventFromIsr(&netEvent);
+   return osSetEventFromIsr(&interface->netContext->event);
 }
 
 
@@ -435,7 +435,7 @@ error_t ncn26010SendPacket(NetInterface *interface,
             //Some data chunks are available for reading
             interface->nicEvent = TRUE;
             //Notify the TCP/IP stack of the event
-            osSetEvent(&netEvent);
+            osSetEvent(&interface->netContext->event);
          }
       }
    }

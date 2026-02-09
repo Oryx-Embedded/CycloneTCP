@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -180,7 +180,7 @@ error_t lan9250Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->nicEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -270,7 +270,7 @@ bool_t lan9250IrqHandler(NetInterface *interface)
       //Set event flag
       interface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&interface->netContext->event);
    }
 
    //Packet transmission complete?
@@ -300,7 +300,7 @@ bool_t lan9250IrqHandler(NetInterface *interface)
       //Set event flag
       interface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&interface->netContext->event);
    }
 
    //Re-enable interrupts once the interrupt has been serviced
@@ -647,9 +647,9 @@ error_t lan9250UpdateMacAddrFilter(NetInterface *interface)
    lan9250WriteMacReg(interface, LAN9250_HMAC_HASHH, hashTable[1]);
 
    //Debug message
-   TRACE_DEBUG("  HMAC_HASHL = %08" PRIX32 "\r\n",
+   TRACE_DEBUG("  HMAC_HASHL = 0x%08" PRIX32 "\r\n",
       lan9250ReadMacReg(interface, LAN9250_HMAC_HASHL));
-   TRACE_DEBUG("  HMAC_HASHH = %08" PRIX32 "\r\n",
+   TRACE_DEBUG("  HMAC_HASHH = 0x%08" PRIX32 "\r\n",
       lan9250ReadMacReg(interface, LAN9250_HMAC_HASHH));
 
    //Successful processing

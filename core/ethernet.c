@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -42,8 +42,6 @@
 #include "ipv4/arp.h"
 #include "ipv4/ipv4.h"
 #include "ipv6/ipv6.h"
-#include "mibs/mib2_module.h"
-#include "mibs/if_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -89,6 +87,7 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
    uint16_t type;
    uint8_t *data;
    EthHeader *header;
+   NetContext *context;
    NetInterface *virtualInterface;
 
 #if (IPV6_SUPPORT == ENABLED)
@@ -112,17 +111,27 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
    data = NULL;
    header = NULL;
 
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
+
    //Start of exception handling block
    do
    {
       //Check whether the CRC is included in the received frame
       if(!interface->nicDriver->autoCrcStrip)
       {
+         uint32_t crc;
+
          //Perform CRC verification
          error = ethCheckCrc(interface, frame, length);
          //CRC error?
          if(error)
             break;
+
+         //Retrieve CRC value
+         crc = LOAD32BE(frame + length - ETH_CRC_SIZE);
+         //Gather entropy
+         context->entropy += crc;
 
          //Strip CRC field from Ethernet frame
          length -= ETH_CRC_SIZE;
@@ -146,9 +155,7 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
       header = (EthHeader *) frame;
 
       //Total number of octets received on the interface
-      MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInOctets, length);
-      IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInOctets, length);
-      IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInOctets, length);
+      NET_IF_STATS_INC_COUNTER64(inOctets, length);
 
       //Malformed Ethernet frame?
       if(length < sizeof(EthHeader))
@@ -243,10 +250,10 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
 
    //802.1Q allows a single physical interface to be bound to multiple
    //virtual interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Point to the current interface
-      virtualInterface = &netInterface[i];
+      virtualInterface = &context->interfaces[i];
 
       //Check whether the current virtual interface is attached to the
       //physical interface where the packet was received
@@ -718,7 +725,7 @@ error_t ethDropMacAddr(NetInterface *interface, const MacAddr *macAddr)
  * @return Error code
  **/
 
-error_t ethAttachLlcRxCalback(NetInterface *interface, LlcRxCallback callback,
+error_t ethAttachLlcRxCallback(NetInterface *interface, LlcRxCallback callback,
    void *param)
 {
 #if (ETH_LLC_SUPPORT == ENABLED)
@@ -746,7 +753,7 @@ error_t ethAttachLlcRxCalback(NetInterface *interface, LlcRxCallback callback,
  * @return Error code
  **/
 
-error_t ethDetachLlcRxCalback(NetInterface *interface)
+error_t ethDetachLlcRxCallback(NetInterface *interface)
 {
 #if (ETH_LLC_SUPPORT == ENABLED)
    //Check parameters

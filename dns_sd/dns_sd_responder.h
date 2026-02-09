@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _DNS_SD_RESPONDER_H
@@ -144,6 +144,7 @@ struct _DnsSdResponderService
 
 struct _DnsSdResponderContext
 {
+   NetContext *netContext;                    ///<TCP/IP stack context
    NetInterface *interface;                   ///<Underlying network interface
    uint_t numServices;                        ///<Maximum number of DNS-SD services that can be registered
    DnsSdResponderService *services;           ///<DNS-SD services
@@ -153,9 +154,6 @@ struct _DnsSdResponderContext
    bool_t running;                            ///<DNS-SD responder is currently running
 };
 
-
-//Tick counter to handle periodic operations
-extern systime_t dnsSdResponderTickCounter;
 
 //DNS-SD responder related functions
 void dnsSdResponderGetDefaultSettings(DnsSdResponderSettings *settings);
@@ -177,6 +175,8 @@ error_t dnsSdResponderStartProbing(DnsSdResponderContext *context);
 
 void dnsSdResponderTick(DnsSdResponderContext *interface);
 void dnsSdResponderLinkChangeEvent(DnsSdResponderContext *interface);
+
+void dnsSdResponderDeinit(DnsSdResponderContext *context);
 
 //C++ guard
 #ifdef __cplusplus

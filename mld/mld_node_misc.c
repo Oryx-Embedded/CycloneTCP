@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -804,7 +804,7 @@ void mldNodeProcessListenerQuery(MldNodeContext *context,
             if(maxRespDelay < netGetRemainingTime(&group->timer))
             {
                //Select a random value in the range 0 - Max Response Delay
-               delay = mldGetRandomDelay(maxRespDelay);
+               delay = mldGetRandomDelay(context->netContext, maxRespDelay);
                //Restart delay timer
                netStartTimer(&group->timer, delay);
             }
@@ -812,7 +812,7 @@ void mldNodeProcessListenerQuery(MldNodeContext *context,
          else if(group->state == MLD_NODE_GROUP_STATE_IDLE_LISTENER)
          {
             //Select a random value in the range 0 - Max Response Delay
-            delay = mldGetRandomDelay(maxRespDelay);
+            delay = mldGetRandomDelay(context->netContext, maxRespDelay);
             //Start delay timer
             netStartTimer(&group->timer, delay);
 
@@ -894,7 +894,7 @@ void mldNodeProcessListenerQueryV2(MldNodeContext *context,
    //If the node has a per-interface listening state record that corresponds to
    //the queried multicast address, a delay for a response is randomly selected
    //in the range 0 - Maximum Response Delay (refer to RFC 3810, section 6.2)
-   delay = mldGetRandomDelay(maxRespDelay);
+   delay = mldGetRandomDelay(context->netContext, maxRespDelay);
 
    //The following rules are then used to determine if a Report needs to be
    //scheduled and the type of Report to schedule

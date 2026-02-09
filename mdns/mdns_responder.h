@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _MDNS_RESPONDER_H
@@ -203,30 +203,31 @@ typedef struct
 
 struct _MdnsResponderContext
 {
-   MdnsResponderSettings settings;                            ///<DNS-SD settings
-   bool_t running;                                            ///<mDNS responder is currently running
-   MdnsState state;                                           ///<FSM state
-   bool_t conflict;                                           ///<Conflict detected
-   bool_t tieBreakLost;                                       ///<Tie-break lost
-   systime_t timestamp;                                       ///<Timestamp to manage retransmissions
-   systime_t timeout;                                         ///<Timeout value
-   uint_t retransmitCount;                                    ///<Retransmission counter
-   char_t hostname[MDNS_RESPONDER_MAX_HOSTNAME_LEN + 1];      ///<Host name
-   bool_t ipv4AddrCount;                                      ///<Number of valid IPv4 addresses
-   bool_t ipv6AddrCount;                                      ///<Number of valid IPv6 addresses
+   NetContext *netContext;                               ///<TCP/IP stack context
+   NetInterface *interface;                              ///<Underlying network interface
+   uint_t numAnnouncements;                              ///<Number of announcement packets
+   uint32_t ttl;                                         ///<TTL resource record
+   MdnsResponderStateChangeCallback stateChangeEvent;    ///<FSM state change event
+   bool_t running;                                       ///<mDNS responder is currently running
+   MdnsState state;                                      ///<FSM state
+   bool_t conflict;                                      ///<Conflict detected
+   bool_t tieBreakLost;                                  ///<Tie-break lost
+   systime_t timestamp;                                  ///<Timestamp to manage retransmissions
+   systime_t timeout;                                    ///<Timeout value
+   uint_t retransmitCount;                               ///<Retransmission counter
+   char_t hostname[MDNS_RESPONDER_MAX_HOSTNAME_LEN + 1]; ///<Host name
+   bool_t ipv4AddrCount;                                 ///<Number of valid IPv4 addresses
+   bool_t ipv6AddrCount;                                 ///<Number of valid IPv6 addresses
 #if (IPV4_SUPPORT == ENABLED)
-   MdnsIpv4AddrEntry ipv4AddrList[IPV4_ADDR_LIST_SIZE];       ///<IPv4 address list
-   MdnsMessage ipv4Response;                                  ///<IPv4 response message
+   MdnsIpv4AddrEntry ipv4AddrList[IPV4_ADDR_LIST_SIZE];  ///<IPv4 address list
+   MdnsMessage ipv4Response;                             ///<IPv4 response message
 #endif
 #if (IPV6_SUPPORT == ENABLED)
-   MdnsIpv6AddrEntry ipv6AddrList[IPV6_ADDR_LIST_SIZE];       ///<IPv6 address list
-   MdnsMessage ipv6Response;                                  ///<IPv6 response message
+   MdnsIpv6AddrEntry ipv6AddrList[IPV6_ADDR_LIST_SIZE];  ///<IPv6 address list
+   MdnsMessage ipv6Response;                             ///<IPv6 response message
 #endif
 };
 
-
-//Tick counter to handle periodic operations
-extern systime_t mdnsResponderTickCounter;
 
 //mDNS related functions
 void mdnsResponderGetDefaultSettings(MdnsResponderSettings *settings);
@@ -245,6 +246,8 @@ error_t mdnsResponderStartProbing(MdnsResponderContext *context);
 
 void mdnsResponderTick(MdnsResponderContext *context);
 void mdnsResponderLinkChangeEvent(MdnsResponderContext *context);
+
+void mdnsResponderDeinit(MdnsResponderContext *context);
 
 //C++ guard
 #ifdef __cplusplus

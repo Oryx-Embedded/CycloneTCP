@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -61,6 +61,9 @@ error_t mqttSnClientInit(MqttSnClientContext *context)
 
    //Clear MQTT-SN client context
    osMemset(context, 0, sizeof(MqttSnClientContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = netGetDefaultContext();
 
 #if (MQTT_SN_CLIENT_DTLS_SUPPORT == ENABLED)
    //Initialize DTLS session state
@@ -396,10 +399,10 @@ error_t mqttSnClientSearchGateway(MqttSnClientContext *context,
             context->retransmitStartTime = time;
 
             //To prevent broadcast storms when multiple clients start searching
-            //for GW almost at the same time, the sending of the SEARCHGW message
-            //is delayed by a random time between 0 and TSEARCHGW
-            context->retransmitTimeout = netGetRandRange(0,
-               MQTT_SN_CLIENT_SEARCH_DELAY);
+            //for GW almost at the same time, the sending of the SEARCHGW
+            //message is delayed by a random time between 0 and TSEARCHGW
+            context->retransmitTimeout = netGetRandRange(context->netContext,
+               0, MQTT_SN_CLIENT_SEARCH_DELAY);
 
             //Start searching for gateways
             context->state = MQTT_SN_CLIENT_STATE_SEARCHING;

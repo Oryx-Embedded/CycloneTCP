@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _LAN9303_DRIVER_H
@@ -705,13 +705,13 @@
 #define LAN9303_VPHY_SPECIAL_CTRL_STATUS_SQEOFF            0x00000001
 
 //General Purpose I/O Configuration register
-#define LAN9303_GPIO_CFG_GPIO_INT_POL                      0x003F0000
-#define LAN9303_GPIO_CFG_GPIO_INT_POL_0                    0x00010000
-#define LAN9303_GPIO_CFG_GPIO_INT_POL_1                    0x00020000
-#define LAN9303_GPIO_CFG_GPIO_INT_POL_2                    0x00040000
-#define LAN9303_GPIO_CFG_GPIO_INT_POL_3                    0x00080000
-#define LAN9303_GPIO_CFG_GPIO_INT_POL_4                    0x00100000
-#define LAN9303_GPIO_CFG_GPIO_INT_POL_5                    0x00200000
+#define LAN9303_GPIO_CFG_GPIO_POL                          0x003F0000
+#define LAN9303_GPIO_CFG_GPIO_POL_0                        0x00010000
+#define LAN9303_GPIO_CFG_GPIO_POL_1                        0x00020000
+#define LAN9303_GPIO_CFG_GPIO_POL_2                        0x00040000
+#define LAN9303_GPIO_CFG_GPIO_POL_3                        0x00080000
+#define LAN9303_GPIO_CFG_GPIO_POL_4                        0x00100000
+#define LAN9303_GPIO_CFG_GPIO_POL_5                        0x00200000
 #define LAN9303_GPIO_CFG_GPIOBUF                           0x0000003F
 #define LAN9303_GPIO_CFG_GPIOBUF_0                         0x00000001
 #define LAN9303_GPIO_CFG_GPIOBUF_1                         0x00000002

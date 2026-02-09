@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -55,8 +55,8 @@ void lldpGetDefaultSettings(LldpAgentSettings *settings)
    settings->task.stackSize = LLDP_TASK_STACK_SIZE;
    settings->task.priority = LLDP_TASK_PRIORITY;
 
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Underlying network interface
+   settings->interface = NULL;
 
    //Number of ports
    settings->numPorts = 0;
@@ -120,7 +120,10 @@ error_t lldpInit(LldpAgentContext *context,
    context->taskParams = settings->task;
    context->taskId = OS_INVALID_TASK_ID;
 
-   //Initialize LLDP agent context
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
+   //Save user settings
    context->interface = settings->interface;
    context->numPorts = settings->numPorts;
    context->ports = settings->ports;
@@ -284,7 +287,8 @@ error_t lldpStart(LldpAgentContext *context)
    do
    {
       //Open a raw socket
-      context->socket = socketOpen(SOCKET_TYPE_RAW_ETH, ETH_TYPE_LLDP);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_RAW_ETH,
+         ETH_TYPE_LLDP);
       //Failed to open socket?
       if(context->socket == NULL)
       {
@@ -1347,7 +1351,7 @@ void lldpTask(LldpAgentContext *context)
       //Stop request?
       if(context->stop)
       {
-         //Stop SNMP agent operation
+         //Stop LLDP agent operation
          context->running = FALSE;
          //Task epilogue
          osExitTask();

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -626,11 +626,11 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
    if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->socket->netContext);
       //Wait for some data to be available for reading
       event = tcpWaitForEvents(context->socket, SOCKET_EVENT_RX_READY, timeout);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->socket->netContext);
    }
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
    //TLS transport protocol?
@@ -641,7 +641,7 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
          return ERROR_FAILURE;
 
       //Check whether some data is pending in the receive buffer
-      if(context->tlsContext->rxBufferLen > 0)
+      if(tlsIsRxReady(context->tlsContext))
       {
          //No need to poll the underlying socket for incoming traffic...
          event = SOCKET_EVENT_RX_READY;
@@ -649,11 +649,11 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
       else
       {
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(context->socket->netContext);
          //Wait for some data to be available for reading
          event = tcpWaitForEvents(context->socket, SOCKET_EVENT_RX_READY, timeout);
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(context->socket->netContext);
       }
    }
 #endif
@@ -666,11 +666,11 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
          return ERROR_FAILURE;
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->webSocket->socket->netContext);
       //Wait for some data to be available for reading
       event = tcpWaitForEvents(context->webSocket->socket, SOCKET_EVENT_RX_READY, timeout);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->webSocket->socket->netContext);
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED && WEB_SOCKET_TLS_SUPPORT)
@@ -682,7 +682,7 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
          return ERROR_FAILURE;
 
       //Check whether some data is pending in the receive buffer
-      if(context->webSocket->tlsContext->rxBufferLen > 0)
+      if(tlsIsRxReady(context->webSocket->tlsContext))
       {
          //No need to poll the underlying socket for incoming traffic...
          event = SOCKET_EVENT_RX_READY;
@@ -690,11 +690,11 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
       else
       {
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(context->webSocket->socket->netContext);
          //Wait for some data to be available for reading
          event = tcpWaitForEvents(context->webSocket->socket, SOCKET_EVENT_RX_READY, timeout);
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(context->webSocket->socket->netContext);
       }
    }
 #endif

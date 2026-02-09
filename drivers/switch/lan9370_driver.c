@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -112,15 +112,15 @@ error_t lan9370Init(NetInterface *interface)
       do
       {
          //Read CHIP_ID1 register
-         temp = lan9370ReadSwitchReg8(interface, LAN9370_CHIP_ID1);
+         temp = lan9370ReadSwitchReg8(interface, LAN9370_GLB_CHID1);
 
          //The returned data is invalid until the serial interface is ready
-      } while(temp != LAN9370_CHIP_ID1_DEFAULT);
+      } while(temp != LAN9370_GLB_CHID1_DEFAULT);
 
       //Enable indirect access from SPI to the VPHY registers
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_GLOBAL_CTRL0);
-      temp &= ~LAN9370_GLOBAL_CTRL0_APB_PHY_REG_BLK;
-      lan9370WriteSwitchReg8(interface, LAN9370_GLOBAL_CTRL0, temp);
+      temp = lan9370ReadSwitchReg8(interface, LAN9370_GLB_CTL0);
+      temp &= ~LAN9370_GLB_CTL0_APB_PHY_REG_BLK;
+      lan9370WriteSwitchReg8(interface, LAN9370_GLB_CTL0, temp);
 
       temp = lan9370ReadSwitchReg16(interface, LAN9370_VPHY_SPECIAL_CTRL);
       temp |= LAN9370_VPHY_SPECIAL_CTRL_SPI_INDIRECT_EN;
@@ -128,19 +128,19 @@ error_t lan9370Init(NetInterface *interface)
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
       //Enable tail tag feature
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_OP_CTRL0);
-      temp |= LAN9370_PORTn_OP_CTRL0_TAIL_TAG_EN;
-      lan9370WriteSwitchReg8(interface, LAN9370_PORT5_OP_CTRL0, temp);
+      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_OP_CTL0);
+      temp |= LAN9370_PORTn_OP_CTL0_TAIL_TAG_EN;
+      lan9370WriteSwitchReg8(interface, LAN9370_PORT5_OP_CTL0, temp);
 
       //Disable frame length check
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_MAC_CTRL0);
-      temp &= ~LAN9370_PORTn_MAC_CTRL0_FR_LEN_CHK;
-      lan9370WriteSwitchReg8(interface, LAN9370_PORT5_MAC_CTRL0, temp);
+      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_MAC_CTL0);
+      temp &= ~LAN9370_PORTn_MAC_CTL0_FR_LEN_CHK;
+      lan9370WriteSwitchReg8(interface, LAN9370_PORT5_MAC_CTL0, temp);
 #else
       //Disable tail tag feature
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_OP_CTRL0);
-      temp &= ~LAN9370_PORTn_OP_CTRL0_TAIL_TAG_EN;
-      lan9370WriteSwitchReg8(interface, LAN9370_PORT5_OP_CTRL0, temp);
+      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_OP_CTL0);
+      temp &= ~LAN9370_PORTn_OP_CTL0_TAIL_TAG_EN;
+      lan9370WriteSwitchReg8(interface, LAN9370_PORT5_OP_CTL0, temp);
 
       //Enable frame length check
       temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_MAC_CTRL0);
@@ -167,27 +167,27 @@ error_t lan9370Init(NetInterface *interface)
       }
 
       //Restore default age count
-      lan9370WriteSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL0,
-         LAN9370_SWITCH_LUE_CTRL0_DROP_INVALID_VID |
-         LAN9370_SWITCH_LUE_CTRL0_AGE_COUNT_DEFAULT |
-         LAN9370_SWITCH_LUE_CTRL0_HASH_OPTION_CRC);
+      lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL0,
+         LAN9370_GLB_SW_LUE_CTL0_DROP_INVALID_VID |
+         LAN9370_GLB_SW_LUE_CTL0_AGE_COUNT_DEFAULT |
+         LAN9370_GLB_SW_LUE_CTL0_HASH_OPTION_CRC);
 
       //Restore default age period
-      lan9370WriteSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL3,
-         LAN9370_SWITCH_LUE_CTRL3_AGE_PERIOD_7_0_DEFAULT);
+      lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL3,
+         LAN9370_GLB_SW_LUE_CTL3_AGE_PERIOD_7_0_DEFAULT);
 
-      lan9370WriteSwitchReg16(interface, LAN9370_SWITCH_LUE_AGE,
-         LAN9370_SWITCH_LUE_AGE_AGE_PERIOD_19_8_DEFAULT);
+      lan9370WriteSwitchReg16(interface, LAN9370_GLB_SW_LUE_AGE,
+         LAN9370_GLB_SW_LUE_AGE_AGE_PERIOD_19_8_DEFAULT);
 
       //Add internal delay to ingress and egress RGMII clocks
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_XMII_CTRL1);
-      temp |= LAN9370_PORTn_XMII_CTRL1_RGMII_ID_IG;
-      temp |= LAN9370_PORTn_XMII_CTRL1_RGMII_ID_EG;
-      lan9370WriteSwitchReg8(interface, LAN9370_PORT5_XMII_CTRL1, temp);
+      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_XMII_CTL1);
+      temp |= LAN9370_PORTn_XMII_CTL1_RGMII_ID_IG;
+      temp |= LAN9370_PORTn_XMII_CTL1_RGMII_ID_EG;
+      lan9370WriteSwitchReg8(interface, LAN9370_PORT5_XMII_CTL1, temp);
 
       //Start switch operation
-      lan9370WriteSwitchReg8(interface, LAN9370_SWITCH_OP,
-         LAN9370_SWITCH_OP_START_SWITCH);
+      lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_CONTROL0,
+         LAN9370_GLB_SW_CONTROL0_START_SWITCH);
    }
    else if(interface->smiDriver != NULL)
    {
@@ -214,7 +214,7 @@ error_t lan9370Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -246,13 +246,17 @@ __weak_func void lan9370Tick(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -268,7 +272,7 @@ __weak_func void lan9370Tick(NetInterface *interface)
                //Set event flag
                interface->phyEvent = TRUE;
                //Notify the TCP/IP stack of the event
-               osSetEvent(&netEvent);
+               osSetEvent(&interface->netContext->event);
             }
          }
       }
@@ -295,7 +299,7 @@ __weak_func void lan9370Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
    }
 }
@@ -336,13 +340,17 @@ __weak_func void lan9370EventHandler(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -614,14 +622,14 @@ uint32_t lan9370GetLinkSpeed(NetInterface *interface, uint8_t port)
       if(interface->spiDriver != NULL)
       {
          //Read port 5 XMII control 1 register
-         value = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_XMII_CTRL1);
+         value = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_XMII_CTL1);
 
          //Retrieve host interface type
-         type = value & LAN9370_PORTn_XMII_CTRL1_MII_INTF_SEL;
+         type = value & LAN9370_PORTn_XMII_CTL1_MII_INTF_SEL;
 
          //Gigabit interface?
-         if(type == LAN9370_PORTn_XMII_CTRL1_MII_INTF_SEL_RGMII &&
-            (value & LAN9370_PORTn_XMII_CTRL1_RGMII_SPEED_1000) == 0)
+         if(type == LAN9370_PORTn_XMII_CTL1_MII_INTF_SEL_RGMII &&
+            (value & LAN9370_PORTn_XMII_CTL1_RGMII_SPEED_1000) == 0)
          {
             //1000 Mb/s mode
             linkSpeed = NIC_LINK_SPEED_1GBPS;
@@ -629,10 +637,10 @@ uint32_t lan9370GetLinkSpeed(NetInterface *interface, uint8_t port)
          else
          {
             //Read port 5 XMII control 0 register
-            value = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_XMII_CTRL0);
+            value = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_XMII_CTL0);
 
             //Retrieve host interface speed
-            if((value & LAN9370_PORTn_XMII_CTRL0_SPEED_10_100) != 0)
+            if((value & LAN9370_PORTn_XMII_CTL0_SPEED_10_100) != 0)
             {
                //100 Mb/s mode
                linkSpeed = NIC_LINK_SPEED_100MBPS;
@@ -657,7 +665,7 @@ uint32_t lan9370GetLinkSpeed(NetInterface *interface, uint8_t port)
       linkSpeed = NIC_LINK_SPEED_UNKNOWN;
    }
 
-   //Return link status
+   //Return link speed
    return linkSpeed;
 }
 
@@ -686,10 +694,10 @@ NicDuplexMode lan9370GetDuplexMode(NetInterface *interface, uint8_t port)
       if(interface->spiDriver != NULL)
       {
          //Read port 5 XMII control 0 register
-         value = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_XMII_CTRL0);
+         value = lan9370ReadSwitchReg8(interface, LAN9370_PORT5_XMII_CTL0);
 
          //Retrieve host interface duplex mode
-         if((value & LAN9370_PORTn_XMII_CTRL0_DUPLEX) != 0)
+         if((value & LAN9370_PORTn_XMII_CTL0_DUPLEX) != 0)
          {
             duplexMode = NIC_FULL_DUPLEX_MODE;
          }
@@ -732,42 +740,44 @@ void lan9370SetPortState(NetInterface *interface, uint8_t port,
    if(port >= LAN9370_PORT1 && port <= LAN9370_PORT4)
    {
       //Read MSTP state register
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORTn_MSTP_STATE(port));
+      temp = lan9370ReadSwitchReg8(interface,
+         LAN9370_PORTn_LUE_MSTP_STATE(port));
 
       //Update port state
       switch(state)
       {
       //Listening state
       case SWITCH_PORT_STATE_LISTENING:
-         temp &= ~LAN9370_PORTn_MSTP_STATE_TRANSMIT_EN;
-         temp |= LAN9370_PORTn_MSTP_STATE_RECEIVE_EN;
-         temp |= LAN9370_PORTn_MSTP_STATE_LEARNING_DIS;
+         temp &= ~LAN9370_PORTn_LUE_MSTP_STATE_TRANSMIT_EN;
+         temp |= LAN9370_PORTn_LUE_MSTP_STATE_RECEIVE_EN;
+         temp |= LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS;
          break;
 
       //Learning state
       case SWITCH_PORT_STATE_LEARNING:
-         temp &= ~LAN9370_PORTn_MSTP_STATE_TRANSMIT_EN;
-         temp &= ~LAN9370_PORTn_MSTP_STATE_RECEIVE_EN;
-         temp &= ~LAN9370_PORTn_MSTP_STATE_LEARNING_DIS;
+         temp &= ~LAN9370_PORTn_LUE_MSTP_STATE_TRANSMIT_EN;
+         temp &= ~LAN9370_PORTn_LUE_MSTP_STATE_RECEIVE_EN;
+         temp &= ~LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS;
          break;
 
       //Forwarding state
       case SWITCH_PORT_STATE_FORWARDING:
-         temp |= LAN9370_PORTn_MSTP_STATE_TRANSMIT_EN;
-         temp |= LAN9370_PORTn_MSTP_STATE_RECEIVE_EN;
-         temp &= ~LAN9370_PORTn_MSTP_STATE_LEARNING_DIS;
+         temp |= LAN9370_PORTn_LUE_MSTP_STATE_TRANSMIT_EN;
+         temp |= LAN9370_PORTn_LUE_MSTP_STATE_RECEIVE_EN;
+         temp &= ~LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS;
          break;
 
       //Disabled state
       default:
-         temp &= ~LAN9370_PORTn_MSTP_STATE_TRANSMIT_EN;
-         temp &= ~LAN9370_PORTn_MSTP_STATE_RECEIVE_EN;
-         temp |= LAN9370_PORTn_MSTP_STATE_LEARNING_DIS;
+         temp &= ~LAN9370_PORTn_LUE_MSTP_STATE_TRANSMIT_EN;
+         temp &= ~LAN9370_PORTn_LUE_MSTP_STATE_RECEIVE_EN;
+         temp |= LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS;
          break;
       }
 
       //Write the value back to MSTP state register
-      lan9370WriteSwitchReg8(interface, LAN9370_PORTn_MSTP_STATE(port), temp);
+      lan9370WriteSwitchReg8(interface, LAN9370_PORTn_LUE_MSTP_STATE(port),
+         temp);
    }
 }
 
@@ -788,33 +798,34 @@ SwitchPortState lan9370GetPortState(NetInterface *interface, uint8_t port)
    if(port >= LAN9370_PORT1 && port <= LAN9370_PORT4)
    {
       //Read MSTP state register
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_PORTn_MSTP_STATE(port));
+      temp = lan9370ReadSwitchReg8(interface,
+         LAN9370_PORTn_LUE_MSTP_STATE(port));
 
       //Check port state
-      if((temp & LAN9370_PORTn_MSTP_STATE_TRANSMIT_EN) == 0 &&
-         (temp & LAN9370_PORTn_MSTP_STATE_RECEIVE_EN) == 0 &&
-         (temp & LAN9370_PORTn_MSTP_STATE_LEARNING_DIS) != 0)
+      if((temp & LAN9370_PORTn_LUE_MSTP_STATE_TRANSMIT_EN) == 0 &&
+         (temp & LAN9370_PORTn_LUE_MSTP_STATE_RECEIVE_EN) == 0 &&
+         (temp & LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS) != 0)
       {
          //Disabled state
          state = SWITCH_PORT_STATE_DISABLED;
       }
-      else if((temp & LAN9370_PORTn_MSTP_STATE_TRANSMIT_EN) == 0 &&
-         (temp & LAN9370_PORTn_MSTP_STATE_RECEIVE_EN) != 0 &&
-         (temp & LAN9370_PORTn_MSTP_STATE_LEARNING_DIS) != 0)
+      else if((temp & LAN9370_PORTn_LUE_MSTP_STATE_TRANSMIT_EN) == 0 &&
+         (temp & LAN9370_PORTn_LUE_MSTP_STATE_RECEIVE_EN) != 0 &&
+         (temp & LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS) != 0)
       {
          //Listening state
          state = SWITCH_PORT_STATE_LISTENING;
       }
-      else if((temp & LAN9370_PORTn_MSTP_STATE_TRANSMIT_EN) == 0 &&
-         (temp & LAN9370_PORTn_MSTP_STATE_RECEIVE_EN) == 0 &&
-         (temp & LAN9370_PORTn_MSTP_STATE_LEARNING_DIS) == 0)
+      else if((temp & LAN9370_PORTn_LUE_MSTP_STATE_TRANSMIT_EN) == 0 &&
+         (temp & LAN9370_PORTn_LUE_MSTP_STATE_RECEIVE_EN) == 0 &&
+         (temp & LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS) == 0)
       {
          //Learning state
          state = SWITCH_PORT_STATE_LEARNING;
       }
-      else if((temp & LAN9370_PORTn_MSTP_STATE_TRANSMIT_EN) != 0 &&
-         (temp & LAN9370_PORTn_MSTP_STATE_RECEIVE_EN) != 0 &&
-         (temp & LAN9370_PORTn_MSTP_STATE_LEARNING_DIS) == 0)
+      else if((temp & LAN9370_PORTn_LUE_MSTP_STATE_TRANSMIT_EN) != 0 &&
+         (temp & LAN9370_PORTn_LUE_MSTP_STATE_RECEIVE_EN) != 0 &&
+         (temp & LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS) == 0)
       {
          //Forwarding state
          state = SWITCH_PORT_STATE_FORWARDING;
@@ -852,12 +863,12 @@ void lan9370SetAgingTime(NetInterface *interface, uint32_t agingTime)
    agingTime = MIN(agingTime, 0xFFFFF);
 
    //Write the lower 8 bits
-   lan9370WriteSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL3,
-      agingTime & LAN9370_SWITCH_LUE_CTRL3_AGE_PERIOD_7_0);
+   lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL3,
+      agingTime & LAN9370_GLB_SW_LUE_CTL3_AGE_PERIOD_7_0);
 
    //Write the upper 12 bits
-   lan9370WriteSwitchReg16(interface, LAN9370_SWITCH_LUE_AGE,
-      (agingTime >> 8) & LAN9370_SWITCH_LUE_AGE_AGE_PERIOD_19_8);
+   lan9370WriteSwitchReg16(interface, LAN9370_GLB_SW_LUE_AGE,
+      (agingTime >> 8) & LAN9370_GLB_SW_LUE_AGE_AGE_PERIOD_19_8);
 }
 
 
@@ -872,22 +883,20 @@ void lan9370EnableIgmpSnooping(NetInterface *interface, bool_t enable)
    uint8_t temp;
 
    //Read the Global Port Mirroring and Snooping Control register
-   temp = lan9370ReadSwitchReg8(interface,
-      LAN9370_GLOBAL_PORT_MIRROR_SNOOP_CTRL);
+   temp = lan9370ReadSwitchReg8(interface, LAN9370_GLB_SW_PORT_MIR_SNP_CTL);
 
    //Enable or disable IGMP snooping
    if(enable)
    {
-      temp |= LAN9370_GLOBAL_PORT_MIRROR_SNOOP_CTRL_IGMP_SNOOP_EN;
+      temp |= LAN9370_GLB_SW_PORT_MIR_SNP_CTL_IGMP_SNOOP_EN;
    }
    else
    {
-      temp &= ~LAN9370_GLOBAL_PORT_MIRROR_SNOOP_CTRL_IGMP_SNOOP_EN;
+      temp &= ~LAN9370_GLB_SW_PORT_MIR_SNP_CTL_IGMP_SNOOP_EN;
    }
 
    //Write the value back to Global Port Mirroring and Snooping Control register
-   lan9370WriteSwitchReg8(interface, LAN9370_GLOBAL_PORT_MIRROR_SNOOP_CTRL,
-      temp);
+   lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_PORT_MIR_SNP_CTL, temp);
 }
 
 
@@ -902,22 +911,20 @@ void lan9370EnableMldSnooping(NetInterface *interface, bool_t enable)
    uint8_t temp;
 
    //Read the Global Port Mirroring and Snooping Control register
-   temp = lan9370ReadSwitchReg8(interface,
-      LAN9370_GLOBAL_PORT_MIRROR_SNOOP_CTRL);
+   temp = lan9370ReadSwitchReg8(interface, LAN9370_GLB_SW_PORT_MIR_SNP_CTL);
 
    //Enable or disable MLD snooping
    if(enable)
    {
-      temp |= LAN9370_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_EN;
+      temp |= LAN9370_GLB_SW_PORT_MIR_SNP_CTL_MLD_SNOOP_EN;
    }
    else
    {
-      temp &= ~LAN9370_GLOBAL_PORT_MIRROR_SNOOP_CTRL_MLD_SNOOP_EN;
+      temp &= ~LAN9370_GLB_SW_PORT_MIR_SNP_CTL_MLD_SNOOP_EN;
    }
 
    //Write the value back to Global Port Mirroring and Snooping Control register
-   lan9370WriteSwitchReg8(interface, LAN9370_GLOBAL_PORT_MIRROR_SNOOP_CTRL,
-      temp);
+   lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_PORT_MIR_SNP_CTL, temp);
 }
 
 
@@ -932,20 +939,20 @@ void lan9370EnableRsvdMcastTable(NetInterface *interface, bool_t enable)
    uint8_t temp;
 
    //Read the Switch Lookup Engine Control 0 register
-   temp = lan9370ReadSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL0);
+   temp = lan9370ReadSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL0);
 
    //Enable or disable the reserved multicast table
    if(enable)
    {
-      temp |= LAN9370_SWITCH_LUE_CTRL0_RESERVED_LUE_EN;
+      temp |= LAN9370_GLB_SW_LUE_CTL0_RESERVED_LUE_EN;
    }
    else
    {
-      temp &= ~LAN9370_SWITCH_LUE_CTRL0_RESERVED_LUE_EN;
+      temp &= ~LAN9370_GLB_SW_LUE_CTL0_RESERVED_LUE_EN;
    }
 
    //Write the value back to Switch Lookup Engine Control 0 register
-   lan9370WriteSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL0, temp);
+   lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL0, temp);
 }
 
 
@@ -998,8 +1005,8 @@ error_t lan9370AddStaticFdbEntry(NetInterface *interface,
    if(j < LAN9370_STATIC_MAC_TABLE_SIZE)
    {
       //Write the Static Address Table Entry 1 register
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY1,
-         LAN9370_STATIC_TABLE_ENTRY1_VALID);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT1,
+         LAN9370_GLB_STATIC_TBL_ENT1_VALID);
 
       //Set the relevant forward ports
       if(entry->destPorts == SWITCH_CPU_PORT_MASK)
@@ -1014,35 +1021,35 @@ error_t lan9370AddStaticFdbEntry(NetInterface *interface,
       //Enable overriding of port state
       if(entry->override)
       {
-         value |= LAN9370_STATIC_TABLE_ENTRY2_OVERRIDE;
+         value |= LAN9370_GLB_STATIC_TBL_ENT2_OVERRIDE;
       }
 
       //Write the Static Address Table Entry 2 register
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY2, value);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT2, value);
 
       //Copy MAC address (first 16 bits)
       value = (entry->macAddr.b[0] << 8) | entry->macAddr.b[1];
 
       //Write the Static Address Table Entry 3 register
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY3, value);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT3, value);
 
       //Copy MAC address (last 32 bits)
       value = (entry->macAddr.b[2] << 24) | (entry->macAddr.b[3] << 16) |
          (entry->macAddr.b[4] << 8) | entry->macAddr.b[5];
 
       //Write the Static Address Table Entry 4 register
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY4, value);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT4, value);
 
       //Setup a write operation
-      value = LAN9370_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT_STATIC |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_ACTION_WRITE |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_START_FINISH;
+      value = LAN9370_GLB_STATIC_MCAST_CTL_TABLE_SELECT_STATIC |
+         LAN9370_GLB_STATIC_MCAST_CTL_ACTION_WRITE |
+         LAN9370_GLB_STATIC_MCAST_CTL_START_FINISH;
 
       //Write the TABLE_INDEX field with the 8-bit index value
-      value |= (j << 8) & LAN9370_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX;
+      value |= (j << 8) & LAN9370_GLB_STATIC_MCAST_CTL_TABLE_INDEX;
 
       //Start the write operation
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_MCAST_TABLE_CTRL,
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_MCAST_CTL,
          value);
 
       //When the operation is complete, the START_FINISH bit will be cleared
@@ -1051,10 +1058,10 @@ error_t lan9370AddStaticFdbEntry(NetInterface *interface,
       {
          //Read the Static Address and Reserved Multicast Table Control register
          value = lan9370ReadSwitchReg32(interface,
-            LAN9370_STATIC_MCAST_TABLE_CTRL);
+            LAN9370_GLB_STATIC_MCAST_CTL);
 
          //Poll the START_FINISH bit
-      } while((value & LAN9370_STATIC_MCAST_TABLE_CTRL_START_FINISH) != 0);
+      } while((value & LAN9370_GLB_STATIC_MCAST_CTL_START_FINISH) != 0);
 
       //Successful processing
       error = NO_ERROR;
@@ -1106,21 +1113,21 @@ error_t lan9370DeleteStaticFdbEntry(NetInterface *interface,
    if(j < LAN9370_STATIC_MAC_TABLE_SIZE)
    {
       //Clear Static Address Table Entry registers
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY1, 0);
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY2, 0);
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY3, 0);
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY4, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT1, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT2, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT3, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT4, 0);
 
       //Setup a write operation
-      value = LAN9370_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT_STATIC |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_ACTION_WRITE |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_START_FINISH;
+      value = LAN9370_GLB_STATIC_MCAST_CTL_TABLE_SELECT_STATIC |
+         LAN9370_GLB_STATIC_MCAST_CTL_ACTION_WRITE |
+         LAN9370_GLB_STATIC_MCAST_CTL_START_FINISH;
 
       //Write the TABLE_INDEX field with the 8-bit index value
-      value |= (j << 8) & LAN9370_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX;
+      value |= (j << 8) & LAN9370_GLB_STATIC_MCAST_CTL_TABLE_INDEX;
 
       //Start the write operation
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_MCAST_TABLE_CTRL,
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_MCAST_CTL,
          value);
 
       //When the operation is complete, the START_FINISH bit will be cleared
@@ -1129,10 +1136,10 @@ error_t lan9370DeleteStaticFdbEntry(NetInterface *interface,
       {
          //Read the Static Address and Reserved Multicast Table Control register
          value = lan9370ReadSwitchReg32(interface,
-            LAN9370_STATIC_MCAST_TABLE_CTRL);
+            LAN9370_GLB_STATIC_MCAST_CTL);
 
          //Poll the START_FINISH bit
-      } while((value & LAN9370_STATIC_MCAST_TABLE_CTRL_START_FINISH) != 0);
+      } while((value & LAN9370_GLB_STATIC_MCAST_CTL_START_FINISH) != 0);
 
       //Successful processing
       error = NO_ERROR;
@@ -1166,16 +1173,16 @@ error_t lan9370GetStaticFdbEntry(NetInterface *interface, uint_t index,
    if(index < LAN9370_STATIC_MAC_TABLE_SIZE)
    {
       //Setup a write operation
-      value = LAN9370_STATIC_MCAST_TABLE_CTRL_DIRECT_ACCESS |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT_STATIC |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_ACTION_READ |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_START_FINISH;
+      value = LAN9370_GLB_STATIC_MCAST_CTL_DIRECT_ACCESS |
+         LAN9370_GLB_STATIC_MCAST_CTL_TABLE_SELECT_STATIC |
+         LAN9370_GLB_STATIC_MCAST_CTL_ACTION_READ |
+         LAN9370_GLB_STATIC_MCAST_CTL_START_FINISH;
 
       //Write the TABLE_INDEX field with the 8-bit index value
-      value |= (index << 8) & LAN9370_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX;
+      value |= (index << 8) & LAN9370_GLB_STATIC_MCAST_CTL_TABLE_INDEX;
 
       //Start the read operation
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_MCAST_TABLE_CTRL,
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_MCAST_CTL,
          value);
 
       //When the operation is complete, the START_FINISH bit will be cleared
@@ -1184,26 +1191,26 @@ error_t lan9370GetStaticFdbEntry(NetInterface *interface, uint_t index,
       {
          //Read the Static Address and Reserved Multicast Table Control register
          value = lan9370ReadSwitchReg32(interface,
-            LAN9370_STATIC_MCAST_TABLE_CTRL);
+            LAN9370_GLB_STATIC_MCAST_CTL);
 
          //Poll the START_FINISH bit
-      } while((value & LAN9370_STATIC_MCAST_TABLE_CTRL_START_FINISH) != 0);
+      } while((value & LAN9370_GLB_STATIC_MCAST_CTL_START_FINISH) != 0);
 
       //Read the Static Address Table Entry 1 register
-      value = lan9370ReadSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY1);
+      value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT1);
 
       //Valid entry?
-      if((value & LAN9370_STATIC_TABLE_ENTRY1_VALID) != 0)
+      if((value & LAN9370_GLB_STATIC_TBL_ENT1_VALID) != 0)
       {
          //Read the Static Address Table Entry 2 register
-         value = lan9370ReadSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY2);
+         value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT2);
 
          //Retrieve the ports associated with this MAC address
          entry->srcPort = 0;
-         entry->destPorts = value & LAN9370_STATIC_TABLE_ENTRY2_PORT_FORWARD;
+         entry->destPorts = value & LAN9370_GLB_STATIC_TBL_ENT2_PORT_FORWARD;
 
          //Check the value of the OVERRIDE bit
-         if((value & LAN9370_STATIC_TABLE_ENTRY2_OVERRIDE) != 0)
+         if((value & LAN9370_GLB_STATIC_TBL_ENT2_OVERRIDE) != 0)
          {
             entry->override = TRUE;
          }
@@ -1213,14 +1220,14 @@ error_t lan9370GetStaticFdbEntry(NetInterface *interface, uint_t index,
          }
 
          //Read the Static Address Table Entry 3 register
-         value = lan9370ReadSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY3);
+         value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT3);
 
          //Copy MAC address (first 16 bits)
          entry->macAddr.b[0] = (value >> 8) & 0xFF;
          entry->macAddr.b[1] = value & 0xFF;
 
          //Read the Static Address Table Entry 4 register
-         value = lan9370ReadSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY4);
+         value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT4);
 
          //Copy MAC address (last 32 bits)
          entry->macAddr.b[2] = (value >> 24) & 0xFF;
@@ -1262,21 +1269,21 @@ void lan9370FlushStaticFdbTable(NetInterface *interface)
    for(i = 0; i < LAN9370_STATIC_MAC_TABLE_SIZE; i++)
    {
       //Clear Static Address Table Entry registers
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY1, 0);
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY2, 0);
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY3, 0);
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_TABLE_ENTRY4, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT1, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT2, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT3, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_TBL_ENT4, 0);
 
       //Setup a write operation
-      value = LAN9370_STATIC_MCAST_TABLE_CTRL_TABLE_SELECT_STATIC |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_ACTION_WRITE |
-         LAN9370_STATIC_MCAST_TABLE_CTRL_START_FINISH;
+      value = LAN9370_GLB_STATIC_MCAST_CTL_TABLE_SELECT_STATIC |
+         LAN9370_GLB_STATIC_MCAST_CTL_ACTION_WRITE |
+         LAN9370_GLB_STATIC_MCAST_CTL_START_FINISH;
 
       //Write the TABLE_INDEX field with the 8-bit index value
-      value |= (i << 8) & LAN9370_STATIC_MCAST_TABLE_CTRL_TABLE_INDEX;
+      value |= (i << 8) & LAN9370_GLB_STATIC_MCAST_CTL_TABLE_INDEX;
 
       //Start the write operation
-      lan9370WriteSwitchReg32(interface, LAN9370_STATIC_MCAST_TABLE_CTRL,
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_STATIC_MCAST_CTL,
          value);
 
       //When the operation is complete, the START_FINISH bit will be cleared
@@ -1285,10 +1292,10 @@ void lan9370FlushStaticFdbTable(NetInterface *interface)
       {
          //Read the Static Address and Reserved Multicast Table Control register
          value = lan9370ReadSwitchReg32(interface,
-            LAN9370_STATIC_MCAST_TABLE_CTRL);
+            LAN9370_GLB_STATIC_MCAST_CTL);
 
          //Poll the START_FINISH bit
-      } while((value & LAN9370_STATIC_MCAST_TABLE_CTRL_START_FINISH) != 0);
+      } while((value & LAN9370_GLB_STATIC_MCAST_CTL_START_FINISH) != 0);
    }
 }
 
@@ -1311,51 +1318,51 @@ error_t lan9370GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    if(index == 0)
    {
       //Clear the ALU Table Access Control register to stop any operation
-      lan9370WriteSwitchReg32(interface, LAN9370_ALU_TABLE_CTRL, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_ALU_ACCESS_CTRL, 0);
 
       //Start the search operation
-      lan9370WriteSwitchReg32(interface, LAN9370_ALU_TABLE_CTRL,
-         LAN9370_ALU_TABLE_CTRL_START_FINISH |
-         LAN9370_ALU_TABLE_CTRL_ACTION_SEARCH);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_ALU_ACCESS_CTRL,
+         LAN9370_GLB_ALU_ACCESS_CTRL_START_FINISH |
+         LAN9370_GLB_ALU_ACCESS_CTRL_ACTION_SEARCH);
    }
 
    //Poll the VALID_ENTRY_OR_SEARCH_END bit until it is set
    do
    {
       //Read the ALU Table Access Control register
-      value = lan9370ReadSwitchReg32(interface, LAN9370_ALU_TABLE_CTRL);
+      value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_ALU_ACCESS_CTRL);
 
       //This bit goes high to indicate either a new valid entry is returned or
       //the search is complete
-   } while((value & LAN9370_ALU_TABLE_CTRL_VALID_ENTRY_OR_SEARCH_END) == 0);
+   } while((value & LAN9370_GLB_ALU_ACCESS_CTRL_VALID_ENTRY_OR_SEARCH_END) == 0);
 
    //Check whether the next valid entry is ready
-   if((value & LAN9370_ALU_TABLE_CTRL_VALID) != 0)
+   if((value & LAN9370_GLB_ALU_ACCESS_CTRL_VALID) != 0)
    {
       //Store the data from the ALU table entry
       entry->destPorts = 0;
       entry->override = FALSE;
 
       //Read the ALU Table Entry 1 and 2 registers
-      value = lan9370ReadSwitchReg32(interface, LAN9370_ALU_TABLE_ENTRY1);
-      value = lan9370ReadSwitchReg32(interface, LAN9370_ALU_TABLE_ENTRY2);
+      value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_ALU_TBL_ENT1);
+      value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_ALU_TBL_ENT2);
 
       //Retrieve the port associated with this MAC address
-      switch(value & LAN9370_ALU_TABLE_ENTRY2_PORT_FORWARD)
+      switch(value & LAN9370_GLB_ALU_TBL_ENT2_PORT_FORWARD)
       {
-      case LAN9370_ALU_TABLE_ENTRY2_PORT1_FORWARD:
+      case LAN9370_GLB_ALU_TBL_ENT2_PORT1_FORWARD:
          entry->srcPort = LAN9370_PORT1;
          break;
-      case LAN9370_ALU_TABLE_ENTRY2_PORT2_FORWARD:
+      case LAN9370_GLB_ALU_TBL_ENT2_PORT2_FORWARD:
          entry->srcPort = LAN9370_PORT2;
          break;
-      case LAN9370_ALU_TABLE_ENTRY2_PORT3_FORWARD:
+      case LAN9370_GLB_ALU_TBL_ENT2_PORT3_FORWARD:
          entry->srcPort = LAN9370_PORT3;
          break;
-      case LAN9370_ALU_TABLE_ENTRY2_PORT4_FORWARD:
+      case LAN9370_GLB_ALU_TBL_ENT2_PORT4_FORWARD:
          entry->srcPort = LAN9370_PORT4;
          break;
-      case LAN9370_ALU_TABLE_ENTRY2_PORT5_FORWARD:
+      case LAN9370_GLB_ALU_TBL_ENT2_PORT5_FORWARD:
          entry->srcPort = LAN9370_PORT5;
          break;
       default:
@@ -1364,14 +1371,14 @@ error_t lan9370GetDynamicFdbEntry(NetInterface *interface, uint_t index,
       }
 
       //Read the ALU Table Entry 3 register
-      value = lan9370ReadSwitchReg32(interface, LAN9370_ALU_TABLE_ENTRY3);
+      value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_ALU_TBL_ENT3);
 
       //Copy MAC address (first 16 bits)
       entry->macAddr.b[0] = (value >> 8) & 0xFF;
       entry->macAddr.b[1] = value & 0xFF;
 
       //Read the ALU Table Entry 4 register
-      value = lan9370ReadSwitchReg32(interface, LAN9370_ALU_TABLE_ENTRY4);
+      value = lan9370ReadSwitchReg32(interface, LAN9370_GLB_ALU_TBL_ENT4);
 
       //Copy MAC address (last 32 bits)
       entry->macAddr.b[2] = (value >> 24) & 0xFF;
@@ -1385,7 +1392,7 @@ error_t lan9370GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    else
    {
       //The search can be stopped any time by setting the START_FINISH bit to 0
-      lan9370WriteSwitchReg32(interface, LAN9370_ALU_TABLE_CTRL, 0);
+      lan9370WriteSwitchReg32(interface, LAN9370_GLB_ALU_ACCESS_CTRL, 0);
 
       //The end of the table has been reached
       error = ERROR_END_OF_TABLE;
@@ -1408,36 +1415,38 @@ void lan9370FlushDynamicFdbTable(NetInterface *interface, uint8_t port)
    uint8_t state;
 
    //Flush only dynamic table entries
-   temp = lan9370ReadSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL2);
-   temp &= ~LAN9370_SWITCH_LUE_CTRL2_FLUSH_OPTION;
-   temp |= LAN9370_SWITCH_LUE_CTRL2_FLUSH_OPTION_DYNAMIC;
-   lan9370WriteSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL2, temp);
+   temp = lan9370ReadSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL2);
+   temp &= ~LAN9370_GLB_SW_LUE_CTL2_FLUSH_OPTION;
+   temp |= LAN9370_GLB_SW_LUE_CTL2_FLUSH_OPTION_DYNAMIC;
+   lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL2, temp);
 
    //Valid port number?
    if(port >= LAN9370_PORT1 && port <= LAN9370_PORT5)
    {
       //Save the current state of the port
-      state = lan9370ReadSwitchReg8(interface, LAN9370_PORTn_MSTP_STATE(port));
+      state = lan9370ReadSwitchReg8(interface,
+         LAN9370_PORTn_LUE_MSTP_STATE(port));
 
       //Turn off learning capability
-      lan9370WriteSwitchReg8(interface, LAN9370_PORTn_MSTP_STATE(port),
-         state | LAN9370_PORTn_MSTP_STATE_LEARNING_DIS);
+      lan9370WriteSwitchReg8(interface, LAN9370_PORTn_LUE_MSTP_STATE(port),
+         state | LAN9370_PORTn_LUE_MSTP_STATE_LEARNING_DIS);
 
       //All the entries associated with a port that has its learning capability
       //being turned off will be flushed
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL1);
-      temp |= LAN9370_SWITCH_LUE_CTRL1_FLUSH_MSTP_ENTRIES;
-      lan9370WriteSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL1, temp);
+      temp = lan9370ReadSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL1);
+      temp |= LAN9370_GLB_SW_LUE_CTL1_FLUSH_MSTP_ENTRIES;
+      lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL1, temp);
 
       //Restore the original state of the port
-      lan9370WriteSwitchReg8(interface, LAN9370_PORTn_MSTP_STATE(port), state);
+      lan9370WriteSwitchReg8(interface, LAN9370_PORTn_LUE_MSTP_STATE(port),
+         state);
    }
    else
    {
       //Trigger a flush of the entire address lookup table
-      temp = lan9370ReadSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL1);
-      temp |= LAN9370_SWITCH_LUE_CTRL1_FLUSH_ALU_TABLE;
-      lan9370WriteSwitchReg8(interface, LAN9370_SWITCH_LUE_CTRL1, temp);
+      temp = lan9370ReadSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL1);
+      temp |= LAN9370_GLB_SW_LUE_CTL1_FLUSH_ALU_TABLE;
+      lan9370WriteSwitchReg8(interface, LAN9370_GLB_SW_LUE_CTL1, temp);
    }
 }
 
@@ -1455,34 +1464,34 @@ void lan9370SetUnknownMcastFwdPorts(NetInterface *interface,
    uint32_t temp;
 
    //Read Unknown Multicast Control register
-   temp = lan9370ReadSwitchReg32(interface, LAN9370_UNKONWN_MULTICAST_CTRL);
+   temp = lan9370ReadSwitchReg32(interface, LAN9370_GLB_SW_LUE_UNK1);
 
    //Clear port map
-   temp &= ~LAN9370_UNKONWN_MULTICAST_CTRL_FWD_MAP;
+   temp &= ~LAN9370_GLB_SW_LUE_UNK1_FWD_MAP;
 
    //Enable or disable forwarding of unknown multicast packets
    if(enable)
    {
       //Enable forwarding
-      temp |= LAN9370_UNKONWN_MULTICAST_CTRL_FWD;
+      temp |= LAN9370_GLB_SW_LUE_UNK1_FWD;
 
       //Check whether unknown multicast packets should be forwarded to the CPU port
       if((forwardPorts & SWITCH_CPU_PORT_MASK) != 0)
       {
-         temp |= LAN9370_UNKONWN_MULTICAST_CTRL_FWD_MAP_PORT5;
+         temp |= LAN9370_GLB_SW_LUE_UNK1_FWD_MAP_PORT5;
       }
 
       //Select the desired forward ports
-      temp |= forwardPorts & LAN9370_UNKONWN_MULTICAST_CTRL_FWD_MAP_ALL;
+      temp |= forwardPorts & LAN9370_GLB_SW_LUE_UNK1_FWD_MAP_ALL;
    }
    else
    {
       //Disable forwarding
-      temp &= ~LAN9370_UNKONWN_MULTICAST_CTRL_FWD;
+      temp &= ~LAN9370_GLB_SW_LUE_UNK1_FWD;
    }
 
    //Write the value back to Unknown Multicast Control register
-   lan9370WriteSwitchReg32(interface, LAN9370_UNKONWN_MULTICAST_CTRL, temp);
+   lan9370WriteSwitchReg32(interface, LAN9370_GLB_SW_LUE_UNK1, temp);
 }
 
 

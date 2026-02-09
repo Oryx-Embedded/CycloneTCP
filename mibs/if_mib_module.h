@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IF_MIB_MODULE_H
@@ -39,17 +39,6 @@
    #define IF_MIB_SUPPORT DISABLED
 #elif (IF_MIB_SUPPORT != ENABLED && IF_MIB_SUPPORT != DISABLED)
    #error IF_MIB_SUPPORT parameter is not valid
-#endif
-
-//Macro definitions
-#if (IF_MIB_SUPPORT == ENABLED)
-   #define IF_MIB_SET_TIME_TICKS(name, value) ifMibBase.name = value
-   #define IF_MIB_INC_COUNTER32(name, value) ifMibBase.name += value
-   #define IF_MIB_INC_COUNTER64(name, value) ifMibBase.name += value
-#else
-   #define IF_MIB_SET_TIME_TICKS(name, value)
-   #define IF_MIB_INC_COUNTER32(name, value)
-   #define IF_MIB_INC_COUNTER64(name, value)
 #endif
 
 //C++ guard
@@ -131,57 +120,11 @@ typedef enum
 
 
 /**
- * @brief Interfaces table entry
- **/
-
-typedef struct
-{
-   uint32_t ifLastChange;
-   uint32_t ifInOctets;
-   uint32_t ifInUcastPkts;
-   uint32_t ifInDiscards;
-   uint32_t ifInErrors;
-   uint32_t ifInUnknownProtos;
-   uint32_t ifOutOctets;
-   uint32_t ifOutUcastPkts;
-   uint32_t ifOutDiscards;
-   uint32_t ifOutErrors;
-} IfMibIfEntry;
-
-
-/**
- * @brief Extension to the interface table
- **/
-
-typedef struct
-{
-   uint32_t ifInMulticastPkts;
-   uint32_t ifInBroadcastPkts;
-   uint32_t ifOutMulticastPkts;
-   uint32_t ifOutBroadcastPkts;
-   uint64_t ifHCInOctets;
-   uint64_t ifHCInUcastPkts;
-   uint64_t ifHCInMulticastPkts;
-   uint64_t ifHCInBroadcastPkts;
-   uint64_t ifHCOutOctets;
-   uint64_t ifHCOutUcastPkts;
-   uint64_t ifHCOutMulticastPkts;
-   uint64_t ifHCOutBroadcastPkts;
-   int32_t ifLinkUpDownTrapEnable;
-   int32_t ifPromiscuousMode;
-   int32_t ifConnectorPresent;
-} IfMibIfXEntry;
-
-
-/**
  * @brief Interfaces Group MIB base
  **/
 
 typedef struct
 {
-   int32_t ifNumber;
-   IfMibIfEntry ifTable[NET_INTERFACE_COUNT];
-   IfMibIfXEntry ifXTable[NET_INTERFACE_COUNT];
    uint32_t ifTableLastChange;
    uint32_t ifStackLastChange;
 } IfMibBase;

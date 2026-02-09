@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -74,14 +74,16 @@ const SwitchDriver ksz9477SwitchDriver =
  * @brief Tail tag rules (host to KSZ9477)
  **/
 
-const uint16_t ksz9477IngressTailTag[6] =
+const uint16_t ksz9477IngressTailTag[8] =
 {
    HTONS(KSZ9477_TAIL_TAG_NORMAL_ADDR_LOOKUP),
    HTONS(KSZ9477_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9477_TAIL_TAG_DEST_PORT1),
    HTONS(KSZ9477_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9477_TAIL_TAG_DEST_PORT2),
    HTONS(KSZ9477_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9477_TAIL_TAG_DEST_PORT3),
    HTONS(KSZ9477_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9477_TAIL_TAG_DEST_PORT4),
-   HTONS(KSZ9477_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9477_TAIL_TAG_DEST_PORT5)
+   HTONS(KSZ9477_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9477_TAIL_TAG_DEST_PORT5),
+   HTONS(0),
+   HTONS(KSZ9477_TAIL_TAG_PORT_BLOCKING_OVERRIDE | KSZ9477_TAIL_TAG_DEST_PORT7)
 };
 
 
@@ -137,20 +139,26 @@ error_t ksz9477Init(NetInterface *interface)
 #endif
 
       //Loop through the ports
-      for(port = KSZ9477_PORT1; port <= KSZ9477_PORT5; port++)
+      for(port = KSZ9477_PORT1; port <= KSZ9477_PORT7; port++)
       {
+         //Skip host port
+         if(port != KSZ9477_PORT6)
+         {
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-         //Port separation mode?
-         if(interface->port != 0)
-         {
-            //Disable packet transmission and address learning
-            ksz9477SetPortState(interface, port, SWITCH_PORT_STATE_LISTENING);
-         }
-         else
+            //Port separation mode?
+            if(interface->port != 0)
+            {
+               //Disable packet transmission and address learning
+               ksz9477SetPortState(interface, port,
+                  SWITCH_PORT_STATE_LISTENING);
+            }
+            else
 #endif
-         {
-            //Enable transmission, reception and address learning
-            ksz9477SetPortState(interface, port, SWITCH_PORT_STATE_FORWARDING);
+            {
+               //Enable transmission, reception and address learning
+               ksz9477SetPortState(interface, port,
+                  SWITCH_PORT_STATE_FORWARDING);
+            }
          }
       }
 
@@ -168,6 +176,11 @@ error_t ksz9477Init(NetInterface *interface)
       temp |= KSZ9477_PORTn_XMII_CTRL1_RGMII_ID_IG;
       temp |= KSZ9477_PORTn_XMII_CTRL1_RGMII_ID_EG;
       ksz9477WriteSwitchReg8(interface, KSZ9477_PORT6_XMII_CTRL1, temp);
+
+      //Reset SGMII registers (silicon errata workaround 16)
+      ksz9477WriteSgmiiReg(interface, KSZ9477_SGMII_CTRL,
+         KSZ9477_SGMII_CTRL_SOFT_RESET | KSZ9477_SGMII_CTRL_AN_EN |
+         KSZ9477_SGMII_CTRL_DUPLEX_MODE | KSZ9477_SGMII_CTRL_SPEED_SEL_MSB);
 
       //Start switch operation
       ksz9477WriteSwitchReg8(interface, KSZ9477_SWITCH_OP,
@@ -233,7 +246,7 @@ error_t ksz9477Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -265,13 +278,17 @@ __weak_func void ksz9477Tick(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -287,7 +304,7 @@ __weak_func void ksz9477Tick(NetInterface *interface)
                //Set event flag
                interface->phyEvent = TRUE;
                //Notify the TCP/IP stack of the event
-               osSetEvent(&netEvent);
+               osSetEvent(&interface->netContext->event);
             }
          }
       }
@@ -299,12 +316,16 @@ __weak_func void ksz9477Tick(NetInterface *interface)
       linkState = FALSE;
 
       //Loop through the ports
-      for(port = KSZ9477_PORT1; port <= KSZ9477_PORT5; port++)
+      for(port = KSZ9477_PORT1; port <= KSZ9477_PORT7; port++)
       {
-         //Retrieve current link state
-         if(ksz9477GetLinkState(interface, port))
+         //Skip host port
+         if(port != KSZ9477_PORT6)
          {
-            linkState = TRUE;
+            //Retrieve current link state
+            if(ksz9477GetLinkState(interface, port))
+            {
+               linkState = TRUE;
+            }
          }
       }
 
@@ -314,7 +335,7 @@ __weak_func void ksz9477Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
    }
 }
@@ -355,13 +376,17 @@ __weak_func void ksz9477EventHandler(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -372,7 +397,8 @@ __weak_func void ksz9477EventHandler(NetInterface *interface)
             port = virtualInterface->port;
 
             //Valid port?
-            if(port >= KSZ9477_PORT1 && port <= KSZ9477_PORT5)
+            if((port >= KSZ9477_PORT1 && port <= KSZ9477_PORT5) ||
+               port == KSZ9477_PORT7)
             {
                //Retrieve current link state
                linkState = ksz9477GetLinkState(interface, port);
@@ -425,12 +451,16 @@ __weak_func void ksz9477EventHandler(NetInterface *interface)
       linkState = FALSE;
 
       //Loop through the ports
-      for(port = KSZ9477_PORT1; port <= KSZ9477_PORT5; port++)
+      for(port = KSZ9477_PORT1; port <= KSZ9477_PORT7; port++)
       {
-         //Retrieve current link state
-         if(ksz9477GetLinkState(interface, port))
+         //Skip host port
+         if(port != KSZ9477_PORT6)
          {
-            linkState = TRUE;
+            //Retrieve current link state
+            if(ksz9477GetLinkState(interface, port))
+            {
+               linkState = TRUE;
+            }
          }
       }
 
@@ -483,7 +513,7 @@ error_t ksz9477TagFrame(NetInterface *interface, NetBuffer *buffer,
    if(interface->spiDriver != NULL)
    {
       //Valid port?
-      if(ancillary->port <= KSZ9477_PORT5)
+      if(ancillary->port <= KSZ9477_PORT7)
       {
          size_t length;
          const uint16_t *tailTag;
@@ -597,6 +627,11 @@ bool_t ksz9477GetLinkState(NetInterface *interface, uint8_t port)
       //Retrieve current link state
       linkState = (value & KSZ9477_BMSR_LINK_STATUS) ? TRUE : FALSE;
    }
+   else if(port == KSZ9477_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      linkState = ksz9477GetPort7LinkState(interface);
+   }
    else
    {
       //The specified port number is not valid
@@ -692,13 +727,18 @@ uint32_t ksz9477GetLinkSpeed(NetInterface *interface, uint8_t port)
          linkSpeed = NIC_LINK_SPEED_100MBPS;
       }
    }
+   else if(port == KSZ9477_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      linkSpeed = ksz9477GetPort7LinkSpeed(interface);
+   }
    else
    {
       //The specified port number is not valid
       linkSpeed = NIC_LINK_SPEED_UNKNOWN;
    }
 
-   //Return link status
+   //Return link speed
    return linkSpeed;
 }
 
@@ -756,6 +796,11 @@ NicDuplexMode ksz9477GetDuplexMode(NetInterface *interface, uint8_t port)
          duplexMode = NIC_FULL_DUPLEX_MODE;
       }
    }
+   else if(port == KSZ9477_PORT7)
+   {
+      //An external PHY can optionally be connected to port 7
+      duplexMode = ksz9477GetPort7DuplexMode(interface);
+   }
    else
    {
       //The specified port number is not valid
@@ -763,6 +808,165 @@ NicDuplexMode ksz9477GetDuplexMode(NetInterface *interface, uint8_t port)
    }
 
    //Return duplex mode
+   return duplexMode;
+}
+
+
+/**
+ * @brief Get port 7 link state
+ * @param[in] interface Underlying network interface
+ * @return Link state
+ **/
+
+__weak_func bool_t ksz9477GetPort7LinkState(NetInterface *interface)
+{
+   uint16_t value;
+   bool_t linkState;
+
+   //Read SGMII Status register
+   value = ksz9477ReadSgmiiReg(interface, KSZ9477_SGMII_STATUS);
+
+   //Check whether the SGMII link is up
+   if((value & KSZ9477_SGMII_STATUS_LINK_STATUS) != 0)
+   {
+      //Read SGMII Auto-Negotiation Status register
+      value = ksz9477ReadSgmiiReg(interface, KSZ9477_SGMII_AN_STATUS);
+
+      //Check the link status reported by the PHY-side device
+      if((value & KSZ9477_SGMII_AN_STATUS_LINK_STATUS) != 0)
+      {
+         //The link is up
+         linkState = TRUE;
+      }
+      else
+      {
+         //The link is down
+         linkState = FALSE;
+      }
+   }
+   else
+   {
+      //The SGMII link is down
+      linkState = FALSE;
+   }
+
+   //Return current link status
+   return linkState;
+}
+
+
+/**
+ * @brief Get port 7 link speed
+ * @param[in] interface Underlying network interface
+ * @return Link speed
+ **/
+
+__weak_func uint32_t ksz9477GetPort7LinkSpeed(NetInterface *interface)
+{
+   uint16_t value;
+   uint32_t linkSpeed;
+
+   //Read SGMII Auto-Negotiation Status register
+   value = ksz9477ReadSgmiiReg(interface, KSZ9477_SGMII_AN_STATUS);
+
+   //Retrieve current link speed
+   switch(value & KSZ9477_SGMII_AN_STATUS_LINK_SPEED)
+   {
+   //10 Mbps?
+   case KSZ9477_SGMII_AN_STATUS_LINK_SPEED_10MBPS:
+      linkSpeed = NIC_LINK_SPEED_10MBPS;
+      break;
+
+   //100 Mbps?
+   case KSZ9477_SGMII_AN_STATUS_LINK_SPEED_100MBPS:
+      linkSpeed = NIC_LINK_SPEED_100MBPS;
+      break;
+
+   //1000 Mbps?
+  case KSZ9477_SGMII_AN_STATUS_LINK_SPEED_1000MBPS:
+      linkSpeed = NIC_LINK_SPEED_1GBPS;
+      break;
+
+   //Unknown speed?
+   default:
+      linkSpeed = NIC_LINK_SPEED_UNKNOWN;
+      break;
+   }
+
+   //Read SGMII Control register
+   value = ksz9477ReadSgmiiReg(interface, KSZ9477_SGMII_CTRL);
+
+   //If the SGMII speed is variable or less than 1000 Mbps, software must
+   //update GMAC parameters when there is a change to the link speed (silicon
+   //errata workaround 8)
+   if(linkSpeed == NIC_LINK_SPEED_10MBPS)
+   {
+      value &= ~KSZ9477_SGMII_CTRL_SPEED_SEL_LSB;
+      value &= ~KSZ9477_SGMII_CTRL_SPEED_SEL_MSB;
+   }
+   else if(linkSpeed == NIC_LINK_SPEED_100MBPS)
+   {
+      value |= KSZ9477_SGMII_CTRL_SPEED_SEL_LSB;
+      value &= ~KSZ9477_SGMII_CTRL_SPEED_SEL_MSB;
+   }
+   else if(linkSpeed == NIC_LINK_SPEED_1GBPS)
+   {
+      value &= ~KSZ9477_SGMII_CTRL_SPEED_SEL_LSB;
+      value |= KSZ9477_SGMII_CTRL_SPEED_SEL_MSB;
+   }
+   else
+   {
+   }
+
+   //Write the modified value to the SGMII Control register
+   ksz9477WriteSgmiiReg(interface, KSZ9477_SGMII_CTRL, value);
+
+   //Return current link speed
+   return linkSpeed;
+}
+
+
+/**
+ * @brief Get port 7 duplex mode
+ * @param[in] interface Underlying network interface
+ * @return Duplex mode
+ **/
+
+__weak_func NicDuplexMode ksz9477GetPort7DuplexMode(NetInterface *interface)
+{
+   uint16_t value;
+   NicDuplexMode duplexMode;
+
+   //Read SGMII Auto-Negotiation Status register
+   value = ksz9477ReadSgmiiReg(interface, KSZ9477_SGMII_AN_STATUS);
+
+   //Retrieve current duplex mode
+   if((value & KSZ9477_SGMII_AN_STATUS_FULL_DUPLEX) != 0)
+   {
+      duplexMode = NIC_FULL_DUPLEX_MODE;
+   }
+   else
+   {
+      duplexMode = NIC_HALF_DUPLEX_MODE;
+   }
+
+   //Read SGMII Control register
+   value = ksz9477ReadSgmiiReg(interface, KSZ9477_SGMII_CTRL);
+
+   //Update GMAC duplex mode (silicon errata workaround 8)
+   if(duplexMode == NIC_FULL_DUPLEX_MODE)
+   {
+      value |= KSZ9477_SGMII_CTRL_DUPLEX_MODE;
+   }
+   else
+   {
+      value &= ~KSZ9477_SGMII_CTRL_DUPLEX_MODE;
+   }
+
+   //Write the modified value to the SGMII Control register
+   ksz9477WriteSgmiiReg(interface, KSZ9477_SGMII_CTRL, value);
+
+   //Return current duplex mode
    return duplexMode;
 }
 
@@ -780,7 +984,8 @@ void ksz9477SetPortState(NetInterface *interface, uint8_t port,
    uint8_t temp;
 
    //Check port number
-   if(port >= KSZ9477_PORT1 && port <= KSZ9477_PORT5)
+   if((port >= KSZ9477_PORT1 && port <= KSZ9477_PORT5) ||
+      port == KSZ9477_PORT7)
    {
       //Read MSTP state register
       temp = ksz9477ReadSwitchReg8(interface, KSZ9477_PORTn_MSTP_STATE(port));
@@ -836,7 +1041,8 @@ SwitchPortState ksz9477GetPortState(NetInterface *interface, uint8_t port)
    SwitchPortState state;
 
    //Check port number
-   if(port >= KSZ9477_PORT1 && port <= KSZ9477_PORT5)
+   if((port >= KSZ9477_PORT1 && port <= KSZ9477_PORT5) ||
+      port == KSZ9477_PORT7)
    {
       //Read MSTP state register
       temp = ksz9477ReadSwitchReg8(interface, KSZ9477_PORTn_MSTP_STATE(port));
@@ -1690,6 +1896,41 @@ uint16_t ksz9477ReadMmdReg(NetInterface *interface, uint8_t port,
 
    //Read the content of the MMD register
    return ksz9477ReadPhyReg(interface, port, KSZ9477_MMDAADR);
+}
+
+
+/**
+ * @brief Write SGMII register
+ * @param[in] interface Underlying network interface
+ * @param[in] address SGMII register address
+ * @param[in] data Register value
+ **/
+
+void ksz9477WriteSgmiiReg(NetInterface *interface, uint32_t address,
+   uint16_t data)
+{
+   //Write the SGMII register address to the Port SGMII Address register
+   ksz9477WriteSwitchReg32(interface, KSZ9477_PORT7_SGMII_ADDR, address);
+
+   //Write the SGMII register data to the Port SGMII Data register
+   ksz9477WriteSwitchReg16(interface, KSZ9477_PORT7_SGMII_DATA, data);
+}
+
+
+/**
+ * @brief Read SGMII register
+ * @param[in] interface Underlying network interface
+ * @param[in] address SGMII register address
+ * @return Register value
+ **/
+
+uint16_t ksz9477ReadSgmiiReg(NetInterface *interface, uint32_t address)
+{
+   //Write the SGMII register address to the Port SGMII Address register
+   ksz9477WriteSwitchReg32(interface, KSZ9477_PORT7_SGMII_ADDR, address);
+
+   //Read the SGMII register data from the Port SGMII Data register
+   return ksz9477ReadSwitchReg16(interface, KSZ9477_PORT7_SGMII_DATA);
 }
 
 

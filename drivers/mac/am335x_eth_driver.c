@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -1042,18 +1042,17 @@ void am335xEthRxIrqHandler(void)
       //Disable RX interrupts
       CPSW_WR_C_RX_EN_R(CPSW_CORE0) &= ~(1 << CPSW_CH0);
 
-      //Set event flag
+      //Notify the TCP/IP stack of the event
       if(nicDriverInterface1 != NULL)
       {
          nicDriverInterface1->nicEvent = TRUE;
+         flag |= osSetEventFromIsr(&nicDriverInterface1->netContext->event);
       }
       else if(nicDriverInterface2 != NULL)
       {
          nicDriverInterface2->nicEvent = TRUE;
+         flag |= osSetEventFromIsr(&nicDriverInterface2->netContext->event);
       }
-
-      //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
    }
 
    //Write the DMA end of interrupt vector

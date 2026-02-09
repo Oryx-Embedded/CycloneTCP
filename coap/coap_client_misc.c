@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -237,8 +237,8 @@ error_t coapClientProcessRequestEvents(CoapClientRequest *request)
          request->startTime = request->retransmitStartTime;
 
          //The initial timeout is set to a random duration
-         request->retransmitTimeout = netGetRandRange(COAP_CLIENT_ACK_TIMEOUT_MIN,
-            COAP_CLIENT_ACK_TIMEOUT_MAX);
+         request->retransmitTimeout = netGetRandRange(request->context->netContext,
+            COAP_CLIENT_ACK_TIMEOUT_MIN, COAP_CLIENT_ACK_TIMEOUT_MAX);
       }
       else
       {
@@ -787,7 +787,7 @@ void coapClientGenerateToken(CoapClientContext *context,
    CoapMessageHeader *header)
 {
    //Generate a random token
-   netGetRandData(header->token, header->tokenLen);
+   netGetRandData(context->netContext, header->token, header->tokenLen);
 }
 
 #endif

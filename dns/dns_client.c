@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -65,7 +65,7 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
 #endif
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Search the DNS cache for the specified host name
    entry = dnsFindEntry(interface, name, type, HOST_NAME_RESOLVER_DNS);
@@ -112,14 +112,14 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
       entry->dnsServerIndex = 0;
 
       //Get an ephemeral port number
-      entry->port = udpGetDynamicPort();
+      entry->port = udpGetDynamicPort(interface->netContext);
 
       //An identifier is used by the DNS client to match replies with
       //corresponding requests
-      entry->id = (uint16_t) netGenerateRand();
+      entry->id = (uint16_t) netGenerateRand(interface->netContext);
 
       //Callback function to be called when a DNS response is received
-      error = udpAttachRxCallback(interface, entry->port, dnsProcessResponse,
+      error = udpRegisterRxCallback(interface, entry->port, dnsProcessResponse,
          NULL);
 
       //Check status code
@@ -149,13 +149,13 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
          else
          {
             //Unregister UDP callback function
-            udpDetachRxCallback(interface, entry->port);
+            udpUnregisterRxCallback(interface, entry->port);
          }
       }
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Set default polling interval
@@ -168,7 +168,7 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
       osDelayTask(delay);
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
 
       //Search the DNS cache for the specified host name
       entry = dnsFindEntry(interface, name, type, HOST_NAME_RESOLVER_DNS);
@@ -203,7 +203,7 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
 
       //Backoff support for less aggressive polling
       delay = MIN(delay * 2, DNS_CACHE_MAX_POLLING_INTERVAL);
@@ -375,8 +375,8 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
    ancillary = NET_DEFAULT_TX_ANCILLARY;
 
    //Send DNS query message
-   error = udpSendBuffer(entry->interface, NULL, entry->port, &destIpAddr,
-      DNS_PORT, buffer, offset, &ancillary);
+   error = udpSendBuffer(entry->interface->netContext, entry->interface, NULL,
+      entry->port, &destIpAddr, DNS_PORT, buffer, offset, &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -545,7 +545,7 @@ void dnsProcessResponse(NetInterface *interface,
                      entry->timeout = MAX(entry->timeout, DNS_MIN_LIFETIME);
 
                      //Unregister UDP callback function
-                     udpDetachRxCallback(interface, entry->port);
+                     udpUnregisterRxCallback(interface, entry->port);
                      //Host name successfully resolved
                      entry->state = DNS_STATE_RESOLVED;
 
@@ -576,7 +576,7 @@ void dnsProcessResponse(NetInterface *interface,
                      entry->timeout = MAX(entry->timeout, DNS_MIN_LIFETIME);
 
                      //Unregister UDP callback function
-                     udpDetachRxCallback(interface, entry->port);
+                     udpUnregisterRxCallback(interface, entry->port);
                      //Host name successfully resolved
                      entry->state = DNS_STATE_RESOLVED;
 
@@ -605,6 +605,10 @@ void dnsProcessResponse(NetInterface *interface,
 void dnsSelectNextServer(DnsCacheEntry *entry)
 {
    error_t error;
+   NetInterface *interface;
+
+   //Point to the underlying network interface
+   interface = entry->interface;
 
 #if defined(DNS_SELECT_NEXT_SERVER_HOOK)
    DNS_SELECT_NEXT_SERVER_HOOK(entry);
@@ -615,7 +619,7 @@ void dnsSelectNextServer(DnsCacheEntry *entry)
 
    //An identifier is used by the DNS client to match replies with
    //corresponding requests
-   entry->id = (uint16_t) netGenerateRand();
+   entry->id = (uint16_t) netGenerateRand(interface->netContext);
 
    //Initialize retransmission counter
    entry->retransmitCount = DNS_CLIENT_MAX_RETRIES;
@@ -635,7 +639,7 @@ void dnsSelectNextServer(DnsCacheEntry *entry)
    else
    {
       //Unregister UDP callback function
-      udpDetachRxCallback(entry->interface, entry->port);
+      udpUnregisterRxCallback(interface, entry->port);
       //Host name resolution failed
       entry->state = DNS_STATE_FAILED;
    }

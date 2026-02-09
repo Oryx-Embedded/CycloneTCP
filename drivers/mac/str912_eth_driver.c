@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -447,7 +447,7 @@ void ENET_IRQHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Interrupt service routine epilogue
@@ -658,8 +658,8 @@ error_t str912EthUpdateMacAddrFilter(NetInterface *interface)
    ENET_MAC->MCHA = hashTable[1];
 
    //Debug message
-   TRACE_DEBUG("  ENET_MCLA = %08" PRIX32 "\r\n", ENET_MAC->MCLA);
-   TRACE_DEBUG("  ENET_MCHA = %08" PRIX32 "\r\n", ENET_MAC->MCHA);
+   TRACE_DEBUG("  ENET_MCLA = 0x%08" PRIX32 "\r\n", ENET_MAC->MCLA);
+   TRACE_DEBUG("  ENET_MCHA = 0x%08" PRIX32 "\r\n", ENET_MAC->MCHA);
 
    //Successful processing
    return NO_ERROR;

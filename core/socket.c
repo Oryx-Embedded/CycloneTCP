@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -79,10 +79,11 @@ const SocketMsg SOCKET_DEFAULT_MSG =
 
 /**
  * @brief Socket related initialization
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Error code
  **/
 
-error_t socketInit(void)
+error_t socketInit(NetContext *context)
 {
    uint_t i;
    uint_t j;
@@ -116,22 +117,42 @@ error_t socketInit(void)
 
 
 /**
- * @brief Create a socket (UDP or TCP)
- * @param[in] type Type specification for the new socket
+ * @brief Create a socket
+ * @param[in] type Type specification for the new socket (stream, datagram or raw)
  * @param[in] protocol Protocol to be used
  * @return Handle referencing the new socket
  **/
 
 Socket *socketOpen(uint_t type, uint_t protocol)
 {
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
+   //Allocate a new socket
+   return socketOpenEx(context, type, protocol);
+}
+
+
+/**
+ * @brief Create a socket
+ * @param[in] context Pointer to the TCP/IP stack context
+ * @param[in] type Type specification for the new socket (stream, datagram or raw)
+ * @param[in] protocol Protocol to be used
+ * @return Handle referencing the new socket
+ **/
+
+Socket *socketOpenEx(NetContext *context, uint_t type, uint_t protocol)
+{
    Socket *socket;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context);
    //Allocate a new socket
-   socket = socketAllocate(type, protocol);
+   socket = socketAllocate(context, type, protocol);
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context);
 
    //Return a handle to the freshly created socket
    return socket;
@@ -152,11 +173,11 @@ error_t socketSetTimeout(Socket *socket, systime_t timeout)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
    //Record timeout value
    socket->timeout = timeout;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -177,11 +198,11 @@ error_t socketSetTtl(Socket *socket, uint8_t ttl)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
    //Set TTL value
    socket->ttl = ttl;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -202,11 +223,11 @@ error_t socketSetMulticastTtl(Socket *socket, uint8_t ttl)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
    //Set TTL value
    socket->multicastTtl = ttl;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -231,11 +252,11 @@ error_t socketSetDscp(Socket *socket, uint8_t dscp)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
    //Set differentiated services codepoint
    socket->tos = (dscp << 2) & 0xFF;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -261,14 +282,14 @@ error_t socketSetVlanPcp(Socket *socket, uint8_t pcp)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //The PCP field specifies the frame priority level. Different PCP values
    //can be used to prioritize different classes of traffic
    socket->vlanPcp = pcp;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -294,14 +315,14 @@ error_t socketSetVlanDei(Socket *socket, bool_t dei)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //The DEI flag may be used to indicate frames eligible to be dropped in
    //the presence of congestion
    socket->vlanDei = dei;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -331,14 +352,14 @@ error_t socketSetVmanPcp(Socket *socket, uint8_t pcp)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //The PCP field specifies the frame priority level. Different PCP values
    //can be used to prioritize different classes of traffic
    socket->vmanPcp = pcp;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -364,14 +385,14 @@ error_t socketSetVmanDei(Socket *socket, bool_t dei)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //The DEI flag may be used to indicate frames eligible to be dropped in
    //the presence of congestion
    socket->vmanDei = dei;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -396,7 +417,7 @@ error_t socketEnableBroadcast(Socket *socket, bool_t enabled)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Check whether broadcast messages should be accepted
    if(enabled)
@@ -409,7 +430,7 @@ error_t socketEnableBroadcast(Socket *socket, bool_t enabled)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -448,7 +469,7 @@ error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr)
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Search the list of multicast groups for en existing entry
    group = socketFindMulticastGroupEntry(socket, groupAddr);
@@ -464,7 +485,7 @@ error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr)
    if(group != NULL)
    {
       //Update the multicast reception state of the interface
-      ipUpdateMulticastFilter(socket->interface, groupAddr);
+      ipUpdateMulticastFilter(socket->netContext, socket->interface, groupAddr);
    }
    else
    {
@@ -473,7 +494,7 @@ error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -516,7 +537,7 @@ error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr)
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Search the list of multicast groups for the specified address
    group = socketFindMulticastGroupEntry(socket, groupAddr);
@@ -528,7 +549,7 @@ error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr)
       socketDeleteMulticastGroupEntry(group);
 
       //Update the multicast reception state of the interface
-      ipUpdateMulticastFilter(socket->interface, groupAddr);
+      ipUpdateMulticastFilter(socket->netContext, socket->interface, groupAddr);
    }
    else
    {
@@ -537,7 +558,7 @@ error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -601,7 +622,7 @@ error_t socketSetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Search the list of multicast groups for the specified address
    group = socketFindMulticastGroupEntry(socket, groupAddr);
@@ -650,11 +671,11 @@ error_t socketSetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
    if(!error)
    {
       //Update the multicast reception state of the interface
-      ipUpdateMulticastFilter(socket->interface, groupAddr);
+      ipUpdateMulticastFilter(socket->netContext, socket->interface, groupAddr);
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -699,7 +720,7 @@ error_t socketGetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
       return ERROR_INVALID_ADDRESS;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Search the list of multicast groups for the specified address
    group = socketFindMulticastGroupEntry(socket, groupAddr);
@@ -731,7 +752,7 @@ error_t socketGetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -776,7 +797,7 @@ error_t socketAddMulticastSource(Socket *socket, const IpAddr *groupAddr,
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Search the list of multicast groups for en existing entry
    group = socketFindMulticastGroupEntry(socket, groupAddr);
@@ -814,11 +835,11 @@ error_t socketAddMulticastSource(Socket *socket, const IpAddr *groupAddr,
    if(!error)
    {
       //Update the multicast reception state of the interface
-      ipUpdateMulticastFilter(socket->interface, groupAddr);
+      ipUpdateMulticastFilter(socket->netContext, socket->interface, groupAddr);
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -863,7 +884,7 @@ error_t socketDropMulticastSource(Socket *socket, const IpAddr *groupAddr,
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Search the list of multicast groups for en existing entry
    group = socketFindMulticastGroupEntry(socket, groupAddr);
@@ -885,7 +906,8 @@ error_t socketDropMulticastSource(Socket *socket, const IpAddr *groupAddr,
          }
 
          //Update the multicast reception state of the interface
-         ipUpdateMulticastFilter(socket->interface, groupAddr);
+         ipUpdateMulticastFilter(socket->netContext, socket->interface,
+            groupAddr);
       }
    }
    else
@@ -895,7 +917,7 @@ error_t socketDropMulticastSource(Socket *socket, const IpAddr *groupAddr,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -940,7 +962,7 @@ error_t socketBlockMulticastSource(Socket *socket, const IpAddr *groupAddr,
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Search the list of multicast groups for en existing entry
    group = socketFindMulticastGroupEntry(socket, groupAddr);
@@ -978,11 +1000,11 @@ error_t socketBlockMulticastSource(Socket *socket, const IpAddr *groupAddr,
    if(!error)
    {
       //Update the multicast reception state of the interface
-      ipUpdateMulticastFilter(socket->interface, groupAddr);
+      ipUpdateMulticastFilter(socket->netContext, socket->interface, groupAddr);
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -1027,7 +1049,7 @@ error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
    error = NO_ERROR;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Search the list of multicast groups for en existing entry
    group = socketFindMulticastGroupEntry(socket, groupAddr);
@@ -1042,7 +1064,8 @@ error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
          socketRemoveMulticastSrcAddr(group, srcAddr);
 
          //Update the multicast reception state of the interface
-         ipUpdateMulticastFilter(socket->interface, groupAddr);
+         ipUpdateMulticastFilter(socket->netContext, socket->interface,
+            groupAddr);
       }
    }
    else
@@ -1052,7 +1075,7 @@ error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -1078,7 +1101,7 @@ error_t socketEnableKeepAlive(Socket *socket, bool_t enabled)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Check whether TCP keep-alive mechanism should be enabled
    if(enabled)
@@ -1097,7 +1120,7 @@ error_t socketEnableKeepAlive(Socket *socket, bool_t enabled)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -1130,7 +1153,7 @@ error_t socketSetKeepAliveParams(Socket *socket, systime_t idle,
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Time interval between last data packet sent and first keep-alive probe
    socket->keepAliveIdle = idle;
@@ -1143,7 +1166,7 @@ error_t socketSetKeepAliveParams(Socket *socket, systime_t idle,
    socket->keepAliveMaxProbes = maxProbes;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -1169,7 +1192,7 @@ error_t socketSetMaxSegmentSize(Socket *socket, size_t mss)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //TCP imposes its minimum and maximum bounds over the value provided
    mss = MIN(mss, TCP_MAX_MSS);
@@ -1181,7 +1204,7 @@ error_t socketSetMaxSegmentSize(Socket *socket, size_t mss)
    socket->mss = mss;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -1365,13 +1388,13 @@ error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr,
    if(socket->type == SOCKET_TYPE_STREAM)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //Establish TCP connection
       error = tcpConnect(socket, remoteIpAddr, remotePort);
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
    }
    else
 #endif
@@ -1429,13 +1452,13 @@ error_t socketListen(Socket *socket, uint_t backlog)
       return ERROR_INVALID_SOCKET;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Start listening for an incoming connection
    error = tcpListen(socket, backlog);
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -1525,7 +1548,7 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
 #if (TCP_SUPPORT == ENABLED)
    //Connection-oriented socket?
@@ -1625,7 +1648,7 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -1649,7 +1672,7 @@ error_t socketSendMsg(Socket *socket, const SocketMsg *message, uint_t flags)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
 #if (UDP_SUPPORT == ENABLED)
    //Connectionless socket?
@@ -1681,7 +1704,7 @@ error_t socketSendMsg(Socket *socket, const SocketMsg *message, uint_t flags)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -1756,7 +1779,7 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
 #if (TCP_SUPPORT == ENABLED)
    //Connection-oriented socket?
@@ -1885,7 +1908,7 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -1912,7 +1935,7 @@ error_t socketReceiveMsg(Socket *socket, SocketMsg *message, uint_t flags)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
 #if (UDP_SUPPORT == ENABLED)
    //Connectionless socket?
@@ -1944,7 +1967,7 @@ error_t socketReceiveMsg(Socket *socket, SocketMsg *message, uint_t flags)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -2047,13 +2070,13 @@ error_t socketShutdown(Socket *socket, uint_t how)
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Graceful shutdown
    error = tcpShutdown(socket, how);
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return status code
    return error;
@@ -2075,7 +2098,7 @@ void socketClose(Socket *socket)
       return;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
 #if (SOCKET_MAX_MULTICAST_GROUPS > 0)
    //Connectionless or raw socket?
@@ -2098,7 +2121,8 @@ void socketClose(Socket *socket)
             socket->multicastGroups[i].addr = IP_ADDR_UNSPECIFIED;
 
             //Update the multicast reception state of the interface
-            ipUpdateMulticastFilter(socket->interface, &groupAddr);
+            ipUpdateMulticastFilter(socket->netContext, socket->interface,
+               &groupAddr);
          }
       }
    }
@@ -2138,7 +2162,7 @@ void socketClose(Socket *socket)
 #endif
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 }
 
 
@@ -2316,7 +2340,7 @@ error_t getHostByName(NetInterface *interface, const char_t *name,
    //Use default network interface?
    if(interface == NULL)
    {
-      interface = netGetDefaultInterface();
+      interface = netGetDefaultInterface(NULL);
    }
 
    //The specified name can be either an IP or a host name

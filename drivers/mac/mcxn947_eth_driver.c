@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -281,25 +281,25 @@ __weak_func void mcxn947EthInitGpio(NetInterface *interface)
    portPinConfig.invertInput = kPORT_InputNormal;
    portPinConfig.lockRegister = kPORT_UnlockRegister;
 
-   //Configure PORT1_4 as ENET0_TX_CLK
+   //Configure ENET0_TX_CLK (P1_4)
    PORT_SetPinConfig(PORT1, 4, &portPinConfig);
-   //Configure PORT1_5 as ENET0_TXEN
+   //Configure ENET0_TXEN (P1_5)
    PORT_SetPinConfig(PORT1, 5, &portPinConfig);
-   //Configure PORT1_6 as ENET0_TXD0
+   //Configure ENET0_TXD0 (P1_6)
    PORT_SetPinConfig(PORT1, 6, &portPinConfig);
-   //Configure PORT1_7 as ENET0_TXD1
+   //Configure ENET0_TXD1 (P1_7)
    PORT_SetPinConfig(PORT1, 7, &portPinConfig);
 
-   //Configure PORT1_13 as ENET0_RXDV
+   //Configure ENET0_RXDV (P1_13)
    PORT_SetPinConfig(PORT1, 13, &portPinConfig);
-   //Configure PORT1_14 as ENET0_RXD0
+   //Configure ENET0_RXD0 (P1_14)
    PORT_SetPinConfig(PORT1, 14, &portPinConfig);
-   //Configure PORT1_15 as ENET0_RXD1
+   //Configure ENET0_RXD1 (P1_15)
    PORT_SetPinConfig(PORT1, 15, &portPinConfig);
 
-   //Configure PORT1_20 as ENET0_MDC
+   //Configure ENET0_MDC (P1_20)
    PORT_SetPinConfig(PORT1, 20, &portPinConfig);
-   //Configure PORT1_21 as ENET0_MDIO
+   //Configure ENET0_MDIO (P1_21)
    PORT_SetPinConfig(PORT1, 21, &portPinConfig);
 
    //Configure ENET_RST (P5_8) as an output
@@ -335,25 +335,25 @@ __weak_func void mcxn947EthInitGpio(NetInterface *interface)
    portPinConfig.invertInput = kPORT_InputNormal;
    portPinConfig.lockRegister = kPORT_UnlockRegister;
 
-   //Configure PORT1_4 as ENET0_TX_CLK
+   //Configure ENET0_TX_CLK (P1_4)
    PORT_SetPinConfig(PORT1, 4, &portPinConfig);
-   //Configure PORT1_5 as ENET0_TXEN
+   //Configure ENET0_TXEN (P1_5)
    PORT_SetPinConfig(PORT1, 5, &portPinConfig);
-   //Configure PORT1_6 as ENET0_TXD0
+   //Configure ENET0_TXD0 (P1_6)
    PORT_SetPinConfig(PORT1, 6, &portPinConfig);
-   //Configure PORT1_7 as ENET0_TXD1
+   //Configure ENET0_TXD1 (P1_7)
    PORT_SetPinConfig(PORT1, 7, &portPinConfig);
 
-   //Configure PORT1_13 as ENET0_RXDV
+   //Configure ENET0_RXDV (P1_13)
    PORT_SetPinConfig(PORT1, 13, &portPinConfig);
-   //Configure PORT1_14 as ENET0_RXD0
+   //Configure ENET0_RXD0 (P1_14)
    PORT_SetPinConfig(PORT1, 14, &portPinConfig);
-   //Configure PORT1_15 as ENET0_RXD1
+   //Configure ENET0_RXD1 (P1_15)
    PORT_SetPinConfig(PORT1, 15, &portPinConfig);
 
-   //Configure PORT1_20 as ENET0_MDC
+   //Configure ENET0_MDC (P1_20)
    PORT_SetPinConfig(PORT1, 20, &portPinConfig);
-   //Configure PORT1_21 as ENET0_MDIO
+   //Configure ENET0_MDIO (P1_21)
    PORT_SetPinConfig(PORT1, 21, &portPinConfig);
 #endif
 }
@@ -532,7 +532,7 @@ void ETHERNET_IRQHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Clear NIS interrupt flag

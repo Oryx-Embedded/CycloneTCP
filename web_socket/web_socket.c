@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -96,13 +96,17 @@ WebSocket *webSocketOpen(void)
 {
    error_t error;
    uint_t i;
+   NetContext *context;
    WebSocket *webSocket;
 
    //Initialize WebSocket handle
    webSocket = NULL;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context);
 
    //Loop through WebSocket descriptors
    for(i = 0; i < WEB_SOCKET_MAX_COUNT; i++)
@@ -139,7 +143,7 @@ WebSocket *webSocketOpen(void)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context);
 
    //Return a handle to the freshly created WebSocket
    return webSocket;
@@ -1471,21 +1475,23 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
 
 bool_t webSocketIsRxReady(WebSocket *webSocket)
 {
-   bool_t available = FALSE;
+   bool_t ready;
+
+   //Initialize flag
+   ready = FALSE;
 
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
    //Check whether a secure connection is being used
    if(webSocket->tlsContext != NULL)
    {
       //Check whether some data is pending in the receive buffer
-      if(webSocket->tlsContext->rxBufferLen > 0)
-         available = TRUE;
+      ready = tlsIsRxReady(webSocket->tlsContext);
    }
 #endif
 
-   //The function returns TRUE if some data can be read immediately
-   //without blocking
-   return available;
+   //The function returns TRUE if some data can be read immediately without
+   //blocking
+   return ready;
 }
 
 

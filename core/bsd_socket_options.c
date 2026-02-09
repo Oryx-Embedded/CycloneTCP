@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -63,7 +63,7 @@ int_t socketSetSoReuseAddrOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option specifies whether the socket can be bound to an address
       //which is already in use
@@ -77,7 +77,7 @@ int_t socketSetSoReuseAddrOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -360,7 +360,7 @@ int_t socketSetSoNoCheckOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option allows UDP checksum generation to be bypassed
       if(*optval != 0)
@@ -373,7 +373,7 @@ int_t socketSetSoNoCheckOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -389,6 +389,76 @@ int_t socketSetSoNoCheckOption(Socket *socket, const int_t *optval,
    socketSetErrnoCode(socket, ENOPROTOOPT);
    ret = SOCKET_ERROR;
 #endif
+
+   //Return status code
+   return ret;
+}
+
+
+/**
+ * @brief Set SO_BINDTODEVICE option
+ * @param[in] socket Handle referencing the socket
+ * @param[in] optval A pointer to the buffer in which the value for the
+ *   requested option is specified
+ * @param[in] optlen The size, in bytes, of the buffer pointed to by the optval
+ *   parameter
+ * @return Error code (SOCKET_SUCCESS or SOCKET_ERROR)
+ **/
+
+int_t socketSetSoBindToDeviceOption(Socket *socket, const char_t *optval,
+   socklen_t optlen)
+{
+   int_t ret;
+   uint_t i;
+   NetContext *context;
+
+   //Get exclusive access
+   netLock(socket->netContext);
+
+   //Check the length of the option
+   if(optlen >= 0)
+   {
+      //Point to the TCP/IP stack context
+      context = socket->netContext;
+
+      //Loop through network interfaces
+      for(i = 0; i < context->numInterfaces; i++)
+      {
+         //Compare interface names
+         if(osStrncmp(context->interfaces[i].name, optval, optlen) == 0)
+         {
+            break;
+         }
+      }
+
+      //Matching interface found?
+      if(i < context->numInterfaces)
+      {
+         //Bind this socket to a particular device
+         socket->interface = &context->interfaces[i];
+
+         //Successful processing
+         ret = SOCKET_SUCCESS;
+      }
+      else
+      {
+         //Report an error
+         socketSetErrnoCode(socket, EINVAL);
+         ret = SOCKET_ERROR;
+      }
+   }
+   else
+   {
+      //If the name is an empty string or the option size is zero, the socket
+      //device binding is removed
+      socket->interface = NULL;
+
+      //Successful processing
+      ret = SOCKET_SUCCESS;
+   }
+
+   //Release exclusive access
+   netUnlock(socket->netContext);
 
    //Return status code
    return ret;
@@ -581,7 +651,7 @@ int_t socketSetIpMulticastLoopOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //For a socket that has joined one or more multicast groups, this option
       //controls whether it will receive a copy of outgoing packets sent to
@@ -596,7 +666,7 @@ int_t socketSetIpMulticastLoopOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -1489,7 +1559,7 @@ int_t socketSetIpDontFragOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option can be used to set the "don't fragment" flag on IP packets
       if(*optval != 0)
@@ -1502,7 +1572,7 @@ int_t socketSetIpDontFragOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -1544,7 +1614,7 @@ int_t socketSetIpPktInfoOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option allows an application to enable or disable the return of
       //packet information
@@ -1558,7 +1628,7 @@ int_t socketSetIpPktInfoOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -1600,7 +1670,7 @@ int_t socketSetIpRecvTosOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option allows an application to enable or disable the return of
       //ToS header field on received datagrams
@@ -1614,7 +1684,7 @@ int_t socketSetIpRecvTosOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -1656,7 +1726,7 @@ int_t socketSetIpRecvTtlOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option allows an application to enable or disable the return of
       //TTL header field on received datagrams
@@ -1670,7 +1740,7 @@ int_t socketSetIpRecvTtlOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -1878,7 +1948,7 @@ int_t socketSetIpv6MulticastLoopOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //For a socket that has joined one or more multicast groups, this option
       //controls whether it will receive a copy of outgoing packets sent to
@@ -1893,7 +1963,7 @@ int_t socketSetIpv6MulticastLoopOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -2042,7 +2112,7 @@ int_t socketSetIpv6OnlyOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option indicates if a socket created for the AF_INET6 address
       //family is restricted to IPv6 communications only
@@ -2056,7 +2126,7 @@ int_t socketSetIpv6OnlyOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -2146,7 +2216,7 @@ int_t socketSetIpv6PktInfoOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option allows an application to enable or disable the return of
       //packet information
@@ -2160,7 +2230,7 @@ int_t socketSetIpv6PktInfoOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -2202,7 +2272,7 @@ int_t socketSetIpv6RecvTrafficClassOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option allows an application to enable or disable the return of
       //Traffic Class header field on received datagrams
@@ -2216,7 +2286,7 @@ int_t socketSetIpv6RecvTrafficClassOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -2258,7 +2328,7 @@ int_t socketSetIpv6RecvHopLimitOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //This option allows an application to enable or disable the return of
       //Hop Limit header field on received datagrams
@@ -2272,7 +2342,7 @@ int_t socketSetIpv6RecvHopLimitOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -2314,7 +2384,7 @@ int_t socketSetTcpNoDelayOption(Socket *socket, const int_t *optval,
    if(optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //The option enables or disables the Nagle algorithm for TCP sockets
       if(*optval != 0)
@@ -2327,7 +2397,7 @@ int_t socketSetTcpNoDelayOption(Socket *socket, const int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;
@@ -3898,7 +3968,7 @@ int_t socketGetTcpMaxSegOption(Socket *socket, int_t *optval,
    if(*optlen >= (socklen_t) sizeof(int_t))
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
 
       //Return the maximum segment size for outgoing TCP packets
       if(socket->state == TCP_STATE_CLOSED ||
@@ -3912,7 +3982,7 @@ int_t socketGetTcpMaxSegOption(Socket *socket, int_t *optval,
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
 
       //Successful processing
       ret = SOCKET_SUCCESS;

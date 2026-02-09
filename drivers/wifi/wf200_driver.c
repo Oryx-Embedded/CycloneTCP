@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -405,11 +405,11 @@ void wf200ConnectCallback(void)
       wf200StaInterface->linkState = TRUE;
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(wf200StaInterface->netContext);
       //Process link state change event
       nicNotifyLinkChange(wf200StaInterface);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(wf200StaInterface->netContext);
    }
 }
 
@@ -427,11 +427,11 @@ void wf200DisconnectCallback(void)
       wf200StaInterface->linkState = FALSE;
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(wf200StaInterface->netContext);
       //Process link state change event
       nicNotifyLinkChange(wf200StaInterface);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(wf200StaInterface->netContext);
    }
 }
 
@@ -449,11 +449,11 @@ void wf200StartApCallback(void)
       wf200ApInterface->linkState = TRUE;
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(wf200ApInterface->netContext);
       //Process link state change event
       nicNotifyLinkChange(wf200ApInterface);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(wf200ApInterface->netContext);
    }
 }
 
@@ -471,11 +471,11 @@ void wf200StopApCallback(void)
       wf200ApInterface->linkState = FALSE;
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(wf200ApInterface->netContext);
       //Process link state change event
       nicNotifyLinkChange(wf200ApInterface);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(wf200ApInterface->netContext);
    }
 }
 
@@ -505,7 +505,7 @@ void sl_wfx_host_received_frame_callback(sl_wfx_received_ind_t *ind)
    if(interface != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
 
       //Additional options can be passed to the stack along with the packet
       ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -515,6 +515,6 @@ void sl_wfx_host_received_frame_callback(sl_wfx_received_ind_t *ind)
          ind->body.frame_length, &ancillary);
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
 }

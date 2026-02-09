@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -69,6 +69,9 @@ error_t ftpClientInit(FtpClientContext *context)
 
    //Clear FTP client context
    osMemset(context, 0, sizeof(FtpClientContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = netGetDefaultContext();
 
 #if (FTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Initialize TLS session state

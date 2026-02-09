@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _TCP_MISC_H
@@ -53,8 +53,7 @@ error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
 
 const TcpOption *tcpGetOption(const TcpHeader *segment, uint8_t kind);
 
-uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
-   uint16_t localPort, const IpAddr *remoteIpAddr, uint16_t remotePort);
+uint32_t tcpGenerateInitialSeqNum(Socket *socket);
 
 error_t tcpCheckSeqNum(Socket *socket, const TcpHeader *segment, size_t length);
 error_t tcpCheckSyn(Socket *socket, const TcpHeader *segment, size_t length);

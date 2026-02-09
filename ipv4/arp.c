@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -27,10 +27,11 @@
  * @section Description
  *
  * Address Resolution Protocol is used to determine the hardware address of
- * a specific host when only its IPv4 address is known. Refer to RFC 826
+ * a specific host when only its IPv4 address is known. Refer to RFC 826 for
+ * more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -46,9 +47,6 @@
 
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED && ETH_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t arpTickCounter;
 
 
 /**
@@ -91,7 +89,7 @@ error_t arpEnable(NetInterface *interface, bool_t enable)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Enable or disable ARP protocol
    interface->enableArp = enable;
@@ -103,7 +101,7 @@ error_t arpEnable(NetInterface *interface, bool_t enable)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -128,7 +126,7 @@ error_t arpSetReachableTime(NetInterface *interface, systime_t reachableTime)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Save ARP reachable time
    interface->arpReachableTime = reachableTime;
@@ -151,7 +149,7 @@ error_t arpSetReachableTime(NetInterface *interface, systime_t reachableTime)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -176,7 +174,7 @@ error_t arpSetProbeTimout(NetInterface *interface, systime_t probeTimeout)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Save ARP probe timeout
    interface->arpProbeTimeout = probeTimeout;
@@ -199,7 +197,7 @@ error_t arpSetProbeTimout(NetInterface *interface, systime_t probeTimeout)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -225,7 +223,7 @@ error_t arpAddStaticEntry(NetInterface *interface, Ipv4Addr ipAddr,
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Search the ARP cache for the specified IPv4 address
    entry = arpFindEntry(interface, ipAddr);
@@ -273,7 +271,7 @@ error_t arpAddStaticEntry(NetInterface *interface, Ipv4Addr ipAddr,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -297,7 +295,7 @@ error_t arpRemoveStaticEntry(NetInterface *interface, Ipv4Addr ipAddr)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Search the ARP cache for the specified IPv4 address
    entry = arpFindEntry(interface, ipAddr);
@@ -317,7 +315,7 @@ error_t arpRemoveStaticEntry(NetInterface *interface, Ipv4Addr ipAddr)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -993,7 +991,8 @@ error_t arpSendRequest(NetInterface *interface, Ipv4Addr targetIpAddr,
    logicalInterface = nicGetLogicalInterface(interface);
 
    //Select the most appropriate sender IP address to be used
-   error = ipv4SelectSourceAddr(&interface, targetIpAddr, &senderIpAddr);
+   error = ipv4SelectSourceAddr(interface->netContext, &interface, targetIpAddr,
+      &senderIpAddr);
    //No address assigned to the interface?
    if(error)
       return error;

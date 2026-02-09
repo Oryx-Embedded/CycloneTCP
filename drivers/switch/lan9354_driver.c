@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -182,7 +182,7 @@ error_t lan9354Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->phyEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -214,13 +214,17 @@ __weak_func void lan9354Tick(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -236,7 +240,7 @@ __weak_func void lan9354Tick(NetInterface *interface)
                //Set event flag
                interface->phyEvent = TRUE;
                //Notify the TCP/IP stack of the event
-               osSetEvent(&netEvent);
+               osSetEvent(&interface->netContext->event);
             }
          }
       }
@@ -263,7 +267,7 @@ __weak_func void lan9354Tick(NetInterface *interface)
          //Set event flag
          interface->phyEvent = TRUE;
          //Notify the TCP/IP stack of the event
-         osSetEvent(&netEvent);
+         osSetEvent(&interface->netContext->event);
       }
    }
 }
@@ -305,13 +309,17 @@ __weak_func void lan9354EventHandler(NetInterface *interface)
    {
       uint_t i;
       uint16_t status;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface
@@ -475,7 +483,7 @@ error_t lan9354TagFrame(NetInterface *interface, NetBuffer *buffer,
          if(ancillary->port == 0)
          {
             //If VID bit 3 is one, then the normal ALR lookup is performed
-            vlanTag->tci = htons(LAN9354_VID_ALR_LOOKUP);
+            vlanTag->tci = HTONS(LAN9354_VID_ALR_LOOKUP);
          }
          else
          {
@@ -487,7 +495,7 @@ error_t lan9354TagFrame(NetInterface *interface, NetBuffer *buffer,
          //the payload
          vlanTag->type = header->type;
 
-         //A distinct Ethertype has been allocated for use in the TPID field
+         //A distinct EtherType has been allocated for use in the TPID field
          header->type = HTONS(ETH_TYPE_VLAN);
       }
       else
@@ -556,9 +564,6 @@ error_t lan9354UntagFrame(NetInterface *interface, uint8_t **frame,
          *frame += sizeof(VlanTag);
          //Retrieve the length of the original frame
          *length -= sizeof(VlanTag);
-
-         //Successful processing
-         error = NO_ERROR;
       }
       else
       {
@@ -656,7 +661,7 @@ uint32_t lan9354GetLinkSpeed(NetInterface *interface, uint8_t port)
       linkSpeed = NIC_LINK_SPEED_UNKNOWN;
    }
 
-   //Return link status
+   //Return link speed
    return linkSpeed;
 }
 

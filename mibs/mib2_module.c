@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * - RFC 1213: MIB for Network Management of TCP/IP-based internets (version 2)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -45,6 +45,7 @@
 #include "mibs/mib2_impl_sys.h"
 #include "mibs/mib2_impl_if.h"
 #include "mibs/mib2_impl_ip.h"
+#include "mibs/mib2_impl_icmp.h"
 #include "mibs/mib2_impl_tcp.h"
 #include "mibs/mib2_impl_udp.h"
 #include "core/crypto.h"
@@ -230,11 +231,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_UNIVERSAL,
       ASN1_TYPE_INTEGER,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ifGroup.ifNumber,
+      NULL,
       NULL,
       sizeof(int32_t),
       NULL,
-      NULL,
+      mib2GetIfNumber,
       NULL
    },
    //ifIndex object (1.3.6.1.2.1.2.2.1.1)
@@ -609,11 +610,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipInReceives,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpInReceives,
       NULL
    },
    //ipInHdrErrors object (1.3.6.1.2.1.4.4)
@@ -624,11 +625,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipInHdrErrors,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpInHdrErrors,
       NULL
    },
    //ipInAddrErrors object (1.3.6.1.2.1.4.5)
@@ -639,11 +640,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipInAddrErrors,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpInAddrErrors,
       NULL
    },
    //ipForwDatagrams object (1.3.6.1.2.1.4.6)
@@ -654,11 +655,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipForwDatagrams,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpForwDatagrams,
       NULL
    },
    //ipInUnknownProtos object (1.3.6.1.2.1.4.7)
@@ -669,11 +670,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipInUnknownProtos,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpInUnknownProtos,
       NULL
    },
    //ipInDiscards object (1.3.6.1.2.1.4.8)
@@ -684,11 +685,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipInDiscards,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpInDiscards,
       NULL
    },
    //ipInDelivers object (1.3.6.1.2.1.4.9)
@@ -699,11 +700,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipInDelivers,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpInDelivers,
       NULL
    },
    //ipOutRequests object (1.3.6.1.2.1.4.10)
@@ -714,11 +715,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipOutRequests,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpOutRequests,
       NULL
    },
    //ipOutDiscards object (1.3.6.1.2.1.4.11)
@@ -729,11 +730,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipOutDiscards,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpOutDiscards,
       NULL
    },
    //ipOutNoRoutes object (1.3.6.1.2.1.4.12)
@@ -744,11 +745,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipOutNoRoutes,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpOutNoRoutes,
       NULL
    },
    //ipReasmTimeout object (1.3.6.1.2.1.4.13)
@@ -774,11 +775,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipReasmReqds,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpReasmReqds,
       NULL
    },
    //ipReasmOKs object (1.3.6.1.2.1.4.15)
@@ -789,11 +790,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipReasmOKs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpReasmOKs,
       NULL
    },
    //ipReasmFails object (1.3.6.1.2.1.4.16)
@@ -804,11 +805,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipReasmFails,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpReasmFails,
       NULL
    },
    //ipFragOKs object (1.3.6.1.2.1.4.17)
@@ -819,11 +820,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipFragOKs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpFragOKs,
       NULL
    },
    //ipFragFails object (1.3.6.1.2.1.4.18)
@@ -834,11 +835,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipFragFails,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpFragFails,
       NULL
    },
    //ipFragCreates object (1.3.6.1.2.1.4.19)
@@ -849,11 +850,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.ipGroup.ipFragCreates,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIpFragCreates,
       NULL
    },
    //ipAdEntAddr object (1.3.6.1.2.1.4.20.1.1)
@@ -1016,11 +1017,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInMsgs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInMsgs,
       NULL
    },
    //icmpInErrors object (1.3.6.1.2.1.5.2)
@@ -1031,11 +1032,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInErrors,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInErrors,
       NULL
    },
    //icmpInDestUnreachs object (1.3.6.1.2.1.5.3)
@@ -1046,11 +1047,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInDestUnreachs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInDestUnreachs,
       NULL
    },
    //icmpInTimeExcds object (1.3.6.1.2.1.5.4)
@@ -1061,11 +1062,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInTimeExcds,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInTimeExcds,
       NULL
    },
    //icmpInParmProbs object (1.3.6.1.2.1.5.5)
@@ -1076,11 +1077,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInParmProbs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInParmProbs,
       NULL
    },
    //icmpInSrcQuenchs object (1.3.6.1.2.1.5.6)
@@ -1091,11 +1092,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInSrcQuenchs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInSrcQuenchs,
       NULL
    },
    //icmpInRedirects object (1.3.6.1.2.1.5.7)
@@ -1106,11 +1107,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInRedirects,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInRedirects,
       NULL
    },
    //icmpInEchos object (1.3.6.1.2.1.5.8)
@@ -1121,11 +1122,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInEchos,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInEchos,
       NULL
    },
    //icmpInEchoReps object (1.3.6.1.2.1.5.9)
@@ -1136,11 +1137,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInEchoReps,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInEchoReps,
       NULL
    },
    //icmpInTimestamps object (1.3.6.1.2.1.5.10)
@@ -1151,11 +1152,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInTimestamps,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInTimestamps,
       NULL
    },
    //icmpInTimestampReps object (1.3.6.1.2.1.5.11)
@@ -1166,11 +1167,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInTimestampReps,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInTimestampReps,
       NULL
    },
    //icmpInAddrMasks object (1.3.6.1.2.1.5.12)
@@ -1181,11 +1182,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInAddrMasks,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInAddrMasks,
       NULL
    },
    //icmpInAddrMaskReps object (1.3.6.1.2.1.5.13)
@@ -1196,11 +1197,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpInAddrMaskReps,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpInAddrMaskReps,
       NULL
    },
    //icmpOutMsgs object (1.3.6.1.2.1.5.14)
@@ -1211,11 +1212,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutMsgs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutMsgs,
       NULL
    },
    //icmpOutErrors object (1.3.6.1.2.1.5.15)
@@ -1226,11 +1227,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutErrors,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutErrors,
       NULL
    },
    //icmpOutDestUnreachs object (1.3.6.1.2.1.5.16)
@@ -1241,11 +1242,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutDestUnreachs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutDestUnreachs,
       NULL
    },
    //icmpOutTimeExcds object (1.3.6.1.2.1.5.17)
@@ -1256,11 +1257,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutTimeExcds,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutTimeExcds,
       NULL
    },
    //icmpOutParmProbs object (1.3.6.1.2.1.5.18)
@@ -1271,11 +1272,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutParmProbs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutParmProbs,
       NULL
    },
    //icmpOutSrcQuenchs object (1.3.6.1.2.1.5.19)
@@ -1286,11 +1287,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutSrcQuenchs,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutSrcQuenchs,
       NULL
    },
    //icmpOutRedirects object (1.3.6.1.2.1.5.20)
@@ -1301,11 +1302,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutRedirects,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutRedirects,
       NULL
    },
    //icmpOutEchos object (1.3.6.1.2.1.5.21)
@@ -1316,11 +1317,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutEchos,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutEchos,
       NULL
    },
    //icmpOutEchoReps object (1.3.6.1.2.1.5.22)
@@ -1331,11 +1332,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutEchoReps,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutEchoReps,
       NULL
    },
    //icmpOutTimestamps object (1.3.6.1.2.1.5.23)
@@ -1346,11 +1347,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutTimestamps,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutTimestamps,
       NULL
    },
    //icmpOutTimestampReps object (1.3.6.1.2.1.5.24)
@@ -1361,11 +1362,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutTimestampReps,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutTimestampReps,
       NULL
    },
    //icmpOutAddrMasks object (1.3.6.1.2.1.5.25)
@@ -1376,11 +1377,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutAddrMasks,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutAddrMasks,
       NULL
    },
    //icmpOutAddrMaskReps object (1.3.6.1.2.1.5.26)
@@ -1391,11 +1392,11 @@ const MibObject mib2Objects[] =
       ASN1_CLASS_APPLICATION,
       MIB_TYPE_COUNTER32,
       MIB_ACCESS_READ_ONLY,
-      &mib2Base.icmpGroup.icmpOutAddrMaskReps,
+      NULL,
       NULL,
       sizeof(uint32_t),
       NULL,
-      NULL,
+      mib2GetIcmpOutAddrMaskReps,
       NULL
    },
 #endif

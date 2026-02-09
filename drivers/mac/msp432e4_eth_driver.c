@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -212,24 +212,9 @@ error_t msp432e4EthInit(NetInterface *interface)
    //Use default MAC configuration
    EMAC0_CFG_R = EMAC_CFG_DRO;
 
-   //Set the MAC address of the station
-   EMAC0_ADDR0L_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   EMAC0_ADDR0H_R = interface->macAddr.w[2];
+   //Configure MAC address filtering
+   msp432e4EthUpdateMacAddrFilter(interface);
 
-   //The MAC supports 3 additional addresses for unicast perfect filtering
-   EMAC0_ADDR1L_R = 0;
-   EMAC0_ADDR1H_R = 0;
-   EMAC0_ADDR2L_R = 0;
-   EMAC0_ADDR2H_R = 0;
-   EMAC0_ADDR3L_R = 0;
-   EMAC0_ADDR3H_R = 0;
-
-   //Initialize hash table
-   EMAC0_HASHTBLL_R = 0;
-   EMAC0_HASHTBLH_R = 0;
-
-   //Configure the receive filter
-   EMAC0_FRAMEFLTR_R = EMAC_FRAMEFLTR_HPF | EMAC_FRAMEFLTR_HMC;
    //Disable flow control
    EMAC0_FLOWCTL_R = 0;
    //Enable store and forward mode
@@ -497,7 +482,7 @@ void msp432e4EthIrqHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Read DMA status register
@@ -526,7 +511,7 @@ void msp432e4EthIrqHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Clear NIS interrupt flag
@@ -794,103 +779,125 @@ error_t msp432e4EthUpdateMacAddrFilter(NetInterface *interface)
    //Debug message
    TRACE_DEBUG("Updating MAC filter...\r\n");
 
-   //Set the MAC address of the station
-   EMAC0_ADDR0L_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
-   EMAC0_ADDR0H_R = interface->macAddr.w[2];
-
-   //The MAC supports 3 additional addresses for unicast perfect filtering
-   unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
-   unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
-   unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
-
-   //The hash table is used for multicast address filtering
-   hashTable[0] = 0;
-   hashTable[1] = 0;
-
-   //The MAC address filter contains the list of MAC addresses to accept
-   //when receiving an Ethernet frame
-   for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
+   //Promiscuous mode?
+   if(interface->promiscuous)
    {
-      //Point to the current entry
-      entry = &interface->macAddrFilter[i];
+      //Pass all incoming frames regardless of their destination address
+      EMAC0_FRAMEFLTR_R = EMAC_FRAMEFLTR_PR;
+   }
+   else
+   {
+      //Set the MAC address of the station
+      EMAC0_ADDR0L_R = interface->macAddr.w[0] | (interface->macAddr.w[1] << 16);
+      EMAC0_ADDR0H_R = interface->macAddr.w[2];
 
-      //Valid entry?
-      if(entry->refCount > 0)
+      //The MAC supports 3 additional addresses for unicast perfect filtering
+      unicastMacAddr[0] = MAC_UNSPECIFIED_ADDR;
+      unicastMacAddr[1] = MAC_UNSPECIFIED_ADDR;
+      unicastMacAddr[2] = MAC_UNSPECIFIED_ADDR;
+
+      //The hash table is used for multicast address filtering
+      hashTable[0] = 0;
+      hashTable[1] = 0;
+
+      //The MAC address filter contains the list of MAC addresses to accept
+      //when receiving an Ethernet frame
+      for(i = 0, j = 0; i < MAC_ADDR_FILTER_SIZE; i++)
       {
-         //Multicast address?
-         if(macIsMulticastAddr(&entry->addr))
-         {
-            //Compute CRC over the current MAC address
-            crc = msp432e4EthCalcCrc(&entry->addr, sizeof(MacAddr));
+         //Point to the current entry
+         entry = &interface->macAddrFilter[i];
 
-            //The upper 6 bits in the CRC register are used to index the
-            //contents of the hash table
-            k = (crc >> 26) & 0x3F;
-
-            //Update hash table contents
-            hashTable[k / 32] |= (1 << (k % 32));
-         }
-         else
+         //Valid entry?
+         if(entry->refCount > 0)
          {
-            //Up to 3 additional MAC addresses can be specified
-            if(j < 3)
+            //Multicast address?
+            if(macIsMulticastAddr(&entry->addr))
             {
-               //Save the unicast address
-               unicastMacAddr[j++] = entry->addr;
+               //Compute CRC over the current MAC address
+               crc = msp432e4EthCalcCrc(&entry->addr, sizeof(MacAddr));
+
+               //The upper 6 bits in the CRC register are used to index the
+               //contents of the hash table
+               k = (crc >> 26) & 0x3F;
+
+               //Update hash table contents
+               hashTable[k / 32] |= (1 << (k % 32));
+            }
+            else
+            {
+               //Up to 3 additional MAC addresses can be specified
+               if(j < 3)
+               {
+                  //Save the unicast address
+                  unicastMacAddr[j++] = entry->addr;
+               }
             }
          }
       }
-   }
 
-   //Configure the first unicast address filter
-   if(j >= 1)
-   {
-      //When the AE bit is set, the entry is used for perfect filtering
-      EMAC0_ADDR1L_R = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
-      EMAC0_ADDR1H_R = unicastMacAddr[0].w[2] | EMAC_ADDR1H_AE;
-   }
-   else
-   {
-      //When the AE bit is cleared, the entry is ignored
-      EMAC0_ADDR1L_R = 0;
-      EMAC0_ADDR1H_R = 0;
-   }
+      //Configure the first unicast address filter
+      if(j >= 1)
+      {
+         //When the AE bit is set, the entry is used for perfect filtering
+         EMAC0_ADDR1L_R = unicastMacAddr[0].w[0] | (unicastMacAddr[0].w[1] << 16);
+         EMAC0_ADDR1H_R = unicastMacAddr[0].w[2] | EMAC_ADDR1H_AE;
+      }
+      else
+      {
+         //When the AE bit is cleared, the entry is ignored
+         EMAC0_ADDR1L_R = 0;
+         EMAC0_ADDR1H_R = 0;
+      }
 
-   //Configure the second unicast address filter
-   if(j >= 2)
-   {
-      //When the AE bit is set, the entry is used for perfect filtering
-      EMAC0_ADDR2L_R = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
-      EMAC0_ADDR2H_R = unicastMacAddr[1].w[2] | EMAC_ADDR2H_AE;
-   }
-   else
-   {
-      //When the AE bit is cleared, the entry is ignored
-      EMAC0_ADDR2L_R = 0;
-      EMAC0_ADDR2H_R = 0;
-   }
+      //Configure the second unicast address filter
+      if(j >= 2)
+      {
+         //When the AE bit is set, the entry is used for perfect filtering
+         EMAC0_ADDR2L_R = unicastMacAddr[1].w[0] | (unicastMacAddr[1].w[1] << 16);
+         EMAC0_ADDR2H_R = unicastMacAddr[1].w[2] | EMAC_ADDR2H_AE;
+      }
+      else
+      {
+         //When the AE bit is cleared, the entry is ignored
+         EMAC0_ADDR2L_R = 0;
+         EMAC0_ADDR2H_R = 0;
+      }
 
-   //Configure the third unicast address filter
-   if(j >= 3)
-   {
-      //When the AE bit is set, the entry is used for perfect filtering
-      EMAC0_ADDR3L_R = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
-      EMAC0_ADDR3H_R = unicastMacAddr[2].w[2] | EMAC_ADDR3H_AE;
-   }
-   else
-   {
-      //When the AE bit is cleared, the entry is ignored
-      EMAC0_ADDR3L_R = 0;
-      EMAC0_ADDR3H_R = 0;
-   }
+      //Configure the third unicast address filter
+      if(j >= 3)
+      {
+         //When the AE bit is set, the entry is used for perfect filtering
+         EMAC0_ADDR3L_R = unicastMacAddr[2].w[0] | (unicastMacAddr[2].w[1] << 16);
+         EMAC0_ADDR3H_R = unicastMacAddr[2].w[2] | EMAC_ADDR3H_AE;
+      }
+      else
+      {
+         //When the AE bit is cleared, the entry is ignored
+         EMAC0_ADDR3L_R = 0;
+         EMAC0_ADDR3H_R = 0;
+      }
 
-   //Configure the multicast hash table
-   EMAC0_HASHTBLL_R = hashTable[0];
-   EMAC0_HASHTBLH_R = hashTable[1];
+      //Check whether frames with a multicast destination address should be
+      //accepted
+      if(interface->acceptAllMulticast)
+      {
+         //Configure the receive filter
+         EMAC0_FRAMEFLTR_R = EMAC_FRAMEFLTR_HPF | EMAC_FRAMEFLTR_PM;
+      }
+      else
+      {
+         //Configure the receive filter
+         EMAC0_FRAMEFLTR_R = EMAC_FRAMEFLTR_HPF | EMAC_FRAMEFLTR_HMC;
 
-   //Debug message
-   TRACE_DEBUG("  HASHTBLL = %08" PRIX32 "\r\n", EMAC0_HASHTBLL_R);
-   TRACE_DEBUG("  HASHTBLH = %08" PRIX32 "\r\n", EMAC0_HASHTBLH_R);
+         //Configure the multicast hash table
+         EMAC0_HASHTBLL_R = hashTable[0];
+         EMAC0_HASHTBLH_R = hashTable[1];
+
+         //Debug message
+         TRACE_DEBUG("  HASHTBLL = 0x%08" PRIX32 "\r\n", EMAC0_HASHTBLL_R);
+         TRACE_DEBUG("  HASHTBLH = 0x%08" PRIX32 "\r\n", EMAC0_HASHTBLH_R);
+      }
+   }
 
    //Successful processing
    return NO_ERROR;

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -63,7 +63,7 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
 #endif
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Search the DNS cache for the specified host name
    entry = dnsFindEntry(interface, name, HOST_TYPE_IPV4,
@@ -131,7 +131,7 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Set default polling interval
@@ -144,7 +144,7 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
       osDelayTask(delay);
 
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
 
       //Search the DNS cache for the specified host name
       entry = dnsFindEntry(interface, name, HOST_TYPE_IPV4,
@@ -180,7 +180,7 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
 
       //Backoff support for less aggressive polling
       delay = MIN(delay * 2, DNS_CACHE_MAX_POLLING_INTERVAL);
@@ -285,8 +285,8 @@ error_t nbnsSendQuery(DnsCacheEntry *entry)
       ancillary = NET_DEFAULT_TX_ANCILLARY;
 
       //A request packet is always sent to the well known port 137
-      error = udpSendBuffer(entry->interface, NULL, NBNS_PORT, &destIpAddr,
-         NBNS_PORT, buffer, offset, &ancillary);
+      error = udpSendBuffer(entry->interface->netContext, entry->interface,
+         NULL, NBNS_PORT, &destIpAddr, NBNS_PORT, buffer, offset, &ancillary);
    }
 
    //Free previously allocated memory

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -730,15 +730,11 @@ const TcpOption *tcpGetOption(const TcpHeader *segment, uint8_t kind)
 
 /**
  * @brief Initial sequence number generation
- * @param[in] localIpAddr Local IP address
- * @param[in] localPort Local port
- * @param[in] remoteIpAddr Remote IP address
- * @param[in] remotePort Remote port
+ * @param[in] socket Handle referencing the current socket
  * @return Value of the initial sequence number
  **/
 
-uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
-   uint16_t localPort, const IpAddr *remoteIpAddr, uint16_t remotePort)
+uint32_t tcpGenerateInitialSeqNum(Socket *socket)
 {
 #if (TCP_SECURE_ISN_SUPPORT == ENABLED)
    uint32_t isn;
@@ -747,11 +743,11 @@ uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
 
    //Generate the initial sequence number as per RFC 6528
    md5Init(&md5Context);
-   md5Update(&md5Context, localIpAddr, sizeof(IpAddr));
-   md5Update(&md5Context, &localPort, sizeof(uint16_t));
-   md5Update(&md5Context, remoteIpAddr, sizeof(IpAddr));
-   md5Update(&md5Context, &remotePort, sizeof(uint16_t));
-   md5Update(&md5Context, netContext.randSeed, NET_RAND_SEED_SIZE);
+   md5Update(&md5Context, &socket->localIpAddr, sizeof(IpAddr));
+   md5Update(&md5Context, &socket->localPort, sizeof(uint16_t));
+   md5Update(&md5Context, &socket->remoteIpAddr, sizeof(IpAddr));
+   md5Update(&md5Context, &socket->remotePort, sizeof(uint16_t));
+   md5Update(&md5Context, socket->netContext->randSeed, NET_RAND_SEED_SIZE);
    md5Final(&md5Context, digest);
 
    //Extract the first 32 bits from the digest value
@@ -761,7 +757,7 @@ uint32_t tcpGenerateInitialSeqNum(const IpAddr *localIpAddr,
    return isn + netGetSystemTickCount();
 #else
    //Generate a random initial sequence number
-   return netGenerateRand();
+   return netGenerateRand(socket->netContext);
 #endif
 }
 
@@ -2338,11 +2334,11 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
       osResetEvent(&socket->event);
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(socket->netContext);
       //Wait until an event is triggered
       osWaitForEvent(&socket->event, timeout);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(socket->netContext);
    }
 
    //Return the list of TCP events that satisfied the wait

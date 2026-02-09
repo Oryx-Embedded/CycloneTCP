@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _DHCPV6_RELAY_H
@@ -37,7 +37,7 @@
 
 //DHCPv6 relay agent support
 #ifndef DHCPV6_RELAY_SUPPORT
-   #define DHCPV6_RELAY_SUPPORT ENABLED
+   #define DHCPV6_RELAY_SUPPORT DISABLED
 #elif (DHCPV6_RELAY_SUPPORT != ENABLED && DHCPV6_RELAY_SUPPORT != DISABLED)
    #error DHCPV6_RELAY_SUPPORT parameter is not valid
 #endif
@@ -55,14 +55,15 @@
 #endif
 
 //Maximum number of client-facing interfaces
-#ifndef DHCPV6_RELAY_MAX_CLIENT_IF
-   #define DHCPV6_RELAY_MAX_CLIENT_IF 4
-#elif (DHCPV6_RELAY_MAX_CLIENT_IF < 1)
-   #error DHCPV6_RELAY_MAX_CLIENT_IF parameter is not valid
+#ifndef DHCPV6_RELAY_MAX_CLIENT_INTERFACES
+   #define DHCPV6_RELAY_MAX_CLIENT_INTERFACES 8
+#elif (DHCPV6_RELAY_MAX_CLIENT_INTERFACES < 1)
+   #error DHCPV6_RELAY_MAX_CLIENT_INTERFACES parameter is not valid
 #endif
 
 //The amount of overhead added by relay forwarding
-#define DHCPV6_RELAY_FORW_OVERHEAD (sizeof(Dhcpv6RelayMessage) + 2 * sizeof(Dhcpv6Option) + sizeof(uint32_t))
+#define DHCPV6_RELAY_FORWARDING_OVERHEAD (sizeof(Dhcpv6RelayMessage) + \
+   2 * sizeof(Dhcpv6Option) + sizeof(uint32_t))
 
 //C++ guard
 #ifdef __cplusplus
@@ -76,11 +77,11 @@ extern "C" {
 
 typedef struct
 {
-   OsTaskParameters task;                                     ///<Task parameters
-   NetInterface *serverInterface;                             ///<Network-facing interface
-   NetInterface *clientInterface[DHCPV6_RELAY_MAX_CLIENT_IF]; ///<Client-facing interfaces
-   uint_t clientInterfaceCount;                               ///<Number of client-facing interfaces
-   Ipv6Addr serverAddress;                                    ///<Address to be used when relaying messages to the server
+   OsTaskParameters task;                                              ///<Task parameters
+   NetInterface *serverInterface;                                      ///<Network-facing interface
+   uint_t numClientInterfaces;                                         ///<Number of client-facing interfaces
+   NetInterface *clientInterfaces[DHCPV6_RELAY_MAX_CLIENT_INTERFACES]; ///<Client-facing interfaces
+   Ipv6Addr serverIpAddr;                                              ///<Address to be used when relaying messages to the server
 } Dhcpv6RelaySettings;
 
 
@@ -90,34 +91,35 @@ typedef struct
 
 typedef struct
 {
-   NetInterface *serverInterface;                             ///<Network-facing interface
-   NetInterface *clientInterface[DHCPV6_RELAY_MAX_CLIENT_IF]; ///<Client-facing interfaces
-   uint_t clientInterfaceCount;                               ///<Number of client-facing interfaces
-   Ipv6Addr serverAddress;                                    ///<Address to be used when relaying messages to the server
-   Socket *serverSocket;                                      ///<Socket that handles the network-facing interface
-   Socket *clientSocket[DHCPV6_RELAY_MAX_CLIENT_IF];          ///<Sockets that handle client-facing interfaces
-   SocketEventDesc eventDesc[DHCPV6_RELAY_MAX_CLIENT_IF];     ///<The events the application is interested in
-   bool_t running;                                            ///<DHCPv6 relay agent is currently running or not?
-   bool_t stopRequest;                                        ///<Stop request
-   OsEvent ackEvent;                                          ///<Event object use to acknowledge user requests
-   OsEvent event;                                             ///<Event object used to poll the sockets
-   OsTaskParameters taskParams;                               ///<Task parameters
-   OsTaskId taskId;                                           ///<Task identifier
-   uint8_t buffer[DHCPV6_MAX_MSG_SIZE];                       ///<Scratch buffer to store DHCPv6 messages
+   NetContext *netContext;                                             ///<TCP/IP stack context
+   NetInterface *serverInterface;                                      ///<Network-facing interface
+   uint_t numClientInterfaces;                                         ///<Number of client-facing interfaces
+   NetInterface *clientInterfaces[DHCPV6_RELAY_MAX_CLIENT_INTERFACES]; ///<Client-facing interfaces
+   Ipv6Addr serverIpAddr;                                              ///<Address to be used when relaying messages to the server
+   Socket *serverSocket;                                               ///<Socket that handles the network-facing interface
+   Socket *clientSockets[DHCPV6_RELAY_MAX_CLIENT_INTERFACES];          ///<Sockets that handle client-facing interfaces
+   SocketEventDesc eventDesc[DHCPV6_RELAY_MAX_CLIENT_INTERFACES];      ///<The events the application is interested in
+   bool_t running;                                                     ///<Operational state of the DHCPv6 relay agent
+   bool_t stop;                                                        ///<Stop request
+   OsEvent event;                                                      ///<Event object used to poll the sockets
+   OsTaskParameters taskParams;                                        ///<Task parameters
+   OsTaskId taskId;                                                    ///<Task identifier
+   uint8_t buffer[DHCPV6_MAX_MSG_SIZE];                                ///<Scratch buffer to store DHCPv6 messages
 } Dhcpv6RelayContext;
 
 
-//DHCPv6 relay agent specific functions
-error_t dhcpv6RelayStart(Dhcpv6RelayContext *context, const Dhcpv6RelaySettings *settings);
+//DHCPv6 relay agent related functions
+void dhcpv6RelayGetDefaultSettings(Dhcpv6RelaySettings *settings);
+
+error_t dhcpv6RelayInit(Dhcpv6RelayContext *context,
+   const Dhcpv6RelaySettings *settings);
+
+error_t dhcpv6RelayStart(Dhcpv6RelayContext *context);
 error_t dhcpv6RelayStop(Dhcpv6RelayContext *context);
 
-error_t dhcpv6RelayJoinMulticastGroup(Dhcpv6RelayContext *context);
-error_t dhcpv6RelayLeaveMulticastGroup(Dhcpv6RelayContext *context);
+void dhcpv6RelayTask(Dhcpv6RelayContext *context);
 
-void dhcpv6RelayTask(void *param);
-
-error_t dhcpv6ForwardClientMessage(Dhcpv6RelayContext *context, uint_t index);
-error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context);
+void dhcpv6RelayDeinit(Dhcpv6RelayContext *context);
 
 //C++ guard
 #ifdef __cplusplus

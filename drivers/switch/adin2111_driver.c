@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -63,7 +63,7 @@ const NicDriver adin2111Driver =
 
 
 /**
- * @brief ADIN2111 controller initialization
+ * @brief ADIN2111 Ethernet switch initialization
  * @param[in] interface Underlying network interface
  * @return Error code
  **/
@@ -74,7 +74,7 @@ error_t adin2111Init(NetInterface *interface)
    uint32_t value;
 
    //Debug message
-   TRACE_INFO("Initializing ADIN2111 Ethernet controller...\r\n");
+   TRACE_INFO("Initializing ADIN2111...\r\n");
 
    //Initialize SPI interface
    interface->spiDriver->init();
@@ -213,7 +213,7 @@ error_t adin2111Init(NetInterface *interface)
    //Force the TCP/IP stack to poll the link state at startup
    interface->nicEvent = TRUE;
    //Notify the TCP/IP stack of the event
-   osSetEvent(&netEvent);
+   osSetEvent(&interface->netContext->event);
 
    //Successful initialization
    return NO_ERROR;
@@ -309,7 +309,7 @@ bool_t adin2111IrqHandler(NetInterface *interface)
       //Set event flag
       interface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&interface->netContext->event);
    }
 
    //PHY interrupt on port 2?
@@ -321,7 +321,7 @@ bool_t adin2111IrqHandler(NetInterface *interface)
       //Set event flag
       interface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&interface->netContext->event);
    }
 
    //Packet received on port1?
@@ -333,7 +333,7 @@ bool_t adin2111IrqHandler(NetInterface *interface)
       //Set event flag
       interface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&interface->netContext->event);
    }
 
    //Packet received on port2?
@@ -345,7 +345,7 @@ bool_t adin2111IrqHandler(NetInterface *interface)
       //Set event flag
       interface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&interface->netContext->event);
    }
 
    //Packet transmission complete?
@@ -486,13 +486,17 @@ void adin2111LinkChangeEventHandler(NetInterface *interface)
    if(interface->port != 0)
    {
       uint_t i;
+      NetContext *context;
       NetInterface *virtualInterface;
 
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         virtualInterface = &netInterface[i];
+         virtualInterface = &context->interfaces[i];
 
          //Check whether the current virtual interface is attached to the
          //physical interface

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -99,11 +99,10 @@ void modbusServerAcceptConnection(ModbusServerContext *context)
          connection->timestamp = osGetSystemTime();
 
          //Any registered callback?
-         if(context->settings.openCallback != NULL)
+         if(context->openCallback != NULL)
          {
             //Invoke callback function
-            error = context->settings.openCallback(connection, clientIpAddr,
-               clientPort);
+            error = context->openCallback(connection, clientIpAddr, clientPort);
          }
          else
          {
@@ -116,7 +115,7 @@ void modbusServerAcceptConnection(ModbusServerContext *context)
          {
 #if (MODBUS_SERVER_TLS_SUPPORT == ENABLED)
             //TLS-secured connection?
-            if(context->settings.tlsInitCallback != NULL)
+            if(context->tlsInitCallback != NULL)
             {
                //TLS initialization
                error = modbusServerOpenSecureConnection(context, connection);
@@ -260,10 +259,10 @@ void modbusServerCloseConnection(ModbusClientConnection *connection)
    }
 
    //Any registered callback?
-   if(context->settings.closeCallback != NULL)
+   if(context->closeCallback != NULL)
    {
       //Invoke callback function
-      context->settings.closeCallback(connection);
+      context->closeCallback(connection);
    }
 
    //Mark the connection as closed

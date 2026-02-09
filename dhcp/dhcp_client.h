@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _DHCP_CLIENT_H
@@ -234,23 +234,33 @@ typedef struct
 
 struct _DhcpClientContext
 {
-   DhcpClientSettings settings; ///<DHCP client settings
-   bool_t running;              ///<This flag tells whether the DHCP client is running or not
-   DhcpState state;             ///<Current state of the FSM
-   bool_t timeoutEventDone;     ///<Timeout callback function has been called
-   systime_t timestamp;         ///<Timestamp to manage retransmissions
-   systime_t timeout;           ///<Timeout value
-   systime_t retransmitTimeout; ///<Retransmission timeout
-   uint_t retransmitCount;      ///<Retransmission counter
-   Ipv4Addr serverIpAddr;       ///<DHCP server IPv4 address
-   Ipv4Addr requestedIpAddr;    ///<Requested IPv4 address
-   uint32_t transactionId;      ///<Value to match requests with replies
-   systime_t configStartTime;   ///<Address acquisition or renewal process start time
-   systime_t leaseStartTime;    ///<Lease start time
-   uint32_t leaseTime;          ///<Lease time
-   uint32_t t1;                 ///<Time at which the client enters the RENEWING state
-   uint32_t t2;                 ///<Time at which the client enters the REBINDING state
-   DHCP_CLIENT_PRIVATE_CONTEXT  ///<Application specific context
+   NetContext *netContext;                              ///<TCP/IP stack context
+   NetInterface *interface;                             ///<Network interface to configure
+   uint_t ipAddrIndex;                                  ///<Index of the IP address to be configured
+   bool_t rapidCommit;                                  ///<Quick configuration using rapid commit
+   bool_t manualDnsConfig;                              ///<Force manual DNS configuration
+   systime_t configTimeout;                             ///<DHCP configuration timeout
+   DhcpClientTimeoutCallback timeoutEvent;              ///<DHCP configuration timeout event
+   DhcpClientLinkChangeCallback linkChangeEvent;        ///<Link state change event
+   DhcpClientStateChangeCallback stateChangeEvent;      ///<FSM state change event
+   DhcpClientAddOptionsCallback addOptionsCallback;     ///<Add DHCP options callback
+   DhcpClientParseOptionsCallback parseOptionsCallback; ///<Parse DHCP options callback
+   bool_t running;                                      ///<Operational state of the DHCP client
+   DhcpState state;                                     ///<Current state of the FSM
+   bool_t timeoutEventDone;                             ///<Timeout callback function has been called
+   systime_t timestamp;                                 ///<Timestamp to manage retransmissions
+   systime_t timeout;                                   ///<Timeout value
+   systime_t retransmitTimeout;                         ///<Retransmission timeout
+   uint_t retransmitCount;                              ///<Retransmission counter
+   Ipv4Addr serverIpAddr;                               ///<DHCP server IPv4 address
+   Ipv4Addr requestedIpAddr;                            ///<Requested IPv4 address
+   uint32_t transactionId;                              ///<Value to match requests with replies
+   systime_t configStartTime;                           ///<Address acquisition or renewal process start time
+   systime_t leaseStartTime;                            ///<Lease start time
+   uint32_t leaseTime;                                  ///<Lease time
+   uint32_t t1;                                         ///<Time at which the client enters the RENEWING state
+   uint32_t t2;                                         ///<Time at which the client enters the REBINDING state
+   DHCP_CLIENT_PRIVATE_CONTEXT                          ///<Application specific context
 };
 
 
@@ -265,6 +275,8 @@ error_t dhcpClientStop(DhcpClientContext *context);
 
 error_t dhcpClientRelease(DhcpClientContext *context);
 DhcpState dhcpClientGetState(DhcpClientContext *context);
+
+void dhcpClientDeinit(DhcpClientContext *context);
 
 //C++ guard
 #ifdef __cplusplus

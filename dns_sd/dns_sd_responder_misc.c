@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -70,11 +70,11 @@ void dnsSdResponderChangeState(DnsSdResponderService *service,
    if(context->stateChangeEvent != NULL)
    {
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
       context->stateChangeEvent(service, context->interface, newState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
@@ -874,12 +874,27 @@ error_t dnsSdResponderFormatServiceEnumPtrRecord(NetInterface *interface,
    size_t n;
    size_t offset;
    bool_t duplicate;
+   uint8_t *p;
    DnsResourceRecord *record;
+
+   //Set the position to the end of the buffer
+   p = (uint8_t *) message->dnsHeader + message->length;
+   offset = message->length;
+
+   //The first pass calculates the length of the DNS encoded service name
+   n = mdnsEncodeName("", service->serviceName, ".local", NULL);
+
+   //Sanity check
+   if((message->length + n) > MDNS_MESSAGE_MAX_SIZE)
+      return ERROR_MESSAGE_TOO_LONG;
+
+   //The second pass encodes the service name using DNS notation
+   n = mdnsEncodeName("", service->serviceName, ".local", p);
 
    //Check whether the resource record is already present in the Answer
    //Section of the message
    duplicate = mdnsCheckDuplicateRecord(message, "", "_services._dns-sd._udp",
-      ".local", DNS_RR_TYPE_PTR, NULL, 0);
+      ".local", DNS_RR_TYPE_PTR, p, n);
 
    //The duplicates should be suppressed and the resource record should
    //appear only once in the list

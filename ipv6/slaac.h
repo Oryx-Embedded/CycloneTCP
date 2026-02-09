@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _SLAAC_H
@@ -90,9 +90,13 @@ typedef struct
 
 struct _SlaacContext
 {
-   SlaacSettings settings; ///<SLAAC settings
-   bool_t running;         ///<SLAAC is currently running
-   bool_t configUpdated;   ///<This flag is set when IPv6 configuration has been updated
+   NetContext *netContext;                             ///<TCP/IP stack context
+   NetInterface *interface;                            ///<Network interface to configure
+   bool_t manualDnsConfig;                             ///<Force manual DNS configuration
+   SlaacLinkChangeCallback linkChangeEvent;            ///<Link state change event
+   SlaacParseRouterAdvCallback parseRouterAdvCallback; ///<Router Advertisement parsing callback
+   bool_t running;                                     ///<SLAAC is currently running
+   bool_t configUpdated;                               ///<This flag is set when IPv6 configuration has been updated
 };
 
 
@@ -102,6 +106,8 @@ error_t slaacInit(SlaacContext *context, const SlaacSettings *settings);
 
 error_t slaacStart(SlaacContext *context);
 error_t slaacStop(SlaacContext *context);
+
+void slaacDeinit(SlaacContext *context);
 
 //C++ guard
 #ifdef __cplusplus

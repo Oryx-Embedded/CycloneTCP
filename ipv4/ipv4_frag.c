@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -34,7 +34,7 @@
  * - RFC 815: IP datagram reassembly algorithms
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -46,15 +46,10 @@
 #include "ipv4/ipv4.h"
 #include "ipv4/ipv4_frag.h"
 #include "ipv4/icmp.h"
-#include "mibs/mib2_module.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
 #if (IPV4_SUPPORT == ENABLED && IPV4_FRAG_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t ipv4FragTickCounter;
 
 
 /**
@@ -83,8 +78,8 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
 
    //Number of IP datagrams that would require fragmentation in order to be
    //transmitted
-   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutFragReqds, 1);
-   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutFragReqds, 1);
+   IPV4_SYSTEM_STATS_INC_COUNTER32(outFragReqds, 1);
+   IPV4_IF_STATS_INC_COUNTER32(outFragReqds, 1);
 
    //Retrieve the length of the payload
    payloadLen = netBufferGetLength(payload) - payloadOffset;
@@ -142,9 +137,8 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
 
       //Number of IP datagram fragments that have been generated as a result
       //of fragmentation at this entity
-      MIB2_IP_INC_COUNTER32(ipFragCreates, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutFragCreates, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutFragCreates, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(outFragCreates, 1);
+      IPV4_IF_STATS_INC_COUNTER32(outFragCreates, 1);
    }
 
    //Check status code
@@ -152,17 +146,15 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
    {
       //Number of IP datagrams that have been discarded because they needed
       //to be fragmented at this entity but could not be
-      MIB2_IP_INC_COUNTER32(ipFragFails, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutFragFails, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutFragFails, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(outFragFails, 1);
+      IPV4_IF_STATS_INC_COUNTER32(outFragFails, 1);
    }
    else
    {
       //Number of IP datagrams that have been successfully fragmented at this
       //entity
-      MIB2_IP_INC_COUNTER32(ipFragOKs, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutFragOKs, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutFragOKs, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(outFragOKs, 1);
+      IPV4_IF_STATS_INC_COUNTER32(outFragOKs, 1);
    }
 
    //Free previously allocated memory
@@ -193,9 +185,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
    Ipv4HoleDesc *prevHole;
 
    //Number of IP fragments received which needed to be reassembled
-   MIB2_IP_INC_COUNTER32(ipReasmReqds, 1);
-   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmReqds, 1);
-   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmReqds, 1);
+   IPV4_SYSTEM_STATS_INC_COUNTER32(reasmReqds, 1);
+   IPV4_IF_STATS_INC_COUNTER32(reasmReqds, 1);
 
    //Get the length of the payload
    length -= packet->headerLength * 4;
@@ -206,9 +197,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
    if((offset & IPV4_FLAG_MF) != 0 && (length % 8) != 0)
    {
       //Number of failures detected by the IP reassembly algorithm
-      MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
       //Drop the incoming fragment
       return;
@@ -223,9 +213,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
    if(dataLast < dataFirst)
    {
       //Number of failures detected by the IP reassembly algorithm
-      MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
       //Drop the incoming fragment
       return;
@@ -238,9 +227,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
    if(frag == NULL)
    {
       //Number of failures detected by the IP reassembly algorithm
-      MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
       //Drop the incoming fragment
       return;
@@ -256,9 +244,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       if((frag->headerLength + frag->dataLen) > IPV4_MAX_FRAG_DATAGRAM_SIZE)
       {
          //Number of failures detected by the IP reassembly algorithm
-         MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
          //Drop the reconstructed datagram
          netBufferSetLength((NetBuffer *) &frag->buffer, 0);
@@ -270,9 +257,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       if(frag->headerLength > frag->buffer.chunk[0].size)
       {
          //Number of failures detected by the IP reassembly algorithm
-         MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
          //Drop the reconstructed datagram
          netBufferSetLength((NetBuffer *) &frag->buffer, 0);
@@ -293,9 +279,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       if((frag->headerLength + dataLast) > IPV4_MAX_FRAG_DATAGRAM_SIZE)
       {
          //Number of failures detected by the IP reassembly algorithm
-         MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
          //Drop the reconstructed datagram
          netBufferSetLength((NetBuffer *) &frag->buffer, 0);
@@ -311,9 +296,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       if(error)
       {
          //Number of failures detected by the IP reassembly algorithm
-         MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
          //Drop the reconstructed datagram
          netBufferSetLength((NetBuffer *) &frag->buffer, 0);
@@ -346,9 +330,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
          if(dataFirst < holeFirst || dataLast > holeLast)
          {
             //Number of failures detected by the IP reassembly algorithm
-            MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-            IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-            IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+            IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+            IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
             //Drop the reconstructed datagram
             netBufferSetLength((NetBuffer *) &frag->buffer, 0);
@@ -446,9 +429,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       if(error)
       {
          //Number of failures detected by the IP reassembly algorithm
-         MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-         IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
       }
       else
       {
@@ -461,9 +443,8 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
          datagram->headerChecksum = 0;
 
          //Number of IP datagrams successfully reassembled
-         MIB2_IP_INC_COUNTER32(ipReasmOKs, 1);
-         IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmOKs, 1);
-         IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmOKs, 1);
+         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmOKs, 1);
+         IPV4_IF_STATS_INC_COUNTER32(reasmOKs, 1);
 
          //Pass the original IPv4 datagram to the higher protocol layer
          ipv4ProcessDatagram(interface, (NetBuffer *) &frag->buffer, 0,
@@ -514,9 +495,8 @@ void ipv4FragTick(NetInterface *interface)
             ipv4DumpHeader(frag->buffer.chunk[0].address);
 
             //Number of failures detected by the IP reassembly algorithm
-            MIB2_IP_INC_COUNTER32(ipReasmFails, 1);
-            IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsReasmFails, 1);
-            IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsReasmFails, 1);
+            IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+            IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
 
             //Point to the first hole descriptor
             hole = ipv4FindHole(frag, frag->firstHole);
@@ -599,14 +579,14 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
       //Point to the current entry in the reassembly queue
       frag = &interface->ipv4Context.fragQueue[i];
 
-      //The current entry is free?
-      if(!frag->buffer.chunkCount)
+      //Check whether the current entry is free
+      if(frag->buffer.chunkCount == 0)
       {
          //Number of chunks that comprise the reassembly buffer
          frag->buffer.maxChunkCount = arraysize(frag->buffer.chunk);
 
-         //Allocate sufficient memory to hold the IPv4 header and
-         //the first hole descriptor
+         //Allocate sufficient memory to hold the IPv4 header and the first
+         //hole descriptor
          error = netBufferSetLength((NetBuffer *) &frag->buffer,
             NET_MEM_POOL_BUFFER_SIZE + sizeof(Ipv4HoleDesc));
 

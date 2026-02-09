@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -79,8 +79,8 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
 
    //The SNMP agent verifies the version number. If there is a mismatch,
    //it discards the datagram and performs no further actions
-   if(context->request.version < context->settings.versionMin ||
-      context->request.version > context->settings.versionMax)
+   if(context->request.version < context->versionMin ||
+      context->request.version > context->versionMax)
    {
       //Debug message
       TRACE_WARNING("  Invalid SNMP version!\r\n");
@@ -462,7 +462,7 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
       {
          //Encrypt data
          error = snmpEncryptData(&context->user, &context->response,
-            &context->salt);
+            context->salt);
          //Any error to report?
          if(error)
             return error;

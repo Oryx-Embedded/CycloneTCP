@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _MODBUS_CLIENT_H
@@ -127,6 +127,7 @@ typedef error_t (*ModbusClientTlsInitCallback)(ModbusClientContext *context,
 struct _ModbusClientContext
 {
    ModbusClientState state;                     ///<Modbus/TCP client state
+   NetContext *netContext;                      ///<TCP/IP stack context
    NetInterface *interface;                     ///<Underlying network interface
    uint8_t unitId;                              ///<Identifier of the remote slave
    uint16_t transactionId;                      ///<Modbus transaction identifier

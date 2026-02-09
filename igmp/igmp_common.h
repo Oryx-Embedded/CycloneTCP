@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _IGMP_COMMON_H
@@ -247,7 +247,7 @@ typedef __packed_struct
 typedef __packed_struct
 {
    uint8_t type;               //0
-   uint8_t reserved;          //1
+   uint8_t reserved;           //1
    uint16_t checksum;          //2-3
    uint16_t flags;             //4-5
    uint16_t numOfGroupRecords; //6-7
@@ -276,9 +276,6 @@ typedef __packed_struct
    #pragma pack(pop)
 #endif
 
-//Tick counter to handle periodic operations
-extern systime_t igmpTickCounter;
-
 //IGMP related functions
 error_t igmpInit(NetInterface *interface);
 void igmpTick(NetInterface *interface);
@@ -291,7 +288,7 @@ void igmpProcessMessage(NetInterface *interface,
    const Ipv4PseudoHeader *pseudoHeader, const NetBuffer *buffer,
    size_t offset, const NetRxAncillary *ancillary);
 
-systime_t igmpGetRandomDelay(systime_t maxDelay);
+systime_t igmpGetRandomDelay(NetContext *context, systime_t maxDelay);
 
 uint32_t igmpDecodeFloatingPointValue(uint8_t code);
 

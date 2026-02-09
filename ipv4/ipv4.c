@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -55,8 +55,6 @@
 #include "dhcp/dhcp_client_misc.h"
 #include "nat/nat_misc.h"
 #include "mdns/mdns_responder.h"
-#include "mibs/mib2_module.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //IPsec supported?
@@ -134,11 +132,11 @@ error_t ipv4SetDefaultTtl(NetInterface *interface, uint8_t ttl)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set default time-to-live value
    interface->ipv4Context.defaultTtl = ttl;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -184,7 +182,7 @@ error_t ipv4SetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr addr)
       return ERROR_INVALID_ADDRESS;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the corresponding entry
    entry = &interface->ipv4Context.addrList[index];
@@ -212,7 +210,7 @@ error_t ipv4SetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr addr)
 #endif
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -260,7 +258,7 @@ error_t ipv4GetHostAddrEx(NetInterface *interface, uint_t index,
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Point to the corresponding entry
    entry = &interface->ipv4Context.addrList[index];
@@ -278,7 +276,7 @@ error_t ipv4GetHostAddrEx(NetInterface *interface, uint_t index,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -319,11 +317,11 @@ error_t ipv4SetSubnetMaskEx(NetInterface *interface, uint_t index,
       return ERROR_OUT_OF_RANGE;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set up subnet mask
    interface->ipv4Context.addrList[index].subnetMask = mask;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -369,11 +367,11 @@ error_t ipv4GetSubnetMaskEx(NetInterface *interface, uint_t index,
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Get subnet mask
    *mask = interface->ipv4Context.addrList[index].subnetMask;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -418,11 +416,11 @@ error_t ipv4SetDefaultGatewayEx(NetInterface *interface, uint_t index,
       return ERROR_INVALID_ADDRESS;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set up default gateway address
    interface->ipv4Context.addrList[index].defaultGateway = addr;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -468,11 +466,11 @@ error_t ipv4GetDefaultGatewayEx(NetInterface *interface, uint_t index,
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Get default gateway address
    *addr = interface->ipv4Context.addrList[index].defaultGateway;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -502,11 +500,11 @@ error_t ipv4SetDnsServer(NetInterface *interface, uint_t index, Ipv4Addr addr)
       return ERROR_INVALID_ADDRESS;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Set up DNS server address
    interface->ipv4Context.dnsServerList[index] = addr;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -537,11 +535,11 @@ error_t ipv4GetDnsServer(NetInterface *interface, uint_t index, Ipv4Addr *addr)
    }
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
    //Get DNS server address
    *addr = interface->ipv4Context.dnsServerList[index];
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -613,17 +611,12 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
    error = NO_ERROR;
 
    //Total number of input datagrams received, including those received in error
-   MIB2_IP_INC_COUNTER32(ipInReceives, 1);
-   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInReceives, 1);
-   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInReceives, 1);
-   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInReceives, 1);
-   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInReceives, 1);
+   IPV4_SYSTEM_STATS_INC_COUNTER64(inReceives, 1);
+   IPV4_IF_STATS_INC_COUNTER64(inReceives, 1);
 
    //Total number of octets received in input IP datagrams
-   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInOctets, length);
-   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInOctets, length);
-   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInOctets, length);
-   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInOctets, length);
+   IPV4_SYSTEM_STATS_INC_COUNTER64(inOctets, length);
+   IPV4_IF_STATS_INC_COUNTER64(inOctets, length);
 
    //Start of exception handling block
    do
@@ -724,7 +717,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
       {
 #if (NAT_SUPPORT == ENABLED)
          //Packet received on the private interface of the NAT?
-         if(natIsPrivateInterface(netContext.natContext, interface))
+         if(natIsPrivateInterface(interface->netContext->natContext, interface))
          {
             //Accept any destination address
             error = NO_ERROR;
@@ -876,7 +869,7 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
 
 #if (NAT_SUPPORT == ENABLED)
    //Route inbound/outbound packets across NAT
-   error = natProcessPacket(netContext.natContext, interface,
+   error = natProcessPacket(interface->netContext->natContext, interface,
       &pseudoHeader.ipv4Data, buffer, offset, ancillary);
    //Successful address translation?
    if(!error)
@@ -1000,11 +993,8 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    {
       //Total number of input datagrams successfully delivered to IP
       //user-protocols
-      MIB2_IP_INC_COUNTER32(ipInDelivers, 1);
-      IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsInDelivers, 1);
-      IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCInDelivers, 1);
-      IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsInDelivers, 1);
-      IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCInDelivers, 1);
+      IPV4_SYSTEM_STATS_INC_COUNTER64(inDelivers, 1);
+      IPV4_IF_STATS_INC_COUNTER64(inDelivers, 1);
    }
 
    //Unreachable port?
@@ -1040,11 +1030,8 @@ error_t ipv4SendDatagram(NetInterface *interface,
 
    //Total number of IP datagrams which local IP user-protocols supplied to IP
    //in requests for transmission
-   MIB2_IP_INC_COUNTER32(ipOutRequests, 1);
-   IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutRequests, 1);
-   IP_MIB_INC_COUNTER64(ipv4SystemStats.ipSystemStatsHCOutRequests, 1);
-   IP_MIB_INC_COUNTER32(ipv4IfStatsTable[interface->index].ipIfStatsOutRequests, 1);
-   IP_MIB_INC_COUNTER64(ipv4IfStatsTable[interface->index].ipIfStatsHCOutRequests, 1);
+   IPV4_SYSTEM_STATS_INC_COUNTER64(outRequests, 1);
+   IPV4_IF_STATS_INC_COUNTER64(outRequests, 1);
 
    //Identification field is primarily used to identify fragments of an
    //original IP datagram
@@ -1121,9 +1108,13 @@ error_t ipv4SendPacket(NetInterface *interface,
    error_t error;
    size_t length;
    Ipv4Header *packet;
+   NetContext *context;
 #if (ETH_SUPPORT == ENABLED)
    NetInterface *physicalInterface;
 #endif
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Check whether an IP Router Alert option should be added
    if(ancillary->routerAlert)
@@ -1199,7 +1190,7 @@ error_t ipv4SendPacket(NetInterface *interface,
       //The unspecified address must not appear on the public Internet
       error = ERROR_INVALID_ADDRESS;
    }
-   else if(ipv4IsLocalHostAddr(pseudoHeader->destAddr))
+   else if(ipv4IsLocalHostAddr(context, pseudoHeader->destAddr))
    {
 #if (NET_LOOPBACK_IF_SUPPORT == ENABLED)
       uint_t i;
@@ -1208,10 +1199,10 @@ error_t ipv4SendPacket(NetInterface *interface,
       error = ERROR_NO_ROUTE;
 
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Point to the current interface
-         interface = &netInterface[i];
+         interface = &context->interfaces[i];
 
          //Loopback interface?
          if(interface->nicDriver != NULL &&
@@ -1294,8 +1285,7 @@ error_t ipv4SendPacket(NetInterface *interface,
             {
                //Number of IP datagrams discarded because no route could be found
                //to transmit them to their destination
-               MIB2_IP_INC_COUNTER32(ipOutNoRoutes, 1);
-               IP_MIB_INC_COUNTER32(ipv4SystemStats.ipSystemStatsOutNoRoutes, 1);
+               IPV4_SYSTEM_STATS_INC_COUNTER32(outNoRoutes, 1);
             }
          }
 

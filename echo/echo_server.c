@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -30,7 +30,7 @@
  * any data it receives. Refer to RFC 862 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -58,6 +58,8 @@ void echoServerGetDefaultSettings(EchoServerSettings *settings)
    settings->task.stackSize = ECHO_SERVER_STACK_SIZE;
    settings->task.priority = ECHO_SERVER_PRIORITY;
 
+   //TCP/IP stack context
+   settings->netContext = NULL;
    //The Echo server is not bound to any interface
    settings->interface = NULL;
 
@@ -85,6 +87,9 @@ error_t echoServerInit(EchoServerContext *context,
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
+   //Initialize status code
+   error = NO_ERROR;
+
    //Clear Echo server context
    osMemset(context, 0, sizeof(EchoServerContext));
 
@@ -92,11 +97,23 @@ error_t echoServerInit(EchoServerContext *context,
    context->taskParams = settings->task;
    context->taskId = OS_INVALID_TASK_ID;
 
-   //Save user settings
-   context->settings = *settings;
+   //Attach TCP/IP stack context
+   if(settings->netContext != NULL)
+   {
+      context->netContext = settings->netContext;
+   }
+   else if(settings->interface != NULL)
+   {
+      context->netContext = settings->interface->netContext;
+   }
+   else
+   {
+      context->netContext = netGetDefaultContext();
+   }
 
-   //Initialize status code
-   error = NO_ERROR;
+   //Save user settings
+   context->interface = settings->interface;
+   context->port = settings->port;
 
    //Create an event object to poll the state of sockets
    if(!osCreateEvent(&context->event))
@@ -143,7 +160,8 @@ error_t echoServerStart(EchoServerContext *context)
    {
 #if (ECHO_SERVER_TCP_SUPPORT == ENABLED)
       //Open a TCP socket
-      context->tcpSocket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+      context->tcpSocket = socketOpenEx(context->netContext, SOCKET_TYPE_STREAM,
+         SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
       if(context->tcpSocket == NULL)
       {
@@ -159,15 +177,13 @@ error_t echoServerStart(EchoServerContext *context)
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->tcpSocket,
-         context->settings.interface);
+      error = socketBindToInterface(context->tcpSocket, context->interface);
       //Any error to report?
       if(error)
          break;
 
       //The Echo server listens for TCP connection requests on port 7
-      error = socketBind(context->tcpSocket, &IP_ADDR_ANY,
-         context->settings.port);
+      error = socketBind(context->tcpSocket, &IP_ADDR_ANY, context->port);
       //Any error to report?
       if(error)
          break;
@@ -181,7 +197,8 @@ error_t echoServerStart(EchoServerContext *context)
 
 #if (ECHO_SERVER_UDP_SUPPORT == ENABLED)
       //Open a UDP socket
-      context->udpSocket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+      context->udpSocket = socketOpenEx(context->netContext, SOCKET_TYPE_DGRAM,
+         SOCKET_IP_PROTO_UDP);
       //Failed to open socket?
       if(context->udpSocket == NULL)
       {
@@ -197,15 +214,13 @@ error_t echoServerStart(EchoServerContext *context)
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->udpSocket,
-         context->settings.interface);
+      error = socketBindToInterface(context->udpSocket, context->interface);
       //Any error to report?
       if(error)
          break;
 
       //The Echo server listens for UDP datagrams on port 7
-      error = socketBind(context->udpSocket, &IP_ADDR_ANY,
-         context->settings.port);
+      error = socketBind(context->udpSocket, &IP_ADDR_ANY, context->port);
       //Any error to report?
       if(error)
          break;

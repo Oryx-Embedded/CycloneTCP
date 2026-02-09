@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -64,8 +64,6 @@
 #include "netbios/nbns_common.h"
 #include "llmnr/llmnr_client.h"
 #include "llmnr/llmnr_responder.h"
-#include "mibs/mib2_module.h"
-#include "mibs/if_mib_module.h"
 #include "debug.h"
 
 //Default options passed to the stack (TX path)
@@ -122,14 +120,15 @@ const NetRxAncillary NET_DEFAULT_RX_ANCILLARY =
 
 /**
  * @brief Register link change callback
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] interface Underlying network interface
  * @param[in] callback Callback function to be called when the link state changed
  * @param[in] param Callback function parameter
  * @return Error code
  **/
 
-error_t netAttachLinkChangeCallback(NetInterface *interface,
-   NetLinkChangeCallback callback, void *param)
+error_t netAttachLinkChangeCallback(NetContext *context,
+   NetInterface *interface, NetLinkChangeCallback callback, void *param)
 {
    uint_t i;
    NetLinkChangeCallbackEntry *entry;
@@ -138,7 +137,7 @@ error_t netAttachLinkChangeCallback(NetInterface *interface,
    for(i = 0; i < NET_MAX_LINK_CHANGE_CALLBACKS; i++)
    {
       //Point to the current entry
-      entry = &netContext.linkChangeCallbacks[i];
+      entry = &context->linkChangeCallbacks[i];
 
       //Check whether the entry is available
       if(entry->callback == NULL)
@@ -160,14 +159,15 @@ error_t netAttachLinkChangeCallback(NetInterface *interface,
 
 /**
  * @brief Unregister link change callback
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] interface Underlying network interface
  * @param[in] callback Callback function to be unregistered
  * @param[in] param Callback function parameter
  * @return Error code
  **/
 
-error_t netDetachLinkChangeCallback(NetInterface *interface,
-   NetLinkChangeCallback callback, void *param)
+error_t netDetachLinkChangeCallback(NetContext *context,
+   NetInterface *interface, NetLinkChangeCallback callback, void *param)
 {
    uint_t i;
    NetLinkChangeCallbackEntry *entry;
@@ -176,7 +176,7 @@ error_t netDetachLinkChangeCallback(NetInterface *interface,
    for(i = 0; i < NET_MAX_LINK_CHANGE_CALLBACKS; i++)
    {
       //Point to the current entry
-      entry = &netContext.linkChangeCallbacks[i];
+      entry = &context->linkChangeCallbacks[i];
 
       //Check whether the current entry matches the specified callback function
       if(entry->interface == interface && entry->callback == callback &&
@@ -252,10 +252,7 @@ void netProcessLinkChange(NetInterface *interface)
    }
 
    //The time at which the interface entered its current operational state
-   MIB2_IF_SET_TIME_TICKS(ifTable[interface->index].ifLastChange,
-      osGetSystemTime64() / 10);
-   IF_MIB_SET_TIME_TICKS(ifTable[interface->index].ifLastChange,
-      osGetSystemTime64() / 10);
+   NET_IF_STATS_SET_TIME_TICKS(lastChange, osGetSystemTime64() / 10);
 
 #if (IPV4_SUPPORT == ENABLED)
    //Notify IPv4 of link state changes
@@ -289,7 +286,7 @@ void netProcessLinkChange(NetInterface *interface)
       NetLinkChangeCallbackEntry *entry;
 
       //Point to the current entry
-      entry = &netContext.linkChangeCallbacks[i];
+      entry = &interface->netContext->linkChangeCallbacks[i];
 
       //Any registered callback?
       if(entry->callback != NULL)
@@ -339,14 +336,15 @@ void netProcessLinkChange(NetInterface *interface)
 
 /**
  * @brief Register timer callback
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] period Timer reload value, in milliseconds
  * @param[in] callback Callback function to be called when the timer expires
  * @param[in] param Callback function parameter
  * @return Error code
  **/
 
-error_t netAttachTimerCallback(systime_t period, NetTimerCallback callback,
-   void *param)
+error_t netAttachTimerCallback(NetContext *context, systime_t period,
+   NetTimerCallback callback, void *param)
 {
    uint_t i;
    NetTimerCallbackEntry *entry;
@@ -355,7 +353,7 @@ error_t netAttachTimerCallback(systime_t period, NetTimerCallback callback,
    for(i = 0; i < NET_MAX_TIMER_CALLBACKS; i++)
    {
       //Point to the current entry
-      entry = &netContext.timerCallbacks[i];
+      entry = &context->timerCallbacks[i];
 
       //Check whether the entry is available
       if(entry->callback == NULL)
@@ -378,12 +376,14 @@ error_t netAttachTimerCallback(systime_t period, NetTimerCallback callback,
 
 /**
  * @brief Unregister timer callback
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] callback Callback function to be unregistered
  * @param[in] param Callback function parameter
  * @return Error code
  **/
 
-error_t netDetachTimerCallback(NetTimerCallback callback, void *param)
+error_t netDetachTimerCallback(NetContext *context, NetTimerCallback callback,
+  void *param)
 {
    uint_t i;
    NetTimerCallbackEntry *entry;
@@ -392,7 +392,7 @@ error_t netDetachTimerCallback(NetTimerCallback callback, void *param)
    for(i = 0; i < NET_MAX_TIMER_CALLBACKS; i++)
    {
       //Point to the current entry
-      entry = &netContext.timerCallbacks[i];
+      entry = &context->timerCallbacks[i];
 
       //Check whether the current entry matches the specified callback function
       if(entry->callback == callback && entry->param == param)
@@ -412,338 +412,355 @@ error_t netDetachTimerCallback(NetTimerCallback callback, void *param)
 
 /**
  * @brief Manage TCP/IP timers
+ * @param[in] context Pointer to the TCP/IP stack context
  **/
 
-void netTick(void)
+void netTick(NetContext *context)
 {
    uint_t i;
    NetTimerCallbackEntry *entry;
 
    //Increment tick counter
-   nicTickCounter += NET_TICK_INTERVAL;
+   context->nicTickCounter += NET_TICK_INTERVAL;
 
    //Handle periodic operations such as polling the link state
-   if(nicTickCounter >= NIC_TICK_INTERVAL)
+   if(context->nicTickCounter >= NIC_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Make sure the interface has been properly configured
-         if(netInterface[i].configured)
-            nicTick(&netInterface[i]);
+         if(context->interfaces[i].configured)
+         {
+            nicTick(&context->interfaces[i]);
+         }
       }
 
       //Reset tick counter
-      nicTickCounter = 0;
+      context->nicTickCounter = 0;
    }
 
 #if (PPP_SUPPORT == ENABLED)
    //Increment tick counter
-   pppTickCounter += NET_TICK_INTERVAL;
+   context->pppTickCounter += NET_TICK_INTERVAL;
 
    //Manage PPP related timers
-   if(pppTickCounter >= PPP_TICK_INTERVAL)
+   if(context->pppTickCounter >= PPP_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Make sure the interface has been properly configured
-         if(netInterface[i].configured)
-            pppTick(&netInterface[i]);
+         if(context->interfaces[i].configured)
+         {
+            pppTick(&context->interfaces[i]);
+         }
       }
 
       //Reset tick counter
-      pppTickCounter = 0;
+      context->pppTickCounter = 0;
    }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && ETH_SUPPORT == ENABLED)
    //Increment tick counter
-   arpTickCounter += NET_TICK_INTERVAL;
+   context->arpTickCounter += NET_TICK_INTERVAL;
 
    //Manage ARP cache
-   if(arpTickCounter >= ARP_TICK_INTERVAL)
+   if(context->arpTickCounter >= ARP_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Make sure the interface has been properly configured
-         if(netInterface[i].configured)
-            arpTick(&netInterface[i]);
+         if(context->interfaces[i].configured)
+         {
+            arpTick(&context->interfaces[i]);
+         }
       }
 
       //Reset tick counter
-      arpTickCounter = 0;
+      context->arpTickCounter = 0;
    }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && IPV4_FRAG_SUPPORT == ENABLED)
    //Increment tick counter
-   ipv4FragTickCounter += NET_TICK_INTERVAL;
+   context->ipv4FragTickCounter += NET_TICK_INTERVAL;
 
    //Handle IPv4 fragment reassembly timeout
-   if(ipv4FragTickCounter >= IPV4_FRAG_TICK_INTERVAL)
+   if(context->ipv4FragTickCounter >= IPV4_FRAG_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Make sure the interface has been properly configured
-         if(netInterface[i].configured)
-            ipv4FragTick(&netInterface[i]);
+         if(context->interfaces[i].configured)
+         {
+            ipv4FragTick(&context->interfaces[i]);
+         }
       }
 
       //Reset tick counter
-      ipv4FragTickCounter = 0;
+      context->ipv4FragTickCounter = 0;
    }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && (IGMP_HOST_SUPPORT == ENABLED || \
    IGMP_ROUTER_SUPPORT == ENABLED || IGMP_SNOOPING_SUPPORT == ENABLED))
    //Increment tick counter
-   igmpTickCounter += NET_TICK_INTERVAL;
+   context->igmpTickCounter += NET_TICK_INTERVAL;
 
    //Handle IGMP related timers
-   if(igmpTickCounter >= IGMP_TICK_INTERVAL)
+   if(context->igmpTickCounter >= IGMP_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Make sure the interface has been properly configured
-         if(netInterface[i].configured)
-            igmpTick(&netInterface[i]);
+         if(context->interfaces[i].configured)
+         {
+            igmpTick(&context->interfaces[i]);
+         }
       }
 
       //Reset tick counter
-      igmpTickCounter = 0;
+      context->igmpTickCounter = 0;
    }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && AUTO_IP_SUPPORT == ENABLED)
    //Increment tick counter
-   autoIpTickCounter += NET_TICK_INTERVAL;
+   context->autoIpTickCounter += NET_TICK_INTERVAL;
 
    //Handle Auto-IP related timers
-   if(autoIpTickCounter >= AUTO_IP_TICK_INTERVAL)
+   if(context->autoIpTickCounter >= AUTO_IP_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
-         autoIpTick(netInterface[i].autoIpContext);
+         autoIpTick(context->interfaces[i].autoIpContext);
       }
 
       //Reset tick counter
-      autoIpTickCounter = 0;
+      context->autoIpTickCounter = 0;
    }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && DHCP_CLIENT_SUPPORT == ENABLED)
    //Increment tick counter
-   dhcpClientTickCounter += NET_TICK_INTERVAL;
+   context->dhcpClientTickCounter += NET_TICK_INTERVAL;
 
    //Handle DHCP client related timers
-   if(dhcpClientTickCounter >= DHCP_CLIENT_TICK_INTERVAL)
+   if(context->dhcpClientTickCounter >= DHCP_CLIENT_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
-         dhcpClientTick(netInterface[i].dhcpClientContext);
+         dhcpClientTick(context->interfaces[i].dhcpClientContext);
       }
 
       //Reset tick counter
-      dhcpClientTickCounter = 0;
+      context->dhcpClientTickCounter = 0;
    }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && DHCP_SERVER_SUPPORT == ENABLED)
    //Increment tick counter
-   dhcpServerTickCounter += NET_TICK_INTERVAL;
+   context->dhcpServerTickCounter += NET_TICK_INTERVAL;
 
    //Handle DHCP server related timers
-   if(dhcpServerTickCounter >= DHCP_SERVER_TICK_INTERVAL)
+   if(context->dhcpServerTickCounter >= DHCP_SERVER_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
-         dhcpServerTick(netInterface[i].dhcpServerContext);
+         dhcpServerTick(context->interfaces[i].dhcpServerContext);
       }
 
       //Reset tick counter
-      dhcpServerTickCounter = 0;
+      context->dhcpServerTickCounter = 0;
    }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && NAT_SUPPORT == ENABLED)
    //Increment tick counter
-   natTickCounter += NET_TICK_INTERVAL;
+   context->natTickCounter += NET_TICK_INTERVAL;
 
    //Manage NAT related timers
-   if(natTickCounter >= NAT_TICK_INTERVAL)
+   if(context->natTickCounter >= NAT_TICK_INTERVAL)
    {
       //NAT timer handler
-      natTick(netContext.natContext);
+      natTick(context->natContext);
       //Reset tick counter
-      natTickCounter = 0;
+      context->natTickCounter = 0;
    }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED && IPV6_FRAG_SUPPORT == ENABLED)
    //Increment tick counter
-   ipv6FragTickCounter += NET_TICK_INTERVAL;
+   context->ipv6FragTickCounter += NET_TICK_INTERVAL;
 
    //Handle IPv6 fragment reassembly timeout
-   if(ipv6FragTickCounter >= IPV6_FRAG_TICK_INTERVAL)
+   if(context->ipv6FragTickCounter >= IPV6_FRAG_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Make sure the interface has been properly configured
-         if(netInterface[i].configured)
-            ipv6FragTick(&netInterface[i]);
+         if(context->interfaces[i].configured)
+         {
+            ipv6FragTick(&context->interfaces[i]);
+         }
       }
 
       //Reset tick counter
-      ipv6FragTickCounter = 0;
+      context->ipv6FragTickCounter = 0;
    }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED && MLD_NODE_SUPPORT == ENABLED)
    //Increment tick counter
-   mldTickCounter += NET_TICK_INTERVAL;
+   context->mldTickCounter += NET_TICK_INTERVAL;
 
    //Handle MLD related timers
-   if(mldTickCounter >= MLD_TICK_INTERVAL)
+   if(context->mldTickCounter >= MLD_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Make sure the interface has been properly configured
-         if(netInterface[i].configured)
-            mldTick(&netInterface[i]);
+         if(context->interfaces[i].configured)
+         {
+            mldTick(&context->interfaces[i]);
+         }
       }
 
       //Reset tick counter
-      mldTickCounter = 0;
+      context->mldTickCounter = 0;
    }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
    //Increment tick counter
-   ndpTickCounter += NET_TICK_INTERVAL;
+   context->ndpTickCounter += NET_TICK_INTERVAL;
 
    //Handle NDP related timers
-   if(ndpTickCounter >= NDP_TICK_INTERVAL)
+   if(context->ndpTickCounter >= NDP_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
          //Make sure the interface has been properly configured
-         if(netInterface[i].configured)
-            ndpTick(&netInterface[i]);
+         if(context->interfaces[i].configured)
+         {
+            ndpTick(&context->interfaces[i]);
+         }
       }
 
       //Reset tick counter
-      ndpTickCounter = 0;
+      context->ndpTickCounter = 0;
    }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED && NDP_ROUTER_ADV_SUPPORT == ENABLED)
    //Increment tick counter
-   ndpRouterAdvTickCounter += NET_TICK_INTERVAL;
+   context->ndpRouterAdvTickCounter += NET_TICK_INTERVAL;
 
    //Handle RA service related timers
-   if(ndpRouterAdvTickCounter >= NDP_ROUTER_ADV_TICK_INTERVAL)
+   if(context->ndpRouterAdvTickCounter >= NDP_ROUTER_ADV_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
-         ndpRouterAdvTick(netInterface[i].ndpRouterAdvContext);
+         ndpRouterAdvTick(context->interfaces[i].ndpRouterAdvContext);
       }
 
       //Reset tick counter
-      ndpRouterAdvTickCounter = 0;
+      context->ndpRouterAdvTickCounter = 0;
    }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED && DHCPV6_CLIENT_SUPPORT == ENABLED)
    //Increment tick counter
-   dhcpv6ClientTickCounter += NET_TICK_INTERVAL;
+   context->dhcpv6ClientTickCounter += NET_TICK_INTERVAL;
 
    //Handle DHCPv6 client related timers
-   if(dhcpv6ClientTickCounter >= DHCPV6_CLIENT_TICK_INTERVAL)
+   if(context->dhcpv6ClientTickCounter >= DHCPV6_CLIENT_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
-         dhcpv6ClientTick(netInterface[i].dhcpv6ClientContext);
+         dhcpv6ClientTick(context->interfaces[i].dhcpv6ClientContext);
       }
 
       //Reset tick counter
-      dhcpv6ClientTickCounter = 0;
+      context->dhcpv6ClientTickCounter = 0;
    }
 #endif
 
 #if (TCP_SUPPORT == ENABLED)
    //Increment tick counter
-   tcpTickCounter += NET_TICK_INTERVAL;
+   context->tcpTickCounter += NET_TICK_INTERVAL;
 
    //Manage TCP related timers
-   if(tcpTickCounter >= TCP_TICK_INTERVAL)
+   if(context->tcpTickCounter >= TCP_TICK_INTERVAL)
    {
       //TCP timer handler
       tcpTick();
       //Reset tick counter
-      tcpTickCounter = 0;
+      context->tcpTickCounter = 0;
    }
 #endif
 
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
    NBNS_CLIENT_SUPPORT == ENABLED || LLMNR_CLIENT_SUPPORT == ENABLED)
    //Increment tick counter
-   dnsTickCounter += NET_TICK_INTERVAL;
+   context->dnsTickCounter += NET_TICK_INTERVAL;
 
    //Manage DNS cache
-   if(dnsTickCounter >= DNS_TICK_INTERVAL)
+   if(context->dnsTickCounter >= DNS_TICK_INTERVAL)
    {
       //DNS timer handler
       dnsTick();
       //Reset tick counter
-      dnsTickCounter = 0;
+      context->dnsTickCounter = 0;
    }
 #endif
 
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
    //Increment tick counter
-   mdnsResponderTickCounter += NET_TICK_INTERVAL;
+   context->mdnsResponderTickCounter += NET_TICK_INTERVAL;
 
    //Manage mDNS probing and announcing
-   if(mdnsResponderTickCounter >= MDNS_RESPONDER_TICK_INTERVAL)
+   if(context->mdnsResponderTickCounter >= MDNS_RESPONDER_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
-         mdnsResponderTick(netInterface[i].mdnsResponderContext);
+         mdnsResponderTick(context->interfaces[i].mdnsResponderContext);
       }
 
       //Reset tick counter
-      mdnsResponderTickCounter = 0;
+      context->mdnsResponderTickCounter = 0;
    }
 #endif
 
 #if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
    //Increment tick counter
-   dnsSdResponderTickCounter += NET_TICK_INTERVAL;
+   context->dnsSdResponderTickCounter += NET_TICK_INTERVAL;
 
    //Manage DNS-SD probing and announcing
-   if(dnsSdResponderTickCounter >= DNS_SD_RESPONDER_TICK_INTERVAL)
+   if(context->dnsSdResponderTickCounter >= DNS_SD_RESPONDER_TICK_INTERVAL)
    {
       //Loop through network interfaces
-      for(i = 0; i < NET_INTERFACE_COUNT; i++)
+      for(i = 0; i < context->numInterfaces; i++)
       {
-         dnsSdResponderTick(netInterface[i].dnsSdResponderContext);
+         dnsSdResponderTick(context->interfaces[i].dnsSdResponderContext);
       }
 
       //Reset tick counter
-      dnsSdResponderTickCounter = 0;
+      context->dnsSdResponderTickCounter = 0;
    }
 #endif
 
@@ -751,7 +768,7 @@ void netTick(void)
    for(i = 0; i < NET_MAX_TIMER_CALLBACKS; i++)
    {
       //Point to the current entry
-      entry = &netContext.timerCallbacks[i];
+      entry = &context->timerCallbacks[i];
 
       //Any registered callback?
       if(entry->callback != NULL)
@@ -876,22 +893,23 @@ systime_t netGetRemainingTime(NetTimer *timer)
 
 /**
  * @brief Initialize random number generator
+ * @param[in] context Pointer to the TCP/IP stack context
  **/
 
-void netInitRand(void)
+void netInitRand(NetContext *context)
 {
    uint_t i;
    NetRandState *state;
    uint8_t iv[10];
 
    //Point to the PRNG state
-   state = &netContext.randState;
+   state = &context->randState;
 
    //Increment invocation counter
    state->counter++;
 
    //Copy the EUI-64 identifier of the default interface
-   eui64CopyAddr(iv, &netInterface[0].eui64);
+   eui64CopyAddr(iv, &context->interfaces[0].eui64);
    //Append the invocation counter
    STORE16BE(state->counter, iv + sizeof(Eui64));
 
@@ -901,7 +919,7 @@ void netInitRand(void)
    //Let (s1, s2, ..., s93) = (K1, ..., K80, 0, ..., 0)
    for(i = 0; i < 10; i++)
    {
-      state->s[i] = netContext.randSeed[i];
+      state->s[i] = context->randSeed[i];
    }
 
    //Load the 80-bit initialization vector
@@ -931,10 +949,11 @@ void netInitRand(void)
 
 /**
  * @brief Generate a random 32-bit value
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Random value
  **/
 
-uint32_t netGenerateRand(void)
+uint32_t netGenerateRand(NetContext *context)
 {
    uint_t i;
    uint32_t value;
@@ -945,22 +964,23 @@ uint32_t netGenerateRand(void)
    //Generate a random 32-bit value
    for(i = 0; i < 32; i++)
    {
-      value |= netGenerateRandBit(&netContext.randState) << i;
+      value |= netGenerateRandBit(&context->randState) << i;
    }
 
    //Return the random value
-   return value + netContext.entropy;
+   return value + context->entropy;
 }
 
 
 /**
  * @brief Generate a random value in the specified range
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] min Lower bound
  * @param[in] max Upper bound
  * @return Random value in the specified range
  **/
 
-uint32_t netGenerateRandRange(uint32_t min, uint32_t max)
+uint32_t netGenerateRandRange(NetContext *context, uint32_t min, uint32_t max)
 {
    uint32_t value;
 
@@ -968,7 +988,7 @@ uint32_t netGenerateRandRange(uint32_t min, uint32_t max)
    if(max > min)
    {
       //Pick up a random value in the given range
-      value = min + (netGenerateRand() % (max - min + 1));
+      value = min + (netGenerateRand(context) % (max - min + 1));
    }
    else
    {
@@ -983,11 +1003,12 @@ uint32_t netGenerateRandRange(uint32_t min, uint32_t max)
 
 /**
  * @brief Get a string of random data
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[out] data Buffer where to store random data
  * @param[in] length Number of random bytes to generate
  **/
 
-void netGenerateRandData(uint8_t *data, size_t length)
+void netGenerateRandData(NetContext *context, uint8_t *data, size_t length)
 {
    size_t i;
    size_t j;
@@ -1001,10 +1022,10 @@ void netGenerateRandData(uint8_t *data, size_t length)
       //Generate a random 8-bit value
       for(j = 0; j < 8; j++)
       {
-         data[i] |= netGenerateRandBit(&netContext.randState) << j;
+         data[i] |= netGenerateRandBit(&context->randState) << j;
       }
 
-      data[i] += netContext.entropy;
+      data[i] += context->entropy;
    }
 }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -45,22 +45,17 @@
 //Check TCP/IP stack configuration
 #if (TCP_SUPPORT == ENABLED)
 
-//Tick counter to handle periodic operations
-systime_t tcpTickCounter;
-
-//Ephemeral ports are used for dynamic port assignment
-static uint16_t tcpDynamicPort;
-
 
 /**
  * @brief TCP related initialization
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Error code
  **/
 
-error_t tcpInit(void)
+error_t tcpInit(NetContext *context)
 {
    //Reset ephemeral port number
-   tcpDynamicPort = 0;
+   context->tcpDynamicPort = 0;
 
    //Successful initialization
    return NO_ERROR;
@@ -81,7 +76,7 @@ error_t tcpSetInitialRto(NetInterface *interface, systime_t initialRto)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //TCP imposes its minimum and maximum bounds over the value provided
    initialRto = MIN(initialRto, TCP_MAX_RTO);
@@ -91,7 +86,7 @@ error_t tcpSetInitialRto(NetInterface *interface, systime_t initialRto)
    interface->initialRto = initialRto;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -100,21 +95,22 @@ error_t tcpSetInitialRto(NetInterface *interface, systime_t initialRto)
 
 /**
  * @brief Get an ephemeral port number
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Ephemeral port
  **/
 
-uint16_t tcpGetDynamicPort(void)
+uint16_t tcpGetDynamicPort(NetContext *context)
 {
    uint_t port;
 
    //Retrieve current port number
-   port = tcpDynamicPort;
+   port = context->tcpDynamicPort;
 
    //Invalid port number?
    if(port < SOCKET_EPHEMERAL_PORT_MIN || port > SOCKET_EPHEMERAL_PORT_MAX)
    {
       //Generate a random port number
-      port = netGenerateRandRange(SOCKET_EPHEMERAL_PORT_MIN,
+      port = netGenerateRandRange(context, SOCKET_EPHEMERAL_PORT_MIN,
          SOCKET_EPHEMERAL_PORT_MAX);
    }
 
@@ -122,12 +118,12 @@ uint16_t tcpGetDynamicPort(void)
    if(port < SOCKET_EPHEMERAL_PORT_MAX)
    {
       //Increment port number
-      tcpDynamicPort = port + 1;
+      context->tcpDynamicPort = port + 1;
    }
    else
    {
       //Wrap around if necessary
-      tcpDynamicPort = SOCKET_EPHEMERAL_PORT_MIN;
+      context->tcpDynamicPort = SOCKET_EPHEMERAL_PORT_MIN;
    }
 
    //Return an ephemeral port number
@@ -175,8 +171,8 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
       {
          //Select the source address and the relevant network interface to use
          //when establishing the connection
-         error = ipSelectSourceAddr(&socket->interface, &socket->remoteIpAddr,
-            &socket->localIpAddr);
+         error = ipSelectSourceAddr(socket->netContext, &socket->interface,
+            &socket->remoteIpAddr, &socket->localIpAddr);
          //Any error to report?
          if(error)
             return error;
@@ -218,8 +214,7 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
       socket->rmss = MIN(socket->mss, socket->rxBufferSize);
 
       //Generate the initial sequence number
-      socket->iss = tcpGenerateInitialSeqNum(&socket->localIpAddr,
-         socket->localPort, &socket->remoteIpAddr, socket->remotePort);
+      socket->iss = tcpGenerateInitialSeqNum(socket);
 
       //Initialize TCP control block
       socket->sndUna = socket->iss;
@@ -332,7 +327,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
       return NULL;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Wait for an connection attempt
    while(1)
@@ -346,11 +341,11 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
          osResetEvent(&socket->event);
 
          //Release exclusive access
-         osReleaseMutex(&netMutex);
+         netUnlock(socket->netContext);
          //Wait until a SYN message is received from a client
          osWaitForEvent(&socket->event, socket->timeout);
          //Get exclusive access
-         osAcquireMutex(&netMutex);
+         netLock(socket->netContext);
       }
 
       //Check whether the queue is still empty
@@ -378,7 +373,8 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
       }
 
       //Create a new socket to handle the incoming connection request
-      newSocket = socketAllocate(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+      newSocket = socketAllocate(socket->netContext, SOCKET_TYPE_STREAM,
+         SOCKET_IP_PROTO_TCP);
 
       //Socket successfully created?
       if(newSocket != NULL)
@@ -442,9 +438,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
             newSocket->rmss = MIN(newSocket->mss, newSocket->rxBufferSize);
 
             //Generate the initial sequence number
-            newSocket->iss = tcpGenerateInitialSeqNum(&newSocket->localIpAddr,
-               newSocket->localPort, &newSocket->remoteIpAddr,
-               newSocket->remotePort);
+            newSocket->iss = tcpGenerateInitialSeqNum(newSocket);
 
             //Initialize TCP control block
             newSocket->irs = queueItem->isn;
@@ -528,7 +522,7 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return a handle to the newly created socket
    return newSocket;
@@ -1041,13 +1035,13 @@ TcpState tcpGetState(Socket *socket)
    TcpState state;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(socket->netContext);
 
    //Get TCP FSM current state
    state = socket->state;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(socket->netContext);
 
    //Return current state
    return state;

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -49,14 +49,10 @@
 #include "ipv6/ndp_misc.h"
 #include "ipv6/slaac.h"
 #include "ipv6/slaac_misc.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
 #if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t ndpTickCounter;
 
 
 /**
@@ -110,7 +106,7 @@ error_t ndpEnable(NetInterface *interface, bool_t enable)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Enable or disable Neighbor Discovery protocol
    interface->ndpContext.enable = enable;
@@ -123,7 +119,7 @@ error_t ndpEnable(NetInterface *interface, bool_t enable)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -148,7 +144,7 @@ error_t ndpSetReachableTime(NetInterface *interface, systime_t reachableTime)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Save reachable time
    interface->ndpContext.reachableTime = reachableTime;
@@ -171,7 +167,7 @@ error_t ndpSetReachableTime(NetInterface *interface, systime_t reachableTime)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -196,7 +192,7 @@ error_t ndpSetRetransTimer(NetInterface *interface, systime_t retransTimer)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Save retransmission time
    interface->ndpContext.retransTimer = retransTimer;
@@ -220,7 +216,7 @@ error_t ndpSetRetransTimer(NetInterface *interface, systime_t retransTimer)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -246,7 +242,7 @@ error_t ndpAddStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr,
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Search the Neighbor cache for the specified IPv6 address
    entry = ndpFindNeighborCacheEntry(interface, ipAddr);
@@ -295,7 +291,7 @@ error_t ndpAddStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -319,7 +315,7 @@ error_t ndpRemoveStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Search the Neighbor cache for the specified IPv6 address
    entry = ndpFindNeighborCacheEntry(interface, ipAddr);
@@ -339,7 +335,7 @@ error_t ndpRemoveStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Return status code
    return error;
@@ -584,7 +580,8 @@ void ndpTick(NetInterface *interface)
                //Before a host sends an initial solicitation, it should delay the
                //transmission for a random amount of time in order to alleviate
                //congestion when many hosts start up on a link at the same time
-               context->timeout = netGenerateRandRange(context->minRtrSolicitationDelay,
+               context->timeout = netGenerateRandRange(interface->netContext,
+                  context->minRtrSolicitationDelay,
                   context->maxRtrSolicitationDelay);
             }
 
@@ -1682,8 +1679,8 @@ error_t ndpSendRouterSol(NetInterface *interface)
 
    //Select the most appropriate source address to be used when sending the
    //Router Solicitation message
-   error = ipv6SelectSourceAddr(&interface, &pseudoHeader.destAddr,
-      &pseudoHeader.srcAddr);
+   error = ipv6SelectSourceAddr(interface->netContext, &interface,
+      &pseudoHeader.destAddr, &pseudoHeader.srcAddr);
 
    //No address assigned to the interface?
    if(error)
@@ -1750,9 +1747,9 @@ error_t ndpSendRouterSol(NetInterface *interface)
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
 
    //Total number of ICMP messages which this entity attempted to send
-   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   ICMPV6_STATS_INC_COUNTER32(outMsgs, 1);
    //Increment per-message type ICMP counter
-   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_ROUTER_SOL], 1);
+   ICMPV6_STATS_INC_COUNTER32(outPkts[ICMPV6_TYPE_ROUTER_SOL], 1);
 
    //Debug message
    TRACE_INFO("Sending Router Solicitation message (%" PRIuSIZE " bytes)...\r\n", length);
@@ -1821,8 +1818,8 @@ error_t ndpSendNeighborSol(NetInterface *interface,
    {
       //Select the most appropriate source address to be used when sending
       //the Neighbor Solicitation message
-      error = ipv6SelectSourceAddr(&interface, targetIpAddr,
-         &pseudoHeader.srcAddr);
+      error = ipv6SelectSourceAddr(interface->netContext, &interface,
+         targetIpAddr, &pseudoHeader.srcAddr);
 
       //No address assigned to the interface?
       if(error)
@@ -1883,9 +1880,9 @@ error_t ndpSendNeighborSol(NetInterface *interface,
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
 
    //Total number of ICMP messages which this entity attempted to send
-   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   ICMPV6_STATS_INC_COUNTER32(outMsgs, 1);
    //Increment per-message type ICMP counter
-   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_NEIGHBOR_SOL], 1);
+   ICMPV6_STATS_INC_COUNTER32(outPkts[ICMPV6_TYPE_NEIGHBOR_SOL], 1);
 
    //Debug message
    TRACE_INFO("Sending Neighbor Solicitation message (%" PRIuSIZE " bytes)...\r\n", length);
@@ -1954,8 +1951,8 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    {
       //Select the most appropriate source address to be used when sending
       //the Neighbor Advertisement message
-      error = ipv6SelectSourceAddr(&interface, targetIpAddr,
-         &pseudoHeader.srcAddr);
+      error = ipv6SelectSourceAddr(interface->netContext, &interface,
+         targetIpAddr, &pseudoHeader.srcAddr);
 
       //No address assigned to the interface?
       if(error)
@@ -2049,9 +2046,9 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
 
    //Total number of ICMP messages which this entity attempted to send
-   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   ICMPV6_STATS_INC_COUNTER32(outMsgs, 1);
    //Increment per-message type ICMP counter
-   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_NEIGHBOR_ADV], 1);
+   ICMPV6_STATS_INC_COUNTER32(outPkts[ICMPV6_TYPE_NEIGHBOR_ADV], 1);
 
    //Debug message
    TRACE_INFO("Sending Neighbor Advertisement message (%" PRIuSIZE " bytes)...\r\n", length);
@@ -2225,9 +2222,9 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
          sizeof(Ipv6PseudoHeader), buffer, offset, length);
 
       //Total number of ICMP messages which this entity attempted to send
-      IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+      ICMPV6_STATS_INC_COUNTER32(outMsgs, 1);
       //Increment per-message type ICMP counter
-      IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[ICMPV6_TYPE_REDIRECT], 1);
+      ICMPV6_STATS_INC_COUNTER32(outPkts[ICMPV6_TYPE_REDIRECT], 1);
 
       //Debug message
       TRACE_INFO("Sending Redirect message (%" PRIuSIZE " bytes)...\r\n", length);

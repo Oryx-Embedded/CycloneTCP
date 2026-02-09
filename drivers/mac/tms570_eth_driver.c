@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -621,7 +621,7 @@ void tms570EthRxIrqHandler(void)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Write the DMA end of interrupt vector
@@ -890,8 +890,8 @@ error_t tms570EthUpdateMacAddrFilter(NetInterface *interface)
    EMAC_MACHASH2_R = hashTable[1];
 
    //Debug message
-   TRACE_DEBUG("  MACHASH1 = %08" PRIX32 "\r\n", EMAC_MACHASH1_R);
-   TRACE_DEBUG("  MACHASH2 = %08" PRIX32 "\r\n", EMAC_MACHASH2_R);
+   TRACE_DEBUG("  MACHASH1 = 0x%08" PRIX32 "\r\n", EMAC_MACHASH1_R);
+   TRACE_DEBUG("  MACHASH2 = 0x%08" PRIX32 "\r\n", EMAC_MACHASH2_R);
 
    //Successful processing
    return NO_ERROR;

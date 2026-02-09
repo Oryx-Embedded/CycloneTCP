@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -36,7 +36,7 @@
  * - RFC 9777: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -50,7 +50,6 @@
 #include "mld/mld_node_misc.h"
 #include "mld/mld_common.h"
 #include "mld/mld_debug.h"
-#include "mibs/ip_mib_module.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -59,9 +58,6 @@
 //Link-local All-Routers IPv6 address
 const Ipv6Addr MLD_V2_ALL_ROUTERS_ADDR =
    IPV6_ADDR(0xFF02, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0016);
-
-//Tick counter to handle periodic operations
-systime_t mldTickCounter;
 
 
 /**
@@ -190,9 +186,9 @@ error_t mldSendMessage(NetInterface *interface, const Ipv6Addr *destAddr,
       sizeof(Ipv6PseudoHeader), buffer, offset, length);
 
    //Total number of ICMP messages which this entity attempted to send
-   IP_MIB_INC_COUNTER32(icmpv6Stats.icmpStatsOutMsgs, 1);
+   ICMPV6_STATS_INC_COUNTER32(outMsgs, 1);
    //Increment per-message type ICMP counter
-   IP_MIB_INC_COUNTER32(icmpv6MsgStatsTable.icmpMsgStatsOutPkts[message->type], 1);
+   ICMPV6_STATS_INC_COUNTER32(outPkts[message->type], 1);
 
    //Debug message
    TRACE_INFO("Sending MLD message (%" PRIuSIZE " bytes)...\r\n", length);
@@ -263,18 +259,19 @@ void mldProcessMessage(NetInterface *interface,
 
 /**
  * @brief Generate a random delay
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] maxDelay maximum delay
  * @return Random amount of time
  **/
 
-systime_t mldGetRandomDelay(systime_t maxDelay)
+systime_t mldGetRandomDelay(NetContext *context, systime_t maxDelay)
 {
    systime_t delay;
 
    //Generate a random delay in the specified range
    if(maxDelay > MLD_TICK_INTERVAL)
    {
-      delay = netGenerateRandRange(0, maxDelay - MLD_TICK_INTERVAL);
+      delay = netGenerateRandRange(context, 0, maxDelay - MLD_TICK_INTERVAL);
    }
    else
    {

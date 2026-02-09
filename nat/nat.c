@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -36,7 +36,7 @@
  * - RFC 5508: NAT Behavioral Requirements for ICMP
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -87,6 +87,7 @@ void natGetDefaultSettings(NatSettings *settings)
 error_t natInit(NatContext *context, const NatSettings *settings)
 {
    uint_t i;
+   NetContext *netContext;
 
    //Debug message
    TRACE_INFO("Initializing NAT...\r\n");
@@ -98,6 +99,15 @@ error_t natInit(NatContext *context, const NatSettings *settings)
    //Check parameters
    if(settings->publicInterface == NULL || settings->numPrivateInterfaces == 0)
       return ERROR_INVALID_PARAMETER;
+
+   //Point to the TCP/IP stack context
+   netContext = settings->publicInterface->netContext;
+
+   //Clear the NAT context
+   osMemset(context, 0, sizeof(NatContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = netContext;
 
    //Save public interface
    context->publicInterface = settings->publicInterface;
@@ -135,8 +145,12 @@ error_t natInit(NatContext *context, const NatSettings *settings)
       osMemset(&context->sessions[i], 0, sizeof(NatSession));
    }
 
+   //Get exclusive access
+   netLock(netContext);
    //Attach the NAT context
-   netContext.natContext = context;
+   netContext->natContext = context;
+   //Release exclusive access
+   netUnlock(netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -161,7 +175,7 @@ error_t natSetPublicInterface(NatContext *context,
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Save public interface
    context->publicInterface = publicInterface;
@@ -174,7 +188,7 @@ error_t natSetPublicInterface(NatContext *context,
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Sucessful processing
    return NO_ERROR;
@@ -241,7 +255,7 @@ error_t natSetPortRangeFwdRule(NatContext *context, uint_t index,
       return ERROR_INVALID_PROTOCOL;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Point to the specified rule
    rule = &context->portFwdRules[index];
@@ -256,7 +270,7 @@ error_t natSetPortRangeFwdRule(NatContext *context, uint_t index,
    rule->privatePortMax = privatePortMin + publicPortMax - publicPortMin;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Sucessful processing
    return NO_ERROR;
@@ -281,11 +295,11 @@ error_t natClearPortFwdRule(NatContext *context, uint_t index)
       return ERROR_INVALID_PARAMETER;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
    //Invalidate the specified rule
    context->portFwdRules[index].protocol = IPV4_PROTOCOL_NONE;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -310,7 +324,7 @@ error_t natStart(NatContext *context)
    TRACE_INFO("Starting NAT...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Check the operational state of the NAT
    if(!context->running)
@@ -323,13 +337,12 @@ error_t natStart(NatContext *context)
    }
    else
    {
-      //The DHCP client is already running
+      //The NAT is already running
       error = ERROR_ALREADY_RUNNING;
    }
 
-
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return status code
    return error;
@@ -354,7 +367,7 @@ error_t natStop(NatContext *context)
    TRACE_INFO("Stopping NAT...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Check whether the NAT is running
    if(context->running)
@@ -371,7 +384,7 @@ error_t natStop(NatContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -385,9 +398,21 @@ error_t natStop(NatContext *context)
 
 void natDeinit(NatContext *context)
 {
+   NetContext *netContext;
+
    //Make sure the NAT context is valid
    if(context != NULL)
    {
+      //Point to the TCP/IP stack context
+      netContext = context->netContext;
+
+      //Get exclusive access
+      netLock(netContext);
+      //Detach the NAT context
+      netContext->natContext = NULL;
+      //Release exclusive access
+      netUnlock(netContext);
+
       //Clear NAT context
       osMemset(context, 0, sizeof(NatContext));
    }

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -205,7 +205,7 @@ void lldpProcessFrame(LldpAgentContext *context)
       {
          //The LLDPDU shall be delivered to the LLDP receive module if, and
          //only if, the destination address value is the assigned LLDP multicast
-         //address and the Ethertype value is the LLDP Ethertype
+         //address and the EtherType value is the LLDP EtherType
          if(macCompAddr(&msg.destMacAddr, &LLDP_MULTICAST_ADDR) &&
             msg.ethType == ETH_TYPE_LLDP)
          {
@@ -554,11 +554,11 @@ bool_t lldpGetLinkState(LldpAgentContext *context, uint_t portIndex)
       interface->switchDriver->getLinkState != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
       //Retrieve the link state of the specified port
       linkState = interface->switchDriver->getLinkState(interface, portIndex);
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
    }
    else
    {
@@ -591,7 +591,7 @@ error_t lldpAcceptMulticastAddr(LldpAgentContext *context)
    interface = context->interface;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Valid switch driver?
    if(interface->switchDriver != NULL &&
@@ -615,7 +615,7 @@ error_t lldpAcceptMulticastAddr(LldpAgentContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return status code
    return error;
@@ -646,7 +646,7 @@ error_t lldpDropMulticastAddr(LldpAgentContext *context)
    interface = context->interface;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Valid switch driver?
    if(interface->switchDriver != NULL &&
@@ -670,7 +670,7 @@ error_t lldpDropMulticastAddr(LldpAgentContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return status code
    return error;

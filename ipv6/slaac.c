@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 6106: IPv6 Router Advertisement Options for DNS Configuration
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -59,8 +59,8 @@
 
 void slaacGetDefaultSettings(SlaacSettings *settings)
 {
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Network interface to configure
+   settings->interface = NULL;
 
    //Use the DNS servers specified by the RDNSS option
    settings->manualDnsConfig = FALSE;
@@ -98,14 +98,25 @@ error_t slaacInit(SlaacContext *context, const SlaacSettings *settings)
 
    //Clear the SLAAC context
    osMemset(context, 0, sizeof(SlaacContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
    //Save user settings
-   context->settings = *settings;
+   context->interface = settings->interface;
+   context->manualDnsConfig = settings->manualDnsConfig;
+   context->linkChangeEvent = settings->linkChangeEvent;
+   context->parseRouterAdvCallback = settings->parseRouterAdvCallback;
 
    //SLAAC operation is currently suspended
    context->running = FALSE;
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the SLAAC context to the network interface
    interface->slaacContext = context;
+   //Release exclusive access
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -130,16 +141,16 @@ error_t slaacStart(SlaacContext *context)
    TRACE_INFO("Starting SLAAC...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Clear the list of IPv6 addresses
    ipv6FlushAddrList(interface);
 
    //Automatic DNS server configuration?
-   if(!context->settings.manualDnsConfig)
+   if(!context->manualDnsConfig)
    {
       //Clear the list of DNS servers
       ipv6FlushDnsServerList(interface);
@@ -157,7 +168,7 @@ error_t slaacStart(SlaacContext *context)
    context->running = TRUE;
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -180,16 +191,43 @@ error_t slaacStop(SlaacContext *context)
    TRACE_INFO("Stopping SLAAC...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
+   netLock(context->netContext);
    //Suspend SLAAC operation
    context->running = FALSE;
-
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
+}
+
+
+/**
+ * @brief Release SLAAC context
+ * @param[in] context Pointer to the SLAAC context
+ **/
+
+void slaacDeinit(SlaacContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the SLAAC context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the SLAAC context from the network interface
+      interface->slaacContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear SLAAC context
+      osMemset(context, 0, sizeof(SlaacContext));
+   }
 }
 
 #endif

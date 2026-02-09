@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _SNMP_AGENT_H
@@ -131,6 +131,7 @@ typedef error_t (*SnmpAgentRandCallback)(uint8_t *data, size_t length);
 typedef struct
 {
    OsTaskParameters task;              ///<Task parameters
+   NetContext *netContext;             ///<TCP/IP stack context
    NetInterface *interface;            ///<Underlying network interface
    SnmpVersion versionMin;             ///<Minimum version accepted by the SNMP agent
    SnmpVersion versionMax;             ///<Maximum version accepted by the SNMP agent
@@ -146,7 +147,13 @@ typedef struct
 
 struct _SnmpAgentContext
 {
-   SnmpAgentSettings settings;                                ///<SNMP agent settings
+   NetContext *netContext;                                    ///<TCP/IP stack context
+   NetInterface *interface;                                   ///<Underlying network interface
+   SnmpVersion versionMin;                                    ///<Minimum version accepted by the SNMP agent
+   SnmpVersion versionMax;                                    ///<Maximum version accepted by the SNMP agent
+   uint16_t port;                                             ///<SNMP port number
+   uint16_t trapPort;                                         ///<SNMP trap port number
+   SnmpAgentRandCallback randCallback;                        ///<Random data generation callback function
    bool_t running;                                            ///<Operational state of the SNMP agent
    bool_t stop;                                               ///<Stop request
    OsMutex mutex;                                             ///<Mutex preventing simultaneous access to SNMP agent context
@@ -184,7 +191,7 @@ struct _SnmpAgentContext
    int32_t engineBoots;                                       ///<Number of times that the SNMP engine has rebooted
    int32_t engineTime;                                        ///<SNMP engine time
    int32_t msgId;                                             ///<Message identifier
-   uint64_t salt;                                             ///<Integer initialized to a random value at boot time
+   uint8_t salt[8];                                           ///<Integer initialized to a random value at boot time
    uint8_t privParameters[8];                                 ///<Privacy parameters
 #endif
 #if (SNMP_AGENT_INFORM_SUPPORT == ENABLED)

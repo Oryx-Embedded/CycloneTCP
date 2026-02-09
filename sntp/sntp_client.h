@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _SNTP_CLIENT_H
@@ -63,7 +63,7 @@
    #error SNTP_CLIENT_MAX_RETRANSMIT_TIMEOUT parameter is not valid
 #endif
 
-//SNTP client's source cport
+//SNTP client's source port
 #ifndef SNTP_CLIENT_SRC_PORT
    #define SNTP_CLIENT_SRC_PORT 0
 #elif (SNTP_CLIENT_SRC_PORT < 0 || SNTP_CLIENT_SRC_PORT > 65535)
@@ -102,6 +102,7 @@ typedef struct
 {
    SntpClientState state;             ///<SNTP client state
    NtpVersion version;                ///<NTP protocol version
+   NetContext *netContext;            ///<TCP/IP stack context
    NetInterface *interface;           ///<Underlying network interface
    IpAddr serverIpAddr;               ///<NTP server address
    uint16_t serverPort;               ///<NTP server port

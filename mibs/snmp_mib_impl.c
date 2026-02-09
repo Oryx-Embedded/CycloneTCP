@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -53,6 +53,7 @@
 
 error_t snmpMibInit(void)
 {
+   NetContext *context;
    SnmpMibSysGroup *sysGroup;
    SnmpMibSnmpGroup *snmpGroup;
    SnmpMibSetGroup *setGroup;
@@ -62,6 +63,9 @@ error_t snmpMibInit(void)
 
    //Clear SNMP MIB base
    osMemset(&snmpMibBase, 0, sizeof(snmpMibBase));
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the system group
    sysGroup = &snmpMibBase.sysGroup;
@@ -107,7 +111,7 @@ error_t snmpMibInit(void)
    //Point to the set group
    setGroup = &snmpMibBase.setGroup;
    //snmpSetSerialNo object
-   setGroup->snmpSetSerialNo = netGetRandRange(1, INT32_MAX);
+   setGroup->snmpSetSerialNo = netGetRandRange(context, 1, INT32_MAX);
 
    //Successful processing
    return NO_ERROR;

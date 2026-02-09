@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -45,8 +45,6 @@
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
    NBNS_CLIENT_SUPPORT == ENABLED || LLMNR_CLIENT_SUPPORT == ENABLED)
 
-//Tick counter to handle periodic operations
-systime_t dnsTickCounter;
 //DNS cache
 DnsCacheEntry dnsCache[DNS_CACHE_SIZE];
 
@@ -161,7 +159,7 @@ void dnsDeleteEntry(DnsCacheEntry *entry)
          //Unregister UDP callback function
          if(entry->port != 0)
          {
-            udpDetachRxCallback(entry->interface, entry->port);
+            udpUnregisterRxCallback(entry->interface, entry->port);
          }
       }
 
@@ -304,7 +302,7 @@ void dnsTick(void)
                   //Unregister UDP callback function
                   if(entry->port != 0)
                   {
-                     udpDetachRxCallback(entry->interface, entry->port);
+                     udpUnregisterRxCallback(entry->interface, entry->port);
                   }
 
                   //Host name resolution failed
@@ -324,7 +322,7 @@ void dnsTick(void)
                //Unregister UDP callback function
                if(entry->port != 0)
                {
-                  udpDetachRxCallback(entry->interface, entry->port);
+                  udpUnregisterRxCallback(entry->interface, entry->port);
                }
 
                //Host name resolution failed

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -66,8 +66,8 @@ static uint16_t pingSequenceNumber = 0;
  * @return Error code
  **/
 
-error_t ping(NetInterface *interface, const IpAddr *targetIpAddr,
-   size_t size, uint8_t ttl, systime_t timeout, systime_t *rtt)
+error_t ping(NetInterface *interface, const IpAddr *targetIpAddr, size_t size,
+   uint8_t ttl, systime_t timeout, systime_t *rtt)
 {
    error_t error;
    PingContext context;
@@ -130,6 +130,9 @@ void pingInit(PingContext *context)
       //Initialize context
       osMemset(context, 0, sizeof(PingContext));
 
+      //Attach TCP/IP stack context
+      context->netContext = netGetDefaultContext();
+
       //Set the default timeout to be used
       context->timeout = PING_DEFAULT_TIMEOUT;
    }
@@ -187,8 +190,8 @@ error_t pingBindToInterface(PingContext *context, NetInterface *interface)
  * @return Error code
  **/
 
-error_t pingSendRequest(PingContext *context,
-   const IpAddr *targetIpAddr, size_t size, uint8_t ttl)
+error_t pingSendRequest(PingContext *context, const IpAddr *targetIpAddr,
+   size_t size, uint8_t ttl)
 {
    error_t error;
    size_t i;
@@ -211,14 +214,11 @@ error_t pingSendRequest(PingContext *context,
    }
 
    //Identifier field is used to help matching requests and replies
-   context->identifier = netGetRandRange(ICMP_QUERY_ID_MIN, ICMP_QUERY_ID_MAX);
+   context->identifier = netGetRandRange(context->netContext, ICMP_QUERY_ID_MIN,
+      ICMP_QUERY_ID_MAX);
 
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
    //Sequence Number field is incremented each time an Echo Request is sent
    context->sequenceNumber = pingSequenceNumber++;
-   //Release exclusive access
-   osReleaseMutex(&netMutex);
 
    //Point to the buffer where to format the ICMP message
    message = (IcmpEchoMessage *) context->buffer;
@@ -248,10 +248,10 @@ error_t pingSendRequest(PingContext *context,
    {
       Ipv4Addr srcIpAddr;
 
-      //Select the source IPv4 address and the relevant network
-      //interface to use when pinging the specified host
-      error = ipv4SelectSourceAddr(&interface, targetIpAddr->ipv4Addr,
-         &srcIpAddr);
+      //Select the source IPv4 address and the relevant network interface to
+      //use when pinging the specified host
+      error = ipv4SelectSourceAddr(context->netContext, &interface,
+         targetIpAddr->ipv4Addr, &srcIpAddr);
       //Any error to report?
       if(error)
          return error;
@@ -262,7 +262,8 @@ error_t pingSendRequest(PingContext *context,
       message->checksum = ipCalcChecksum(message, length);
 
       //Open a raw socket
-      context->socket = socketOpen(SOCKET_TYPE_RAW_IP, SOCKET_IP_PROTO_ICMP);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_RAW_IP,
+         SOCKET_IP_PROTO_ICMP);
    }
    else
 #endif
@@ -272,10 +273,10 @@ error_t pingSendRequest(PingContext *context,
    {
       Ipv6PseudoHeader pseudoHeader;
 
-      //Select the source IPv6 address and the relevant network interface
-      //to use when pinging the specified host
-      error = ipv6SelectSourceAddr(&interface, &targetIpAddr->ipv6Addr,
-         &pseudoHeader.srcAddr);
+      //Select the source IPv6 address and the relevant network interface to
+      //use when pinging the specified host
+      error = ipv6SelectSourceAddr(context->netContext, &interface,
+         &targetIpAddr->ipv6Addr, &pseudoHeader.srcAddr);
       //Any error to report?
       if(error)
          return error;
@@ -296,7 +297,8 @@ error_t pingSendRequest(PingContext *context,
          sizeof(Ipv6PseudoHeader), message, length);
 
       //Open a raw socket
-      context->socket = socketOpen(SOCKET_TYPE_RAW_IP, SOCKET_IP_PROTO_ICMPV6);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_RAW_IP,
+         SOCKET_IP_PROTO_ICMPV6);
    }
    else
 #endif
@@ -327,8 +329,8 @@ error_t pingSendRequest(PingContext *context,
          ipAddrToString(targetIpAddr, NULL), length);
 
       //Send Echo Request message
-      error = socketSendTo(context->socket, targetIpAddr, 0,
-         message, length, NULL, 0);
+      error = socketSendTo(context->socket, targetIpAddr, 0, message, length,
+         NULL, 0);
       //Failed to send message ?
       if(error)
          break;
@@ -367,8 +369,8 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
 {
    size_t i;
 
-   //Check message length
-   if(length != (sizeof(IcmpEchoMessage) + context->dataPayloadSize))
+   //Malformed ICMP message?
+   if(length < sizeof(IcmpHeader))
       return ERROR_INVALID_MESSAGE;
 
 #if (IPV4_SUPPORT == ENABLED)
@@ -380,8 +382,21 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
          return ERROR_INVALID_MESSAGE;
 
       //Check message type
-      if(message->type != ICMP_TYPE_ECHO_REPLY)
+      if(message->type == ICMP_TYPE_ECHO_REPLY)
+      {
+         //Continue processing
+      }
+      else if(message->type == ICMP_TYPE_TIME_EXCEEDED)
+      {
+         //If the gateway processing a packet finds the TTL field is zero, then
+         //it notifies the source host via an ICMP Time Exceeded message
+         return ERROR_TTL_EXCEEDED;
+      }
+      else
+      {
+         //Report an error
          return ERROR_INVALID_MESSAGE;
+      }
 
       //Verify checksum value
       if(ipCalcChecksum(message, length) != 0x0000)
@@ -400,8 +415,21 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
          return ERROR_INVALID_MESSAGE;
 
       //Check message type
-      if(message->type != ICMPV6_TYPE_ECHO_REPLY)
+      if(message->type == ICMPV6_TYPE_ECHO_REPLY)
+      {
+         //Continue processing
+      }
+      else if(message->type == ICMPV6_TYPE_TIME_EXCEEDED)
+      {
+         //If the gateway processing a packet finds the Hop Limit field is zero,
+         //then it notifies the source host via an ICMPv6 Time Exceeded message
+         return ERROR_TTL_EXCEEDED;
+      }
+      else
+      {
+         //Report an error
          return ERROR_INVALID_MESSAGE;
+      }
 
       //Format IPv6 pseudo header
       pseudoHeader.srcAddr = srcIpAddr->ipv6Addr;
@@ -428,12 +456,20 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
       return ERROR_INVALID_ADDRESS;
    }
 
+   //Malformed ICMP Echo Reply message?
+   if(length < sizeof(IcmpEchoMessage))
+      return ERROR_INVALID_MESSAGE;
+
    //Make sure the response identifier matches the request identifier
    if(ntohs(message->identifier) != context->identifier)
       return ERROR_INVALID_MESSAGE;
 
    //Make sure the sequence number is correct
    if(ntohs(message->sequenceNumber) != context->sequenceNumber)
+      return ERROR_INVALID_MESSAGE;
+
+   //Check message length
+   if(length != (sizeof(IcmpEchoMessage) + context->dataPayloadSize))
       return ERROR_INVALID_MESSAGE;
 
    //Verify data payload
@@ -452,13 +488,13 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
 /**
  * @brief Wait for a matching ICMP Echo Reply message
  * @param[in] context Pointer to the ping context
- * @param[out] targetIpAddr IP address of the remote host (optional parameter)
+ * @param[out] hostIpAddr IP address of the intermediate host (optional parameter)
  * @param[out] rtt Round-trip time (optional parameter)
  * @return Error code
  **/
 
-error_t pingWaitForReply(PingContext *context,
-   IpAddr *targetIpAddr, systime_t *rtt)
+error_t pingWaitForReply(PingContext *context, IpAddr *hostIpAddr,
+   systime_t *rtt)
 {
    error_t error;
    size_t length;
@@ -494,13 +530,15 @@ error_t pingWaitForReply(PingContext *context,
          break;
 
       //Wait for an incoming ICMP message
-      error = socketReceiveEx(context->socket, &srcIpAddr, NULL,
-         &destIpAddr, context->buffer, PING_BUFFER_SIZE, &length, 0);
+      error = socketReceiveEx(context->socket, &srcIpAddr, NULL, &destIpAddr,
+         context->buffer, PING_BUFFER_SIZE, &length, 0);
 
 #if (NET_RTOS_SUPPORT == DISABLED)
       //Catch timeout exception
       if(error == ERROR_TIMEOUT)
+      {
          error = ERROR_WOULD_BLOCK;
+      }
 #endif
 
       //Get current time
@@ -515,22 +553,34 @@ error_t pingWaitForReply(PingContext *context,
       }
 
       //Check status code
-      if(!error)
+      if(error == NO_ERROR || error == ERROR_TTL_EXCEEDED)
       {
          //Calculate round-trip time
          context->rtt = time - context->timestamp;
 
          //Debug message
-         TRACE_INFO("ICMP echo reply received from %s (%" PRIu32 " ms)...\r\n",
-            ipAddrToString(&srcIpAddr, NULL), context->rtt);
+         if(error == NO_ERROR)
+         {
+            TRACE_INFO("ICMP echo reply received from %s (%" PRIu32 " ms)...\r\n",
+               ipAddrToString(&srcIpAddr, NULL), context->rtt);
+         }
+         else
+         {
+            TRACE_INFO("ICMP time exceeded received from %s (%" PRIu32 " ms)...\r\n",
+               ipAddrToString(&srcIpAddr, NULL), context->rtt);
+         }
 
          //Return the IP address of the host
-         if(targetIpAddr != NULL)
-            *targetIpAddr = srcIpAddr;
+         if(hostIpAddr != NULL)
+         {
+            *hostIpAddr = srcIpAddr;
+         }
 
          //Return the round-trip time
          if(rtt != NULL)
+         {
             *rtt = context->rtt;
+         }
       }
       else
       {

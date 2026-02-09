@@ -1,12 +1,12 @@
 /**
  * @file mcxe247_eth_driver.h
- * @brief NXP MCXE247 Ethernet MAC driver
+ * @brief NXP MCX E247 Ethernet MAC driver
  *
  * @section License
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _MCXE247_ETH_DRIVER_H
@@ -144,10 +144,10 @@
 extern "C" {
 #endif
 
-//MCXE247 Ethernet MAC driver
+//MCX E247 Ethernet MAC driver
 extern const NicDriver mcxe247EthDriver;
 
-//MCXE247 Ethernet MAC related functions
+//MCX E247 Ethernet MAC related functions
 error_t mcxe247EthInit(NetInterface *interface);
 void mcxe247EthInitGpio(NetInterface *interface);
 void mcxe247EthInitBufferDesc(NetInterface *interface);

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -60,13 +60,13 @@ void slaacLinkChangeEvent(SlaacContext *context)
       return;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check whether SLAAC is enabled
    if(context->running)
    {
       //Automatic DNS server configuration?
-      if(!context->settings.manualDnsConfig)
+      if(!context->manualDnsConfig)
       {
          //Clear the list of DNS servers
          ipv6FlushDnsServerList(interface);
@@ -82,14 +82,14 @@ void slaacLinkChangeEvent(SlaacContext *context)
    }
 
    //Any registered callback?
-   if(context->settings.linkChangeEvent != NULL)
+   if(context->linkChangeEvent != NULL)
    {
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
-      context->settings.linkChangeEvent(context, interface, interface->linkState);
+      context->linkChangeEvent(context, interface, interface->linkState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
@@ -111,7 +111,7 @@ void slaacParseRouterAdv(SlaacContext *context,
    NdpRdnssOption *rdnssOption;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check whether SLAAC is enabled
    if(!context->running)
@@ -151,7 +151,7 @@ void slaacParseRouterAdv(SlaacContext *context,
    }
 
    //Automatic DNS server configuration?
-   if(!context->settings.manualDnsConfig)
+   if(!context->manualDnsConfig)
    {
       //Search for the Recursive DNS Server (RDNSS) option
       rdnssOption = ndpGetOption(message->options, length,
@@ -173,10 +173,10 @@ void slaacParseRouterAdv(SlaacContext *context,
    }
 
    //Any registered callback?
-   if(context->settings.parseRouterAdvCallback != NULL)
+   if(context->parseRouterAdvCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.parseRouterAdvCallback(context, message, length);
+      context->parseRouterAdvCallback(context, message, length);
    }
 
    //Check whether a new IPv6 address has been assigned to the interface
@@ -240,7 +240,7 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
    time = osGetSystemTime();
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
@@ -434,7 +434,7 @@ error_t slaacGenerateLinkLocalAddr(SlaacContext *context)
    Ipv6Addr addr;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Point to the logical interface
    logicalInterface = nicGetLogicalInterface(interface);
@@ -481,13 +481,10 @@ void slaacDumpConfig(SlaacContext *context)
 {
 #if (SLAAC_TRACE_LEVEL >= TRACE_LEVEL_INFO)
    uint_t i;
-   NetInterface *interface;
    Ipv6Context *ipv6Context;
 
-   //Point to the underlying network interface
-   interface = context->settings.interface;
    //Point to the IPv6 context
-   ipv6Context = &interface->ipv6Context;
+   ipv6Context = &context->interface->ipv6Context;
 
    //Debug message
    TRACE_INFO("\r\n");

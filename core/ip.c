@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -108,6 +108,7 @@ error_t ipSendDatagram(NetInterface *interface,
  * This function selects the source address and the relevant network interface
  * to be used in order to join the specified destination address
  *
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in,out] interface A pointer to a valid network interface may be
  *   provided as a hint. The function returns a pointer identifying the
  *   interface to be used
@@ -116,8 +117,8 @@ error_t ipSendDatagram(NetInterface *interface,
  * @return Error code
  **/
 
-error_t ipSelectSourceAddr(NetInterface **interface, const IpAddr *destAddr,
-   IpAddr *srcAddr)
+error_t ipSelectSourceAddr(NetContext *context, NetInterface **interface,
+   const IpAddr *destAddr, IpAddr *srcAddr)
 {
    error_t error;
 
@@ -129,7 +130,7 @@ error_t ipSelectSourceAddr(NetInterface **interface, const IpAddr *destAddr,
       srcAddr->length = sizeof(Ipv4Addr);
 
       //Get the most appropriate source address to use
-      error = ipv4SelectSourceAddr(interface, destAddr->ipv4Addr,
+      error = ipv4SelectSourceAddr(context, interface, destAddr->ipv4Addr,
          &srcAddr->ipv4Addr);
    }
    else
@@ -142,7 +143,7 @@ error_t ipSelectSourceAddr(NetInterface **interface, const IpAddr *destAddr,
       srcAddr->length = sizeof(Ipv6Addr);
 
       //Get the most appropriate source address to use
-      error = ipv6SelectSourceAddr(interface, &destAddr->ipv6Addr,
+      error = ipv6SelectSourceAddr(context, interface, &destAddr->ipv6Addr,
          &srcAddr->ipv6Addr);
    }
    else
@@ -402,31 +403,35 @@ bool_t ipCompPrefix(const IpAddr *ipAddr1, const IpAddr *ipAddr2,
 
 /**
  * @brief Update IP multicast filter table
+ * @param[in] context Pointer to the TCP/IP stack context
  * @param[in] interface Underlying network interface
  * @param[in] groupAddr IP multicast address
  **/
 
-void ipUpdateMulticastFilter(NetInterface *interface, const IpAddr *groupAddr)
+void ipUpdateMulticastFilter(NetContext *context, NetInterface *interface,
+   const IpAddr *groupAddr)
 {
    uint_t i;
 
    //Loop through network interfaces
-   for(i = 0; i < NET_INTERFACE_COUNT; i++)
+   for(i = 0; i < context->numInterfaces; i++)
    {
       //Matching interface?
-      if(interface == NULL || interface == &netInterface[i])
+      if(interface == NULL || interface == &context->interfaces[i])
       {
 #if (IPV4_SUPPORT == ENABLED)
          //IPv4 group address?
          if(groupAddr == NULL)
          {
             //Update IPv4 multicast filter table
-            ipv4UpdateMulticastFilter(&netInterface[i], IPV4_UNSPECIFIED_ADDR);
+            ipv4UpdateMulticastFilter(&context->interfaces[i],
+               IPV4_UNSPECIFIED_ADDR);
          }
          else if(groupAddr->length == sizeof(Ipv4Addr))
          {
             //Update IPv4 multicast filter table (for the specified group only)
-            ipv4UpdateMulticastFilter(&netInterface[i], groupAddr->ipv4Addr);
+            ipv4UpdateMulticastFilter(&context->interfaces[i],
+               groupAddr->ipv4Addr);
          }
          else
          {
@@ -438,12 +443,13 @@ void ipUpdateMulticastFilter(NetInterface *interface, const IpAddr *groupAddr)
          if(groupAddr == NULL)
          {
             //Update IPv6 multicast filter table
-            ipv6UpdateMulticastFilter(&netInterface[i], NULL);
+            ipv6UpdateMulticastFilter(&context->interfaces[i], NULL);
          }
          else if(groupAddr->length == sizeof(Ipv6Addr))
          {
             //Update IPv6 multicast filter table (for the specified group only)
-            ipv6UpdateMulticastFilter(&netInterface[i], &groupAddr->ipv6Addr);
+            ipv6UpdateMulticastFilter(&context->interfaces[i],
+               &groupAddr->ipv6Addr);
          }
          else
          {

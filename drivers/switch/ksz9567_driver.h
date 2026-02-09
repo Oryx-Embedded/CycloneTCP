@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _KSZ9567_DRIVER_H
@@ -104,6 +104,18 @@
 //KSZ9567 MMD registers
 #define KSZ9567_MMD_LED_MODE                                         0x02, 0x00
 #define KSZ9567_MMD_EEE_ADV                                          0x07, 0x3C
+
+//KSZ9567 SGMII registers
+#define KSZ9567_SGMII_CTRL                                           0x1F0000
+#define KSZ9567_SGMII_STATUS                                         0x1F0001
+#define KSZ9567_SGMII_PHYID1                                         0x1F0002
+#define KSZ9567_SGMII_PHYID2                                         0x1F0003
+#define KSZ9567_SGMII_ANAR                                           0x1F0004
+#define KSZ9567_SGMII_ANLPAR                                         0x1F0005
+#define KSZ9567_SGMII_ANER                                           0x1F0006
+#define KSZ9567_SGMII_DIGITAL_CTRL                                   0x1F8000
+#define KSZ9567_SGMII_AN_CTRL                                        0x1F8001
+#define KSZ9567_SGMII_AN_STATUS                                      0x1F8002
 
 //KSZ9567 Switch registers
 #define KSZ9567_CHIP_ID0                                             0x0000
@@ -1102,6 +1114,74 @@
 #define KSZ9567_MMD_EEE_ADV_1000BT_EEE_EN                            0x0004
 #define KSZ9567_MMD_EEE_ADV_100BT_EEE_EN                             0x0002
 
+//SGMII Control register
+#define KSZ9567_SGMII_CTRL_SOFT_RESET                                0x8000
+#define KSZ9567_SGMII_CTRL_LOCAL_LOOPBACK                            0x4000
+#define KSZ9567_SGMII_CTRL_SPEED_SEL_LSB                             0x2000
+#define KSZ9567_SGMII_CTRL_AN_EN                                     0x1000
+#define KSZ9567_SGMII_CTRL_POWER_DOWN                                0x0800
+#define KSZ9567_SGMII_CTRL_RESTART_AN                                0x0200
+#define KSZ9567_SGMII_CTRL_DUPLEX_MODE                               0x0100
+#define KSZ9567_SGMII_CTRL_SPEED_SEL_MSB                             0x0040
+
+//SGMII Status register
+#define KSZ9567_SGMII_STATUS_AN_COMPLETE                             0x0020
+#define KSZ9567_SGMII_STATUS_REMOTE_FAULT                            0x0010
+#define KSZ9567_SGMII_STATUS_LINK_STATUS                             0x0004
+
+//SGMII PHY ID 1 register
+#define KSZ9567_SGMII_PHYID1_DEFAULT                                 0x7996
+
+//SGMII PHY ID 2 register
+#define KSZ9567_SGMII_PHYID2_DEFAULT                                 0xCED0
+
+//SGMII Auto-Negotiation Advertisement register
+#define KSZ9567_SGMII_ANAR_NEXT_PAGE                                 0x8000
+#define KSZ9567_SGMII_ANAR_REMOTE_FAULT                              0x3000
+#define KSZ9567_SGMII_ANAR_REMOTE_FAULT_NO_ERROR                     0x0000
+#define KSZ9567_SGMII_ANAR_REMOTE_FAULT_OFFINE                       0x1000
+#define KSZ9567_SGMII_ANAR_REMOTE_FAULT_LINK_FAILURE                 0x2000
+#define KSZ9567_SGMII_ANAR_REMOTE_FAULT_AN_ERROR                     0x3000
+#define KSZ9567_SGMII_ANAR_PAUSE                                     0x0180
+#define KSZ9567_SGMII_ANAR_HALF_DUPLEX                               0x0040
+#define KSZ9567_SGMII_ANAR_FULL_DUPLEX                               0x0020
+
+//SGMII Auto-Negotiation Link Partner Base Ability register
+#define KSZ9567_SGMII_ANLPAR_NEXT_PAGE                               0x8000
+#define KSZ9567_SGMII_ANLPAR_ACK                                     0x4000
+#define KSZ9567_SGMII_ANLPAR_REMOTE_FAULT                            0x3000
+#define KSZ9567_SGMII_ANLPAR_REMOTE_FAULT_NO_ERROR                   0x0000
+#define KSZ9567_SGMII_ANLPAR_REMOTE_FAULT_OFFINE                     0x1000
+#define KSZ9567_SGMII_ANLPAR_REMOTE_FAULT_LINK_FAILURE               0x2000
+#define KSZ9567_SGMII_ANLPAR_REMOTE_FAULT_AN_ERROR                   0x3000
+#define KSZ9567_SGMII_ANLPAR_PAUSE                                   0x0180
+#define KSZ9567_SGMII_ANLPAR_HALF_DUPLEX                             0x0040
+#define KSZ9567_SGMII_ANLPAR_FULL_DUPLEX                             0x0020
+
+//SGMII Auto-Negotiation Expansion register
+#define KSZ9567_SGMII_ANER_PAGE_RECEIVED                             0x0002
+
+//SGMII Digital Control register
+#define KSZ9567_SGMII_DIGITAL_CTRL_REMOTE_LOOPBACK                   0x4000
+#define KSZ9567_SGMII_DIGITAL_CTRL_POWER_SAVE                        0x0800
+
+//SGMII Auto-Negotiation Control register
+#define KSZ9567_SGMII_AN_CTRL_LINK_STATUS                            0x0010
+#define KSZ9567_SGMII_AN_CTRL_TX_CONFIG_MASTER                       0x0008
+#define KSZ9567_SGMII_AN_CTRL_PCS_MODE                               0x0006
+#define KSZ9567_SGMII_AN_CTRL_PCS_MODE_SERDES                        0x0000
+#define KSZ9567_SGMII_AN_CTRL_PCS_MODE_SGMII                         0x0004
+#define KSZ9567_SGMII_AN_CTRL_AN_COMPLETE_INT_EN                     0x0001
+
+//SGMII Auto-Negotiation Status register
+#define KSZ9567_SGMII_AN_STATUS_LINK_STATUS                          0x0010
+#define KSZ9567_SGMII_AN_STATUS_LINK_SPEED                           0x000C
+#define KSZ9567_SGMII_AN_STATUS_LINK_SPEED_10MBPS                    0x0000
+#define KSZ9567_SGMII_AN_STATUS_LINK_SPEED_100MBPS                   0x0004
+#define KSZ9567_SGMII_AN_STATUS_LINK_SPEED_1000MBPS                  0x0008
+#define KSZ9567_SGMII_AN_STATUS_FULL_DUPLEX                          0x0002
+#define KSZ9567_SGMII_AN_STATUS_AN_COMPLETE_INT                      0x0001
+
 //Global Chip ID 0 register
 #define KSZ9567_CHIP_ID0_DEFAULT                                     0x00
 
@@ -1908,6 +1988,10 @@ bool_t ksz9567GetLinkState(NetInterface *interface, uint8_t port);
 uint32_t ksz9567GetLinkSpeed(NetInterface *interface, uint8_t port);
 NicDuplexMode ksz9567GetDuplexMode(NetInterface *interface, uint8_t port);
 
+bool_t ksz9567GetPort7LinkState(NetInterface *interface);
+uint32_t ksz9567GetPort7LinkSpeed(NetInterface *interface);
+NicDuplexMode ksz9567GetPort7DuplexMode(NetInterface *interface);
+
 void ksz9567SetPortState(NetInterface *interface, uint8_t port,
    SwitchPortState state);
 
@@ -1951,6 +2035,11 @@ void ksz9567WriteMmdReg(NetInterface *interface, uint8_t port,
 
 uint16_t ksz9567ReadMmdReg(NetInterface *interface, uint8_t port,
    uint8_t devAddr, uint16_t regAddr);
+
+void ksz9567WriteSgmiiReg(NetInterface *interface, uint32_t address,
+   uint16_t data);
+
+uint16_t ksz9567ReadSgmiiReg(NetInterface *interface, uint32_t address);
 
 void ksz9567WriteSwitchReg8(NetInterface *interface, uint16_t address,
    uint8_t data);

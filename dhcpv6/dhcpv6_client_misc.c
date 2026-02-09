@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -47,9 +47,6 @@
 
 //Check TCP/IP stack configuration
 #if (IPV6_SUPPORT == ENABLED && DHCPV6_CLIENT_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t dhcpv6ClientTickCounter;
 
 //Requested DHCPv6 options
 static const uint16_t dhcpv6OptionList[] =
@@ -183,13 +180,13 @@ void dhcpv6ClientLinkChangeEvent(Dhcpv6ClientContext *context)
       return;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check whether the DHCPv6 client is running
    if(context->running)
    {
       //Automatic DNS server configuration?
-      if(!context->settings.manualDnsConfig)
+      if(!context->manualDnsConfig)
       {
          //Clear the list of DNS servers
          ipv6FlushDnsServerList(interface);
@@ -231,14 +228,14 @@ void dhcpv6ClientLinkChangeEvent(Dhcpv6ClientContext *context)
    }
 
    //Any registered callback?
-   if(context->settings.linkChangeEvent != NULL)
+   if(context->linkChangeEvent != NULL)
    {
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
-      context->settings.linkChangeEvent(context, interface, interface->linkState);
+      context->linkChangeEvent(context, interface, interface->linkState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
@@ -269,7 +266,7 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
    NetTxAncillary ancillary;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Allocate a memory buffer to hold the DHCPv6 message
    buffer = udpAllocBuffer(DHCPV6_MAX_MSG_SIZE, &offset);
@@ -310,7 +307,7 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
    if(type == DHCPV6_MSG_TYPE_SOLICIT)
    {
       //Check whether rapid commit is enabled
-      if(context->settings.rapidCommit)
+      if(context->rapidCommit)
       {
          //Include the Rapid Commit option if the client is prepared to perform
          //the Solicit/Reply message exchange
@@ -392,10 +389,10 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
       &elapsedTimeOption, sizeof(Dhcpv6ElapsedTimeOption));
 
    //Any registered callback?
-   if(context->settings.addOptionsCallback != NULL)
+   if(context->addOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.addOptionsCallback(context, message, &length);
+      context->addOptionsCallback(context, message, &length);
    }
 
    //Solicit, Request, Confirm, Renew or Rebind message?
@@ -433,8 +430,9 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
    ancillary = NET_DEFAULT_TX_ANCILLARY;
 
    //Send DHCPv6 message
-   error = udpSendBuffer(interface, NULL, DHCPV6_CLIENT_PORT, &destIpAddr,
-      DHCPV6_SERVER_PORT, buffer, offset, &ancillary);
+   error = udpSendBuffer(context->netContext, interface, NULL,
+      DHCPV6_CLIENT_PORT, &destIpAddr, DHCPV6_SERVER_PORT, buffer, offset,
+      &ancillary);
 
    //Free previously allocated memory
    netBufferFree(buffer);
@@ -527,7 +525,7 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
    Dhcpv6IaNaOption *iaNaOption;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Make sure that the Advertise message is received in response to
    //a Solicit message
@@ -581,10 +579,10 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
       return;
 
    //Any registered callback?
-   if(context->settings.parseOptionsCallback != NULL)
+   if(context->parseOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.parseOptionsCallback(context, message,
+      context->parseOptionsCallback(context, message,
          sizeof(Dhcpv6Message) + length);
    }
 
@@ -707,7 +705,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    Dhcpv6ClientAddrEntry *entry;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Discard any received packet that does not match the transaction ID
    if(LOAD24BE(message->transactionId) != context->transactionId)
@@ -754,7 +752,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    if(context->state == DHCPV6_STATE_SOLICIT)
    {
       //A Reply message is not acceptable when rapid commit is disallowed
-      if(!context->settings.rapidCommit)
+      if(!context->rapidCommit)
          return;
 
       //Search for the Rapid Commit option
@@ -855,15 +853,15 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    }
 
    //Any registered callback?
-   if(context->settings.parseOptionsCallback != NULL)
+   if(context->parseOptionsCallback != NULL)
    {
       //Invoke user callback function
-      context->settings.parseOptionsCallback(context, message,
+      context->parseOptionsCallback(context, message,
          sizeof(Dhcpv6Message) + length);
    }
 
    //Automatic DNS server configuration?
-   if(!context->settings.manualDnsConfig)
+   if(!context->manualDnsConfig)
    {
       Dhcpv6DnsServersOption *dnsServersOption;
 
@@ -1083,7 +1081,7 @@ error_t dhcpv6ClientParseIaNaOption(Dhcpv6ClientContext *context,
    Dhcpv6IaNaOption *iaNaOption;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Number of addresses found in the IA_NA option
    n = 0;
@@ -1308,11 +1306,7 @@ void dhcpv6ClientAddAddr(Dhcpv6ClientContext *context, const Ipv6Addr *addr,
 void dhcpv6ClientRemoveAddr(Dhcpv6ClientContext *context, const Ipv6Addr *addr)
 {
    uint_t i;
-   NetInterface *interface;
    Dhcpv6ClientAddrEntry *entry;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Loop through the IPv6 addresses recorded by the DHCPv6 client
    for(i = 0; i < DHCPV6_CLIENT_ADDR_LIST_SIZE; i++)
@@ -1328,7 +1322,7 @@ void dhcpv6ClientRemoveAddr(Dhcpv6ClientContext *context, const Ipv6Addr *addr)
          {
             //The IPv6 address is no more valid and should be removed from the
             //list of IPv6 addresses assigned to the interface
-            ipv6RemoveAddr(interface, addr);
+            ipv6RemoveAddr(context->interface, addr);
 
             //Remove the IPv6 address from the IA
             entry->validLifetime = 0;
@@ -1346,11 +1340,7 @@ void dhcpv6ClientRemoveAddr(Dhcpv6ClientContext *context, const Ipv6Addr *addr)
 void dhcpv6ClientFlushAddrList(Dhcpv6ClientContext *context)
 {
    uint_t i;
-   NetInterface *interface;
    Dhcpv6ClientAddrEntry *entry;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Loop through the IPv6 addresses recorded by the DHCPv6 client
    for(i = 0; i < DHCPV6_CLIENT_ADDR_LIST_SIZE; i++)
@@ -1363,7 +1353,7 @@ void dhcpv6ClientFlushAddrList(Dhcpv6ClientContext *context)
       {
          //The IPv6 address is no more valid and should be removed from the
          //list of IPv6 addresses assigned to the interface
-         ipv6RemoveAddr(interface, &entry->addr);
+         ipv6RemoveAddr(context->interface, &entry->addr);
 
          //Remove the IPv6 address from the IA
          entry->validLifetime = 0;
@@ -1380,21 +1370,17 @@ void dhcpv6ClientFlushAddrList(Dhcpv6ClientContext *context)
 
 error_t dhcpv6ClientGenerateDuid(Dhcpv6ClientContext *context)
 {
-   NetInterface *interface;
    Dhcpv6DuidLl *duid;
 #if (ETH_SUPPORT == ENABLED)
    NetInterface *logicalInterface;
 #endif
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Point to the buffer where to format the client's DUID
    duid = (Dhcpv6DuidLl *) context->clientId;
 
 #if (ETH_SUPPORT == ENABLED)
    //Point to the logical interface
-   logicalInterface = nicGetLogicalInterface(interface);
+   logicalInterface = nicGetLogicalInterface(context->interface);
 
    //Generate a DUID-LL from the MAC address
    duid->type = HTONS(DHCPV6_DUID_LL);
@@ -1428,7 +1414,7 @@ error_t dhcpv6ClientGenerateLinkLocalAddr(Dhcpv6ClientContext *context)
    Ipv6Addr addr;
 
    //Point to the underlying network interface
-   interface = context->settings.interface;
+   interface = context->interface;
 
    //Check whether a link-local address has been manually assigned
    if(interface->ipv6Context.addrList[0].state != IPV6_ADDR_STATE_INVALID &&
@@ -1501,29 +1487,25 @@ bool_t dhcpv6ClientCheckServerId(Dhcpv6ClientContext *context,
 void dhcpv6ClientCheckTimeout(Dhcpv6ClientContext *context)
 {
    systime_t time;
-   NetInterface *interface;
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
 
    //Get current time
    time = osGetSystemTime();
 
    //Any registered callback?
-   if(context->settings.timeoutEvent != NULL)
+   if(context->timeoutEvent != NULL)
    {
       //DHCPv6 configuration timeout?
-      if(timeCompare(time, context->configStartTime + context->settings.timeout) >= 0)
+      if(timeCompare(time, context->configStartTime + context->configTimeout) >= 0)
       {
          //Ensure the callback function is only called once
          if(!context->timeoutEventDone)
          {
             //Release exclusive access
-            osReleaseMutex(&netMutex);
+            netUnlock(context->netContext);
             //Invoke user callback function
-            context->settings.timeoutEvent(context, interface);
+            context->timeoutEvent(context, context->interface);
             //Get exclusive access
-            osAcquireMutex(&netMutex);
+            netLock(context->netContext);
 
             //Set flag
             context->timeoutEventDone = TRUE;
@@ -1616,19 +1598,14 @@ void dhcpv6ClientChangeState(Dhcpv6ClientContext *context,
    context->state = newState;
 
    //Any registered callback?
-   if(context->settings.stateChangeEvent != NULL)
+   if(context->stateChangeEvent != NULL)
    {
-      NetInterface *interface;
-
-      //Point to the underlying network interface
-      interface = context->settings.interface;
-
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
       //Invoke user callback function
-      context->settings.stateChangeEvent(context, interface, newState);
+      context->stateChangeEvent(context, context->interface, newState);
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
    }
 }
 
@@ -1642,13 +1619,10 @@ void dhcpv6ClientDumpConfig(Dhcpv6ClientContext *context)
 {
 #if (DHCPV6_TRACE_LEVEL >= TRACE_LEVEL_INFO)
    uint_t i;
-   NetInterface *interface;
    Ipv6Context *ipv6Context;
 
-   //Point to the underlying network interface
-   interface = context->settings.interface;
    //Point to the IPv6 context
-   ipv6Context = &interface->ipv6Context;
+   ipv6Context = &context->interface->ipv6Context;
 
    //Debug message
    TRACE_INFO("\r\n");

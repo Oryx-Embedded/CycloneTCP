@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -70,7 +70,7 @@ error_t llmnrResponderInit(NetInterface *interface)
 #endif
 
    //LLMNR responders must listen on UDP port 5355
-   error = udpAttachRxCallback(interface, LLMNR_PORT, llmnrProcessQuery,
+   error = udpRegisterRxCallback(interface, LLMNR_PORT, llmnrProcessQuery,
       NULL);
    //Any error to report?
    if(error)
@@ -391,8 +391,8 @@ error_t llmnrSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
       ancillary.dontRoute = TRUE;
 
       //Send LLMNR response
-      error = udpSendBuffer(interface, NULL, LLMNR_PORT, destIpAddr, destPort,
-         buffer, offset, &ancillary);
+      error = udpSendBuffer(interface->netContext, interface, NULL, LLMNR_PORT,
+         destIpAddr, destPort, buffer, offset, &ancillary);
    }
 
    //Free previously allocated memory

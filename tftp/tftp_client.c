@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -65,6 +65,9 @@ error_t tftpClientInit(TftpClientContext *context)
 
    //Initialize context
    osMemset(context, 0, sizeof(TftpClientContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = netGetDefaultContext();
 
    //Initialize TFTP client state
    context->state = TFTP_CLIENT_STATE_CLOSED;

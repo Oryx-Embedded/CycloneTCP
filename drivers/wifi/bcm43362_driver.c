@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -267,15 +267,16 @@ bool_t bcm43362IrqHandler(void)
    //STA and/or AP mode?
    if(bcm43362StaInterface != NULL)
    {
+      //Notify the TCP/IP stack of the event
       bcm43362StaInterface->nicEvent = TRUE;
+      flag = osSetEventFromIsr(&bcm43362StaInterface->netContext->event);
    }
    else if(bcm43362ApInterface != NULL)
    {
+      //Notify the TCP/IP stack of the event
       bcm43362ApInterface->nicEvent = TRUE;
+      flag = osSetEventFromIsr(&bcm43362ApInterface->netContext->event);
    }
-
-   //Notify the TCP/IP stack of the event
-   flag = osSetEventFromIsr(&netEvent);
 
    //A higher priority task must be woken?
    return flag;
@@ -458,11 +459,11 @@ void *app_wifi_event_handler(const wwd_event_header_t *event_header, const uint8
             }
 
             //Get exclusive access
-            osAcquireMutex(&netMutex);
+            netLock(bcm43362StaInterface->netContext);
             //Process link state change event
             nicNotifyLinkChange(bcm43362StaInterface);
             //Release exclusive access
-            osReleaseMutex(&netMutex);
+            netUnlock(bcm43362StaInterface->netContext);
          }
       }
       //AP interface?
@@ -481,11 +482,11 @@ void *app_wifi_event_handler(const wwd_event_header_t *event_header, const uint8
             }
 
             //Get exclusive access
-            osAcquireMutex(&netMutex);
+            netLock(bcm43362ApInterface->netContext);
             //Process link state change event
             nicNotifyLinkChange(bcm43362ApInterface);
             //Release exclusive access
-            osReleaseMutex(&netMutex);
+            netUnlock(bcm43362ApInterface->netContext);
          }
       }
 
@@ -524,7 +525,7 @@ void host_network_process_ethernet_data(wiced_buffer_t buffer, wwd_interface_t i
          if(bcm43362StaInterface != NULL)
          {
             //Get exclusive access
-            osAcquireMutex(&netMutex);
+            netLock(bcm43362StaInterface->netContext);
 
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -533,7 +534,7 @@ void host_network_process_ethernet_data(wiced_buffer_t buffer, wwd_interface_t i
             nicProcessPacket(bcm43362StaInterface, p, n, &ancillary);
 
             //Release exclusive access
-            osReleaseMutex(&netMutex);
+            netUnlock(bcm43362StaInterface->netContext);
          }
       }
       else if(interface == WWD_AP_INTERFACE)
@@ -541,7 +542,7 @@ void host_network_process_ethernet_data(wiced_buffer_t buffer, wwd_interface_t i
          if(bcm43362ApInterface != NULL)
          {
             //Get exclusive access
-            osAcquireMutex(&netMutex);
+            netLock(bcm43362ApInterface->netContext);
 
             //Additional options can be passed to the stack along with the packet
             ancillary = NET_DEFAULT_RX_ANCILLARY;
@@ -550,7 +551,7 @@ void host_network_process_ethernet_data(wiced_buffer_t buffer, wwd_interface_t i
             nicProcessPacket(bcm43362ApInterface, p, n, &ancillary);
 
             //Release exclusive access
-            osReleaseMutex(&netMutex);
+            netUnlock(bcm43362ApInterface->netContext);
          }
       }
    }

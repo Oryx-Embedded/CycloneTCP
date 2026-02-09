@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -44,6 +44,32 @@
 
 //Check TCP/IP stack configuration
 #if (MIB2_SUPPORT == ENABLED && MIB2_IF_GROUP_SUPPORT == ENABLED)
+
+
+/**
+ * @brief Get ifNumber object value
+ * @param[in] object Pointer to the MIB object descriptor
+ * @param[in] oid Object identifier (object name and instance identifier)
+ * @param[in] oidLen Length of the OID, in bytes
+ * @param[out] value Object value
+ * @param[in,out] valueLen Length of the object value, in bytes
+ * @return Error code
+ **/
+
+error_t mib2GetIfNumber(const MibObject *object, const uint8_t *oid,
+   size_t oidLen, MibVariant *value, size_t *valueLen)
+{
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
+   //Number of network interfaces present on this system
+   value->integer = context->numInterfaces;
+
+   //Return status code
+   return NO_ERROR;
+}
 
 
 /**
@@ -82,9 +108,12 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    error_t error;
    size_t n;
    uint_t index;
-   Mib2IfEntry *entry;
+   NetContext *context;
    NetInterface *interface;
    NetInterface *physicalInterface;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -100,14 +129,11 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Check index range
-   if(index < 1 || index > NET_INTERFACE_COUNT)
+   if(index < 1 || index > context->numInterfaces)
       return ERROR_INSTANCE_NOT_FOUND;
 
    //Point to the underlying interface
-   interface = &netInterface[index - 1];
-   //Point to the interface table entry
-   entry = &mib2Base.ifGroup.ifTable[index - 1];
-
+   interface = &context->interfaces[index - 1];
    //Point to the physical interface
    physicalInterface = nicGetPhysicalInterface(interface);
 
@@ -160,14 +186,17 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
             case NIC_TYPE_ETHERNET:
                value->integer = MIB2_IF_TYPE_ETHERNET_CSMACD;
                break;
+
             //PPP interface
             case NIC_TYPE_PPP:
                value->integer = MIB2_IF_TYPE_PPP;
                break;
+
             //IEEE 802.15.4 WPAN interface
             case NIC_TYPE_6LOWPAN:
                value->integer = MIB2_IF_TYPE_IEEE_802_15_4;
                break;
+
             //Unknown interface type
             default:
                value->integer = MIB2_IF_TYPE_OTHER;
@@ -254,90 +283,92 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    else if(osStrcmp(object->name, "ifLastChange") == 0)
    {
       //Get object value
-      value->timeTicks = entry->ifLastChange;
+      value->timeTicks = interface->ifStats.lastChange;
    }
    //ifInOctets object?
    else if(osStrcmp(object->name, "ifInOctets") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifInOctets;
+      value->counter32 = (uint32_t) interface->ifStats.inOctets;
    }
    //ifInUcastPkts object?
    else if(osStrcmp(object->name, "ifInUcastPkts") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifInUcastPkts;
+      value->counter32 = (uint32_t) interface->ifStats.inUcastPkts;
    }
    //ifInNUcastPkts object?
    else if(osStrcmp(object->name, "ifInNUcastPkts") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifInNUcastPkts;
+      value->counter32 = interface->ifStats.inNUcastPkts;
    }
    //ifInDiscards object?
    else if(osStrcmp(object->name, "ifInDiscards") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifInDiscards;
+      value->counter32 = interface->ifStats.inDiscards;
    }
    //ifInErrors object?
    else if(osStrcmp(object->name, "ifInErrors") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifInErrors;
+      value->counter32 = interface->ifStats.inErrors;
    }
    //ifInUnknownProtos object?
    else if(osStrcmp(object->name, "ifInUnknownProtos") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifInUnknownProtos;
+      value->counter32 = interface->ifStats.inUnknownProtos;
    }
    //ifOutOctets object?
    else if(osStrcmp(object->name, "ifOutOctets") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifOutOctets;
+      value->counter32 = (uint32_t) interface->ifStats.outOctets;
    }
    //ifOutUcastPkts object?
    else if(osStrcmp(object->name, "ifOutUcastPkts") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifOutUcastPkts;
+      value->counter32 = (uint32_t) interface->ifStats.outUcastPkts;
    }
    //ifOutNUcastPkts object?
    else if(osStrcmp(object->name, "ifOutNUcastPkts") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifOutNUcastPkts;
+      value->counter32 = interface->ifStats.outNUcastPkts;
    }
    //ifOutDiscards object?
    else if(osStrcmp(object->name, "ifOutDiscards") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifOutDiscards;
+      value->counter32 = interface->ifStats.outDiscards;
    }
    //ifOutErrors object?
    else if(osStrcmp(object->name, "ifOutErrors") == 0)
    {
       //Get object value
-      value->counter32 = entry->ifOutErrors;
+      value->counter32 = interface->ifStats.outErrors;
    }
    //ifOutQLen object?
    else if(osStrcmp(object->name, "ifOutQLen") == 0)
    {
       //Get object value
-      value->gauge32 = entry->ifOutQLen;
+      value->gauge32 = 0;
    }
    //ifSpecific object?
    else if(osStrcmp(object->name, "ifSpecific") == 0)
    {
       //Make sure the buffer is large enough to hold the entire object
-      if(*valueLen >= entry->ifSpecificLen)
+      if(*valueLen >= 1)
       {
-         //Copy object value
-         osMemcpy(value->oid, entry->ifSpecific, entry->ifSpecificLen);
+         //If this information is not present, its value should be set to the
+         //object identifier 0.0
+         value->oid[0] = 0;
+
          //Return object length
-         *valueLen = entry->ifSpecificLen;
+         *valueLen = 1;
       }
       else
       {
@@ -373,6 +404,10 @@ error_t mib2GetNextIfEntry(const MibObject *object, const uint8_t *oid,
    error_t error;
    size_t n;
    uint_t index;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -382,7 +417,7 @@ error_t mib2GetNextIfEntry(const MibObject *object, const uint8_t *oid,
    osMemcpy(nextOid, object->oid, object->oidLen);
 
    //Loop through network interfaces
-   for(index = 1; index <= NET_INTERFACE_COUNT; index++)
+   for(index = 1; index <= context->numInterfaces; index++)
    {
       //Append the instance identifier to the OID prefix
       n = object->oidLen;

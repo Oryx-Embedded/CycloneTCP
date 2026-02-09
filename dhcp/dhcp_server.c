@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -59,8 +59,8 @@ void dhcpServerGetDefaultSettings(DhcpServerSettings *settings)
 {
    uint_t i;
 
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Underlying network interface
+   settings->interface = NULL;
    //Index of the IP address assigned to the DHCP server
    settings->ipAddrIndex = 0;
 
@@ -102,6 +102,7 @@ void dhcpServerGetDefaultSettings(DhcpServerSettings *settings)
 error_t dhcpServerInit(DhcpServerContext *context,
    const DhcpServerSettings *settings)
 {
+   uint_t i;
    NetInterface *interface;
 
    //Debug message
@@ -111,31 +112,48 @@ error_t dhcpServerInit(DhcpServerContext *context,
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
 
-   //Valid network interface?
+   //Invalid network interface?
    if(settings->interface == NULL)
       return ERROR_INVALID_PARAMETER;
-
-   //Get exclusive access
-   osAcquireMutex(&netMutex);
 
    //Point to the underlying network interface
    interface = settings->interface;
 
    //Clear the DHCP server context
    osMemset(context, 0, sizeof(DhcpServerContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
    //Save user settings
-   context->settings = *settings;
+   context->interface = settings->interface;
+   context->ipAddrIndex = settings->ipAddrIndex;
+   context->rapidCommit = settings->rapidCommit;
+   context->leaseTime = settings->leaseTime;
+   context->ipAddrRangeMin = settings->ipAddrRangeMin;
+   context->ipAddrRangeMax = settings->ipAddrRangeMax;
+   context->subnetMask = settings->subnetMask;
+   context->defaultGateway = settings->defaultGateway;
+   context->addOptionsCallback = settings->addOptionsCallback;
+   context->parseOptionsCallback = settings->parseOptionsCallback;
+
+   //Save DNS servers
+   for(i = 0; i < DHCP_SERVER_MAX_DNS_SERVERS; i++)
+   {
+      context->dnsServer[i] = settings->dnsServer[i];
+   }
 
    //Next IP address that will be assigned by the DHCP server
    context->nextIpAddr = settings->ipAddrRangeMin;
    //DHCP server is currently suspended
    context->running = FALSE;
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the DHCP server context to the network interface
    interface->dhcpServerContext = context;
-
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -151,7 +169,6 @@ error_t dhcpServerInit(DhcpServerContext *context,
 error_t dhcpServerStart(DhcpServerContext *context)
 {
    error_t error;
-   NetInterface *interface;
 
    //Make sure the DHCP server context is valid
    if(context == NULL)
@@ -161,17 +178,14 @@ error_t dhcpServerStart(DhcpServerContext *context)
    TRACE_INFO("Starting DHCP server...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
+   netLock(context->netContext);
 
    //Check the operational state of the DHCP client
    if(!context->running)
    {
       //Register the callback function to be called whenever a UDP datagram
       //is received on port 67
-      error = udpAttachRxCallback(interface, DHCP_SERVER_PORT,
+      error = udpRegisterRxCallback(context->interface, DHCP_SERVER_PORT,
          dhcpServerProcessMessage, context);
 
       //Check status code
@@ -188,7 +202,7 @@ error_t dhcpServerStart(DhcpServerContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return status code
    return error;
@@ -203,8 +217,6 @@ error_t dhcpServerStart(DhcpServerContext *context)
 
 error_t dhcpServerStop(DhcpServerContext *context)
 {
-   NetInterface *interface;
-
    //Make sure the DHCP server context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -213,23 +225,20 @@ error_t dhcpServerStop(DhcpServerContext *context)
    TRACE_INFO("Stopping DHCP server...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
+   netLock(context->netContext);
 
    //Check whether the DHCP client is running
    if(context->running)
    {
       //Unregister callback function
-      udpDetachRxCallback(interface, DHCP_SERVER_PORT);
+      udpUnregisterRxCallback(context->interface, DHCP_SERVER_PORT);
 
       //Stop DHCP server
       context->running = FALSE;
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -249,23 +258,18 @@ void dhcpServerDeinit(DhcpServerContext *context)
    if(context != NULL)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(context->netContext);
 
       //Point to the underlying network interface
-      interface = context->settings.interface;
-
-      //Valid network interface?
-      if(interface != NULL)
-      {
-         //Detach the DHCP server context from the network interface
-         interface->dhcpServerContext = NULL;
-      }
-
-      //Clear the DHCP server context
-      osMemset(context, 0, sizeof(DhcpServerContext));
+      interface = context->interface;
+      //Detach the DHCP server context from the network interface
+      interface->dhcpServerContext = NULL;
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(context->netContext);
+
+      //Clear DHCP server context
+      osMemset(context, 0, sizeof(DhcpServerContext));
    }
 }
 

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -87,6 +87,7 @@ error_t igmpRouterSendGroupSpecificQuery(IgmpRouterContext *context,
 error_t igmpRouterSendMembershipQuery(IgmpRouterContext *context,
    Ipv4Addr destAddr, Ipv4Addr groupAddr, systime_t maxRespTime)
 {
+   error_t error;
    size_t offset;
    NetBuffer *buffer;
    IgmpMessage *message;
@@ -128,7 +129,7 @@ error_t igmpRouterSendMembershipQuery(IgmpRouterContext *context,
    message->checksum = ipCalcChecksum(&message, sizeof(IgmpMessage));
 
    //The Membership Report message is sent to the group being reported
-   error = igmpSendMessage(interface, destAddr, buffer, offset);
+   error = igmpSendMessage(context->interface, destAddr, buffer, offset);
 
    //Free previously allocated memory
    netBufferFree(buffer);

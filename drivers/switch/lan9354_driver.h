@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _LAN9354_DRIVER_H
@@ -801,15 +801,15 @@
 #define LAN9354_GPIO_CFG_GPIO_CH_SEL_5                        0x20000000
 #define LAN9354_GPIO_CFG_GPIO_CH_SEL_6                        0x40000000
 #define LAN9354_GPIO_CFG_GPIO_CH_SEL_7                        0x80000000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL                         0x00FF0000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL_0                       0x00010000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL_1                       0x00020000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL_2                       0x00040000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL_3                       0x00080000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL_4                       0x00100000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL_5                       0x00200000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL_6                       0x00400000
-#define LAN9354_GPIO_CFG_GPIO_INT_POL_7                       0x00800000
+#define LAN9354_GPIO_CFG_GPIO_POL                             0x00FF0000
+#define LAN9354_GPIO_CFG_GPIO_POL_0                           0x00010000
+#define LAN9354_GPIO_CFG_GPIO_POL_1                           0x00020000
+#define LAN9354_GPIO_CFG_GPIO_POL_2                           0x00040000
+#define LAN9354_GPIO_CFG_GPIO_POL_3                           0x00080000
+#define LAN9354_GPIO_CFG_GPIO_POL_4                           0x00100000
+#define LAN9354_GPIO_CFG_GPIO_POL_5                           0x00200000
+#define LAN9354_GPIO_CFG_GPIO_POL_6                           0x00400000
+#define LAN9354_GPIO_CFG_GPIO_POL_7                           0x00800000
 #define LAN9354_GPIO_CFG_1588_GPIO_OE                         0x0000FF00
 #define LAN9354_GPIO_CFG_1588_GPIO_OE_0                       0x00000100
 #define LAN9354_GPIO_CFG_1588_GPIO_OE_1                       0x00000200
@@ -830,15 +830,15 @@
 #define LAN9354_GPIO_CFG_GPIOBUF_7                            0x00000080
 
 //General Purpose I/O Data and Direction register
-#define LAN9354_GPIO_DATA_DIR_GPDIR                           0x00FF0000
-#define LAN9354_GPIO_DATA_DIR_GPDIR_0                         0x00010000
-#define LAN9354_GPIO_DATA_DIR_GPDIR_1                         0x00020000
-#define LAN9354_GPIO_DATA_DIR_GPDIR_2                         0x00040000
-#define LAN9354_GPIO_DATA_DIR_GPDIR_3                         0x00080000
-#define LAN9354_GPIO_DATA_DIR_GPDIR_4                         0x00100000
-#define LAN9354_GPIO_DATA_DIR_GPDIR_5                         0x00200000
-#define LAN9354_GPIO_DATA_DIR_GPDIR_6                         0x00400000
-#define LAN9354_GPIO_DATA_DIR_GPDIR_7                         0x00800000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR                         0x00FF0000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR_0                       0x00010000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR_1                       0x00020000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR_2                       0x00040000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR_3                       0x00080000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR_4                       0x00100000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR_5                       0x00200000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR_6                       0x00400000
+#define LAN9354_GPIO_DATA_DIR_GPIODIR_7                       0x00800000
 #define LAN9354_GPIO_DATA_DIR_GPIOD                           0x000000FF
 #define LAN9354_GPIO_DATA_DIR_GPIOD_0                         0x00000001
 #define LAN9354_GPIO_DATA_DIR_GPIOD_1                         0x00000002

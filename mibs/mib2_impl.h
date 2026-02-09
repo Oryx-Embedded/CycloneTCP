@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _MIB2_IMPL_H
@@ -44,7 +44,6 @@ extern "C" {
 error_t mib2Init(void);
 
 void mib2InitSysGroup(Mib2SysGroup *sysGroup);
-void mib2InitIfGroup(Mib2IfGroup *ifGroup);
 void mib2InitIpGroup(Mib2IpGroup *ipGroup);
 void mib2InitTcpGroup(Mib2TcpGroup *tcpGroup);
 void mib2InitSnmpGroup(Mib2SnmpGroup *snmpGroup);

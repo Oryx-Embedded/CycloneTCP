@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _ICMP_H
@@ -33,6 +33,17 @@
 
 //Dependencies
 #include "core/net.h"
+
+//ICMP statistics support
+#ifndef ICMP_STATS_SUPPORT
+#if (MIB2_SUPPORT == ENABLED || IP_MIB_SUPPORT == ENABLED)
+   #define ICMP_STATS_SUPPORT ENABLED
+#else
+   #define ICMP_STATS_SUPPORT DISABLED
+#endif
+#elif (ICMP_STATS_SUPPORT != ENABLED && ICMP_STATS_SUPPORT != DISABLED)
+   #error ICMP_STATS_SUPPORT parameter is not valid
+#endif
 
 //ICMP query identifier range (lower limit)
 #ifndef ICMP_QUERY_ID_MIN
@@ -46,6 +57,13 @@
    #define ICMP_QUERY_ID_MAX 32767
 #elif (ICMP_QUERY_ID_MAX <= ICMP_QUERY_ID_MIN || ICMP_QUERY_ID_MAX > 65535)
    #error ICMP_QUERY_ID_MAX parameter is not valid
+#endif
+
+//ICMP statistics
+#if (ICMP_STATS_SUPPORT == ENABLED)
+   #define ICMP_STATS_INC_COUNTER32(name, value) interface->netContext->icmpStats.name += value
+#else
+   #define ICMP_STATS_INC_COUNTER32(name, value)
 #endif
 
 //C++ guard
@@ -243,9 +261,6 @@ void icmpProcessEchoRequest(NetInterface *interface,
 error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
    uint8_t code, uint8_t parameter, const NetBuffer *ipPacket,
    size_t ipPacketOffset);
-
-void icmpUpdateInStats(uint8_t type);
-void icmpUpdateOutStats(uint8_t type);
 
 void icmpDumpMessage(const IcmpHeader *message);
 void icmpDumpEchoMessage(const IcmpEchoMessage *message);

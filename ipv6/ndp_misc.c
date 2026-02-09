@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -133,8 +133,8 @@ void ndpUpdateAddrList(NetInterface *interface)
                   if(i == 0)
                   {
                      //Delay before transmitting the first solicitation
-                     entry->dadTimeout = netGenerateRandRange(0,
-                        NDP_MAX_RTR_SOLICITATION_DELAY);
+                     entry->dadTimeout = netGenerateRandRange(interface->netContext,
+                        0, NDP_MAX_RTR_SOLICITATION_DELAY);
 
                      //Prepare to send the first Neighbor Solicitation message
                      entry->dadRetransmitCount = 1;

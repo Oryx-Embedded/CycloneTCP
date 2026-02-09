@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -631,7 +631,7 @@ void tc2xxEthIrqHandler(int_t arg)
       //Set event flag
       nicDriverInterface->nicEvent = TRUE;
       //Notify the TCP/IP stack of the event
-      flag |= osSetEventFromIsr(&netEvent);
+      flag |= osSetEventFromIsr(&nicDriverInterface->netContext->event);
    }
 
    //Clear NIS interrupt flag
@@ -896,8 +896,8 @@ error_t tc2xxEthUpdateMacAddrFilter(NetInterface *interface)
    MODULE_ETH.HASH_TABLE_HIGH.U = hashTable[1];
 
    //Debug message
-   TRACE_DEBUG("  HASH_TABLE_LOW = %08" PRIX32 "\r\n", MODULE_ETH.HASH_TABLE_LOW.U);
-   TRACE_DEBUG("  HASH_TABLE_HIGH = %08" PRIX32 "\r\n", MODULE_ETH.HASH_TABLE_HIGH.U);
+   TRACE_DEBUG("  HASH_TABLE_LOW = 0x%08" PRIX32 "\r\n", MODULE_ETH.HASH_TABLE_LOW.U);
+   TRACE_DEBUG("  HASH_TABLE_HIGH = 0x%08" PRIX32 "\r\n", MODULE_ETH.HASH_TABLE_HIGH.U);
 
    //Successful processing
    return NO_ERROR;

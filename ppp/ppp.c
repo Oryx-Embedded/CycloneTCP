@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -48,9 +48,6 @@
 
 //Check TCP/IP stack configuration
 #if (PPP_SUPPORT == ENABLED)
-
-//Tick counter to handle periodic operations
-systime_t pppTickCounter;
 
 //FCS lookup table
 static const uint16_t fcsTable[256] =
@@ -97,8 +94,8 @@ static const uint16_t fcsTable[256] =
 
 void pppGetDefaultSettings(PppSettings *settings)
 {
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Underlying network interface
+   settings->interface = NULL;
 
    //Default MRU
    settings->mru = PPP_DEFAULT_MRU;
@@ -128,6 +125,14 @@ error_t pppInit(PppContext *context, const PppSettings *settings)
 
    //Debug message
    TRACE_INFO("PPP initialization\r\n");
+
+   //Ensure the parameters are valid
+   if(context == NULL || settings == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //PPP must be bound to a valid interface
+   if(settings->interface == NULL)
+      return ERROR_INVALID_PARAMETER;
 
    //Underlying network interface
    interface = settings->interface;
@@ -212,13 +217,11 @@ error_t pppSetTimeout(NetInterface *interface, systime_t timeout)
    context = interface->pppContext;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
+   netLock(interface->netContext);
    //Set timeout value
    context->timeout = timeout;
-
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -258,7 +261,7 @@ error_t pppSetAuthInfo(NetInterface *interface, const char_t *username,
    context = interface->pppContext;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Save user name
    osStrcpy(context->username, username);
@@ -266,7 +269,7 @@ error_t pppSetAuthInfo(NetInterface *interface, const char_t *username,
    osStrcpy(context->password, password);
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //No error to report
    return NO_ERROR;
@@ -351,7 +354,7 @@ error_t pppSendAtCommand(NetInterface *interface, const char_t *data)
    if(status)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
 
       //Check current PPP state
       if(context->pppPhase == PPP_PHASE_DEAD)
@@ -370,7 +373,7 @@ error_t pppSendAtCommand(NetInterface *interface, const char_t *data)
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
    else
    {
@@ -417,7 +420,7 @@ error_t pppReceiveAtCommand(NetInterface *interface, char_t *data, size_t size)
    while(1)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
 
       //Check current PPP state
       if(context->pppPhase == PPP_PHASE_DEAD)
@@ -432,7 +435,7 @@ error_t pppReceiveAtCommand(NetInterface *interface, char_t *data, size_t size)
       }
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
 
       //Check status code
       if(error == ERROR_BUFFER_EMPTY)
@@ -493,7 +496,7 @@ error_t pppConnect(NetInterface *interface)
    context = interface->pppContext;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(interface->netContext);
 
    //Default PPP phase
    context->pppPhase = PPP_PHASE_DEAD;
@@ -628,7 +631,7 @@ error_t pppConnect(NetInterface *interface)
    error = lcpOpen(context);
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Any error to report?
    if(error)
@@ -697,7 +700,7 @@ error_t pppConnect(NetInterface *interface)
    if(error)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
 
       //Abort the PPP connection
       context->pppPhase = PPP_PHASE_DEAD;
@@ -726,7 +729,7 @@ error_t pppConnect(NetInterface *interface)
 #endif
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
 #endif
 
@@ -762,13 +765,11 @@ error_t pppClose(NetInterface *interface)
    context = interface->pppContext;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
+   netLock(interface->netContext);
    //The link is no longer available for traffic
    error = lcpClose(context);
-
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(interface->netContext);
 
    //Any error to report?
    if(error)
@@ -814,7 +815,7 @@ error_t pppClose(NetInterface *interface)
    if(error)
    {
       //Get exclusive access
-      osAcquireMutex(&netMutex);
+      netLock(interface->netContext);
 
       //Abort the PPP connection
       context->pppPhase = PPP_PHASE_DEAD;
@@ -843,7 +844,7 @@ error_t pppClose(NetInterface *interface)
 #endif
 
       //Release exclusive access
-      osReleaseMutex(&netMutex);
+      netUnlock(interface->netContext);
    }
 #endif
 

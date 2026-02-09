@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -56,8 +56,8 @@
 
 void dhcpClientGetDefaultSettings(DhcpClientSettings *settings)
 {
-   //Use default interface
-   settings->interface = netGetDefaultInterface();
+   //Network interface to configure
+   settings->interface = NULL;
    //Index of the IP address to be configured
    settings->ipAddrIndex = 0;
 
@@ -110,16 +110,33 @@ error_t dhcpClientInit(DhcpClientContext *context,
 
    //Clear the DHCP client context
    osMemset(context, 0, sizeof(DhcpClientContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = settings->interface->netContext;
+
    //Save user settings
-   context->settings = *settings;
+   context->interface = settings->interface;
+   context->ipAddrIndex = settings->ipAddrIndex;
+   context->rapidCommit = settings->rapidCommit;
+   context->manualDnsConfig = settings->manualDnsConfig;
+   context->configTimeout = settings->timeout;
+   context->timeoutEvent = settings->timeoutEvent;
+   context->linkChangeEvent = settings->linkChangeEvent;
+   context->stateChangeEvent = settings->stateChangeEvent;
+   context->addOptionsCallback = settings->addOptionsCallback;
+   context->parseOptionsCallback = settings->parseOptionsCallback;
 
    //DHCP client is currently suspended
    context->running = FALSE;
    //Initialize state machine
    context->state = DHCP_STATE_INIT;
 
+   //Get exclusive access
+   netLock(context->netContext);
    //Attach the DHCP client context to the network interface
    interface->dhcpClientContext = context;
+   //Release exclusive access
+   netUnlock(context->netContext);
 
    //Successful initialization
    return NO_ERROR;
@@ -135,7 +152,6 @@ error_t dhcpClientInit(DhcpClientContext *context,
 error_t dhcpClientStart(DhcpClientContext *context)
 {
    error_t error;
-   NetInterface *interface;
 
    //Make sure the DHCP client context is valid
    if(context == NULL)
@@ -145,10 +161,7 @@ error_t dhcpClientStart(DhcpClientContext *context)
    TRACE_INFO("Starting DHCP client...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
+   netLock(context->netContext);
 
    //Check the operational state of the DHCP client
    if(!context->running)
@@ -161,7 +174,7 @@ error_t dhcpClientStart(DhcpClientContext *context)
 
       //Register the callback function to be called whenever a UDP datagram
       //is received on port 68
-      error = udpAttachRxCallback(interface, DHCP_CLIENT_PORT,
+      error = udpRegisterRxCallback(context->interface, DHCP_CLIENT_PORT,
          dhcpClientProcessMessage, context);
 
       //Check status code
@@ -178,7 +191,7 @@ error_t dhcpClientStart(DhcpClientContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return status code
    return error;
@@ -193,8 +206,6 @@ error_t dhcpClientStart(DhcpClientContext *context)
 
 error_t dhcpClientStop(DhcpClientContext *context)
 {
-   NetInterface *interface;
-
    //Make sure the DHCP client context is valid
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -203,16 +214,13 @@ error_t dhcpClientStop(DhcpClientContext *context)
    TRACE_INFO("Stopping DHCP client...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
+   netLock(context->netContext);
 
    //Check whether the DHCP client is running
    if(context->running)
    {
       //Unregister callback function
-      udpDetachRxCallback(interface, DHCP_CLIENT_PORT);
+      udpUnregisterRxCallback(context->interface, DHCP_CLIENT_PORT);
 
       //Stop DHCP client
       context->running = FALSE;
@@ -221,7 +229,7 @@ error_t dhcpClientStop(DhcpClientContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -236,8 +244,6 @@ error_t dhcpClientStop(DhcpClientContext *context)
 
 error_t dhcpClientRelease(DhcpClientContext *context)
 {
-   NetInterface *interface;
-
    //Check parameter
    if(context == NULL)
       return ERROR_INVALID_PARAMETER;
@@ -246,10 +252,7 @@ error_t dhcpClientRelease(DhcpClientContext *context)
    TRACE_INFO("Releasing DHCP lease...\r\n");
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
-
-   //Point to the underlying network interface
-   interface = context->settings.interface;
+   netLock(context->netContext);
 
    //Check whether the DHCP client is running
    if(context->running)
@@ -260,7 +263,7 @@ error_t dhcpClientRelease(DhcpClientContext *context)
          context->state == DHCP_STATE_REBINDING)
       {
          //Select a new transaction identifier
-         context->transactionId = netGenerateRand();
+         context->transactionId = netGenerateRand(context->netContext);
 
          //The client may choose to relinquish its lease on a network address
          //by sending a DHCPRELEASE message to the server
@@ -271,7 +274,7 @@ error_t dhcpClientRelease(DhcpClientContext *context)
       }
 
       //Unregister callback function
-      udpDetachRxCallback(interface, DHCP_CLIENT_PORT);
+      udpUnregisterRxCallback(context->interface, DHCP_CLIENT_PORT);
 
       //Stop DHCP client
       context->running = FALSE;
@@ -280,7 +283,7 @@ error_t dhcpClientRelease(DhcpClientContext *context)
    }
 
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Successful processing
    return NO_ERROR;
@@ -298,14 +301,43 @@ DhcpState dhcpClientGetState(DhcpClientContext *context)
    DhcpState state;
 
    //Get exclusive access
-   osAcquireMutex(&netMutex);
+   netLock(context->netContext);
    //Get current state
    state = context->state;
    //Release exclusive access
-   osReleaseMutex(&netMutex);
+   netUnlock(context->netContext);
 
    //Return current state
    return state;
+}
+
+
+/**
+ * @brief Release DHCP client context
+ * @param[in] context Pointer to the DHCP client context
+ **/
+
+void dhcpClientDeinit(DhcpClientContext *context)
+{
+   NetInterface *interface;
+
+   //Make sure the DHCP client context is valid
+   if(context != NULL)
+   {
+      //Get exclusive access
+      netLock(context->netContext);
+
+      //Point to the underlying network interface
+      interface = context->interface;
+      //Detach the DHCP client context from the network interface
+      interface->dhcpClientContext = NULL;
+
+      //Release exclusive access
+      netUnlock(context->netContext);
+
+      //Clear DHCP client context
+      osMemset(context, 0, sizeof(DhcpClientContext));
+   }
 }
 
 #endif

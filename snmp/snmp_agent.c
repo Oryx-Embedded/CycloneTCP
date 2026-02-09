@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -77,6 +77,8 @@ void snmpAgentGetDefaultSettings(SnmpAgentSettings *settings)
    settings->task.stackSize = SNMP_AGENT_STACK_SIZE;
    settings->task.priority = SNMP_AGENT_PRIORITY;
 
+   //TCP/IP stack context
+   settings->netContext = NULL;
    //The SNMP agent is not bound to any interface
    settings->interface = NULL;
 
@@ -125,11 +127,30 @@ error_t snmpAgentInit(SnmpAgentContext *context,
    context->taskParams = settings->task;
    context->taskId = OS_INVALID_TASK_ID;
 
+   //Attach TCP/IP stack context
+   if(settings->netContext != NULL)
+   {
+      context->netContext = settings->netContext;
+   }
+   else if(settings->interface != NULL)
+   {
+      context->netContext = settings->interface->netContext;
+   }
+   else
+   {
+      context->netContext = netGetDefaultContext();
+   }
+
    //Save user settings
-   context->settings = *settings;
+   context->interface = settings->interface;
+   context->versionMin = settings->versionMin;
+   context->versionMax = settings->versionMax;
+   context->port = settings->port;
+   context->trapPort = settings->trapPort;
+   context->randCallback = settings->randCallback;
 
    //Initialize request identifier
-   context->requestId = netGetRandRange(1, INT32_MAX);
+   context->requestId = netGetRandRange(context->netContext, 1, INT32_MAX);
 
    //Start of exception handling block
    do
@@ -170,7 +191,7 @@ error_t snmpAgentInit(SnmpAgentContext *context,
       context->engineTime = 0;
 
       //Initialize message identifier
-      context->msgId = netGetRandRange(1, INT32_MAX);
+      context->msgId = netGetRandRange(context->netContext, 1, INT32_MAX);
 
       //Check whether SNMPv3 is supported
       if(settings->versionMin <= SNMP_VERSION_3 &&
@@ -185,8 +206,7 @@ error_t snmpAgentInit(SnmpAgentContext *context,
          }
 
          //The salt integer is initialized to an arbitrary value at boot time
-         error = settings->randCallback((uint8_t *) &context->salt,
-            sizeof(context->salt));
+         error = settings->randCallback(context->salt, sizeof(context->salt));
          //Any error to report?
          if(error)
             break;
@@ -236,7 +256,8 @@ error_t snmpAgentStart(SnmpAgentContext *context)
    do
    {
       //Open a UDP socket
-      context->socket = socketOpen(SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
+      context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_DGRAM,
+         SOCKET_IP_PROTO_UDP);
       //Failed to open socket?
       if(context->socket == NULL)
       {
@@ -252,14 +273,13 @@ error_t snmpAgentStart(SnmpAgentContext *context)
          break;
 
       //Associate the socket with the relevant interface
-      error = socketBindToInterface(context->socket,
-         context->settings.interface);
+      error = socketBindToInterface(context->socket, context->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
          break;
 
       //The SNMP agent listens for messages on port 161
-      error = socketBind(context->socket, &IP_ADDR_ANY, context->settings.port);
+      error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Unable to bind the socket to the desired port?
       if(error)
          break;
@@ -498,8 +518,8 @@ error_t snmpAgentSetVersion(SnmpAgentContext *context,
    osAcquireMutex(&context->mutex);
 
    //Set minimum and maximum versions permitted
-   context->settings.versionMin = versionMin;
-   context->settings.versionMax = versionMax;
+   context->versionMin = versionMin;
+   context->versionMax = versionMax;
 
    //Release exclusive access to the SNMP agent context
    osReleaseMutex(&context->mutex);
@@ -1627,10 +1647,9 @@ error_t snmpAgentSendTrap(SnmpAgentContext *context,
       MIB2_SNMP_INC_COUNTER32(snmpOutPkts, 1);
 
       //Debug message
-      TRACE_INFO("Sending SNMP message to %s port %" PRIu16
-         " (%" PRIuSIZE " bytes)...\r\n",
-         ipAddrToString(destIpAddr, NULL),
-         context->settings.trapPort, context->response.length);
+      TRACE_INFO("Sending SNMP message to %s port %" PRIu16 " (%" PRIuSIZE " bytes)...\r\n",
+         ipAddrToString(destIpAddr, NULL), context->trapPort,
+         context->response.length);
 
       //Display the contents of the SNMP message
       TRACE_DEBUG_ARRAY("  ", context->response.pos, context->response.length);
@@ -1638,7 +1657,7 @@ error_t snmpAgentSendTrap(SnmpAgentContext *context,
       asn1DumpObject(context->response.pos, context->response.length, 0);
 
       //Send SNMP message
-      error = socketSendTo(context->socket, destIpAddr, context->settings.trapPort,
+      error = socketSendTo(context->socket, destIpAddr, context->trapPort,
          context->response.pos, context->response.length, NULL, 0);
    }
 
@@ -1736,10 +1755,9 @@ error_t snmpAgentSendInform(SnmpAgentContext *context,
             MIB2_SNMP_INC_COUNTER32(snmpOutPkts, 1);
 
             //Debug message
-            TRACE_INFO("Sending SNMP message to %s port %" PRIu16
-               " (%" PRIuSIZE " bytes)...\r\n",
-               ipAddrToString(destIpAddr, NULL),
-               context->settings.trapPort, context->response.length);
+            TRACE_INFO("Sending SNMP message to %s port %" PRIu16 " (%" PRIuSIZE " bytes)...\r\n",
+               ipAddrToString(destIpAddr, NULL), context->trapPort,
+               context->response.length);
 
             //Display the contents of the SNMP message
             TRACE_DEBUG_ARRAY("  ", context->response.pos, context->response.length);
@@ -1747,7 +1765,7 @@ error_t snmpAgentSendInform(SnmpAgentContext *context,
             asn1DumpObject(context->response.pos, context->response.length, 0);
 
             //Send SNMP message
-            error = socketSendTo(context->socket, destIpAddr, context->settings.trapPort,
+            error = socketSendTo(context->socket, destIpAddr, context->trapPort,
                context->response.pos, context->response.length, NULL, 0);
          }
 
@@ -1836,10 +1854,9 @@ error_t snmpAgentSendInform(SnmpAgentContext *context,
             MIB2_SNMP_INC_COUNTER32(snmpOutPkts, 1);
 
             //Debug message
-            TRACE_INFO("Sending SNMP message to %s port %" PRIu16
-               " (%" PRIuSIZE " bytes)...\r\n",
-               ipAddrToString(destIpAddr, NULL),
-               context->settings.trapPort, context->response.length);
+            TRACE_INFO("Sending SNMP message to %s port %" PRIu16 " (%" PRIuSIZE " bytes)...\r\n",
+               ipAddrToString(destIpAddr, NULL), context->trapPort,
+               context->response.length);
 
             //Display the contents of the SNMP message
             TRACE_DEBUG_ARRAY("  ", context->response.pos, context->response.length);
@@ -1847,7 +1864,7 @@ error_t snmpAgentSendInform(SnmpAgentContext *context,
             asn1DumpObject(context->response.pos, context->response.length, 0);
 
             //Send SNMP message
-            error = socketSendTo(context->socket, destIpAddr, context->settings.trapPort,
+            error = socketSendTo(context->socket, destIpAddr, context->trapPort,
                context->response.pos, context->response.length, NULL, 0);
          }
 

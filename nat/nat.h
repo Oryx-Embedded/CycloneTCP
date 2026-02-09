@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 #ifndef _NAT_H
@@ -190,7 +190,7 @@ typedef struct
 
 typedef struct
 {
-   bool_t running;                                              ///<This flag tells whether the NAT is running or not
+   NetContext *netContext;                                      ///<TCP/IP stack context
    NetInterface *publicInterface;                               ///<Public interface
    uint_t publicIpAddrIndex;                                    ///<Index of the public IP address to use
    NetInterface *privateInterfaces[NAT_MAX_PRIVATE_INTERFACES]; ///<Private interfaces
@@ -199,6 +199,7 @@ typedef struct
    uint_t numPortFwdRules;                                      ///<Number of port redirection rules
    NatSession *sessions;                                        ///<NAT sessions (initiated from a private host)
    uint_t numSessions;                                          ///<Number of NAT sessions
+   bool_t running;                                              ///<Operational state of the NAT
 } NatContext;
 
 
