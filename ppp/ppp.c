@@ -922,9 +922,7 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
 
    //Total number of octets received on the interface, including framing
    //characters
-   MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifInOctets, length);
-   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifInOctets, length);
-   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCInOctets, length);
+   NET_IF_STATS_INC_COUNTER64(inOctets, length);
 
    //Check the length of the PPP frame
    if(length < PPP_FCS_SIZE)
@@ -1118,9 +1116,7 @@ error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
 
    //Total number of octets transmitted out of the interface, including
    //framing characters
-   MIB2_IF_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
-   IF_MIB_INC_COUNTER32(ifTable[interface->index].ifOutOctets, length);
-   IF_MIB_INC_COUNTER64(ifXTable[interface->index].ifHCOutOctets, length);
+   NET_IF_STATS_INC_COUNTER64(outOctets, length);
 
    //Debug message
    TRACE_DEBUG("Sending PPP frame (%" PRIuSIZE " bytes)...\r\n", length);
