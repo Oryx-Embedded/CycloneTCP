@@ -327,11 +327,11 @@ bool_t enc28j60IrqHandler(NetInterface *interface)
    }
 
    //Packet transmission complete?
-   if((status & (ENC28J60_EIR_TXIF | ENC28J60_EIE_TXERIE)) != 0)
+   if((status & (ENC28J60_EIR_TXIF | ENC28J60_EIR_TXERIF)) != 0)
    {
       //Clear interrupt flags
       enc28j60ClearBit(interface, ENC28J60_EIR, ENC28J60_EIR_TXIF |
-         ENC28J60_EIE_TXERIE);
+         ENC28J60_EIR_TXERIF);
 
       //Notify the TCP/IP stack that the transmitter is ready to send
       flag |= osSetEventFromIsr(&interface->nicTxEvent);
