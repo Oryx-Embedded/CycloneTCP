@@ -416,7 +416,7 @@ error_t mqttClientSetWillMessage(MqttClientContext *context, const char_t *topic
          return ERROR_INVALID_PARAMETER;
 
       //Make sure the length of the Will message payload is acceptable
-      if(osStrlen(message) > MQTT_CLIENT_MAX_WILL_PAYLOAD_LEN)
+      if(length > MQTT_CLIENT_MAX_WILL_PAYLOAD_LEN)
          return ERROR_INVALID_LENGTH;
 
       //Save Will message payload
