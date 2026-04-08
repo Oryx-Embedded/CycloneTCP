@@ -785,7 +785,8 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
          ancillary.timestampId = message->timestampId;
 #endif
          //Debug message
-         TRACE_DEBUG("Sending raw Ethernet frame (%" PRIuSIZE " bytes)...\r\n", length);
+         TRACE_DEBUG("Sending raw Ethernet frame (%" PRIuSIZE " bytes)...\r\n",
+            message->length);
 
          //Send raw Ethernet packet
          error = ethSendFrame(interface, &message->destMacAddr,
