@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -126,7 +126,7 @@ error_t igmpRouterSendMembershipQuery(IgmpRouterContext *context,
    message->groupAddr = groupAddr;
 
    //Message checksum calculation
-   message->checksum = ipCalcChecksum(&message, sizeof(IgmpMessage));
+   message->checksum = ipCalcChecksum(message, sizeof(IgmpMessage));
 
    //The Membership Report message is sent to the group being reported
    error = igmpSendMessage(context->interface, destAddr, buffer, offset);

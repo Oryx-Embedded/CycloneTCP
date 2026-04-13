@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -110,8 +110,12 @@ error_t snmpMibInit(void)
 
    //Point to the set group
    setGroup = &snmpMibBase.setGroup;
+
    //snmpSetSerialNo object
-   setGroup->snmpSetSerialNo = netGetRandRange(context, 1, INT32_MAX);
+   if(context != NULL)
+   {
+      setGroup->snmpSetSerialNo = netGetRandRange(context, 1, INT32_MAX);
+   }
 
    //Successful processing
    return NO_ERROR;

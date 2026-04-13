@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -68,8 +68,9 @@ error_t pppSendConfigureAckNak(PppContext *context,
    //Retrieve the length of the Configure-Request packet
    length = ntohs(configureReqPacket->length);
 
-   //Allocate a buffer memory to hold the Configure-Ack, Nak or Reject packet
-   buffer = pppAllocBuffer(length, &offset);
+   //The Configure-Nak packet may cause a 1-byte expansion for the
+   //Authentication-Protocol option
+   buffer = pppAllocBuffer(length + 1, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
       return ERROR_OUT_OF_MEMORY;
@@ -176,7 +177,7 @@ error_t pppSendTerminateReq(PppContext *context,
    //Length of the Terminate-Request packet
    length = sizeof(PppTerminatePacket);
 
-   //Allocate a buffer memory to hold the Terminate-Request packet
+   //Allocate a memory buffer to hold the Terminate-Request packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -226,7 +227,7 @@ error_t pppSendTerminateAck(PppContext *context,
    //Length of the Terminate-Ack packet
    length = sizeof(PppTerminatePacket);
 
-   //Allocate a buffer memory to hold the Terminate-Ack packet
+   //Allocate a memory buffer to hold the Terminate-Ack packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -281,7 +282,7 @@ error_t pppSendCodeRej(PppContext *context, const PppPacket *packet,
    //the peer's established MRU
    length = MIN(length, context->peerConfig.mru);
 
-   //Allocate a buffer memory to hold the Code-Reject packet
+   //Allocate a memory buffer to hold the Code-Reject packet
    buffer = pppAllocBuffer(sizeof(PppCodeRejPacket), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -341,7 +342,7 @@ error_t pppSendProtocolRej(PppContext *context, uint8_t identifier,
    //the peer's established MRU
    length = MIN(length, context->peerConfig.mru);
 
-   //Allocate a buffer memory to hold the Protocol-Reject packet
+   //Allocate a memory buffer to hold the Protocol-Reject packet
    buffer = pppAllocBuffer(sizeof(PppProtocolRejPacket), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -405,7 +406,7 @@ error_t pppSendEchoRep(PppContext *context,
    if(length > context->peerConfig.mru)
       return ERROR_INVALID_LENGTH;
 
-   //Allocate a buffer memory to hold the Echo-Reply packet
+   //Allocate a memory buffer to hold the Echo-Reply packet
    buffer = pppAllocBuffer(sizeof(PppEchoPacket), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)

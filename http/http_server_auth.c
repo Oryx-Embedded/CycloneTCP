@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -244,7 +244,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
 
                //Save user name
                strSafeCopy(connection->request.auth.user,
-                  token, HTTP_SERVER_USERNAME_MAX_LEN);
+                  token, HTTP_SERVER_USERNAME_MAX_LEN + 1);
 
                //Point to the password
                token = separator + 1;
@@ -303,7 +303,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
             {
                //Save user name
                strSafeCopy(connection->request.auth.user,
-                  value, HTTP_SERVER_USERNAME_MAX_LEN);
+                  value, HTTP_SERVER_USERNAME_MAX_LEN + 1);
             }
             else if(osStrcasecmp(name, "realm") == 0)
             {

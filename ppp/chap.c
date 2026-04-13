@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -492,7 +492,7 @@ error_t chapSendChallenge(PppContext *context)
    //Calculate the length of the Challenge packet
    length = sizeof(ChapChallengePacket) + MD5_DIGEST_SIZE + n;
 
-   //Allocate a buffer memory to hold the Challenge packet
+   //Allocate a memory buffer to hold the Challenge packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -575,7 +575,7 @@ error_t chapSendResponse(PppContext *context, const uint8_t *value)
    //Calculate the length of the Response packet
    length = sizeof(ChapResponsePacket) + MD5_DIGEST_SIZE + n;
 
-   //Allocate a buffer memory to hold the Response packet
+   //Allocate a memory buffer to hold the Response packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -630,7 +630,7 @@ error_t chapSendSuccess(PppContext *context)
    //Retrieve the length of the Success packet
    length = sizeof(PppPacket);
 
-   //Allocate a buffer memory to hold the Success packet
+   //Allocate a memory buffer to hold the Success packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -677,7 +677,7 @@ error_t chapSendFailure(PppContext *context)
    //Retrieve the length of the Failure packet
    length = sizeof(PppPacket);
 
-   //Allocate a buffer memory to hold the Failure packet
+   //Allocate a memory buffer to hold the Failure packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)

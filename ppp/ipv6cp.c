@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -579,7 +579,6 @@ error_t ipv6cpProcessUnknownCode(PppContext *context,
 void ipv6cpThisLayerUp(PppContext *context)
 {
    NetInterface *interface;
-   Ipv6Addr ipAddr;
 
    //Debug message
    TRACE_INFO("IPV6CP This-Layer-Up callback\r\n");
@@ -711,7 +710,7 @@ error_t ipv6cpSendConfigureReq(PppContext *context)
    //Debug message
    TRACE_INFO("IPV6CP Send-Configure-Request callback\r\n");
 
-   //Allocate a buffer memory to hold the Configure-Request packet
+   //Allocate a memory buffer to hold the Configure-Request packet
    buffer = pppAllocBuffer(PPP_MAX_CONF_REQ_SIZE, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)

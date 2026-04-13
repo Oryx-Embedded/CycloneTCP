@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -313,8 +313,8 @@
 //TLS supported?
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
-   #include "tls.h"
-   #include "tls_ticket.h"
+   #include "tls/tls.h"
+   #include "tls/tls_ticket.h"
 #endif
 
 //Basic authentication supported?

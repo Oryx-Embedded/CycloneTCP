@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -212,7 +212,8 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
 
    //The Method token indicates the method to be performed on the
    //resource identified by the Request-URI
-   error = strSafeCopy(connection->request.method, token, HTTP_SERVER_METHOD_MAX_LEN);
+   error = strSafeCopy(connection->request.method, token,
+      HTTP_SERVER_METHOD_MAX_LEN + 1);
    //Any error to report?
    if(error)
       return ERROR_INVALID_REQUEST;
@@ -424,7 +425,7 @@ void httpParseHeaderField(HttpConnection *connection,
    {
       //Save host name
       strSafeCopy(connection->request.host, value,
-         HTTP_SERVER_HOST_MAX_LEN);
+         HTTP_SERVER_HOST_MAX_LEN + 1);
    }
    //Connection header field?
    else if(osStrcasecmp(name, "Connection") == 0)
@@ -664,7 +665,8 @@ void httpParseCookieField(HttpConnection *connection, char_t *value)
 {
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    //Save the value of the header field
-   strSafeCopy(connection->request.cookie, value, HTTP_SERVER_COOKIE_MAX_LEN);
+   strSafeCopy(connection->request.cookie, value,
+      HTTP_SERVER_COOKIE_MAX_LEN + 1);
 #endif
 }
 

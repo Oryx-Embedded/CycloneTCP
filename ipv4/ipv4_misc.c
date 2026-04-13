@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -193,6 +193,13 @@ error_t ipv4SelectSourceAddr(NetContext *context, NetInterface **interface,
 
       //A network interface may be provided as a hint
       if(*interface != currentInterface && *interface != NULL)
+      {
+         //Select the next interface in the list
+         continue;
+      }
+
+      //Check link state
+      if(!currentInterface->linkState)
       {
          //Select the next interface in the list
          continue;

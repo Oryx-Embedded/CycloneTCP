@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -266,6 +266,59 @@ __weak_func void sc589Eth1InitGpio(NetInterface *interface)
    *pREG_PORTB_DATA_CLR = BITM_PORT_DATA_PX14;
    sleep(10);
    *pREG_PORTB_DATA_SET = BITM_PORT_DATA_PX14;
+   sleep(10);
+
+   //Select RGMII interface mode
+   *pREG_PADS0_PCFG0 |= BITM_PADS_PCFG0_EMACPHYISEL;
+   //Reset PHY interface
+   *pREG_PADS0_PCFG0 |= BITM_PADS_PCFG0_EMACRESET;
+
+//ADZS-SC589-MINI evaluation board?
+#elif defined(USE_ADZS_SC589_MINI)
+   uint32_t temp;
+
+   //Configure PA_00 (ETH0_TXD0), PA_01 (ETH0_TXD1), PA_02 (ETH0_MDC),
+   //PA_03 (ETH0_MDIO), PA_04 (ETH0_RXD0), PA_05 (ETH0_RXD1),
+   //PA_06 (ETH0_RXCLK_REFCLK), PA_07 (ETH0_CRS), PA_08 (ETH0_RXD2),
+   //PA_09 (ETH0_RXD3), PA_10 (ETH0_TXEN), PA_11 (ETH0_TXCLK),
+   //PA_12 (ETH0_TXD2) and PA_13 (ETH0_TXD3)
+   temp = *pREG_PORTA_MUX;
+   temp = (temp & ~BITM_PORT_MUX_MUX0) | (0 << BITP_PORT_MUX_MUX0);
+   temp = (temp & ~BITM_PORT_MUX_MUX1) | (0 << BITP_PORT_MUX_MUX1);
+   temp = (temp & ~BITM_PORT_MUX_MUX2) | (0 << BITP_PORT_MUX_MUX2);
+   temp = (temp & ~BITM_PORT_MUX_MUX3) | (0 << BITP_PORT_MUX_MUX3);
+   temp = (temp & ~BITM_PORT_MUX_MUX4) | (0 << BITP_PORT_MUX_MUX4);
+   temp = (temp & ~BITM_PORT_MUX_MUX5) | (0 << BITP_PORT_MUX_MUX5);
+   temp = (temp & ~BITM_PORT_MUX_MUX6) | (0 << BITP_PORT_MUX_MUX6);
+   temp = (temp & ~BITM_PORT_MUX_MUX7) | (0 << BITP_PORT_MUX_MUX7);
+   temp = (temp & ~BITM_PORT_MUX_MUX8) | (0 << BITP_PORT_MUX_MUX8);
+   temp = (temp & ~BITM_PORT_MUX_MUX9) | (0 << BITP_PORT_MUX_MUX9);
+   temp = (temp & ~BITM_PORT_MUX_MUX10) | (0 << BITP_PORT_MUX_MUX10);
+   temp = (temp & ~BITM_PORT_MUX_MUX11) | (0 << BITP_PORT_MUX_MUX11);
+   temp = (temp & ~BITM_PORT_MUX_MUX12) | (0 << BITP_PORT_MUX_MUX12);
+   temp = (temp & ~BITM_PORT_MUX_MUX13) | (0 << BITP_PORT_MUX_MUX13);
+   *pREG_PORTA_MUX = temp;
+
+   //Select peripheral mode
+   *pREG_PORTA_FER_SET = BITM_PORT_FER_PX0 | BITM_PORT_FER_PX1 |
+      BITM_PORT_FER_PX2 | BITM_PORT_FER_PX3 | BITM_PORT_FER_PX4 |
+      BITM_PORT_FER_PX5 | BITM_PORT_FER_PX6 | BITM_PORT_FER_PX7 |
+      BITM_PORT_FER_PX8 | BITM_PORT_FER_PX9 | BITM_PORT_FER_PX10 |
+      BITM_PORT_FER_PX11 | BITM_PORT_FER_PX12 | BITM_PORT_FER_PX13;
+
+   //Configure ETH0_MD_INT (PC_15) as an input
+   *pREG_PORTC_FER_CLR = BITM_PORT_FER_PX15;
+   *pREG_PORTC_DIR_CLR = BITM_PORT_DIR_PX15;
+   *pREG_PORTC_INEN_SET = BITM_PORT_INEN_PX15;
+
+   //Configure ETH0_RESET (PB_07) as an output
+   *pREG_PORTB_FER_CLR = BITM_PORT_FER_PX7;
+   *pREG_PORTB_DIR_SET = BITM_PORT_DIR_PX7;
+
+   //Reset PHY transceiver (hard reset)
+   *pREG_PORTB_DATA_CLR = BITM_PORT_DATA_PX7;
+   sleep(10);
+   *pREG_PORTB_DATA_SET = BITM_PORT_DATA_PX7;
    sleep(10);
 
    //Select RGMII interface mode

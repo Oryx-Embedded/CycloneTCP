@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -438,7 +438,7 @@ error_t papSendAuthReq(PppContext *context)
    //Calculate the length of the Authenticate-Request packet
    length = sizeof(PapAuthReqPacket) + 1 + usernameLen + passwordLen;
 
-   //Allocate a buffer memory to hold the packet
+   //Allocate a memory buffer to hold the packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -509,7 +509,7 @@ error_t papSendAuthAck(PppContext *context, uint8_t identifier)
    //Retrieve the length of the Authenticate-Ack packet
    length = sizeof(PapAuthAckPacket);
 
-   //Allocate a buffer memory to hold the Authenticate-Ack packet
+   //Allocate a memory buffer to hold the Authenticate-Ack packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -561,7 +561,7 @@ error_t papSendAuthNak(PppContext *context, uint8_t identifier)
    //Retrieve the length of the Authenticate-Nak packet
    length = sizeof(PapAuthNakPacket);
 
-   //Allocate a buffer memory to hold the Authenticate-Nak packet
+   //Allocate a memory buffer to hold the Authenticate-Nak packet
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _COAP_SERVER_H
@@ -67,7 +67,7 @@
 
 //DTLS server tick interval
 #ifndef COAP_SERVER_TICK_INTERVAL
-   #define COAP_SERVER_TICK_INTERVAL 500
+   #define COAP_SERVER_TICK_INTERVAL 250
 #elif (COAP_SERVER_TICK_INTERVAL < 100)
    #error COAP_SERVER_TICK_INTERVAL parameter is not valid
 #endif
@@ -113,7 +113,7 @@
 //DTLS supported?
 #if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
-   #include "tls.h"
+   #include "tls/tls.h"
 #endif
 
 //Forward declaration of CoapServerContext structure

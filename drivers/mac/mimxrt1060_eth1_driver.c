@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -239,8 +239,9 @@ error_t mimxrt1060Eth1Init(NetInterface *interface)
 
 __weak_func void mimxrt1060Eth1InitGpio(NetInterface *interface)
 {
-//MIMXRT1060-EVK or MIMXRT1064-EVK evaluation board?
-#if defined(USE_MIMXRT1060_EVK) || defined(USE_MIMXRT1064_EVK)
+//MIMXRT1060-EVK, MIMXRT1060-EVKB or MIMXRT1064-EVK evaluation board?
+#if defined(USE_MIMXRT1060_EVK) || defined(USE_MIMXRT1060_EVKB) || \
+   defined(USE_MIMXRT1064_EVK)
    gpio_pin_config_t pinConfig;
    clock_enet_pll_config_t pllConfig;
 

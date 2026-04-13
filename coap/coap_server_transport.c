@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -143,6 +143,7 @@ error_t coapServerAcceptSession(CoapServerContext *context,
          //only if it is valid
          if(state == TLS_STATE_INIT ||
             state == TLS_STATE_CLIENT_HELLO ||
+            state == TLS_STATE_CLIENT_HELLO_2 ||
             state == TLS_STATE_CLOSED)
          {
             //Do not allocate connection state yet if the stateless cookie
@@ -466,6 +467,9 @@ error_t coapServerCookieGenerateCallback(TlsContext *context,
    hmacUpdate(&hmacContext, clientParams->cipherSuites, clientParams->cipherSuitesLen);
    hmacUpdate(&hmacContext, clientParams->compressMethods, clientParams->compressMethodsLen);
 
+   //The cookie allows the server to offload state to the client
+   hmacUpdate(&hmacContext, clientParams->state, clientParams->stateLen);
+
    //Finalize HMAC computation
    hmacFinal(&hmacContext, cookie);
 
@@ -534,6 +538,9 @@ error_t coapServerCookieVerifyCallback(TlsContext *context,
    hmacUpdate(&hmacContext, clientParams->sessionId, clientParams->sessionIdLen);
    hmacUpdate(&hmacContext, clientParams->cipherSuites, clientParams->cipherSuitesLen);
    hmacUpdate(&hmacContext, clientParams->compressMethods, clientParams->compressMethodsLen);
+
+   //The cookie allows the server to offload state to the client
+   hmacUpdate(&hmacContext, clientParams->state, clientParams->stateLen);
 
    //Finalize HMAC computation
    hmacFinal(&hmacContext, NULL);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _IPV4_H
@@ -276,6 +276,7 @@ typedef enum
    IPV4_PROTOCOL_IGMP = 2,
    IPV4_PROTOCOL_TCP  = 6,
    IPV4_PROTOCOL_UDP  = 17,
+   IPV4_PROTOCOL_GRE  = 47,
    IPV4_PROTOCOL_ESP  = 50,
    IPV4_PROTOCOL_AH   = 51
 } Ipv4Protocol;

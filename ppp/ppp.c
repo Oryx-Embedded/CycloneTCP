@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -563,7 +563,7 @@ error_t pppConnect(NetInterface *interface)
    {
 #if (PAP_SUPPORT == ENABLED)
       //PAP provides an easy implementation of peer authentication
-      if(context->settings.authProtocol & PPP_AUTH_PROTOCOL_PAP)
+      if((context->settings.authProtocol & PPP_AUTH_PROTOCOL_PAP) != 0)
       {
          //Select PAP authentication protocol
          context->localConfig.authProtocol = PPP_PROTOCOL_PAP;
@@ -571,7 +571,7 @@ error_t pppConnect(NetInterface *interface)
 #endif
 #if (CHAP_SUPPORT == ENABLED)
       //CHAP with MD5 ensures greater security in the implementation
-      if(context->settings.authProtocol & PPP_AUTH_PROTOCOL_CHAP_MD5)
+      if((context->settings.authProtocol & PPP_AUTH_PROTOCOL_CHAP_MD5) != 0)
       {
          //Select CHAP with MD5 authentication protocol
          context->localConfig.authProtocol = PPP_PROTOCOL_CHAP;

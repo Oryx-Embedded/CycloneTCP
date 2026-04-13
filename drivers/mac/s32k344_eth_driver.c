@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -544,7 +544,6 @@ __weak_func void s32k344EthInitGpio(NetInterface *interface)
 
 /**
  * @brief RMII clock configuration
- * @param[in] interface Underlying network interface
  **/
 
 void s32k344EthInitRmiiClock(void)

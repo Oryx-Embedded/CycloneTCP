@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -343,7 +343,7 @@ error_t lldpDeleteTlv(LldpDataUnit *lldpdu, uint8_t type, uint_t index)
                lldpdu->length - lldpdu->pos);
 
             //Adjust the length of the LLDPDU
-            lldpdu->length -= tlv.length;
+            lldpdu->length -= sizeof(LldpTlvHeader) + tlv.length;
 
             //The specified TLV has been deleted
             error = NO_ERROR;
@@ -760,7 +760,7 @@ error_t lldpDeleteOrgDefTlv(LldpDataUnit *lldpdu, uint32_t oui, uint8_t subtype,
                      lldpdu->length - lldpdu->pos);
 
                   //Adjust the length of the LLDPDU
-                  lldpdu->length -= tlv.length;
+                  lldpdu->length -= sizeof(LldpTlvHeader) + tlv.length;
 
                   //We are done
                   break;

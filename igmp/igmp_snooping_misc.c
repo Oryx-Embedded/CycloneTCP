@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -381,16 +381,20 @@ void igmpSnoopingProcessMembershipReportV3(IgmpSnoopingContext *context,
       if(record->recordType == IGMP_GROUP_RECORD_TYPE_TO_IN &&
          record->numOfSources == 0)
       {
-         //Ignore Leave Group messages for which there are no group members
-         if(group->state == IGMP_SNOOPING_GROUP_STATE_MEMBERS_PRESENT)
+         //Valid multicast group?
+         if(group != NULL)
          {
-            //The Last Member Query Time represents the  "leave latency", or the
-            //difference between the transmission of a membership change and the
-            //change in the information given to the routing protocol
-            netStartTimer(&group->timer, context->lastMemberQueryTime);
+            //Ignore Leave Group messages for which there are no group members
+            if(group->state == IGMP_SNOOPING_GROUP_STATE_MEMBERS_PRESENT)
+            {
+               //The Last Member Query Time represents the  "leave latency", or
+               //the difference between the transmission of a membership change
+               //and the change in the information given to the routing protocol
+               netStartTimer(&group->timer, context->lastMemberQueryTime);
 
-            //Switch to the "Checking Membership" state
-            group->state = IGMP_SNOOPING_GROUP_STATE_CHECKING_MEMBERSHIP;
+               //Switch to the "Checking Membership" state
+               group->state = IGMP_SNOOPING_GROUP_STATE_CHECKING_MEMBERSHIP;
+            }
          }
       }
       else if(record->recordType == IGMP_GROUP_RECORD_TYPE_IS_IN ||

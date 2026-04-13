@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -439,7 +439,7 @@ error_t lcpProcessConfigureNak(PppContext *context,
          {
 #if (PAP_SUPPORT == ENABLED)
             //Manage authentication policy
-            if(context->settings.authProtocol & PPP_AUTH_PROTOCOL_PAP)
+            if((context->settings.authProtocol & PPP_AUTH_PROTOCOL_PAP) != 0)
             {
                //Select PAP authentication protocol
                context->localConfig.authProtocol = PPP_PROTOCOL_PAP;
@@ -456,7 +456,7 @@ error_t lcpProcessConfigureNak(PppContext *context,
                if(authProtocolOption->data[0] == CHAP_ALGO_ID_CHAP_MD5)
                {
                   //Manage authentication policy
-                  if(context->settings.authProtocol & PPP_AUTH_PROTOCOL_CHAP_MD5)
+                  if((context->settings.authProtocol & PPP_AUTH_PROTOCOL_CHAP_MD5) != 0)
                   {
                      //Select CHAP with MD5 authentication protocol
                      context->localConfig.authProtocol = PPP_PROTOCOL_CHAP;
@@ -1040,7 +1040,7 @@ error_t lcpSendConfigureReq(PppContext *context)
    //Debug message
    TRACE_INFO("LCP Send-Configure-Request callback\r\n");
 
-   //Allocate a buffer memory to hold the Configure-Request packet
+   //Allocate a memory buffer to hold the Configure-Request packet
    buffer = pppAllocBuffer(PPP_MAX_CONF_REQ_SIZE, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
@@ -1054,8 +1054,8 @@ error_t lcpSendConfigureReq(PppContext *context)
    configureReqPacket->identifier = ++context->lcpFsm.identifier;
    configureReqPacket->length = sizeof(PppConfigurePacket);
 
-   //Make sure the Maximum-Receive-Unit option has not been
-   //previously rejected
+   //Make sure the Maximum-Receive-Unit option has not been previously
+   //rejected
    if(!context->localConfig.mruRejected)
    {
       //Convert MRU to network byte order
@@ -1064,8 +1064,8 @@ error_t lcpSendConfigureReq(PppContext *context)
       pppAddOption(configureReqPacket, LCP_OPTION_MRU, &value, sizeof(uint16_t));
    }
 
-   //Make sure the Async-Control-Character-Map option has not been
-   //previously rejected
+   //Make sure the Async-Control-Character-Map option has not been previously
+   //rejected
    if(!context->localConfig.accmRejected)
    {
       //Convert ACCM to network byte order
@@ -1074,37 +1074,24 @@ error_t lcpSendConfigureReq(PppContext *context)
       pppAddOption(configureReqPacket, LCP_OPTION_ACCM, &value, sizeof(uint32_t));
    }
 
-   //Make sure the Authentication-Protocol option has not been
-   //previously rejected
+   //Make sure the Authentication-Protocol option has not been previously
+   //rejected
    if(!context->localConfig.authProtocolRejected)
    {
-      uint8_t value[3];
-
-      //PAP authentication protocol?
-      if(context->localConfig.authProtocol == PPP_PROTOCOL_PAP)
+      //An implementation must not include multiple Authentication-Protocol
+      //configuration options in its Configure-Request packets (refer to
+      //RFC 1661, section 6.2)
+      if(context->localConfig.authProtocol == PPP_PROTOCOL_PAP ||
+         context->localConfig.authProtocol == PPP_PROTOCOL_CHAP)
       {
-         //Format Authentication-Protocol option
-         value[0] = MSB(PPP_PROTOCOL_PAP);
-         value[1] = LSB(PPP_PROTOCOL_PAP);
-
-         //Add option
-         pppAddOption(configureReqPacket, LCP_OPTION_AUTH_PROTOCOL, &value, 2);
-      }
-      //CHAP authentication protocol?
-      else if(context->localConfig.authProtocol == PPP_PROTOCOL_CHAP)
-      {
-         //Format Authentication-Protocol option
-         value[0] = MSB(PPP_PROTOCOL_CHAP);
-         value[1] = LSB(PPP_PROTOCOL_CHAP);
-         value[2] = context->localConfig.authAlgo;
-
-         //Add option
-         pppAddOption(configureReqPacket, LCP_OPTION_AUTH_PROTOCOL, &value, 3);
+         //Add Authentication-Protocol option
+         lcpAddAuthProtocolOption(configureReqPacket,
+            context->localConfig.authProtocol, context->localConfig.authAlgo);
       }
    }
 
-   //Make sure the Protocol-Field-Compression option has not been
-   //previously rejected
+   //Make sure the Protocol-Field-Compression option has not been previously
+   //rejected
    if(!context->localConfig.pfcRejected)
    {
       //Check whether compression of the Protocol field is supported
@@ -1512,7 +1499,6 @@ error_t lcpParseAuthProtocolOption(PppContext *context,
    LcpAuthProtocolOption *option, PppConfigurePacket *outPacket)
 {
    error_t error;
-   uint8_t value[3];
 
    //Assume an error condition...
    error = ERROR_INVALID_LENGTH;
@@ -1520,17 +1506,26 @@ error_t lcpParseAuthProtocolOption(PppContext *context,
    //Check the length of the option
    if(option->length >= sizeof(LcpAuthProtocolOption))
    {
-      //The Authentication-Protocol option for PAP must be exactly 4 bytes
+      //Check authentication protocol
       if(ntohs(option->protocol) == PPP_PROTOCOL_PAP)
       {
+         //The Authentication-Protocol option for PAP must be exactly 4 bytes
          if(option->length == 4)
+         {
             error = NO_ERROR;
+         }
       }
-      //The Authentication-Protocol option for CHAP must be exactly 5 bytes
       else if(ntohs(option->protocol) == PPP_PROTOCOL_CHAP)
       {
+         //The Authentication-Protocol option for CHAP must be exactly 5 bytes
          if(option->length == 5)
+         {
             error = NO_ERROR;
+         }
+      }
+      else
+      {
+         //Unknown authentication protocol
       }
    }
 
@@ -1538,7 +1533,7 @@ error_t lcpParseAuthProtocolOption(PppContext *context,
    if(!error)
    {
       //PAP authentication protocol?
-      if(context->settings.authProtocol & PPP_AUTH_PROTOCOL_PAP &&
+      if((context->settings.authProtocol & PPP_AUTH_PROTOCOL_PAP) != 0 &&
          ntohs(option->protocol) == PPP_PROTOCOL_PAP)
       {
          //If every configuration option received in the Configure-Request is
@@ -1559,7 +1554,7 @@ error_t lcpParseAuthProtocolOption(PppContext *context,
          error = NO_ERROR;
       }
       //CHAP with MD5 authentication protocol?
-      else if(context->settings.authProtocol & PPP_AUTH_PROTOCOL_CHAP_MD5 &&
+      else if((context->settings.authProtocol & PPP_AUTH_PROTOCOL_CHAP_MD5) != 0 &&
          ntohs(option->protocol) == PPP_PROTOCOL_CHAP &&
          option->data[0] == CHAP_ALGO_ID_CHAP_MD5)
       {
@@ -1584,39 +1579,31 @@ error_t lcpParseAuthProtocolOption(PppContext *context,
       else
       {
          //PAP authentication protocol allowed?
-         if(context->settings.authProtocol & PPP_AUTH_PROTOCOL_PAP)
+         if((context->settings.authProtocol & PPP_AUTH_PROTOCOL_PAP) != 0)
          {
             //If all configuration options are recognizable, but some values are not
             //acceptable, then the implementation must transmit a Configure-Nak
             if(outPacket != NULL && outPacket->code == PPP_CODE_CONFIGURE_NAK)
             {
-               //Format Authentication-Protocol option
-               value[0] = MSB(PPP_PROTOCOL_PAP);
-               value[1] = LSB(PPP_PROTOCOL_PAP);
-
                //The option must be modified to a value acceptable to the
                //Configure-Nak sender
-               pppAddOption(outPacket, LCP_OPTION_AUTH_PROTOCOL, value, 2);
+               lcpAddAuthProtocolOption(outPacket, PPP_PROTOCOL_PAP, 0);
             }
 
             //The value is not acceptable
             error = ERROR_INVALID_VALUE;
          }
          //CHAP with MD5 authentication protocol allowed?
-         else if(context->settings.authProtocol & PPP_AUTH_PROTOCOL_CHAP_MD5)
+         else if((context->settings.authProtocol & PPP_AUTH_PROTOCOL_CHAP_MD5) != 0)
          {
             //If all configuration options are recognizable, but some values are not
             //acceptable, then the implementation must transmit a Configure-Nak
             if(outPacket != NULL && outPacket->code == PPP_CODE_CONFIGURE_NAK)
             {
-               //Format Authentication-Protocol option
-               value[0] = MSB(PPP_PROTOCOL_CHAP);
-               value[1] = LSB(PPP_PROTOCOL_CHAP);
-               value[2] = CHAP_ALGO_ID_CHAP_MD5;
-
                //The option must be modified to a value acceptable to the
                //Configure-Nak sender
-               pppAddOption(outPacket, LCP_OPTION_AUTH_PROTOCOL, value, 3);
+               lcpAddAuthProtocolOption(outPacket, PPP_PROTOCOL_CHAP,
+                  CHAP_ALGO_ID_CHAP_MD5);
             }
 
             //The value is not acceptable
@@ -1773,6 +1760,82 @@ error_t lcpParseAcfcOption(PppContext *context,
 
    //Return status code
    return error;
+}
+
+
+/**
+ * @brief Add an Authentication-Protocol option to a Configure packet
+ * @param[in,out] packet Pointer to the Configure packet
+ * @param[in] protocol Authentication protocol
+ * @param[in] algo Hash method to be used
+ * @return Error code
+ **/
+
+error_t lcpAddAuthProtocolOption(PppConfigurePacket *packet, uint16_t protocol,
+   uint8_t algo)
+{
+   size_t n;
+   uint8_t data[3];
+   PppOption *option;
+   LcpAuthProtocolOption *authProtocolOption;
+
+   //Check the length of the Configure packet
+   if(packet->length < sizeof(PppConfigurePacket))
+      return ERROR_INVALID_LENGTH;
+
+   //Retrieve the length of the option list
+   n = packet->length - sizeof(PppConfigurePacket);
+   //Point to the first option
+   option = (PppOption *) packet->options;
+
+   //Parse configuration options
+   while(n > 0)
+   {
+      //Check option length
+      if(option->length < sizeof(PppOption))
+         return ERROR_INVALID_LENGTH;
+      if(option->length > n)
+         return ERROR_INVALID_LENGTH;
+
+      //Authentication-Protocol option?
+      if(option->type == LCP_OPTION_AUTH_PROTOCOL)
+      {
+         //Cast option
+         authProtocolOption = (LcpAuthProtocolOption *) option;
+
+         //Check option length
+         if(authProtocolOption->length < sizeof(LcpAuthProtocolOption))
+            return ERROR_INVALID_LENGTH;
+
+         //Duplicate Authentication-Protocol option?
+         if(ntohs(authProtocolOption->protocol) == protocol)
+            return NO_ERROR;
+      }
+
+      //Remaining bytes to process
+      n -= option->length;
+      //Jump to the next option
+      option = (PppOption *) ((uint8_t *) option + option->length);
+   }
+
+   //The length of the Authentication-Protocol option depends on the protocol
+   n = 0;
+
+   //The Authentication-Protocol field is two octets, and indicates the
+   //authentication protocol desired
+   data[n++] = MSB(protocol);
+   data[n++] = LSB(protocol);
+
+   //CHAP authentication protocol?
+   if(protocol == PPP_PROTOCOL_CHAP)
+   {
+      //The Algorithm field is one octet and indicates the one-way hash method
+      //to be used (refer to RFC 1334, section 3.1)
+      data[n++] = algo;
+   }
+
+   //Add Authentication-Protocol option
+   return pppAddOption(packet, LCP_OPTION_AUTH_PROTOCOL, data, n);
 }
 
 #endif

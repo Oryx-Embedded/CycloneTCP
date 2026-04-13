@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _MQTT_SN_CLIENT_H
@@ -142,7 +142,7 @@
 //DTLS supported?
 #if (MQTT_SN_CLIENT_DTLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
-   #include "tls.h"
+   #include "tls/tls.h"
 #endif
 
 //Forward declaration of MqttSnClientContext structure

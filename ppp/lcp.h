@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _LCP_H
@@ -252,6 +252,9 @@ error_t lcpParsePfcOption(PppContext *context,
 
 error_t lcpParseAcfcOption(PppContext *context,
    LcpAcfcOption *option, PppConfigurePacket *outPacket);
+
+error_t lcpAddAuthProtocolOption(PppConfigurePacket *packet, uint16_t protocol,
+   uint8_t algo);
 
 //C++ guard
 #ifdef __cplusplus

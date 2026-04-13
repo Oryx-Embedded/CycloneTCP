@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -279,7 +279,7 @@ void ftpServerProcessCommand(FtpClientConnection *connection)
       connection->responseLen = osStrlen(connection->response);
       connection->responsePos = 0;
    }
-   else if(connection->commandLen >= FTP_SERVER_MAX_LINE_LEN)
+   else if(connection->commandLen >= FTP_SERVER_MAX_COMMAND_LEN)
    {
       //Drop incoming data
       connection->controlChannel.state = FTP_CHANNEL_STATE_DISCARD;
@@ -310,8 +310,8 @@ void ftpServerProcessNoop(FtpClientConnection *connection, char_t *param)
 /**
  * @brief SYST command processing
  *
- * The SYST command is used to find out the type of operating system
- * at the server side
+ * The SYST command is used to find out the type of operating system at the
+ * server side
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -327,8 +327,8 @@ void ftpServerProcessSyst(FtpClientConnection *connection, char_t *param)
 /**
  * @brief FEAT command processing
  *
- * The FEAT command allows a client to discover which optional
- * commands a server supports
+ * The FEAT command allows a client to discover which optional commands a
+ * server supports
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -1020,8 +1020,8 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
 /**
  * @brief EPRT command processing
  *
- * The EPRT command allows for the specification of an extended address
- * for the data connection
+ * The EPRT command allows for the specification of an extended address for the
+ * data connection
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -1167,9 +1167,8 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
 /**
  * @brief PASV command processing
  *
- * The PASV command requests the server to listen on a data port and
- * to wait for a connection rather than initiate one upon receipt of
- * a transfer command
+ * The PASV command requests the server to listen on a data port and to wait
+ * for a connection rather than initiate one upon receipt of a transfer command
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -1335,8 +1334,8 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
 /**
  * @brief EPSV command processing
  *
- * The EPSV command requests that a server listen on a data port and
- * wait for a connection
+ * The EPSV command requests that a server listen on a data port and wait for a
+ * connection
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -1450,8 +1449,8 @@ void ftpServerProcessEpsv(FtpClientConnection *connection, char_t *param)
 /**
  * @brief ABOR command processing
  *
- * The ABOR command tells the server to abort the previous FTP
- * service command and any associated transfer of data
+ * The ABOR command tells the server to abort the previous FTP service command
+ * and any associated transfer of data
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -1503,8 +1502,8 @@ void ftpServerProcessAbor(FtpClientConnection *connection, char_t *param)
 /**
  * @brief PWD command processing
  *
- * The PWD command causes the name of the current working
- * directory to be returned in the reply
+ * The PWD command causes the name of the current working directory to be
+ * returned in the reply
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -1530,8 +1529,7 @@ void ftpServerProcessPwd(FtpClientConnection *connection, char_t *param)
 /**
  * @brief CWD command processing
  *
- * The CWD command allows the user to work with a different
- * directory
+ * The CWD command allows the user to work with a different directory
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -1598,7 +1596,7 @@ void ftpServerProcessCwd(FtpClientConnection *connection, char_t *param)
    pathCopy(connection->currentDir, connection->path,
       FTP_SERVER_MAX_PATH_LEN);
 
-   //A successful PWD command uses the 250 reply code
+   //A successful CWD command uses the 250 reply code
    osSprintf(connection->response, "250 Directory changed to %s\r\n",
       ftpServerStripUserRootDir(connection, connection->currentDir));
 }
@@ -1644,7 +1642,7 @@ void ftpServerProcessCdup(FtpClientConnection *connection, char_t *param)
          FTP_SERVER_MAX_PATH_LEN);
    }
 
-   //A successful PWD command uses the 250 reply code
+   //A successful CDUP command uses the 250 reply code
    osSprintf(connection->response, "250 Directory changed to %s\r\n",
       ftpServerStripUserRootDir(connection, connection->currentDir));
 }
@@ -1901,8 +1899,8 @@ void ftpServerProcessNlst(FtpClientConnection *connection, char_t *param)
 /**
  * @brief MKD command processing
  *
- * The MKD command causes the directory specified in the pathname
- * to be created as a directory
+ * The MKD command causes the directory specified in the pathname to be created
+ * as a directory
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -1977,8 +1975,7 @@ void ftpServerProcessMkd(FtpClientConnection *connection, char_t *param)
 /**
  * @brief RMD command processing
  *
- * The RMD command causes the directory specified in the pathname
- * to be removed
+ * The RMD command causes the directory specified in the pathname to be removed
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -2467,8 +2464,8 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
 /**
  * @brief RNFR command processing
  *
- * The RNFR command specifies the old pathname of the file which is
- * to be renamed
+ * The RNFR command specifies the old pathname of the file which is to be
+ * renamed
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -2541,8 +2538,8 @@ void ftpServerProcessRnfr(FtpClientConnection *connection, char_t *param)
 /**
  * @brief RNTO command processing
  *
- * The RNTO command specifies the new pathname of the file specified
- * in the immediately preceding RNFR command
+ * The RNTO command specifies the new pathname of the file specified in the
+ * immediately preceding RNFR command
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters
@@ -2640,8 +2637,8 @@ void ftpServerProcessRnto(FtpClientConnection *connection, char_t *param)
 /**
  * @brief DELE command processing
  *
- * The DELE command causes the file specified in the pathname to be
- * deleted at the server site
+ * The DELE command causes the file specified in the pathname to be deleted at
+ * the server site
  *
  * @param[in] connection Pointer to the client connection
  * @param[in] param Command line parameters

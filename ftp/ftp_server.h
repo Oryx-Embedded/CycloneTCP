@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _FTP_SERVER_H
@@ -179,11 +179,16 @@
    #define FTP_SERVER_PRIVATE_CONTEXT
 #endif
 
+//Maximum command length
+#define FTP_SERVER_MAX_COMMAND_LEN FTP_SERVER_MAX_LINE_LEN
+//Maximum response length
+#define FTP_SERVER_MAX_RESPONSE_LEN MAX(FTP_SERVER_MAX_LINE_LEN, FTP_SERVER_MAX_PATH_LEN + 32)
+
 //TLS supported?
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED)
    #include "core/crypto.h"
-   #include "tls.h"
-   #include "tls_ticket.h"
+   #include "tls/tls.h"
+   #include "tls/tls_ticket.h"
 #endif
 
 //FTP port number
@@ -386,29 +391,29 @@ typedef struct
 
 struct _FtpClientConnection
 {
-   FtpServerContext *context;                       ///<FTP server context
-   NetInterface *interface;                         ///<Underlying network interface
-   bool_t userLoggedIn;                             ///<This flag tells whether the user is logged in
-   systime_t timestamp;                             ///<Time stamp to manage timeout
-   FtpServerChannel controlChannel;                 ///<Control channel
-   FtpServerChannel dataChannel;                    ///<Data channel
-   FsFile *file;                                    ///<File pointer
-   FsDir *dir;                                      ///<Directory pointer
-   bool_t passiveMode;                              ///<Passive data transfer
-   IpAddr remoteIpAddr;                             ///<Remote IP address
-   uint16_t remotePort;                             ///<Remote port number
-   char_t user[FTP_SERVER_MAX_USERNAME_LEN + 1];    ///<User name
-   char_t rootDir[FTP_SERVER_MAX_ROOT_DIR_LEN + 1]; ///<Root directory
-   char_t currentDir[FTP_SERVER_MAX_PATH_LEN + 1];  ///<Current directory
-   char_t path[FTP_SERVER_MAX_PATH_LEN + 1];        ///<Pathname
-   char_t command[FTP_SERVER_MAX_LINE_LEN + 1];     ///<Incoming command
-   size_t commandLen;                               ///<Number of bytes available in the command buffer
-   char_t response[FTP_SERVER_MAX_LINE_LEN + 1];    ///<Response buffer
-   size_t responseLen;                              ///<Number of bytes available in the response buffer
-   size_t responsePos;                              ///<Current position in the response buffer
-   char_t buffer[FTP_SERVER_BUFFER_SIZE];           ///<Memory buffer for input/output operations
-   size_t bufferLength;                             ///<Length of the buffer, in bytes
-   size_t bufferPos;                                ///<Current position in the buffer
+   FtpServerContext *context;                        ///<FTP server context
+   NetInterface *interface;                          ///<Underlying network interface
+   bool_t userLoggedIn;                              ///<This flag tells whether the user is logged in
+   systime_t timestamp;                              ///<Time stamp to manage timeout
+   FtpServerChannel controlChannel;                  ///<Control channel
+   FtpServerChannel dataChannel;                     ///<Data channel
+   FsFile *file;                                     ///<File pointer
+   FsDir *dir;                                       ///<Directory pointer
+   bool_t passiveMode;                               ///<Passive data transfer
+   IpAddr remoteIpAddr;                              ///<Remote IP address
+   uint16_t remotePort;                              ///<Remote port number
+   char_t user[FTP_SERVER_MAX_USERNAME_LEN + 1];     ///<User name
+   char_t rootDir[FTP_SERVER_MAX_ROOT_DIR_LEN + 1];  ///<Root directory
+   char_t currentDir[FTP_SERVER_MAX_PATH_LEN + 1];   ///<Current directory
+   char_t path[FTP_SERVER_MAX_PATH_LEN + 1];         ///<Pathname
+   char_t command[FTP_SERVER_MAX_COMMAND_LEN + 1];   ///<Command buffer
+   size_t commandLen;                                ///<Number of bytes available in the command buffer
+   char_t response[FTP_SERVER_MAX_RESPONSE_LEN + 1]; ///<Response buffer
+   size_t responseLen;                               ///<Number of bytes available in the response buffer
+   size_t responsePos;                               ///<Current position in the response buffer
+   char_t buffer[FTP_SERVER_BUFFER_SIZE];            ///<Memory buffer for input/output operations
+   size_t bufferLength;                              ///<Length of the buffer, in bytes
+   size_t bufferPos;                                 ///<Current position in the buffer
 };
 
 

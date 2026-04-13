@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -227,7 +227,7 @@ void ftpServerProcessControlChannelEvents(FtpClientConnection *connection,
          //Receive data
          error = ftpServerReadChannel(&connection->controlChannel,
             connection->command + connection->commandLen,
-            FTP_SERVER_MAX_LINE_LEN - connection->commandLen, &n, 0);
+            FTP_SERVER_MAX_COMMAND_LEN - connection->commandLen, &n, 0);
 
          //Check status code
          if(error == NO_ERROR || error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)

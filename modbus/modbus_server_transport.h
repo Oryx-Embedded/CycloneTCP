@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _MODBUS_SERVER_TRANSPORT_H
@@ -46,11 +46,11 @@ void modbusServerAcceptConnection(ModbusServerContext *context);
 error_t modbusServerShutdownConnection(ModbusClientConnection *connection);
 void modbusServerCloseConnection(ModbusClientConnection *connection);
 
-error_t modbusServerSendData(ModbusClientConnection *connection, const void *data,
-   size_t length, size_t *written, uint_t flags);
+error_t modbusServerSendData(ModbusClientConnection *connection,
+   const void *data, size_t length, size_t *written, uint_t flags);
 
-error_t modbusServerReceiveData(ModbusClientConnection *connection, void *data,
-   size_t size, size_t *received, uint_t flags);
+error_t modbusServerReceiveData(ModbusClientConnection *connection,
+   void *data, size_t size, size_t *received, uint_t flags);
 
 //C++ guard
 #ifdef __cplusplus

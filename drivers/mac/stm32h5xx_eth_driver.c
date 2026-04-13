@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -248,7 +248,7 @@ error_t stm32h5xxEthInit(NetInterface *interface)
 __weak_func void stm32h5xxEthInitGpio(NetInterface *interface)
 {
 //Nucleo-H563ZI evaluation board?
-#if defined(USE_STM32H5XX_NUCLEO)
+#if defined(USE_NUCLEO_H563ZI)
    GPIO_InitTypeDef GPIO_InitStructure;
 
    //Enable SBS clock
@@ -285,6 +285,49 @@ __weak_func void stm32h5xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_13;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 
+//Nucleo-H5E5ZJ evaluation board?
+#elif defined(USE_NUCLEO_H5E5ZJ)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
+   //Enable SBS clock
+   __HAL_RCC_SBS_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOB_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOD_CLK_ENABLE();
+   __HAL_RCC_GPIOG_CLK_ENABLE();
+
+   //Select RMII interface mode
+   HAL_SBS_ETHInterfaceSelect(SBS_ETH_RMII);
+
+   //Configure RMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH_RMII_REF_CLK (PA1), ETH_MDIO (PA2) and RMII_TX_EN (PA5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_TXD0 (PB12)
+   GPIO_InitStructure.Pin = GPIO_PIN_12;
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+   //Configure ETH_MDC (PC1), ETH_RMII_RXD0 (PC4) and ETH_RMII_RXD1 (PC5)
+   GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_CRS_DV (PD1)
+   GPIO_InitStructure.Pin = GPIO_PIN_1;
+   HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_TXD1 (PG12)
+   GPIO_InitStructure.Pin = GPIO_PIN_12;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
 //STM32H573I-DK evaluation board?
 #elif defined(USE_STM32H573I_DK)
    GPIO_InitTypeDef GPIO_InitStructure;
@@ -317,6 +360,59 @@ __weak_func void stm32h5xxEthInitGpio(NetInterface *interface)
    //Configure RMII_TX_EN (PG11), ETH_RMII_TXD1 (PG12) and ETH_RMII_TXD0 (PG13)
    GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+//STM32H5F5J-DK evaluation board?
+#elif defined(USE_STM32H5F5J_DK)
+   GPIO_InitTypeDef GPIO_InitStructure;
+
+   //Enable SBS clock
+   __HAL_RCC_SBS_CLK_ENABLE();
+
+   //Enable GPIO clocks
+   __HAL_RCC_GPIOA_CLK_ENABLE();
+   __HAL_RCC_GPIOB_CLK_ENABLE();
+   __HAL_RCC_GPIOC_CLK_ENABLE();
+   __HAL_RCC_GPIOD_CLK_ENABLE();
+   __HAL_RCC_GPIOE_CLK_ENABLE();
+   __HAL_RCC_GPIOG_CLK_ENABLE();
+   __HAL_RCC_GPIOJ_CLK_ENABLE();
+
+   //Select RMII interface mode
+   HAL_SBS_ETHInterfaceSelect(SBS_ETH_RMII);
+
+   //Configure RMII pins
+   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+   GPIO_InitStructure.Pull = GPIO_NOPULL;
+   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+
+   //Configure ETH_RMII_REF_CLK (PA1), 
+   GPIO_InitStructure.Pin = GPIO_PIN_1;
+   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+   //Configure RMII_TX_EN (PB11) and ETH_RMII_TXD0 (PB12)
+   GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_RXD0 (PC4)
+   GPIO_InitStructure.Pin = GPIO_PIN_4;
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_CRS_DV (PD1)
+   GPIO_InitStructure.Pin = GPIO_PIN_1;
+   HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_RXD1 (PE5)
+   GPIO_InitStructure.Pin = GPIO_PIN_5;
+   HAL_GPIO_Init(GPIOE, &GPIO_InitStructure);
+
+   //Configure ETH_RMII_TXD1 (PG12)
+   GPIO_InitStructure.Pin = GPIO_PIN_12;
+   HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+   //Configure ETH_MDIO (PJ6) and ETH_MDC (PJ7)
+   GPIO_InitStructure.Pin = GPIO_PIN_6 | GPIO_PIN_7;
+   HAL_GPIO_Init(GPIOJ, &GPIO_InitStructure);
 #endif
 }
 

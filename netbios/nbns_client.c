@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -84,12 +84,21 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
       else if(entry->state == DNS_STATE_FAILED)
       {
          //The entry should be deleted since name resolution has failed
-         dnsDeleteEntry(entry);
+         if(entry->refCount == 0)
+         {
+            //The entry should be deleted since name resolution has failed
+            dnsDeleteEntry(entry);
+         }
+
          //Report an error
          error = ERROR_FAILURE;
       }
       else
       {
+#if (NET_RTOS_SUPPORT == ENABLED)
+         //Increment the reference count
+         entry->refCount++;
+#endif
          //Host name resolution is in progress
          error = ERROR_IN_PROGRESS;
       }
@@ -125,6 +134,11 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
 
          //Switch state
          entry->state = DNS_STATE_IN_PROGRESS;
+
+#if (NET_RTOS_SUPPORT == ENABLED)
+         //Initialize the reference count
+         entry->refCount = 1;
+#endif
          //Host name resolution is in progress
          error = ERROR_IN_PROGRESS;
       }
@@ -163,8 +177,18 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
          }
          else if(entry->state == DNS_STATE_FAILED)
          {
+            //Decrement the reference count
+            if(entry->refCount > 0)
+            {
+               entry->refCount--;
+            }
+
             //The entry should be deleted since name resolution has failed
-            dnsDeleteEntry(entry);
+            if(entry->refCount == 0)
+            {
+               dnsDeleteEntry(entry);
+            }
+
             //Report an error
             error = ERROR_FAILURE;
          }

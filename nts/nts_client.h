@@ -30,7 +30,7 @@
  * in the Internet. Refer to RFC 4330 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _NTS_CLIENT_H
@@ -41,7 +41,7 @@
 #include "ntp/ntp_common.h"
 #include "nts/nts_common.h"
 #include "core/crypto.h"
-#include "tls.h"
+#include "tls/tls.h"
 
 //NTS client support
 #ifndef NTS_CLIENT_SUPPORT

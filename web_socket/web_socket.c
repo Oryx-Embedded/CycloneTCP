@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -459,7 +459,7 @@ error_t webSocketConnect(WebSocket *webSocket, const IpAddr *serverIpAddr,
             webSocket->endpoint = WS_ENDPOINT_CLIENT;
 
             //Save the URI
-            strSafeCopy(webSocket->uri, uri, WEB_SOCKET_URI_MAX_LEN);
+            strSafeCopy(webSocket->uri, uri, WEB_SOCKET_URI_MAX_LEN + 1);
             //Reset retry counter
             webSocket->retryCount = 0;
 

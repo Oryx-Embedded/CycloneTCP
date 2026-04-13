@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level
@@ -123,7 +123,7 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
          if(osStrcasecmp(name, "realm") == 0)
          {
             //Save realm
-            strSafeCopy(authContext->realm, value, WEB_SOCKET_REALM_MAX_LEN);
+            strSafeCopy(authContext->realm, value, WEB_SOCKET_REALM_MAX_LEN + 1);
          }
 #if (WEB_SOCKET_DIGEST_AUTH_SUPPORT == ENABLED)
          else if(osStrcasecmp(name, "nonce") == 0)

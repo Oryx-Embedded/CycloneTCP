@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _DNS_CACHE_H
@@ -97,6 +97,7 @@ typedef enum
 typedef struct
 {
    DnsState state;                    ///<Entry state
+   uint_t refCount;                   ///<Reference count for the current entry
    HostType type;                     ///<IPv4 or IPv6 host?
    HostnameResolver protocol;         ///<Name resolution protocol
    NetInterface *interface;           ///<Underlying network interface
