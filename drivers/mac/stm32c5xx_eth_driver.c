@@ -44,16 +44,16 @@ static NetInterface *nicDriverInterface;
 #if defined(__ICCARM__)
 
 //Transmit buffer
-#pragma data_alignment = 4
+#pragma data_alignment = ETH_BUS_DATA_WIDTH_BYTE
 static uint8_t txBuffer[STM32C5XX_ETH_TX_BUFFER_COUNT][STM32C5XX_ETH_TX_BUFFER_SIZE];
 //Receive buffer
-#pragma data_alignment = 4
+#pragma data_alignment = ETH_BUS_DATA_WIDTH_BYTE
 static uint8_t rxBuffer[STM32C5XX_ETH_RX_BUFFER_COUNT][STM32C5XX_ETH_RX_BUFFER_SIZE];
 //Transmit DMA descriptors
-#pragma data_alignment = 4
+#pragma data_alignment = ETH_BUS_DATA_WIDTH_BYTE
 static Stm32c5xxTxDmaDesc txDmaDesc[STM32C5XX_ETH_TX_BUFFER_COUNT];
 //Receive DMA descriptors
-#pragma data_alignment = 4
+#pragma data_alignment = ETH_BUS_DATA_WIDTH_BYTE
 static Stm32c5xxRxDmaDesc rxDmaDesc[STM32C5XX_ETH_RX_BUFFER_COUNT];
 
 //Keil MDK-ARM or GCC compiler?
@@ -61,16 +61,16 @@ static Stm32c5xxRxDmaDesc rxDmaDesc[STM32C5XX_ETH_RX_BUFFER_COUNT];
 
 //Transmit buffer
 static uint8_t txBuffer[STM32C5XX_ETH_TX_BUFFER_COUNT][STM32C5XX_ETH_TX_BUFFER_SIZE]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(ETH_BUS_DATA_WIDTH_BYTE)));
 //Receive buffer
 static uint8_t rxBuffer[STM32C5XX_ETH_RX_BUFFER_COUNT][STM32C5XX_ETH_RX_BUFFER_SIZE]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(ETH_BUS_DATA_WIDTH_BYTE)));
 //Transmit DMA descriptors
 static Stm32c5xxTxDmaDesc txDmaDesc[STM32C5XX_ETH_TX_BUFFER_COUNT]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(ETH_BUS_DATA_WIDTH_BYTE)));
 //Receive DMA descriptors
 static Stm32c5xxRxDmaDesc rxDmaDesc[STM32C5XX_ETH_RX_BUFFER_COUNT]
-   __attribute__((aligned(4)));
+   __attribute__((aligned(ETH_BUS_DATA_WIDTH_BYTE)));
 
 #endif
 
@@ -127,6 +127,7 @@ error_t stm32c5xxEthInit(NetInterface *interface)
 
    //Enable Ethernet MAC clock
    HAL_RCC_ETH1_EnableClock();
+   HAL_RCC_ETH1CK_EnableClock();
    HAL_RCC_ETH1TX_EnableClock();
    HAL_RCC_ETH1RX_EnableClock();
 
@@ -262,7 +263,7 @@ __weak_func void stm32c5xxEthInitGpio(NetInterface *interface)
    HAL_RCC_GPIOG_EnableClock();
 
    //Select RMII interface mode
-   HAL_SBS_SetETHPHYInterface(ETH1, HAL_SBS_ETHPHY_ITF_GMII_MII);;
+   HAL_SBS_SetETHPHYInterface(ETH1, HAL_SBS_ETHPHY_ITF_RMII);
 
    //Configure RMII pins
    gpio_config.mode = HAL_GPIO_MODE_ALTERNATE;
@@ -305,6 +306,11 @@ __weak_func void stm32c5xxEthInitGpio(NetInterface *interface)
    //Configure ETH1_RMII_TXD0 (PG13)
    gpio_config.alternate = HAL_GPIO_AF_10;
    HAL_GPIO_Init(HAL_GPIOG, HAL_GPIO_PIN_13, &gpio_config);
+
+   //Select ETH1 clock source
+   HAL_RCC_ETH1_SetKernelClkSource(HAL_RCC_ETH1_CLK_SRC_HSE);
+   //Select ETH1REF clock source
+   HAL_RCC_ETH1REF_SetKernelClkSource(HAL_RCC_ETH1REF_CLK_SRC_RMII);
 #endif
 }
 
@@ -445,7 +451,7 @@ void stm32c5xxEthDisableIrq(NetInterface *interface)
  * @brief STM32C5 Ethernet MAC interrupt service routine
  **/
 
-void ETH_IRQHandler(void)
+void ETH1_IRQHandler(void)
 {
    bool_t flag;
    uint32_t status;
