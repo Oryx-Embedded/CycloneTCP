@@ -384,34 +384,40 @@ __weak_func void stm32h5xxEthInitGpio(NetInterface *interface)
    GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
    GPIO_InitStructure.Pull = GPIO_NOPULL;
    GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
 
-   //Configure ETH_RMII_REF_CLK (PA1), 
+   //Configure ETH_RMII_REF_CLK (PA1)
    GPIO_InitStructure.Pin = GPIO_PIN_1;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
 
    //Configure RMII_TX_EN (PB11) and ETH_RMII_TXD0 (PB12)
    GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
 
    //Configure ETH_RMII_RXD0 (PC4)
    GPIO_InitStructure.Pin = GPIO_PIN_4;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 
    //Configure ETH_RMII_CRS_DV (PD1)
    GPIO_InitStructure.Pin = GPIO_PIN_1;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
 
    //Configure ETH_RMII_RXD1 (PE5)
    GPIO_InitStructure.Pin = GPIO_PIN_5;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOE, &GPIO_InitStructure);
 
    //Configure ETH_RMII_TXD1 (PG12)
    GPIO_InitStructure.Pin = GPIO_PIN_12;
+   GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 
    //Configure ETH_MDIO (PJ6) and ETH_MDC (PJ7)
    GPIO_InitStructure.Pin = GPIO_PIN_6 | GPIO_PIN_7;
+   GPIO_InitStructure.Alternate = GPIO_AF12_ETH;
    HAL_GPIO_Init(GPIOJ, &GPIO_InitStructure);
 #endif
 }
