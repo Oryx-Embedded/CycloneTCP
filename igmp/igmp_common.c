@@ -36,7 +36,7 @@
  * - RFC 9776: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -166,7 +166,7 @@ error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
 
    //Point to the beginning of the IGMP message
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed IGMP message?
    if(message == NULL)
       return ERROR_FAILURE;
 
@@ -304,7 +304,7 @@ void igmpProcessMessage(NetInterface *interface,
 
    //Point to the beginning of the IGMP message
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed IGMP message?
    if(message == NULL)
       return;
 

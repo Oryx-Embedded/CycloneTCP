@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _NDP_ROUTER_ADV_H
@@ -50,8 +50,8 @@
 #endif
 
 //Application specific context
-#ifndef NDP_ROUTER_ADV_PRIVATE_CONTEXT
-   #define NDP_ROUTER_ADV_PRIVATE_CONTEXT
+#ifndef NDP_ROUTER_ADV_CONTEXT_PRIVATE
+   #define NDP_ROUTER_ADV_CONTEXT_PRIVATE
 #endif
 
 //Forward declaration of NdpRouterAdvContext structure
@@ -174,7 +174,7 @@ struct _NdpRouterAdvContext
    systime_t timestamp;                            ///<Timestamp to manage retransmissions
    systime_t timeout;                              ///<Timeout value
    uint_t routerAdvCount;                          ///<Router Advertisement message counter
-   NDP_ROUTER_ADV_PRIVATE_CONTEXT                  ///<Application specific context
+   NDP_ROUTER_ADV_CONTEXT_PRIVATE                  ///<Application specific context
 };
 
 

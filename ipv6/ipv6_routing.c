@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -272,7 +272,7 @@ error_t ipv6DeleteAllRoutes(NetContext *context)
 {
    error_t error;
    uint_t i;
- 
+
    //Valid TCP/IP stack context?
    if(context != NULL)
    {
@@ -288,7 +288,7 @@ error_t ipv6DeleteAllRoutes(NetContext *context)
 
       //Release exclusive access
       netUnlock(context);
- 
+
       //Successful processing
       error = NO_ERROR;
    }
@@ -352,9 +352,8 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
       return ERROR_INVALID_LENGTH;
 
    //Point to the IPv6 header
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
-
-   //Sanity check
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
+   //Malformed IPv6 packet?
    if(ipHeader == NULL)
       return ERROR_FAILURE;
 

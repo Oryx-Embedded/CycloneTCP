@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -144,7 +144,7 @@ size_t dnsDumpQuestion(const DnsHeader *message, size_t length, size_t pos)
    DnsQuestion *question;
 
    //Parse domain name
-   n = dnsParseName(message, length, pos, NULL, 0);
+   n = dnsParseName(message, length, pos, 0);
    //Invalid name?
    if(n == 0)
       return 0;
@@ -216,7 +216,7 @@ size_t dnsDumpResourceRecord(const DnsHeader *message, size_t length,
    DnsSrvResourceRecord *srvRecord;
 
    //Parse domain name
-   n = dnsParseName(message, length, pos, NULL, 0);
+   n = dnsParseName(message, length, pos, 0);
    //Invalid name?
    if(n == 0)
       return 0;
@@ -372,7 +372,7 @@ size_t dnsDumpName(const DnsHeader *message, size_t length, size_t pos,
    while(pos >= sizeof(DnsHeader) && pos < length)
    {
       //Check label length
-      if(src[pos] == 0)
+      if(src[pos] == DNS_END_TAG)
       {
          //Return the position of the resource record that is immediately
          //following the domain name
@@ -416,7 +416,7 @@ size_t dnsDumpName(const DnsHeader *message, size_t length, size_t pos,
          }
 
          //Append a separator if necessary
-         if(pos < length && src[pos] != 0)
+         if(pos < length && src[pos] != DNS_END_TAG)
          {
             TRACE_DEBUG(".");
          }

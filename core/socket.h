@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _SOCKET_H
@@ -440,9 +440,6 @@ typedef struct
 //Global constants
 extern const SocketMsg SOCKET_DEFAULT_MSG;
 
-//Global variables
-extern Socket socketTable[SOCKET_MAX_COUNT];
-
 //Socket related functions
 error_t socketInit(NetContext *context);
 
@@ -511,19 +508,17 @@ Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr,
 error_t socketSend(Socket *socket, const void *data, size_t length,
    size_t *written, uint_t flags);
 
-error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort,
-   const void *data, size_t length, size_t *written, uint_t flags);
+error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr,
+   uint16_t destPort, const void *data, size_t length, size_t *written,
+   uint_t flags);
 
 error_t socketSendMsg(Socket *socket, const SocketMsg *message, uint_t flags);
 
-error_t socketReceive(Socket *socket, void *data,
-   size_t size, size_t *received, uint_t flags);
+error_t socketReceive(Socket *socket, void *data, size_t size,
+   size_t *received, uint_t flags);
 
 error_t socketReceiveFrom(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
    void *data, size_t size, size_t *received, uint_t flags);
-
-error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
-   IpAddr *destIpAddr, void *data, size_t size, size_t *received, uint_t flags);
 
 error_t socketReceiveMsg(Socket *socket, SocketMsg *message, uint_t flags);
 

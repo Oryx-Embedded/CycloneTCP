@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _ADIN1111_DRIVER_H
@@ -64,12 +64,19 @@
 
 //Size of the MAC address filtering table
 #define ADIN1111_ADDR_TABLE_SIZE 16
+
 //Frame header size
 #define ADIN1111_FRAME_HEADER_SIZE 2
-//TX frame overhead
-#define ADIN1111_TX_FRAME_OVERHEAD 4
+
+//TX FIFO overhead
+#define ADIN1111_TX_FIFO_OVERHEAD 7
+
+//Chunk header size
+#define ADIN1111_CHUNK_HEADER_SIZE 4
 //Chunk payload size
 #define ADIN1111_CHUNK_PAYLOAD_SIZE 64
+//Chunk size
+#define ADIN1111_CHUNK_SIZE 68
 
 //SPI commands
 #define ADIN1111_SPI_CMD_READ  0x80
@@ -95,6 +102,10 @@
 #define ADIN1111_TX_HEADER_EV              0x00004000
 #define ADIN1111_TX_HEADER_EBO             0x00003F00
 #define ADIN1111_TX_HEADER_TSC             0x000000C0
+#define ADIN1111_TX_HEADER_TSC_NO_ACTION   0x00000000
+#define ADIN1111_TX_HEADER_TSC_TTSCA       0x00000040
+#define ADIN1111_TX_HEADER_TSC_TTSCB       0x00000080
+#define ADIN1111_TX_HEADER_TSC_TTSCC       0x000000C0
 #define ADIN1111_TX_HEADER_P               0x00000001
 
 //Receive data footer
@@ -102,7 +113,10 @@
 #define ADIN1111_RX_FOOTER_HDRB            0x40000000
 #define ADIN1111_RX_FOOTER_SYNC            0x20000000
 #define ADIN1111_RX_FOOTER_RCA             0x1F000000
-#define ADIN1111_RX_FOOTER_VS              0x00C00000
+#define ADIN1111_RX_FOOTER_VS1             0x00800000
+#define ADIN1111_RX_FOOTER_VS1_LOW_PRIO    0x00000000
+#define ADIN1111_RX_FOOTER_VS1_HIGH_PRIO   0x00800000
+#define ADIN1111_RX_FOOTER_VS0             0x00400000
 #define ADIN1111_RX_FOOTER_DV              0x00200000
 #define ADIN1111_RX_FOOTER_SV              0x00100000
 #define ADIN1111_RX_FOOTER_SWO             0x000F0000
@@ -1246,6 +1260,7 @@ void adin1111ReadFifo(NetInterface *interface, uint16_t *header,
    uint8_t *data, size_t length);
 
 uint32_t adin1111CalcParity(uint32_t data);
+uint8_t adin1111CalcCrc(const uint8_t *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus

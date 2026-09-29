@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _UDP_H
@@ -115,9 +115,6 @@ typedef struct
    void *param;
 } UdpRxCallbackEntry;
 
-
-//Global variables
-extern UdpRxCallbackEntry udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
 
 //UDP related functions
 error_t udpInit(NetContext *context);

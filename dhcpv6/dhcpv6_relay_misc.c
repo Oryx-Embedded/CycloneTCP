@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -54,7 +54,6 @@
  * @param[in] context Pointer to the DHCPv6 relay agent context
  * @param[in] index Zero-based index
  * @return Error code
- * @return 
  **/
 
 error_t dhcpv6RelayOpenClientSocket(Dhcpv6RelayContext *context, uint_t index)

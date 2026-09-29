@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -839,8 +839,8 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    length = netBufferGetLength(buffer) - offset;
 
    //Point to the IPv4 header
-   header = netBufferAt(buffer, offset, 0);
-   //Sanity check
+   header = netBufferAt(buffer, offset, sizeof(Ipv4Header));
+   //Malformed IPv4 datagram?
    if(header == NULL)
       return;
 
@@ -884,99 +884,50 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    error = NO_ERROR;
 
 #if (IPV4_IPSEC_SUPPORT == ENABLED)
-   //Process inbound IP traffic (unprotected-to-protected)
-   error = ipsecProcessInboundIpv4Packet(interface, header, buffer, offset);
-   //Any error to report?
-   if(error)
-      return;
-#endif
-
-   //Check the protocol field
-   switch(header->protocol)
+   //IPsec-enabled system?
+   if(interface->netContext->ipsecContext != NULL)
    {
-   //ICMP protocol?
-   case IPV4_PROTOCOL_ICMP:
-      //Process incoming ICMP message
-      icmpProcessMessage(interface, &pseudoHeader.ipv4Data, buffer, offset);
-
-#if (RAW_SOCKET_SUPPORT == ENABLED)
-      //Allow raw sockets to process ICMP messages
-      rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset,
-         ancillary);
-#endif
-
-      //Continue processing
-      break;
-
-#if (IGMP_HOST_SUPPORT == ENABLED || IGMP_ROUTER_SUPPORT == ENABLED || \
-   IGMP_SNOOPING_SUPPORT == ENABLED)
-   //IGMP protocol?
-   case IPV4_PROTOCOL_IGMP:
-      //Process incoming IGMP message
-      igmpProcessMessage(interface, &pseudoHeader.ipv4Data, buffer, offset,
-         ancillary);
-
-#if (RAW_SOCKET_SUPPORT == ENABLED)
-      //Allow raw sockets to process IGMP messages
-      rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset,
-         ancillary);
-#endif
-
-      //Continue processing
-      break;
-#endif
-
-#if (TCP_SUPPORT == ENABLED)
-   //TCP protocol?
-   case IPV4_PROTOCOL_TCP:
-      //Process incoming TCP segment
-      tcpProcessSegment(interface, &pseudoHeader, buffer, offset, ancillary);
-      //Continue processing
-      break;
-#endif
-
-#if (UDP_SUPPORT == ENABLED)
-   //UDP protocol?
-   case IPV4_PROTOCOL_UDP:
-      //Process incoming UDP datagram
-      error = udpProcessDatagram(interface, &pseudoHeader, buffer, offset,
-         ancillary);
-      //Continue processing
-      break;
+      //Process inbound IP traffic (unprotected-to-protected)
+      error = ipsecProcessInboundIpv4Packet(interface, header, buffer, offset);
+      //Any error to report?
+      if(error)
+         return;
+   }
 #endif
 
 #if (IPV4_IPSEC_SUPPORT == ENABLED && AH_SUPPORT == ENABLED)
    //AH header?
-   case IPV4_PROTOCOL_AH:
-      //Process AH header
-      error = ipv4ProcessAhHeader(interface, header, buffer, offset,
+   if(header->protocol == IPV4_PROTOCOL_AH)
+   {
+      //Process AH packet
+      error = ahProcessInboundIpv4Packet(interface, header, buffer, offset,
          ancillary);
-      //Continue processing
-      break;
+   }
+   else
 #endif
-
 #if (IPV4_IPSEC_SUPPORT == ENABLED && ESP_SUPPORT == ENABLED)
    //ESP header?
-   case IPV4_PROTOCOL_ESP:
-      //Process ESP header
-      error = ipv4ProcessEspHeader(interface, header, buffer, offset,
-         ancillary);
-      //Continue processing
-      break;
+   if(header->protocol == IPV4_PROTOCOL_ESP)
+   {
+      //Process ESP packet
+      error = espProcessInboundIpv4Packet(interface, header, buffer, offset,
+         ancillary, FALSE);
+   }
+   //UDP-encapsulated ESP header?
+   else if(header->protocol == IPV4_PROTOCOL_UDP &&
+      espIsUdpEncapsulatedPacket(buffer, offset))
+   {
+      //Process UDP-encapsulated ESP packet
+      error = espProcessInboundIpv4Packet(interface, header, buffer, offset,
+         ancillary, TRUE);
+   }
+   else
 #endif
-
-   //Unknown protocol?
-   default:
-#if (RAW_SOCKET_SUPPORT == ENABLED)
-      //Allow raw sockets to process IPv4 packets
-      error = rawSocketProcessIpPacket(interface, &pseudoHeader, buffer, offset,
+   //ICMP, IGMP, TCP or UDP header?
+   {
+      //Dispatch incoming IPv4 datagram
+      error = ipv4DispatchDatagram(interface, &pseudoHeader, buffer, offset,
          ancillary);
-#else
-      //Report an error
-      error = ERROR_PROTOCOL_UNREACHABLE;
-#endif
-      //Continue processing
-      break;
    }
 
    //Unreachable protocol?
@@ -1008,6 +959,99 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
 
 
 /**
+ * @brief Dispatch incoming IPv4 datagram
+ * @param[in] interface Underlying network interface
+ * @param[in] pseudoHeader IPv4 pseudo header
+ * @param[in] buffer Multi-part buffer that holds the incoming IPv4 datagram
+ * @param[in] offset Offset from the beginning of the buffer
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
+ * return error
+ **/
+
+error_t ipv4DispatchDatagram(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   const NetRxAncillary *ancillary)
+{
+   error_t error;
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //Check the protocol field
+   switch(pseudoHeader->ipv4Data.protocol)
+   {
+   //ICMP protocol?
+   case IPV4_PROTOCOL_ICMP:
+      //Process incoming ICMP message
+      icmpProcessMessage(interface, &pseudoHeader->ipv4Data, buffer, offset);
+
+#if (RAW_SOCKET_SUPPORT == ENABLED)
+      //Allow raw sockets to process ICMP messages
+      rawSocketProcessIpPacket(interface, pseudoHeader, buffer, offset,
+         ancillary);
+#endif
+
+      //Continue processing
+      break;
+
+#if (IGMP_HOST_SUPPORT == ENABLED || IGMP_ROUTER_SUPPORT == ENABLED || \
+   IGMP_SNOOPING_SUPPORT == ENABLED)
+   //IGMP protocol?
+   case IPV4_PROTOCOL_IGMP:
+      //Process incoming IGMP message
+      igmpProcessMessage(interface, &pseudoHeader->ipv4Data, buffer, offset,
+         ancillary);
+
+#if (RAW_SOCKET_SUPPORT == ENABLED)
+      //Allow raw sockets to process IGMP messages
+      rawSocketProcessIpPacket(interface, pseudoHeader, buffer, offset,
+         ancillary);
+#endif
+
+      //Continue processing
+      break;
+#endif
+
+#if (TCP_SUPPORT == ENABLED)
+   //TCP protocol?
+   case IPV4_PROTOCOL_TCP:
+      //Process incoming TCP segment
+      tcpProcessSegment(interface, pseudoHeader, buffer, offset, ancillary);
+      //Continue processing
+      break;
+#endif
+
+#if (UDP_SUPPORT == ENABLED)
+   //UDP protocol?
+   case IPV4_PROTOCOL_UDP:
+      //Process incoming UDP datagram
+      error = udpProcessDatagram(interface, pseudoHeader, buffer, offset,
+         ancillary);
+      //Continue processing
+      break;
+#endif
+
+   //Unknown protocol?
+   default:
+#if (RAW_SOCKET_SUPPORT == ENABLED)
+      //Allow raw sockets to process IPv4 packets
+      error = rawSocketProcessIpPacket(interface, pseudoHeader, buffer, offset,
+         ancillary);
+#else
+      //Report an error
+      error = ERROR_PROTOCOL_UNREACHABLE;
+#endif
+      //Continue processing
+      break;
+   }
+
+   //Return status code
+   return error;
+}
+
+
+/**
  * @brief Send an IPv4 datagram
  * @param[in] interface Underlying network interface
  * @param[in] pseudoHeader IPv4 pseudo header
@@ -1024,9 +1068,7 @@ error_t ipv4SendDatagram(NetInterface *interface,
 {
    error_t error;
    uint16_t id;
-#if (IPV4_IPSEC_SUPPORT == DISABLED)
    size_t length;
-#endif
 
    //Total number of IP datagrams which local IP user-protocols supplied to IP
    //in requests for transmission
@@ -1038,50 +1080,56 @@ error_t ipv4SendDatagram(NetInterface *interface,
    id = interface->ipv4Context.identification++;
 
 #if (IPV4_IPSEC_SUPPORT == ENABLED)
-   //Process outbound IP traffic (protected-to-unprotected)
-   error = ipsecProcessOutboundIpv4Packet(interface, pseudoHeader, id, buffer,
-      offset, ancillary);
-
-   //Check status code
-   if(error == ERROR_IN_PROGRESS)
+   //IPsec-enabled system?
+   if(interface->netContext->ipsecContext != NULL)
    {
-      //The establishment of the SA pair is in progress
-      error = NO_ERROR;
-   }
-#else
-   //Retrieve the length of payload
-   length = netBufferGetLength(buffer) - offset;
-
-   //Check the length of the payload
-   if((length + sizeof(Ipv4Header)) <= interface->ipv4Context.linkMtu)
-   {
-      //If the payload length is smaller than the network interface MTU
-      //then no fragmentation is needed
-      error = ipv4SendPacket(interface, pseudoHeader, id, 0, buffer,
+      //Process outbound IP traffic (protected-to-unprotected)
+      error = ipsecProcessOutboundIpv4Packet(interface, pseudoHeader, id, buffer,
          offset, ancillary);
+
+      //Check status code
+      if(error == ERROR_IN_PROGRESS)
+      {
+         //The establishment of the SA pair is in progress
+         error = NO_ERROR;
+      }
    }
    else
+#endif
    {
-#if (IPV4_FRAG_SUPPORT == ENABLED)
-      //An IP datagram can be marked "don't fragment". Any IP datagram so
-      //marked is not to be fragmented under any circumstances (refer to
-      //RFC791, section 2.3)
-      if(!ancillary->dontFrag)
+      //Retrieve the length of payload
+      length = netBufferGetLength(buffer) - offset;
+
+      //Check the length of the payload
+      if((length + sizeof(Ipv4Header)) <= interface->ipv4Context.linkMtu)
       {
-         //If the payload length exceeds the network interface MTU then the
-         //device must fragment the data
-         error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer,
+         //If the payload length is smaller than the network interface MTU then
+         //no fragmentation is needed
+         error = ipv4SendPacket(interface, pseudoHeader, id, 0, buffer,
             offset, ancillary);
       }
       else
-#endif
       {
-         //If IP datagram cannot be delivered to its destination without
-         //fragmenting it, it is to be discarded instead
-         error = ERROR_MESSAGE_TOO_LONG;
+#if (IPV4_FRAG_SUPPORT == ENABLED)
+         //An IP datagram can be marked "don't fragment". Any IP datagram so
+         //marked is not to be fragmented under any circumstances (refer to
+         //RFC791, section 2.3)
+         if(!ancillary->dontFrag)
+         {
+            //If the payload length exceeds the network interface MTU then the
+            //device must fragment the data
+            error = ipv4FragmentDatagram(interface, pseudoHeader, id, buffer,
+               offset, ancillary);
+         }
+         else
+#endif
+         {
+            //If IP datagram cannot be delivered to its destination without
+            //fragmenting it, it is to be discarded instead
+            error = ERROR_MESSAGE_TOO_LONG;
+         }
       }
    }
-#endif
 
    //Return status code
    return error;

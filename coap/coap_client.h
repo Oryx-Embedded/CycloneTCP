@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _COAP_CLIENT_H
@@ -129,8 +129,8 @@
 #endif
 
 //Application specific context
-#ifndef COAP_CLIENT_PRIVATE_CONTEXT
-   #define COAP_CLIENT_PRIVATE_CONTEXT
+#ifndef COAP_CLIENT_CONTEXT_PRIVATE
+   #define COAP_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //DTLS supported?
@@ -206,7 +206,7 @@ struct _CoapClientContext
    size_t tokenLen;                               ///<Token length
    CoapClientRequest request[COAP_CLIENT_NSTART]; ///<Outstanding CoAP requests
    CoapMessage response;                          ///<CoAP response message
-   COAP_CLIENT_PRIVATE_CONTEXT                    ///<Application specific context
+   COAP_CLIENT_CONTEXT_PRIVATE                    ///<Application specific context
 };
 
 

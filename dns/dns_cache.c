@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -45,19 +45,17 @@
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
    NBNS_CLIENT_SUPPORT == ENABLED || LLMNR_CLIENT_SUPPORT == ENABLED)
 
-//DNS cache
-DnsCacheEntry dnsCache[DNS_CACHE_SIZE];
-
 
 /**
  * @brief DNS cache initialization
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Error code
  **/
 
-error_t dnsInit(void)
+error_t dnsInit(NetContext *context)
 {
    //Initialize DNS cache
-   osMemset(dnsCache, 0, sizeof(dnsCache));
+   osMemset(context->dnsCache, 0, DNS_CACHE_SIZE * sizeof(DnsCacheEntry));
 
    //Successful initialization
    return NO_ERROR;
@@ -72,13 +70,17 @@ error_t dnsInit(void)
 void dnsFlushCache(NetInterface *interface)
 {
    uint_t i;
+   NetContext *context;
    DnsCacheEntry *entry;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Go through DNS cache
    for(i = 0; i < DNS_CACHE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &dnsCache[i];
+      entry = &context->dnsCache[i];
 
       //Check whether the entry is currently in use
       if(entry->state != DNS_STATE_NONE)
@@ -95,10 +97,11 @@ void dnsFlushCache(NetInterface *interface)
 
 /**
  * @brief Create a new entry in the DNS cache
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Pointer to the newly created entry
  **/
 
-DnsCacheEntry *dnsCreateEntry(void)
+DnsCacheEntry *dnsCreateEntry(NetContext *context)
 {
    uint_t i;
    systime_t time;
@@ -109,13 +112,13 @@ DnsCacheEntry *dnsCreateEntry(void)
    time = osGetSystemTime();
 
    //Keep track of the oldest entry
-   oldestEntry = &dnsCache[0];
+   oldestEntry = &context->dnsCache[0];
 
    //Loop through DNS cache entries
    for(i = 0; i < DNS_CACHE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &dnsCache[i];
+      entry = &context->dnsCache[i];
 
       //Check whether the entry is currently in use or not
       if(entry->state == DNS_STATE_NONE)
@@ -184,13 +187,17 @@ DnsCacheEntry *dnsFindEntry(NetInterface *interface,
    const char_t *name, HostType type, HostnameResolver protocol)
 {
    uint_t i;
+   NetContext *context;
    DnsCacheEntry *entry;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Loop through DNS cache entries
    for(i = 0; i < DNS_CACHE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &dnsCache[i];
+      entry = &context->dnsCache[i];
 
       //Make sure that the entry is currently in use
       if(entry->state == DNS_STATE_NONE)
@@ -216,13 +223,14 @@ DnsCacheEntry *dnsFindEntry(NetInterface *interface,
 
 /**
  * @brief DNS timer handler
+ * @param[in] context Pointer to the TCP/IP stack context
  *
  * This routine must be periodically called by the TCP/IP stack to
  * manage DNS cache
  *
  **/
 
-void dnsTick(void)
+void dnsTick(NetContext *context)
 {
    error_t error;
    uint_t i;
@@ -236,7 +244,7 @@ void dnsTick(void)
    for(i = 0; i < DNS_CACHE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &dnsCache[i];
+      entry = &context->dnsCache[i];
 
       //Name resolution in progress?
       if(entry->state == DNS_STATE_IN_PROGRESS)

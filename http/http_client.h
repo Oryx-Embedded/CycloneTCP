@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _HTTP_CLIENT_H
@@ -171,8 +171,8 @@
 #endif
 
 //Application specific context
-#ifndef HTTP_CLIENT_PRIVATE_CONTEXT
-   #define HTTP_CLIENT_PRIVATE_CONTEXT
+#ifndef HTTP_CLIENT_CONTEXT_PRIVATE
+   #define HTTP_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //TLS supported?
@@ -296,7 +296,7 @@ struct _HttpClientContext
    size_t bodyLen;                                ///<Length of the body, in bytes
    size_t bodyPos;                                ///<Current position in the body
    uint_t statusCode;                             ///<HTTP status code
-   HTTP_CLIENT_PRIVATE_CONTEXT                    ///<Application specific context
+   HTTP_CLIENT_CONTEXT_PRIVATE                    ///<Application specific context
 };
 
 

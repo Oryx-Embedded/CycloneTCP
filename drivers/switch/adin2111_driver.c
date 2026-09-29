@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -129,10 +129,17 @@ error_t adin2111Init(NetInterface *interface)
    //Configure MAC address filtering
    adin2111UpdateMacAddrFilter(interface);
 
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   //Configure the SPI protocol engine
+   adin2111WriteReg(interface, ADIN2111_CONFIG0, ADIN2111_CONFIG0_CSARFE |
+      ADIN2111_CONFIG0_ZARFE | ADIN2111_CONFIG0_TXCTHRESH_16_CREDITS |
+      ADIN2111_CONFIG0_CPS_64B);
+#else
    //Enable store and forward mode
    value = adin2111ReadReg(interface, ADIN2111_CONFIG0);
    value &= ~(ADIN2111_CONFIG0_TXCTE | ADIN2111_CONFIG0_RXCTE);
    adin2111WriteReg(interface, ADIN2111_CONFIG0, value);
+#endif
 
    //Read MAC configuration register 2
    value = adin2111ReadReg(interface, ADIN2111_CONFIG2);
@@ -167,6 +174,11 @@ error_t adin2111Init(NetInterface *interface)
          ADIN2111_PHY_SUBSYS_IRQ_MASK_LINK_STAT_CHNG_IRQ_EN);
    }
 
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   //Disable generic SPI protocol interrupts
+   adin2111WriteReg(interface, ADIN2111_IMASK0, 0xFFFFFFFF);
+   adin2111WriteReg(interface, ADIN2111_IMASK1, 0xFFFFFFFF);
+#else
    //Write the IMASK0 register to enable interrupts as required
    adin2111WriteReg(interface, ADIN2111_IMASK0, ~ADIN2111_IMASK0_PHYINTM);
 
@@ -174,6 +186,7 @@ error_t adin2111Init(NetInterface *interface)
    adin2111WriteReg(interface, ADIN2111_IMASK1,
       ~(ADIN2111_IMASK1_P2_PHYINT_MASK | ADIN2111_IMASK1_P2_RX_RDY_MASK |
       ADIN2111_IMASK1_P1_RX_RDY_MASK | ADIN2111_IMASK1_TX_RDY_MASK));
+#endif
 
    //When the MAC is configured, write 1 to the SYNC field in the CONFIG0
    //register to indicate that the MAC configuration is complete
@@ -237,6 +250,107 @@ __weak_func void adin2111InitHook(NetInterface *interface)
 
 __weak_func void adin2111Tick(NetInterface *interface)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   uint_t port;
+   bool_t linkState;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+   //Port separation mode?
+   if(interface->port != 0)
+   {
+      uint_t i;
+      NetContext *context;
+      NetInterface *virtualInterface;
+
+      //Point to the TCP/IP stack context
+      context = interface->netContext;
+
+      //Loop through network interfaces
+      for(i = 0; i < context->numInterfaces; i++)
+      {
+         //Point to the current interface
+         virtualInterface = &context->interfaces[i];
+
+         //Check whether the current virtual interface is attached to the
+         //physical interface
+         if(virtualInterface == interface ||
+            virtualInterface->parent == interface)
+         {
+            //Get the port number associated with the current interface
+            port = virtualInterface->port;
+
+            //Valid port?
+            if(port >= ADIN2111_PORT1 && port <= ADIN2111_PORT2)
+            {
+               //Retrieve current link state
+               linkState = adin2111GetLinkState(interface, port);
+
+               //Link up event?
+               if(linkState && !virtualInterface->linkState)
+               {
+                  //The switch is only able to operate in 10 Mbps mode
+                  virtualInterface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+                  virtualInterface->duplexMode = NIC_FULL_DUPLEX_MODE;
+
+                  //Update link state
+                  virtualInterface->linkState = TRUE;
+
+                  //Process link state change event
+                  nicNotifyLinkChange(virtualInterface);
+               }
+               //Link down event
+               else if(!linkState && virtualInterface->linkState)
+               {
+                  //Update link state
+                  virtualInterface->linkState = FALSE;
+
+                  //Process link state change event
+                  nicNotifyLinkChange(virtualInterface);
+               }
+            }
+         }
+      }
+   }
+   else
+#endif
+   {
+      //Initialize link state
+      linkState = FALSE;
+
+      //Loop through the ports
+      for(port = ADIN2111_PORT1; port <= ADIN2111_PORT2; port++)
+      {
+         //Retrieve current link state
+         if(adin2111GetLinkState(interface, port))
+         {
+            linkState = TRUE;
+         }
+      }
+
+      //Link up event?
+      if(linkState && !interface->linkState)
+      {
+         //The switch is only able to operate in 10 Mbps mode
+         interface->linkSpeed = NIC_LINK_SPEED_10MBPS;
+         interface->duplexMode = NIC_FULL_DUPLEX_MODE;
+
+         //Update link state
+         interface->linkState = TRUE;
+
+         //Process link state change event
+         nicNotifyLinkChange(interface);
+      }
+      //Link down event
+      else if(!linkState && interface->linkState)
+      {
+         //Update link state
+         interface->linkState = FALSE;
+
+         //Process link state change event
+         nicNotifyLinkChange(interface);
+      }
+   }
+#endif
 }
 
 
@@ -278,6 +392,14 @@ void adin2111DisableIrq(NetInterface *interface)
 
 bool_t adin2111IrqHandler(NetInterface *interface)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   //When the SPI host detects an asserted IRQn from the MACPHY, it should
+   //initiate a data chunk transfer to obtain the current data footer
+   interface->nicEvent = TRUE;
+
+   //Notify the TCP/IP stack of the event
+   return osSetEventFromIsr(&interface->netContext->event);
+#else
    bool_t flag;
    size_t n;
    uint32_t mask0;
@@ -354,12 +476,13 @@ bool_t adin2111IrqHandler(NetInterface *interface)
       //Clear interrupt flag
       adin2111WriteReg(interface, ADIN2111_STATUS1, ADIN2111_STATUS1_TX_RDY);
 
-      //The TX_SPACE register indicates the remaining space in the TX FIFO
+      //The TX_SPACE register indicates the remaining space in the TX FIFO, in
+      //half words
       n = adin2111ReadReg(interface, ADIN2111_TX_SPACE) &
          ADIN2111_TX_SPACE_TX_SPACE;
 
       //Verify that there is space for a new frame
-      if(n >= (ADIN2111_ETH_TX_BUFFER_SIZE + ADIN2111_TX_FRAME_OVERHEAD))
+      if(n >= (ADIN2111_ETH_TX_BUFFER_SIZE + ADIN2111_TX_FIFO_OVERHEAD))
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&interface->nicTxEvent);
@@ -372,6 +495,7 @@ bool_t adin2111IrqHandler(NetInterface *interface)
 
    //A higher priority task must be woken?
    return flag;
+#endif
 }
 
 
@@ -382,6 +506,22 @@ bool_t adin2111IrqHandler(NetInterface *interface)
 
 __weak_func void adin2111EventHandler(NetInterface *interface)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   uint32_t status;
+
+   //Read buffer status register
+   status = adin2111ReadReg(interface, ADIN2111_BUFSTS);
+
+   //Process all the data chunks currently available
+   while((status & ADIN2111_BUFSTS_RCA) != 0)
+   {
+      //Read incoming packet
+      adin2111ReceivePacket(interface, 0);
+
+      //Read buffer status register
+      status = adin2111ReadReg(interface, ADIN2111_BUFSTS);
+   }
+#else
    uint32_t status0;
    uint32_t status1;
    uint16_t phyStatus;
@@ -468,6 +608,7 @@ __weak_func void adin2111EventHandler(NetInterface *interface)
    adin2111WriteReg(interface, ADIN2111_IMASK1,
       ~(ADIN2111_IMASK1_P2_PHYINT_MASK | ADIN2111_IMASK1_P2_RX_RDY_MASK |
       ADIN2111_IMASK1_P1_RX_RDY_MASK | ADIN2111_IMASK1_TX_RDY_MASK));
+#endif
 }
 
 
@@ -589,9 +730,146 @@ void adin2111LinkChangeEventHandler(NetInterface *interface)
 error_t adin2111SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   size_t i;
+   size_t j;
+   size_t n;
+   size_t length;
+   uint_t port;
+   uint32_t status;
+   uint32_t header;
+   uint32_t footer;
+   uint8_t chunk[ADIN2111_CHUNK_SIZE];
+
+   //Retrieve the length of the packet
+   length = netBufferGetLength(buffer) - offset;
+
+   //Loop through the ports
+   for(port = ADIN2111_PORT1; port <= ADIN2111_PORT2; port++)
+   {
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+      //Check port number
+      if(port != ancillary->port && ancillary->port != 0)
+      {
+         continue;
+      }
+#endif
+
+      //Read buffer status register
+      status = adin2111ReadReg(interface, ADIN2111_BUFSTS);
+      //Get the number of data chunks available in the transmit buffer
+      n = (status & ADIN2111_BUFSTS_TXC) >> 8;
+
+      //Check the number of transmit credits available
+      if(length <= (n * ADIN2111_CHUNK_PAYLOAD_SIZE))
+      {
+         //A data transaction consists of multiple chunks
+         for(i = 0; i < length; i += n)
+         {
+            //The default size of the data chunk payload is 64 bytes
+            n = MIN(length - i, ADIN2111_CHUNK_PAYLOAD_SIZE);
+
+            //Set up a data transfer
+            header = ADIN2111_TX_HEADER_DNC | ADIN2111_TX_HEADER_NORX |
+               ADIN2111_TX_HEADER_DV;
+
+            //The vendor specific bit VS[0] indicates the destination port
+            if(port == ADIN2111_PORT1)
+            {
+               header |= ADIN2111_TX_HEADER_VS0_PORT1;
+            }
+            else
+            {
+               header |= ADIN2111_TX_HEADER_VS0_PORT2;
+            }
+
+            //Start of packet?
+            if(i == 0)
+            {
+               //The SPI host shall set the SV bit when the beginning of an
+               //Ethernet frame is present in the current transmit data chunk
+               //payload
+               header |= ADIN2111_TX_HEADER_SV;
+            }
+
+            //End of packet?
+            if((i + n) == length)
+            {
+               //The SPI host shall set the EV bit when the end of an Ethernet
+               //frame is present in the current transmit data chunk payload
+               header |= ADIN2111_TX_HEADER_EV;
+
+               //When EV is 1, the EBO field shall contain the byte offset into
+               //the transmit data chunk payload that points to the last byte of
+               //the Ethernet frame to transmit
+               header |= ((n - 1) << 8) & ADIN2111_TX_HEADER_EBO;
+            }
+
+            //The parity bit is calculated over the transmit data header
+            if(adin2111CalcParity(header) != 0)
+            {
+               header |= ADIN2111_CTRL_HEADER_P;
+            }
+
+            //A chunk is composed of 4 bytes of overhead plus the configured
+            //payload size
+            STORE32BE(header, chunk);
+
+            //Copy data chunk payload
+            netBufferRead(chunk + ADIN2111_CHUNK_HEADER_SIZE, buffer,
+               offset + i, n);
+
+            //Pad frames shorter than the data chunk payload
+            if(n < ADIN2111_CHUNK_PAYLOAD_SIZE)
+            {
+               osMemset(chunk + ADIN2111_CHUNK_HEADER_SIZE + n, 0,
+                  ADIN2111_CHUNK_PAYLOAD_SIZE - n);
+            }
+
+            //Pull the CS pin low
+            interface->spiDriver->assertCs();
+
+            //Perform data transaction
+            for(j = 0; j < ADIN2111_CHUNK_SIZE; j++)
+            {
+               chunk[j] = interface->spiDriver->transfer(chunk[j]);
+            }
+
+            //Terminate the operation by raising the CS pin
+            interface->spiDriver->deassertCs();
+
+            //Receive data chunks consist of the receive data chunk payload
+            //followed by a 4-byte footer
+            footer = LOAD32BE(chunk + ADIN2111_CHUNK_PAYLOAD_SIZE);
+
+            //The RCA field indicates the number of receive data chunks
+            //available
+            if((footer & ADIN2111_RX_FOOTER_RCA) != 0)
+            {
+               //Some data chunks are available for reading
+               interface->nicEvent = TRUE;
+               //Notify the TCP/IP stack of the event
+               osSetEvent(&interface->netContext->event);
+            }
+         }
+      }
+      else
+      {
+         //No sufficient credits available
+      }
+   }
+
+   //The transmitter can accept another packet
+   osSetEvent(&interface->nicTxEvent);
+
+   //Successful processing
+   return NO_ERROR;
+#else
    static uint8_t temp[ADIN2111_ETH_TX_BUFFER_SIZE];
    size_t n;
    size_t length;
+   uint_t port;
+   uint16_t header;
 
    //Retrieve the length of the packet
    length = netBufferGetLength(buffer) - offset;
@@ -605,68 +883,58 @@ error_t adin2111SendPacket(NetInterface *interface,
       return ERROR_INVALID_LENGTH;
    }
 
-   //The TX_SPACE register indicates the remaining space in the TX FIFO
-   n = adin2111ReadReg(interface, ADIN2111_TX_SPACE) &
-      ADIN2111_TX_SPACE_TX_SPACE;
-
-   //Ensure that there is sufficient space for the Ethernet frame plus 2-byte
-   //header plus 2-byte size field
-   if(n < (length + ADIN2111_TX_FRAME_OVERHEAD))
+   //Loop through the ports
+   for(port = ADIN2111_PORT1; port <= ADIN2111_PORT2; port++)
    {
-      return ERROR_FAILURE;
-   }
-
-   //Copy user data
-   netBufferRead(temp, buffer, offset, length);
-
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   //Check port number
-   if(ancillary->port == ADIN2111_PORT1)
-   {
-      //TX_FSIZE is written with the original frame size + 2 bytes for the
-      //frame header
-      adin2111WriteReg(interface, ADIN2111_TX_FSIZE, length +
-         ADIN2111_FRAME_HEADER_SIZE);
-
-      //Write frame data (port 1)
-      adin2111WriteFifo(interface, ADIN2111_FRAME_HEADER_PORT1, temp, length);
-   }
-   else if(ancillary->port == ADIN2111_PORT2)
-   {
-      //TX_FSIZE is written with the original frame size + 2 bytes for the
-      //frame header
-      adin2111WriteReg(interface, ADIN2111_TX_FSIZE, length +
-         ADIN2111_FRAME_HEADER_SIZE);
-
-      //Write frame data (port 2)
-      adin2111WriteFifo(interface, ADIN2111_FRAME_HEADER_PORT2, temp, length);
-   }
-   else
+      //Check port number
+      if(port != ancillary->port && ancillary->port != 0)
+      {
+         continue;
+      }
 #endif
-   {
-      //TX_FSIZE is written with the original frame size + 2 bytes for the
-      //frame header
+
+      //The TX_SPACE register indicates the remaining space in the TX FIFO, in
+      //half words
+      n = adin2111ReadReg(interface, ADIN2111_TX_SPACE) &
+         ADIN2111_TX_SPACE_TX_SPACE;
+
+      //Ensure that there is sufficient space for the Ethernet frame plus 2-byte
+      //header plus 2-byte size field
+      if((n * 2) < (length + ADIN2111_TX_FIFO_OVERHEAD))
+      {
+         return ERROR_FAILURE;
+      }
+
+      //Copy user data
+      netBufferRead(temp, buffer, offset, length);
+
+      //Specify the destination port
+      if(port == ADIN2111_PORT1)
+      {
+         header = ADIN2111_FRAME_HEADER_PORT1;
+      }
+      else
+      {
+         header = ADIN2111_FRAME_HEADER_PORT2;
+      }
+
+      //TX_FSIZE is written with the original frame size + 2 bytes for the frame
+      //header
       adin2111WriteReg(interface, ADIN2111_TX_FSIZE, length +
          ADIN2111_FRAME_HEADER_SIZE);
 
-      //Write frame data (port 1)
-      adin2111WriteFifo(interface, ADIN2111_FRAME_HEADER_PORT1, temp, length);
-
-      //TX_FSIZE is written with the original frame size + 2 bytes for the
-      //frame header
-      adin2111WriteReg(interface, ADIN2111_TX_FSIZE, length +
-         ADIN2111_FRAME_HEADER_SIZE);
-
-      //Write frame data (port 2)
-      adin2111WriteFifo(interface, ADIN2111_FRAME_HEADER_PORT2, temp, length);
+      //Write TX FIFO
+      adin2111WriteFifo(interface, header, temp, length);
    }
 
-   //The TX_SPACE register indicates the remaining space in the TX FIFO
+   //The TX_SPACE register indicates the remaining space in the TX FIFO, in
+   //half words
    n = adin2111ReadReg(interface, ADIN2111_TX_SPACE) &
       ADIN2111_TX_SPACE_TX_SPACE;
 
    //Verify that there is space for a new frame
-   if(n >= (ADIN2111_ETH_TX_BUFFER_SIZE + ADIN2111_TX_FRAME_OVERHEAD))
+   if(n >= (ADIN2111_ETH_TX_BUFFER_SIZE + ADIN2111_TX_FIFO_OVERHEAD))
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -674,18 +942,160 @@ error_t adin2111SendPacket(NetInterface *interface,
 
    //Successful processing
    return NO_ERROR;
+#endif
 }
 
 
 /**
  * @brief Receive a packet
- * @param[in] port Port number
  * @param[in] interface Underlying network interface
+ * @param[in] port Port number
+ * @return Error code
  **/
 
-void adin2111ReceivePacket(NetInterface *interface, uint8_t port)
+error_t adin2111ReceivePacket(NetInterface *interface, uint8_t port)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   static uint8_t buffer[ADIN2111_ETH_RX_BUFFER_SIZE];
+   error_t error;
+   size_t i;
+   size_t n;
+   size_t length;
+   uint32_t header;
+   uint32_t footer;
+   uint8_t chunk[ADIN2111_CHUNK_SIZE];
+
+   //Initialize variable
+   length = 0;
+
+   //A data transaction consists of multiple chunks
+   while(1)
+   {
+      //Check the length of the received packet
+      if((length + ADIN2111_CHUNK_PAYLOAD_SIZE) > ADIN2111_ETH_RX_BUFFER_SIZE)
+      {
+         error = ERROR_BUFFER_OVERFLOW;
+         break;
+      }
+
+      //The SPI host sets NORX to 0 to indicate that it accepts and process
+      //any receive frame data within the current chunk
+      header = ADIN2111_TX_HEADER_DNC;
+
+      //The parity bit is calculated over the transmit data header
+      if(adin2111CalcParity(header) != 0)
+      {
+         header |= ADIN2111_CTRL_HEADER_P;
+      }
+
+      //Transmit data chunks consist of a 4-byte header followed by the
+      //transmit data chunk payload,
+      STORE32BE(header, chunk);
+
+      //Clear data chunk payload
+      osMemset(chunk + ADIN2111_CHUNK_HEADER_SIZE, 0,
+         ADIN2111_CHUNK_PAYLOAD_SIZE);
+
+      //Pull the CS pin low
+      interface->spiDriver->assertCs();
+
+      //Perform data transaction
+      for(i = 0; i < ADIN2111_CHUNK_SIZE; i++)
+      {
+         chunk[i] = interface->spiDriver->transfer(chunk[i]);
+      }
+
+      //Terminate the operation by raising the CS pin
+      interface->spiDriver->deassertCs();
+
+      //Receive data chunks consist of the receive data chunk payload followed
+      //by a 4-byte footer
+      footer = LOAD32BE(chunk + ADIN2111_CHUNK_PAYLOAD_SIZE);
+
+      //When the DV bit is 0, the SPI host ignores the chunk payload
+      if((footer & ADIN2111_RX_FOOTER_DV) == 0)
+      {
+         error = ERROR_BUFFER_EMPTY;
+         break;
+      }
+
+      //When the SV bit is 1, the beginning of an Ethernet frame is present in
+      //the current transmit data chunk payload
+      if(length == 0)
+      {
+         if((footer & ADIN2111_RX_FOOTER_SV) == 0)
+         {
+            error = ERROR_INVALID_PACKET;
+            break;
+         }
+      }
+      else
+      {
+         if((footer & ADIN2111_RX_FOOTER_SV) != 0)
+         {
+            error = ERROR_INVALID_PACKET;
+            break;
+         }
+      }
+
+      //When SV is 1, the vendor specific bit VS[0] bit indicates the port
+      //number on which the frame was received
+      if((footer & ADIN2111_RX_FOOTER_SV) != 0)
+      {
+         if((footer & ADIN2111_RX_FOOTER_VS0) == ADIN2111_RX_FOOTER_VS0_PORT1)
+         {
+            port = ADIN2111_PORT1;
+         }
+         else
+         {
+            port = ADIN2111_PORT2;
+         }
+      }
+
+      //When EV is 1, the EBO field contains the byte offset into the
+      //receive data chunk payload that points to the last byte of the
+      //received Ethernet frame
+      if((footer & ADIN2111_RX_FOOTER_EV) != 0)
+      {
+         n = ((footer & ADIN2111_RX_FOOTER_EBO) >> 8) + 1;
+      }
+      else
+      {
+         n = ADIN2111_CHUNK_PAYLOAD_SIZE;
+      }
+
+      //Copy data chunk payload
+      osMemcpy(buffer + length, chunk, n);
+      //Adjust the length of the packet
+      length += n;
+
+      //When the EV bit is 1, the end of an Ethernet frame is present in the
+      //current receive data chunk payload
+      if((footer & ADIN2111_RX_FOOTER_EV) != 0)
+      {
+         NetRxAncillary ancillary;
+
+         //Additional options can be passed to the stack along with the packet
+         ancillary = NET_DEFAULT_RX_ANCILLARY;
+
+#if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
+         //Save the port number on which the frame was received
+         ancillary.port = port;
+#endif
+         //Pass the packet to the upper layer
+         nicProcessPacket(interface, buffer, length, &ancillary);
+
+         //Successful processing
+         error = NO_ERROR;
+         break;
+      }
+   }
+
+   //Return status code
+   return error;
+#else
    static uint8_t temp[ADIN2111_ETH_RX_BUFFER_SIZE];
+   error_t error;
    size_t length;
    uint16_t header;
 
@@ -710,7 +1120,7 @@ void adin2111ReceivePacket(NetInterface *interface, uint8_t port)
 
       //The size of the frame includes the appended header
       length -= ADIN2111_FRAME_HEADER_SIZE;
-      //Read frame data
+      //Read RX FIFO
       adin2111ReadFifo(interface, port, &header, temp, length);
 
       //Limit the length of the payload
@@ -725,7 +1135,19 @@ void adin2111ReceivePacket(NetInterface *interface, uint8_t port)
 
       //Pass the packet to the upper layer
       nicProcessPacket(interface, temp, length, &ancillary);
+
+      //Successful processing
+      error = NO_ERROR;
    }
+   else
+   {
+      //The RX FIFO is empty
+      error = ERROR_BUFFER_EMPTY;
+   }
+
+   //Return status code
+   return error;
+#endif
 }
 
 
@@ -858,6 +1280,69 @@ bool_t adin2111GetLinkState(NetInterface *interface, uint8_t port)
 void adin2111WriteReg(NetInterface *interface, uint16_t address,
    uint32_t data)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   uint32_t header;
+
+   //Set up a register write operation
+   header = ADIN2111_CTRL_HEADER_WNR | ADIN2111_CTRL_HEADER_AID;
+
+   //The MMS field selects the specific register memory map to access
+   if(address < 0x30)
+   {
+      header |= (ADIN2111_MMS_STD << 24) & ADIN2111_CTRL_HEADER_MMS;
+   }
+   else
+   {
+      header |= (ADIN2111_MMS_MAC << 24) & ADIN2111_CTRL_HEADER_MMS;
+   }
+
+   //Address of the first register to access
+   header |= (address << 8) & ADIN2111_CTRL_HEADER_ADDR;
+   //Specifies the number of registers to write
+   header |= (0 << 1) & ADIN2111_CTRL_HEADER_LEN;
+
+   //The parity bit is calculated over the control command header
+   if(adin2111CalcParity(header) != 0)
+   {
+      header |= ADIN2111_CTRL_HEADER_P;
+   }
+
+   //Pull the CS pin low
+   interface->spiDriver->assertCs();
+
+   //Write control command header
+   interface->spiDriver->transfer((header >> 24) & 0xFF);
+   interface->spiDriver->transfer((header >> 16) & 0xFF);
+   interface->spiDriver->transfer((header >> 8) & 0xFF);
+   interface->spiDriver->transfer(header & 0xFF);
+
+   //Write data
+   interface->spiDriver->transfer((data >> 24) & 0xFF);
+   interface->spiDriver->transfer((data >> 16) & 0xFF);
+   interface->spiDriver->transfer((data >> 8) & 0xFF);
+   interface->spiDriver->transfer(data & 0xFF);
+
+#if (ADIN2111_PROTECTION_SUPPORT == ENABLED)
+   //Protection is accomplished by duplication of each 32-bit word containing
+   //register data with its ones' complement
+   data = ~data;
+
+   //Write complement
+   interface->spiDriver->transfer((data >> 24) & 0xFF);
+   interface->spiDriver->transfer((data >> 16) & 0xFF);
+   interface->spiDriver->transfer((data >> 8) & 0xFF);
+   interface->spiDriver->transfer(data & 0xFF);
+#endif
+
+   //Send 32 bits of dummy data at the end of the control write command
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+
+   //Terminate the operation by raising the CS pin
+   interface->spiDriver->deassertCs();
+#else
    //Pull the CS pin low
    interface->spiDriver->assertCs();
 
@@ -873,6 +1358,7 @@ void adin2111WriteReg(NetInterface *interface, uint16_t address,
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
+#endif
 }
 
 
@@ -885,6 +1371,70 @@ void adin2111WriteReg(NetInterface *interface, uint16_t address,
 
 uint32_t adin2111ReadReg(NetInterface *interface, uint16_t address)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == ENABLED)
+   uint32_t data;
+   uint32_t header;
+
+   //Set up a register read operation
+   header = ADIN2111_CTRL_HEADER_AID;
+
+   //The MMS field selects the specific register memory map to access
+   if(address < 0x30)
+   {
+      header |= (ADIN2111_MMS_STD << 24) & ADIN2111_CTRL_HEADER_MMS;
+   }
+   else
+   {
+      header |= (ADIN2111_MMS_MAC << 24) & ADIN2111_CTRL_HEADER_MMS;
+   }
+
+   //Address of the first register to access
+   header |= (address << 8) & ADIN2111_CTRL_HEADER_ADDR;
+   //Specifies the number of registers to read
+   header |= (0 << 1) & ADIN2111_CTRL_HEADER_LEN;
+
+   //The parity bit is calculated over the control command header
+   if(adin2111CalcParity(header) != 0)
+   {
+      header |= ADIN2111_CTRL_HEADER_P;
+   }
+
+   //Pull the CS pin low
+   interface->spiDriver->assertCs();
+
+   //Write control command header
+   interface->spiDriver->transfer((header >> 24) & 0xFF);
+   interface->spiDriver->transfer((header >> 16) & 0xFF);
+   interface->spiDriver->transfer((header >> 8) & 0xFF);
+   interface->spiDriver->transfer(header & 0xFF);
+
+   //Discard the echoed control header
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+
+   //Read data
+   data = interface->spiDriver->transfer(0x00) << 24;
+   data |= interface->spiDriver->transfer(0x00) << 16;
+   data |= interface->spiDriver->transfer(0x00) << 8;
+   data |= interface->spiDriver->transfer(0x00);
+
+#if (ADIN2111_PROTECTION_SUPPORT == ENABLED)
+   //Protection is accomplished by duplication of each 32-bit word containing
+   //register data with its ones' complement
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+   interface->spiDriver->transfer(0x00);
+#endif
+
+   //Terminate the operation by raising the CS pin
+   interface->spiDriver->deassertCs();
+
+   //Return register value
+   return data;
+#else
    uint32_t data;
 
    //Pull the CS pin low
@@ -908,6 +1458,7 @@ uint32_t adin2111ReadReg(NetInterface *interface, uint16_t address)
 
    //Return register value
    return data;
+#endif
 }
 
 
@@ -1045,7 +1596,7 @@ void adin2111WriteMmdReg(NetInterface *interface, uint8_t port,
 
    //Perform a Clause 45 address write operation
    value = ADIN2111_MDIOACC_MDIO_ST_CLAUSE_45 | ADIN2111_MDIOACC_MDIO_OP_ADDR;
-   //MDIO_PRTAD is always written to 1
+   //Set port address
    value |= (port << 21) & ADIN2111_MDIOACC_MDIO_PRTAD;
    //Set device address
    value |= (devAddr << 16) & ADIN2111_MDIOACC_MDIO_DEVAD;
@@ -1057,7 +1608,7 @@ void adin2111WriteMmdReg(NetInterface *interface, uint8_t port,
 
    //Perform a Clause 45 write operation
    value = ADIN2111_MDIOACC_MDIO_ST_CLAUSE_45 | ADIN2111_MDIOACC_MDIO_OP_WRITE;
-   //MDIO_PRTAD is always written to 1
+   //Set port address
    value |= (port << 21) & ADIN2111_MDIOACC_MDIO_PRTAD;
    //Set device address
    value |= (devAddr << 16) & ADIN2111_MDIOACC_MDIO_DEVAD;
@@ -1094,7 +1645,7 @@ uint16_t adin2111ReadMmdReg(NetInterface *interface, uint8_t port,
 
    //Perform a Clause 45 address write operation
    value = ADIN2111_MDIOACC_MDIO_ST_CLAUSE_45 | ADIN2111_MDIOACC_MDIO_OP_ADDR;
-   //MDIO_PRTAD is always written to 1
+   //Set port address
    value |= (port << 21) & ADIN2111_MDIOACC_MDIO_PRTAD;
    //Set device address
    value |= (devAddr << 16) & ADIN2111_MDIOACC_MDIO_DEVAD;
@@ -1106,7 +1657,7 @@ uint16_t adin2111ReadMmdReg(NetInterface *interface, uint8_t port,
 
    //Perform a Clause 45 read operation
    value = ADIN2111_MDIOACC_MDIO_ST_CLAUSE_45 | ADIN2111_MDIOACC_MDIO_OP_READ;
-   //MDIO_PRTAD is always written to 1
+   //Set port address
    value |= (port << 21) & ADIN2111_MDIOACC_MDIO_PRTAD;
    //Set device address
    value |= (devAddr << 16) & ADIN2111_MDIOACC_MDIO_DEVAD;
@@ -1139,6 +1690,7 @@ uint16_t adin2111ReadMmdReg(NetInterface *interface, uint8_t port,
 void adin2111WriteFifo(NetInterface *interface, uint16_t header,
    const uint8_t *data, size_t length)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == DISABLED)
    size_t i;
 
    //Pull the CS pin low
@@ -1167,6 +1719,7 @@ void adin2111WriteFifo(NetInterface *interface, uint16_t header,
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
+#endif
 }
 
 
@@ -1182,6 +1735,7 @@ void adin2111WriteFifo(NetInterface *interface, uint16_t header,
 void adin2111ReadFifo(NetInterface *interface, uint8_t port,
    uint16_t *header, uint8_t *data, size_t length)
 {
+#if (ADIN2111_OA_SPI_SUPPORT == DISABLED)
    size_t i;
    uint16_t address;
 
@@ -1230,4 +1784,68 @@ void adin2111ReadFifo(NetInterface *interface, uint8_t port,
 
    //Terminate the operation by raising the CS pin
    interface->spiDriver->deassertCs();
+#endif
+}
+
+
+/**
+ * @brief Calculate parity bit over a 32-bit data
+ * @param[in] data 32-bit bit stream
+ * @return Odd parity bit computed over the supplied data
+ **/
+
+uint32_t adin2111CalcParity(uint32_t data)
+{
+   //Calculate the odd parity bit computed over the supplied bit stream
+   data ^= data >> 1;
+   data ^= data >> 2;
+   data ^= data >> 4;
+   data ^= data >> 8;
+   data ^= data >> 16;
+
+   //Return '1' when the number of bits set to one in the supplied bit
+   //stream is even (resulting in an odd number of ones when the parity is
+   //included), otherwise return '0'
+   return ~data & 0x01;
+}
+
+
+/**
+ * @brief CRC calculation
+ * @param[in] data Pointer to the data over which to calculate the CRC
+ * @param[in] length Number of bytes to process
+ * @return Resulting CRC value
+ **/
+
+uint8_t adin2111CalcCrc(const uint8_t *data, size_t length)
+{
+   size_t i;
+   uint_t j;
+   uint8_t crc;
+
+   //CRC preset value
+   crc = 0x00;
+
+   //Loop through data
+   for(i = 0; i < length; i++)
+   {
+      //Update CRC value
+      crc ^= data[i];
+
+      //The message is processed bit by bit
+      for(j = 0; j < 8; j++)
+      {
+         if((crc & 0x80) != 0)
+         {
+            crc = (crc << 1) ^ 0x07;
+         }
+         else
+         {
+            crc <<= 1;
+         }
+      }
+   }
+
+   //Return CRC value
+   return crc;
 }

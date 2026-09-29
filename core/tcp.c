@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -1052,11 +1052,12 @@ TcpState tcpGetState(Socket *socket)
 
 /**
  * @brief Kill the oldest socket in the TIME-WAIT state
+ * @param[in] context Pointer to the TCP/IP stack context
  * @return Handle identifying the oldest TCP connection in the TIME-WAIT state.
  *   NULL is returned if no socket is currently in the TIME-WAIT state
  **/
 
-Socket *tcpKillOldestConnection(void)
+Socket *tcpKillOldestConnection(NetContext *context)
 {
    uint_t i;
    systime_t time;
@@ -1073,7 +1074,7 @@ Socket *tcpKillOldestConnection(void)
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket descriptor
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP connection found?
       if(socket->type == SOCKET_TYPE_STREAM)

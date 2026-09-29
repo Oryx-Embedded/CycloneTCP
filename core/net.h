@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _NET_H
@@ -105,13 +105,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.6.4"
+#define CYCLONE_TCP_VERSION_STRING "2.6.6"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 6
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 4
+#define CYCLONE_TCP_REV_NUMBER 6
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -154,8 +154,8 @@ struct _NetInterface;
 
 //Maximum length of interface name
 #ifndef NET_MAX_IF_NAME_LEN
-   #define NET_MAX_IF_NAME_LEN 13
-#elif (NET_MAX_IF_NAME_LEN < 13)
+   #define NET_MAX_IF_NAME_LEN 8
+#elif (NET_MAX_IF_NAME_LEN < 6)
    #error NET_MAX_IF_NAME_LEN parameter is not valid
 #endif
 
@@ -391,6 +391,7 @@ struct _NetContext
    NetLinkChangeCallbackEntry linkChangeCallbacks[NET_MAX_LINK_CHANGE_CALLBACKS];
    NetTimerCallbackEntry timerCallbacks[NET_MAX_TIMER_CALLBACKS];
    systime_t nicTickCounter;             ///<Tick counter to handle periodic operations
+   Socket socketTable[SOCKET_MAX_COUNT]; ///<Socket table
 #if (PPP_SUPPORT == ENABLED)
    systime_t pppTickCounter;
 #endif
@@ -448,10 +449,12 @@ struct _NetContext
 #endif
 #if (UDP_SUPPORT == ENABLED)
    uint16_t udpDynamicPort;              ///<UDP ephemeral port number
+   UdpRxCallbackEntry udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
 #endif
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
-   NBNS_CLIENT_SUPPORT == ENABLED)
+   NBNS_CLIENT_SUPPORT == ENABLED || LLMNR_CLIENT_SUPPORT == ENABLED)
    systime_t dnsTickCounter;
+   DnsCacheEntry dnsCache[DNS_CACHE_SIZE];
 #endif
 #if (MDNS_RESPONDER_SUPPORT == ENABLED)
    systime_t mdnsResponderTickCounter;

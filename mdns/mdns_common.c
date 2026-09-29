@@ -33,7 +33,7 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -87,7 +87,8 @@ error_t mdnsInit(NetInterface *interface)
 #endif
 
    //Callback function to be called when a mDNS message is received
-   error = udpRegisterRxCallback(interface, MDNS_PORT, mdnsProcessMessage, NULL);
+   error = udpRegisterRxCallback(interface, MDNS_PORT, mdnsProcessMessage,
+      NULL);
    //Any error to report?
    if(error)
       return error;
@@ -127,7 +128,7 @@ void mdnsProcessMessage(NetInterface *interface,
 
    //Point to the mDNS message header
    dnsHeader = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed mDNS message?
    if(dnsHeader == NULL)
       return;
 
@@ -202,8 +203,7 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
    for(i = 0; i < ntohs(response->dnsHeader->qdcount); i++)
    {
       //Parse domain name
-      offset = dnsParseName(response->dnsHeader, response->length, offset,
-         NULL, 0);
+      offset = dnsParseName(response->dnsHeader, response->length, offset, 0);
       //Invalid name?
       if(!offset)
          break;
@@ -228,9 +228,9 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
    for(i = 0; i < k; i++)
    {
       //Parse resource record name
-      n = dnsParseName(response->dnsHeader, response->length, offset, NULL, 0);
+      n = dnsParseName(response->dnsHeader, response->length, offset, 0);
       //Invalid name?
-      if(!n)
+      if(n == 0)
          break;
 
       //Point to the associated resource record
@@ -557,7 +557,7 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
       n = dnsEncodeName(instance, dest);
 
       //Failed to encode instance name?
-      if(!n)
+      if(n == 0)
          return 0;
 
       //Update the length of the encoded name
@@ -585,7 +585,7 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
       }
 
       //Failed to encode instance name?
-      if(!n)
+      if(n == 0)
          return 0;
 
       //Update the length of the encoded name
@@ -619,7 +619,7 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
       }
 
       //Failed to encode instance name?
-      if(!n)
+      if(n == 0)
          return 0;
 
       //Update the length of the encoded name
@@ -666,16 +666,19 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
    //Skip the separator that may precede the domain name
    if(*domain == '.')
+   {
       domain++;
+   }
 
    //Parse encoded domain name
-   while(pos < length)
+   while(pos >= sizeof(DnsHeader) && pos < length)
    {
-      //Retrieve the length of the current label
+      //Each label is represented as a one octet length field followed by that
+      //number of octets (refer to RFC 1035, section 3.1)
       n = p[pos];
 
-      //End marker found?
-      if(n == 0)
+      //Check label length
+      if(n == DNS_END_TAG)
       {
          //The domain name which still has remaining data is deemed
          //lexicographically later
@@ -685,7 +688,6 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          //The domain names match each other
          return 0;
       }
-      //Compression tag found?
       if(n >= DNS_COMPRESSION_TAG)
       {
          //Malformed DNS message?
@@ -704,7 +706,7 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          //Return comparison result
          return res;
       }
-      else
+      else if(n <= DNS_LABEL_MAX_SIZE)
       {
          //Advance data pointer
          pos++;
@@ -732,7 +734,9 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
             //Skip the separator character, if any
             if(*instance == '.')
+            {
                instance++;
+            }
          }
          else if(*service != '\0')
          {
@@ -752,7 +756,9 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
             //Any separator in service name?
             if(*service == '.')
+            {
                service++;
+            }
          }
          else
          {
@@ -772,11 +778,18 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
             //Any separator in domain name?
             if(*domain == '.')
+            {
                domain++;
+            }
          }
 
          //Advance data pointer
          pos += n;
+      }
+      else
+      {
+         //Malformed DNS message
+         return -2;
       }
    }
 
@@ -801,6 +814,7 @@ int_t mdnsCompareRecord(const MdnsMessage *message1,
    const DnsResourceRecord *record2)
 {
    int_t res;
+   size_t n;
    size_t n1;
    size_t n2;
    uint16_t value1;
@@ -863,40 +877,30 @@ int_t mdnsCompareRecord(const MdnsMessage *message1,
       n1 = htons(record1->rdlength);
       n2 = htons(record2->rdlength);
 
-      //The bytes of the raw uncompressed rdata are compared in turn, interpreting
-      //the bytes as eight-bit unsigned values, until a byte is found whose value
-      //is greater than that of its counterpart (in which case, the rdata whose
-      //byte has the greater value is deemed lexicographically later) or one of the
-      //resource records runs out of rdata (in which case, the resource record which
-      //still has remaining data first is deemed lexicographically later)
-      if(n1 < n2)
-      {
-         //Raw comparison of the binary content of the rdata
-         res = osMemcmp(record1->rdata, record2->rdata, n1);
+      //Find the length of the shortest rdata field
+      n = MIN(n1, n2);
 
-         //Check comparison result
-         if(res == 0)
+      //The bytes of the raw uncompressed rdata are compared in turn,
+      //interpreting the bytes as eight-bit unsigned values, until a byte is
+      //found whose value is greater than that of its counterpart or one of
+      //the resource records runs out of rdata
+      res = osMemcmp(record1->rdata, record2->rdata, n);
+
+      //If one of the resource records runs out of rdata, the resource record
+      //which still has remaining data first is deemed lexicographically later
+      if(res == 0)
+      {
+         if(n1 < n2)
          {
-            //The first resource records runs out of rdata
             res = -1;
          }
-      }
-      else if(n1 > n2)
-      {
-         //Raw comparison of the binary content of the rdata
-         res = osMemcmp(record1->rdata, record2->rdata, n2);
-
-         //Check comparison result
-         if(res == 0)
+         else if(n1 > n2)
          {
-            //The second resource records runs out of rdata
             res = 1;
          }
-      }
-      else
-      {
-         //Raw comparison of the binary content of the rdata
-         res = osMemcmp(record1->rdata, record2->rdata, n1);
+         else
+         {
+         }
       }
    }
 
@@ -940,7 +944,7 @@ bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message,
    for(i = 0; i < message->dnsHeader->qdcount; i++)
    {
       //Parse domain name
-      offset = dnsParseName(message->dnsHeader, message->length, offset, NULL, 0);
+      offset = dnsParseName(message->dnsHeader, message->length, offset, 0);
       //Invalid name?
       if(!offset)
          break;
@@ -963,9 +967,9 @@ bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message,
       for(i = 0; i < k; i++)
       {
          //Parse resource record name
-         n = dnsParseName(message->dnsHeader, message->length, offset, NULL, 0);
+         n = dnsParseName(message->dnsHeader, message->length, offset, 0);
          //Invalid name?
-         if(!n)
+         if(n == 0)
             break;
 
          //Point to the associated resource record

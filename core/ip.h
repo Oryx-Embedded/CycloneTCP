@@ -25,11 +25,15 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _IP_H
 #define _IP_H
+
+//Forward declaration of IpPseudoHeader structure
+struct _IpPseudoHeader;
+#define IpPseudoHeader struct _IpPseudoHeader
 
 //Dependencies
 #include "ipv4/ipv4.h"
@@ -106,7 +110,7 @@ typedef struct
  * @brief IP pseudo header
  **/
 
-typedef struct
+struct _IpPseudoHeader
 {
    size_t length;
    union
@@ -119,7 +123,7 @@ typedef struct
 #endif
       uint8_t data[4];
    };
-} IpPseudoHeader;
+};
 
 
 /**

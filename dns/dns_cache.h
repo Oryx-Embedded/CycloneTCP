@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _DNS_CACHE_H
@@ -113,21 +113,18 @@ typedef struct
 } DnsCacheEntry;
 
 
-//Global variables
-extern DnsCacheEntry dnsCache[DNS_CACHE_SIZE];
-
 //DNS related functions
-error_t dnsInit(void);
+error_t dnsInit(NetContext *context);
 
 void dnsFlushCache(NetInterface *interface);
 
-DnsCacheEntry *dnsCreateEntry(void);
+DnsCacheEntry *dnsCreateEntry(NetContext *context);
 void dnsDeleteEntry(DnsCacheEntry *entry);
 
 DnsCacheEntry *dnsFindEntry(NetInterface *interface,
    const char_t *name, HostType type, HostnameResolver protocol);
 
-void dnsTick(void);
+void dnsTick(NetContext *context);
 
 //C++ guard
 #ifdef __cplusplus

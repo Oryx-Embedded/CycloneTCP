@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -694,7 +694,7 @@ void ndpProcessRouterAdv(NetInterface *interface,
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed message?
    if(message == NULL)
       return;
 
@@ -984,7 +984,7 @@ void ndpProcessNeighborSol(NetInterface *interface,
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed message?
    if(message == NULL)
       return;
 
@@ -1230,7 +1230,7 @@ void ndpProcessNeighborAdv(NetInterface *interface,
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed message?
    if(message == NULL)
       return;
 
@@ -1476,7 +1476,7 @@ void ndpProcessRedirect(NetInterface *interface,
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed message?
    if(message == NULL)
       return;
 
@@ -2112,8 +2112,8 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
       return ERROR_INVALID_LENGTH;
 
    //Point to the header of the invoking packet
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
-   //Sanity check
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
+   //Malformed IPv6 packet?
    if(ipHeader == NULL)
       return ERROR_FAILURE;
 

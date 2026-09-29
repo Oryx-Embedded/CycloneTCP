@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -295,7 +295,7 @@ __weak_func void stm32c5xxEthInitGpio(NetInterface *interface)
    gpio_config.alternate = HAL_GPIO_AF_10;
    HAL_GPIO_Init(HAL_GPIOE, HAL_GPIO_PIN_12, &gpio_config);
 
-   //Configure RMII_TX_EN (PG11)
+   //Configure ETH1_RMII_TX_EN (PG11)
    gpio_config.alternate = HAL_GPIO_AF_10;
    HAL_GPIO_Init(HAL_GPIOG, HAL_GPIO_PIN_11, &gpio_config);
 
@@ -980,7 +980,7 @@ uint32_t stm32c5xxEthCalcCrc(const void *data, size_t length)
          }
          else
          {
-            crc = crc << 1;
+            crc <<= 1;
          }
       }
    }

@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -76,9 +76,13 @@ void tcpProcessSegment(NetInterface *interface,
 {
    uint_t i;
    size_t length;
+   NetContext *context;
    Socket *socket;
    Socket *passiveSocket;
    TcpHeader *segment;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Total number of segments received, including those received in error
    MIB2_TCP_INC_COUNTER32(tcpInSegs, 1);
@@ -118,12 +122,6 @@ void tcpProcessSegment(NetInterface *interface,
    //Retrieve the length of the TCP segment
    length = netBufferGetLength(buffer) - offset;
 
-   //Point to the TCP header
-   segment = netBufferAt(buffer, offset, 0);
-   //Sanity check
-   if(segment == NULL)
-      return;
-
    //Ensure the TCP header is valid
    if(length < sizeof(TcpHeader))
    {
@@ -138,7 +136,13 @@ void tcpProcessSegment(NetInterface *interface,
       return;
    }
 
-   //Check header length
+   //Point to the TCP header
+   segment = netBufferAt(buffer, offset, sizeof(TcpHeader));
+   //Malformed TCP segment?
+   if(segment == NULL)
+      return;
+
+   //Check the value of the Data Offset field
    if(segment->dataOffset < 5 || ((size_t) segment->dataOffset * 4) > length)
    {
       //Debug message
@@ -152,19 +156,29 @@ void tcpProcessSegment(NetInterface *interface,
       return;
    }
 
-   //Verify TCP checksum
-   if(ipCalcUpperLayerChecksumEx(pseudoHeader->data,
-      pseudoHeader->length, buffer, offset, length) != 0x0000)
-   {
-      //Debug message
-      TRACE_WARNING("Wrong TCP header checksum!\r\n");
-
-      //Total number of segments received in error
-      MIB2_TCP_INC_COUNTER32(tcpInErrs, 1);
-      TCP_MIB_INC_COUNTER32(tcpInErrs, 1);
-
-      //Exit immediately
+   //Check the length of the TCP header
+   segment = netBufferAt(buffer, offset, segment->dataOffset * 4);
+   //Malformed TCP segment?
+   if(segment == NULL)
       return;
+
+   //Check whether TCP checksums should be verified
+   if(!ancillary->ignoreTcpChecksum)
+   {
+      //Verify TCP checksum
+      if(ipCalcUpperLayerChecksumEx(pseudoHeader->data,
+         pseudoHeader->length, buffer, offset, length) != 0x0000)
+      {
+         //Debug message
+         TRACE_WARNING("Wrong TCP header checksum!\r\n");
+
+         //Total number of segments received in error
+         MIB2_TCP_INC_COUNTER32(tcpInErrs, 1);
+         TCP_MIB_INC_COUNTER32(tcpInErrs, 1);
+
+         //Exit immediately
+         return;
+      }
    }
 
    //No matching socket in the LISTEN state for the moment
@@ -174,7 +188,7 @@ void tcpProcessSegment(NetInterface *interface,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket found?
       if(socket->type != SOCKET_TYPE_STREAM)
@@ -289,9 +303,9 @@ void tcpProcessSegment(NetInterface *interface,
       socket = passiveSocket;
    }
 
-   //Offset to the first data byte
+   //The Data Offset field indicates the number of 32-bit words in the TCP
+   //header
    offset += segment->dataOffset * 4;
-   //Calculate the length of the data
    length -= segment->dataOffset * 4;
 
    //Debug message

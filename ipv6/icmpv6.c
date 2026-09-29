@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -145,9 +145,8 @@ void icmpv6ProcessMessage(NetInterface *interface,
    }
 
    //Point to the ICMPv6 message header
-   header = netBufferAt(buffer, offset, 0);
-
-   //Sanity check
+   header = netBufferAt(buffer, offset, sizeof(Icmpv6Header));
+   //Malformed ICMPv6 message?
    if(header == NULL)
       return;
 
@@ -285,9 +284,9 @@ void icmpv6ProcessDestUnreachable(NetInterface *interface,
       return;
 
    //Point to the ICMPv6 header
-   icmpHeader = netBufferAt(buffer, offset, 0);
-
-   //Sanity check
+   icmpHeader = netBufferAt(buffer, offset,
+      sizeof(Icmpv6DestUnreachableMessage));
+   //Malformed ICMPv6 message?
    if(icmpHeader == NULL)
       return;
 
@@ -326,9 +325,8 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
       return;
 
    //Point to the ICMPv6 header
-   icmpHeader = netBufferAt(buffer, offset, 0);
-
-   //Sanity check
+   icmpHeader = netBufferAt(buffer, offset, sizeof(Icmpv6PacketTooBigMessage));
+   //Malformed ICMPv6 message?
    if(icmpHeader == NULL)
       return;
 
@@ -347,9 +345,8 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
       return;
 
    //Point to the original IPv6 header
-   ipHeader = netBufferAt(buffer, offset, 0);
-
-   //Sanity check
+   ipHeader = netBufferAt(buffer, offset, sizeof(Ipv6Header));
+   //Malformed IPv6 packet?
    if(ipHeader == NULL)
       return;
 
@@ -391,10 +388,10 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
    if(requestLength < sizeof(Icmpv6EchoMessage))
       return;
 
-   //Point to the Echo Request header
-   requestHeader = netBufferAt(request, requestOffset, 0);
-
-   //Sanity check
+   //Point to the ICMPv6 header
+   requestHeader = netBufferAt(request, requestOffset,
+      sizeof(Icmpv6EchoMessage));
+   //Malformed ICMPv6 message?
    if(requestHeader == NULL)
       return;
 
@@ -539,7 +536,7 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
 
    //Point to the header of the invoking packet
    ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
-   //Sanity check
+   //Malformed IPv6 packet?
    if(ipHeader == NULL)
       return ERROR_FAILURE;
 

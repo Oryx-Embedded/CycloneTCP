@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _SMTP_CLIENT_H
@@ -119,8 +119,8 @@
 #endif
 
 //Application specific context
-#ifndef SMTP_CLIENT_PRIVATE_CONTEXT
-   #define SMTP_CLIENT_PRIVATE_CONTEXT
+#ifndef SMTP_CLIENT_CONTEXT_PRIVATE
+   #define SMTP_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //TLS supported?
@@ -278,7 +278,7 @@ struct _SmtpClientContext
    size_t replyLen;                            ///<Length of the SMTP reply, in bytes
    uint_t replyCode;                           ///<SMTP reply code
    uint_t recipientIndex;                      ///<Index of the current recipient
-   SMTP_CLIENT_PRIVATE_CONTEXT                 ///<Application specific context
+   SMTP_CLIENT_CONTEXT_PRIVATE                 ///<Application specific context
 };
 
 

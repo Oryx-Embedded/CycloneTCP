@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _FTP_CLIENT_H
@@ -106,8 +106,8 @@
 #endif
 
 //Application specific context
-#ifndef FTP_CLIENT_PRIVATE_CONTEXT
-   #define FTP_CLIENT_PRIVATE_CONTEXT
+#ifndef FTP_CLIENT_CONTEXT_PRIVATE
+   #define FTP_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //TLS supported?
@@ -264,7 +264,7 @@ struct _FtpClientContext
    size_t commandLen;                        ///<Length of the FTP command, in bytes
    size_t replyLen;                          ///<Length of the FTP reply, in bytes
    uint_t replyCode;                         ///<FTP reply code
-   FTP_CLIENT_PRIVATE_CONTEXT                ///<Application specific context
+   FTP_CLIENT_CONTEXT_PRIVATE                ///<Application specific context
 };
 
 

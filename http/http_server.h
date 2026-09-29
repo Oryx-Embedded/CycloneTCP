@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -289,8 +289,8 @@
 #endif
 
 //Application specific context
-#ifndef HTTP_SERVER_PRIVATE_CONTEXT
-   #define HTTP_SERVER_PRIVATE_CONTEXT
+#ifndef HTTP_SERVER_CONTEXT_PRIVATE
+   #define HTTP_SERVER_CONTEXT_PRIVATE
 #endif
 
 //Application specific header fields (HTTP request)
@@ -662,7 +662,7 @@ struct _HttpConnection
    size_t bodyPos;
    size_t bodyLen;
 #endif
-   HTTP_SERVER_PRIVATE_CONTEXT                         ///<Application specific context
+   HTTP_SERVER_CONTEXT_PRIVATE                         ///<Application specific context
 };
 
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -68,7 +68,7 @@ void nbnsProcessQuery(NetInterface *interface,
    pos = nbnsParseName(message, length, sizeof(DnsHeader), NULL);
 
    //Invalid name?
-   if(!pos)
+   if(pos == 0)
       return;
    //Malformed NBNS query message?
    if((pos + sizeof(DnsQuestion)) > length)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -946,7 +946,7 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
    //Decompress the frame header
    n = pppParseFrameHeader(frame, length, &protocol);
    //Malformed PPP frame?
-   if(!n)
+   if(n == 0)
       return;
 
    //Point to the payload field

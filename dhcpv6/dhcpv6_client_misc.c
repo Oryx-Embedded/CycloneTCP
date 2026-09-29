@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -475,7 +475,7 @@ void dhcpv6ClientProcessMessage(NetInterface *interface,
 
    //Point to the beginning of the DHCPv6 message
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed DHCPv6 message?
    if(message == NULL)
       return;
 

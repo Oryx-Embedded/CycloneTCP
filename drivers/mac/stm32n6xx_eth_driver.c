@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -282,7 +282,7 @@ __weak_func void stm32n6xxEthInitGpio(NetInterface *interface)
       GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
    HAL_GPIO_Init(GPIOF, &GPIO_InitStructure);
 
-   //Configure ETH1_MDC (PG11), 
+   //Configure ETH1_MDC (PG11)
    GPIO_InitStructure.Pin = GPIO_PIN_11;
    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
 
@@ -619,6 +619,7 @@ error_t stm32n6xxEthReceivePacket(NetInterface *interface)
 {
    error_t error;
    size_t n;
+   uint32_t status;
    NetRxAncillary ancillary;
 
    //Current buffer available for reading?
@@ -628,8 +629,18 @@ error_t stm32n6xxEthReceivePacket(NetInterface *interface)
       if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_FD) != 0 &&
          (rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_LD) != 0)
       {
+         //Check error bits
+         status = rxDmaDesc[rxIndex].rdes3 & (ETH_RDES3_CE | ETH_RDES3_GP |
+            ETH_RDES3_RWT | ETH_RDES3_OE | ETH_RDES3_RE | ETH_RDES3_DE);
+
+         //The dribble bit error is valid only in the MII mode
+         if((RCC->CCIPR2 & RCC_CCIPR2_ETH1SEL) != LL_RCC_ETH1PHY_IF_MII)
+         {
+            status &= ~ETH_RDES3_DE;
+         }
+
          //Make sure no error occurred
-         if((rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_ES) == 0)
+         if(status == 0)
          {
             //Retrieve the length of the frame
             n = rxDmaDesc[rxIndex].rdes3 & ETH_RDES3_PL;
@@ -999,7 +1010,7 @@ uint32_t stm32n6xxEthCalcCrc(const void *data, size_t length)
          }
          else
          {
-            crc = crc << 1;
+            crc <<= 1;
          }
       }
    }

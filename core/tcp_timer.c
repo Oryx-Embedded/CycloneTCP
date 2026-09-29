@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -46,6 +46,7 @@
 
 /**
  * @brief TCP timer handler
+ * @param[in] context Pointer to the TCP/IP stack context
  *
  * This routine must be periodically called by the TCP/IP stack to
  * handle retransmissions and TCP related timers (persist timer,
@@ -53,7 +54,7 @@
  *
  **/
 
-void tcpTick(void)
+void tcpTick(NetContext *context)
 {
    uint_t i;
    Socket *socket;
@@ -62,7 +63,7 @@ void tcpTick(void)
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)

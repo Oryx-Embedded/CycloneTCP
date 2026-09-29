@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _SNTP_CLIENT_H
@@ -71,8 +71,8 @@
 #endif
 
 //Application specific context
-#ifndef SNTP_CLIENT_PRIVATE_CONTEXT
-   #define SNTP_CLIENT_PRIVATE_CONTEXT
+#ifndef SNTP_CLIENT_CONTEXT_PRIVATE
+   #define SNTP_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //C++ guard
@@ -114,7 +114,7 @@ typedef struct
    uint8_t message[NTP_MAX_MSG_SIZE]; ///<Buffer that holds the NTP request/response
    size_t messageLen;                 ///<Length of the NTP message, in bytes
    uint32_t kissCode;                 ///<Kiss code
-   SNTP_CLIENT_PRIVATE_CONTEXT        ///<Application specific context
+   SNTP_CLIENT_CONTEXT_PRIVATE        ///<Application specific context
 } SntpClientContext;
 
 

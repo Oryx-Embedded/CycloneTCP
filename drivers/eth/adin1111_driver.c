@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -339,12 +339,13 @@ bool_t adin1111IrqHandler(NetInterface *interface)
       //Clear interrupt flag
       adin1111WriteReg(interface, ADIN1111_STATUS1, ADIN1111_STATUS1_TX_RDY);
 
-      //The TX_SPACE register indicates the remaining space in the TX FIFO
+      //The TX_SPACE register indicates the remaining space in the TX FIFO, in
+      //half words
       n = adin1111ReadReg(interface, ADIN1111_TX_SPACE) &
          ADIN1111_TX_SPACE_TX_SPACE;
 
       //Verify that there is space for a new frame
-      if((n * 2) >= (ADIN1111_ETH_TX_BUFFER_SIZE + ADIN1111_TX_FRAME_OVERHEAD))
+      if((n * 2) >= (ADIN1111_ETH_TX_BUFFER_SIZE + ADIN1111_TX_FIFO_OVERHEAD))
       {
          //Notify the TCP/IP stack that the transmitter is ready to send
          flag |= osSetEventFromIsr(&interface->nicTxEvent);
@@ -465,7 +466,6 @@ error_t adin1111SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary)
 {
 #if (ADIN1111_OA_SPI_SUPPORT == ENABLED)
-   static uint8_t chunk[ADIN1111_CHUNK_PAYLOAD_SIZE + 4];
    size_t i;
    size_t j;
    size_t n;
@@ -473,6 +473,7 @@ error_t adin1111SendPacket(NetInterface *interface,
    uint32_t status;
    uint32_t header;
    uint32_t footer;
+   uint8_t chunk[ADIN1111_CHUNK_SIZE];
 
    //Retrieve the length of the packet
    length = netBufferGetLength(buffer) - offset;
@@ -528,19 +529,21 @@ error_t adin1111SendPacket(NetInterface *interface,
          STORE32BE(header, chunk);
 
          //Copy data chunk payload
-         netBufferRead(chunk + 4, buffer, offset + i, n);
+         netBufferRead(chunk + ADIN1111_CHUNK_HEADER_SIZE, buffer,
+            offset + i, n);
 
          //Pad frames shorter than the data chunk payload
          if(n < ADIN1111_CHUNK_PAYLOAD_SIZE)
          {
-            osMemset(chunk + 4 + n, 0, ADIN1111_CHUNK_PAYLOAD_SIZE - n);
+            osMemset(chunk + ADIN1111_CHUNK_HEADER_SIZE + n, 0,
+               ADIN1111_CHUNK_PAYLOAD_SIZE - n);
          }
 
          //Pull the CS pin low
          interface->spiDriver->assertCs();
 
-         //Perform data transfer
-         for(j = 0; j < (ADIN1111_CHUNK_PAYLOAD_SIZE + 4); j++)
+         //Perform data transaction
+         for(j = 0; j < ADIN1111_CHUNK_SIZE; j++)
          {
             chunk[j] = interface->spiDriver->transfer(chunk[j]);
          }
@@ -589,13 +592,14 @@ error_t adin1111SendPacket(NetInterface *interface,
       return ERROR_INVALID_LENGTH;
    }
 
-   //The TX_SPACE register indicates the remaining space in the TX FIFO
+   //The TX_SPACE register indicates the remaining space in the TX FIFO, in
+   //half words
    n = adin1111ReadReg(interface, ADIN1111_TX_SPACE) &
       ADIN1111_TX_SPACE_TX_SPACE;
 
    //Ensure that there is sufficient space for the Ethernet frame plus 2-byte
    //header plus 2-byte size field
-   if((n * 2) < (length + ADIN1111_TX_FRAME_OVERHEAD))
+   if((n * 2) < (length + ADIN1111_TX_FIFO_OVERHEAD))
    {
       return ERROR_FAILURE;
    }
@@ -603,20 +607,21 @@ error_t adin1111SendPacket(NetInterface *interface,
    //Copy user data
    netBufferRead(temp, buffer, offset, length);
 
-   //TX_FSIZE is still written with the original frame size + 2 bytes for the
-   //frame header
+   //TX_FSIZE is written with the original frame size + 2 bytes for the frame
+   //header
    adin1111WriteReg(interface, ADIN1111_TX_FSIZE, length +
       ADIN1111_FRAME_HEADER_SIZE);
 
-   //Write frame data
+   //Write TX FIFO
    adin1111WriteFifo(interface, 0, temp, length);
 
-   //The TX_SPACE register indicates the remaining space in the TX FIFO
+   //The TX_SPACE register indicates the remaining space in the TX FIFO, in
+   //half words
    n = adin1111ReadReg(interface, ADIN1111_TX_SPACE) &
       ADIN1111_TX_SPACE_TX_SPACE;
 
    //Verify that there is space for a new frame
-   if((n * 2) >= (ADIN1111_ETH_TX_BUFFER_SIZE + ADIN1111_TX_FRAME_OVERHEAD))
+   if((n * 2) >= (ADIN1111_ETH_TX_BUFFER_SIZE + ADIN1111_TX_FIFO_OVERHEAD))
    {
       //The transmitter can accept another packet
       osSetEvent(&interface->nicTxEvent);
@@ -638,13 +643,13 @@ error_t adin1111ReceivePacket(NetInterface *interface)
 {
 #if (ADIN1111_OA_SPI_SUPPORT == ENABLED)
    static uint8_t buffer[ADIN1111_ETH_RX_BUFFER_SIZE];
-   static uint8_t chunk[ADIN1111_CHUNK_PAYLOAD_SIZE + 4];
    error_t error;
    size_t i;
    size_t n;
    size_t length;
    uint32_t header;
    uint32_t footer;
+   uint8_t chunk[ADIN1111_CHUNK_SIZE];
 
    //Initialize variable
    length = 0;
@@ -674,13 +679,14 @@ error_t adin1111ReceivePacket(NetInterface *interface)
       STORE32BE(header, chunk);
 
       //Clear data chunk payload
-      osMemset(chunk + 4, 0, ADIN1111_CHUNK_PAYLOAD_SIZE);
+      osMemset(chunk + ADIN1111_CHUNK_HEADER_SIZE, 0,
+         ADIN1111_CHUNK_PAYLOAD_SIZE);
 
       //Pull the CS pin low
       interface->spiDriver->assertCs();
 
-      //Perform data transfer
-      for(i = 0; i < (ADIN1111_CHUNK_PAYLOAD_SIZE + 4); i++)
+      //Perform data transaction
+      for(i = 0; i < ADIN1111_CHUNK_SIZE; i++)
       {
          chunk[i] = interface->spiDriver->transfer(chunk[i]);
       }
@@ -771,7 +777,7 @@ error_t adin1111ReceivePacket(NetInterface *interface)
 
       //The size of the frame includes the appended header
       length -= ADIN1111_FRAME_HEADER_SIZE;
-      //Read frame data
+      //Read RX FIFO
       adin1111ReadFifo(interface, &header, temp, length);
 
       //Limit the length of the payload
@@ -1389,4 +1395,45 @@ uint32_t adin1111CalcParity(uint32_t data)
    //stream is even (resulting in an odd number of ones when the parity is
    //included), otherwise return '0'
    return ~data & 0x01;
+}
+
+
+/**
+ * @brief CRC calculation
+ * @param[in] data Pointer to the data over which to calculate the CRC
+ * @param[in] length Number of bytes to process
+ * @return Resulting CRC value
+ **/
+
+uint8_t adin1111CalcCrc(const uint8_t *data, size_t length)
+{
+   size_t i;
+   uint_t j;
+   uint8_t crc;
+
+   //CRC preset value
+   crc = 0x00;
+
+   //Loop through data
+   for(i = 0; i < length; i++)
+   {
+      //Update CRC value
+      crc ^= data[i];
+
+      //The message is processed bit by bit
+      for(j = 0; j < 8; j++)
+      {
+         if((crc & 0x80) != 0)
+         {
+            crc = (crc << 1) ^ 0x07;
+         }
+         else
+         {
+            crc <<= 1;
+         }
+      }
+   }
+
+   //Return CRC value
+   return crc;
 }

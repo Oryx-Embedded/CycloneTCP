@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -623,7 +623,7 @@ error_t mqttClientSetPacketId(MqttClientContext *context, uint16_t packetId)
       context->packetId = packetId - 1;
    }
    else
-   { 
+   {
       context->packetId = UINT16_MAX;
    }
 
@@ -761,7 +761,14 @@ error_t mqttClientPublishEx(MqttClientContext *context,
             context->keepAliveTimestamp = osGetSystemTime();
 
             //Update MQTT client state
-            mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PAYLOAD);
+            if(context->packetType == MQTT_PACKET_TYPE_PUBLISH)
+            {
+               mqttClientChangeState(context, MQTT_CLIENT_STATE_SENDING_PAYLOAD);
+            }
+            else
+            {
+               mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_SENT);
+            }
          }
       }
       else if(context->state == MQTT_CLIENT_STATE_SENDING_PAYLOAD)
@@ -778,7 +785,7 @@ error_t mqttClientPublishEx(MqttClientContext *context,
                   error = mqttClientSendData(context,
                      (uint8_t *) publishInfo->payload + context->fragPos,
                      publishInfo->fragLen - context->fragPos, &n, 0);
-                  
+
                   //Advance data pointer
                   context->fragPos += n;
                }
@@ -815,7 +822,7 @@ error_t mqttClientPublishEx(MqttClientContext *context,
                error = mqttClientSendData(context,
                   (uint8_t *) publishInfo->payload + context->payloadPos,
                   publishInfo->payloadLen - context->payloadPos, &n, 0);
-               
+
                //Advance data pointer
                context->payloadPos += n;
             }

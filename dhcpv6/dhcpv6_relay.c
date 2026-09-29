@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 8415
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -99,7 +99,7 @@ error_t dhcpv6RelayInit(Dhcpv6RelayContext *context,
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
       return ERROR_INVALID_PARAMETER;
-   
+
    //Invalid network-facing interface?
    if(settings->serverInterface == NULL)
       return ERROR_INVALID_INTERFACE;

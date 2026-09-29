@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _BSD_SOCKET_H
@@ -287,7 +287,7 @@
 //Maximum length for string representation of IPv6 address
 #define INET6_ADDRSTRLEN 40
 
-//Interface name length 
+//Interface name length
 #define IF_NAMESIZE (NET_MAX_IF_NAME_LEN + 1)
 
 //C++ guard

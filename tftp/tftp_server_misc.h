@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _TFTP_SERVER_MISC_H
@@ -48,7 +48,7 @@ TftpClientConnection *tftpServerOpenConnection(TftpServerContext *context,
 
 TftpClientConnection *tftpServerFindConnection(TftpServerContext *context,
    NetInterface *interface, const IpAddr *clientIpAddr, uint16_t clientPort);
-   
+
 void tftpServerCloseConnection(TftpClientConnection *connection);
 
 void tftpServerAcceptRequest(TftpServerContext *context);

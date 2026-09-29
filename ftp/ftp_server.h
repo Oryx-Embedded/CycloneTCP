@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _FTP_SERVER_H
@@ -175,8 +175,8 @@
 #endif
 
 //Application specific context
-#ifndef FTP_SERVER_PRIVATE_CONTEXT
-   #define FTP_SERVER_PRIVATE_CONTEXT
+#ifndef FTP_SERVER_CONTEXT_PRIVATE
+   #define FTP_SERVER_CONTEXT_PRIVATE
 #endif
 
 //Maximum command length
@@ -454,7 +454,7 @@ struct _FtpServerContext
 #if (FTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
    TlsTicketContext tlsTicketContext;                      ///<TLS ticket encryption context
 #endif
-   FTP_SERVER_PRIVATE_CONTEXT                              ///<Application specific context
+   FTP_SERVER_CONTEXT_PRIVATE                              ///<Application specific context
 };
 
 

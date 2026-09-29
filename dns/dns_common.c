@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -124,13 +124,12 @@ size_t dnsEncodeName(const char_t *src, uint8_t *dest)
  * @param[in] message Pointer to the DNS message
  * @param[in] length Length of the DNS message
  * @param[in] pos Offset of the name to decode
- * @param[out] dest Pointer to the decoded name (optional)
  * @param[in] level Current level of recursion
  * @return The position of the resource record that immediately follows the domain name
  **/
 
 size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
-   char_t *dest, uint_t level)
+   uint_t level)
 {
    size_t n;
    size_t pointer;
@@ -144,20 +143,15 @@ size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
    src = (uint8_t *) message;
 
    //Parse encoded domain name
-   while(pos < length)
+   while(pos >= sizeof(DnsHeader) && pos < length)
    {
-      //End marker found?
-      if(src[pos] == 0)
+      //Check label length
+      if(src[pos] == DNS_END_TAG)
       {
-         //Properly terminate the string
-         if(dest != NULL)
-            *dest = '\0';
-
-         //Return the position of the resource record that
-         //is immediately following the domain name
+         //Return the position of the resource record that is immediately
+         //following the domain name
          return (pos + 1);
       }
-      //Compression tag found?
       else if(src[pos] >= DNS_COMPRESSION_TAG)
       {
          //Malformed DNS message?
@@ -169,19 +163,18 @@ size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
          //Read the least significant byte of the pointer
          pointer |= src[pos + 1];
 
-         //Decode the remaining part of the domain name
-         if(!dnsParseName(message, length, pointer, dest, level + 1))
+         //Parse the remaining part of the domain name
+         if(!dnsParseName(message, length, pointer, level + 1))
          {
             //Domain name decoding failed
             return 0;
          }
 
-         //Return the position of the resource record that
-         //is immediately following the domain name
+         //Return the position of the resource record that is immediately
+         //following the domain name
          return (pos + 2);
       }
-      //Valid label length?
-      else if(src[pos] < DNS_LABEL_MAX_SIZE)
+      else if(src[pos] <= DNS_LABEL_MAX_SIZE)
       {
          //Get the length of the current label
          n = src[pos++];
@@ -190,33 +183,11 @@ size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
          if((pos + n) > length)
             return 0;
 
-         //The last parameter is optional
-         if(dest != NULL)
-         {
-            //Copy current label
-            osMemcpy(dest, src + pos, n);
-
-            //Advance read pointer
-            pos += n;
-            //Advance write pointer
-            dest += n;
-
-            //Append a separator if necessary
-            if(pos < length && src[pos] != '\0')
-               *(dest++) = '.';
-         }
-         else
-         {
-            //Advance read pointer
-            pos += n;
-         }
+         //Advance read pointer
+         pos += n;
       }
-      //Invalid label length?
       else
       {
-         //Properly terminate the string
-         if(dest != NULL)
-            *dest = '\0';
          //Domain name decoding failed
          return 0;
       }
@@ -255,13 +226,14 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
    p = (uint8_t *) message;
 
    //Parse encoded domain name
-   while(pos < length)
+   while(pos >= sizeof(DnsHeader) && pos < length)
    {
-      //Retrieve the length of the current label
+      //Each label is represented as a one octet length field followed by that
+      //number of octets (refer to RFC 1035, section 3.1)
       n = p[pos];
 
-      //End marker found?
-      if(n == 0)
+      //Check label length
+      if(n == DNS_END_TAG)
       {
          //The domain name which still has remaining data is deemed
          //lexicographically later
@@ -271,7 +243,6 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          //The domain names match each other
          return 0;
       }
-      //Compression tag found?
       else if(n >= DNS_COMPRESSION_TAG)
       {
          //Malformed DNS message?
@@ -289,7 +260,7 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          //Return comparison result
          return res;
       }
-      else
+      else if(n <= DNS_LABEL_MAX_SIZE)
       {
          //Advance data pointer
          pos++;
@@ -315,7 +286,14 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
          //Skip the separator character, if any
          if(*name == '.')
+         {
             name++;
+         }
+      }
+      else
+      {
+         //Malformed DNS message
+         return -2;
       }
    }
 
@@ -354,20 +332,22 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
    //Recursion limit exceeded?
    if(level >= DNS_NAME_MAX_RECURSION)
       return -2;
-
+   
    //Cast DNS messages to byte array
    p1 = (uint8_t *) message1;
    p2 = (uint8_t *) message2;
 
    //Compare encoded domain names
-   while(pos1 < length1 && pos2 < length2)
+   while(pos1 >= sizeof(DnsHeader) && pos1 < length1 &&
+      pos2 >= sizeof(DnsHeader) && pos2 < length2)
    {
-      //Retrieve the length of each label
+      //Each label is represented as a one octet length field followed by that
+      //number of octets (refer to RFC 1035, section 3.1)
       n1 = p1[pos1];
       n2 = p2[pos2];
 
-      //End marker found?
-      if(n1 == 0 || n2 == 0)
+      //Check label length
+      if(n1 == DNS_END_TAG || n2 == DNS_END_TAG)
       {
          //The domain name which still has remaining data is deemed
          //lexicographically later
@@ -383,7 +363,6 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
          //The domain names match each other
          return 0;
       }
-      //Compression tag found?
       else if(n1 >= DNS_COMPRESSION_TAG || n2 >= DNS_COMPRESSION_TAG)
       {
          //First domain name compressed?
@@ -429,7 +408,7 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
          //Return comparison result
          return res;
       }
-      else
+      else if(n1 <= DNS_LABEL_MAX_SIZE && n2 <= DNS_LABEL_MAX_SIZE)
       {
          //Advance data pointer
          pos1++;
@@ -462,6 +441,11 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
          //Advance data pointer
          pos1 += n1;
          pos2 += n2;
+      }
+      else
+      {
+         //Malformed DNS message
+         return -2;
       }
    }
 

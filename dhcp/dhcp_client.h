@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _DHCP_CLIENT_H
@@ -136,8 +136,8 @@
 #endif
 
 //Application specific context
-#ifndef DHCP_CLIENT_PRIVATE_CONTEXT
-   #define DHCP_CLIENT_PRIVATE_CONTEXT
+#ifndef DHCP_CLIENT_CONTEXT_PRIVATE
+   #define DHCP_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //Forward declaration of DhcpClientContext structure
@@ -260,7 +260,7 @@ struct _DhcpClientContext
    uint32_t leaseTime;                                  ///<Lease time
    uint32_t t1;                                         ///<Time at which the client enters the RENEWING state
    uint32_t t2;                                         ///<Time at which the client enters the REBINDING state
-   DHCP_CLIENT_PRIVATE_CONTEXT                          ///<Application specific context
+   DHCP_CLIENT_CONTEXT_PRIVATE                          ///<Application specific context
 };
 
 

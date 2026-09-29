@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _ADIN2111_DRIVER_H
@@ -33,6 +33,20 @@
 
 //Dependencies
 #include "core/nic.h"
+
+//Open Alliance SPI protocol
+#ifndef ADIN2111_OA_SPI_SUPPORT
+   #define ADIN2111_OA_SPI_SUPPORT DISABLED
+#elif (ADIN2111_OA_SPI_SUPPORT != ENABLED && ADIN2111_OA_SPI_SUPPORT != DISABLED)
+   #error ADIN2111_OA_SPI_SUPPORT parameter is not valid
+#endif
+
+//Control data protection
+#ifndef ADIN2111_PROTECTION_SUPPORT
+   #define ADIN2111_PROTECTION_SUPPORT DISABLED
+#elif (ADIN2111_PROTECTION_SUPPORT != ENABLED && ADIN2111_PROTECTION_SUPPORT != DISABLED)
+   #error ADIN2111_PROTECTION_SUPPORT parameter is not valid
+#endif
 
 //TX buffer size
 #ifndef ADIN2111_ETH_TX_BUFFER_SIZE
@@ -54,25 +68,90 @@
 
 //Size of the MAC address filtering table
 #define ADIN2111_ADDR_TABLE_SIZE 16
+
 //Frame header size
 #define ADIN2111_FRAME_HEADER_SIZE 2
-//TX frame overhead
-#define ADIN2111_TX_FRAME_OVERHEAD 4
+
+//TX FIFO overhead
+#define ADIN2111_TX_FIFO_OVERHEAD 7
+
+//Chunk header size
+#define ADIN2111_CHUNK_HEADER_SIZE 4
+//Chunk payload size
+#define ADIN2111_CHUNK_PAYLOAD_SIZE 64
+//Chunk size
+#define ADIN2111_CHUNK_SIZE 68
 
 //SPI commands
 #define ADIN2111_SPI_CMD_READ  0x80
 #define ADIN2111_SPI_CMD_WRITE 0xA0
 
 //Frame header
-#define ADIN2111_FRAME_HEADER_PRIORITY       0x4000
-#define ADIN2111_FRAME_HEADER_EG_CAPTURE     0x00C0
-#define ADIN2111_FRAME_HEADER_EG_CAPTURE_A   0x0040
-#define ADIN2111_FRAME_HEADER_EG_CAPTURE_B   0x0080
-#define ADIN2111_FRAME_HEADER_EG_CAPTURE_C   0x00C0
-#define ADIN2111_FRAME_HEADER_TS_PARITY      0x0008
-#define ADIN2111_FRAME_HEADER_TS_PRESENT     0x0004
-#define ADIN2111_FRAME_HEADER_PORT1          0x0000
-#define ADIN2111_FRAME_HEADER_PORT2          0x0001
+#define ADIN2111_FRAME_HEADER_PRIORITY     0x4000
+#define ADIN2111_FRAME_HEADER_EG_CAPTURE   0x00C0
+#define ADIN2111_FRAME_HEADER_EG_CAPTURE_A 0x0040
+#define ADIN2111_FRAME_HEADER_EG_CAPTURE_B 0x0080
+#define ADIN2111_FRAME_HEADER_EG_CAPTURE_C 0x00C0
+#define ADIN2111_FRAME_HEADER_TS_PARITY    0x0008
+#define ADIN2111_FRAME_HEADER_TS_PRESENT   0x0004
+#define ADIN2111_FRAME_HEADER_PORT1        0x0000
+#define ADIN2111_FRAME_HEADER_PORT2        0x0001
+
+//Transmit data header
+#define ADIN2111_TX_HEADER_DNC             0x80000000
+#define ADIN2111_TX_HEADER_SEQ             0x40000000
+#define ADIN2111_TX_HEADER_NORX            0x20000000
+#define ADIN2111_TX_HEADER_VS1             0x00800000
+#define ADIN2111_TX_HEADER_VS0             0x00400000
+#define ADIN2111_TX_HEADER_VS0_PORT1       0x00000000
+#define ADIN2111_TX_HEADER_VS0_PORT2       0x00400000
+#define ADIN2111_TX_HEADER_DV              0x00200000
+#define ADIN2111_TX_HEADER_SV              0x00100000
+#define ADIN2111_TX_HEADER_SWO             0x000F0000
+#define ADIN2111_TX_HEADER_EV              0x00004000
+#define ADIN2111_TX_HEADER_EBO             0x00003F00
+#define ADIN2111_TX_HEADER_TSC             0x000000C0
+#define ADIN2111_TX_HEADER_TSC_NO_ACTION   0x00000000
+#define ADIN2111_TX_HEADER_TSC_TTSCA       0x00000040
+#define ADIN2111_TX_HEADER_TSC_TTSCB       0x00000080
+#define ADIN2111_TX_HEADER_TSC_TTSCC       0x000000C0
+#define ADIN2111_TX_HEADER_P               0x00000001
+
+//Receive data footer
+#define ADIN2111_RX_FOOTER_EXST            0x80000000
+#define ADIN2111_RX_FOOTER_HDRB            0x40000000
+#define ADIN2111_RX_FOOTER_SYNC            0x20000000
+#define ADIN2111_RX_FOOTER_RCA             0x1F000000
+#define ADIN2111_RX_FOOTER_VS1             0x00800000
+#define ADIN2111_RX_FOOTER_VS1_LOW_PRIO    0x00000000
+#define ADIN2111_RX_FOOTER_VS1_HIGH_PRIO   0x00800000
+#define ADIN2111_RX_FOOTER_VS0             0x00400000
+#define ADIN2111_RX_FOOTER_VS0_PORT1       0x00000000
+#define ADIN2111_RX_FOOTER_VS0_PORT2       0x00400000
+#define ADIN2111_RX_FOOTER_DV              0x00200000
+#define ADIN2111_RX_FOOTER_SV              0x00100000
+#define ADIN2111_RX_FOOTER_SWO             0x000F0000
+#define ADIN2111_RX_FOOTER_FD              0x00008000
+#define ADIN2111_RX_FOOTER_EV              0x00004000
+#define ADIN2111_RX_FOOTER_EBO             0x00003F00
+#define ADIN2111_RX_FOOTER_RTSA            0x00000080
+#define ADIN2111_RX_FOOTER_RTSP            0x00000040
+#define ADIN2111_RX_FOOTER_TXC             0x0000003E
+#define ADIN2111_RX_FOOTER_P               0x00000001
+
+//Control command header
+#define ADIN2111_CTRL_HEADER_DNC           0x80000000
+#define ADIN2111_CTRL_HEADER_HDRB          0x40000000
+#define ADIN2111_CTRL_HEADER_WNR           0x20000000
+#define ADIN2111_CTRL_HEADER_AID           0x10000000
+#define ADIN2111_CTRL_HEADER_MMS           0x0F000000
+#define ADIN2111_CTRL_HEADER_ADDR          0x00FFFF00
+#define ADIN2111_CTRL_HEADER_LEN           0x000000FE
+#define ADIN2111_CTRL_HEADER_P             0x00000001
+
+//Memory map selectors
+#define ADIN2111_MMS_STD 0x00
+#define ADIN2111_MMS_MAC 0x01
 
 //ADIN2111 MAC registers
 #define ADIN2111_IDVER                                                  0x00
@@ -1304,7 +1383,7 @@ void adin2111LinkChangeEventHandler(NetInterface *interface);
 error_t adin2111SendPacket(NetInterface *interface,
    const NetBuffer *buffer, size_t offset, NetTxAncillary *ancillary);
 
-void adin2111ReceivePacket(NetInterface *interface, uint8_t port);
+error_t adin2111ReceivePacket(NetInterface *interface, uint8_t port);
 
 error_t adin2111UpdateMacAddrFilter(NetInterface *interface);
 
@@ -1335,6 +1414,9 @@ void adin2111WriteFifo(NetInterface *interface, uint16_t header,
 
 void adin2111ReadFifo(NetInterface *interface, uint8_t port,
    uint16_t *header, uint8_t *data, size_t length);
+
+uint32_t adin2111CalcParity(uint32_t data);
+uint8_t adin2111CalcCrc(const uint8_t *data, size_t length);
 
 //C++ guard
 #ifdef __cplusplus

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -207,14 +207,15 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    }
 
    //Point to the IPv6 header
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
-   //Sanity check
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
+   //Malformed IPv6 packet?
    if(ipHeader == NULL)
       return;
 
    //Point to the Fragment header
-   fragHeader = netBufferAt(ipPacket, fragHeaderOffset, 0);
-   //Sanity check
+   fragHeader = netBufferAt(ipPacket, fragHeaderOffset,
+      sizeof(Ipv6FragmentHeader));
+   //Malformed IPv6 packet?
    if(fragHeader == NULL)
       return;
 

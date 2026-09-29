@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _MODBUS_CLIENT_H
@@ -71,8 +71,8 @@
 #endif
 
 //Application specific context
-#ifndef MODBUS_CLIENT_PRIVATE_CONTEXT
-   #define MODBUS_CLIENT_PRIVATE_CONTEXT
+#ifndef MODBUS_CLIENT_CONTEXT_PRIVATE
+   #define MODBUS_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //TLS supported?
@@ -147,7 +147,7 @@ struct _ModbusClientContext
    size_t responseAduLen;                       ///<Length of the response ADU, in bytes
    size_t responseAduPos;                       ///<Current position in the response ADU
    ModbusExceptionCode exceptionCode;           ///<Exception code
-   MODBUS_CLIENT_PRIVATE_CONTEXT                ///<Application specific context
+   MODBUS_CLIENT_CONTEXT_PRIVATE                ///<Application specific context
 };
 
 

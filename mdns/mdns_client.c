@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -108,7 +108,7 @@ error_t mdnsClientResolve(NetInterface *interface, const char_t *name,
    else
    {
       //If no entry exists, then create a new one
-      entry = dnsCreateEntry();
+      entry = dnsCreateEntry(interface->netContext);
 
       //Record the host name whose IP address is unknown
       osStrcpy(entry->name, name);
@@ -301,13 +301,17 @@ void mdnsClientParseAnRecord(NetInterface *interface,
 {
    uint_t i;
    uint16_t rclass;
+   NetContext *context;
    DnsCacheEntry *entry;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Loop through DNS cache entries
    for(i = 0; i < DNS_CACHE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &dnsCache[i];
+      entry = &context->dnsCache[i];
 
       //mDNS name resolution in progress?
       if(entry->state == DNS_STATE_IN_PROGRESS &&

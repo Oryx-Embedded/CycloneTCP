@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -131,8 +131,8 @@ void icmpProcessMessage(NetInterface *interface,
    }
 
    //Point to the ICMP message header
-   header = netBufferAt(buffer, offset, 0);
-   //Sanity check
+   header = netBufferAt(buffer, offset, sizeof(IcmpHeader));
+   //Malformed ICMP message?
    if(header == NULL)
       return;
 
@@ -205,9 +205,9 @@ void icmpProcessEchoRequest(NetInterface *interface,
    if(requestLength < sizeof(IcmpEchoMessage))
       return;
 
-   //Point to the Echo Request header
-   requestHeader = netBufferAt(request, requestOffset, 0);
-   //Sanity check
+   //Point to the ICMP header
+   requestHeader = netBufferAt(request, requestOffset, sizeof(IcmpEchoMessage));
+   //Malformed ICMP message?
    if(requestHeader == NULL)
       return;
 
@@ -354,7 +354,7 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
 
    //Point to the header of the invoking packet
    ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv4Header));
-   //Sanity check
+   //Malformed IPv4 packet?
    if(ipHeader == NULL)
       return ERROR_FAILURE;
 

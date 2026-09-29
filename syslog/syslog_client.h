@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _SYSLOG_CLIENT_H
@@ -49,8 +49,8 @@
 #endif
 
 //Application specific context
-#ifndef SYSLOG_CLIENT_PRIVATE_CONTEXT
-   #define SYSLOG_CLIENT_PRIVATE_CONTEXT
+#ifndef SYSLOG_CLIENT_CONTEXT_PRIVATE
+   #define SYSLOG_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //C++ guard
@@ -120,7 +120,7 @@ typedef struct
    NetInterface *interface;                  ///<Underlying network interface
    Socket *socket;                           ///<Underlying UDP socket
    char_t buffer[SYSLOG_CLIENT_BUFFER_SIZE]; ///<Internal buffer
-   SYSLOG_CLIENT_PRIVATE_CONTEXT             ///<Application specific context
+   SYSLOG_CLIENT_CONTEXT_PRIVATE             ///<Application specific context
 } SyslogClientContext;
 
 

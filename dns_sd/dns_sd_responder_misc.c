@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -780,9 +780,9 @@ void dnsSdResponderGenerateAdditionalRecords(NetInterface *interface,
    for(i = 0; i < ancount; i++)
    {
       //Parse resource record name
-      n = dnsParseName(response->dnsHeader, response->length, offset, NULL, 0);
+      n = dnsParseName(response->dnsHeader, response->length, offset, 0);
       //Invalid name?
-      if(!n)
+      if(n == 0)
          break;
 
       //Point to the associated resource record
@@ -1367,9 +1367,9 @@ DnsResourceRecord *dnsSdResponderGetNextTiebreakerRecord(
    for(i = 0; i < ntohs(query->dnsHeader->nscount); i++)
    {
       //Parse resource record name
-      n = dnsParseName(query->dnsHeader, query->length, offset, NULL, 0);
+      n = dnsParseName(query->dnsHeader, query->length, offset, 0);
       //Invalid name?
-      if(!n)
+      if(n == 0)
          break;
 
       //Point to the associated resource record

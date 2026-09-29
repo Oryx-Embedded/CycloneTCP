@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -46,7 +46,7 @@
 #if (IPV4_SUPPORT == ENABLED && DHCP_CLIENT_SUPPORT == ENABLED)
 
 //Requested DHCP options
-const uint8_t dhcpOptionList[] =
+static const uint8_t dhcpOptionList[] =
 {
    DHCP_OPT_SUBNET_MASK,
    DHCP_OPT_ROUTER,
@@ -755,7 +755,7 @@ void dhcpClientProcessMessage(NetInterface *interface,
 
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed DHCP message?
    if(message == NULL)
       return;
 

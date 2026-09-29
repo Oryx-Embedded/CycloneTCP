@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _MQTT_SN_CLIENT_H
@@ -135,8 +135,8 @@
 #endif
 
 //Application specific context
-#ifndef MQTT_SN_CLIENT_PRIVATE_CONTEXT
-   #define MQTT_SN_CLIENT_PRIVATE_CONTEXT
+#ifndef MQTT_SN_CLIENT_CONTEXT_PRIVATE
+   #define MQTT_SN_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //DTLS supported?
@@ -268,7 +268,7 @@ struct _MqttSnClientContext
    MqttSnReturnCode returnCode;                       ///<Status code returned by the gateway
    MqttSnClientTopicEntry topicTable[MQTT_SN_CLIENT_TOPIC_TABLE_SIZE];
    MqttSnClientMsgIdEntry msgIdTable[MQTT_SN_CLIENT_MSG_ID_TABLE_SIZE];
-   MQTT_SN_CLIENT_PRIVATE_CONTEXT                     ///<Application specific context
+   MQTT_SN_CLIENT_CONTEXT_PRIVATE                     ///<Application specific context
 };
 
 

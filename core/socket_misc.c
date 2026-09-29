@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -109,10 +109,10 @@ Socket *socketAllocate(NetContext *context, uint_t type, uint_t protocol)
       for(i = 0; i < SOCKET_MAX_COUNT; i++)
       {
          //Unused socket found?
-         if(socketTable[i].type == SOCKET_TYPE_UNUSED)
+         if(context->socketTable[i].type == SOCKET_TYPE_UNUSED)
          {
             //Save socket handle
-            socket = &socketTable[i];
+            socket = &context->socketTable[i];
             //We are done
             break;
          }
@@ -124,7 +124,7 @@ Socket *socketAllocate(NetContext *context, uint_t type, uint_t protocol)
       {
          //Kill the oldest connection in the TIME-WAIT state whenever the
          //socket table runs out of space
-         socket = tcpKillOldestConnection();
+         socket = tcpKillOldestConnection(context);
       }
 #endif
 

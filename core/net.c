@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -173,7 +173,7 @@ error_t netInit(NetContext *context, const NetSettings *settings)
       interface->id = i;
 
       //Default interface name
-      osSprintf(interface->name, "eth%u", i);
+      osSprintf(interface->name, "eth%" PRIu8, (uint8_t) i);
 
 #if (ETH_SUPPORT == ENABLED)
       //Default PHY address
@@ -231,7 +231,7 @@ error_t netInit(NetContext *context, const NetSettings *settings)
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
    NBNS_CLIENT_SUPPORT == ENABLED)
    //DNS cache initialization
-   error = dnsInit();
+   error = dnsInit(context);
    //Any error to report?
    if(error)
       return error;

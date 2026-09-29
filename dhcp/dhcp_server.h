@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _DHCP_SERVER_H
@@ -70,8 +70,8 @@
 #endif
 
 //Application specific context
-#ifndef DHCP_SERVER_PRIVATE_CONTEXT
-   #define DHCP_SERVER_PRIVATE_CONTEXT
+#ifndef DHCP_SERVER_CONTEXT_PRIVATE
+   #define DHCP_SERVER_CONTEXT_PRIVATE
 #endif
 
 //Forward declaration of DhcpServerContext structure
@@ -158,7 +158,7 @@ struct _DhcpServerContext
    bool_t running;                                           ///<Operational state of the DHCP server
    Ipv4Addr nextIpAddr;                                      ///<Next IP address to be assigned
    DhcpServerBinding clientBinding[DHCP_SERVER_MAX_CLIENTS]; ///<List of bindings
-   DHCP_SERVER_PRIVATE_CONTEXT                               ///<Application specific context
+   DHCP_SERVER_CONTEXT_PRIVATE                               ///<Application specific context
 };
 
 

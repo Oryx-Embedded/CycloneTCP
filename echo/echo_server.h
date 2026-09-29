@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _ECHO_SERVER_H
@@ -104,8 +104,8 @@
 #endif
 
 //Application specific context
-#ifndef ECHO_SERVER_PRIVATE_CONTEXT
-   #define ECHO_SERVER_PRIVATE_CONTEXT
+#ifndef ECHO_SERVER_CONTEXT_PRIVATE
+   #define ECHO_SERVER_CONTEXT_PRIVATE
 #endif
 
 //Echo service port number
@@ -178,7 +178,7 @@ typedef struct
    Socket *udpSocket;                             ///<UDP socket
    char_t udpBuffer[ECHO_SERVER_UDP_BUFFER_SIZE]; ///<Memory buffer for input/output operations (UDP)
 #endif
-   ECHO_SERVER_PRIVATE_CONTEXT                    ///<Application specific context
+   ECHO_SERVER_CONTEXT_PRIVATE                    ///<Application specific context
 } EchoServerContext;
 
 

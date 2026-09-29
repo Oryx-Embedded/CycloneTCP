@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _TFTP_SERVER_H
@@ -97,8 +97,8 @@
 #endif
 
 //Application specific context
-#ifndef TFTP_SERVER_PRIVATE_CONTEXT
-   #define TFTP_SERVER_PRIVATE_CONTEXT
+#ifndef TFTP_SERVER_CONTEXT_PRIVATE
+   #define TFTP_SERVER_CONTEXT_PRIVATE
 #endif
 
 //Maximum size of TFTP packets
@@ -224,7 +224,7 @@ struct _TftpServerContext
    TftpClientConnection connection[TFTP_SERVER_MAX_CONNECTIONS]; ///<Client connections
    SocketEventDesc eventDesc[TFTP_SERVER_MAX_CONNECTIONS + 1];   ///<The events the application is interested in
    uint8_t packet[TFTP_SERVER_MAX_PACKET_SIZE];                  ///<Incoming TFTP packet
-   TFTP_SERVER_PRIVATE_CONTEXT                                   ///<Application specific context
+   TFTP_SERVER_CONTEXT_PRIVATE                                   ///<Application specific context
 };
 
 

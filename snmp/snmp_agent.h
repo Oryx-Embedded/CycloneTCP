@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _SNMP_AGENT_H
@@ -107,8 +107,8 @@ struct _SnmpAgentContext;
 #endif
 
 //Application specific context
-#ifndef SNMP_AGENT_PRIVATE_CONTEXT
-   #define SNMP_AGENT_PRIVATE_CONTEXT
+#ifndef SNMP_AGENT_CONTEXT_PRIVATE
+   #define SNMP_AGENT_CONTEXT_PRIVATE
 #endif
 
 //C++ guard
@@ -208,7 +208,7 @@ struct _SnmpAgentContext
    int32_t informMsgId;                                       ///<Message identifier
 #endif
 #endif
-   SNMP_AGENT_PRIVATE_CONTEXT                                 ///<Application specific context
+   SNMP_AGENT_CONTEXT_PRIVATE                                 ///<Application specific context
 };
 
 

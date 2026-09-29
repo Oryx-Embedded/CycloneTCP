@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _PIC32MZ_ETH_DRIVER_H
@@ -44,7 +44,7 @@
 //TX buffer size
 #ifndef PIC32MZ_ETH_TX_BUFFER_SIZE
    #define PIC32MZ_ETH_TX_BUFFER_SIZE 1536
-#elif (PIC32MZ_ETH_TX_BUFFER_SIZE != 1536)
+#elif ((PIC32MZ_ETH_TX_BUFFER_SIZE % 4) != 0)
    #error PIC32MZ_ETH_TX_BUFFER_SIZE parameter is not valid
 #endif
 
@@ -58,7 +58,7 @@
 //RX buffer size
 #ifndef PIC32MZ_ETH_RX_BUFFER_SIZE
    #define PIC32MZ_ETH_RX_BUFFER_SIZE 1536
-#elif (PIC32MZ_ETH_RX_BUFFER_SIZE != 1536)
+#elif ((PIC32MZ_ETH_RX_BUFFER_SIZE % 16) != 0 || PIC32MZ_ETH_RX_BUFFER_SIZE > 2032)
    #error PIC32MZ_ETH_RX_BUFFER_SIZE parameter is not valid
 #endif
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -48,9 +48,6 @@
 //Check TCP/IP stack configuration
 #if (UDP_SUPPORT == ENABLED)
 
-//Table that holds the registered user callbacks
-UdpRxCallbackEntry udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
-
 
 /**
  * @brief UDP related initialization
@@ -64,7 +61,8 @@ error_t udpInit(NetContext *context)
    context->udpDynamicPort = 0;
 
    //Initialize callback table
-   osMemset(udpCallbackTable, 0, sizeof(udpCallbackTable));
+   osMemset(context->udpCallbackTable, 0,
+      UDP_CALLBACK_TABLE_SIZE * sizeof(UdpRxCallbackEntry));
 
    //Successful initialization
    return NO_ERROR;
@@ -127,10 +125,14 @@ error_t udpProcessDatagram(NetInterface *interface,
    error_t error;
    uint_t i;
    size_t length;
+   NetContext *context;
    UdpHeader *header;
    Socket *socket;
    SocketQueueItem *queueItem;
    NetBuffer *p;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Retrieve the length of the UDP datagram
    length = netBufferGetLength(buffer) - offset;
@@ -149,7 +151,7 @@ error_t udpProcessDatagram(NetInterface *interface,
 
    //Point to the UDP header
    header = netBufferAt(buffer, offset, sizeof(UdpHeader));
-   //Sanity check
+   //Malformed UDP datagram?
    if(header == NULL)
       return ERROR_FAILURE;
 
@@ -178,20 +180,24 @@ error_t udpProcessDatagram(NetInterface *interface,
    if(header->checksum != 0x0000 ||
       pseudoHeader->length == sizeof(Ipv6PseudoHeader))
    {
-      //Verify UDP checksum
-      if(ipCalcUpperLayerChecksumEx(pseudoHeader->data,
-         pseudoHeader->length, buffer, offset, length) != 0x0000)
+      //Check whether UDP checksums should be verified
+      if(!ancillary->ignoreUdpChecksum)
       {
-         //Debug message
-         TRACE_WARNING("Wrong UDP header checksum!\r\n");
+         //Verify UDP checksum
+         if(ipCalcUpperLayerChecksumEx(pseudoHeader->data,
+            pseudoHeader->length, buffer, offset, length) != 0x0000)
+         {
+            //Debug message
+            TRACE_WARNING("Wrong UDP header checksum!\r\n");
 
-         //Number of received UDP datagrams that could not be delivered for
-         //reasons other than the lack of an application at the destination port
-         MIB2_UDP_INC_COUNTER32(udpInErrors, 1);
-         UDP_MIB_INC_COUNTER32(udpInErrors, 1);
+            //Number of received UDP datagrams that could not be delivered for
+            //reasons other than the lack of an application at the destination port
+            MIB2_UDP_INC_COUNTER32(udpInErrors, 1);
+            UDP_MIB_INC_COUNTER32(udpInErrors, 1);
 
-         //Report an error
-         return ERROR_WRONG_CHECKSUM;
+            //Report an error
+            return ERROR_WRONG_CHECKSUM;
+         }
       }
    }
 
@@ -199,7 +205,7 @@ error_t udpProcessDatagram(NetInterface *interface,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //UDP socket found?
       if(socket->type != SOCKET_TYPE_DGRAM)
@@ -387,6 +393,7 @@ error_t udpProcessDatagram(NetInterface *interface,
          //Point to the newly created item
          queueItem = netBufferAt(p, 0, 0);
          queueItem->buffer = p;
+
          //Add the newly created item to the queue
          socket->receiveQueue = queueItem;
       }
@@ -426,6 +433,7 @@ error_t udpProcessDatagram(NetInterface *interface,
       {
          //Add the newly created item to the queue
          queueItem->next = netBufferAt(p, 0, 0);
+
          //Point to the newly created item
          queueItem = queueItem->next;
          queueItem->buffer = p;
@@ -675,7 +683,7 @@ error_t udpSendBuffer(NetContext *context, NetInterface *interface,
 
    //Point to the UDP header
    header = netBufferAt(buffer, offset, sizeof(UdpHeader));
-   //Sanity check
+   //Malformed UDP datagram?
    if(header == NULL)
       return ERROR_FAILURE;
 
@@ -878,12 +886,14 @@ error_t udpReceiveDatagram(Socket *socket, SocketMsg *message, uint_t flags)
 
       //Network interface where the packet was received
       message->interface = queueItem->interface;
-      //Save the source IP address
+
+      //Save the source IP address and port
       message->srcIpAddr = queueItem->srcIpAddr;
-      //Save the source port number
       message->srcPort = queueItem->srcPort;
-      //Save the destination IP address
+
+      //Save the destination IP address and port
       message->destIpAddr = queueItem->destIpAddr;
+      message->destPort = socket->localPort;
 
       //Save TTL value
       message->ttl = queueItem->ancillary.ttl;
@@ -1022,13 +1032,21 @@ error_t udpRegisterRxCallback(NetInterface *interface, uint16_t port,
    UdpRxCallback callback, void *param)
 {
    uint_t i;
+   NetContext *context;
    UdpRxCallbackEntry *entry;
+
+   //Check parameters
+   if(interface == NULL || callback == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Loop through the table
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &udpCallbackTable[i];
+      entry = &context->udpCallbackTable[i];
 
       //Check whether the entry is currently in use
       if(entry->callback == NULL)
@@ -1063,7 +1081,15 @@ error_t udpUnregisterRxCallback(NetInterface *interface, uint16_t port)
 {
    error_t error;
    uint_t i;
+   NetContext *context;
    UdpRxCallbackEntry *entry;
+
+   //Check parameters
+   if(interface == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Initialize status code
    error = ERROR_FAILURE;
@@ -1072,7 +1098,7 @@ error_t udpUnregisterRxCallback(NetInterface *interface, uint16_t port)
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &udpCallbackTable[i];
+      entry = &context->udpCallbackTable[i];
 
       //Check whether the entry is currently in use
       if(entry->callback != NULL)
@@ -1111,7 +1137,11 @@ error_t udpInvokeRxCallback(NetInterface *interface,
 {
    error_t error;
    uint_t i;
+   NetContext *context;
    UdpRxCallbackEntry *entry;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Initialize status code
    error = ERROR_PORT_UNREACHABLE;
@@ -1120,7 +1150,7 @@ error_t udpInvokeRxCallback(NetInterface *interface,
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &udpCallbackTable[i];
+      entry = &context->udpCallbackTable[i];
 
       //Check whether the entry is currently in use
       if(entry->callback != NULL)

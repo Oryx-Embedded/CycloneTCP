@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _NET_MEM_H
@@ -53,7 +53,7 @@
 //Size of the buffers
 #ifndef NET_MEM_POOL_BUFFER_SIZE
    #define NET_MEM_POOL_BUFFER_SIZE 1536
-#elif (NET_MEM_POOL_BUFFER_SIZE < 128)
+#elif (NET_MEM_POOL_BUFFER_SIZE < 128 || (NET_MEM_POOL_BUFFER_SIZE % 8) != 0)
    #error NET_MEM_POOL_BUFFER_SIZE parameter is not valid
 #endif
 

@@ -25,16 +25,17 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _IPV4_H
 #define _IPV4_H
 
-//Forward declaration of structures
+//Forward declaration of Ipv4Header structure
 struct _Ipv4Header;
 #define Ipv4Header struct _Ipv4Header
 
+//Forward declaration of Ipv4PseudoHeader structure
 struct _Ipv4PseudoHeader;
 #define Ipv4PseudoHeader struct _Ipv4PseudoHeader
 
@@ -507,6 +508,10 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
 
 void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    size_t offset, NetRxAncillary *ancillary);
+
+error_t ipv4DispatchDatagram(NetInterface *interface,
+   const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,
+   const NetRxAncillary *ancillary);
 
 error_t ipv4SendDatagram(NetInterface *interface,
    const Ipv4PseudoHeader *pseudoHeader, NetBuffer *buffer, size_t offset,

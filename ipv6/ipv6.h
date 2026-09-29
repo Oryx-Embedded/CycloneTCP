@@ -25,19 +25,21 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _IPV6_H
 #define _IPV6_H
 
-//Forward declaration of structures
+//Forward declaration of Ipv6Header structure
 struct _Ipv6Header;
 #define Ipv6Header struct _Ipv6Header
 
+//Forward declaration of Ipv6FragmentHeader structure
 struct _Ipv6FragmentHeader;
 #define Ipv6FragmentHeader struct _Ipv6FragmentHeader
 
+//Forward declaration of Ipv6PseudoHeader structure
 struct _Ipv6PseudoHeader;
 #define Ipv6PseudoHeader struct _Ipv6PseudoHeader
 
@@ -608,7 +610,7 @@ error_t ipv6ParseEspHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
 
 error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t optionOffset, size_t optionLen);
+   size_t ipPacketOffset, size_t optionsOffset, size_t optionsLen);
 
 error_t ipv6SendDatagram(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, NetBuffer *buffer, size_t offset,

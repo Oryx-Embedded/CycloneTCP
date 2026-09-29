@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -69,9 +69,13 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
 {
    uint_t i;
    size_t length;
+   NetContext *context;
    Socket *socket;
    SocketQueueItem *queueItem;
    NetBuffer *p;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Retrieve the length of the raw IP packet
    length = netBufferGetLength(buffer) - offset;
@@ -80,7 +84,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //Raw socket found?
       if(socket->type != SOCKET_TYPE_RAW_IP)
@@ -258,6 +262,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          //Point to the newly created item
          queueItem = netBufferAt(p, 0, 0);
          queueItem->buffer = p;
+
          //Add the newly created item to the queue
          socket->receiveQueue = queueItem;
       }
@@ -297,6 +302,7 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       {
          //Add the newly created item to the queue
          queueItem->next = netBufferAt(p, 0, 0);
+
          //Point to the newly created item
          queueItem = queueItem->next;
          queueItem->buffer = p;
@@ -384,15 +390,19 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
 #if (ETH_SUPPORT == ENABLED)
    uint_t i;
    uint_t j;
+   NetContext *context;
    Socket *socket;
    SocketQueueItem *queueItem;
    NetBuffer *p;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Loop through opened sockets
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //Raw socket found?
       if(socket->type != SOCKET_TYPE_RAW_ETH)
@@ -433,6 +443,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
             //Point to the newly created item
             queueItem = netBufferAt(p, 0, 0);
             queueItem->buffer = p;
+
             //Add the newly created item to the queue
             socket->receiveQueue = queueItem;
          }
@@ -473,6 +484,7 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
          {
             //Add the newly created item to the queue
             queueItem->next = netBufferAt(p, 0, 0);
+
             //Point to the newly created item
             queueItem = queueItem->next;
             queueItem->buffer = p;
@@ -856,12 +868,14 @@ error_t rawSocketReceiveIpPacket(Socket *socket, SocketMsg *message,
 
       //Network interface where the packet was received
       message->interface = queueItem->interface;
-      //Save the source IP address
+
+      //Save the source IP address and port
       message->srcIpAddr = queueItem->srcIpAddr;
-      //Save the source port number
       message->srcPort = queueItem->srcPort;
-      //Save the destination IP address
+
+      //Save the destination IP address and port
       message->destIpAddr = queueItem->destIpAddr;
+      message->destPort = socket->localPort;
 
       //Save TTL value
       message->ttl = queueItem->ancillary.ttl;

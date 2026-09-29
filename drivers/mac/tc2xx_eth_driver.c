@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -1059,7 +1059,7 @@ uint32_t tc2xxEthCalcCrc(const void *data, size_t length)
          }
          else
          {
-            crc = crc << 1;
+            crc <<= 1;
          }
       }
    }

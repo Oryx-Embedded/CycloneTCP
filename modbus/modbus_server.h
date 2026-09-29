@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _MODBUS_SERVER_H
@@ -111,8 +111,8 @@
 #endif
 
 //Application specific context
-#ifndef MODBUS_SERVER_PRIVATE_CONTEXT
-   #define MODBUS_SERVER_PRIVATE_CONTEXT
+#ifndef MODBUS_SERVER_CONTEXT_PRIVATE
+   #define MODBUS_SERVER_CONTEXT_PRIVATE
 #endif
 
 //TLS supported?
@@ -340,7 +340,7 @@ struct _ModbusServerContext
    uint32_t commErrorCount;                                ///<Total number of communication errors
    uint32_t exceptionErrorCount;                           ///<Total number of exception errors
 #endif
-   MODBUS_SERVER_PRIVATE_CONTEXT                           ///<Application specific context
+   MODBUS_SERVER_CONTEXT_PRIVATE                           ///<Application specific context
 };
 
 

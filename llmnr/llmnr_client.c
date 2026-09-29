@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -106,7 +106,7 @@ error_t llmnrResolve(NetInterface *interface, const char_t *name,
    else
    {
       //If no entry exists, then create a new one
-      entry = dnsCreateEntry();
+      entry = dnsCreateEntry(interface->netContext);
 
       //Record the host name whose IP address is unknown
       osStrcpy(entry->name, name);
@@ -398,10 +398,14 @@ void llmnrProcessResponse(NetInterface *interface,
    uint_t j;
    size_t pos;
    size_t length;
+   NetContext *context;
    LlmnrHeader *message;
    DnsQuestion *question;
    DnsResourceRecord *record;
    DnsCacheEntry *entry;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Retrieve the length of the LLMNR message
    length = netBufferGetLength(buffer) - offset;
@@ -412,7 +416,7 @@ void llmnrProcessResponse(NetInterface *interface,
 
    //Point to the LLMNR message header
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed LLMNR message?
    if(message == NULL)
       return;
 
@@ -444,7 +448,7 @@ void llmnrProcessResponse(NetInterface *interface,
    for(i = 0; i < DNS_CACHE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &dnsCache[i];
+      entry = &context->dnsCache[i];
 
       //LLMNR name resolution in progress?
       if(entry->state == DNS_STATE_IN_PROGRESS &&
@@ -460,10 +464,10 @@ void llmnrProcessResponse(NetInterface *interface,
             //Point to the first question
             pos = sizeof(DnsHeader);
             //Parse domain name
-            pos = dnsParseName((DnsHeader *) message, length, pos, NULL, 0);
+            pos = dnsParseName((DnsHeader *) message, length, pos, 0);
 
             //Invalid name?
-            if(!pos)
+            if(pos == 0)
                break;
             //Malformed DNS message?
             if((pos + sizeof(DnsQuestion)) > length)
@@ -503,9 +507,9 @@ void llmnrProcessResponse(NetInterface *interface,
             for(j = 0; j < ntohs(message->ancount); j++)
             {
                //Parse domain name
-               pos = dnsParseName((DnsHeader *) message, length, pos, NULL, 0);
+               pos = dnsParseName((DnsHeader *) message, length, pos, 0);
                //Invalid name?
-               if(!pos)
+               if(pos == 0)
                   break;
 
                //Point to the associated resource record

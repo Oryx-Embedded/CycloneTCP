@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -175,6 +175,12 @@ error_t pingBindToInterface(PingContext *context, NetInterface *interface)
 
    //Select the specified network interface
    context->interface = interface;
+
+   //Attach TCP/IP stack context
+   if(interface != NULL)
+   {
+      context->netContext = interface->netContext;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -497,11 +503,9 @@ error_t pingWaitForReply(PingContext *context, IpAddr *hostIpAddr,
    systime_t *rtt)
 {
    error_t error;
-   size_t length;
    systime_t time;
    systime_t timeout;
-   IpAddr srcIpAddr;
-   IpAddr destIpAddr;
+   SocketMsg msg;
 
    //Invalid context?
    if(context == NULL)
@@ -529,9 +533,13 @@ error_t pingWaitForReply(PingContext *context, IpAddr *hostIpAddr,
       if(error)
          break;
 
+      //Point to the receive buffer
+      msg = SOCKET_DEFAULT_MSG;
+      msg.data = context->buffer;
+      msg.size = PING_BUFFER_SIZE;
+
       //Wait for an incoming ICMP message
-      error = socketReceiveEx(context->socket, &srcIpAddr, NULL, &destIpAddr,
-         context->buffer, PING_BUFFER_SIZE, &length, 0);
+      error = socketReceiveMsg(context->socket, &msg, 0);
 
 #if (NET_RTOS_SUPPORT == DISABLED)
       //Catch timeout exception
@@ -548,8 +556,8 @@ error_t pingWaitForReply(PingContext *context, IpAddr *hostIpAddr,
       if(!error)
       {
          //Check whether the incoming ICMP message is acceptable
-         error = pingCheckReply(context, &srcIpAddr, &destIpAddr,
-            (IcmpEchoMessage *) context->buffer, length);
+         error = pingCheckReply(context, &msg.srcIpAddr, &msg.destIpAddr,
+            (IcmpEchoMessage *) context->buffer, msg.length);
       }
 
       //Check status code
@@ -573,7 +581,7 @@ error_t pingWaitForReply(PingContext *context, IpAddr *hostIpAddr,
          //Return the IP address of the host
          if(hostIpAddr != NULL)
          {
-            *hostIpAddr = srcIpAddr;
+            *hostIpAddr = msg.srcIpAddr;
          }
 
          //Return the round-trip time

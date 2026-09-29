@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -44,9 +44,6 @@
 #include "netbios/nbns_client.h"
 #include "llmnr/llmnr_client.h"
 #include "debug.h"
-
-//Socket table
-Socket socketTable[SOCKET_MAX_COUNT];
 
 //Default socket message
 const SocketMsg SOCKET_DEFAULT_MSG =
@@ -89,21 +86,21 @@ error_t socketInit(NetContext *context)
    uint_t j;
 
    //Initialize socket descriptors
-   osMemset(socketTable, 0, sizeof(socketTable));
+   osMemset(context->socketTable, 0, SOCKET_MAX_COUNT * sizeof(Socket));
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Set socket identifier
-      socketTable[i].descriptor = i;
+      context->socketTable[i].descriptor = i;
 
       //Create an event object to track socket events
-      if(!osCreateEvent(&socketTable[i].event))
+      if(!osCreateEvent(&context->socketTable[i].event))
       {
          //Clean up side effects
          for(j = 0; j < i; j++)
          {
-            osDeleteEvent(&socketTable[j].event);
+            osDeleteEvent(&context->socketTable[j].event);
          }
 
          //Report an error
@@ -1532,8 +1529,9 @@ error_t socketSend(Socket *socket, const void *data, size_t length,
  * @return Error code
  **/
 
-error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr, uint16_t destPort,
-   const void *data, size_t length, size_t *written, uint_t flags)
+error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr,
+   uint16_t destPort, const void *data, size_t length, size_t *written,
+   uint_t flags)
 {
    error_t error;
 
@@ -1721,13 +1719,12 @@ error_t socketSendMsg(Socket *socket, const SocketMsg *message, uint_t flags)
  * @return Error code
  **/
 
-error_t socketReceive(Socket *socket, void *data,
-   size_t size, size_t *received, uint_t flags)
+error_t socketReceive(Socket *socket, void *data, size_t size,
+   size_t *received, uint_t flags)
 {
    //For connection-oriented sockets, source and destination addresses are
    //no use
-   return socketReceiveEx(socket, NULL, NULL, NULL, data, size, received,
-      flags);
+   return socketReceiveFrom(socket, NULL, NULL, data, size, received, flags);
 }
 
 
@@ -1745,28 +1742,6 @@ error_t socketReceive(Socket *socket, void *data,
 
 error_t socketReceiveFrom(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
    void *data, size_t size, size_t *received, uint_t flags)
-{
-   //Destination address is no use
-   return socketReceiveEx(socket, srcIpAddr, srcPort, NULL, data, size,
-      received, flags);
-}
-
-
-/**
- * @brief Receive a datagram
- * @param[in] socket Handle that identifies a socket
- * @param[out] srcIpAddr Source IP address (optional)
- * @param[out] srcPort Source port number (optional)
- * @param[out] destIpAddr Destination IP address (optional)
- * @param[out] data Buffer where to store the incoming data
- * @param[in] size Maximum number of bytes that can be received
- * @param[out] received Number of bytes that have been received
- * @param[in] flags Set of flags that influences the behavior of this function
- * @return Error code
- **/
-
-error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
-   IpAddr *destIpAddr, void *data, size_t size, size_t *received, uint_t flags)
 {
    error_t error;
 
@@ -1798,12 +1773,6 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
       if(srcPort != NULL)
       {
          *srcPort = socket->remotePort;
-      }
-
-      //Save the destination IP address
-      if(destIpAddr != NULL)
-      {
-         *destIpAddr = socket->localIpAddr;
       }
    }
    else
@@ -1894,12 +1863,6 @@ error_t socketReceiveEx(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
          if(srcPort != NULL)
          {
             *srcPort = message.srcPort;
-         }
-
-         //Save the destination IP address
-         if(destIpAddr != NULL)
-         {
-            *destIpAddr = message.destIpAddr;
          }
 
          //Total number of data that have been received

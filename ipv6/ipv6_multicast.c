@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -271,7 +271,7 @@ void ipv6UpdateMulticastFilter(NetInterface *interface,
       SocketMulticastGroup *group;
 
       //Point to the current socket
-      socket = &socketTable[i];
+      socket = &interface->netContext->socketTable[i];
 
       //Connectionless or raw socket?
       if(socket->type == SOCKET_TYPE_DGRAM ||

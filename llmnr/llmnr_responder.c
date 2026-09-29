@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -115,7 +115,7 @@ void llmnrProcessQuery(NetInterface *interface,
 
    //Point to the LLMNR message header
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed LLMNR message?
    if(message == NULL)
       return;
 
@@ -190,7 +190,7 @@ void llmnrProcessQuery(NetInterface *interface,
    pos = sizeof(LlmnrHeader);
 
    //Parse resource record name
-   n = dnsParseName((DnsHeader *) message, length, pos, NULL, 0);
+   n = dnsParseName((DnsHeader *) message, length, pos, 0);
    //Invalid name?
    if(n == 0)
       return;

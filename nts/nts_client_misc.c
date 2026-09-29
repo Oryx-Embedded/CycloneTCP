@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -874,7 +874,7 @@ error_t ntsClientSendNtpRequest(NtsClientContext *context)
    NtpHeader *header;
    NtpExtension *extension;
    NtpNtsAeadExtension *ntsAeadExtension;
-   DataChunk ad[2];
+   DataFrag adFrags[2];
 
    //Point to the buffer where to format the NTP message
    header = (NtpHeader *) context->buffer;
@@ -946,14 +946,15 @@ error_t ntsClientSendNtpRequest(NtsClientContext *context)
    //beginning from the start of the NTP header and ending at the end of the
    //last extension field that precedes the NTS Authenticator and Encrypted
    //Extension Fields extension field (refer to RFC 8915, section 5.6)
-   ad[0].buffer = context->buffer;
-   ad[0].length = length;
-   ad[1].buffer = context->nonce;
-   ad[1].length = NTS_CLIENT_NONCE_SIZE;
+   adFrags[0].buffer = context->buffer;
+   adFrags[0].length = length;
+   adFrags[1].buffer = context->nonce;
+   adFrags[1].length = NTS_CLIENT_NONCE_SIZE;
 
    //The Ciphertext field is the output of the negotiated AEAD algorithm
-   error = sivEncrypt(AES_CIPHER_ALGO, context->c2sKey, 32, ad, arraysize(ad),
-      NULL, NULL, 0, ntsAeadExtension->nonce + NTS_CLIENT_NONCE_SIZE);
+   error = sivEncrypt(AES_CIPHER_ALGO, context->c2sKey, 32, adFrags,
+      arraysize(adFrags), NULL, NULL, 0,
+      ntsAeadExtension->nonce + NTS_CLIENT_NONCE_SIZE);
    //AEAD encryption failed?
    if(error)
       return error;
@@ -1098,7 +1099,7 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
    const uint8_t *iv;
    const uint8_t *ciphertext;
    uint8_t *plaintext;
-   DataChunk ad[2];
+   DataFrag adFrags[2];
 
    //Ensure the NTP packet is valid
    if(length < sizeof(NtpHeader))
@@ -1214,10 +1215,10 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
    //beginning from the start of the NTP header and ending at the end of the
    //last extension field that precedes the NTS Authenticator and Encrypted
    //Extension Fields extension field (refer to RFC 8915, section 5.6)
-   ad[0].buffer = context->buffer;
-   ad[0].length = (uint8_t *) ntsAeadExtension - context->buffer;
-   ad[1].buffer = ntsAeadExtension->nonce;
-   ad[1].length = nonceLen;
+   adFrags[0].buffer = context->buffer;
+   adFrags[0].length = (uint8_t *) ntsAeadExtension - context->buffer;
+   adFrags[1].buffer = ntsAeadExtension->nonce;
+   adFrags[1].length = nonceLen;
 
    //The Unique Identifier extension field must be authenticated but must not
    //be encrypted
@@ -1226,8 +1227,8 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
 
    //The client must verify that the packet is authentic under the S2C key
    //associated with that request (refer to RFC 8915, section 5.7)
-   error = sivDecrypt(AES_CIPHER_ALGO, context->s2cKey, 32, ad, arraysize(ad),
-      ciphertext, plaintext, n, iv);
+   error = sivDecrypt(AES_CIPHER_ALGO, context->s2cKey, 32, adFrags,
+      arraysize(adFrags), ciphertext, plaintext, n, iv);
    //AEAD decryption failed?
    if(error)
       return ERROR_INVALID_MESSAGE;

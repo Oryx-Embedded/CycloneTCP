@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _ETHERNET_MISC_H
@@ -39,9 +39,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-//Ethernet related constants
-extern const uint8_t ethPadding[64];
 
 //Ethernet related functions
 error_t ethPadFrame(NetBuffer *buffer, size_t *length);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -55,7 +55,8 @@ error_t nbnsInit(NetInterface *interface)
    error_t error;
 
    //Callback function to be called when a NBNS message is received
-   error = udpRegisterRxCallback(interface, NBNS_PORT, nbnsProcessMessage, NULL);
+   error = udpRegisterRxCallback(interface, NBNS_PORT, nbnsProcessMessage,
+      NULL);
    //Any error to report?
    if(error)
       return error;
@@ -98,7 +99,7 @@ void nbnsProcessMessage(NetInterface *interface,
 
    //Point to the NBNS message header
    message = netBufferAt(buffer, offset, length);
-   //Sanity check
+   //Malformed NBNS message?
    if(message == NULL)
       return;
 

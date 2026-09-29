@@ -30,7 +30,7 @@
  * in the Internet. Refer to RFC 4330 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _NTS_CLIENT_H
@@ -121,8 +121,8 @@
 #endif
 
 //Application specific context
-#ifndef NTS_CLIENT_PRIVATE_CONTEXT
-   #define NTS_CLIENT_PRIVATE_CONTEXT
+#ifndef NTS_CLIENT_CONTEXT_PRIVATE
+   #define NTS_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //Forward declaration of NtsClientContext structure
@@ -207,7 +207,7 @@ struct _NtsClientContext
    uint8_t uniqueId[NTS_CLIENT_UNIQUE_ID_SIZE]; ///<Unique identifier
    uint8_t nonce[NTS_CLIENT_NONCE_SIZE];        ///<Nonce
    uint32_t kissCode;                           ///<Kiss code
-   NTS_CLIENT_PRIVATE_CONTEXT                   ///<Application specific context
+   NTS_CLIENT_CONTEXT_PRIVATE                   ///<Application specific context
 };
 
 

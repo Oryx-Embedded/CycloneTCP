@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _COAP_SERVER_H
@@ -121,7 +121,7 @@
    #error COAP_SERVER_BUFFER_SIZE parameter is not valid
 #endif
 
-//Maximum size of observable recources
+//Maximum size of observable resources
 #ifndef COAP_SERVER_MAX_OBS_RESOURCE_SIZE
    #define COAP_SERVER_MAX_OBS_RESOURCE_SIZE 512
 #elif (COAP_SERVER_MAX_OBS_RESOURCE_SIZE < 1)
@@ -148,8 +148,8 @@
 #endif
 
 //Application specific context
-#ifndef COAP_SERVER_PRIVATE_CONTEXT
-   #define COAP_SERVER_PRIVATE_CONTEXT
+#ifndef COAP_SERVER_CONTEXT_PRIVATE
+   #define COAP_SERVER_CONTEXT_PRIVATE
 #endif
 
 //DTLS supported?
@@ -314,7 +314,7 @@ struct _CoapServerContext
 #if (COAP_SERVER_OBSERVE_SUPPORT == ENABLED)
    uint16_t mid;                                             ///<Message identifier
 #endif
-   COAP_SERVER_PRIVATE_CONTEXT                               ///<Application specific context
+   COAP_SERVER_CONTEXT_PRIVATE                               ///<Application specific context
 };
 
 

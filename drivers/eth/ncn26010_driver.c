@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -416,7 +416,7 @@ error_t ncn26010SendPacket(NetInterface *interface,
          //Pull the CS pin low
          interface->spiDriver->assertCs();
 
-         //Perform data transfer
+         //Perform data transaction
          for(j = 0; j < (NCN26010_CHUNK_PAYLOAD_SIZE + 4); j++)
          {
             chunk[j] = interface->spiDriver->transfer(chunk[j]);
@@ -502,7 +502,7 @@ error_t ncn26010ReceivePacket(NetInterface *interface)
       //Pull the CS pin low
       interface->spiDriver->assertCs();
 
-      //Perform data transfer
+      //Perform data transaction
       for(i = 0; i < (NCN26010_CHUNK_PAYLOAD_SIZE + 4); i++)
       {
          chunk[i] = interface->spiDriver->transfer(chunk[i]);

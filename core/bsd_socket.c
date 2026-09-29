@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -109,7 +109,11 @@ int_t bind(int_t s, const struct sockaddr *addr, socklen_t addrlen)
    error_t error;
    uint16_t port;
    IpAddr ipAddr;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -118,7 +122,7 @@ int_t bind(int_t s, const struct sockaddr *addr, socklen_t addrlen)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Check the length of the address
    if(addrlen < (socklen_t) sizeof(SOCKADDR))
@@ -206,7 +210,11 @@ int_t connect(int_t s, const struct sockaddr *addr, socklen_t addrlen)
    error_t error;
    uint16_t port;
    IpAddr ipAddr;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -215,7 +223,7 @@ int_t connect(int_t s, const struct sockaddr *addr, socklen_t addrlen)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Check the length of the address
    if(addrlen < (socklen_t) sizeof(SOCKADDR))
@@ -322,7 +330,11 @@ int_t connect(int_t s, const struct sockaddr *addr, socklen_t addrlen)
 int_t listen(int_t s, int_t backlog)
 {
    error_t error;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -331,7 +343,7 @@ int_t listen(int_t s, int_t backlog)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Place the socket in the listening state
    error = socketListen(sock, backlog);
@@ -361,8 +373,12 @@ int_t accept(int_t s, struct sockaddr *addr, socklen_t *addrlen)
 {
    uint16_t port;
    IpAddr ipAddr;
+   NetContext *context;
    Socket *sock;
    Socket *newSock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -371,7 +387,7 @@ int_t accept(int_t s, struct sockaddr *addr, socklen_t *addrlen)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Permit an incoming connection attempt on a socket
    newSock = socketAccept(sock, &ipAddr, &port);
@@ -461,7 +477,11 @@ int_t send(int_t s, const void *data, size_t length, int_t flags)
    error_t error;
    size_t written;
    uint_t socketFlags;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -470,7 +490,7 @@ int_t send(int_t s, const void *data, size_t length, int_t flags)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //The flags parameter can be used to influence the behavior of the function
    socketFlags = 0;
@@ -540,7 +560,11 @@ int_t sendto(int_t s, const void *data, size_t length, int_t flags,
    uint_t socketFlags;
    uint16_t port;
    IpAddr ipAddr;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -549,7 +573,7 @@ int_t sendto(int_t s, const void *data, size_t length, int_t flags,
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //The flags parameter can be used to influence the behavior of the function
    socketFlags = 0;
@@ -662,9 +686,13 @@ int_t sendmsg(int_t s, struct msghdr *msg, int_t flags)
 {
    error_t error;
    uint_t socketFlags;
+   NetContext *context;
    Socket *sock;
    SocketMsg message;
    SOCKADDR *addr;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -673,7 +701,7 @@ int_t sendmsg(int_t s, struct msghdr *msg, int_t flags)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Check parameters
    if(msg == NULL || msg->msg_iov == NULL || msg->msg_iovlen != 1)
@@ -919,7 +947,11 @@ int_t recv(int_t s, void *data, size_t size, int_t flags)
    error_t error;
    size_t received;
    uint_t socketFlags;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -928,7 +960,7 @@ int_t recv(int_t s, void *data, size_t size, int_t flags)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //The flags parameter can be used to influence the behavior of the function
    socketFlags = 0;
@@ -994,7 +1026,11 @@ int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
    uint_t socketFlags;
    uint16_t port;
    IpAddr ipAddr;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -1003,7 +1039,7 @@ int_t recvfrom(int_t s, void *data, size_t size, int_t flags,
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //The flags parameter can be used to influence the behavior of the function
    socketFlags = 0;
@@ -1117,8 +1153,12 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
    error_t error;
    size_t n;
    uint_t socketFlags;
+   NetContext *context;
    Socket *sock;
    SocketMsg message;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -1127,7 +1167,7 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Check parameters
    if(msg == NULL || msg->msg_iov == NULL || msg->msg_iovlen != 1)
@@ -1476,7 +1516,11 @@ int_t recvmsg(int_t s, struct msghdr *msg, int_t flags)
 int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen)
 {
    int_t ret;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -1485,7 +1529,7 @@ int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Get exclusive access
    netLock(sock->netContext);
@@ -1626,7 +1670,11 @@ int_t getsockname(int_t s, struct sockaddr *addr, socklen_t *addrlen)
 int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen)
 {
    int_t ret;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -1635,7 +1683,7 @@ int_t getpeername(int_t s, struct sockaddr *addr, socklen_t *addrlen)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Get exclusive access
    netLock(sock->netContext);
@@ -1727,7 +1775,11 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
    socklen_t optlen)
 {
    int_t ret;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -1736,7 +1788,7 @@ int_t setsockopt(int_t s, int_t level, int_t optname, const void *optval,
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Make sure the option is valid
    if(optval != NULL)
@@ -2084,7 +2136,11 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
    socklen_t *optlen)
 {
    int_t ret;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2093,7 +2149,7 @@ int_t getsockopt(int_t s, int_t level, int_t optname, void *optval,
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Get exclusive access
    netLock(sock->netContext);
@@ -2895,7 +2951,11 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
 {
    int_t ret;
    uint_t *val;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2904,7 +2964,7 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Get exclusive access
    netLock(sock->netContext);
@@ -2994,7 +3054,11 @@ int_t ioctlsocket(int_t s, uint32_t cmd, void *arg)
 int_t fcntl(int_t s, int_t cmd, int_t arg)
 {
    int_t ret;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -3003,7 +3067,7 @@ int_t fcntl(int_t s, int_t cmd, int_t arg)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Get exclusive access
    netLock(sock->netContext);
@@ -3052,7 +3116,11 @@ int_t fcntl(int_t s, int_t cmd, int_t arg)
 int_t shutdown(int_t s, int_t how)
 {
    error_t error;
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -3061,7 +3129,7 @@ int_t shutdown(int_t s, int_t how)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Shut down socket
    error = socketShutdown(sock, how);
@@ -3087,7 +3155,11 @@ int_t shutdown(int_t s, int_t how)
 
 int_t closesocket(int_t s)
 {
+   NetContext *context;
    Socket *sock;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -3096,7 +3168,7 @@ int_t closesocket(int_t s)
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Close socket
    socketClose(sock);
@@ -3139,6 +3211,10 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
    uint_t eventFlags;
    OsEvent event;
    fd_set *fds;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Parse all the descriptor sets
    for(i = 0; i < 3; i++)
@@ -3219,7 +3295,7 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
             //Get the descriptor associated with the current entry
             s = fds->fd_array[j];
             //Subscribe to the requested events
-            socketRegisterEvents(&socketTable[s], &event, eventMask);
+            socketRegisterEvents(&context->socketTable[s], &event, eventMask);
          }
       }
    }
@@ -3274,9 +3350,9 @@ int_t select(int_t nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
             //Get the descriptor associated with the current entry
             s = fds->fd_array[j];
             //Retrieve event flags for the current socket
-            eventFlags = socketGetEvents(&socketTable[s]);
+            eventFlags = socketGetEvents(&context->socketTable[s]);
             //Unsubscribe previously registered events
-            socketUnregisterEvents(&socketTable[s]);
+            socketUnregisterEvents(&context->socketTable[s]);
 
             //Event flag is set?
             if(eventFlags & eventMask)

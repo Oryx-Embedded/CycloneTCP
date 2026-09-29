@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -1015,8 +1015,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    }
 
    //Point to the IPv6 header
-   ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
-   //Sanity check
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
+   //Malformed IPv6 packet?
    if(ipHeader == NULL)
       return;
 
@@ -1136,8 +1136,8 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    while(i < length)
    {
       //Retrieve the Next Header field of preceding header
-      type = netBufferAt(ipPacket, nextHeaderOffset, 0);
-      //Sanity check
+      type = netBufferAt(ipPacket, nextHeaderOffset, sizeof(uint8_t));
+      //Malformed IPv6 packet?
       if(type == NULL)
          return;
 
@@ -1337,37 +1337,32 @@ error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
    error_t error;
    size_t n;
    size_t length;
-   size_t headerLen;
    Ipv6HopByHopOptHeader *header;
 
-   //Remaining bytes to process in the IPv6 packet
-   length = netBufferGetLength(ipPacket) - *headerOffset;
-
-   //Make sure the extension header is valid
-   if(length < sizeof(Ipv6HopByHopOptHeader))
-      return ERROR_INVALID_HEADER;
-
    //Point to the Hop-by-Hop Options header
-   header = netBufferAt(ipPacket, *headerOffset, 0);
-   //Sanity check
+   header = netBufferAt(ipPacket, *headerOffset, sizeof(Ipv6HopByHopOptHeader));
+   //Malformed extension header?
    if(header == NULL)
       return ERROR_FAILURE;
 
-   //Calculate the length of the entire header
-   headerLen = (header->hdrExtLen * 8) + 8;
+   //Calculate the length of the extension header
+   length = (header->hdrExtLen * 8) + 8;
 
-   //Check header length
-   if(headerLen > length)
-      return ERROR_INVALID_HEADER;
+   //Check the length of the extension header
+   header = netBufferAt(ipPacket, *headerOffset, length);
+   //Malformed extension header?
+   if(header == NULL)
+      return ERROR_FAILURE;
 
    //Debug message
    TRACE_DEBUG("  Hop-by-Hop Options header\r\n");
 
-   //The Hop-by-Hop Options header, when present, must immediately follow
-   //the IPv6 header
+   //The Hop-by-Hop Options header, when present, must immediately follow the
+   //IPv6 header
    if(*headerOffset != (ipPacketOffset + sizeof(Ipv6Header)))
    {
-      //Compute the offset of the unrecognized Next Header field within the packet
+      //Compute the offset of the unrecognized Next Header field within the
+      //packet
       n = *nextHeaderOffset - ipPacketOffset;
 
       //Send an ICMP Parameter Problem message to the source of the packet
@@ -1379,7 +1374,7 @@ error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
    }
 
    //Compute the length of the Options field
-   n = headerLen - sizeof(Ipv6HopByHopOptHeader);
+   n = length - sizeof(Ipv6HopByHopOptHeader);
 
    //Parse options
    error = ipv6ParseOptions(interface, ipPacket, ipPacketOffset,
@@ -1392,7 +1387,7 @@ error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
    //Keep track of Next Header field
    *nextHeaderOffset = *headerOffset + &header->nextHeader - (uint8_t *) header;
    //Point to the next extension header
-   *headerOffset += headerLen;
+   *headerOffset += length;
 
    //Successful processing
    return NO_ERROR;
@@ -1416,34 +1411,28 @@ error_t ipv6ParseDestOptHeader(NetInterface *interface,
    error_t error;
    size_t n;
    size_t length;
-   size_t headerLen;
    Ipv6DestOptHeader *header;
 
-   //Remaining bytes to process in the IPv6 packet
-   length = netBufferGetLength(ipPacket) - *headerOffset;
-
-   //Make sure the extension header is valid
-   if(length < sizeof(Ipv6DestOptHeader))
-      return ERROR_INVALID_HEADER;
-
    //Point to the Destination Options header
-   header = netBufferAt(ipPacket, *headerOffset, 0);
-   //Sanity check
+   header = netBufferAt(ipPacket, *headerOffset, sizeof(Ipv6DestOptHeader));
+   //Malformed extension header?
    if(header == NULL)
       return ERROR_FAILURE;
 
-   //Calculate the length of the entire header
-   headerLen = (header->hdrExtLen * 8) + 8;
+   //Calculate the length of the extension header
+   length = (header->hdrExtLen * 8) + 8;
 
-   //Check header length
-   if(headerLen > length)
-      return ERROR_INVALID_HEADER;
+   //Check the length of the extension header
+   header = netBufferAt(ipPacket, *headerOffset, length);
+   //Malformed extension header?
+   if(header == NULL)
+      return ERROR_FAILURE;
 
    //Debug message
    TRACE_DEBUG("  Destination Options header\r\n");
 
    //Compute the length of the Options field
-   n = headerLen - sizeof(Ipv6DestOptHeader);
+   n = length - sizeof(Ipv6DestOptHeader);
 
    //Parse options
    error = ipv6ParseOptions(interface, ipPacket, ipPacketOffset,
@@ -1456,7 +1445,7 @@ error_t ipv6ParseDestOptHeader(NetInterface *interface,
    //Keep track of Next Header field
    *nextHeaderOffset = *headerOffset + &header->nextHeader - (uint8_t *) header;
    //Point to the next extension header
-   *headerOffset += headerLen;
+   *headerOffset += length;
 
    //Successful processing
    return NO_ERROR;
@@ -1479,35 +1468,29 @@ error_t ipv6ParseRoutingHeader(NetInterface *interface,
 {
    size_t n;
    size_t length;
-   size_t headerLen;
    Ipv6RoutingHeader *header;
 
-   //Remaining bytes to process in the IPv6 packet
-   length = netBufferGetLength(ipPacket) - *headerOffset;
-
-   //Make sure the extension header is valid
-   if(length < sizeof(Ipv6RoutingHeader))
-      return ERROR_INVALID_HEADER;
-
    //Point to the Routing header
-   header = netBufferAt(ipPacket, *headerOffset, 0);
-   //Sanity check
+   header = netBufferAt(ipPacket, *headerOffset, sizeof(Ipv6RoutingHeader));
+   //Malformed extension header?
    if(header == NULL)
       return ERROR_FAILURE;
 
-   //Calculate the length of the entire header
-   headerLen = (header->hdrExtLen * 8) + 8;
+   //Calculate the length of the extension header
+   length = (header->hdrExtLen * 8) + 8;
 
-   //Check header length
-   if(headerLen > length)
-      return ERROR_INVALID_HEADER;
+   //Check the length of the extension header
+   header = netBufferAt(ipPacket, *headerOffset, length);
+   //Malformed extension header?
+   if(header == NULL)
+      return ERROR_FAILURE;
 
    //Debug message
    TRACE_DEBUG("  Routing header\r\n");
 
-   //If, while processing a received packet, a node encounters a Routing
-   //header with an unrecognized Routing Type value, the required behavior
-   //of the node depends on the value of the Segments Left field
+   //If, while processing a received packet, a node encounters a Routing header
+   //with an unrecognized Routing Type value, the required behavior of the node
+   //depends on the value of the Segments Left field
    if(header->segmentsLeft != 0)
    {
       //Retrieve the offset of the Routing header within the packet
@@ -1515,9 +1498,9 @@ error_t ipv6ParseRoutingHeader(NetInterface *interface,
       //Compute the exact offset of the Routing Type field
       n += (uint8_t *) &header->routingType - (uint8_t *) header;
 
-      //If Segments Left is non-zero, send an ICMP Parameter Problem,
-      //Code 0, message to the packet's Source Address, pointing to
-      //the unrecognized Routing Type
+      //If Segments Left is non-zero, send an ICMP Parameter Problem, Code 0,
+      //message to the packet's Source Address, pointing to the unrecognized
+      //Routing Type
       icmpv6SendErrorMessage(interface, ICMPV6_TYPE_PARAM_PROBLEM,
          ICMPV6_CODE_INVALID_HEADER_FIELD, n, ipPacket, ipPacketOffset);
 
@@ -1528,7 +1511,7 @@ error_t ipv6ParseRoutingHeader(NetInterface *interface,
    //Keep track of Next Header field
    *nextHeaderOffset = *headerOffset + &header->nextHeader - (uint8_t *) header;
    //Point to the next extension header
-   *headerOffset += headerLen;
+   *headerOffset += length;
 
    //Successful processing
    return NO_ERROR;
@@ -1582,13 +1565,13 @@ error_t ipv6ParseEspHeader(NetInterface *interface, const NetBuffer *ipPacket,
  * @param[in] interface Underlying network interface
  * @param[in] ipPacket Multi-part buffer containing the IPv6 packet
  * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
- * @param[in] optionOffset Offset to the first byte of the Options field
- * @param[in] optionLen Length of the Options field
+ * @param[in] optionsOffset Offset to the first byte of the Options field
+ * @param[in] optionsLen Length of the Options field
  * @brief Error code
  **/
 
 error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t optionOffset, size_t optionLen)
+   size_t ipPacketOffset, size_t optionsOffset, size_t optionsLen)
 {
    size_t i;
    size_t n;
@@ -1599,14 +1582,13 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
    Ipv6Header *ipHeader;
 
    //Point to the first byte of the Options field
-   options = netBufferAt(ipPacket, optionOffset, 0);
-
-   //Sanity check
+   options = netBufferAt(ipPacket, optionsOffset, optionsLen);
+   //Malformed IPv6 packet?
    if(options == NULL)
       return ERROR_FAILURE;
 
    //Parse options
-   for(i = 0; i < optionLen; )
+   for(i = 0; i < optionsLen; )
    {
       //Point to the current option
       option = (Ipv6Option *) (options + i);
@@ -1623,7 +1605,7 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
       else if(type == IPV6_OPTION_TYPE_PADN)
       {
          //Malformed IPv6 packet?
-         if((i + sizeof(Ipv6Option)) > optionLen)
+         if((i + sizeof(Ipv6Option)) > optionsLen)
             return ERROR_INVALID_LENGTH;
 
          //Advance data pointer
@@ -1633,9 +1615,8 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
       else
       {
          //Point to the IPv6 header
-         ipHeader = netBufferAt(ipPacket, ipPacketOffset, 0);
-
-         //Sanity check
+         ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
+         //Malformed IPv6 packet?
          if(ipHeader == NULL)
             return ERROR_FAILURE;
 
@@ -1657,7 +1638,7 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
          {
             //Calculate the octet offset within the invoking packet
             //where the error was detected
-            n = optionOffset + i - ipPacketOffset;
+            n = optionsOffset + i - ipPacketOffset;
 
             //Send an ICMP Parameter Problem message to the source of the
             //packet, regardless of whether or not the destination address
@@ -1677,7 +1658,7 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
             {
                //Calculate the octet offset within the invoking packet
                //where the error was detected
-               n = optionOffset + i - ipPacketOffset;
+               n = optionsOffset + i - ipPacketOffset;
 
                //Send the ICMP Parameter Problem message
                icmpv6SendErrorMessage(interface, ICMPV6_TYPE_PARAM_PROBLEM,
@@ -1689,7 +1670,7 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
          }
 
          //Malformed IPv6 packet?
-         if((i + sizeof(Ipv6Option)) > optionLen)
+         if((i + sizeof(Ipv6Option)) > optionsLen)
             return ERROR_INVALID_LENGTH;
 
          //Advance data pointer

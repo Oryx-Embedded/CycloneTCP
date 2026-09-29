@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -115,6 +115,8 @@ const NetRxAncillary NET_DEFAULT_RX_ANCILLARY =
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
    {0},     //Captured time stamp
 #endif
+   FALSE,   //Disable TCP checksum verification
+   FALSE,   //Disable UDP checksum verification
 };
 
 
@@ -202,7 +204,11 @@ error_t netDetachLinkChangeCallback(NetContext *context,
 void netProcessLinkChange(NetInterface *interface)
 {
    uint_t i;
+   NetContext *context;
    Socket *socket;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //Check link state
    if(interface->linkState)
@@ -286,7 +292,7 @@ void netProcessLinkChange(NetInterface *interface)
       NetLinkChangeCallbackEntry *entry;
 
       //Point to the current entry
-      entry = &interface->netContext->linkChangeCallbacks[i];
+      entry = &context->linkChangeCallbacks[i];
 
       //Any registered callback?
       if(entry->callback != NULL)
@@ -304,7 +310,7 @@ void netProcessLinkChange(NetInterface *interface)
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to the current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
 #if (TCP_SUPPORT == ENABLED)
       //Connection-oriented socket?
@@ -707,7 +713,7 @@ void netTick(NetContext *context)
    if(context->tcpTickCounter >= TCP_TICK_INTERVAL)
    {
       //TCP timer handler
-      tcpTick();
+      tcpTick(context);
       //Reset tick counter
       context->tcpTickCounter = 0;
    }
@@ -722,7 +728,7 @@ void netTick(NetContext *context)
    if(context->dnsTickCounter >= DNS_TICK_INTERVAL)
    {
       //DNS timer handler
-      dnsTick();
+      dnsTick(context);
       //Reset tick counter
       context->dnsTickCounter = 0;
    }

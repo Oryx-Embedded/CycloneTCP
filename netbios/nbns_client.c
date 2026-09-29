@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -106,7 +106,7 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
    else
    {
       //If no entry exists, then create a new one
-      entry = dnsCreateEntry();
+      entry = dnsCreateEntry(interface->netContext);
 
       //Record the host name whose IP address is unknown
       osStrcpy(entry->name, name);
@@ -335,9 +335,13 @@ void nbnsProcessResponse(NetInterface *interface, const Ipv4PseudoHeader *pseudo
 {
    uint_t i;
    size_t pos;
+   NetContext *context;
    DnsCacheEntry *entry;
    DnsResourceRecord *record;
    NbnsAddrEntry *addrEntry;
+
+   //Point to the TCP/IP stack context
+   context = interface->netContext;
 
    //The NBNS response shall contain one answer
    if(ntohs(message->qdcount) != 0 && ntohs(message->ancount) != 1)
@@ -346,7 +350,7 @@ void nbnsProcessResponse(NetInterface *interface, const Ipv4PseudoHeader *pseudo
    //Parse NetBIOS name
    pos = nbnsParseName(message, length, sizeof(DnsHeader), NULL);
    //Invalid name?
-   if(!pos)
+   if(pos == 0)
       return;
 
    //Point to the associated resource record
@@ -374,7 +378,7 @@ void nbnsProcessResponse(NetInterface *interface, const Ipv4PseudoHeader *pseudo
    for(i = 0; i < DNS_CACHE_SIZE; i++)
    {
       //Point to the current entry
-      entry = &dnsCache[i];
+      entry = &context->dnsCache[i];
 
       //NBNS name resolution in progress?
       if(entry->state == DNS_STATE_IN_PROGRESS &&

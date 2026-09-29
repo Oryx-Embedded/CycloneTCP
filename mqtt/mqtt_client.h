@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -127,8 +127,8 @@
 #endif
 
 //Application specific context
-#ifndef MQTT_CLIENT_PRIVATE_CONTEXT
-   #define MQTT_CLIENT_PRIVATE_CONTEXT
+#ifndef MQTT_CLIENT_CONTEXT_PRIVATE
+   #define MQTT_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //TLS supported?
@@ -342,7 +342,7 @@ struct _MqttClientContext
    size_t remainingLen;                     ///<Length of the variable header and payload
    size_t payloadPos;                       ///<Current position within the payload
    size_t fragPos;                          ///<Current position within the current fragment
-   MQTT_CLIENT_PRIVATE_CONTEXT              ///<Application specific context
+   MQTT_CLIENT_CONTEXT_PRIVATE              ///<Application specific context
 };
 
 
@@ -415,7 +415,7 @@ error_t mqttClientSetPacketId(MqttClientContext *context, uint16_t packetId);
 error_t mqttClientPublish(MqttClientContext *context, const char_t *topic,
    const void *message, size_t length, MqttQosLevel qos, bool_t retain,
    uint16_t *packetId);
-   
+
 error_t mqttClientPublishEx(MqttClientContext *context,
    MqttPublishInfo *publishInfo);
 

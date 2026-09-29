@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _DHCPV6_CLIENT_H
@@ -218,8 +218,8 @@
 #endif
 
 //Application specific context
-#ifndef DHCPV6_CLIENT_PRIVATE_CONTEXT
-   #define DHCPV6_CLIENT_PRIVATE_CONTEXT
+#ifndef DHCPV6_CLIENT_CONTEXT_PRIVATE
+   #define DHCPV6_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //Forward declaration of Dhcpv6ClientContext structure
@@ -366,7 +366,7 @@ struct _Dhcpv6ClientContext
    systime_t exchangeStartTime;                     ///<Time at which the client sent the first message
    systime_t leaseStartTime;                        ///<Lease start time
    Dhcpv6ClientIa ia;                               ///<Identity association
-   DHCPV6_CLIENT_PRIVATE_CONTEXT                    ///<Application specific context
+   DHCPV6_CLIENT_CONTEXT_PRIVATE                    ///<Application specific context
 };
 
 

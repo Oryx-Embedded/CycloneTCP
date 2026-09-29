@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _DNS_COMMON_H
@@ -56,6 +56,8 @@
 //DNS port number
 #define DNS_PORT 53
 
+//End marker
+#define DNS_END_TAG 0x00
 //Label compression tag
 #define DNS_COMPRESSION_TAG 0xC0
 
@@ -283,7 +285,7 @@ typedef __packed_struct
 size_t dnsEncodeName(const char_t *src, uint8_t *dest);
 
 size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
-   char_t *dest, uint_t level);
+   uint_t level);
 
 int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
    const char_t *name, uint_t level);

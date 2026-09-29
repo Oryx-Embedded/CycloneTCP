@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _NET_MISC_H
@@ -151,19 +151,21 @@ struct _NetTxAncillary
 
 struct _NetRxAncillary
 {
-   uint8_t ttl;            ///<Time-to-live value
-   uint8_t tos;            ///<Type-of-service value
+   uint8_t ttl;             ///<Time-to-live value
+   uint8_t tos;             ///<Type-of-service value
 #if (ETH_SUPPORT == ENABLED)
-   MacAddr srcMacAddr;     ///<Source MAC address
-   MacAddr destMacAddr;    ///<Destination MAC address
-   uint16_t ethType;       ///<Ethernet type field
+   MacAddr srcMacAddr;      ///<Source MAC address
+   MacAddr destMacAddr;     ///<Destination MAC address
+   uint16_t ethType;        ///<Ethernet type field
 #endif
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
-   uint8_t port;           ///<Ingress port identifier
+   uint8_t port;            ///<Ingress port identifier
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
-   NetTimestamp timestamp; ///<Captured time stamp
+   NetTimestamp timestamp;  ///<Captured time stamp
 #endif
+   bool_t ignoreTcpChecksum; ///<Disable TCP checksum verification
+   bool_t ignoreUdpChecksum; ///<Disable UDP checksum verification
 };
 
 

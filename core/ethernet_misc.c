@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -49,7 +49,7 @@
 #if (ETH_SUPPORT == ENABLED)
 
 //Padding bytes
-const uint8_t ethPadding[64] =
+static const uint8_t ethPadding[64] =
 {
    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -523,13 +523,13 @@ uint32_t ethCalcCrc(const void *data, size_t length)
       //The message is processed bit by bit
       for(j = 0; j < 8; j++)
       {
-         if(crc & 0x00000001)
+         if((crc & 0x01) != 0)
          {
             crc = (crc >> 1) ^ 0xEDB88320;
          }
          else
          {
-            crc = crc >> 1;
+            crc >>= 1;
          }
       }
    }
@@ -587,13 +587,13 @@ uint32_t ethCalcCrcEx(const NetBuffer *buffer, size_t offset, size_t length)
             //The message is processed bit by bit
             for(k = 0; k < 8; k++)
             {
-               if(crc & 0x00000001)
+               if((crc & 0x01) != 0)
                {
                   crc = (crc >> 1) ^ 0xEDB88320;
                }
                else
                {
-                  crc = crc >> 1;
+                  crc >>= 1;
                }
             }
 #endif

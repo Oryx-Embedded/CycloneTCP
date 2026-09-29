@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -261,8 +261,8 @@ error_t s32k344EthInit(NetInterface *interface)
 
 __weak_func void s32k344EthInitGpio(NetInterface *interface)
 {
-//S32K344MINI-EVB evaluation board?
-#if defined(USE_S32K344MINI_EVB)
+//FRDM-A-S32K344 or S32K344MINI-EVB evaluation board?
+#if defined(USE_FRDM_A_S32K344) || defined(USE_S32K344MINI_EVB)
    //Select RMII interface mode
    IP_DCM_GPR->DCMRWF1 |= DCM_GPR_DCMRWF1_RMII_MII_SEL_MASK;
 
@@ -1267,7 +1267,7 @@ uint32_t s32k344EthCalcCrc(const void *data, size_t length)
          }
          else
          {
-            crc = crc << 1;
+            crc <<= 1;
          }
       }
    }
