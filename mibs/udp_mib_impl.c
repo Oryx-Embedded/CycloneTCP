@@ -84,6 +84,10 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
    IpAddr remoteIpAddr;
    uint16_t remotePort;
    uint32_t instance;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -128,7 +132,7 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      Socket *socket = &socketTable[i];
+      Socket *socket = &context->socketTable[i];
 
       //UDP socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
@@ -158,7 +162,7 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
       for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
       {
          //Point to the current entry
-         UdpRxCallbackEntry *entry = &udpCallbackTable[i];
+         UdpRxCallbackEntry *entry = &context->udpCallbackTable[i];
 
          //Check whether the entry is currently in use
          if(entry->callback != NULL)
@@ -214,6 +218,7 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    IpAddr remoteIpAddr;
    uint16_t remotePort;
    uint32_t instance;
+   NetContext *context;
 
    //Initialize variables
    localIpAddr = IP_ADDR_ANY;
@@ -221,6 +226,9 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    remoteIpAddr = IP_ADDR_ANY;
    remotePort = 0;
    instance = 1;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -233,7 +241,7 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      Socket *socket = &socketTable[i];
+      Socket *socket = &context->socketTable[i];
 
       //UDP socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
@@ -332,7 +340,7 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      UdpRxCallbackEntry *entry = &udpCallbackTable[i];
+      UdpRxCallbackEntry *entry = &context->udpCallbackTable[i];
 
       //Check whether the entry is currently in use
       if(entry->callback != NULL)

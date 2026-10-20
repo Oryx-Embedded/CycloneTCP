@@ -86,16 +86,20 @@ error_t tcpMibGetTcpCurrEstab(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
    uint_t i;
+   NetContext *context;
    Socket *socket;
 
    //Initialize object value
    value->gauge32 = 0;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -156,7 +160,11 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
    uint16_t localPort;
    IpAddr remoteIpAddr;
    uint16_t remotePort;
+   NetContext *context;
    Socket *socket;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -195,7 +203,7 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -308,6 +316,7 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
    uint16_t localPort;
    IpAddr remoteIpAddr;
    uint16_t remotePort;
+   NetContext *context;
    Socket *socket;
 
    //Initialize variables
@@ -315,6 +324,9 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
    localPort = 0;
    remoteIpAddr = IP_ADDR_ANY;
    remotePort = 0;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -327,7 +339,7 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -479,7 +491,11 @@ error_t tcpMibGetTcpListenerEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    IpAddr localIpAddr;
    uint16_t localPort;
+   NetContext *context;
    Socket *socket;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -505,7 +521,7 @@ error_t tcpMibGetTcpListenerEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -566,11 +582,15 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
    bool_t acceptable;
    IpAddr localIpAddr;
    uint16_t localPort;
+   NetContext *context;
    Socket *socket;
 
    //Initialize variables
    localIpAddr = IP_ADDR_ANY;
    localPort = 0;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -583,7 +603,7 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)

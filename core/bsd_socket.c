@@ -2431,10 +2431,14 @@ int_t setipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr grou
 #if (SOCKET_MAX_MULTICAST_SOURCES > 0)
    error_t error;
    uint_t i;
+   NetContext *context;
    Socket *sock;
    IpFilterMode filterMode;
    IpAddr groupAddr;
    IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2443,7 +2447,7 @@ int_t setipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr grou
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Copy group address
    groupAddr.length = sizeof(Ipv4Addr);
@@ -2533,10 +2537,14 @@ int_t getipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr grou
    error_t error;
    uint_t i;
    uint_t numSources;
+   NetContext *context;
    Socket *sock;
    IpFilterMode filterMode;
    IpAddr groupAddr;
    IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2545,7 +2553,7 @@ int_t getipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr grou
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Check parameters
    if(fmode == NULL || numsrc == NULL)
@@ -2628,10 +2636,14 @@ int_t setsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
 #if (SOCKET_MAX_MULTICAST_SOURCES > 0)
    error_t error;
    uint_t i;
+   NetContext *context;
    Socket *sock;
    IpFilterMode filterMode;
    IpAddr groupAddr;
    IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2640,7 +2652,7 @@ int_t setsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 group address?
@@ -2795,10 +2807,14 @@ int_t getsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
    error_t error;
    uint_t i;
    uint_t numSources;
+   NetContext *context;
    Socket *sock;
    IpFilterMode filterMode;
    IpAddr groupAddr;
    IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2807,7 +2823,7 @@ int_t getsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Check parameters
    if(fmode == NULL || numsrc == NULL)

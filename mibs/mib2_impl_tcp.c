@@ -60,16 +60,20 @@ error_t mib2GetTcpCurrEstab(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
    uint_t i;
+   NetContext *context;
    Socket *socket;
 
    //Initialize object value
    value->gauge32 = 0;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -135,7 +139,11 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
    uint16_t localPort;
    Ipv4Addr remoteIpAddr;
    uint16_t remotePort;
+   NetContext *context;
    Socket *socket;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -172,7 +180,7 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -304,6 +312,7 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    uint16_t localPort;
    Ipv4Addr remoteIpAddr;
    uint16_t remotePort;
+   NetContext *context;
    Socket *socket;
 
    //Initialize variables
@@ -311,6 +320,9 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    localPort = 0;
    remoteIpAddr = IPV4_UNSPECIFIED_ADDR;
    remotePort = 0;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -323,7 +335,7 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)

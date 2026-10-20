@@ -64,6 +64,10 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    Ipv4Addr localIpAddr;
    uint16_t localPort;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -88,7 +92,7 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      Socket *socket = &socketTable[i];
+      Socket *socket = &context->socketTable[i];
 
       //UDP socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
@@ -114,7 +118,7 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
       for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
       {
          //Point to the current entry
-         UdpRxCallbackEntry *entry = &udpCallbackTable[i];
+         UdpRxCallbackEntry *entry = &context->udpCallbackTable[i];
 
          //Check whether the entry is currently in use
          if(entry->callback != NULL)
@@ -173,10 +177,14 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    bool_t acceptable;
    Ipv4Addr localIpAddr;
    uint16_t localPort;
+   NetContext *context;
 
    //Initialize variables
    localIpAddr = IPV4_UNSPECIFIED_ADDR;
    localPort = 0;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
@@ -189,7 +197,7 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      Socket *socket = &socketTable[i];
+      Socket *socket = &context->socketTable[i];
 
       //UDP socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
@@ -255,7 +263,7 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      UdpRxCallbackEntry *entry = &udpCallbackTable[i];
+      UdpRxCallbackEntry *entry = &context->udpCallbackTable[i];
 
       //Check whether the entry is currently in use
       if(entry->callback != NULL)
