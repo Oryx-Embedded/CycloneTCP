@@ -1082,17 +1082,22 @@ Socket *tcpKillOldestConnection(NetContext *context)
          //Check current state
          if(socket->state == TCP_STATE_TIME_WAIT)
          {
-            //Keep track of the oldest socket in the TIME-WAIT state
-            if(oldestSocket == NULL)
+            //Check whether the application no longer owns the socket
+            if(!socket->ownedFlag)
             {
-               //Save socket handle
-               oldestSocket = socket;
-            }
-            if((time - socket->timeWaitTimer.startTime) >
-               (time - oldestSocket->timeWaitTimer.startTime))
-            {
-               //Save socket handle
-               oldestSocket = socket;
+               //Keep track of the oldest socket in the TIME-WAIT state
+               if(oldestSocket == NULL)
+               {
+                  oldestSocket = socket;
+               }
+               else if((time - socket->timeWaitTimer.startTime) >
+                  (time - oldestSocket->timeWaitTimer.startTime))
+               {
+                  oldestSocket = socket;
+               }
+               else
+               {
+               }
             }
          }
       }
