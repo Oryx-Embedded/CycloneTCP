@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -136,11 +136,15 @@ error_t ndpRouterAdvInit(NdpRouterAdvContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Invalid network interface?
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = settings->interface;
@@ -201,7 +205,9 @@ error_t ndpRouterAdvStart(NdpRouterAdvContext *context)
 
    //Make sure the RA service context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting Router Advertisement service...\r\n");
@@ -279,7 +285,9 @@ error_t ndpRouterAdvStop(NdpRouterAdvContext *context)
 
    //Make sure the RA service context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping Router Advertisement service...\r\n");

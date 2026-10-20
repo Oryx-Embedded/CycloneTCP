@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -57,9 +57,6 @@
 
 error_t udpInit(NetContext *context)
 {
-   //Reset ephemeral port number
-   context->udpDynamicPort = 0;
-
    //Initialize callback table
    osMemset(context->udpCallbackTable, 0,
       UDP_CALLBACK_TABLE_SIZE * sizeof(UdpRxCallbackEntry));
@@ -77,33 +74,83 @@ error_t udpInit(NetContext *context)
 
 uint16_t udpGetDynamicPort(NetContext *context)
 {
+   uint_t i;
+   uint_t n;
    uint_t port;
 
-   //Retrieve current port number
-   port = context->udpDynamicPort;
+   //Number of port numbers in the ephemeral port range
+   n = SOCKET_EPHEMERAL_PORT_MAX - SOCKET_EPHEMERAL_PORT_MIN + 1;
 
-   //Invalid port number?
-   if(port < SOCKET_EPHEMERAL_PORT_MIN || port > SOCKET_EPHEMERAL_PORT_MAX)
-   {
-      //Generate a random port number
-      port = netGenerateRandRange(context, SOCKET_EPHEMERAL_PORT_MIN,
-         SOCKET_EPHEMERAL_PORT_MAX);
-   }
+   //Select a random port number in the ephemeral port range
+   port = netGenerateRandRange(context, SOCKET_EPHEMERAL_PORT_MIN,
+      SOCKET_EPHEMERAL_PORT_MAX);
 
-   //Next dynamic port to use
-   if(port < SOCKET_EPHEMERAL_PORT_MAX)
+   //Search the ephemeral port range for a port number that is not in use
+   for(i = 0; i < n && udpIsPortInUse(context, port); i++)
    {
-      //Increment port number
-      context->udpDynamicPort = port + 1;
-   }
-   else
-   {
-      //Wrap around if necessary
-      context->udpDynamicPort = SOCKET_EPHEMERAL_PORT_MIN;
+      //Try the next port number
+      if(port < SOCKET_EPHEMERAL_PORT_MAX)
+      {
+         port++;
+      }
+      else
+      {
+         //Wrap around if necessary
+         port = SOCKET_EPHEMERAL_PORT_MIN;
+      }
    }
 
    //Return an ephemeral port number
    return port;
+}
+
+
+/**
+ * @brief Check whether a UDP port number is already in use
+ * @param[in] context Pointer to the TCP/IP stack context
+ * @param[in] port Port number to be checked
+ * @return TRUE if the port number is used by a UDP socket or by a registered
+ *   callback, else FALSE
+ **/
+
+bool_t udpIsPortInUse(NetContext *context, uint16_t port)
+{
+   uint_t i;
+   bool_t used;
+   Socket *socket;
+   UdpRxCallbackEntry *entry;
+
+   //Initialize flag
+   used = FALSE;
+
+   //Loop through opened sockets
+   for(i = 0; i < SOCKET_MAX_COUNT && !used; i++)
+   {
+      //Point to the current socket
+      socket = &context->socketTable[i];
+
+      //UDP socket bound to the specified port number?
+      if(socket->type == SOCKET_TYPE_DGRAM && socket->localPort == port)
+      {
+         used = TRUE;
+      }
+   }
+
+   //Loop through the callback table
+   for(i = 0; i < UDP_CALLBACK_TABLE_SIZE && !used; i++)
+   {
+      //Point to the current entry
+      entry = &context->udpCallbackTable[i];
+
+      //Callback registered for the specified port number?
+      if(entry->callback != NULL && entry->port == port)
+      {
+         used = TRUE;
+      }
+   }
+
+   //Return TRUE if the port number is already in use
+   return used;
 }
 
 
@@ -153,7 +200,9 @@ error_t udpProcessDatagram(NetInterface *interface,
    header = netBufferAt(buffer, offset, sizeof(UdpHeader));
    //Malformed UDP datagram?
    if(header == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Debug message
    TRACE_INFO("UDP datagram received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -176,12 +225,31 @@ error_t udpProcessDatagram(NetInterface *interface,
    //Convert the length field from network byte order
    length = ntohs(header->length);
 
-   //When UDP runs over IPv6, the checksum is mandatory
-   if(header->checksum != 0x0000 ||
-      pseudoHeader->length == sizeof(Ipv6PseudoHeader))
+   //Check whether UDP checksums should be verified
+   if(!ancillary->ignoreUdpChecksum)
    {
-      //Check whether UDP checksums should be verified
-      if(!ancillary->ignoreUdpChecksum)
+      //An all zero transmitted checksum value means that the transmitter
+      //generated no checksum
+      if(header->checksum == 0x0000)
+      {
+         //IPv6 receivers must discard UDP packets containing a zero checksum
+         //(refer to RFC 8200, section 8.1)
+         if(pseudoHeader->length == sizeof(Ipv6PseudoHeader))
+         {
+            //Debug message
+            TRACE_WARNING("Zero UDP checksum received over IPv6!\r\n");
+
+            //Number of received UDP datagrams that could not be delivered for
+            //reasons other than the lack of an application at the destination
+            //port
+            MIB2_UDP_INC_COUNTER32(udpInErrors, 1);
+            UDP_MIB_INC_COUNTER32(udpInErrors, 1);
+
+            //Report an error
+            return ERROR_WRONG_CHECKSUM;
+         }
+      }
+      else
       {
          //Verify UDP checksum
          if(ipCalcUpperLayerChecksumEx(pseudoHeader->data,
@@ -209,19 +277,27 @@ error_t udpProcessDatagram(NetInterface *interface,
 
       //UDP socket found?
       if(socket->type != SOCKET_TYPE_DGRAM)
+      {
          continue;
+      }
 
       //Check whether the socket is bound to a particular interface
       if(socket->interface != NULL && socket->interface != interface)
+      {
          continue;
+      }
 
       //Check destination port number
       if(socket->localPort == 0 || socket->localPort != ntohs(header->destPort))
+      {
          continue;
+      }
 
       //Source port number filtering
       if(socket->remotePort != 0 && socket->remotePort != ntohs(header->srcPort))
+      {
          continue;
+      }
 
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 packet received?
@@ -229,7 +305,9 @@ error_t udpProcessDatagram(NetInterface *interface,
       {
          //Check whether the socket is restricted to IPv6 communications only
          if((socket->options & SOCKET_OPTION_IPV6_ONLY) != 0)
+         {
             continue;
+         }
 
          //Check whether the destination address is a unicast, broadcast or
          //multicast address
@@ -237,7 +315,9 @@ error_t udpProcessDatagram(NetInterface *interface,
          {
             //Check whether broadcast datagrams are accepted or not
             if((socket->options & SOCKET_OPTION_BROADCAST) == 0)
+            {
                continue;
+            }
          }
          else if(ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
          {
@@ -265,7 +345,9 @@ error_t udpProcessDatagram(NetInterface *interface,
             {
                //An IPv4 address is expected
                if(socket->localIpAddr.length != sizeof(Ipv4Addr))
+               {
                   continue;
+               }
 
                //Filter out non-matching addresses
                if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
@@ -281,7 +363,9 @@ error_t udpProcessDatagram(NetInterface *interface,
          {
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
+            {
                continue;
+            }
 
             //Filter out non-matching addresses
             if(socket->remoteIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
@@ -325,7 +409,9 @@ error_t udpProcessDatagram(NetInterface *interface,
             {
                //An IPv6 address is expected
                if(socket->localIpAddr.length != sizeof(Ipv6Addr))
+               {
                   continue;
+               }
 
                //Filter out non-matching addresses
                if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr,
@@ -343,7 +429,9 @@ error_t udpProcessDatagram(NetInterface *interface,
          {
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
+            {
                continue;
+            }
 
             //Filter out non-matching addresses
             if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr,
@@ -541,7 +629,9 @@ error_t udpSendDatagram(Socket *socket, const SocketMsg *message, uint_t flags)
    buffer = udpAllocBuffer(0, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Copy data payload
    error = netBufferAppend(buffer, message->data, message->length);
@@ -679,13 +769,17 @@ error_t udpSendBuffer(NetContext *context, NetInterface *interface,
 
    //Check the length of the payload
    if(length > UINT16_MAX)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the UDP header
    header = netBufferAt(buffer, offset, sizeof(UdpHeader));
    //Malformed UDP datagram?
    if(header == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Format UDP header
    header->srcPort = htons(srcPort);
@@ -790,7 +884,9 @@ error_t udpSendBuffer(NetContext *context, NetInterface *interface,
             &pseudoHeader.ipv6Data.srcAddr);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
 
       //Format IPv6 pseudo header
@@ -963,7 +1059,9 @@ NetBuffer *udpAllocBuffer(size_t length, size_t *offset)
    buffer = ipAllocBuffer(length + sizeof(UdpHeader), offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return NULL;
+   }
 
    //Offset to the first byte of the payload
    *offset += sizeof(UdpHeader);
@@ -985,7 +1083,9 @@ void udpUpdateEvents(Socket *socket)
 
    //The socket is marked as readable if a datagram is pending in the queue
    if(socket->receiveQueue)
+   {
       socket->eventFlags |= SOCKET_EVENT_RX_READY;
+   }
 
    //Check whether the socket is bound to a particular network interface
    if(socket->interface != NULL)
@@ -1037,7 +1137,9 @@ error_t udpRegisterRxCallback(NetInterface *interface, uint16_t port,
 
    //Check parameters
    if(interface == NULL || callback == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the TCP/IP stack context
    context = interface->netContext;
@@ -1063,7 +1165,9 @@ error_t udpRegisterRxCallback(NetInterface *interface, uint16_t port,
 
    //Failed to attach the specified user callback?
    if(i >= UDP_CALLBACK_TABLE_SIZE)
+   {
       return ERROR_OUT_OF_RESOURCES;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -1086,7 +1190,9 @@ error_t udpUnregisterRxCallback(NetInterface *interface, uint16_t port)
 
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the TCP/IP stack context
    context = interface->netContext;

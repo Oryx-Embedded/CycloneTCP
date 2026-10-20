@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -70,7 +70,9 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
 
    //Any parsing error?
    if(token == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Basic access authentication?
    if(osStrcasecmp(token, "Basic") == 0)
@@ -115,9 +117,14 @@ error_t webSocketParseAuthenticateField(WebSocket *webSocket, char_t *value)
 
          //Discard the surrounding quotes
          if(n > 0 && value[n - 1] == '\"')
+         {
             value[n - 1] = '\0';
+         }
+
          if(value[0] == '\"')
+         {
             value++;
+         }
 
          //Check parameter name
          if(osStrcasecmp(name, "realm") == 0)

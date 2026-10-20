@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -624,11 +624,15 @@ error_t a2fxxxm3EthUpdateMacConfig(NetInterface *interface)
 {
    //Stop transmission
    while(((MAC->CSR5 & CSR5_TS_MASK) >> CSR5_TS_SHIFT) != CSR5_TS_STOPPED)
+   {
       MAC->CSR6 &= ~CSR6_ST_MASK;
+   }
 
    //Stop reception
    while(((MAC->CSR5 & CSR5_RS_MASK) >> CSR5_RS_SHIFT) != CSR5_RS_STOPPED)
+   {
       MAC->CSR6 &= ~CSR6_SR_MASK;
+   }
 
    //10BASE-T or 100BASE-TX operation mode?
    if(interface->linkSpeed == NIC_LINK_SPEED_100MBPS)

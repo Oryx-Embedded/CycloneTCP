@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -89,7 +89,9 @@ error_t webSocketFormatFrameHeader(WebSocket *webSocket,
          error = webSockRandCallback(txContext->maskingKey, sizeof(uint32_t));
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
       else
       {
@@ -270,12 +272,25 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
       return ERROR_INVALID_FRAME;
    }
 
+   //A client must mask all frames that it sends to the server. The server
+   //must close the connection upon receiving a frame that is not masked
+   //(refer to RFC 6455, section 5.1)
+   if(webSocket->endpoint == WS_ENDPOINT_SERVER && !frame->mask)
+   {
+      //Report a protocol error
+      webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+      //Terminate the WebSocket connection
+      return ERROR_INVALID_FRAME;
+   }
+
    //The Opcode field defines the interpretation of the payload data
    if(frame->opcode == WS_FRAME_TYPE_CONTINUATION)
    {
       //A Continuation frame cannot be the first frame of a fragmented message
       if(rxContext->fin)
+      {
          webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+      }
 
       rxContext->controlFrameType = WS_FRAME_TYPE_CONTINUATION;
    }
@@ -283,7 +298,9 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
    {
       //The Opcode must be 0 in subsequent fragmented frames
       if(!rxContext->fin)
+      {
          webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+      }
 
       //Save the Opcode field
       rxContext->dataFrameType = WS_FRAME_TYPE_TEXT;
@@ -293,7 +310,9 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
    {
       //The Opcode must be 0 in subsequent fragmented frames
       if(!rxContext->fin)
+      {
          webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+      }
 
       //Save the Opcode field
       rxContext->dataFrameType = WS_FRAME_TYPE_BINARY;
@@ -373,11 +392,15 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
 
       //Control frames must not be fragmented
       if(!frame->fin)
+      {
          webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+      }
 
       //All control frames must have a payload length of 125 bytes or less
       if(frame->payloadLen > 125)
+      {
          webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+      }
    }
    else if(frame->opcode == WS_FRAME_TYPE_PONG)
    {
@@ -386,11 +409,15 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
 
       //Control frames must not be fragmented
       if(!frame->fin)
+      {
          webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+      }
 
       //All control frames must have a payload length of 125 bytes or less
       if(frame->payloadLen > 125)
+      {
          webSocket->statusCode = WS_STATUS_CODE_PROTOCOL_ERROR;
+      }
    }
    else
    {
@@ -407,7 +434,9 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
    {
       //Return frame type
       if(type != NULL)
+      {
          *type = rxContext->controlFrameType;
+      }
    }
    else
    {
@@ -416,7 +445,9 @@ error_t webSocketParseFrameHeader(WebSocket *webSocket,
 
       //Return frame type
       if(type != NULL)
+      {
          *type = rxContext->dataFrameType;
+      }
    }
 
    //Check status code
@@ -460,7 +491,9 @@ error_t webSocketFormatCloseFrame(WebSocket *webSocket)
       //1005 is a reserved value and must not be set as a status code in
       //a Close control frame by an endpoint
       if(webSocket->statusCode == WS_STATUS_CODE_NO_STATUS_RCVD)
+      {
          webSocket->statusCode = WS_STATUS_CODE_NORMAL_CLOSURE;
+      }
 
       //Debug message
       TRACE_DEBUG("  Status Code = %u\r\n", webSocket->statusCode);

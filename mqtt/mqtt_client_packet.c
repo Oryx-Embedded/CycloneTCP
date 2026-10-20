@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -122,7 +122,9 @@ error_t mqttClientReceivePacket(MqttClientContext *context)
 
                   //Sanity check
                   if(context->packetLen > MQTT_CLIENT_BUFFER_SIZE)
+                  {
                      error = ERROR_INVALID_LENGTH;
+                  }
                }
             }
 
@@ -152,7 +154,9 @@ error_t mqttClientReceivePacket(MqttClientContext *context)
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Return status code
@@ -184,7 +188,9 @@ error_t mqttClientProcessPacket(MqttClientContext *context)
 
    //Failed to deserialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    TRACE_INFO("MQTT: %s packet received (%" PRIuSIZE " bytes)...\r\n",
@@ -278,8 +284,10 @@ error_t mqttClientProcessConnAck(MqttClientContext *context,
    uint8_t connectReturnCode;
 
    //If invalid flags are received, the receiver must close the network connection
-   if(dup != FALSE && qos != MQTT_QOS_LEVEL_0 && retain != FALSE)
+   if(dup != FALSE || qos != MQTT_QOS_LEVEL_0 || retain != FALSE)
+   {
       return ERROR_INVALID_PACKET;
+   }
 
    //The first byte of the variable header is the Connect Acknowledge Flags
    error = mqttDeserializeByte(context->packet, context->packetLen,
@@ -287,7 +295,9 @@ error_t mqttClientProcessConnAck(MqttClientContext *context,
 
    //Failed to deserialize the Connect Acknowledge Flags?
    if(error)
+   {
       return error;
+   }
 
    //The second byte of the variable header is the Connect Return Code
    error = mqttDeserializeByte(context->packet, context->packetLen,
@@ -295,7 +305,9 @@ error_t mqttClientProcessConnAck(MqttClientContext *context,
 
    //Failed to deserialize the Connect Return Code?
    if(error)
+   {
       return error;
+   }
 
    //Any registered callback?
    if(context->callbacks.connAckCallback != NULL)
@@ -307,7 +319,9 @@ error_t mqttClientProcessConnAck(MqttClientContext *context,
 
    //Make sure the connection is accepted
    if(connectReturnCode != MQTT_CONNECT_RET_CODE_ACCEPTED)
+   {
       return ERROR_CONNECTION_REFUSED;
+   }
 
    //Notify the application that a CONNACK packet has been received
    if(context->packetType == MQTT_PACKET_TYPE_CONNECT)
@@ -339,6 +353,14 @@ error_t mqttClientProcessPublish(MqttClientContext *context,
    uint8_t *message;
    size_t messageLen;
 
+   //A PUBLISH packet must not have both QoS bits set to 1. If a client
+   //receives such a packet, it must close the network connection
+   if(qos != MQTT_QOS_LEVEL_0 && qos != MQTT_QOS_LEVEL_1 &&
+      qos != MQTT_QOS_LEVEL_2)
+   {
+      return ERROR_INVALID_PACKET;
+   }
+
    //The Topic Name must be present as the first field in the PUBLISH
    //packet variable header
    error = mqttDeserializeString(context->packet, context->packetLen,
@@ -346,7 +368,15 @@ error_t mqttClientProcessPublish(MqttClientContext *context,
 
    //Failed to deserialize Topic Name?
    if(error)
+   {
       return error;
+   }
+
+   //All topic names must be at least one character long
+   if(topicLen == 0)
+   {
+      return ERROR_INVALID_PACKET;
+   }
 
    //Check QoS level
    if(qos != MQTT_QOS_LEVEL_0)
@@ -358,7 +388,16 @@ error_t mqttClientProcessPublish(MqttClientContext *context,
 
       //Failed to deserialize Packet Identifier field?
       if(error)
+      {
          return error;
+      }
+
+      //PUBLISH packets with a QoS level of 1 or 2 must contain a non-zero
+      //Packet Identifier
+      if(packetId == 0)
+      {
+         return ERROR_INVALID_PACKET;
+      }
    }
    else
    {
@@ -450,8 +489,10 @@ error_t mqttClientProcessPubAck(MqttClientContext *context,
    uint16_t packetId;
 
    //If invalid flags are received, the receiver must close the network connection
-   if(dup != FALSE && qos != MQTT_QOS_LEVEL_0 && retain != FALSE)
+   if(dup != FALSE || qos != MQTT_QOS_LEVEL_0 || retain != FALSE)
+   {
       return ERROR_INVALID_PACKET;
+   }
 
    //The variable header contains the Packet Identifier from the PUBLISH
    //packet that is being acknowledged
@@ -460,7 +501,9 @@ error_t mqttClientProcessPubAck(MqttClientContext *context,
 
    //Failed to deserialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Any registered callback?
    if(context->callbacks.pubAckCallback != NULL)
@@ -496,8 +539,10 @@ error_t mqttClientProcessPubRec(MqttClientContext *context,
    uint16_t packetId;
 
    //If invalid flags are received, the receiver must close the network connection
-   if(dup != FALSE && qos != MQTT_QOS_LEVEL_0 && retain != FALSE)
+   if(dup != FALSE || qos != MQTT_QOS_LEVEL_0 || retain != FALSE)
+   {
       return ERROR_INVALID_PACKET;
+   }
 
    //The variable header contains the Packet Identifier from the PUBLISH
    //packet that is being acknowledged
@@ -506,7 +551,9 @@ error_t mqttClientProcessPubRec(MqttClientContext *context,
 
    //Failed to deserialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Any registered callback?
    if(context->callbacks.pubRecCallback != NULL)
@@ -556,8 +603,10 @@ error_t mqttClientProcessPubRel(MqttClientContext *context,
    uint16_t packetId;
 
    //If invalid flags are received, the receiver must close the network connection
-   if(dup != FALSE && qos != MQTT_QOS_LEVEL_1 && retain != FALSE)
+   if(dup != FALSE || qos != MQTT_QOS_LEVEL_1 || retain != FALSE)
+   {
       return ERROR_INVALID_PACKET;
+   }
 
    //The variable header contains the same Packet Identifier as the PUBREC
    //packet that is being acknowledged
@@ -566,7 +615,9 @@ error_t mqttClientProcessPubRel(MqttClientContext *context,
 
    //Failed to deserialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Any registered callback?
    if(context->callbacks.pubRelCallback != NULL)
@@ -614,8 +665,10 @@ error_t mqttClientProcessPubComp(MqttClientContext *context,
    uint16_t packetId;
 
    //If invalid flags are received, the receiver must close the network connection
-   if(dup != FALSE && qos != MQTT_QOS_LEVEL_0 && retain != FALSE)
+   if(dup != FALSE || qos != MQTT_QOS_LEVEL_0 || retain != FALSE)
+   {
       return ERROR_INVALID_PACKET;
+   }
 
    //The variable header contains the same Packet Identifier as the PUBREL
    //packet that is being acknowledged
@@ -624,7 +677,9 @@ error_t mqttClientProcessPubComp(MqttClientContext *context,
 
    //Failed to deserialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Any registered callback?
    if(context->callbacks.pubCompCallback != NULL)
@@ -657,11 +712,14 @@ error_t mqttClientProcessSubAck(MqttClientContext *context,
    bool_t dup, MqttQosLevel qos, bool_t retain, size_t remainingLen)
 {
    error_t error;
+   uint8_t returnCode;
    uint16_t packetId;
 
    //If invalid flags are received, the receiver must close the network connection
-   if(dup != FALSE && qos != MQTT_QOS_LEVEL_0 && retain != FALSE)
+   if(dup != FALSE || qos != MQTT_QOS_LEVEL_0 || retain != FALSE)
+   {
       return ERROR_INVALID_PACKET;
+   }
 
    //The variable header contains the Packet Identifier from the SUBSCRIBE
    //packet that is being acknowledged
@@ -670,7 +728,36 @@ error_t mqttClientProcessSubAck(MqttClientContext *context,
 
    //Failed to deserialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
+
+   //The payload contains a list of return codes, one for each topic filter
+   //of the SUBSCRIBE packet
+   error = mqttDeserializeByte(context->packet, context->packetLen,
+      &context->packetPos, &returnCode);
+
+   //Failed to deserialize Return Code field?
+   if(error)
+   {
+      return error;
+   }
+
+   //The SUBACK packet must contain exactly one return code
+   if(context->packetPos != context->packetLen)
+   {
+      return ERROR_INVALID_PACKET;
+   }
+
+   //SUBACK return codes other than 0x00, 0x01, 0x02 and 0x80 are reserved and
+   //must not be used
+   if(returnCode != MQTT_SUBACK_RET_CODE_SUCCESS_QOS_0 &&
+      returnCode != MQTT_SUBACK_RET_CODE_SUCCESS_QOS_1 &&
+      returnCode != MQTT_SUBACK_RET_CODE_SUCCESS_QOS_2 &&
+      returnCode != MQTT_SUBACK_RET_CODE_FAILURE)
+   {
+      return ERROR_INVALID_PACKET;
+   }
 
    //Any registered callback?
    if(context->callbacks.subAckCallback != NULL)
@@ -682,6 +769,9 @@ error_t mqttClientProcessSubAck(MqttClientContext *context,
    //Notify the application that a SUBACK packet has been received
    if(context->packetType == MQTT_PACKET_TYPE_SUBSCRIBE && context->packetId == packetId)
    {
+      //Save the return code
+      context->subAckReturnCode = returnCode;
+      //Update MQTT client state
       mqttClientChangeState(context, MQTT_CLIENT_STATE_PACKET_RECEIVED);
    }
 
@@ -706,8 +796,10 @@ error_t mqttClientProcessUnsubAck(MqttClientContext *context,
    uint16_t packetId;
 
    //If invalid flags are received, the receiver must close the network connection
-   if(dup != FALSE && qos != MQTT_QOS_LEVEL_0 && retain != FALSE)
+   if(dup != FALSE || qos != MQTT_QOS_LEVEL_0 || retain != FALSE)
+   {
       return ERROR_INVALID_PACKET;
+   }
 
    //The variable header contains the Packet Identifier from the UNSUBSCRIBE
    //packet that is being acknowledged
@@ -716,7 +808,9 @@ error_t mqttClientProcessUnsubAck(MqttClientContext *context,
 
    //Failed to deserialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Any registered callback?
    if(context->callbacks.unsubAckCallback != NULL)
@@ -749,8 +843,10 @@ error_t mqttClientProcessPingResp(MqttClientContext *context,
    bool_t dup, MqttQosLevel qos, bool_t retain, size_t remainingLen)
 {
    //If invalid flags are received, the receiver must close the network connection
-   if(dup != FALSE && qos != MQTT_QOS_LEVEL_0 && retain != FALSE)
+   if(dup != FALSE || qos != MQTT_QOS_LEVEL_0 || retain != FALSE)
+   {
       return ERROR_INVALID_PACKET;
+   }
 
    //Any registered callback?
    if(context->callbacks.pingRespCallback != NULL)
@@ -812,7 +908,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The Protocol Level represents the revision level of the protocol
    //used by the client
@@ -821,7 +919,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //The Connect Flags byte contains a number of parameters specifying
    //the behavior of the MQTT connection
@@ -830,12 +930,16 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
    //If CleanSession is set to 1, the client and server must discard any
    //previous session and start a new one
    if(cleanSession)
+   {
       connectFlags |= MQTT_CONNECT_FLAG_CLEAN_SESSION;
+   }
 
    //If the client supplies a zero-byte Client Identifier, the client must
    //also set CleanSession to 1
    if(context->settings.clientId[0] == '\0')
+   {
       connectFlags |= MQTT_CONNECT_FLAG_CLEAN_SESSION;
+   }
 
    //Point to the Will message
    willMessage = &context->settings.willMessage;
@@ -859,16 +963,22 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
       //The Will Retain flag specifies if the Will Message is to be
       //retained when it is published
       if(willMessage->retain)
+      {
          connectFlags |= MQTT_CONNECT_FLAG_WILL_RETAIN;
+      }
    }
 
    //Check whether a valid user name has been specified
    if(context->settings.username[0] != '\0')
+   {
       connectFlags |= MQTT_CONNECT_FLAG_USERNAME;
+   }
 
    //Check whether a valid password has been specified
    if(context->settings.password[0] != '\0')
+   {
       connectFlags |= MQTT_CONNECT_FLAG_PASSWORD;
+   }
 
    //Write the Connect Flags to the output buffer
    error = mqttSerializeByte(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
@@ -876,7 +986,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //The Keep Alive is a time interval measured in seconds. It is the maximum
    //time interval that is permitted to elapse between the point at which the
@@ -887,7 +999,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //The Client Identifier identifies the client to the server. The Client
    //Identifier must be present and must be the first field in the CONNECT
@@ -897,7 +1011,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //If the Will Flag is set to 1, the Will Topic is the next field in
    //the payload
@@ -909,7 +1025,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
       //Failed to serialize data?
       if(error)
+      {
          return error;
+      }
 
       //Write the Will message to the output buffer
       error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
@@ -917,7 +1035,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
       //Failed to serialize data?
       if(error)
+      {
          return error;
+      }
    }
 
    //If the User Name Flag is set to 1, this is the next field in the payload
@@ -929,7 +1049,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
       //Failed to serialize data?
       if(error)
+      {
          return error;
+      }
    }
 
    //If the Password Flag is set to 1, this is the next field in the payload
@@ -941,7 +1063,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
       //Failed to serialize data?
       if(error)
+      {
          return error;
+      }
    }
 
    //Calculate the length of the variable header and the payload
@@ -956,7 +1080,9 @@ error_t mqttClientFormatConnect(MqttClientContext *context,
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;
@@ -991,7 +1117,9 @@ error_t mqttClientFormatPublish(MqttClientContext *context,
 
    //Failed to serialize Topic Name?
    if(error)
+   {
       return error;
+   }
 
    //Check QoS level
    if(publishInfo->qos != MQTT_QOS_LEVEL_0)
@@ -1014,7 +1142,9 @@ error_t mqttClientFormatPublish(MqttClientContext *context,
 
       //Failed to serialize Packet Identifier field?
       if(error)
+      {
          return error;
+      }
    }
 
    //Check if the payload fits in the buffer
@@ -1027,7 +1157,9 @@ error_t mqttClientFormatPublish(MqttClientContext *context,
 
       //Failed to serialize Application Message?
       if(error)
+      {
          return error;
+      }
 
       //Calculate the length of the variable header and the payload
       context->packetLen = n - MQTT_MAX_HEADER_SIZE;
@@ -1042,7 +1174,9 @@ error_t mqttClientFormatPublish(MqttClientContext *context,
 
       //Failed to serialize fixed header?
       if(error)
+      {
          return error;
+      }
 
       //The buffer contains both the header and the payload
       context->payloadPos = publishInfo->payloadLen;
@@ -1063,7 +1197,9 @@ error_t mqttClientFormatPublish(MqttClientContext *context,
 
       //Failed to serialize fixed header?
       if(error)
+      {
          return error;
+      }
 
       //The payload will be sent separately
       context->payloadPos = 0;
@@ -1102,7 +1238,9 @@ error_t mqttClientFormatPubAck(MqttClientContext *context, uint16_t packetId)
 
    //Failed to serialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Calculate the length of the variable header and the payload
    context->packetLen = n - MQTT_MAX_HEADER_SIZE;
@@ -1116,7 +1254,9 @@ error_t mqttClientFormatPubAck(MqttClientContext *context, uint16_t packetId)
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;
@@ -1150,7 +1290,9 @@ error_t mqttClientFormatPubRec(MqttClientContext *context, uint16_t packetId)
 
    //Failed to serialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Calculate the length of the variable header and the payload
    context->packetLen = n - MQTT_MAX_HEADER_SIZE;
@@ -1164,7 +1306,9 @@ error_t mqttClientFormatPubRec(MqttClientContext *context, uint16_t packetId)
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;
@@ -1198,7 +1342,9 @@ error_t mqttClientFormatPubRel(MqttClientContext *context, uint16_t packetId)
 
    //Failed to serialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Calculate the length of the variable header and the payload
    context->packetLen = n - MQTT_MAX_HEADER_SIZE;
@@ -1212,7 +1358,9 @@ error_t mqttClientFormatPubRel(MqttClientContext *context, uint16_t packetId)
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;
@@ -1246,7 +1394,9 @@ error_t mqttClientFormatPubComp(MqttClientContext *context, uint16_t packetId)
 
    //Failed to serialize Packet Identifier field?
    if(error)
+   {
       return error;
+   }
 
    //Calculate the length of the variable header and the payload
    context->packetLen = n - MQTT_MAX_HEADER_SIZE;
@@ -1260,7 +1410,9 @@ error_t mqttClientFormatPubComp(MqttClientContext *context, uint16_t packetId)
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;
@@ -1307,7 +1459,9 @@ error_t mqttClientFormatSubscribe(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //Write the Topic Filter to the output buffer
    error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
@@ -1315,7 +1469,9 @@ error_t mqttClientFormatSubscribe(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //Write the Requested QoS to the output buffer
    error = mqttSerializeByte(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
@@ -1323,7 +1479,9 @@ error_t mqttClientFormatSubscribe(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //Calculate the length of the variable header and the payload
    context->packetLen = n - MQTT_MAX_HEADER_SIZE;
@@ -1337,7 +1495,9 @@ error_t mqttClientFormatSubscribe(MqttClientContext *context,
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;
@@ -1382,7 +1542,9 @@ error_t mqttClientFormatUnsubscribe(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //Write the Topic Filter to the output buffer
    error = mqttSerializeString(context->buffer, MQTT_CLIENT_BUFFER_SIZE,
@@ -1390,7 +1552,9 @@ error_t mqttClientFormatUnsubscribe(MqttClientContext *context,
 
    //Failed to serialize data?
    if(error)
+   {
       return error;
+   }
 
    //Calculate the length of the variable header and the payload
    context->packetLen = n - MQTT_MAX_HEADER_SIZE;
@@ -1404,7 +1568,9 @@ error_t mqttClientFormatUnsubscribe(MqttClientContext *context,
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;
@@ -1436,7 +1602,9 @@ error_t mqttClientFormatPingReq(MqttClientContext *context)
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;
@@ -1468,7 +1636,9 @@ error_t mqttClientFormatDisconnect(MqttClientContext *context)
 
    //Failed to serialize fixed header?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the MQTT packet
    context->packet = context->buffer + n;

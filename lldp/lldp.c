@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -99,19 +99,27 @@ error_t lldpInit(LldpAgentContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The LLDP agent must be bound to a valid interface
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check the port table
    if(settings->numPorts == 0 || settings->ports == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The neighbor table is not used in TX-only mode
    if(settings->numNeighbors != 0 && settings->neighbors == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear the LLDP agent context
    osMemset(context, 0, sizeof(LldpAgentContext));
@@ -274,14 +282,18 @@ error_t lldpStart(LldpAgentContext *context)
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting LLDP agent...\r\n");
 
    //Make sure the LLDP agent is not already running
    if(context->running)
+   {
       return ERROR_ALREADY_RUNNING;
+   }
 
    //Start of exception handling block
    do
@@ -292,7 +304,6 @@ error_t lldpStart(LldpAgentContext *context)
       //Failed to open socket?
       if(context->socket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -301,19 +312,25 @@ error_t lldpStart(LldpAgentContext *context)
       error = socketSetTimeout(context->socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket, context->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
+      {
          break;
+      }
 
       //Add the LLDP multicast address to the static MAC table
       error = lldpAcceptMulticastAddr(context);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Start the LLDP agent
       context->stop = FALSE;
@@ -329,7 +346,6 @@ error_t lldpStart(LldpAgentContext *context)
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -366,7 +382,9 @@ error_t lldpStop(LldpAgentContext *context)
 {
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping LLDP agent...\r\n");
@@ -416,11 +434,15 @@ error_t lldpSetPortAddr(LldpAgentContext *context, uint_t portIndex,
 
    //Check parameters
    if(context == NULL || macAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Acquire exclusive access to the LLDP agent context
    osAcquireMutex(&context->mutex);
@@ -659,11 +681,15 @@ error_t lldpSetMgmtAddrFilter(LldpAgentContext *context, uint_t portIndex,
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Acquire exclusive access to the LLDP agent context
    osAcquireMutex(&context->mutex);
@@ -710,7 +736,9 @@ error_t lldpSetLocalChassisId(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || chassisId == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check the length of the chassis ID
    if(chassisIdLen < LLDP_MIN_CHASSIS_ID_LEN ||
@@ -778,11 +806,15 @@ error_t lldpSetLocalPortId(LldpAgentContext *context, uint_t portIndex,
 
    //Check parameters
    if(context == NULL || portId == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Check the length of the port ID
    if(portIdLen < LLDP_MIN_PORT_ID_LEN || portIdLen > LLDP_MAX_PORT_ID_LEN)
@@ -849,11 +881,15 @@ error_t lldpSetLocalPortDesc(LldpAgentContext *context, uint_t portIndex,
 
    //Check parameters
    if(context == NULL || portDesc == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Get the length of the port's description
    n = osStrlen(portDesc);
@@ -909,7 +945,9 @@ error_t lldpSetLocalSysName(LldpAgentContext *context, const char_t *sysName)
 
    //Check parameters
    if(context == NULL || sysName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get the length of the system name
    n = osStrlen(sysName);
@@ -963,7 +1001,9 @@ error_t lldpSetLocalSysDesc(LldpAgentContext *context, const char_t *sysDesc)
 
    //Check parameters
    if(context == NULL || sysDesc == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get the length of the system description
    n = osStrlen(sysDesc);
@@ -1020,7 +1060,9 @@ error_t lldpSetLocalSysCap(LldpAgentContext *context, uint16_t supportedCap,
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the LLDP agent context
    osAcquireMutex(&context->mutex);
@@ -1093,27 +1135,39 @@ error_t lldpSetLocalMgmtAddr(LldpAgentContext *context, uint_t index,
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check index value
    if(index > LLDP_MAX_MGMT_ADDRS)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the management address is valid
    if(mgmtAddr == NULL && mgmtAddrLen != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check the length of the management address
    if(mgmtAddrLen > LLDP_MAX_MGMT_ADDR_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the object identifier is valid
    if(oid == NULL && oidLen != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check the length of the object identifier
    if(oidLen > LLDP_MAX_OID_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Acquire exclusive access to the LLDP agent context
    osAcquireMutex(&context->mutex);
@@ -1226,7 +1280,9 @@ error_t lldpDeleteLocalTlv(LldpAgentContext *context, LldpTlvType type)
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check TLV type
    if(type != LLDP_TLV_TYPE_PORT_DESC &&

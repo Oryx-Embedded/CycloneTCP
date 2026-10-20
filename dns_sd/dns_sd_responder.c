@@ -33,7 +33,7 @@
  * - RFC 2782: A DNS RR for specifying the location of services (DNS SRV)
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -92,7 +92,9 @@ error_t dnsSdResponderInit(DnsSdResponderContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check settings
    if(settings->interface == NULL || settings->services == NULL ||
@@ -160,7 +162,9 @@ error_t dnsSdResponderStart(DnsSdResponderContext *context)
 
    //Make sure the DNS-SD responder context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting DNS-SD...\r\n");
@@ -198,7 +202,9 @@ error_t dnsSdResponderStop(DnsSdResponderContext *context)
 
    //Make sure the DNS-SD responder context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping DNS-SD...\r\n");
@@ -259,15 +265,21 @@ error_t dnsSdResponderRegisterService(DnsSdResponderContext *context,
 
    //The implementation limits the number of services that can be advertised
    if(index >= context->numServices)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the instance name is acceptable
    if(osStrlen(instanceName) > DNS_SD_MAX_INSTANCE_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the length of the service name is acceptable
    if(osStrlen(serviceName) > DNS_SD_MAX_SERVICE_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get exclusive access
    netLock(context->netContext);
@@ -316,7 +328,9 @@ error_t dnsSdResponderRegisterService(DnsSdResponderContext *context,
 
          //Check the length of the resulting TXT record
          if((service->metadataLen + n + 1) > DNS_SD_MAX_METADATA_LEN)
+         {
             break;
+         }
 
          //Write length field
          service->metadata[k] = n;
@@ -333,7 +347,9 @@ error_t dnsSdResponderRegisterService(DnsSdResponderContext *context,
 
          //End of string detected?
          if(metadata[i] == '\0')
+         {
             break;
+         }
       }
 
       //Advance read index
@@ -373,11 +389,15 @@ error_t dnsSdResponderUnregisterService(DnsSdResponderContext *context,
 
    //Check parameters
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The implementation limits the number of services that can be advertised
    if(index >= context->numServices)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(context->netContext);
@@ -417,7 +437,9 @@ error_t dnsSdResponderStartProbing(DnsSdResponderContext *context)
 
    //Check parameter
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Loop through the list of registered services
    for(i = 0; i < context->numServices; i++)
@@ -450,7 +472,9 @@ void dnsSdResponderTick(DnsSdResponderContext *context)
 
    //Make sure the DNS-SD responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Point to the underlying network interface
    interface = context->interface;
@@ -629,7 +653,9 @@ void dnsSdResponderLinkChangeEvent(DnsSdResponderContext *context)
 
    //Make sure the DNS-SD responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Loop through the list of registered services
    for(i = 0; i < context->numServices; i++)

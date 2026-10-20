@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -71,13 +71,17 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
          genericTrapType, specificTrapCode, objectList, objectListSize);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Format SMNP message header
       error = snmpWriteMessageHeader(&context->response);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else
 #endif
@@ -93,7 +97,9 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
 
       //Invalid user name?
       if(user == NULL || user->status != MIB_ROW_STATUS_ACTIVE)
+      {
          return ERROR_UNKNOWN_USER_NAME;
+      }
 
       //Save the security profile associated with the current user
       context->user = *user;
@@ -108,7 +114,9 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
             &context->user.rawAuthKey, &context->user.localizedAuthKey);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
 
       //Localize the privacy key with the engine ID of the remote
@@ -121,7 +129,9 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
             &context->user.rawPrivKey, &context->user.localizedPrivKey);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
 
       //Format InformRequest-PDU
@@ -129,13 +139,17 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
          genericTrapType, specificTrapCode, objectList, objectListSize);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Format scopedPDU
       error = snmpWriteScopedPdu(&context->response);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the privFlag is set
       if((context->response.msgFlags & SNMP_MSG_FLAG_PRIV) != 0)
@@ -145,14 +159,18 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
             context->salt);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
 
       //Format SMNP message header
       error = snmpWriteMessageHeader(&context->response);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the authFlag is set
       if((context->response.msgFlags & SNMP_MSG_FLAG_AUTH) != 0)
@@ -161,7 +179,9 @@ error_t snmpFormatInformRequestMessage(SnmpAgentContext *context,
          error = snmpAuthOutgoingMessage(&context->user, &context->response);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
    }
    else
@@ -225,7 +245,9 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
       message->msgId = context->msgId++;
       //Wrap around if necessary
       if(context->msgId < 0)
+      {
          context->msgId = 0;
+      }
 
       //Save the value of the msgId field
       context->informMsgId = message->msgId;
@@ -235,9 +257,14 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
 
       //Bit fields which control processing of the message
       if(context->user.authProtocol != SNMP_AUTH_PROTOCOL_NONE)
+      {
          message->msgFlags |= SNMP_MSG_FLAG_AUTH;
+      }
+
       if(context->user.privProtocol != SNMP_PRIV_PROTOCOL_NONE)
+      {
          message->msgFlags |= SNMP_MSG_FLAG_PRIV;
+      }
 
       //The reportable flag must always be set for acknowledged
       //notification-type PDUs (refer to RFC 3412, section 6.4)
@@ -299,7 +326,9 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
    message->requestId = context->requestId++;
    //Wrap around if necessary
    if(context->requestId < 0)
+   {
       context->requestId = 0;
+   }
 
    //Save the value of the request-id field
    context->informRequestId = message->requestId;
@@ -308,14 +337,18 @@ error_t snmpFormatInformRequestPdu(SnmpAgentContext *context,
    error = snmpComputeMessageOverhead(&context->response);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format the list of variable bindings
    error = snmpWriteTrapVarBindingList(context, genericTrapType,
       specificTrapCode, objectList, objectListSize);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format PDU header
    error = snmpWritePduHeader(&context->response);
@@ -343,19 +376,25 @@ error_t snmpFormatGetRequestMessage(SnmpAgentContext *context,
    error = snmpFormatGetRequestPdu(context, version);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format scopedPDU
    error = snmpWriteScopedPdu(&context->response);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format SMNP message header
    error = snmpWriteMessageHeader(&context->response);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -390,7 +429,9 @@ error_t snmpFormatGetRequestPdu(SnmpAgentContext *context, SnmpVersion version)
       message->msgId = context->msgId++;
       //Wrap around if necessary
       if(context->msgId < 0)
+      {
          context->msgId = 0;
+      }
 
       //Save the value of the msgId field
       context->informMsgId = message->msgId;
@@ -414,7 +455,9 @@ error_t snmpFormatGetRequestPdu(SnmpAgentContext *context, SnmpVersion version)
    message->requestId = context->requestId++;
    //Wrap around if necessary
    if(context->requestId < 0)
+   {
       context->requestId = 0;
+   }
 
    //Save the value of the request-id field
    context->informRequestId = message->requestId;
@@ -423,7 +466,9 @@ error_t snmpFormatGetRequestPdu(SnmpAgentContext *context, SnmpVersion version)
    error = snmpComputeMessageOverhead(&context->response);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format PDU header
    error = snmpWritePduHeader(&context->response);

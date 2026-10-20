@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -57,7 +57,9 @@ error_t mqttSnClientInit(MqttSnClientContext *context)
 
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear MQTT-SN client context
    osMemset(context, 0, sizeof(MqttSnClientContext));
@@ -70,7 +72,9 @@ error_t mqttSnClientInit(MqttSnClientContext *context)
    error = tlsInitSessionState(&context->dtlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Initialize MQTT-SN client state
@@ -103,7 +107,9 @@ error_t mqttSnClientSetTransportProtocol(MqttSnClientContext *context,
 {
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save the transport protocol to be used
    context->transportProtocol = transportProtocol;
@@ -127,7 +133,9 @@ error_t mqttSnClientRegisterDtlsInitCallback(MqttSnClientContext *context,
 {
    //Check parameters
    if(context == NULL || callback == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->dtlsInitCallback = callback;
@@ -152,7 +160,9 @@ error_t mqttSnClientRegisterPublishCallback(MqttSnClientContext *context,
 {
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->publishCallback = callback;
@@ -175,11 +185,15 @@ error_t mqttSnClientSetPredefinedTopics(MqttSnClientContext *context,
 {
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check parameters
    if(predefinedTopics == NULL && size != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save the list of predefined topics
    context->predefinedTopicTable = predefinedTopics;
@@ -201,7 +215,9 @@ error_t mqttSnClientSetTimeout(MqttSnClientContext *context, systime_t timeout)
 {
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
@@ -222,7 +238,9 @@ error_t mqttSnClientSetKeepAlive(MqttSnClientContext *context, systime_t keepAli
 {
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save keep-alive value
    context->keepAlive = keepAlive;
@@ -244,11 +262,15 @@ error_t mqttSnClientSetIdentifier(MqttSnClientContext *context,
 {
    //Check parameters
    if(context == NULL || clientId == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the client identifier is acceptable
    if(osStrlen(clientId) > MQTT_SN_CLIENT_MAX_ID_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save client identifier
    osStrcpy(context->clientId, clientId);
@@ -275,11 +297,15 @@ error_t mqttSnClientSetWillMessage(MqttSnClientContext *context,
 {
    //Check parameters
    if(context == NULL || topic == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the Will topic is acceptable
    if(osStrlen(topic) > MQTT_SN_CLIENT_MAX_WILL_TOPIC_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save Will topic
    osStrcpy(context->willMessage.topic, topic);
@@ -289,11 +315,15 @@ error_t mqttSnClientSetWillMessage(MqttSnClientContext *context,
    {
       //Sanity check
       if(message == NULL)
+      {
          return ERROR_INVALID_PARAMETER;
+      }
 
       //Make sure the length of the Will message payload is acceptable
       if(osStrlen(message) > MQTT_SN_CLIENT_MAX_WILL_PAYLOAD_LEN)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Save Will message payload
       osMemcpy(context->willMessage.payload, message, length);
@@ -324,7 +354,9 @@ error_t mqttSnClientBindToInterface(MqttSnClientContext *context,
 {
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the MQTT client with the specified interface
    context->interface = interface;
@@ -347,7 +379,9 @@ error_t mqttSnClientSetGateway(MqttSnClientContext *context,
 {
    //Check parameters
    if(context == NULL || gwIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save the IP address and the port number of the MQTT-SN gateway
    context->gwIpAddr = *gwIpAddr;
@@ -374,7 +408,9 @@ error_t mqttSnClientSearchGateway(MqttSnClientContext *context,
 
    //Check parameters
    if(context == NULL || destIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -486,7 +522,9 @@ error_t mqttSnClientConnect(MqttSnClientContext *context, bool_t cleanSession)
 
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -651,11 +689,19 @@ error_t mqttSnClientPublish(MqttSnClientContext *context,
 
    //Check parameters
    if(context == NULL || topicName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(message == NULL && length != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(dup && msgId == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -721,7 +767,9 @@ error_t mqttSnClientPublish(MqttSnClientContext *context,
             //In the QoS 0, no response is sent by the receiver and no retry
             //is performed by the sender
             if(qos != MQTT_SN_QOS_LEVEL_1 && qos != MQTT_SN_QOS_LEVEL_2)
+            {
                break;
+            }
          }
       }
       else if(context->state == MQTT_SN_CLIENT_STATE_SENDING_REQ)
@@ -872,7 +920,9 @@ error_t mqttSnClientPublish(MqttSnClientContext *context,
 
    //Return the message identifier that was used to send the PUBLISH message
    if(msgId != NULL)
+   {
       *msgId = publishMsgId;
+   }
 
    //Return status code
    return error;
@@ -896,7 +946,9 @@ error_t mqttSnClientSubscribe(MqttSnClientContext *context,
 
    //Check parameters
    if(context == NULL || topicName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1005,7 +1057,9 @@ error_t mqttSnClientUnsubscribe(MqttSnClientContext *context,
 
    //Check parameters
    if(context == NULL || topicName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1094,7 +1148,9 @@ error_t mqttSnClientPing(MqttSnClientContext *context)
 
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1194,9 +1250,14 @@ error_t mqttSnClientUpdateWillMessage(MqttSnClientContext *context,
 
    //Check parameters
    if(context == NULL || topic == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(message == NULL && length != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1337,7 +1398,9 @@ error_t mqttSnClientGetReturnCode(MqttSnClientContext *context,
 {
    //Check parameters
    if(context == NULL || returnCode == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve return code
    *returnCode = context->returnCode;
@@ -1360,7 +1423,9 @@ error_t mqttSnClientTask(MqttSnClientContext *context, systime_t timeout)
 
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the MQTT-SN client is connected
    if(context->state == MQTT_SN_CLIENT_STATE_ACTIVE ||
@@ -1396,7 +1461,9 @@ error_t mqttSnClientDisconnect(MqttSnClientContext *context,
 
    //Make sure the MQTT-SN client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;

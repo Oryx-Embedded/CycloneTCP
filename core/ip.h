@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _IP_H
@@ -58,8 +58,11 @@ extern "C" {
 
 typedef enum
 {
+   IP_PROTOCOL_IPV4 = 4,
    IP_PROTOCOL_TCP  = 6,
-   IP_PROTOCOL_UDP  = 17
+   IP_PROTOCOL_UDP  = 17,
+   IP_PROTOCOL_IPV6 = 41,
+   IP_PROTOCOL_GRE  = 47
 } IpProtocol;
 
 

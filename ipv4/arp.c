@@ -31,7 +31,7 @@
  * more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -86,7 +86,9 @@ error_t arpEnable(NetInterface *interface, bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -123,7 +125,9 @@ error_t arpSetReachableTime(NetInterface *interface, systime_t reachableTime)
 
    //Check parameters
    if(interface == NULL || reachableTime == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -171,7 +175,9 @@ error_t arpSetProbeTimout(NetInterface *interface, systime_t probeTimeout)
 
    //Check parameters
    if(interface == NULL || probeTimeout == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -220,7 +226,9 @@ error_t arpAddStaticEntry(NetInterface *interface, Ipv4Addr ipAddr,
 
    //Check parameters
    if(interface == NULL || macAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -292,7 +300,9 @@ error_t arpRemoveStaticEntry(NetInterface *interface, Ipv4Addr ipAddr)
 
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -651,7 +661,9 @@ void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket,
 
    //Discard invalid ARP packets
    if(length < sizeof(ArpPacket))
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("ARP packet received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -660,19 +672,27 @@ void arpProcessPacket(NetInterface *interface, ArpPacket *arpPacket,
 
    //Make sure the hardware type is valid
    if(arpPacket->hrd != HTONS(ARP_HARDWARE_TYPE_ETH))
+   {
       return;
+   }
 
    //Make sure the protocol type is valid
    if(arpPacket->pro != HTONS(ARP_PROTOCOL_TYPE_IPV4))
+   {
       return;
+   }
 
    //Check the length of the hardware address
    if(arpPacket->hln != sizeof(MacAddr))
+   {
       return;
+   }
 
    //Check the length of the protocol address
    if(arpPacket->pln != sizeof(Ipv4Addr))
+   {
       return;
+   }
 
    //The target protocol address must a valid address assigned to the interface
    //or a tentative address whose uniqueness on a link is being verified
@@ -859,7 +879,9 @@ void arpProcessReply(NetInterface *interface, ArpPacket *arpReply)
 
    //Check whether the target IP address is an address being probed for
    if(ipv4IsTentativeAddr(interface, arpReply->tpa))
+   {
       return;
+   }
 
    //Search the ARP cache for the specified IPv4 address
    entry = arpFindEntry(interface, arpReply->spa);
@@ -932,7 +954,9 @@ error_t arpSendProbe(NetInterface *interface, Ipv4Addr targetIpAddr)
    buffer = ethAllocBuffer(sizeof(ArpPacket), &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the ARP packet
    arpRequest = netBufferAt(buffer, offset, 0);
@@ -995,13 +1019,17 @@ error_t arpSendRequest(NetInterface *interface, Ipv4Addr targetIpAddr,
       &senderIpAddr);
    //No address assigned to the interface?
    if(error)
+   {
       return error;
+   }
 
    //Allocate a memory buffer to hold an ARP packet
    buffer = ethAllocBuffer(sizeof(ArpPacket), &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the ARP packet
    arpRequest = netBufferAt(buffer, offset, 0);
@@ -1040,7 +1068,7 @@ error_t arpSendRequest(NetInterface *interface, Ipv4Addr targetIpAddr,
 /**
  * @brief Send ARP reply
  * @param[in] interface Underlying network interface
- * @param[in] senderIpAddr Sender Ipv4 address
+ * @param[in] senderIpAddr Sender IPv4 address
  * @param[in] targetIpAddr Target IPv4 address
  * @param[in] targetMacAddr Target MAC address
  * @return Error code
@@ -1063,7 +1091,9 @@ error_t arpSendReply(NetInterface *interface, Ipv4Addr senderIpAddr,
    buffer = ethAllocBuffer(sizeof(ArpPacket), &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the ARP packet
    arpReply = netBufferAt(buffer, offset, 0);

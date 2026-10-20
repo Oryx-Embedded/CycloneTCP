@@ -30,7 +30,7 @@
  * language used to generate dynamic content to web pages
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -83,7 +83,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
 
    //Recursion limit exceeded?
    if(level >= HTTP_SERVER_SSI_MAX_RECURSION)
+   {
       return NO_ERROR;
+   }
 
    //Retrieve the full pathname
    httpGetAbsolutePath(connection, uri,
@@ -94,7 +96,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
    file = fsOpenFile(connection->buffer, FS_FILE_MODE_READ);
    //Failed to open the file?
    if(file == NULL)
+   {
       return ERROR_NOT_FOUND;
+   }
 
    //Allocate a memory buffer
    buffer = osAllocMem(HTTP_SERVER_BUFFER_SIZE);
@@ -111,7 +115,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
    error = resGetData(connection->buffer, (const uint8_t **) &data, &length);
    //The specified URI cannot be found?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Send the HTTP response header before executing the script
@@ -191,7 +197,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
          error = httpWriteStream(connection, buffer + pos, n);
          //Failed to send data?
          if(error)
+         {
             break;
+         }
 
          //Advance data pointer
          pos += n;
@@ -211,7 +219,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
             error = ssiProcessCommand(connection, buffer + pos, n, uri, level);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //Advance data pointer over the SSI tag
             pos += n + 3;
@@ -235,7 +245,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
                error = httpWriteStream(connection, buffer + pos, length);
                //Any error to report?
                if(error)
+               {
                   break;
+               }
 
                //Rewind to the beginning of the buffer
                pos = 0;
@@ -252,7 +264,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
          error = httpWriteStream(connection, buffer + pos, n);
          //Failed to send data?
          if(error)
+         {
             break;
+         }
 
          //Advance data pointer
          pos += n;
@@ -272,7 +286,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
          error = httpWriteStream(connection, buffer + pos, length);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Rewind to the beginning of the buffer
          pos = 0;
@@ -289,7 +305,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
 
    //Properly close the output stream
    if(!level && error == NO_ERROR)
+   {
       error = httpCloseStream(connection);
+   }
 #else
    //Parse the specified file
    while(length > 0)
@@ -311,7 +329,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
          error = httpWriteStream(connection, data, i);
          //Failed to send data?
          if(error)
+         {
             return error;
+         }
 
          //Advance data pointer over the opening identifier
          data += i + 5;
@@ -321,7 +341,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
          error = ssiProcessCommand(connection, data, j, uri, level);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Advance data pointer over the SSI tag
          data += j + 3;
@@ -333,7 +355,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
          error = httpWriteStream(connection, data, length);
          //Failed to send data?
          if(error)
+         {
             return error;
+         }
 
          //Advance data pointer
          data += length;
@@ -343,7 +367,9 @@ error_t ssiExecuteScript(HttpConnection *connection, const char_t *uri, uint_t l
 
    //Properly close the output stream
    if(!level)
+   {
       error = httpCloseStream(connection);
+   }
 #endif
 
    //Return status code
@@ -431,7 +457,9 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
 
    //Discard invalid SSI directives
    if(length < 7 || length >= HTTP_SERVER_BUFFER_SIZE)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Skip the SSI include command (7 bytes)
    osMemcpy(connection->buffer, tag + 7, length - 7);
@@ -442,7 +470,9 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
    separator = osStrchr(connection->buffer, '=');
    //Separator not found?
    if(!separator)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Split the tag
    *separator = '\0';
@@ -453,7 +483,9 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
 
    //Remove leading simple or double quote
    if(value[0] == '\'' || value[0] == '\"')
+   {
       value++;
+   }
 
    //Get the length of the attribute value
    length = osStrlen(value);
@@ -462,12 +494,16 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
    if(length > 0)
    {
       if(value[length - 1] == '\'' || value[length - 1] == '\"')
+      {
          value[length - 1] = '\0';
+      }
    }
 
    //Check the length of the filename
    if(osStrlen(value) > HTTP_SERVER_URI_MAX_LEN)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //The file parameter defines the included file as relative to the document path
    if(osStrcasecmp(attribute, "file") == 0)
@@ -476,7 +512,9 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
       path = osAllocMem(osStrlen(uri) + osStrlen(value) + 1);
       //Failed to allocate memory?
       if(path == NULL)
+      {
          return ERROR_OUT_OF_MEMORY;
+      }
 
       //Copy the path identifying the script file being processed
       osStrcpy(path, uri);
@@ -500,7 +538,9 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
       path = strDuplicate(value);
       //Failed to duplicate the string?
       if(path == NULL)
+      {
          return ERROR_OUT_OF_MEMORY;
+      }
    }
    //Unknown parameter...
    else
@@ -539,13 +579,17 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
             error = fsReadFile(file, connection->buffer, HTTP_SERVER_BUFFER_SIZE, &length);
             //End of input stream?
             if(error)
+            {
                break;
+            }
 
             //Send data to the client
             error = httpWriteStream(connection, connection->buffer, length);
             //Any error to report?
             if(error)
+            {
                break;
+            }
          }
 
          //Close the file
@@ -553,7 +597,9 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
 
          //Successful file transfer?
          if(error == ERROR_END_OF_FILE)
+         {
             error = NO_ERROR;
+         }
       }
       else
       {
@@ -572,13 +618,17 @@ error_t ssiProcessIncludeCommand(HttpConnection *connection,
 
       //Send the contents of the requested file
       if(!error)
+      {
          error = httpWriteStream(connection, data, length);
+      }
 #endif
    }
 
    //Cannot found the specified resource?
    if(error == ERROR_NOT_FOUND)
+   {
       error = ERROR_INVALID_TAG;
+   }
 
    //Release previously allocated memory
    osFreeMem(path);
@@ -609,7 +659,9 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
 
    //Discard invalid SSI directives
    if(length < 4 || length >= HTTP_SERVER_BUFFER_SIZE)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Skip the SSI echo command (4 bytes)
    osMemcpy(connection->buffer, tag + 4, length - 4);
@@ -620,7 +672,9 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
    separator = osStrchr(connection->buffer, '=');
    //Separator not found?
    if(!separator)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Split the tag
    *separator = '\0';
@@ -631,7 +685,9 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
 
    //Remove leading simple or double quote
    if(value[0] == '\'' || value[0] == '\"')
+   {
       value++;
+   }
 
    //Get the length of the attribute value
    length = osStrlen(value);
@@ -640,12 +696,16 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
    if(length > 0)
    {
       if(value[length - 1] == '\'' || value[length - 1] == '\"')
+      {
          value[length - 1] = '\0';
+      }
    }
 
    //Enforce attribute name
    if(osStrcasecmp(attribute, "var") != 0)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Remote address?
    if(osStrcasecmp(value, "REMOTE_ADDR") == 0)
@@ -753,7 +813,9 @@ error_t ssiProcessEchoCommand(HttpConnection *connection, const char_t *tag,
    error = httpWriteStream(connection, connection->buffer, length);
    //Failed to send data?
    if(error)
+   {
       return error;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -782,11 +844,15 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag,
 
    //First, check whether CGI is supported by the server
    if(connection->settings->cgiCallback == NULL)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Discard invalid SSI directives
    if(length < 4 || length >= HTTP_SERVER_BUFFER_SIZE)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Skip the SSI exec command (4 bytes)
    osMemcpy(connection->buffer, tag + 4, length - 4);
@@ -797,7 +863,9 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag,
    separator = osStrchr(connection->buffer, '=');
    //Separator not found?
    if(!separator)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Split the tag
    *separator = '\0';
@@ -834,7 +902,9 @@ error_t ssiProcessExecCommand(HttpConnection *connection, const char_t *tag,
 
    //Check the length of the CGI parameter
    if(osStrlen(value) > HTTP_SERVER_CGI_PARAM_MAX_LEN)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //The scratch buffer may be altered by the user-defined callback.
    //So the CGI parameter must be copied prior to function invocation
@@ -870,7 +940,9 @@ error_t ssiSearchTag(const char_t *s, size_t sLen, const char_t *tag,
       for(j = 0; (i + j) < sLen && j < tagLen; j++)
       {
          if(s[i + j] != tag[j])
+         {
             break;
+         }
       }
 
       //Check whether a full match occurred

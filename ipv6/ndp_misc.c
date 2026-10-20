@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,22 +56,30 @@ void ndpParsePrefixInfoOption(NetInterface *interface, NdpPrefixInfoOption *opti
 {
    //Make sure the Prefix Information option is valid
    if(option == NULL || option->length != 4)
+   {
       return;
+   }
 
    //A prefix Information option that have the on-link flag set indicates a
    //prefix identifying a range of addresses that should be considered on-link
    if(!option->l)
+   {
       return;
+   }
 
    //If the prefix is the link-local prefix, silently ignore the
    //Prefix Information option
    if(ipv6CompPrefix(&option->prefix, &IPV6_LINK_LOCAL_ADDR_PREFIX, 10))
+   {
       return;
+   }
 
    //If the preferred lifetime is greater than the valid lifetime,
    //silently ignore the Prefix Information option
    if(ntohl(option->preferredLifetime) > ntohl(option->validLifetime))
+   {
       return;
+   }
 
    //Check whether the Valid Lifetime field is non-zero
    if(ntohl(option->validLifetime) != 0)
@@ -221,8 +229,10 @@ void ndpUpdateAddrList(NetInterface *interface)
       //Preferred address?
       else if(entry->state == IPV6_ADDR_STATE_PREFERRED)
       {
-         //An IPv6 address with an infinite preferred lifetime is never timed out
-         if(entry->preferredLifetime != NDP_INFINITE_LIFETIME)
+         //A manually configured address, or an address with an infinite
+         //preferred lifetime, is never timed out
+         if(!entry->permanent &&
+            entry->preferredLifetime != NDP_INFINITE_LIFETIME)
          {
             //When the preferred lifetime expires, the address becomes deprecated
             if(timeCompare(time, entry->timestamp + entry->preferredLifetime) >= 0)
@@ -237,8 +247,9 @@ void ndpUpdateAddrList(NetInterface *interface)
       //Deprecated address?
       else if(entry->state == IPV6_ADDR_STATE_DEPRECATED)
       {
-         //An IPv6 address with an infinite valid lifetime is never timed out
-         if(entry->validLifetime != NDP_INFINITE_LIFETIME)
+         //A manually configured address, or an address with an infinite valid
+         //lifetime, is never timed out
+         if(!entry->permanent && entry->validLifetime != NDP_INFINITE_LIFETIME)
          {
             //When the valid lifetime expires, the address becomes invalid
             if(timeCompare(time, entry->timestamp + entry->validLifetime) >= 0)
@@ -472,7 +483,9 @@ bool_t ndpIsFirstHopRouter(NetInterface *interface,
       //Check if the address is the same as the current first-hop
       //router for the specified destination
       if(ipv6CompAddr(&destCacheEntry->nextHop, nextHop))
+      {
          isFirstHopRouter = TRUE;
+      }
    }
    else
    {
@@ -664,18 +677,24 @@ void *ndpGetOption(uint8_t *options, size_t length, uint8_t type)
       //Point to the current option
       option = (NdpOption *) (options + i);
 
-      //Nodes must silently discard an NDP message that contains an option
-      //with length zero
+      //Nodes must silently discard an NDP message that contains an option with
+      //length zero
       if(option->length == 0)
+      {
          break;
+      }
 
       //Check option length
       if((i + option->length * 8) > length)
+      {
          break;
+      }
 
       //Check whether the option type matches the specified value
       if(option->type == type || type == NDP_OPT_ANY)
+      {
          return option;
+      }
 
       //Jump to the next option
       i += option->length * 8;
@@ -707,10 +726,12 @@ error_t ndpCheckOptions(const uint8_t *options, size_t length)
       //Point to the current option
       option = (NdpOption *) (options + i);
 
-      //Nodes must silently discard an NDP message that contains
-      //an option with length zero
+      //Nodes must silently discard an NDP message that contains an option with
+      //length zero
       if(option->length == 0)
+      {
          return ERROR_INVALID_OPTION;
+      }
 
       //Jump to the next option
       i += option->length * 8;

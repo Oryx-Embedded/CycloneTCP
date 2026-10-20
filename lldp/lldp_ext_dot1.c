@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -234,6 +234,7 @@ error_t lldpDot1SetLocalVlanName(LldpAgentContext *context,
    error_t error;
    uint_t k;
    size_t n;
+   size_t vlanNameLen;
    bool_t replace;
    LldpPortEntry *port;
    LldpDot1VlanNameTlv *tlv;
@@ -250,21 +251,21 @@ error_t lldpDot1SetLocalVlanName(LldpAgentContext *context,
       return ERROR_INVALID_PORT;
    }
 
+   //Get the length of the VLAN name
+   vlanNameLen = osStrlen(vlanName);
+
+   //Check the length of the string
+   if(vlanNameLen < LLDP_DOT1_MIN_VLAN_NAME_LEN ||
+      vlanNameLen > LLDP_DOT1_MAX_VLAN_NAME_LEN)
+   {
+      return ERROR_INVALID_LENGTH;
+   }
+
    //Acquire exclusive access to the LLDP agent context
    osAcquireMutex(&context->mutex);
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
-
-   //Get the length of the VLAN name
-   n = osStrlen(vlanName);
-
-   //Check the length of the string
-   if(n < LLDP_DOT1_MIN_VLAN_NAME_LEN ||
-      n > LLDP_DOT1_MAX_VLAN_NAME_LEN)
-   {
-      return ERROR_INVALID_LENGTH;
-   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -315,12 +316,12 @@ error_t lldpDot1SetLocalVlanName(LldpAgentContext *context,
       //Set VLAN ID
       tlv->vlanId = htons(vlanId);
       //Set VLAN name length
-      tlv->vlanNameLen = n;
+      tlv->vlanNameLen = vlanNameLen;
       //Copy VLAN name
-      osMemcpy(tlv->vlanName, vlanName, n);
+      osMemcpy(tlv->vlanName, vlanName, vlanNameLen);
 
       //Calculate the length of the TLV
-      n += sizeof(LldpDot1VlanNameTlv);
+      n = sizeof(LldpDot1VlanNameTlv) + vlanNameLen;
 
       //Set the value of the specified TLV
       error = lldpSetOrgDefTlv(&port->txInfo, LLDP_DOT1_OUI,
@@ -410,7 +411,7 @@ error_t lldpDot1SetLocalProtocolId(LldpAgentContext *context,
          {
             //Compare protocol identity fields
             if(n == (protocolIdLen + sizeof(LldpDot1ProtocolIdTlv)) &&
-               osMemcmp(tlv->protocolId, protocolId, n) == 0)
+               osMemcmp(tlv->protocolId, protocolId, protocolIdLen) == 0)
             {
                //Replace the existing TLV
                replace = TRUE;
@@ -471,7 +472,9 @@ error_t lldpDot1DeleteLocalTlv(LldpAgentContext *context,
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the LLDP agent context
    osAcquireMutex(&context->mutex);

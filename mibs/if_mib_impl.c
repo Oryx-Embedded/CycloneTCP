@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -139,15 +139,21 @@ error_t ifMibGetIfEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the underlying interface
    interface = &context->interfaces[index - 1];
@@ -391,7 +397,9 @@ error_t ifMibGetNextIfEntry(const MibObject *object, const uint8_t *oid,
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -406,7 +414,9 @@ error_t ifMibGetNextIfEntry(const MibObject *object, const uint8_t *oid,
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
@@ -474,15 +484,21 @@ error_t ifMibGetIfXEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the underlying interface
    interface = &context->interfaces[index - 1];
@@ -667,7 +683,9 @@ error_t ifMibGetNextIfXEntry(const MibObject *object, const uint8_t *oid,
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -682,7 +700,9 @@ error_t ifMibGetNextIfXEntry(const MibObject *object, const uint8_t *oid,
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
@@ -751,17 +771,23 @@ error_t ifMibGetIfStackEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &higherLayer);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ifStackLowerLayer is used as 2nd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lowerLayer);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Loop through network interfaces
    for(index = 1; index <= context->numInterfaces; index++)
@@ -779,7 +805,9 @@ error_t ifMibGetIfStackEntry(const MibObject *object, const uint8_t *oid,
 
    //No matching interface?
    if(index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //ifStackStatus object?
    if(osStrcmp(object->name, "ifStackStatus") == 0)
@@ -825,7 +853,9 @@ error_t ifMibGetNextIfStackEntry(const MibObject *object, const uint8_t *oid,
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -856,13 +886,17 @@ error_t ifMibGetNextIfStackEntry(const MibObject *object, const uint8_t *oid,
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, higherLayer);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //ifStackLowerLayer is used as 2nd instance identifier
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, lowerLayer);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -935,21 +969,29 @@ error_t ifMibGetIfRcvAddressEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ifRcvAddressAddress is used as 2nd instance identifier
    error = mibDecodePhysAddr(oid, oidLen, &n, &macAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the underlying interface
    interface = &context->interfaces[index - 1];
@@ -1067,7 +1109,9 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -1116,13 +1160,17 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
             error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
             //Invalid instance identifier?
             if(error)
+            {
                return error;
+            }
 
             //ifRcvAddressAddress is used as 2nd instance identifier
             error = mibEncodePhysAddr(nextOid, *nextOidLen, &n, &curMacAddr);
             //Invalid instance identifier?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -1165,7 +1213,9 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(index == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -1174,13 +1224,17 @@ error_t ifMibGetNextIfRcvAddressEntry(const MibObject *object, const uint8_t *oi
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ifRcvAddressAddress is used as 2nd instance identifier
    error = mibEncodePhysAddr(nextOid, *nextOidLen, &n, &macAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

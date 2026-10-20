@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -54,9 +54,6 @@
 
 error_t tcpInit(NetContext *context)
 {
-   //Reset ephemeral port number
-   context->tcpDynamicPort = 0;
-
    //Successful initialization
    return NO_ERROR;
 }
@@ -73,7 +70,9 @@ error_t tcpSetInitialRto(NetInterface *interface, systime_t initialRto)
 {
    //Check parameters
    if(interface == NULL || initialRto == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -101,33 +100,68 @@ error_t tcpSetInitialRto(NetInterface *interface, systime_t initialRto)
 
 uint16_t tcpGetDynamicPort(NetContext *context)
 {
+   uint_t i;
+   uint_t n;
    uint_t port;
 
-   //Retrieve current port number
-   port = context->tcpDynamicPort;
+   //Number of port numbers in the ephemeral port range
+   n = SOCKET_EPHEMERAL_PORT_MAX - SOCKET_EPHEMERAL_PORT_MIN + 1;
 
-   //Invalid port number?
-   if(port < SOCKET_EPHEMERAL_PORT_MIN || port > SOCKET_EPHEMERAL_PORT_MAX)
-   {
-      //Generate a random port number
-      port = netGenerateRandRange(context, SOCKET_EPHEMERAL_PORT_MIN,
-         SOCKET_EPHEMERAL_PORT_MAX);
-   }
+   //Select a random port number in the ephemeral port range
+   port = netGenerateRandRange(context, SOCKET_EPHEMERAL_PORT_MIN,
+      SOCKET_EPHEMERAL_PORT_MAX);
 
-   //Next dynamic port to use
-   if(port < SOCKET_EPHEMERAL_PORT_MAX)
+   //Search the ephemeral port range for a port number that is not in use
+   for(i = 0; i < n && tcpIsPortInUse(context, port); i++)
    {
-      //Increment port number
-      context->tcpDynamicPort = port + 1;
-   }
-   else
-   {
-      //Wrap around if necessary
-      context->tcpDynamicPort = SOCKET_EPHEMERAL_PORT_MIN;
+      //Try the next port number
+      if(port < SOCKET_EPHEMERAL_PORT_MAX)
+      {
+         port++;
+      }
+      else
+      {
+         //Wrap around if necessary
+         port = SOCKET_EPHEMERAL_PORT_MIN;
+      }
    }
 
    //Return an ephemeral port number
    return port;
+}
+
+
+/**
+ * @brief Check whether a TCP port number is already in use
+ * @param[in] context Pointer to the TCP/IP stack context
+ * @param[in] port Port number to be checked
+ * @return TRUE if the port number is used by a TCP socket, else FALSE
+ **/
+
+bool_t tcpIsPortInUse(NetContext *context, uint16_t port)
+{
+   uint_t i;
+   bool_t used;
+   Socket *socket;
+
+   //Initialize flag
+   used = FALSE;
+
+   //Loop through opened sockets
+   for(i = 0; i < SOCKET_MAX_COUNT && !used; i++)
+   {
+      //Point to the current socket
+      socket = &context->socketTable[i];
+
+      //TCP socket bound to the specified port number?
+      if(socket->type == SOCKET_TYPE_STREAM && socket->localPort == port)
+      {
+         used = TRUE;
+      }
+   }
+
+   //Return TRUE if the port number is already in use
+   return used;
 }
 
 
@@ -175,7 +209,9 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
             &socket->remoteIpAddr, &socket->localIpAddr);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
 
       //The user owns the socket
@@ -244,7 +280,9 @@ error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
       error = tcpSendSegment(socket, TCP_FLAG_SYN, socket->iss, 0, 0, TRUE);
       //Failed to send TCP segment?
       if(error)
+      {
          return error;
+      }
 
       //Switch to the SYN-SENT state
       tcpChangeState(socket, TCP_STATE_SYN_SENT);
@@ -293,7 +331,9 @@ error_t tcpListen(Socket *socket, uint_t backlog)
 {
    //Socket already connected?
    if(socket->state != TCP_STATE_CLOSED)
+   {
       return ERROR_ALREADY_CONNECTED;
+   }
 
    //Set the size of the SYN queue
    socket->synQueueSize = (backlog > 0) ? backlog : TCP_DEFAULT_SYN_QUEUE_SIZE;
@@ -324,7 +364,9 @@ Socket *tcpAccept(Socket *socket, IpAddr *clientIpAddr, uint16_t *clientPort)
 
    //Ensure the socket was previously placed in the listening state
    if(tcpGetState(socket) != TCP_STATE_LISTEN)
+   {
       return NULL;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -548,7 +590,9 @@ error_t tcpSend(Socket *socket, const uint8_t *data, size_t length,
 
    //Check whether the socket is in the listening state
    if(socket->state == TCP_STATE_LISTEN)
+   {
       return ERROR_NOT_CONNECTED;
+   }
 
    //Actual number of bytes written
    totalLength = 0;
@@ -561,7 +605,9 @@ error_t tcpSend(Socket *socket, const uint8_t *data, size_t length,
 
       //A timeout exception occurred?
       if(event != SOCKET_EVENT_TX_READY)
+      {
          return ERROR_TIMEOUT;
+      }
 
       //Check current TCP state
       switch(socket->state)
@@ -591,7 +637,9 @@ error_t tcpSend(Socket *socket, const uint8_t *data, size_t length,
       n = socket->sndUser + socket->sndNxt - socket->sndUna;
       //Exit immediately if the transmission buffer is full (sanity check)
       if(n >= socket->txBufferSize)
+      {
          return ERROR_FAILURE;
+      }
 
       //Number of bytes available for writing
       n = socket->txBufferSize - n;
@@ -646,11 +694,15 @@ error_t tcpSend(Socket *socket, const uint8_t *data, size_t length,
 
       //A timeout exception occurred?
       if(event != SOCKET_EVENT_TX_ACKED)
+      {
          return ERROR_TIMEOUT;
+      }
 
       //The connection closed before an acknowledgment was received?
       if(socket->state != TCP_STATE_ESTABLISHED && socket->state != TCP_STATE_CLOSE_WAIT)
+      {
          return ERROR_NOT_CONNECTED;
+      }
    }
 
    //Successful write operation
@@ -684,7 +736,9 @@ error_t tcpReceive(Socket *socket, uint8_t *data, size_t size,
 
    //Check whether the socket is in the listening state
    if(socket->state == TCP_STATE_LISTEN)
+   {
       return ERROR_NOT_CONNECTED;
+   }
 
    //Read as much data as possible
    while(*received < size)
@@ -696,7 +750,9 @@ error_t tcpReceive(Socket *socket, uint8_t *data, size_t size,
 
       //A timeout exception occurred?
       if(event != SOCKET_EVENT_RX_READY)
+      {
          return ERROR_TIMEOUT;
+      }
 
       //Check current TCP state
       switch(socket->state)
@@ -737,11 +793,15 @@ error_t tcpReceive(Socket *socket, uint8_t *data, size_t size,
       default:
          //The connection was reset by remote side?
          if(socket->resetFlag)
+         {
             return ERROR_CONNECTION_RESET;
+         }
 
          //The connection has not yet been established?
          if(!socket->closedFlag)
+         {
             return ERROR_NOT_CONNECTED;
+         }
 
          //The user must be satisfied with data already on hand
          if(socket->rcvUser == 0)
@@ -764,7 +824,9 @@ error_t tcpReceive(Socket *socket, uint8_t *data, size_t size,
 
       //Sanity check
       if(socket->rcvUser == 0)
+      {
          return ERROR_FAILURE;
+      }
 
       //Calculate the number of bytes to read at a time
       n = MIN(socket->rcvUser, size - *received);
@@ -799,7 +861,9 @@ error_t tcpReceive(Socket *socket, uint8_t *data, size_t size,
       {
          //Check whether a break character has been found
          if(data[n - 1] == c)
+         {
             break;
+         }
       }
       //The SOCKET_FLAG_WAIT_ALL flag causes the function to return
       //only when the requested number of bytes have been read
@@ -1082,17 +1146,22 @@ Socket *tcpKillOldestConnection(NetContext *context)
          //Check current state
          if(socket->state == TCP_STATE_TIME_WAIT)
          {
-            //Keep track of the oldest socket in the TIME-WAIT state
-            if(oldestSocket == NULL)
+            //Check whether the application no longer owns the socket
+            if(!socket->ownedFlag)
             {
-               //Save socket handle
-               oldestSocket = socket;
-            }
-            if((time - socket->timeWaitTimer.startTime) >
-               (time - oldestSocket->timeWaitTimer.startTime))
-            {
-               //Save socket handle
-               oldestSocket = socket;
+               //Keep track of the oldest socket in the TIME-WAIT state
+               if(oldestSocket == NULL)
+               {
+                  oldestSocket = socket;
+               }
+               else if((time - socket->timeWaitTimer.startTime) >
+                  (time - oldestSocket->timeWaitTimer.startTime))
+               {
+                  oldestSocket = socket;
+               }
+               else
+               {
+               }
             }
          }
       }

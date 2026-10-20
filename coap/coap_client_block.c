@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -53,7 +53,9 @@ error_t coapClientSetTxBlockSize(CoapClientRequest *request, uint_t blockSize)
 {
    //Make sure the CoAP request handle is valid
    if(request == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&request->context->mutex);
@@ -113,7 +115,9 @@ error_t coapClientSetRxBlockSize(CoapClientRequest *request, uint_t blockSize)
 {
    //Make sure the CoAP request handle is valid
    if(request == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&request->context->mutex);
@@ -223,7 +227,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
       error = coapClientGetPayload(requestMsg, &payload, &payloadLen);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Write as much data as possible
       if(length > 0 && payloadLen < COAP_GET_BLOCK_SIZE(blockSzx))
@@ -235,7 +241,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
          error = coapClientWritePayload(requestMsg, data, n);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Advance data pointer
          data = (uint8_t *) data + n;
@@ -274,7 +282,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
             error = coapClientSetUintOption(requestMsg, COAP_OPT_BLOCK1, 0, value);
             //Any error to report?
             if(error)
+            {
                break;
+            }
          }
 
          //Last block?
@@ -292,7 +302,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
                error = coapClientSetUintOption(requestMsg, COAP_OPT_BLOCK2, 0, value);
                //Any error to report?
                if(error)
+               {
                   break;
+               }
             }
          }
 
@@ -300,7 +312,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
          error = coapClientSendRequest(request, NULL, NULL);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Point to the response message
          responseMsg = coapClientGetResponseMessage(request);
@@ -309,7 +323,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
          error = coapClientGetResponseCode(responseMsg, &responseCode);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Check response code
          if(COAP_GET_CODE_CLASS(responseCode) != COAP_CODE_CLASS_SUCCESS)
@@ -325,7 +341,9 @@ error_t coapClientWriteBody(CoapClientRequest *request,
             error = coapClientGetUintOption(responseMsg, COAP_OPT_BLOCK1, 0, &value);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //The value 7 for SZX is reserved
             if(COAP_GET_BLOCK_SZX(value) >= COAP_BLOCK_SIZE_RESERVED)
@@ -367,14 +385,18 @@ error_t coapClientWriteBody(CoapClientRequest *request,
             error = coapClientSetUintOption(requestMsg, COAP_OPT_BLOCK1, 0, value);
             //Any error to report?
             if(error)
+            {
                break;
+            }
          }
 
          //Trim the existing payload
          error = coapClientSetPayload(requestMsg, NULL, 0);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Last block?
          if(length == 0 && last)
@@ -481,7 +503,6 @@ error_t coapClientReadBody(CoapClientRequest *request, void *data,
             //is contained in the payload of this message
             if(COAP_GET_BLOCK_POS(value) != blockPos)
             {
-               //Report an error
                error = ERROR_FAILURE;
                break;
             }
@@ -499,12 +520,13 @@ error_t coapClientReadBody(CoapClientRequest *request, void *data,
             error = coapClientGetPayload(responseMsg, &payload, &payloadLen);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //Make sure the length of the payload matches the block size
             if(payloadLen != COAP_GET_BLOCK_SIZE(value))
             {
-               //Report an error
                error = ERROR_FAILURE;
                break;
             }
@@ -536,13 +558,17 @@ error_t coapClientReadBody(CoapClientRequest *request, void *data,
                value);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //Perform message exchange
             error = coapClientSendRequest(request, NULL, NULL);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //Point to the response message
             responseMsg = coapClientGetResponseMessage(request);
@@ -551,7 +577,9 @@ error_t coapClientReadBody(CoapClientRequest *request, void *data,
             error = coapClientGetResponseCode(responseMsg, &responseCode);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //Check response code
             if(COAP_GET_CODE_CLASS(responseCode) != COAP_CODE_CLASS_SUCCESS)
@@ -588,7 +616,9 @@ error_t coapClientReadBody(CoapClientRequest *request, void *data,
    {
       //Catch exception
       if(error == ERROR_END_OF_STREAM)
+      {
          error = NO_ERROR;
+      }
    }
 
    //Return status code

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -63,6 +63,19 @@ error_t dnsResolve(NetInterface *interface, const char_t *name,
    //Debug message
    TRACE_INFO("Resolving host name %s (DNS resolver)...\r\n", name);
 #endif
+
+   //Make sure the host name fits in the cache entry
+   if(osStrlen(name) > DNS_MAX_NAME_LEN)
+   {
+      return ERROR_INVALID_LENGTH;
+   }
+
+   //Make sure the host name is a valid domain name (no empty label, no label
+   //longer than 63 characters)
+   if(dnsEncodeName(name, NULL) == 0)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -280,7 +293,9 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
       {
          //Out of range index?
          if(entry->dnsServerIndex >= IPV4_DNS_SERVER_LIST_SIZE)
+         {
             return ERROR_NO_DNS_SERVER;
+         }
 
          //Copy the address of the DNS server
          destIpAddr.length = sizeof(Ipv4Addr);
@@ -288,7 +303,9 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
 
          //Make sure the IP address is valid
          if(destIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR)
+         {
             break;
+         }
 
          //Select the next DNS server in the list
          entry->dnsServerIndex++;
@@ -308,7 +325,9 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
       {
          //Out of range index?
          if(entry->dnsServerIndex >= IPV6_DNS_SERVER_LIST_SIZE)
+         {
             return ERROR_NO_DNS_SERVER;
+         }
 
          //Copy the address of the DNS server
          destIpAddr.length = sizeof(Ipv6Addr);
@@ -316,7 +335,9 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
 
          //Make sure the IP address is valid
          if(!ipv6CompAddr(&destIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR))
+         {
             break;
+         }
 
          //Select the next DNS server in the list
          entry->dnsServerIndex++;
@@ -330,11 +351,16 @@ error_t dnsSendQuery(DnsCacheEntry *entry)
       return ERROR_INVALID_PARAMETER;
    }
 
+   //Save the address of the DNS server the query is sent to
+   entry->serverIpAddr = destIpAddr;
+
    //Allocate a memory buffer to hold the DNS query message
    buffer = udpAllocBuffer(DNS_MESSAGE_MAX_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the DNS header
    message = netBufferAt(buffer, offset, 0);
@@ -445,13 +471,17 @@ void dnsProcessResponse(NetInterface *interface,
 
    //Malformed DNS message?
    if(length < sizeof(DnsHeader))
+   {
       return;
+   }
 
    //Point to the DNS message header
    message = netBufferAt(buffer, offset, length);
    //Malformed DNS message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("DNS message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -460,11 +490,15 @@ void dnsProcessResponse(NetInterface *interface,
 
    //Check message type
    if(!message->qr)
+   {
       return;
+   }
 
    //The DNS message shall contain one question
    if(ntohs(message->qdcount) != 1)
+   {
       return;
+   }
 
    //Loop through DNS cache entries
    for(i = 0; i < DNS_CACHE_SIZE; i++)
@@ -479,9 +513,18 @@ void dnsProcessResponse(NetInterface *interface,
          //Check destination port number
          if(entry->port == ntohs(udpHeader->destPort))
          {
+            //The response must come from the same network address to which the
+            //question was sent (refer to RFC 5452, section 3)
+            if(!dnsCheckSourceAddr(entry, pseudoHeader, udpHeader))
+            {
+               break;
+            }
+
             //Compare identifier against the expected one
             if(ntohs(message->id) != entry->id)
+            {
                break;
+            }
 
             //Point to the first question
             pos = sizeof(DnsHeader);
@@ -490,21 +533,30 @@ void dnsProcessResponse(NetInterface *interface,
 
             //Invalid name?
             if(pos == 0)
+            {
                break;
+            }
+
             //Malformed DNS message?
             if((pos + sizeof(DnsQuestion)) > length)
+            {
                break;
+            }
 
             //Compare domain name
             if(dnsCompareName(message, length, sizeof(DnsHeader), entry->name, 0))
+            {
                break;
+            }
 
             //Point to the corresponding entry
             question = DNS_GET_QUESTION(message, pos);
 
             //Check the class of the query
             if(ntohs(question->qclass) != DNS_RR_CLASS_IN)
+            {
                break;
+            }
 
             //Check the type of the query
             if(entry->type == HOST_TYPE_IPV4 &&
@@ -538,7 +590,9 @@ void dnsProcessResponse(NetInterface *interface,
                pos = dnsParseName(message, length, pos, 0);
                //Invalid name?
                if(pos == 0)
+               {
                   break;
+               }
 
                //Point to the associated resource record
                record = DNS_GET_RESOURCE_RECORD(message, pos);
@@ -547,9 +601,14 @@ void dnsProcessResponse(NetInterface *interface,
 
                //Make sure the resource record is valid
                if(pos > length)
+               {
                   break;
+               }
+
                if((pos + ntohs(record->rdlength)) > length)
+               {
                   break;
+               }
 
 #if (IPV4_SUPPORT == ENABLED)
                //IPv4 address expected?
@@ -622,6 +681,68 @@ void dnsProcessResponse(NetInterface *interface,
          }
       }
    }
+}
+
+
+/**
+ * @brief Check the source address and port of a DNS response
+ * @param[in] entry Pointer to the DNS cache entry
+ * @param[in] pseudoHeader UDP pseudo header
+ * @param[in] udpHeader UDP header
+ * @return TRUE if the response comes from the DNS server the query was sent
+ *   to, else FALSE
+ **/
+
+bool_t dnsCheckSourceAddr(const DnsCacheEntry *entry,
+   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader)
+{
+   bool_t valid;
+
+   //Initialize flag
+   valid = FALSE;
+
+   //The response must be sent from the DNS port
+   if(ntohs(udpHeader->srcPort) == DNS_PORT)
+   {
+#if (IPV4_SUPPORT == ENABLED)
+      //IPv4 response received?
+      if(pseudoHeader->length == sizeof(Ipv4PseudoHeader))
+      {
+         //Compare the source address against the address of the DNS server
+         if(entry->serverIpAddr.length == sizeof(Ipv4Addr))
+         {
+            if(entry->serverIpAddr.ipv4Addr == pseudoHeader->ipv4Data.srcAddr)
+            {
+               valid = TRUE;
+            }
+         }
+      }
+      else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+      //IPv6 response received?
+      if(pseudoHeader->length == sizeof(Ipv6PseudoHeader))
+      {
+         //Compare the source address against the address of the DNS server
+         if(entry->serverIpAddr.length == sizeof(Ipv6Addr))
+         {
+            if(ipv6CompAddr(&entry->serverIpAddr.ipv6Addr,
+               &pseudoHeader->ipv6Data.srcAddr))
+            {
+               valid = TRUE;
+            }
+         }
+      }
+      else
+#endif
+      //Invalid response?
+      {
+         //Just for sanity
+      }
+   }
+
+   //Return TRUE if the response comes from the DNS server
+   return valid;
 }
 
 

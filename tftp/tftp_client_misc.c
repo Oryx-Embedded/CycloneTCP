@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -193,11 +193,15 @@ void tftpClientProcessPacket(TftpClientContext *context,
 
    //Check the source IP address of the incoming packet
    if(!ipCompAddr(srcIpAddr, &context->serverIpAddr))
+   {
       return;
+   }
 
    //Malformed packet?
    if(context->inPacketLen < sizeof(uint16_t))
+   {
       return;
+   }
 
    //Retrieve TFTP packet type
    opcode = LOAD16BE(context->inPacket);
@@ -248,7 +252,9 @@ void tftpClientProcessDataPacket(TftpClientContext *context,
 
    //Make sure the length of the DATA packet is acceptable
    if(length < sizeof(TftpDataPacket))
+   {
       return;
+   }
 
    //Calculate the length of the data
    length -= sizeof(TftpDataPacket);
@@ -317,7 +323,9 @@ void tftpClientProcessAckPacket(TftpClientContext *context,
 
    //Make sure the length of the ACK packet is acceptable
    if(length < sizeof(TftpAckPacket))
+   {
       return;
+   }
 
    //Debug message
    TRACE_DEBUG("  Opcode = %" PRIu16 "\r\n", ntohs(ackPacket->opcode));
@@ -403,7 +411,22 @@ void tftpClientProcessErrorPacket(TftpClientContext *context,
 
    //Make sure the length of the ERROR packet is acceptable
    if(length < sizeof(TftpErrorPacket))
+   {
       return;
+   }
+
+   //Check current state
+   if(context->state == TFTP_CLIENT_STATE_DATA ||
+      context->state == TFTP_CLIENT_STATE_ACK ||
+      context->state == TFTP_CLIENT_STATE_LAST_DATA)
+   {
+      //Once the server's TID is known, a packet whose source TID does not match
+      //is discarded as erroneously sent from somewhere else
+      if(srcPort != context->serverTid)
+      {
+         return;
+      }
+   }
 
    //Debug message
    TRACE_DEBUG("  Opcode = %" PRIu16 "\r\n", ntohs(errorPacket->opcode));
@@ -447,7 +470,9 @@ error_t tftpClientSendRrqPacket(TftpClientContext *context,
 
    //Check the length of the filename
    if((m + n) > TFTP_CLIENT_BLOCK_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the buffer where to format the packet
    rrqPacket = (TftpRrqPacket *) context->outPacket;
@@ -503,7 +528,9 @@ error_t tftpClientSendWrqPacket(TftpClientContext *context,
 
    //Check the length of the filename
    if((m + n) > TFTP_CLIENT_BLOCK_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the buffer where to format the packet
    wrqPacket = (TftpWrqPacket *) context->outPacket;
@@ -632,7 +659,9 @@ error_t tftpClientSendErrorPacket(TftpClientContext *context,
 
    //Check the length of the error message
    if(osStrlen(errorMsg) >= TFTP_CLIENT_BLOCK_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the buffer where to format the packet
    errorPacket = (TftpErrorPacket *) context->outPacket;

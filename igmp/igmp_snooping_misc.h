@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _IGMP_SNOOPING_MISC_H
@@ -87,6 +87,7 @@ void igmpSnoopingUpdateStaticFdbEntry(IgmpSnoopingContext *context,
 void igmpSnoopingSetUnknownMcastFwdPorts(IgmpSnoopingContext *context,
    bool_t enable, uint32_t forwardPorts);
 
+uint32_t igmpSnoopingGetFloodPorts(IgmpSnoopingContext *context, uint_t port);
 uint32_t igmpSnoopingGetRouterPorts(IgmpSnoopingContext *context);
 
 //C++ guard

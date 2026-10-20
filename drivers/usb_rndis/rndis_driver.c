@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -244,7 +244,9 @@ error_t rndisDriverSendPacket(NetInterface *interface,
 
    //Make sure the current buffer is available for writing
    if(rndisTxBuffer[rndisTxWriteIndex].ready)
+   {
       return ERROR_FAILURE;
+   }
 
    //Point to the buffer where to format the RNDIS Packet message
    message = (RndisPacketMsg *) rndisTxBuffer[rndisTxWriteIndex].data;
@@ -303,7 +305,9 @@ error_t rndisDriverSendPacket(NetInterface *interface,
 
    //Increment index and wrap around if necessary
    if(++rndisTxWriteIndex >= RNDIS_TX_BUFFER_COUNT)
+   {
       rndisTxWriteIndex = 0;
+   }
 
    //Check whether the next buffer is available for writing
    if(!rndisTxBuffer[rndisTxWriteIndex].ready)
@@ -377,7 +381,9 @@ error_t rndisDriverReceivePacket(NetInterface *interface,
 
       //Increment index and wrap around if necessary
       if(++rndisRxReadIndex >= RNDIS_RX_BUFFER_COUNT)
+      {
          rndisRxReadIndex = 0;
+      }
 
       //Reception is currently suspended?
       if(!rndisContext.rxState)

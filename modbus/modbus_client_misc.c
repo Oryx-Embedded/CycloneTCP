@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -216,11 +216,15 @@ error_t modbusClientCheckResp(ModbusClientContext *context)
 
    //Malformed request?
    if(context->requestAduLen < (sizeof(ModbusHeader) + sizeof(uint8_t)))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Malformed response?
    if(context->responseAduLen < (sizeof(ModbusHeader) + sizeof(uint8_t)))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the MBAP header of the Modbus request
    requestHeader = (ModbusHeader *) context->requestAdu;
@@ -229,11 +233,15 @@ error_t modbusClientCheckResp(ModbusClientContext *context)
 
    //Check transaction identifier
    if(responseHeader->transactionId != requestHeader->transactionId)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Check unit identifier
    if(responseHeader->unitId != requestHeader->unitId)
+   {
       return ERROR_UNEXPECTED_RESPONSE;
+   }
 
    //Check function code
    if((responseHeader->pdu[0] & MODBUS_FUNCTION_CODE_MASK) !=
@@ -324,7 +332,9 @@ error_t modbusClientParseMbapHeader(ModbusClientContext *context)
 
    //Sanity check
    if(context->responseAduPos < sizeof(ModbusHeader))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the beginning of the response ADU
    header = (ModbusHeader *) context->responseAdu;
@@ -335,7 +345,9 @@ error_t modbusClientParseMbapHeader(ModbusClientContext *context)
 
    //Malformed Modbus response?
    if(n < sizeof(uint8_t))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the length of the PDU
    n -= sizeof(uint8_t);
@@ -352,11 +364,15 @@ error_t modbusClientParseMbapHeader(ModbusClientContext *context)
 
    //Check protocol identifier
    if(ntohs(header->protocolId) != MODBUS_PROTOCOL_ID)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //The length of the Modbus PDU is limited to 253 bytes
    if(n > MODBUS_MAX_PDU_SIZE)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the response ADU
    context->responseAduLen = sizeof(ModbusHeader) + n;

@@ -33,7 +33,7 @@
  * - RFC 6106: IPv6 Router Advertisement Options for DNS Configuration
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -87,11 +87,15 @@ error_t slaacInit(SlaacContext *context, const SlaacSettings *settings)
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The SLAAC service must be bound to a valid interface
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = settings->interface;
@@ -135,7 +139,9 @@ error_t slaacStart(SlaacContext *context)
 
    //Make sure the SLAAC context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting SLAAC...\r\n");
@@ -185,7 +191,9 @@ error_t slaacStop(SlaacContext *context)
 {
    //Make sure the SLAAC context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping SLAAC...\r\n");

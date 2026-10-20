@@ -30,7 +30,7 @@
  * in the Internet. Refer to RFC 4330 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,9 @@ error_t sntpClientInit(SntpClientContext *context)
 {
    //Make sure the SNTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear SNTP client context
    osMemset(context, 0, sizeof(SntpClientContext));
@@ -88,11 +90,15 @@ error_t sntpClientSetVersion(SntpClientContext *context, NtpVersion version)
 {
    //Make sure the SNTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check NTP version
    if(version != NTP_VERSION_3 && version != NTP_VERSION_4)
+   {
       return ERROR_INVALID_VERSION;
+   }
 
    //Save the protocol version to be used
    context->version = version;
@@ -113,7 +119,9 @@ error_t sntpClientSetTimeout(SntpClientContext *context, systime_t timeout)
 {
    //Make sure the SNTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
@@ -135,7 +143,9 @@ error_t sntpClientBindToInterface(SntpClientContext *context,
 {
    //Make sure the SNTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the SNTP client with the specified interface
    context->interface = interface;
@@ -158,7 +168,9 @@ error_t sntpClientSetServerAddr(SntpClientContext *context,
 {
    //Check parameters
    if(context == NULL || serverIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save the IP address and the port number of the NTP server
    context->serverIpAddr = *serverIpAddr;
@@ -188,7 +200,9 @@ error_t sntpClientGetTimestamp(SntpClientContext *context,
 
    //Check parameters
    if(context == NULL || timestamp == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;

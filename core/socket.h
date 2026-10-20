@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _SOCKET_H
@@ -337,7 +337,7 @@ struct _Socket
 //TCP specific variables
 #if (TCP_SUPPORT == ENABLED)
    TcpState state;                ///<Current state of the TCP finite state machine
-   bool_t ownedFlag;              ///<The user is the owner of the TCP socket
+   bool_t ownedFlag;              ///<The application is the owner of the TCP socket
    bool_t closedFlag;             ///<The connection has been closed properly
    bool_t resetFlag;              ///<The connection has been reset
 
@@ -458,7 +458,7 @@ error_t socketSetVlanDei(Socket *socket, bool_t dei);
 error_t socketSetVmanPcp(Socket *socket, uint8_t pcp);
 error_t socketSetVmanDei(Socket *socket, bool_t dei);
 
-error_t socketEnableBroadcast(Socket *socket, bool_t enabled);
+error_t socketEnableBroadcast(Socket *socket, bool_t enable);
 
 error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr);
 error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr);
@@ -481,7 +481,7 @@ error_t socketBlockMulticastSource(Socket *socket, const IpAddr *groupAddr,
 error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
    const IpAddr *srcAddr);
 
-error_t socketEnableKeepAlive(Socket *socket, bool_t enabled);
+error_t socketEnableKeepAlive(Socket *socket, bool_t enable);
 
 error_t socketSetKeepAliveParams(Socket *socket, systime_t idle,
    systime_t interval, uint_t maxProbes);

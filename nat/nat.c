@@ -36,7 +36,7 @@
  * - RFC 5508: NAT Behavioral Requirements for ICMP
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -68,8 +68,8 @@ void natGetDefaultSettings(NatSettings *settings)
    settings->numPrivateInterfaces = 0;
 
    //Port redirection rules
-   settings->numPortFwdRules = 0;
-   settings->portFwdRules = NULL;
+   settings->numPortForwardingRules = 0;
+   settings->portForwardingRules = NULL;
 
    //NAT sessions (initiated from a private host)
    settings->numSessions = 0;
@@ -94,11 +94,27 @@ error_t natInit(NatContext *context, const NatSettings *settings)
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check parameters
    if(settings->publicInterface == NULL || settings->numPrivateInterfaces == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
+   //Check the number of private interfaces
+   if(settings->numPrivateInterfaces > NAT_MAX_PRIVATE_INTERFACES)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
+
+   //Check the index of the public IP address
+   if(settings->publicIpAddrIndex >= IPV4_ADDR_LIST_SIZE)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the TCP/IP stack context
    netContext = settings->publicInterface->netContext;
@@ -124,14 +140,14 @@ error_t natInit(NatContext *context, const NatSettings *settings)
    }
 
    //Save port redirection rules
-   context->numPortFwdRules = settings->numPortFwdRules;
-   context->portFwdRules = settings->portFwdRules;
+   context->numPortForwardingRules = settings->numPortForwardingRules;
+   context->portForwardingRules = settings->portForwardingRules;
 
    //Loop through the list of port redirection rules
-   for(i = 0; i < context->numPortFwdRules; i++)
+   for(i = 0; i < context->numPortForwardingRules; i++)
    {
       //Initialize the current entry
-      osMemset(&context->portFwdRules[i], 0, sizeof(NatPortFwdRule));
+      osMemset(&context->portForwardingRules[i], 0, sizeof(NatPortForwardingRule));
    }
 
    //NAT sessions (initiated from a private host)
@@ -164,7 +180,6 @@ error_t natInit(NatContext *context, const NatSettings *settings)
  * @return Error code
  **/
 
-
 error_t natSetPublicInterface(NatContext *context,
    NetInterface *publicInterface)
 {
@@ -172,7 +187,9 @@ error_t natSetPublicInterface(NatContext *context,
 
    //Check parameters
    if(context == NULL || publicInterface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(context->netContext);
@@ -207,14 +224,14 @@ error_t natSetPublicInterface(NatContext *context,
  * @return Error code
  **/
 
-error_t natSetPortFwdRule(NatContext *context, uint_t index,
+error_t natSetPortForwardingRule(NatContext *context, uint_t index,
    Ipv4Protocol protocol, uint16_t publicPort, NetInterface *privateInterface,
    Ipv4Addr privateIpAddr, uint16_t privatePort)
 {
    error_t error;
 
    //Add port redirection rule
-   error = natSetPortRangeFwdRule(context, index, protocol, publicPort,
+   error = natSetPortRangeForwardingRule(context, index, protocol, publicPort,
       publicPort, privateInterface, privateIpAddr, privatePort);
 
    //Return status code
@@ -235,30 +252,36 @@ error_t natSetPortFwdRule(NatContext *context, uint_t index,
  * @return Error code
  **/
 
-error_t natSetPortRangeFwdRule(NatContext *context, uint_t index,
+error_t natSetPortRangeForwardingRule(NatContext *context, uint_t index,
    Ipv4Protocol protocol, uint16_t publicPortMin, uint16_t publicPortMax,
    NetInterface *privateInterface, Ipv4Addr privateIpAddr,
    uint16_t privatePortMin)
 {
-   NatPortFwdRule *rule;
+   NatPortForwardingRule *rule;
 
    //Check parameters
    if(context == NULL || privateInterface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The implementation limits the number of port redirection rules
-   if(index >= context->numPortFwdRules)
+   if(index >= context->numPortForwardingRules)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Only TCP and UDP traffic can be forwarded by the NAT
    if(protocol != IPV4_PROTOCOL_TCP && protocol != IPV4_PROTOCOL_UDP)
+   {
       return ERROR_INVALID_PROTOCOL;
+   }
 
    //Get exclusive access
    netLock(context->netContext);
 
    //Point to the specified rule
-   rule = &context->portFwdRules[index];
+   rule = &context->portForwardingRules[index];
 
    //Update port redirection rule
    rule->protocol = protocol;
@@ -284,20 +307,24 @@ error_t natSetPortRangeFwdRule(NatContext *context, uint_t index,
  * @return Error code
  **/
 
-error_t natClearPortFwdRule(NatContext *context, uint_t index)
+error_t natClearPortForwardingRule(NatContext *context, uint_t index)
 {
    //Make sure the NAT context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The implementation limits the number of port redirection rules
-   if(index >= context->numPortFwdRules)
+   if(index >= context->numPortForwardingRules)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(context->netContext);
    //Invalidate the specified rule
-   context->portFwdRules[index].protocol = IPV4_PROTOCOL_NONE;
+   context->portForwardingRules[index].protocol = IPV4_PROTOCOL_NONE;
    //Release exclusive access
    netUnlock(context->netContext);
 
@@ -318,7 +345,9 @@ error_t natStart(NatContext *context)
 
    //Make sure the NAT context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting NAT...\r\n");
@@ -361,7 +390,9 @@ error_t natStop(NatContext *context)
 
    //Make sure the NAT context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping NAT...\r\n");

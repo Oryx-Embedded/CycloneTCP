@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _NAT_H
@@ -144,7 +144,7 @@ typedef struct
    Ipv4Addr privateIpAddr;         ///<Destination IP address
    uint16_t privatePortMin;        ///<Destination port (lower value)
    uint16_t privatePortMax;        ///<Destination port (upper value)
-} NatPortFwdRule;
+} NatPortForwardingRule;
 
 
 /**
@@ -177,8 +177,8 @@ typedef struct
    uint_t publicIpAddrIndex;                                    ///<Index of the public IP address to use
    NetInterface *privateInterfaces[NAT_MAX_PRIVATE_INTERFACES]; ///<Private interfaces
    uint_t numPrivateInterfaces;                                 ///<Number of private interfaces
-   NatPortFwdRule *portFwdRules;                                ///<Port redirection rules
-   uint_t numPortFwdRules;                                      ///<Number of port redirection rules
+   NatPortForwardingRule *portForwardingRules;                  ///<Port redirection rules
+   uint_t numPortForwardingRules;                               ///<Number of port redirection rules
    NatSession *sessions;                                        ///<NAT sessions (initiated from a private host)
    uint_t numSessions;                                          ///<Number of NAT sessions
 } NatSettings;
@@ -195,8 +195,8 @@ typedef struct
    uint_t publicIpAddrIndex;                                    ///<Index of the public IP address to use
    NetInterface *privateInterfaces[NAT_MAX_PRIVATE_INTERFACES]; ///<Private interfaces
    uint_t numPrivateInterfaces;                                 ///<Number of private interfaces
-   NatPortFwdRule *portFwdRules;                                ///<Port redirection rules
-   uint_t numPortFwdRules;                                      ///<Number of port redirection rules
+   NatPortForwardingRule *portForwardingRules;                  ///<Port redirection rules
+   uint_t numPortForwardingRules;                               ///<Number of port redirection rules
    NatSession *sessions;                                        ///<NAT sessions (initiated from a private host)
    uint_t numSessions;                                          ///<Number of NAT sessions
    bool_t running;                                              ///<Operational state of the NAT
@@ -210,16 +210,16 @@ error_t natInit(NatContext *context, const NatSettings *settings);
 error_t natSetPublicInterface(NatContext *context,
    NetInterface *publicInterface);
 
-error_t natSetPortFwdRule(NatContext *context, uint_t index,
+error_t natSetPortForwardingRule(NatContext *context, uint_t index,
    Ipv4Protocol protocol, uint16_t publicPort, NetInterface *privateInterface,
    Ipv4Addr privateIpAddr, uint16_t privatePort);
 
-error_t natSetPortRangeFwdRule(NatContext *context, uint_t index,
+error_t natSetPortRangeForwardingRule(NatContext *context, uint_t index,
    Ipv4Protocol protocol, uint16_t publicPortMin, uint16_t publicPortMax,
    NetInterface *privateInterface, Ipv4Addr privateIpAddr,
    uint16_t privatePortMin);
 
-error_t natClearPortFwdRule(NatContext *context, uint_t index);
+error_t natClearPortForwardingRule(NatContext *context, uint_t index);
 
 error_t natStart(NatContext *context);
 error_t natStop(NatContext *context);

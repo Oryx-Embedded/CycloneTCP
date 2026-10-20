@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -254,7 +254,9 @@ const char_t *lldpGetParamName(uint_t value, const LldpParamName *paramList,
    for(i = 0; i < paramListLen; i++)
    {
       if(paramList[i].value == value)
+      {
          return paramList[i].name;
+      }
    }
 
    //Unknown value

@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -100,11 +100,15 @@ error_t dhcpv6ClientInit(Dhcpv6ClientContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The DHCPv6 client must be bound to a valid interface
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = settings->interface;
@@ -130,7 +134,9 @@ error_t dhcpv6ClientInit(Dhcpv6ClientContext *context,
    error = dhcpv6ClientGenerateDuid(context);
    //any error to report?
    if(error)
+   {
       return error;
+   }
 
    //DHCPv6 client is currently suspended
    context->running = FALSE;
@@ -162,7 +168,9 @@ error_t dhcpv6ClientStart(Dhcpv6ClientContext *context)
 
    //Make sure the DHCPv6 client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting DHCPv6 client...\r\n");
@@ -233,7 +241,9 @@ error_t dhcpv6ClientStop(Dhcpv6ClientContext *context)
 {
    //Make sure the DHCPv6 client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping DHCPv6 client...\r\n");
@@ -274,7 +284,9 @@ error_t dhcpv6ClientRelease(Dhcpv6ClientContext *context)
 
    //Check parameter
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Releasing DHCPv6 lease...\r\n");

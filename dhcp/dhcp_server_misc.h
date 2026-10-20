@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _DHCP_SERVER_MISC_H
@@ -75,6 +75,7 @@ DhcpServerBinding *dhcpServerFindBindingByIpAddr(DhcpServerContext *context,
    Ipv4Addr ipAddr);
 
 error_t dhcpServerGetNextIpAddr(DhcpServerContext *context, Ipv4Addr *ipAddr);
+bool_t dhcpServerIsIpAddrInPool(DhcpServerContext *context, Ipv4Addr ipAddr);
 
 //C++ guard
 #ifdef __cplusplus

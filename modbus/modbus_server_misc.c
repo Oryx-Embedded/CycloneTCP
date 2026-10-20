@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -261,8 +261,14 @@ void modbusServerProcessConnectionEvents(ModbusClientConnection *connection)
                   context->unitId == 255 ||
                   context->unitId == connection->requestUnitId)
                {
-                  //Process Modbus request
+                  //Process the Modbus request
                   error = modbusServerProcessRequest(connection);
+               }
+               else
+               {
+                  //Silently discard the Modbus request
+                  connection->requestAduLen = 0;
+                  connection->requestAduPos = 0;
                }
             }
          }
@@ -356,7 +362,9 @@ error_t modbusServerParseMbapHeader(ModbusClientConnection *connection)
 
    //Sanity check
    if(connection->requestAduPos < sizeof(ModbusHeader))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the beginning of the request ADU
    requestHeader = (ModbusHeader *) connection->requestAdu;
@@ -367,10 +375,18 @@ error_t modbusServerParseMbapHeader(ModbusClientConnection *connection)
 
    //Malformed Modbus request?
    if(n < sizeof(uint8_t))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the length of the PDU
    n -= sizeof(uint8_t);
+
+   //The PDU must contain at least the function code
+   if(n < sizeof(uint8_t))
+   {
+      return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_DEBUG("\r\nModbus Server: ADU received (%" PRIuSIZE " bytes)...\r\n",
@@ -384,11 +400,15 @@ error_t modbusServerParseMbapHeader(ModbusClientConnection *connection)
 
    //Check protocol identifier
    if(ntohs(requestHeader->protocolId) != MODBUS_PROTOCOL_ID)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //The length of the Modbus PDU is limited to 253 bytes
    if(n > MODBUS_MAX_PDU_SIZE)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save unit identifier
    connection->requestUnitId = requestHeader->unitId;
@@ -415,7 +435,9 @@ error_t modbusServerFormatMbapHeader(ModbusClientConnection *connection,
 
    //Sanity check
    if(connection->requestAduPos < sizeof(ModbusHeader))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the beginning of the request ADU
    requestHeader = (ModbusHeader *) connection->requestAdu;

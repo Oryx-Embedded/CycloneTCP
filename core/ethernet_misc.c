@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -192,7 +192,9 @@ error_t ethEncodeVlanTag(NetBuffer *buffer, size_t *offset, uint16_t vlanId,
 
    //Sanity check
    if(*offset < sizeof(VlanTag))
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Valid PCP value?
    if(vlanPcp >= 0)

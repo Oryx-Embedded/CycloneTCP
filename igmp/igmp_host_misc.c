@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -115,7 +115,9 @@ void igmpHostSendMembershipReport(IgmpHostContext *context, Ipv4Addr groupAddr)
    buffer = ipAllocBuffer(sizeof(IgmpMessage), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return;
+   }
 
    //Point to the beginning of the IGMP message
    message = netBufferAt(buffer, offset, 0);
@@ -161,13 +163,17 @@ void igmpHostSendLeaveGroup(IgmpHostContext *context, Ipv4Addr groupAddr)
    //If the interface state says the querier is running IGMPv1, this action
    //should be skipped
    if(context->compatibilityMode == IGMP_VERSION_1)
+   {
       return;
+   }
 
    //Allocate a memory buffer to hold the IGMP message
    buffer = ipAllocBuffer(sizeof(IgmpMessage), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return;
+   }
 
    //Point to the beginning of the IGMP message
    message = netBufferAt(buffer, offset, 0);
@@ -213,7 +219,9 @@ void igmpHostSendCurrentStateReport(IgmpHostContext *context,
    buffer = ipAllocBuffer(IGMP_MAX_MSG_SIZE, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return;
+   }
 
    //Point to the beginning of the IGMP message
    message = netBufferAt(buffer, offset, 0);
@@ -441,7 +449,9 @@ void igmpHostSendStateChangeReport(IgmpHostContext *context)
    buffer = ipAllocBuffer(IGMP_MAX_MSG_SIZE, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return;
+   }
 
    //Point to the beginning of the IGMP message
    message = netBufferAt(buffer, offset, 0);
@@ -628,7 +638,7 @@ void igmpHostFlushReportRecords(IgmpHostContext *context, NetBuffer *buffer,
    IgmpMembershipReportV3 *message;
 
    //Any group records included in the message?
-   if(*length > 0)
+   if(*length > sizeof(IgmpMembershipReportV3))
    {
       //Point to the beginning of the report message
       message = netBufferAt(buffer, offset, 0);
@@ -843,11 +853,15 @@ void igmpHostProcessMembershipQueryV3(IgmpHostContext *context,
    //When Host Compatibility Mode is IGMPv2, a host acts in IGMPv2
    //compatibility mode, using only the IGMPv2 protocol, on that interface
    if(context->compatibilityMode < IGMP_VERSION_3)
+   {
       return;
+   }
 
    //Check the length of the Version 3 Membership Query message
    if(length < sizeof(IgmpMembershipQueryV3))
+   {
       return;
+   }
 
    //The Group Address field is set to zero when sending a General Query,
    //and set to the IP multicast address being queried when sending a
@@ -873,7 +887,9 @@ void igmpHostProcessMembershipQueryV3(IgmpHostContext *context,
 
    //Malformed message?
    if(length < (sizeof(IgmpMembershipQueryV3) + n * sizeof(Ipv4Addr)))
+   {
       return;
+   }
 
    //The Max Resp Code field specifies the maximum time allowed before sending
    //a responding report
@@ -936,7 +952,7 @@ void igmpHostProcessMembershipQueryV3(IgmpHostContext *context,
                group->queriedSources.numSources = 0;
 
                //Save the list of queried sources
-               for(j = 0; j < n; j++)
+               for(j = 0; j < n && !error; j++)
                {
                   error = ipv4AddSrcAddr(&group->queriedSources,
                      message->srcAddr[j]);
@@ -976,7 +992,7 @@ void igmpHostProcessMembershipQueryV3(IgmpHostContext *context,
                   //empty source-list, then the group source list is augmented
                   //to contain the list of sources in the new Query and a single
                   //response is scheduled using the group timer
-                  for(j = 0; j < n; j++)
+                  for(j = 0; j < n && !error; j++)
                   {
                      error = ipv4AddSrcAddr(&group->queriedSources,
                         message->srcAddr[j]);
@@ -1037,12 +1053,16 @@ void igmpHostProcessMembershipReport(IgmpHostContext *context,
    //When Host Compatibility Mode is IGMPv3, a host acts using the IGMPv3
    //protocol on that interface
    if(context->compatibilityMode > IGMP_VERSION_2)
+   {
       return;
+   }
 
    //The group address in the IGMP header must be a valid multicast group
    //address
    if(!ipv4IsMulticastAddr(message->groupAddr))
+   {
       return;
+   }
 
    //Search the list of groups for the specified multicast address
    group = igmpHostFindGroup(context, message->groupAddr);

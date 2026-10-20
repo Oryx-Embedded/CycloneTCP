@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -80,7 +80,9 @@ error_t ipv6EnableRouting(NetInterface *interface, bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -116,7 +118,9 @@ error_t ipv6AddRoute(NetContext *context, const Ipv6Addr *prefix,
 
    //Check parameters
    if(context == NULL || prefix == NULL || interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Keep track of the first free entry
    firstFreeEntry = NULL;
@@ -138,7 +142,9 @@ error_t ipv6AddRoute(NetContext *context, const Ipv6Addr *prefix,
          {
             //Check whether the current entry matches the specified destination
             if(ipv6CompPrefix(&entry->prefix, prefix, prefixLen))
+            {
                break;
+            }
          }
       }
       else
@@ -337,40 +343,54 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
    //If routing is not enabled on the interface, then the router cannot
    //forward packets from the interface
    if(!srcInterface->ipv6Context.isRouter)
+   {
       return ERROR_FAILURE;
+   }
 
    //Silently drop any IP packets received on an interface that has
    //not been assigned a valid link-local address
    if(ipv6GetLinkLocalAddrState(srcInterface) != IPV6_ADDR_STATE_PREFERRED)
+   {
       return ERROR_NOT_CONFIGURED;
+   }
 
    //Calculate the length of the IPv6 packet
    length = netBufferGetLength(ipPacket) - ipPacketOffset;
 
    //Ensure the packet length is greater than 40 bytes
    if(length < sizeof(Ipv6Header))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the IPv6 header
    ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
    //Malformed IPv6 packet?
    if(ipHeader == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //An IPv6 packet with a source address of unspecified must never be
    //forwarded by an IPv6 router (refer to RFC section 3513 2.5.2)
    if(ipv6CompAddr(&ipHeader->srcAddr, &IPV6_UNSPECIFIED_ADDR))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //The unspecified address must not be used as the destination address
    //of IPv6 packets (refer to RFC section 3513 2.5.2)
    if(ipv6CompAddr(&ipHeader->destAddr, &IPV6_UNSPECIFIED_ADDR))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //An IPv6 packet with a destination address of loopback must never be
    //forwarded by an IPv6 router (refer to RFC 3513 section 2.5.3)
    if(ipv6CompAddr(&ipHeader->destAddr, &IPV6_LOOPBACK_ADDR))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Check whether the destination address is a link-local address
    if(ipv6IsLinkLocalUnicastAddr(&ipHeader->destAddr))
@@ -559,17 +579,19 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
       size_t headerOffset = ipPacketOffset + sizeof(Ipv6Header);
 
       //Calculate the offset of the Next Header field
-      size_t nextHeaderOffset = ipPacketOffset +
-         &ipHeader->nextHeader - (uint8_t *) ipHeader;
+      size_t nextHeaderOffset = ipPacketOffset + &ipHeader->nextHeader -
+         (uint8_t *) ipHeader;
 
       //The Hop-by-Hop Options header is used to carry optional information
       //that must be examined by every node along a packet's delivery path
-      error = ipv6ParseHopByHopOptHeader(srcInterface,
-         ipPacket, ipPacketOffset, &headerOffset, &nextHeaderOffset);
+      error = ipv6ParseHopByHopOptHeader(srcInterface, ipPacket, ipPacketOffset,
+         &headerOffset, &nextHeaderOffset, NULL);
 
       //Any error while processing the extension header?
       if(error)
+      {
          return error;
+      }
    }
 
    //Allocate a buffer to hold the IPv6 packet
@@ -606,7 +628,9 @@ error_t ipv6ForwardPacket(NetInterface *srcInterface, NetBuffer *ipPacket,
 
             //Destination IPv6 address
             if(ipv6CompAddr(&destIpAddr, &IPV6_UNSPECIFIED_ADDR))
+            {
                destIpAddr = ipHeader->destAddr;
+            }
 
             //Check whether the destination IPv6 address is a multicast address?
             if(ipv6IsMulticastAddr(&destIpAddr))

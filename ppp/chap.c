@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -151,13 +151,20 @@ void chapProcessPacket(PppContext *context,
 {
    //Ensure the length of the incoming CHAP packet is valid
    if(length < sizeof(PppPacket))
+   {
       return;
+   }
 
    //Check the length field
    if(ntohs(packet->length) > length)
+   {
       return;
+   }
+
    if(ntohs(packet->length) < sizeof(PppPacket))
+   {
       return;
+   }
 
    //Save the length of the CHAP packet
    length = ntohs(packet->length);
@@ -227,15 +234,21 @@ error_t chapProcessChallenge(PppContext *context,
 
    //Make sure the Challenge packet is acceptable
    if(context->peerConfig.authProtocol != PPP_PROTOCOL_CHAP)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the length of the packet
    if(length < sizeof(ChapChallengePacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Malformed Challenge packet?
    if(length < (sizeof(ChapChallengePacket) + challengePacket->valueSize))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save the Identifier field
    context->chapFsm.peerIdentifier = challengePacket->identifier;
@@ -282,24 +295,34 @@ error_t chapProcessResponse(PppContext *context,
 
    //Make sure the Response packet is acceptable
    if(context->localConfig.authProtocol != PPP_PROTOCOL_CHAP)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the length of the packet
    if(length < sizeof(ChapResponsePacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(responsePacket->identifier != context->chapFsm.localIdentifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Malformed Response packet?
    if(length < (sizeof(ChapResponsePacket) + responsePacket->valueSize))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //The length of the response value depends upon the hash algorithm used
    if(responsePacket->valueSize != MD5_DIGEST_SIZE)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the response value
    context->chapFsm.response = responsePacket->value;
@@ -394,16 +417,29 @@ error_t chapProcessSuccess(PppContext *context,
 
    //Make sure the Success packet is acceptable
    if(context->peerConfig.authProtocol != PPP_PROTOCOL_CHAP)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the length of the packet
    if(length < sizeof(ChapSuccessPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
+   //A Success packet is only expected in response to a Response packet
+   //that has actually been sent
+   if(context->chapFsm.peerState != CHAP_STATE_4_RESPONSE_SENT)
+   {
+      return ERROR_WRONG_STATE;
+   }
 
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(successPacket->identifier != context->chapFsm.peerIdentifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Switch to the Success-Rcvd state
    context->chapFsm.peerState = CHAP_STATE_7_SUCCESS_RCVD;
@@ -451,16 +487,29 @@ error_t chapProcessFailure(PppContext *context,
 
    //Make sure the Failure packet is acceptable
    if(context->peerConfig.authProtocol != PPP_PROTOCOL_CHAP)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the length of the packet
    if(length < sizeof(ChapFailurePacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
+   //A Failure packet is only expected in response to a Response packet
+   //that has actually been sent
+   if(context->chapFsm.peerState != CHAP_STATE_4_RESPONSE_SENT)
+   {
+      return ERROR_WRONG_STATE;
+   }
 
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(failurePacket->identifier != context->chapFsm.peerIdentifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Switch to the Failure-Rcvd state
    context->chapFsm.peerState = CHAP_STATE_9_FAILURE_RCVD;
@@ -496,7 +545,9 @@ error_t chapSendChallenge(PppContext *context)
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Challenge packet
    challengePacket = netBufferAt(buffer, offset, 0);
@@ -540,7 +591,9 @@ error_t chapSendChallenge(PppContext *context)
 
       //The restart counter is decremented each time a Challenge packet is sent
       if(context->chapFsm.restartCounter > 0)
+      {
          context->chapFsm.restartCounter--;
+      }
 
       //Save the time at which the packet was sent
       context->chapFsm.timestamp = osGetSystemTime();
@@ -579,7 +632,9 @@ error_t chapSendResponse(PppContext *context, const uint8_t *value)
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Response packet
    responsePacket = netBufferAt(buffer, offset, 0);
@@ -634,7 +689,9 @@ error_t chapSendSuccess(PppContext *context)
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Success packet
    successPacket = netBufferAt(buffer, offset, 0);
@@ -681,7 +738,9 @@ error_t chapSendFailure(PppContext *context)
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Failure packet
    failurePacket = netBufferAt(buffer, offset, 0);

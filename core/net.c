@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -108,7 +108,9 @@ error_t netInit(NetContext *context, const NetSettings *settings)
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check settings
    if(settings->interfaces == NULL || settings->numInterfaces < 1)
@@ -153,7 +155,9 @@ error_t netInit(NetContext *context, const NetSettings *settings)
    error = memPoolInit();
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Loop through network interfaces
    for(i = 0; i < context->numInterfaces; i++)
@@ -189,7 +193,9 @@ error_t netInit(NetContext *context, const NetSettings *settings)
    error = socketInit(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (defined(WEB_SOCKET_SUPPORT) && WEB_SOCKET_SUPPORT == ENABLED)
    //WebSocket related initialization
@@ -201,7 +207,9 @@ error_t netInit(NetContext *context, const NetSettings *settings)
    error = ipv4InitRouting(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED && IPV6_ROUTING_SUPPORT == ENABLED)
@@ -209,7 +217,9 @@ error_t netInit(NetContext *context, const NetSettings *settings)
    error = ipv6InitRouting(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
 #if (UDP_SUPPORT == ENABLED)
@@ -217,7 +227,9 @@ error_t netInit(NetContext *context, const NetSettings *settings)
    error = udpInit(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
 #if (TCP_SUPPORT == ENABLED)
@@ -225,7 +237,9 @@ error_t netInit(NetContext *context, const NetSettings *settings)
    error = tcpInit(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \
@@ -234,7 +248,9 @@ error_t netInit(NetContext *context, const NetSettings *settings)
    error = dnsInit(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Initialize tick counters
@@ -397,7 +413,9 @@ error_t netSeedRand(NetContext *context, const uint8_t *seed, size_t length)
 
    //Check parameters
    if(context == NULL || seed == NULL || length == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    if(context->running)
@@ -522,6 +540,7 @@ void netGetRandData(NetContext *context, uint8_t *data, size_t length)
 
 /**
  * @brief Get default TCP/IP stack context
+ * @return Pointer to the default TCP/IP stack context
  **/
 
 NetContext *netGetDefaultContext(void)
@@ -572,7 +591,9 @@ error_t netSetMacAddr(NetInterface *interface, const MacAddr *macAddr)
 #if (ETH_SUPPORT == ENABLED)
    //Check parameters
    if(interface == NULL || macAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -609,7 +630,9 @@ error_t netGetMacAddr(NetInterface *interface, MacAddr *macAddr)
 
    //Check parameters
    if(interface == NULL || macAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -643,7 +666,9 @@ error_t netSetEui64(NetInterface *interface, const Eui64 *eui64)
 {
    //Check parameters
    if(interface == NULL || eui64 == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -670,7 +695,9 @@ error_t netGetEui64(NetInterface *interface, Eui64 *eui64)
 
    //Check parameters
    if(interface == NULL || eui64 == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -700,7 +727,9 @@ error_t netSetInterfaceId(NetInterface *interface, uint32_t id)
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -725,11 +754,15 @@ error_t netSetInterfaceName(NetInterface *interface, const char_t *name)
 {
    //Check parameters
    if(interface == NULL || name == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the interface name is acceptable
    if(osStrlen(name) > NET_MAX_IF_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -754,11 +787,15 @@ error_t netSetHostname(NetInterface *interface, const char_t *name)
 {
    //Check parameters
    if(interface == NULL || name == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the host name is acceptable
    if(osStrlen(name) > NET_MAX_HOSTNAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -784,11 +821,15 @@ error_t netSetVlanId(NetInterface *interface, uint16_t vlanId)
 #if (ETH_VLAN_SUPPORT == ENABLED)
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The VID value FFF is reserved
    if((vlanId & VLAN_VID_MASK) == VLAN_VID_MASK)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -818,11 +859,15 @@ error_t netSetVmanId(NetInterface *interface, uint16_t vmanId)
 #if (ETH_VMAN_SUPPORT == ENABLED)
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The VID value FFF is reserved
    if((vmanId & VLAN_VID_MASK) == VLAN_VID_MASK)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -855,7 +900,9 @@ error_t netSetParentInterface(NetInterface *interface,
    ETH_PORT_TAGGING_SUPPORT == ENABLED)
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -884,7 +931,9 @@ error_t netSetDriver(NetInterface *interface, const NicDriver *driver)
 {
    //Check parameters
    if(interface == NULL || driver == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -910,7 +959,9 @@ error_t netSetPhyDriver(NetInterface *interface, const PhyDriver *driver)
 #if (ETH_SUPPORT == ENABLED)
    //Check parameters
    if(interface == NULL || driver == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -940,11 +991,15 @@ error_t netSetPhyAddr(NetInterface *interface, uint8_t phyAddr)
 #if (ETH_SUPPORT == ENABLED)
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the PHY address is valid
    if(phyAddr >= 32)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -974,7 +1029,9 @@ error_t netSetSwitchDriver(NetInterface *interface, const SwitchDriver *driver)
 #if (ETH_SUPPORT == ENABLED)
    //Check parameters
    if(interface == NULL || driver == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1004,7 +1061,9 @@ error_t netSetSwitchPort(NetInterface *interface, uint8_t port)
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1034,7 +1093,9 @@ error_t netSetSmiDriver(NetInterface *interface, const SmiDriver *driver)
 #if (ETH_SUPPORT == ENABLED)
    //Check parameters
    if(interface == NULL || driver == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1063,7 +1124,9 @@ error_t netSetSpiDriver(NetInterface *interface, const SpiDriver *driver)
 {
    //Check parameters
    if(interface == NULL || driver == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1088,7 +1151,9 @@ error_t netSetUartDriver(NetInterface *interface, const UartDriver *driver)
 {
    //Check parameters
    if(interface == NULL || driver == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1113,7 +1178,9 @@ error_t netSetExtIntDriver(NetInterface *interface, const ExtIntDriver *driver)
 {
    //Check parameters
    if(interface == NULL || driver == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1138,7 +1205,9 @@ error_t netSetLinkState(NetInterface *interface, bool_t linkState)
 {
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1264,7 +1333,9 @@ error_t netEnablePromiscuousMode(NetInterface *interface, bool_t enable)
 {
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
 #if (ETH_SUPPORT == ENABLED)
    //Get exclusive access
@@ -1292,7 +1363,9 @@ error_t netConfigInterface(NetInterface *interface)
 
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1322,7 +1395,9 @@ error_t netConfigInterface(NetInterface *interface)
          error = interface->nicDriver->init(interface);
          //Any error to report?
          if(error)
+         {
             break;
+         }
       }
       else
       {
@@ -1343,7 +1418,9 @@ error_t netConfigInterface(NetInterface *interface)
                error = ethAcceptMacAddr(physicalInterface, &interface->macAddr);
                //Any error to report?
                if(error)
+               {
                   break;
+               }
             }
          }
 #endif
@@ -1354,7 +1431,9 @@ error_t netConfigInterface(NetInterface *interface)
       error = ethInit(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED)
@@ -1362,14 +1441,18 @@ error_t netConfigInterface(NetInterface *interface)
       error = ipv4Init(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
 #if (ETH_SUPPORT == ENABLED)
       //ARP cache initialization
       error = arpInit(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && (IGMP_HOST_SUPPORT == ENABLED || \
@@ -1378,7 +1461,9 @@ error_t netConfigInterface(NetInterface *interface)
       error = igmpInit(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
 #if (NBNS_CLIENT_SUPPORT == ENABLED || NBNS_RESPONDER_SUPPORT == ENABLED)
@@ -1386,7 +1471,9 @@ error_t netConfigInterface(NetInterface *interface)
       error = nbnsInit(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 #endif
 
@@ -1395,14 +1482,18 @@ error_t netConfigInterface(NetInterface *interface)
       error = ipv6Init(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
 #if (IPV6_SUPPORT == ENABLED && NDP_SUPPORT == ENABLED)
       //NDP related initialization
       error = ndpInit(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED && MLD_NODE_SUPPORT == ENABLED)
@@ -1410,7 +1501,9 @@ error_t netConfigInterface(NetInterface *interface)
       error = mldInit(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 #endif
 
@@ -1419,7 +1512,9 @@ error_t netConfigInterface(NetInterface *interface)
       error = mdnsInit(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
 #if (LLMNR_RESPONDER_SUPPORT == ENABLED)
@@ -1427,7 +1522,9 @@ error_t netConfigInterface(NetInterface *interface)
       error = llmnrResponderInit(interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
       //End of exception handling block
@@ -1478,7 +1575,9 @@ error_t netStartInterface(NetInterface *interface)
 
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1560,7 +1659,9 @@ error_t netStopInterface(NetInterface *interface)
 
    //Make sure the network interface is valid
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -1578,7 +1679,9 @@ error_t netStopInterface(NetInterface *interface)
 
       //Disable hardware interrupts
       if(interface->nicDriver != NULL)
+      {
          interface->nicDriver->disableIrq(interface);
+      }
 
       //Disable network interface
       interface->configured = FALSE;

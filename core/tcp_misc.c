@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -85,7 +85,9 @@ error_t tcpSendSegment(Socket *socket, uint8_t flags, uint32_t seqNum,
    buffer = ipAllocBuffer(TCP_MAX_HEADER_LENGTH, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the TCP segment
    segment = netBufferAt(buffer, offset, 0);
@@ -497,7 +499,9 @@ error_t tcpRejectSegment(NetInterface *interface,
    buffer = ipAllocBuffer(sizeof(TcpHeader), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the TCP segment
    segment2 = netBufferAt(buffer, offset, 0);
@@ -634,7 +638,12 @@ error_t tcpAddOption(TcpHeader *segment, uint8_t kind, const void *value,
       //Format option
       option->kind = kind;
       option->length = length;
-      osMemcpy(option->value, value, length - sizeof(TcpOption));
+
+      //Copy option value
+      if(length > sizeof(TcpOption))
+      {
+         osMemcpy(option->value, value, length - sizeof(TcpOption));
+      }
 
       //Adjust index value
       i += length;
@@ -907,7 +916,9 @@ error_t tcpCheckAck(Socket *socket, const TcpHeader *segment, size_t length)
 
    //If the ACK bit is off drop the segment and return
    if((segment->flags & TCP_FLAG_ACK) == 0)
+   {
       return ERROR_FAILURE;
+   }
 
 #if (TCP_KEEP_ALIVE_SUPPORT == ENABLED)
    //Check whether TCP keep-alive mechanism is enabled
@@ -934,6 +945,15 @@ error_t tcpCheckAck(Socket *socket, const TcpHeader *segment, size_t length)
 
       //The ACK segment acknowledges something not yet sent
       return ERROR_FAILURE;
+   }
+
+   //Zero window probes have been sent?
+   if(socket->sndWnd == 0 && socket->wndProbeCount > 0)
+   {
+      //As long as the receiving TCP continues to send acknowledgments in
+      //response to the probe segments, the sending TCP must allow the
+      //connection to stay open (refer to RFC 1122, section 4.2.2.17)
+      socket->wndProbeCount = 0;
    }
 
    //Check whether the ACK is a duplicate
@@ -1189,6 +1209,15 @@ bool_t tcpIsDuplicateAck(Socket *socket, const TcpHeader *segment,
    size_t length)
 {
    bool_t flag;
+   uint32_t window;
+
+#if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
+   //The window field (SEG.WND) must be left-shifted by Snd.Wind.Shift bits
+   window = (uint32_t) segment->window << socket->sndWndShift;
+#else
+   //The maximum unscaled window is 2^16 - 1
+   window = segment->window;
+#endif
 
    //An ACK is considered a duplicate when the following conditions are met
    flag = FALSE;
@@ -1206,9 +1235,9 @@ bool_t tcpIsDuplicateAck(Socket *socket, const TcpHeader *segment,
             //received on the given connection
             if(segment->ackNum == socket->sndUna)
             {
-               //The advertised window in the incoming acknowledgment equals
-               //the advertised window in the last incoming acknowledgment
-               if(segment->window == socket->sndWnd)
+               //The advertised window in the incoming acknowledgment equals the
+               //advertised window in the last incoming acknowledgment
+               if(window == socket->sndWnd)
                {
                   //Duplicate ACK
                   flag = TRUE;
@@ -1294,14 +1323,18 @@ void tcpFastRecovery(Socket *socket, const TcpHeader *segment, uint32_t n)
       //Deflate the congestion window by the amount of new data acknowledged
       //by the cumulative acknowledgment field
       if(socket->cwnd > n)
+      {
          socket->cwnd -= n;
+      }
 
       //If the partial ACK acknowledges at least one SMSS of new data, then
       //add back SMSS bytes to the congestion window. This artificially
       //inflates the congestion window in order to reflect the additional
       //segment that has left the network
       if(n >= socket->smss)
+      {
          socket->cwnd += socket->smss;
+      }
 
       //Do not exit the fast recovery procedure...
       socket->congestState = TCP_CONGEST_STATE_RECOVERY;
@@ -1516,7 +1549,9 @@ void tcpUpdateRetransmitQueue(Socket *socket)
    //When all outstanding data has been acknowledged,
    //turn off the retransmission timer
    if(socket->retransmitQueue == NULL)
+   {
       netStopTimer(&socket->retransmitTimer);
+   }
 }
 
 
@@ -1622,8 +1657,15 @@ void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge
          TCP_CMP_SEQ(*leftEdge, socket->sackBlock[i].rightEdge) <= 0)
       {
          //Merge blocks to form a contiguous one
-         *leftEdge = MIN(*leftEdge, socket->sackBlock[i].leftEdge);
-         *rightEdge = MAX(*rightEdge, socket->sackBlock[i].rightEdge);
+         if(TCP_CMP_SEQ(socket->sackBlock[i].leftEdge, *leftEdge) < 0)
+         {
+            *leftEdge = socket->sackBlock[i].leftEdge;
+         }
+
+         if(TCP_CMP_SEQ(socket->sackBlock[i].rightEdge, *rightEdge) > 0)
+         {
+            *rightEdge = socket->sackBlock[i].rightEdge;
+         }
 
          //Delete current block
          osMemmove(socket->sackBlock + i, socket->sackBlock + i + 1,
@@ -1671,7 +1713,7 @@ void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment)
 
 #if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
    //The window field (SEG.WND) in the header of every incoming segment, with
-   //the exception of SYN segments, MUST be left-shifted by Snd.Wind.Shift bits
+   //the exception of SYN segments, must be left-shifted by Snd.Wind.Shift bits
    //before updating SND.WND (refer to RFC 7323, section 2.3)
    window = (uint32_t) segment->window << socket->sndWndShift;
 #else
@@ -1705,9 +1747,7 @@ void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment)
       if(window == 0 && socket->sndWnd != 0)
       {
          //Start the persist timer
-         socket->wndProbeCount = 0;
-         socket->wndProbeInterval = TCP_DEFAULT_PROBE_INTERVAL;
-         netStartTimer(&socket->persistTimer, socket->wndProbeInterval);
+         tcpStartPersistTimer(socket);
       }
 
       //Update the send window and record the sequence number and the
@@ -1761,6 +1801,20 @@ void tcpUpdateReceiveWindow(Socket *socket)
          socket->rcvWnd += reduction;
       }
    }
+}
+
+
+/**
+ * @brief Start the persist timer
+ * @param[in] socket Handle referencing the socket
+ **/
+
+void tcpStartPersistTimer(Socket *socket)
+{
+   //Start the persist timer
+   socket->wndProbeCount = 0;
+   socket->wndProbeInterval = TCP_DEFAULT_PROBE_INTERVAL;
+   netStartTimer(&socket->persistTimer, socket->wndProbeInterval);
 }
 
 
@@ -1928,7 +1982,9 @@ error_t tcpRetransmitSegment(Socket *socket)
             queueItem->length);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
 #if (IPV4_SUPPORT == ENABLED)
          //Destination address is an IPv4 address?
@@ -2044,7 +2100,9 @@ error_t tcpNagleAlgo(Socket *socket, uint_t flags)
       //The usable window size may become zero or negative, preventing packet
       //transmission
       if((int32_t) u <= 0)
+      {
          break;
+      }
 
       //Calculate the number of bytes to send at a time
       n = MIN(u, socket->sndUser);
@@ -2320,7 +2378,9 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
 {
    //Sanity check
    if(socket == NULL)
+   {
       return 0;
+   }
 
    //Only one of the events listed here may complete the wait
    socket->eventMask = eventMask;

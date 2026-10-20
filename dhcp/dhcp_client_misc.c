@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -167,7 +167,9 @@ void dhcpClientLinkChangeEvent(DhcpClientContext *context)
 
    //Make sure the DHCP client has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Point to the underlying network interface
    interface = context->interface;
@@ -240,7 +242,9 @@ error_t dhcpClientSendDiscover(DhcpClientContext *context)
    buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset, 0);
@@ -361,7 +365,9 @@ error_t dhcpClientSendRequest(DhcpClientContext *context)
    buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset, 0);
@@ -521,7 +527,9 @@ error_t dhcpClientSendDecline(DhcpClientContext *context)
    buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset, 0);
@@ -640,7 +648,9 @@ error_t dhcpClientSendRelease(DhcpClientContext *context)
    buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset, 0);
@@ -751,13 +761,17 @@ void dhcpClientProcessMessage(NetInterface *interface,
 
    //Make sure the DHCP message is valid
    if(length < sizeof(DhcpMessage) || length > DHCP_MAX_MSG_SIZE)
+   {
       return;
+   }
 
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset, length);
    //Malformed DHCP message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_DEBUG("\r\n%s: DHCP message received (%" PRIuSIZE " bytes)...\r\n",
@@ -768,26 +782,36 @@ void dhcpClientProcessMessage(NetInterface *interface,
 
    //The DHCP server shall respond with a BOOTREPLY opcode
    if(message->op != DHCP_OPCODE_BOOTREPLY)
+   {
       return;
+   }
 
    //Enforce hardware type
    if(message->htype != DHCP_HARDWARE_TYPE_ETH)
+   {
       return;
+   }
 
    //Check the length of the hardware address
    if(message->hlen != sizeof(MacAddr))
+   {
       return;
+   }
 
    //Check magic cookie
    if(message->magicCookie != HTONL(DHCP_MAGIC_COOKIE))
+   {
       return;
+   }
 
    //The DHCP Message Type option must be included in every DHCP message
    option = dhcpGetOption(message, length, DHCP_OPT_DHCP_MESSAGE_TYPE);
 
    //Failed to retrieve the Message Type option?
    if(option == NULL || option->length != 1)
+   {
       return;
+   }
 
    //Check message type
    switch(option->value[0])
@@ -836,27 +860,37 @@ void dhcpClientParseOffer(DhcpClientContext *context,
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
+   {
       return;
+   }
 
    //Make sure the IP address offered to the client is valid
    if(message->yiaddr == IPV4_UNSPECIFIED_ADDR)
+   {
       return;
+   }
 
    //Check MAC address
    if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
+   {
       return;
+   }
 
    //Make sure that the DHCPOFFER message is received in response to
    //a DHCPDISCOVER message
    if(context->state != DHCP_STATE_SELECTING)
+   {
       return;
+   }
 
    //A DHCP server always returns its own address in the Server Identifier option
    serverIdOption = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
 
    //Failed to retrieve the Server Identifier option?
    if(serverIdOption == NULL || serverIdOption->length != 4)
+   {
       return;
+   }
 
    //Any registered callback?
    if(context->parseOptionsCallback != NULL)
@@ -866,7 +900,9 @@ void dhcpClientParseOffer(DhcpClientContext *context,
          DHCP_MSG_TYPE_OFFER);
       //Check status code
       if(error)
+      {
          return;
+      }
    }
 
    //Record the IP address of the DHCP server
@@ -911,29 +947,39 @@ void dhcpClientParseAck(DhcpClientContext *context,
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
+   {
       return;
+   }
 
    //Make sure the IP address assigned to the client is valid
    if(message->yiaddr == IPV4_UNSPECIFIED_ADDR)
+   {
       return;
+   }
 
    //Check MAC address
    if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
+   {
       return;
+   }
 
    //A DHCP server always returns its own address in the Server Identifier option
    serverIdOption = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
 
    //Failed to retrieve the Server Identifier option?
    if(serverIdOption == NULL || serverIdOption->length != 4)
+   {
       return;
+   }
 
    //Check current state
    if(context->state == DHCP_STATE_SELECTING)
    {
       //A DHCPACK message is not acceptable when rapid commit is disallowed
       if(!context->rapidCommit)
+      {
          return;
+      }
 
       //Search for the Rapid Commit option
       option = dhcpGetOption(message, length, DHCP_OPT_RAPID_COMMIT);
@@ -942,14 +988,18 @@ void dhcpClientParseAck(DhcpClientContext *context,
       //in a response to a DHCPDISCOVER message when completing the
       //DHCPDISCOVER-DHCPACK message exchange
       if(option == NULL || option->length != 0)
+      {
          return;
+      }
    }
    else if(context->state == DHCP_STATE_REQUESTING ||
       context->state == DHCP_STATE_RENEWING)
    {
       //Check the server identifier
       if(!ipv4CompAddr(serverIdOption->value, &context->serverIpAddr))
+      {
          return;
+      }
    }
    else if(context->state == DHCP_STATE_REBOOTING ||
       context->state == DHCP_STATE_REBINDING)
@@ -967,7 +1017,9 @@ void dhcpClientParseAck(DhcpClientContext *context,
 
    //Failed to retrieve specified option?
    if(option == NULL || option->length != 4)
+   {
       return;
+   }
 
    //Any registered callback?
    if(context->parseOptionsCallback != NULL)
@@ -977,7 +1029,9 @@ void dhcpClientParseAck(DhcpClientContext *context,
          DHCP_MSG_TYPE_ACK);
       //Check status code
       if(error)
+      {
          return;
+      }
    }
 
    //Record the lease time
@@ -1023,6 +1077,18 @@ void dhcpClientParseAck(DhcpClientContext *context,
    {
       //Infinite lease
       context->t2 = DHCP_INFINITE_TIME;
+   }
+
+   //Make sure that T2 does not exceed the lease time
+   if(context->t2 > context->leaseTime)
+   {
+      context->t2 = context->leaseTime;
+   }
+
+   //Make sure that T1 does not exceed T2
+   if(context->t1 > context->t2)
+   {
+      context->t1 = context->t2;
    }
 
    //Retrieve Subnet Mask option
@@ -1149,18 +1215,24 @@ void dhcpClientParseNak(DhcpClientContext *context,
 
    //Discard any received packet that does not match the transaction ID
    if(ntohl(message->xid) != context->transactionId)
+   {
       return;
+   }
 
    //Check MAC address
    if(!macCompAddr(&message->chaddr, &logicalInterface->macAddr))
+   {
       return;
+   }
 
    //A DHCP server always returns its own address in the Server Identifier option
    serverIdOption = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
 
    //Failed to retrieve the Server Identifier option?
    if(serverIdOption == NULL || serverIdOption->length != 4)
+   {
       return;
+   }
 
    //Check current state
    if(context->state == DHCP_STATE_REQUESTING ||
@@ -1168,7 +1240,9 @@ void dhcpClientParseNak(DhcpClientContext *context,
    {
       //Check the server identifier
       if(!ipv4CompAddr(serverIdOption->value, &context->serverIpAddr))
+      {
          return;
+      }
    }
    else if(context->state == DHCP_STATE_REBOOTING ||
       context->state == DHCP_STATE_REBINDING)
@@ -1189,7 +1263,9 @@ void dhcpClientParseNak(DhcpClientContext *context,
          DHCP_MSG_TYPE_NAK);
       //Check status code
       if(error)
+      {
          return;
+      }
    }
 
    //The host address is no longer appropriate for the link

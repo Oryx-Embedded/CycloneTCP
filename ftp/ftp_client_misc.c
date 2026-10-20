@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -369,7 +369,9 @@ error_t ftpClientParsePasvReply(FtpClientContext *context, uint16_t *port)
       p = strrchr(context->buffer, delimiter);
       //Failed to parse the response?
       if(p == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Convert the resulting string
       *port = (uint16_t) osStrtoul(p + 1, NULL, 10);
@@ -380,7 +382,9 @@ error_t ftpClientParsePasvReply(FtpClientContext *context, uint16_t *port)
       p = strrchr(context->buffer, delimiter);
       //Failed to parse the response?
       if(p == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Convert the resulting string
       *port |= (uint16_t) osStrtoul(p + 1, NULL, 10) << 8;
@@ -395,7 +399,9 @@ error_t ftpClientParsePasvReply(FtpClientContext *context, uint16_t *port)
       p = strrchr(context->buffer, '(');
       //Failed to parse the response?
       if(p == NULL || p[1] == '\0')
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Retrieve the delimiter character
       delimiter = p[1];
@@ -404,7 +410,9 @@ error_t ftpClientParsePasvReply(FtpClientContext *context, uint16_t *port)
       p = strrchr(context->buffer, delimiter);
       //Failed to parse the response?
       if(p == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Split the string
       *p = '\0';
@@ -413,7 +421,9 @@ error_t ftpClientParsePasvReply(FtpClientContext *context, uint16_t *port)
       p = strrchr(context->buffer, delimiter);
       //Failed to parse the response?
       if(p == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Convert the resulting string
       *port = (uint16_t) osStrtoul(p + 1, NULL, 10);
@@ -449,7 +459,9 @@ error_t ftpClientParsePwdReply(FtpClientContext *context, char_t *path,
    p = strrchr(context->buffer, '\"');
    //Failed to parse the response?
    if(p == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Split the string
    *p = '\0';
@@ -458,7 +470,9 @@ error_t ftpClientParsePwdReply(FtpClientContext *context, char_t *path,
    p = osStrchr(context->buffer, '\"');
    //Failed to parse the response?
    if(p == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Retrieve the length of the working directory
    length = osStrlen(p + 1);
@@ -511,7 +525,9 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
    token = osStrtok_r(line, " \t", &p);
    //Invalid directory entry?
    if(token == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //MS-DOS listing format?
    if(osIsdigit(token[0]))
@@ -541,7 +557,9 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Check modification time format
       if(osStrlen(token) >= 5 && token[2] == ':')
@@ -566,7 +584,9 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Check whether the current entry is a directory
       if(osStrcmp(token, "<DIR>") == 0)
@@ -584,7 +604,9 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       token = osStrtok_r(NULL, " \r\n", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Retrieve the length of the filename
       n = osStrlen(token);
@@ -614,25 +636,33 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Discard owner field
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Discard group field
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Read size field
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Save the size of the file
       dirEntry->size = osStrtoul(token, NULL, 10);
@@ -641,7 +671,9 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Decode the 3-letter month name
       for(i = 1; i <= 12; i++)
@@ -659,7 +691,9 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Save day number
       dirEntry->modified.day = (uint8_t) osStrtoul(token, NULL, 10);
@@ -668,7 +702,9 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       token = osStrtok_r(NULL, " ", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Check modification time format
       if(osStrlen(token) == 4)
@@ -694,7 +730,9 @@ error_t ftpClientParseDirEntry(char_t *line, FtpDirEntry *dirEntry)
       token = osStrtok_r(NULL, " \r\n", &p);
       //Invalid directory entry?
       if(token == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Retrieve the length of the filename
       n = osStrlen(token);

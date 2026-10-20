@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -987,16 +987,22 @@ error_t mqttSnClientSendConnect(MqttSnClientContext *context,
    //If CleanSession is set to 1, the client and server must discard any
    //previous session and start a new one
    if(cleanSession)
+   {
       flags.cleanSession = TRUE;
+   }
 
    //If the client supplies a zero-byte Client Identifier, the client must
    //also set CleanSession to 1
    if(context->clientId[0] == '\0')
+   {
       flags.cleanSession = TRUE;
+   }
 
    //Check whether a valid Will message has been specified
    if(context->willMessage.topic[0] != '\0')
+   {
       flags.will = TRUE;
+   }
 
    //Format CONNECT message
    error = mqttSnFormatConnect(&context->message, flags,

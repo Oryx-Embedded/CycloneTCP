@@ -35,7 +35,7 @@
  * - RFC 5227: IPv4 Address Conflict Detection
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -88,11 +88,15 @@ error_t autoIpInit(AutoIpContext *context, const AutoIpSettings *settings)
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The Auto-IP service must be bound to a valid interface
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = settings->interface;
@@ -141,7 +145,9 @@ error_t autoIpStart(AutoIpContext *context)
 {
    //Make sure the Auto-IP context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting Auto-IP...\r\n");
@@ -177,7 +183,9 @@ error_t autoIpStop(AutoIpContext *context)
 {
    //Make sure the Auto-IP context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping Auto-IP...\r\n");

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -94,7 +94,7 @@ error_t coapClientProcessEvents(CoapClientContext *context, systime_t timeout)
 
       //Receive datagram, if any
       error = coapClientReceiveDatagram(context, context->response.buffer,
-         COAP_MAX_MSG_SIZE, &context->response.length);
+         COAP_MAX_MSG_SIZE - 1, &context->response.length);
 
       //Any datagram received?
       if(error == NO_ERROR)
@@ -127,7 +127,9 @@ error_t coapClientProcessEvents(CoapClientContext *context, systime_t timeout)
 
                //Test if the response matches the current request
                if(error != ERROR_UNEXPECTED_MESSAGE)
+               {
                   break;
+               }
             }
 
             //Check status code
@@ -175,7 +177,9 @@ error_t coapClientProcessEvents(CoapClientContext *context, systime_t timeout)
             error = coapClientProcessRequestEvents(&context->request[i]);
             //Any error to report?
             if(error)
+            {
                break;
+            }
          }
       }
 
@@ -487,7 +491,7 @@ error_t coapClientMatchResponse(const CoapClientRequest *request,
                }
             }
          }
-         else if(respHeader->code == COAP_TYPE_RST)
+         else if(respHeader->type == COAP_TYPE_RST)
          {
             //The message ID of the Reset must match the message ID of
             //the Confirmable message

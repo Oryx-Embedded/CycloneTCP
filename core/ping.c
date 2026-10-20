@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -74,7 +74,9 @@ error_t ping(NetInterface *interface, const IpAddr *targetIpAddr, size_t size,
 
    //Check parameters
    if(targetIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize context
    pingInit(&context);
@@ -86,25 +88,33 @@ error_t ping(NetInterface *interface, const IpAddr *targetIpAddr, size_t size,
       error = pingBindToInterface(&context, interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Set timeout value
       error = pingSetTimeout(&context, timeout);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Send an ICMP Echo Request message
       error = pingSendRequest(&context, targetIpAddr, size, ttl);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Wait for a matching Echo Reply message
       error = pingWaitForReply(&context, NULL, rtt);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //End of exception handling block
    } while(0);
@@ -150,7 +160,9 @@ error_t pingSetTimeout(PingContext *context, systime_t timeout)
 {
    //Invalid context?
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
@@ -171,7 +183,9 @@ error_t pingBindToInterface(PingContext *context, NetInterface *interface)
 {
    //Invalid context?
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Select the specified network interface
    context->interface = interface;
@@ -207,7 +221,9 @@ error_t pingSendRequest(PingContext *context, const IpAddr *targetIpAddr,
 
    //Invalid context?
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Limit the size of the data payload
    context->dataPayloadSize = MIN (size, PING_MAX_DATA_SIZE);
@@ -260,7 +276,9 @@ error_t pingSendRequest(PingContext *context, const IpAddr *targetIpAddr,
          targetIpAddr->ipv4Addr, &srcIpAddr);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //ICMP Echo Request message
       message->type = ICMP_TYPE_ECHO_REQUEST;
@@ -285,7 +303,9 @@ error_t pingSendRequest(PingContext *context, const IpAddr *targetIpAddr,
          &targetIpAddr->ipv6Addr, &pseudoHeader.srcAddr);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //ICMPv6 Echo Request message
       message->type = ICMPV6_TYPE_ECHO_REQUEST;
@@ -316,7 +336,9 @@ error_t pingSendRequest(PingContext *context, const IpAddr *targetIpAddr,
 
    //Failed to open socket?
    if(context->socket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Set the TTL value to be used
    context->socket->ttl = ttl;
@@ -328,7 +350,9 @@ error_t pingSendRequest(PingContext *context, const IpAddr *targetIpAddr,
       error = socketBindToInterface(context->socket, interface);
       //Unable to bind the socket to the desired interface?
       if(error)
+      {
          break;
+      }
 
       //Debug message
       TRACE_INFO("Sending ICMP echo request to %s (%" PRIuSIZE " bytes)...\r\n",
@@ -339,7 +363,9 @@ error_t pingSendRequest(PingContext *context, const IpAddr *targetIpAddr,
          NULL, 0);
       //Failed to send message ?
       if(error)
+      {
          break;
+      }
 
       //Save the time at which the request was sent
       context->timestamp = osGetSystemTime();
@@ -377,7 +403,9 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
 
    //Malformed ICMP message?
    if(length < sizeof(IcmpHeader))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //Is target address an IPv4 address?
@@ -385,7 +413,9 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
    {
       //Check address type
       if(destIpAddr->length != sizeof(Ipv4Addr))
+      {
          return ERROR_INVALID_MESSAGE;
+      }
 
       //Check message type
       if(message->type == ICMP_TYPE_ECHO_REPLY)
@@ -406,7 +436,9 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
 
       //Verify checksum value
       if(ipCalcChecksum(message, length) != 0x0000)
+      {
          return ERROR_INVALID_MESSAGE;
+      }
    }
    else
 #endif
@@ -418,7 +450,9 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
 
       //Check address type
       if(destIpAddr->length != sizeof(Ipv6Addr))
+      {
          return ERROR_INVALID_MESSAGE;
+      }
 
       //Check message type
       if(message->type == ICMPV6_TYPE_ECHO_REPLY)
@@ -464,26 +498,36 @@ error_t pingCheckReply(PingContext *context, const IpAddr *srcIpAddr,
 
    //Malformed ICMP Echo Reply message?
    if(length < sizeof(IcmpEchoMessage))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Make sure the response identifier matches the request identifier
    if(ntohs(message->identifier) != context->identifier)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Make sure the sequence number is correct
    if(ntohs(message->sequenceNumber) != context->sequenceNumber)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Check message length
    if(length != (sizeof(IcmpEchoMessage) + context->dataPayloadSize))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Verify data payload
    for(i = 0; i < context->dataPayloadSize; i++)
    {
       //Compare received data against expected data pattern
       if(message->data[i] != (i & 0xFF))
+      {
          return ERROR_INVALID_MESSAGE;
+      }
    }
 
    //The ICMP Echo Reply message is acceptable
@@ -509,7 +553,9 @@ error_t pingWaitForReply(PingContext *context, IpAddr *hostIpAddr,
 
    //Invalid context?
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Wait for an ICMP Echo Reply message
    do
@@ -531,7 +577,9 @@ error_t pingWaitForReply(PingContext *context, IpAddr *hostIpAddr,
       error = socketSetTimeout(context->socket, timeout);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Point to the receive buffer
       msg = SOCKET_DEFAULT_MSG;
@@ -570,12 +618,12 @@ error_t pingWaitForReply(PingContext *context, IpAddr *hostIpAddr,
          if(error == NO_ERROR)
          {
             TRACE_INFO("ICMP echo reply received from %s (%" PRIu32 " ms)...\r\n",
-               ipAddrToString(&srcIpAddr, NULL), context->rtt);
+               ipAddrToString(&msg.srcIpAddr, NULL), context->rtt);
          }
          else
          {
             TRACE_INFO("ICMP time exceeded received from %s (%" PRIu32 " ms)...\r\n",
-               ipAddrToString(&srcIpAddr, NULL), context->rtt);
+               ipAddrToString(&msg.srcIpAddr, NULL), context->rtt);
          }
 
          //Return the IP address of the host

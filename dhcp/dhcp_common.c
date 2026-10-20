@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -61,23 +61,33 @@ error_t dhcpAddOption(DhcpMessage *message, size_t *messageLen,
 
    //Check parameters
    if(message == NULL || messageLen == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check the length of the DHCP message
    if(*messageLen < (sizeof(DhcpMessage) + sizeof(uint8_t)))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check the length of the option
    if(optionLen > 0 && optionValue == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    if(optionLen > UINT8_MAX)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Ensure that the length of the resulting message will not exceed the
    //maximum DHCP message size
    if((*messageLen + sizeof(DhcpOption) + optionLen) > DHCP_MAX_MSG_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Retrieve the total length of the options field, excluding the end option
    n = *messageLen - sizeof(DhcpMessage) - sizeof(uint8_t);
@@ -89,8 +99,12 @@ error_t dhcpAddOption(DhcpMessage *message, size_t *messageLen,
    option->code = optionCode;
    //Set option length
    option->length = (uint8_t) optionLen;
+
    //Copy option value
-   osMemcpy(option->value, optionValue, optionLen);
+   if(optionLen > 0)
+   {
+      osMemcpy(option->value, optionValue, optionLen);
+   }
 
    //Determine the length of the options field
    n += sizeof(DhcpOption) + option->length;

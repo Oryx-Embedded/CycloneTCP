@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -113,7 +113,9 @@ void ntpDumpPacket(const NtpHeader *packet, size_t length)
 
    //Malformed packet?
    if(length < sizeof(NtpHeader))
+   {
       return;
+   }
 
    //Point to the NTP packet header
    header = (NtpHeader *) packet;
@@ -220,7 +222,9 @@ void ntpDumpExtensions(const uint8_t *extensions, size_t length)
    {
       //Malformed extension?
       if(length < sizeof(NtpExtension))
+      {
          break;
+      }
 
       //Point to the current extension
       extension = (NtpExtension *) (extensions + i);
@@ -229,7 +233,9 @@ void ntpDumpExtensions(const uint8_t *extensions, size_t length)
 
       //Malformed extension?
       if(n < sizeof(NtpExtension) || (i + n) > length)
+      {
          break;
+      }
 
       //Dump extension
       ntpDumpExtension(extension, n);
@@ -250,7 +256,9 @@ void ntpDumpExtension(const NtpExtension *extension, size_t length)
 
    //Malformed extension?
    if(length < sizeof(NtpExtension))
+   {
       return;
+   }
 
    //Get extension type
    type = ntohs(extension->fieldType);
@@ -299,7 +307,9 @@ void ntpDumpNtsAeadExtension(const NtpNtsAeadExtension *extension, size_t length
 
    //Malformed extension?
    if(length < sizeof(NtpNtsAeadExtension))
+   {
       return;
+   }
 
    //Retrieve the length of the nonce and ciphertext
    nonceLen = ntohs(extension->nonceLength);
@@ -307,7 +317,9 @@ void ntpDumpNtsAeadExtension(const NtpNtsAeadExtension *extension, size_t length
 
    //Malformed extension?
    if(length < (sizeof(NtpNtsAeadExtension) + nonceLen + ciphertextLen))
+   {
       return;
+   }
 
    //Dump extension
    TRACE_DEBUG("    Nonce Length = %" PRIu16 "\r\n", nonceLen);
@@ -357,7 +369,9 @@ const char_t *ntpGetParamName(uint_t value, const NtpParamName *paramList,
    for(i = 0; i < paramListLen; i++)
    {
       if(paramList[i].value == value)
+      {
          return paramList[i].name;
+      }
    }
 
    //Unknown value

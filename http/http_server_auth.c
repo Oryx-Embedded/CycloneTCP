@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -76,7 +76,9 @@ bool_t httpCheckPassword(HttpConnection *connection,
          {
             //Check whether the password is valid
             if(osStrcmp(password, auth->password) == 0)
+            {
                status = TRUE;
+            }
          }
       }
    }
@@ -294,9 +296,14 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
 
             //Discard the surrounding quotes
             if(n > 0 && value[n - 1] == '\"')
+            {
                value[n - 1] = '\0';
+            }
+
             if(value[0] == '\"')
+            {
                value++;
+            }
 
             //Check parameter name
             if(osStrcasecmp(name, "username") == 0)
@@ -429,7 +436,9 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
       error = httpGenerateNonce(connection->serverContext, output + n, &k);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Advance pointer
       n += k;
@@ -451,7 +460,9 @@ size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
 
       //Random number generation failed?
       if(error)
+      {
          return error;
+      }
 
       //Convert the byte array to hex string
       httpConvertArrayToHexString(opaque, 16, output + n);
@@ -520,7 +531,9 @@ error_t httpGenerateNonce(HttpServerContext *context,
 
       //Check whether the entry is currently in use or not
       if(!entry->count)
+      {
          break;
+      }
 
       //Keep track of the oldest entry in the table
       if((time - entry->timestamp) > (time - oldestEntry->timestamp))
@@ -531,7 +544,9 @@ error_t httpGenerateNonce(HttpServerContext *context,
 
    //The oldest entry is removed whenever the table runs out of space
    if(i >= HTTP_SERVER_NONCE_CACHE_SIZE)
+   {
       entry = oldestEntry;
+   }
 
    //Generate a new nonce
    if(context->settings.randCallback != NULL)
@@ -596,7 +611,9 @@ error_t httpVerifyNonce(HttpServerContext *context,
 
    //Check parameters
    if(nonce == NULL || nc == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Convert the nonce count to integer
    count = osStrtoul(nc, NULL, 16);

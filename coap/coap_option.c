@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -99,13 +99,17 @@ error_t coapParseOptions(const uint8_t *p, size_t length, size_t *consumed)
    {
       //Payload marker found?
       if(*p == COAP_PAYLOAD_MARKER)
+      {
          break;
+      }
 
       //Parse current option
       error = coapParseOption(p, length, option.number, &option, &n);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Total number of bytes that have been consumed
       *consumed += n;
@@ -133,11 +137,15 @@ error_t coapParseOptions(const uint8_t *p, size_t length, size_t *consumed)
 error_t coapParseOption(const uint8_t *p, size_t length,
    uint16_t prevOptionNum, CoapOption *option, size_t *consumed)
 {
+   uint32_t delta;
+   uint32_t number;
    const CoapOptionHeader *header;
 
    //Malformed CoAP option?
    if(length < sizeof(CoapOptionHeader))
+   {
       return ERROR_BUFFER_UNDERFLOW;
+   }
 
    //Point to the CoAP option header
    header = (CoapOptionHeader *) p;
@@ -157,11 +165,13 @@ error_t coapParseOption(const uint8_t *p, size_t length,
    {
       //Malformed CoAP option?
       if(length < sizeof(uint16_t))
+      {
          return ERROR_BUFFER_UNDERFLOW;
+      }
 
       //A 16-bit unsigned integer in network byte order follows the initial
       //byte and indicates the Option Delta minus 269
-      option->delta = LOAD16BE(p) + COAP_OPT_DELTA_MINUS_16_BITS;
+      delta = LOAD16BE(p) + COAP_OPT_DELTA_MINUS_16_BITS;
 
       //Point to the next field
       p += sizeof(uint16_t);
@@ -171,11 +181,13 @@ error_t coapParseOption(const uint8_t *p, size_t length,
    {
       //Malformed CoAP option?
       if(length < sizeof(uint8_t))
+      {
          return ERROR_BUFFER_UNDERFLOW;
+      }
 
       //An 8-bit unsigned integer follows the initial byte and indicates the
       //Option Delta minus 13
-      option->delta = *p + COAP_OPT_DELTA_MINUS_8_BITS;
+      delta = *p + COAP_OPT_DELTA_MINUS_8_BITS;
 
       //Point to the next field
       p += sizeof(uint8_t);
@@ -184,7 +196,17 @@ error_t coapParseOption(const uint8_t *p, size_t length,
    else
    {
       //A value between 0 and 12 indicates the Option Delta
-      option->delta = header->delta;
+      delta = header->delta;
+   }
+
+   //The Option Number for each instance is calculated as the sum of its delta
+   //and the Option Number of the preceding instance in the message
+   number = delta + prevOptionNum;
+
+   //Option numbers are 16-bit unsigned integers
+   if(number > UINT16_MAX)
+   {
+      return ERROR_INVALID_MESSAGE;
    }
 
    //Check the value of the Option Length field
@@ -198,7 +220,9 @@ error_t coapParseOption(const uint8_t *p, size_t length,
    {
       //Malformed CoAP option?
       if(length < sizeof(uint16_t))
+      {
          return ERROR_BUFFER_UNDERFLOW;
+      }
 
       //A 16-bit unsigned integer in network byte order precedes the Option
       //Value and indicates the Option Length minus 269
@@ -212,7 +236,9 @@ error_t coapParseOption(const uint8_t *p, size_t length,
    {
       //Malformed CoAP option?
       if(length < sizeof(uint8_t))
+      {
          return ERROR_BUFFER_UNDERFLOW;
+      }
 
       //An 8-bit unsigned integer precedes the Option Value and indicates the
       //Option Length minus 13
@@ -231,16 +257,18 @@ error_t coapParseOption(const uint8_t *p, size_t length,
 
    //Malformed CoAP option?
    if(length < option->length)
+   {
       return ERROR_BUFFER_UNDERFLOW;
+   }
 
    //Save option value
    option->value = p;
    //Advance data pointer
    p += option->length;
 
-   //the Option Number for each instance is calculated as the sum of its delta
-   //and the Option Number of the preceding instance in the message
-   option->number = option->delta + prevOptionNum;
+   //Save Option Delta and Option Number
+   option->delta = (uint16_t) delta;
+   option->number = (uint16_t) number;
 
    //Total number of bytes that have been consumed
    *consumed = p - (uint8_t *) header;
@@ -411,7 +439,9 @@ error_t coapSetOption(CoapMessage *message, uint16_t optionNum,
    error = coapParseMessageHeader(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += n;
@@ -427,17 +457,23 @@ error_t coapSetOption(CoapMessage *message, uint16_t optionNum,
    {
       //Payload marker found?
       if(*p == COAP_PAYLOAD_MARKER)
+      {
          break;
+      }
 
       //Parse current option
       error = coapParseOption(p, length, prevOptionNum, &option, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Options are inserted in ascending order
       if(option.number > optionNum)
+      {
          break;
+      }
 
       //Matching option number?
       if(option.number == optionNum)
@@ -481,11 +517,15 @@ error_t coapSetOption(CoapMessage *message, uint16_t optionNum,
    error = coapFormatOption(NULL, prevOptionNum, &option, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Make sure the output buffer is large enough to hold the new option
    if((message->length + n) > COAP_MAX_MSG_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Make room for the new option
    osMemmove(p + n, p, length);
@@ -494,7 +534,9 @@ error_t coapSetOption(CoapMessage *message, uint16_t optionNum,
    error = coapFormatOption(p, prevOptionNum, &option, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Advance data pointer
    p += n;
@@ -508,13 +550,17 @@ error_t coapSetOption(CoapMessage *message, uint16_t optionNum,
       error = coapParseOption(p, length, prevOptionNum, &option, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Fix the Option Delta field
       error = coapFormatOption(p, optionNum, &option, &m);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Test if the length of the option has changed
       if(m < n)
@@ -590,7 +636,9 @@ error_t coapGetOption(const CoapMessage *message, uint16_t optionNum,
    error = coapParseMessageHeader(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += n;
@@ -606,13 +654,17 @@ error_t coapGetOption(const CoapMessage *message, uint16_t optionNum,
    {
       //Payload marker found?
       if(*p == COAP_PAYLOAD_MARKER)
+      {
          break;
+      }
 
       //Parse current option
       error = coapParseOption(p, length, option.number, &option, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Matching option number?
       if(option.number == optionNum)
@@ -660,7 +712,9 @@ error_t coapGetUintOption(const CoapMessage *message, uint16_t optionNum,
    error = coapGetOption(message, optionNum, optionIndex, &p, &n);
    //Any error to report ?
    if(error)
+   {
       return error;
+   }
 
    //Initialize integer value
    *optionValue = 0;
@@ -711,7 +765,9 @@ error_t coapDeleteOption(CoapMessage *message, uint16_t optionNum,
    error = coapParseMessageHeader(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += n;
@@ -727,17 +783,23 @@ error_t coapDeleteOption(CoapMessage *message, uint16_t optionNum,
    {
       //Payload marker found?
       if(*p == COAP_PAYLOAD_MARKER)
+      {
          break;
+      }
 
       //Parse current option
       error = coapParseOption(p, length, prevOptionNum, &option, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Options are inserted in ascending order
       if(option.number > optionNum)
+      {
          break;
+      }
 
       //Matching option number?
       if(option.number == optionNum)
@@ -776,13 +838,17 @@ error_t coapDeleteOption(CoapMessage *message, uint16_t optionNum,
          error = coapParseOption(p, length, optionNum, &option, &n);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //The first pass calculates the required length
          error = coapFormatOption(NULL, prevOptionNum, &option, &m);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Test if the length of the option has changed
          if(m > n)
@@ -801,7 +867,9 @@ error_t coapDeleteOption(CoapMessage *message, uint16_t optionNum,
          error = coapFormatOption(p, prevOptionNum, &option, &m);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
    }
 
@@ -849,7 +917,9 @@ error_t coapSplitRepeatableOption(CoapMessage *message, uint16_t optionNum,
                (uint8_t *) optionValue + j, i - j);
             //Any error to report?
             if(error)
+            {
                break;
+            }
          }
 
          //Move to the next segment

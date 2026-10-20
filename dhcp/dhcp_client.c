@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -99,11 +99,15 @@ error_t dhcpClientInit(DhcpClientContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The DHCP client must be bound to a valid interface
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = settings->interface;
@@ -155,7 +159,9 @@ error_t dhcpClientStart(DhcpClientContext *context)
 
    //Make sure the DHCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting DHCP client...\r\n");
@@ -208,7 +214,9 @@ error_t dhcpClientStop(DhcpClientContext *context)
 {
    //Make sure the DHCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping DHCP client...\r\n");
@@ -246,7 +254,9 @@ error_t dhcpClientRelease(DhcpClientContext *context)
 {
    //Check parameter
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Releasing DHCP lease...\r\n");

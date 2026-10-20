@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,9 @@ void ftpServerProcessCommand(FtpClientConnection *connection)
    for(n = 0; n < connection->commandLen; n++)
    {
       if(connection->command[n] == '\n')
+      {
          break;
+      }
    }
 
    //Any command to process?
@@ -914,6 +916,7 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
    char_t *p;
    char_t *token;
    char_t *end;
+   IpAddr clientIpAddr;
 
    //Ensure the user is logged in
    if(!connection->userLoggedIn)
@@ -958,13 +961,17 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
       token = osStrtok_r(param, ",", &p);
       //Syntax error?
       if(token == NULL)
+      {
          break;
+      }
 
       //Convert the dot-decimal string to a binary IP address
       error = ipStringToAddr(token, &connection->remoteIpAddr);
       //Invalid IP address?
       if(error)
+      {
          break;
+      }
 
       //Assume an error condition...
       error = ERROR_INVALID_SYNTAX;
@@ -973,34 +980,71 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
       token = osStrtok_r(NULL, ",", &p);
       //Syntax error?
       if(token == NULL)
+      {
          break;
+      }
 
       //Convert the string representation to integer
       connection->remotePort = (uint16_t) osStrtoul(token, &end, 10) << 8;
       //Syntax error?
       if(*end != '\0')
+      {
          break;
+      }
 
       //Get the least significant byte of the port number
       token = osStrtok_r(NULL, ",", &p);
       //Syntax error?
       if(token == NULL)
+      {
          break;
+      }
 
       //Convert the string representation to integer
       connection->remotePort |= osStrtoul(token, &end, 10) & 0xFF;
       //Syntax error?
       if(*end != '\0')
+      {
          break;
+      }
 
-      //Successful processing
-      error = NO_ERROR;
+      //Retrieve the IP address of the client
+      error = socketGetRemoteAddr(connection->controlChannel.socket,
+         &clientIpAddr, NULL);
+      //Any error to report?
+      if(error)
+      {
+         break;
+      }
+
+      //To protect against bounce attacks, the server must not open a data
+      //connection to a host other than the client, nor to a privileged port
+      if(!ipCompAddr(&connection->remoteIpAddr, &clientIpAddr) ||
+         connection->remotePort < 1024)
+      {
+         error = ERROR_ACCESS_DENIED;
+         break;
+      }
 
       //End of exception handling block
    } while(0);
 
-   //Any error to report?
-   if(error)
+   //Check status code
+   if(error == NO_ERROR)
+   {
+      //Successful processing
+      osStrcpy(connection->response, "200 Command okay\r\n");
+   }
+   else if(error == ERROR_ACCESS_DENIED)
+   {
+      //Re initialize data connection
+      connection->passiveMode = FALSE;
+      connection->remotePort = 0;
+
+      //Format response message
+      osStrcpy(connection->response, "504 Command not implemented for that parameter\r\n");
+   }
+   else
    {
       //Re initialize data connection
       connection->passiveMode = FALSE;
@@ -1008,12 +1052,7 @@ void ftpServerProcessPort(FtpClientConnection *connection, char_t *param)
 
       //Format response message
       osStrcpy(connection->response, "501 Syntax error in parameters or arguments\r\n");
-      //Exit immediately
-      return;
    }
-
-   //Successful processing
-   osStrcpy(connection->response, "200 Command okay\r\n");
 }
 
 
@@ -1035,6 +1074,7 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
    char_t *token;
    char_t *end;
    char_t delimiter[2];
+   IpAddr clientIpAddr;
 
    //Ensure the user is logged in
    if(!connection->userLoggedIn)
@@ -1075,19 +1115,25 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
       token = osStrtok_r(param, delimiter, &p);
       //Syntax error?
       if(token == NULL)
+      {
          break;
+      }
 
       //Convert the string representation to integer
       protocol = osStrtoul(token, &end, 10);
       //Syntax error?
       if(*end != '\0')
+      {
          break;
+      }
 
       //Get the IP address to be used
       token = osStrtok_r(NULL, delimiter, &p);
       //Syntax error?
       if(token == NULL)
+      {
          break;
+      }
 
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 address family?
@@ -1099,7 +1145,9 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
          error = ipv4StringToAddr(token, &connection->remoteIpAddr.ipv4Addr);
          //Invalid IP address?
          if(error)
+         {
             break;
+         }
       }
       else
 #endif
@@ -1113,7 +1161,9 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
          error = ipv6StringToAddr(token, &connection->remoteIpAddr.ipv6Addr);
          //Invalid IP address?
          if(error)
+         {
             break;
+         }
       }
       else
 #endif
@@ -1132,22 +1182,73 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
       token = osStrtok_r(NULL, delimiter, &p);
       //Syntax error?
       if(token == NULL)
+      {
          break;
+      }
 
       //Convert the string representation to integer
       connection->remotePort = (uint16_t) osStrtoul(token, &end, 10);
       //Syntax error?
       if(*end != '\0')
+      {
          break;
+      }
 
-      //Successful processing
-      error = NO_ERROR;
+      //Retrieve the IP address of the client
+      error = socketGetRemoteAddr(connection->controlChannel.socket,
+         &clientIpAddr, NULL);
+      //Any error to report?
+      if(error)
+      {
+         break;
+      }
+
+      //To protect against bounce attacks, the server must not open a data
+      //connection to a host other than the client, nor to a privileged port
+      if(!ipCompAddr(&connection->remoteIpAddr, &clientIpAddr) ||
+         connection->remotePort < 1024)
+      {
+         error = ERROR_ACCESS_DENIED;
+         break;
+      }
 
       //End of exception handling block
    } while(0);
 
-   //Any error to report?
-   if(error)
+   //Check status code
+   if(error == NO_ERROR)
+   {
+      //Successful processing
+      osStrcpy(connection->response, "200 Command okay\r\n");
+   }
+   else if(error == ERROR_INVALID_ADDRESS)
+   {
+      //Re initialize data connection
+      connection->passiveMode = FALSE;
+      connection->remotePort = 0;
+
+      //The text should indicate that the network protocol in the EPRT command
+      //is not supported by the server. The list of protocols inside the
+      //parenthesis must be a comma separated list of address family numbers
+      //(refer to RFC 2428, section 2)
+#if (IPV4_SUPPORT == ENABLED && IPV6_SUPPORT == ENABLED)
+      osStrcpy(connection->response, "522 Network protocol not supported, use (1,2)\r\n");
+#elif (IPV4_SUPPORT == ENABLED)
+      osStrcpy(connection->response, "522 Network protocol not supported, use (1)\r\n");
+#else
+      osStrcpy(connection->response, "522 Network protocol not supported, use (2)\r\n");
+#endif
+   }
+   else if(error == ERROR_ACCESS_DENIED)
+   {
+      //Re initialize data connection
+      connection->passiveMode = FALSE;
+      connection->remotePort = 0;
+
+      //Format response message
+      osStrcpy(connection->response, "504 Command not implemented for that parameter\r\n");
+   }
+   else
    {
       //Re initialize data connection
       connection->passiveMode = FALSE;
@@ -1155,12 +1256,7 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
 
       //Format response message
       osStrcpy(connection->response, "501 Syntax error in parameters or arguments\r\n");
-      //Exit immediately
-      return;
    }
-
-   //Successful processing
-   osStrcpy(connection->response, "200 Command okay\r\n");
 }
 
 
@@ -1176,15 +1272,14 @@ void ftpServerProcessEprt(FtpClientConnection *connection, char_t *param)
 
 void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
 {
+#if (IPV4_SUPPORT == ENABLED)
    error_t error;
    size_t n;
    char_t *p;
    IpAddr ipAddr;
    uint16_t port;
    FtpServerContext *context;
-
-   //Point to the FTP server context
-   context = connection->context;
+#endif
 
    //Ensure the user is logged in
    if(!connection->userLoggedIn)
@@ -1198,6 +1293,10 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
    //Close the data connection, if any
    ftpServerCloseDataChannel(connection);
 
+#if (IPV4_SUPPORT == ENABLED)
+   //Point to the FTP server context
+   context = connection->context;
+
    //Get the next passive port number to be used
    port = ftpServerGetPassivePort(context);
 
@@ -1210,7 +1309,6 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
       //Failed to open socket?
       if(!connection->dataChannel.socket)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -1219,53 +1317,66 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
       error = socketSetTimeout(connection->dataChannel.socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(connection->dataChannel.socket,
          FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(connection->dataChannel.socket,
          FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(connection->dataChannel.socket,
          connection->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
+      {
          break;
+      }
 
       //Bind the socket to the passive port number
       error = socketBind(connection->dataChannel.socket, &IP_ADDR_ANY,
          port);
       //Failed to bind the socket to the desired port?
       if(error)
+      {
          break;
+      }
 
       //Place the data socket in the listening state
       error = socketListen(connection->dataChannel.socket, 1);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Retrieve the IP address of the client
       error = socketGetRemoteAddr(connection->controlChannel.socket, &ipAddr,
          NULL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //PASV command is limited to IPv4
       if(ipAddr.length != sizeof(Ipv4Addr))
       {
-         //Report an error
          error = ERROR_INVALID_ADDRESS;
          break;
       }
@@ -1285,12 +1396,13 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
             &ipAddr, NULL);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //PASV command is limited to IPv4
          if(ipAddr.length != sizeof(Ipv4Addr))
          {
-            //Report an error
             error = ERROR_INVALID_ADDRESS;
             break;
          }
@@ -1328,6 +1440,10 @@ void ftpServerProcessPasv(FtpClientConnection *connection, char_t *param)
       //Format response message
       osStrcpy(connection->response, "425 Can't enter passive mode\r\n");
    }
+#else
+   //Format response message
+   osStrcpy(connection->response, "425 Can't enter passive mode\r\n");
+#endif
 }
 
 
@@ -1384,40 +1500,52 @@ void ftpServerProcessEpsv(FtpClientConnection *connection, char_t *param)
       error = socketSetTimeout(connection->dataChannel.socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(connection->dataChannel.socket,
          FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(connection->dataChannel.socket,
          FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(connection->dataChannel.socket,
          connection->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
+      {
          break;
+      }
 
       //Bind the socket to the passive port number
       error = socketBind(connection->dataChannel.socket, &IP_ADDR_ANY, port);
       //Failed to bind the socket to the desired port?
       if(error)
+      {
          break;
+      }
 
       //Place the data socket in the listening state
       error = socketListen(connection->dataChannel.socket, 1);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //End of exception handling block
    } while(0);
@@ -1738,7 +1866,9 @@ void ftpServerProcessList(FtpClientConnection *connection, char_t *param)
    {
       //Check whether the data connection is already opened
       if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+      {
          connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
+      }
    }
    else
    {
@@ -1862,7 +1992,9 @@ void ftpServerProcessNlst(FtpClientConnection *connection, char_t *param)
    {
       //Check whether the data connection is already opened
       if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+      {
          connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
+      }
    }
    else
    {
@@ -2195,7 +2327,9 @@ void ftpServerProcessRetr(FtpClientConnection *connection, char_t *param)
    {
       //Check whether the data connection is already opened
       if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+      {
          connection->dataChannel.state = FTP_CHANNEL_STATE_SEND;
+      }
    }
    else
    {
@@ -2304,7 +2438,9 @@ void ftpServerProcessStor(FtpClientConnection *connection, char_t *param)
    {
       //Check whether the data connection is already opened
       if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+      {
          connection->dataChannel.state = FTP_CHANNEL_STATE_RECEIVE;
+      }
    }
    else
    {
@@ -2427,7 +2563,9 @@ void ftpServerProcessAppe(FtpClientConnection *connection, char_t *param)
    {
       //Check whether the data connection is already opened
       if(connection->dataChannel.state == FTP_CHANNEL_STATE_IDLE)
+      {
          connection->dataChannel.state = FTP_CHANNEL_STATE_RECEIVE;
+      }
    }
    else
    {

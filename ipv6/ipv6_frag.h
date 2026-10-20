@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _IPV6_FRAG_H
@@ -135,8 +135,9 @@ typedef struct
 {
    systime_t timestamp;         ///<Time at which the first fragment was received
    uint32_t identification;     ///<Fragment identification field
-   size_t unfragPartLength;     ///<Length of the unfragmentable part
-   size_t fragPartLength;       ///<Length of the fragmentable part
+   size_t unfragPartLen;        ///<Length of the unfragmentable part
+   size_t fragPartLen;          ///<Length of the fragmentable part
+   bool_t lastFragReceived;     ///<The last fragment has been received
    uint16_t firstHole;          ///<Index of the first hole
    Ipv6ReassemblyBuffer buffer; ///<Buffer containing the reassembled datagram
 } Ipv6FragDesc;
@@ -151,12 +152,26 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t fragHeaderOffset, size_t nextHeaderOffset,
    NetRxAncillary *ancillary);
 
+void ipv6ProcessAtomicFragment(NetInterface *interface,
+   const NetBuffer *ipPacket, size_t ipPacketOffset, size_t fragHeaderOffset,
+   size_t nextHeaderOffset, size_t length, NetRxAncillary *ancillary);
+
+error_t ipv6CheckFragHeaderChain(NetInterface *interface,
+   const NetBuffer *ipPacket, size_t ipPacketOffset, size_t fragHeaderOffset);
+
 void ipv6FragTick(NetInterface *interface);
 
 Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
    const Ipv6Header *packet, const Ipv6FragmentHeader *header);
 
 void ipv6FlushFragQueue(NetInterface *interface);
+void ipv6DropFragDatagram(NetInterface *interface, Ipv6FragDesc *frag);
+
+error_t ipv6CheckFragOverlap(NetInterface *interface, Ipv6FragDesc *frag,
+   uint16_t dataFirst, uint16_t dataLast);
+
+Ipv6HoleDesc *ipv6InsertHole(Ipv6FragDesc *frag, Ipv6HoleDesc *prevHole,
+   uint16_t first, uint16_t last);
 
 Ipv6HoleDesc *ipv6FindHole(Ipv6FragDesc *frag, uint16_t offset);
 void ipv6DumpHoleList(Ipv6FragDesc *frag);

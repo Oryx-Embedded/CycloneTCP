@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -75,58 +75,76 @@ error_t ntsClientOpenNtsKeConnection(NtsClientContext *context)
 
    //Invalid callback functions?
    if(context->tlsInitCallback == NULL || context->randCallback == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Open a TCP socket
    context->ntsKeSocket = socketOpenEx(context->netContext, SOCKET_TYPE_STREAM,
       SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(context->ntsKeSocket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Associate the socket with the relevant interface
    error = socketBindToInterface(context->ntsKeSocket, context->interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set timeout
    error = socketSetTimeout(context->ntsKeSocket, context->timeout);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Allocate TLS context
    context->tlsContext = tlsInit();
    //Failed to allocate TLS context?
    if(context->tlsContext == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Implementations must not negotiate TLS versions earlier than 1.3 (refer to
    //RFC 8915, section 3)
    error = tlsSetVersion(context->tlsContext, TLS_VERSION_1_3, TLS_VERSION_1_3);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Select client operation mode
    error = tlsSetConnectionEnd(context->tlsContext, TLS_CONNECTION_END_CLIENT);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Bind TLS to the relevant socket
    error = tlsSetSocket(context->tlsContext, context->ntsKeSocket);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set TX and RX buffer size
    error = tlsSetBufferSize(context->tlsContext,
       NTS_CLIENT_TLS_TX_BUFFER_SIZE, NTS_CLIENT_TLS_RX_BUFFER_SIZE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The two endpoints carry out a TLS handshake, with the client offering (via
    //an ALPN extension), and the server accepting, an application-layer protocol
@@ -134,19 +152,25 @@ error_t ntsClientOpenNtsKeConnection(NtsClientContext *context)
    error = tlsSetAlpnProtocolList(context->tlsContext, "ntske/1");
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Restore TLS session
    error = tlsRestoreSessionState(context->tlsContext, &context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Perform TLS related initialization
    error = context->tlsInitCallback(context, context->tlsContext);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -458,18 +482,24 @@ error_t ntsClientParseEndOfMessageRecord(NtsClientContext *context,
 
    //The NTS Next Protocol Negotiation record must be included exactly once
    if(!context->ntsNextProtoNegoRecordReceived)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //If the NTS Next Protocol Negotiation record offers Protocol ID 0 (for
    //NTPv4), then the AEAD Algorithm Negotiation record record must be included
    //exactly once
    if(!context->aeadAlgoNegoRecordReceived)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Servers must send at least one New Cookie for NTPv4 record (refer to
    //RFC 8915, section 4.1.6)
    if(context->cookieLen == 0)
+   {
       return ERROR_WRONG_COOKIE;
+   }
 
    //The per-association context value shall consist of the five octets
    contextValue[0] = MSB(NTS_PROTOCOL_ID_NTPV4);
@@ -486,7 +516,9 @@ error_t ntsClientParseEndOfMessageRecord(NtsClientContext *context,
       sizeof(contextValue), context->c2sKey, 32);
    //Failed to extract C2S key?
    if(error)
+   {
       return error;
+   }
 
    //The final octet shall be 0x01 for the S2C key
    contextValue[4] = 0x01;
@@ -497,13 +529,17 @@ error_t ntsClientParseEndOfMessageRecord(NtsClientContext *context,
       sizeof(contextValue), context->s2cKey, 32);
    //Failed to extract S2C key?
    if(error)
+   {
       return error;
+   }
 
    //Save TLS session
    error = tlsSaveSessionState(context->tlsContext, &context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //After sending their respective request and response, the client and server
    //shall send TLS "close_notify" alerts (refer to RFC 8915, section 4)
@@ -652,11 +688,15 @@ error_t ntsClientParseNewCookieForNtpv4Record(NtsClientContext *context,
 {
    //Malformed record?
    if(length == 0)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The implementation limits the size of NTS cookies
    if(length > NTS_CLIENT_MAX_COOKIE_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //The server may send multiple cookies
    if(context->cookieLen == 0)
@@ -687,11 +727,15 @@ error_t ntsClientParseNtpv4ServerRecord(NtsClientContext *context,
 {
    //Malformed record?
    if(length == 0)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The implementation limits the length of NTP server names
    if(length > NTS_CLIENT_MAX_NTP_SERVER_NAME_LEN)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //The body consists of an ASCII-encoded string. The contents of the string
    //shall be either an IPv4 address, an IPv6 address, or a fully qualified
@@ -719,7 +763,9 @@ error_t ntsClientParseNtpv4PortRecord(NtsClientContext *context,
 {
    //Malformed record?
    if(length != sizeof(uint16_t))
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The body consists of a 16-bit unsigned integer in network byte order,
    //denoting a UDP port number (refer to RFC 8915, section 4.1.8)
@@ -835,26 +881,34 @@ error_t ntsClientOpenNtpConnection(NtsClientContext *context)
    error = context->randCallback(context->uniqueId, NTS_CLIENT_UNIQUE_ID_SIZE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Generate a nonce
    error = context->randCallback(context->nonce, NTS_CLIENT_NONCE_SIZE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Open a UDP socket
    context->ntpSocket = socketOpenEx(context->netContext, SOCKET_TYPE_DGRAM,
       SOCKET_IP_PROTO_UDP);
    //Failed to open socket?
    if(context->ntpSocket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Associate the socket with the relevant interface
    error = socketBindToInterface(context->ntpSocket, context->interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -957,7 +1011,9 @@ error_t ntsClientSendNtpRequest(NtsClientContext *context)
       ntsAeadExtension->nonce + NTS_CLIENT_NONCE_SIZE);
    //AEAD encryption failed?
    if(error)
+   {
       return error;
+   }
 
    //Calculate the length of the extension
    ntsAeadExtension->length = htons(sizeof(NtpNtsAeadExtension) +
@@ -1103,7 +1159,9 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
 
    //Ensure the NTP packet is valid
    if(length < sizeof(NtpHeader))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Point to the NTP response
    header = (NtpHeader *) context->buffer;
@@ -1117,7 +1175,9 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
 
    //Check NTP version
    if(header->vn != NTP_VERSION_4)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //The server reply should be discarded if the Transmit Timestamp fields is 0
    if(header->transmitTimestamp.seconds == 0 &&
@@ -1129,7 +1189,9 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
    //The server reply should be discarded if the Mode field is not 4 (unicast)
    //or 5 (broadcast)
    if(header->mode != NTP_MODE_SERVER && header->mode != NTP_MODE_BROADCAST)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //The Originate Timestamp in the server reply should match the Transmit
    //Timestamp used in the client request
@@ -1199,7 +1261,9 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
 
    //Check the length of the ciphertext
    if(n < SIV_IV_LEN)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Point to the synthetic IV
    iv = ntsAeadExtension->nonce + nonceLen;
@@ -1223,7 +1287,9 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
    //The Unique Identifier extension field must be authenticated but must not
    //be encrypted
    if((uint8_t *) uniqueIdExtension >= (uint8_t *) ntsAeadExtension)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //The client must verify that the packet is authentic under the S2C key
    //associated with that request (refer to RFC 8915, section 5.7)
@@ -1231,7 +1297,9 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
       arraysize(adFrags), ciphertext, plaintext, n, iv);
    //AEAD decryption failed?
    if(error)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Debug message
    TRACE_DEBUG("Plaintext (%" PRIuSIZE " bytes):\r\n", n);
@@ -1245,14 +1313,18 @@ error_t ntsClientDecryptNtpResponse(NtsClientContext *context,
 
    //NTS Cookie extension not found?
    if(ntsCookieExtension == NULL)
+   {
       return ERROR_MISSING_EXTENSION;
+   }
 
    //Retrieve the length of the cookie
    n = ntohs(ntsCookieExtension->length) - sizeof(NtpExtension);
 
    //The implementation limits the size of NTS cookies
    if(n > NTS_CLIENT_MAX_COOKIE_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //The contents of its body shall be implementation-defined, and clients
    //must not attempt to interpret them (refer to RFC 8915, section 4.1.6)
@@ -1280,7 +1352,9 @@ error_t ntsClientParseNtpResponse(NtsClientContext *context,
 
    //Ensure the NTP packet is valid
    if(context->bufferLen < sizeof(NtpHeader))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the NTP response
    header = (NtpHeader *) context->buffer;

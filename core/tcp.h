@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _TCP_H
@@ -463,6 +463,7 @@ error_t tcpInit(NetContext *context);
 error_t tcpSetInitialRto(NetInterface *interface, systime_t initialRto);
 
 uint16_t tcpGetDynamicPort(NetContext *context);
+bool_t tcpIsPortInUse(NetContext *context, uint16_t port);
 
 error_t tcpConnect(Socket *socket, const IpAddr *remoteIpAddr,
    uint16_t remotePort);

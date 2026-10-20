@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -98,9 +98,11 @@ error_t mqttSnDumpMessage(const uint8_t *message, size_t length)
    error_t error;
    uint8_t type;
 
-   //Sanity check
+   //Malformed MQTT-SN message?
    if(length == 0)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check whether the first octet is 0x01
    if(message[0] == 0x01)
@@ -110,11 +112,18 @@ error_t mqttSnDumpMessage(const uint8_t *message, size_t length)
       //Point to message header
       header = (MqttSnExtHeader *) message;
 
-      //Malformed message?
+      //Malformed MQTT-SN message?
       if(length < sizeof(MqttSnExtHeader))
+      {
          return ERROR_INVALID_LENGTH;
-      if(length < ntohs(header->length))
+      }
+
+      //Make sure the length field is correct
+      if(ntohs(header->length) < sizeof(MqttSnExtHeader) ||
+         ntohs(header->length) > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Dump message length
       TRACE_DEBUG("  Length = %" PRIuSIZE "\r\n", ntohs(header->length));
@@ -135,11 +144,18 @@ error_t mqttSnDumpMessage(const uint8_t *message, size_t length)
       //Point to message header
       header = (MqttSnHeader *) message;
 
-      //Malformed message?
+      //Malformed MQTT-SN message?
       if(length < sizeof(MqttSnHeader))
+      {
          return ERROR_INVALID_LENGTH;
-      if(length < header->length)
+      }
+
+      //Make sure the length field is correct
+      if(header->length < sizeof(MqttSnHeader) ||
+         header->length > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Dump message length
       TRACE_DEBUG("  Length = %" PRIuSIZE "\r\n", header->length);
@@ -166,136 +182,163 @@ error_t mqttSnDumpMessage(const uint8_t *message, size_t length)
       //Dump ADVERTISE message
       error = mqttSnDumpAdvertise((MqttSnAdvertise *) message, length);
       break;
+
    //SEARCHGW message?
    case MQTT_SN_MSG_TYPE_SEARCHGW:
       //Dump SEARCHGW message
       error = mqttSnDumpSearchGw((MqttSnSearchGw *) message, length);
       break;
+
    //GWINFO message?
    case MQTT_SN_MSG_TYPE_GWINFO:
       //Dump GWINFO message
       error = mqttSnDumpGwInfo((MqttSnGwInfo *) message, length);
       break;
+
    //CONNECT message?
    case MQTT_SN_MSG_TYPE_CONNECT:
       //Dump CONNECT message
       error = mqttSnDumpConnect((MqttSnConnect *) message, length);
       break;
+
    //CONNACK message?
    case MQTT_SN_MSG_TYPE_CONNACK:
       //Dump CONNACK message
       error = mqttSnDumpConnAck((MqttSnConnAck *) message, length);
       break;
+
    //WILLTOPICREQ message?
    case MQTT_SN_MSG_TYPE_WILLTOPICREQ:
       //Dump WILLTOPICREQ message
       error = mqttSnDumpWillTopicReq((MqttSnWillTopicReq *) message, length);
       break;
+
    //WILLTOPIC message?
    case MQTT_SN_MSG_TYPE_WILLTOPIC:
       //Dump WILLTOPIC message
       error = mqttSnDumpWillTopic((MqttSnWillTopic *) message, length);
       break;
+
    //WILLMSGREQ message?
    case MQTT_SN_MSG_TYPE_WILLMSGREQ:
       //Dump WILLMSGREQ message
       error = mqttSnDumpWillMsgReq((MqttSnWillMsgReq *) message, length);
       break;
+
    //WILLMSG message?
    case MQTT_SN_MSG_TYPE_WILLMSG:
       //Dump WILLMSG message
       error = mqttSnDumpWillMsg((MqttSnWillMsg *) message, length);
       break;
+
    //REGISTER message?
    case MQTT_SN_MSG_TYPE_REGISTER:
       //Dump REGISTER message
       error = mqttSnDumpRegister((MqttSnRegister *) message, length);
       break;
+
    //REGACK message?
    case MQTT_SN_MSG_TYPE_REGACK:
       //Dump REGACK message
       error = mqttSnDumpRegAck((MqttSnRegAck *) message, length);
       break;
+
    //PUBLISH message?
    case MQTT_SN_MSG_TYPE_PUBLISH:
       //Dump PUBLISH message
       error = mqttSnDumpPublish((MqttSnPublish *) message, length);
       break;
+
    //PUBACK message?
    case MQTT_SN_MSG_TYPE_PUBACK:
       //Dump PUBACK message
       error = mqttSnDumpPubAck((MqttSnPubAck *) message, length);
       break;
+
    //PUBREC message?
    case MQTT_SN_MSG_TYPE_PUBREC:
       //Dump PUBREC message
       error = mqttSnDumpPubRec((MqttSnPubRec *) message, length);
       break;
+
    //PUBREL message?
    case MQTT_SN_MSG_TYPE_PUBREL:
       //Dump PUBREL message
       error = mqttSnDumpPubRel((MqttSnPubRel *) message, length);
       break;
+
    //PUBCOMP message?
    case MQTT_SN_MSG_TYPE_PUBCOMP:
       //Dump PUBCOMP message
       error = mqttSnDumpPubComp((MqttSnPubComp *) message, length);
       break;
+
    //SUBSCRIBE message?
    case MQTT_SN_MSG_TYPE_SUBSCRIBE:
       //Dump SUBSCRIBE message
       error = mqttSnDumpSubscribe((MqttSnSubscribe *) message, length);
       break;
+
    //SUBACK message?
    case MQTT_SN_MSG_TYPE_SUBACK:
       //Dump SUBACK message
       error = mqttSnDumpSubAck((MqttSnSubAck *) message, length);
       break;
+
    //UNSUBSCRIBE message?
    case MQTT_SN_MSG_TYPE_UNSUBSCRIBE:
       //Dump UNSUBSCRIBE message
       error = mqttSnDumpUnsubscribe((MqttSnUnsubscribe *) message, length);
       break;
+
    //UNSUBACK message?
    case MQTT_SN_MSG_TYPE_UNSUBACK:
       //Dump UNSUBACK message
       error = mqttSnDumpUnsubAck((MqttSnUnsubAck *) message, length);
       break;
+
    //PINGREQ message?
    case MQTT_SN_MSG_TYPE_PINGREQ:
       //Dump PINGREQ message
       error = mqttSnDumpPingReq((MqttSnPingReq *) message, length);
       break;
+
    //PINGRESP message?
    case MQTT_SN_MSG_TYPE_PINGRESP:
       //Dump PINGRESP message
       error = mqttSnDumpPingResp((MqttSnPingResp *) message, length);
       break;
+
    //DISCONNECT message?
    case MQTT_SN_MSG_TYPE_DISCONNECT:
       //Dump DISCONNECT message
       error = mqttSnDumpDisconnect((MqttSnDisconnect *) message, length);
       break;
+
    //WILLTOPICUPD message?
    case MQTT_SN_MSG_TYPE_WILLTOPICUPD:
       //Dump WILLTOPICUPD message
       error = mqttSnDumpWillTopicUpd((MqttSnWillTopicUpd *) message, length);
       break;
+
    //WILLTOPICRESP message?
    case MQTT_SN_MSG_TYPE_WILLTOPICRESP:
       //Dump WILLTOPICRESP message
       error = mqttSnDumpWillTopicResp((MqttSnWillTopicResp *) message, length);
       break;
+
    //WILLMSGUPD message?
    case MQTT_SN_MSG_TYPE_WILLMSGUPD:
       //Dump WILLMSGUPD message
       error = mqttSnDumpWillMsgUpd((MqttSnWillMsgUpd *) message, length);
       break;
+
    //WILLMSGRESP message?
    case MQTT_SN_MSG_TYPE_WILLMSGRESP:
       //Dump DISCONNECT message
       error = mqttSnDumpWillMsgResp((MqttSnWillMsgResp *) message, length);
       break;
+
    //Unknown message?
    default:
       //Report an error
@@ -324,7 +367,9 @@ error_t mqttSnDumpAdvertise(const MqttSnAdvertise *message,
 {
    //Malformed message?
    if(length < sizeof(MqttSnAdvertise))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump ADVERTISE message
    TRACE_DEBUG("  GwId = %" PRIu8 "\r\n", message->gwId);
@@ -346,7 +391,9 @@ error_t mqttSnDumpSearchGw(const MqttSnSearchGw *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnSearchGw))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump SEARCHGW message
    TRACE_DEBUG("  Radius = %" PRIu8 "\r\n", message->radius);
@@ -367,7 +414,9 @@ error_t mqttSnDumpGwInfo(const MqttSnGwInfo *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnGwInfo))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the length of the GwAdd field
    length -= sizeof(MqttSnGwInfo);
@@ -392,7 +441,9 @@ error_t mqttSnDumpConnect(const MqttSnConnect *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnConnect))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump CONNECT message
    mqttSnDumpFlags(message->flags);
@@ -416,7 +467,9 @@ error_t mqttSnDumpConnAck(const MqttSnConnAck *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnConnAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump CONNACK message
    TRACE_DEBUG("  ReturnCode = %" PRIu8 " (%s)\r\n", message->returnCode,
@@ -452,7 +505,9 @@ error_t mqttSnDumpWillTopic(const MqttSnWillTopic *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnWillTopic))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump WILLTOPIC message
    mqttSnDumpFlags(message->flags);
@@ -506,7 +561,9 @@ error_t mqttSnDumpRegister(const MqttSnRegister *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnRegister))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump REGISTER message
    TRACE_DEBUG("  TopicId = 0x%04" PRIX16 "\r\n", ntohs(message->topicId));
@@ -529,7 +586,9 @@ error_t mqttSnDumpRegAck(const MqttSnRegAck *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnRegAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump REGACK message
    TRACE_DEBUG("  TopicId = 0x%04" PRIX16 "\r\n", ntohs(message->topicId));
@@ -553,7 +612,9 @@ error_t mqttSnDumpPublish(const MqttSnPublish *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnPublish))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the length of the published data
    length -= sizeof(MqttSnPublish);
@@ -606,7 +667,9 @@ error_t mqttSnDumpPubAck(const MqttSnPubAck *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnPubAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump PUBACK message
    TRACE_DEBUG("  TopicId = 0x%04" PRIX16 "\r\n", ntohs(message->topicId));
@@ -630,7 +693,9 @@ error_t mqttSnDumpPubRec(const MqttSnPubRec *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnPubRec))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump PUBREC message
    TRACE_DEBUG("  MsgId = 0x%04" PRIX16 "\r\n", ntohs(message->msgId));
@@ -651,7 +716,9 @@ error_t mqttSnDumpPubRel(const MqttSnPubRel *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnPubRel))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump PUBREL message
    TRACE_DEBUG("  MsgId = 0x%04" PRIX16 "\r\n", ntohs(message->msgId));
@@ -672,7 +739,9 @@ error_t mqttSnDumpPubComp(const MqttSnPubComp *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnPubComp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump PUBCOMP message
    TRACE_DEBUG("  MsgId = 0x%04" PRIX16 "\r\n", ntohs(message->msgId));
@@ -693,7 +762,9 @@ error_t mqttSnDumpSubscribe(const MqttSnSubscribe *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnSubscribe))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump SUBSCRIBE message
    mqttSnDumpFlags(message->flags);
@@ -737,7 +808,9 @@ error_t mqttSnDumpSubAck(const MqttSnSubAck *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnSubAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump SUBACK message
    mqttSnDumpFlags(message->flags);
@@ -762,7 +835,9 @@ error_t mqttSnDumpUnsubscribe(const MqttSnUnsubscribe *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnUnsubscribe))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump UNSUBSCRIBE message
    mqttSnDumpFlags(message->flags);
@@ -806,7 +881,9 @@ error_t mqttSnDumpUnsubAck(const MqttSnUnsubAck *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnUnsubAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump UNSUBACK message
    TRACE_DEBUG("  MsgId = 0x%04" PRIX16 "\r\n", ntohs(message->msgId));
@@ -858,7 +935,9 @@ error_t mqttSnDumpDisconnect(const MqttSnDisconnect *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnDisconnect))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump DISCONNECT message
    TRACE_DEBUG("  Duration = %" PRIu16 "\r\n", ntohs(message->duration));
@@ -879,7 +958,9 @@ error_t mqttSnDumpWillTopicUpd(const MqttSnWillTopicUpd *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnWillTopicUpd))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump WILLTOPICUPD message
    mqttSnDumpFlags(message->flags);
@@ -901,7 +982,9 @@ error_t mqttSnDumpWillTopicResp(const MqttSnWillTopicResp *message, size_t lengt
 {
    //Malformed message?
    if(length < sizeof(MqttSnWillTopicResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump WILLTOPICRESP message
    TRACE_DEBUG("  ReturnCode = %" PRIu8 " (%s)\r\n", message->returnCode,
@@ -941,7 +1024,9 @@ error_t mqttSnDumpWillMsgResp(const MqttSnWillMsgResp *message, size_t length)
 {
    //Malformed message?
    if(length < sizeof(MqttSnWillMsgResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump WILLMSGRESP message
    TRACE_DEBUG("  ReturnCode = %" PRIu8 " (%s)\r\n", message->returnCode,
@@ -1013,8 +1098,14 @@ void mqttSnDumpFlags(MqttSnFlags flags)
             TRACE_DEBUG("Short Topic Name");
             flags.topicIdType = 0;
          }
+         else if(flags.topicIdType != 0)
+         {
+            TRACE_DEBUG("Reserved Topic ID");
+            flags.topicIdType = 0;
+         }
          else
          {
+            flags.all = 0;
          }
 
          if(flags.all != 0)

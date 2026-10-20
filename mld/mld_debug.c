@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -74,7 +74,9 @@ void mldDumpMessage(const MldMessage *message, size_t length)
 
    //Malformed message?
    if(length < sizeof(MldMessage))
+   {
       return;
+   }
 
    //Convert the Type field to string representation
    name = mldGetParamName(message->type, mldMessageTypeList,
@@ -148,7 +150,9 @@ void mldDumpQueryV2(const MldListenerQueryV2 *message, size_t length)
 
    //Malformed message?
    if(length < sizeof(MldListenerQueryV2))
+   {
       return;
+   }
 
    //Dump Code field
    TRACE_DEBUG("  Code = %" PRIu8 "\r\n", message->code);
@@ -210,7 +214,9 @@ void mldDumpQueryV2(const MldListenerQueryV2 *message, size_t length)
 
    //Malformed message?
    if(length < (sizeof(MldListenerQueryV2) + n * sizeof(Ipv6Addr)))
+   {
       return;
+   }
 
    //Dump Number of Sources field
    TRACE_DEBUG("  Number of Sources = %u\r\n", n);
@@ -240,7 +246,9 @@ void mldDumpReportV2(const MldListenerReportV2 *message, size_t length)
 
    //Malformed message?
    if(length < sizeof(MldListenerReportV2))
+   {
       return;
+   }
 
    //Get the length occupied by the multicast address records
    length -= sizeof(MldListenerReportV2);
@@ -262,18 +270,22 @@ void mldDumpReportV2(const MldListenerReportV2 *message, size_t length)
    {
       //Malformed message?
       if((i + sizeof(MldMcastAddrRecord)) > length)
+      {
          break;
+      }
 
       //Point to the current multicast address record
       record = (MldMcastAddrRecord *) (message->mcastAddrRecords + i);
 
       //Determine the length of the multicast address record
-      n = sizeof(MldMcastAddrRecord) + record->auxDataLen +
+      n = sizeof(MldMcastAddrRecord) + record->auxDataLen * sizeof(uint32_t) +
          ntohs(record->numOfSources) * sizeof(Ipv6Addr);
 
       //Malformed message?
       if((i + n) > length)
+      {
          break;
+      }
 
       //Debug message
       TRACE_DEBUG("  Multicast Address Record %u\r\n", k + 1);
@@ -299,7 +311,9 @@ void mldDumpMulticastAddrRecord(const MldMcastAddrRecord *record,
 
    //Malformed multicast address record?
    if(length < sizeof(MldMcastAddrRecord))
+   {
       return;
+   }
 
    //Convert the Record Type field to string representation
    name = mldGetParamName(record->recordType, mldMulticastAddrRecordTypeList,
@@ -318,7 +332,9 @@ void mldDumpMulticastAddrRecord(const MldMcastAddrRecord *record,
 
    //Malformed group record?
    if(length < (sizeof(MldMcastAddrRecord) + n * sizeof(Ipv6Addr)))
+   {
       return;
+   }
 
    //Dump Number of Sources field
    TRACE_DEBUG("    Number of Sources = %u\r\n", n);
@@ -356,7 +372,9 @@ const char_t *mldGetParamName(uint_t value, const MldParamName *paramList,
    for(i = 0; i < paramListLen; i++)
    {
       if(paramList[i].value == value)
+      {
          return paramList[i].name;
+      }
    }
 
    //Unknown value

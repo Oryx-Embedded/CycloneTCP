@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -96,14 +96,18 @@ error_t coapServerAcceptSession(CoapServerContext *context,
             TLS_CONNECTION_END_SERVER);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Use datagram transport protocol
          error = tlsSetTransportProtocol(session->dtlsContext,
             TLS_TRANSPORT_PROTOCOL_DATAGRAM);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Set send and receive callbacks (I/O abstraction layer)
          error = tlsSetSocketCallbacks(session->dtlsContext,
@@ -111,7 +115,9 @@ error_t coapServerAcceptSession(CoapServerContext *context,
             (TlsSocketHandle) session);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Set cookie generation/verification callbacks
          error = tlsSetCookieCallbacks(session->dtlsContext,
@@ -119,21 +125,27 @@ error_t coapServerAcceptSession(CoapServerContext *context,
             session);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
 #if (TLS_TICKET_SUPPORT == ENABLED)
          //Enable session ticket mechanism
          error = tlsEnableSessionTickets(session->dtlsContext, TRUE);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Register ticket encryption/decryption callbacks
          error = tlsSetTicketCallbacks(session->dtlsContext, tlsEncryptTicket,
             tlsDecryptTicket, &context->dtlsTicketContext);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 #endif
 
          //Invoke user-defined callback, if any
@@ -143,14 +155,18 @@ error_t coapServerAcceptSession(CoapServerContext *context,
             error = context->dtlsInitCallback(context, session->dtlsContext);
             //Any error to report?
             if(error)
+            {
                break;
+            }
          }
 
          //Initiate DTLS handshake
          error = tlsConnect(session->dtlsContext);
          //Any error to report?
          if(error != NO_ERROR && error != ERROR_WOULD_BLOCK)
+         {
             break;
+         }
 
          //Retrieve current state
          state = tlsGetState(session->dtlsContext);
@@ -504,7 +520,9 @@ error_t coapServerCookieGenerateCallback(TlsContext *context,
 
    //Make sure the output buffer is large enough to hold the cookie
    if(*length < SHA256_DIGEST_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Invalid cookie secret?
    if(session->context->cookieSecretLen == 0)
@@ -514,7 +532,9 @@ error_t coapServerCookieGenerateCallback(TlsContext *context,
          session->context->cookieSecret, COAP_SERVER_MAX_COOKIE_SECRET_SIZE);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Save the length of the generated secret
       session->context->cookieSecretLen = COAP_SERVER_MAX_COOKIE_SECRET_SIZE;
@@ -576,7 +596,9 @@ error_t coapServerCookieVerifyCallback(TlsContext *context,
 
    //Make sure the length of the cookie is acceptable
    if(length != SHA256_DIGEST_SIZE)
+   {
       return ERROR_WRONG_COOKIE;
+   }
 
    //Invalid cookie secret?
    if(session->context->cookieSecretLen == 0)
@@ -586,7 +608,9 @@ error_t coapServerCookieVerifyCallback(TlsContext *context,
          session->context->cookieSecret, COAP_SERVER_MAX_COOKIE_SECRET_SIZE);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Save the length of the generated secret
       session->context->cookieSecretLen = COAP_SERVER_MAX_COOKIE_SECRET_SIZE;

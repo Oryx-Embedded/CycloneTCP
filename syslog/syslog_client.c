@@ -31,7 +31,7 @@
  * provided in a structured way. Refer to RFC 3164 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -57,7 +57,9 @@ error_t syslogClientInit(SyslogClientContext *context)
 {
    //Make sure the Syslog client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Initializing Syslog client...\r\n");
@@ -72,7 +74,9 @@ error_t syslogClientInit(SyslogClientContext *context)
 
    //Create a mutex to prevent simultaneous access to the context
    if(!osCreateMutex(&context->mutex))
+   {
       return ERROR_OUT_OF_RESOURCES;
+   }
 
    //Successful initialization
    return NO_ERROR;
@@ -91,7 +95,9 @@ error_t syslogClientBindToInterface(SyslogClientContext *context,
 {
    //Make sure the Syslog client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the Syslog client with the specified interface
    context->interface = interface;
@@ -116,7 +122,9 @@ error_t syslogClientConnect(SyslogClientContext *context,
 
    //Check parameters
    if(context == NULL || serverIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Start of exception handling block
    do
@@ -127,7 +135,6 @@ error_t syslogClientConnect(SyslogClientContext *context,
       //Failed to open socket?
       if(context->socket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -136,13 +143,17 @@ error_t syslogClientConnect(SyslogClientContext *context,
       error = socketBindToInterface(context->socket, context->interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Connect the socket to the remote Syslog server
       error = socketConnect(context->socket, serverIpAddr, serverPort);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //End of exception handling block
    } while(0);
@@ -180,11 +191,21 @@ error_t syslogClientSendMessage(SyslogClientContext *context, uint_t facility,
 
    //Check parameters
    if(context == NULL || message == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the UDP socket is valid
    if(context->socket == NULL)
+   {
       return ERROR_NOT_CONNECTED;
+   }
+
+   //Check the Facility and Severity values
+   if(facility > SYSLOG_FACILITY_LOCAL7 || severity > SYSLOG_SEVERITY_DEBUG)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the Syslog client context
    osAcquireMutex(&context->mutex);
@@ -194,7 +215,7 @@ error_t syslogClientSendMessage(SyslogClientContext *context, uint_t facility,
    priority = (facility * 8) + severity;
 
    //Format the PRI part of the Syslog packet
-   n = osSprintf(context->buffer, "<%u> ", priority);
+   n = osSprintf(context->buffer, "<%u>", priority);
 
    //Retrieve current time
    time = getCurrentUnixTime();
@@ -246,6 +267,7 @@ error_t syslogClientFormatMessage(SyslogClientContext *context, uint_t facility,
    uint_t severity, const char_t *format, ...)
 {
    error_t error;
+   int_t ret;
    size_t n;
    size_t maxMessageLen;
    uint_t priority;
@@ -254,11 +276,21 @@ error_t syslogClientFormatMessage(SyslogClientContext *context, uint_t facility,
 
    //Check parameters
    if(context == NULL || format == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the UDP socket is valid
    if(context->socket == NULL)
+   {
       return ERROR_NOT_CONNECTED;
+   }
+
+   //Check the Facility and Severity values
+   if(facility > SYSLOG_FACILITY_LOCAL7 || severity > SYSLOG_SEVERITY_DEBUG)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the Syslog client context
    osAcquireMutex(&context->mutex);
@@ -268,7 +300,7 @@ error_t syslogClientFormatMessage(SyslogClientContext *context, uint_t facility,
    priority = (facility * 8) + severity;
 
    //Format the PRI part of the Syslog packet
-   n = osSprintf(context->buffer, "<%u> ", priority);
+   n = osSprintf(context->buffer, "<%u>", priority);
 
    //Retrieve current time
    time = getCurrentUnixTime();
@@ -284,16 +316,29 @@ error_t syslogClientFormatMessage(SyslogClientContext *context, uint_t facility,
    //Initialize processing of a varying-length argument list
    va_start(args, format);
    //Format the MSG part of the Syslog packet
-   n += osVsnprintf(context->buffer + n, maxMessageLen, format, args);
+   ret = osVsnprintf(context->buffer + n, maxMessageLen, format, args);
    //End varying-length argument list processing
    va_end(args);
 
-   //Debug message
-   TRACE_DEBUG("Sending Syslog message (%" PRIuSIZE " bytes)...\r\n", n);
-   TRACE_DEBUG("  %s\r\n", context->buffer);
+   //Check the return value
+   if(ret >= 0 && (size_t) ret < maxMessageLen)
+   {
+      //Total length of the Syslog packet
+      n += ret;
 
-   //Send Syslog packet
-   error = socketSend(context->socket, context->buffer, n, NULL, 0);
+      //Debug message
+      TRACE_DEBUG("Sending Syslog message (%" PRIuSIZE " bytes)...\r\n", n);
+      TRACE_DEBUG("  %s\r\n", context->buffer);
+
+      //Send Syslog packet
+      error = socketSend(context->socket, context->buffer, n, NULL, 0);
+   }
+   else
+   {
+      //A return value larger than or equal to buffer size means that the output
+      //was truncated
+      error = ERROR_BUFFER_OVERFLOW;
+   }
 
    //Release exclusive access to the Syslog client context
    osReleaseMutex(&context->mutex);
@@ -313,7 +358,9 @@ error_t syslogClientClose(SyslogClientContext *context)
 {
    //Make sure the Syslog client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close UDP socket
    if(context->socket != NULL)

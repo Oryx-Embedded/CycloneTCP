@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _DHCPV6_RELAY_H
@@ -98,7 +98,7 @@ typedef struct
    Ipv6Addr serverIpAddr;                                              ///<Address to be used when relaying messages to the server
    Socket *serverSocket;                                               ///<Socket that handles the network-facing interface
    Socket *clientSockets[DHCPV6_RELAY_MAX_CLIENT_INTERFACES];          ///<Sockets that handle client-facing interfaces
-   SocketEventDesc eventDesc[DHCPV6_RELAY_MAX_CLIENT_INTERFACES];      ///<The events the application is interested in
+   SocketEventDesc eventDesc[DHCPV6_RELAY_MAX_CLIENT_INTERFACES + 1];  ///<The events the application is interested in
    bool_t running;                                                     ///<Operational state of the DHCPv6 relay agent
    bool_t stop;                                                        ///<Stop request
    OsEvent event;                                                      ///<Event object used to poll the sockets

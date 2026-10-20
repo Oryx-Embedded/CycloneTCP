@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,9 @@ error_t modbusClientInit(ModbusClientContext *context)
 
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear Modbus/TCP client context
    osMemset(context, 0, sizeof(ModbusClientContext));
@@ -69,7 +71,9 @@ error_t modbusClientInit(ModbusClientContext *context)
    error = tlsInitSessionState(&context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Initialize Modbus/TCP client state
@@ -103,7 +107,9 @@ error_t modbusClientRegisterTlsInitCallback(ModbusClientContext *context,
 {
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->tlsInitCallback = callback;
@@ -126,7 +132,9 @@ error_t modbusClientSetTimeout(ModbusClientContext *context, systime_t timeout)
 {
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
@@ -147,7 +155,9 @@ error_t modbusClientSetUnitId(ModbusClientContext *context, uint8_t unitId)
 {
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save unit identifier
    context->unitId = unitId;
@@ -169,7 +179,9 @@ error_t modbusClientBindToInterface(ModbusClientContext *context,
 {
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the Modbus/TCP client with the specified interface
    context->interface = interface;
@@ -194,7 +206,9 @@ error_t modbusClientConnect(ModbusClientContext *context,
 
    //Check parameters
    if(context == NULL || serverIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -286,11 +300,15 @@ error_t modbusClientReadCoils(ModbusClientContext *context,
 
    //Check parameters
    if(context == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The number of coils must be in range 1 to 2000
    if(quantity < 1 || quantity > 2000)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -354,11 +372,15 @@ error_t modbusClientReadDiscreteInputs(ModbusClientContext *context,
 
    //Check parameters
    if(context == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The number of discrete inputs must be in range 1 to 2000
    if(quantity < 1 || quantity > 2000)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -422,11 +444,15 @@ error_t modbusClientReadHoldingRegs(ModbusClientContext *context,
 
    //Check parameters
    if(context == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The number of registers must be in range 1 to 125
    if(quantity < 1 || quantity > 125)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -490,11 +516,15 @@ error_t modbusClientReadInputRegs(ModbusClientContext *context,
 
    //Check parameters
    if(context == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The number of registers must be in range 1 to 125
    if(quantity < 1 || quantity > 125)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -557,7 +587,9 @@ error_t modbusClientWriteSingleCoil(ModbusClientContext *context,
 
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -618,7 +650,9 @@ error_t modbusClientWriteSingleReg(ModbusClientContext *context,
 
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -680,11 +714,15 @@ error_t modbusClientWriteMultipleCoils(ModbusClientContext *context,
 
    //Check parameters
    if(context == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The number of coils must be in range 1 to 1968
    if(quantity < 1 || quantity > 1968)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -748,11 +786,15 @@ error_t modbusClientWriteMultipleRegs(ModbusClientContext *context,
 
    //Check parameters
    if(context == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The number of registers must be in range 1 to 123
    if(quantity < 1 || quantity > 123)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -817,7 +859,9 @@ error_t modbusClientMaskWriteReg(ModbusClientContext *context,
 
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -885,15 +929,21 @@ error_t modbusClientReadWriteMultipleRegs(ModbusClientContext *context,
 
    //Check parameters
    if(context == NULL || readValue == NULL || writeValue == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The number of registers to be read must be in range 1 to 125
    if(readQuantity < 1 || readQuantity > 125)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The number of registers to be written must be in range 1 to 121
    if(writeQuantity < 1 || writeQuantity > 121)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -948,7 +998,9 @@ error_t modbusClientGetExceptionCode(ModbusClientContext *context,
 {
    //Check parameters
    if(context == NULL || exceptionCode == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve exception code
    *exceptionCode = context->exceptionCode;
@@ -970,7 +1022,9 @@ error_t modbusClientDisconnect(ModbusClientContext *context)
 
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1045,7 +1099,9 @@ error_t modbusClientClose(ModbusClientContext *context)
 {
    //Make sure the Modbus/TCP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close connection
    modbusClientCloseConnection(context);

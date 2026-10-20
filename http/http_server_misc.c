@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -90,20 +90,26 @@ error_t httpReadRequestHeader(HttpConnection *connection)
    error = socketSetTimeout(connection->socket, HTTP_SERVER_IDLE_TIMEOUT);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Read the first line of the request
    error = httpReceive(connection, connection->buffer,
       HTTP_SERVER_BUFFER_SIZE - 1, &length, SOCKET_FLAG_BREAK_CRLF);
    //Unable to read any data?
    if(error)
+   {
       return error;
+   }
 
    //Revert to default timeout
    error = socketSetTimeout(connection->socket, HTTP_SERVER_TIMEOUT);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Properly terminate the string with a NULL character
    connection->buffer[length] = '\0';
@@ -114,7 +120,9 @@ error_t httpReadRequestHeader(HttpConnection *connection)
    error = httpParseRequestLine(connection, connection->buffer);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Default value for properties
    connection->request.chunkedEncoding = FALSE;
@@ -145,14 +153,18 @@ error_t httpReadRequestHeader(HttpConnection *connection)
             HTTP_SERVER_BUFFER_SIZE, &firstChar);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Debug message
          TRACE_DEBUG("%s", connection->buffer);
 
          //An empty line indicates the end of the header fields
          if(osStrcmp(connection->buffer, "\r\n") == 0)
+         {
             break;
+         }
 
          //Check whether a separator is present
          separator = osStrchr(connection->buffer, ':');
@@ -208,7 +220,9 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
    token = osStrtok_r(requestLine, " \r\n", &p);
    //Unable to retrieve the method?
    if(token == NULL)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //The Method token indicates the method to be performed on the
    //resource identified by the Request-URI
@@ -216,13 +230,17 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
       HTTP_SERVER_METHOD_MAX_LEN + 1);
    //Any error to report?
    if(error)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //The Request-URI is following the method token
    token = osStrtok_r(NULL, " \r\n", &p);
    //Unable to retrieve the Request-URI?
    if(token == NULL)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //Check whether a query string is present
    s = osStrchr(token, '?');
@@ -238,11 +256,15 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
          connection->request.uri, HTTP_SERVER_URI_MAX_LEN);
       //Any error to report?
       if(error)
+      {
          return ERROR_INVALID_REQUEST;
+      }
 
       //Check the length of the query string
       if(osStrlen(s + 1) > HTTP_SERVER_QUERY_STRING_MAX_LEN)
+      {
          return ERROR_INVALID_REQUEST;
+      }
 
       //Save the query string
       osStrcpy(connection->request.queryString, s + 1);
@@ -254,7 +276,9 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
          connection->request.uri, HTTP_SERVER_URI_MAX_LEN);
       //Any error to report?
       if(error)
+      {
          return ERROR_INVALID_REQUEST;
+      }
 
       //No query string
       connection->request.queryString[0] = '\0';
@@ -262,7 +286,9 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
 
    //Redirect to the default home page if necessary
    if(osStrcasecmp(connection->request.uri, "/") == 0)
+   {
       osStrcpy(connection->request.uri, connection->settings->defaultDocument);
+   }
 
    //Clean the resulting path
    pathCanonicalize(connection->request.uri);
@@ -367,7 +393,9 @@ error_t httpReadHeaderField(HttpConnection *connection,
          size - 1 - length, &n, SOCKET_FLAG_BREAK_CRLF);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Update the length of the header field
       length += n;
@@ -376,7 +404,9 @@ error_t httpReadHeaderField(HttpConnection *connection,
 
       //An empty line indicates the end of the header fields
       if(osStrcmp(buffer, "\r\n") == 0)
+      {
          break;
+      }
 
       //Read the next character to detect if the CRLF is immediately
       //followed by a LWSP character
@@ -384,7 +414,9 @@ error_t httpReadHeaderField(HttpConnection *connection,
          sizeof(char_t), &n, SOCKET_FLAG_WAIT_ALL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //LWSP character found?
       if(*firstChar == ' ' || *firstChar == '\t')
@@ -438,7 +470,9 @@ void httpParseHeaderField(HttpConnection *connection,
    {
       //Check whether chunked encoding is used
       if(osStrcasecmp(value, "chunked") == 0)
+      {
          connection->request.chunkedEncoding = TRUE;
+      }
    }
    //Content-Type field header?
    else if(osStrcasecmp(name, "Content-Type") == 0)
@@ -470,7 +504,9 @@ void httpParseHeaderField(HttpConnection *connection,
    {
       //WebSocket support?
       if(osStrcasecmp(value, "websocket") == 0)
+      {
          connection->request.upgradeWebSocket = TRUE;
+      }
    }
    //Sec-WebSocket-Key header field?
    else if(osStrcasecmp(name, "Sec-WebSocket-Key") == 0)
@@ -568,7 +604,9 @@ void httpParseContentTypeField(HttpConnection *connection,
    token = osStrtok_r(value, "/", &p);
    //Any parsing error?
    if(token == NULL)
+   {
       return;
+   }
 
    //The boundary parameter makes sense only for the multipart content-type
    if(osStrcasecmp(token, "multipart") == 0)
@@ -577,13 +615,17 @@ void httpParseContentTypeField(HttpConnection *connection,
       token = osStrtok_r(NULL, ";", &p);
       //Any parsing error?
       if(token == NULL)
+      {
          return;
+      }
 
       //Retrieve parameter name
       token = osStrtok_r(NULL, "=", &p);
       //Any parsing error?
       if(token == NULL)
+      {
          return;
+      }
 
       //Trim whitespace characters
       token = strTrimWhitespace(token);
@@ -595,7 +637,9 @@ void httpParseContentTypeField(HttpConnection *connection,
          token = osStrtok_r(NULL, ";", &p);
          //Any parsing error?
          if(token == NULL)
+         {
             return;
+         }
 
          //Trim whitespace characters
          token = strTrimWhitespace(token);
@@ -695,21 +739,27 @@ error_t httpReadChunkSize(HttpConnection *connection)
       error = httpReceive(connection, s, sizeof(s) - 1, &n, SOCKET_FLAG_BREAK_CRLF);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Properly terminate the string with a NULL character
       s[n] = '\0';
 
       //The chunk data must be terminated by CRLF
       if(osStrcmp(s, "\r\n") != 0)
+      {
          return ERROR_WRONG_ENCODING;
+      }
    }
 
    //Read the chunk-size field
    error = httpReceive(connection, s, sizeof(s) - 1, &n, SOCKET_FLAG_BREAK_CRLF);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Properly terminate the string with a NULL character
    s[n] = '\0';
@@ -721,7 +771,9 @@ error_t httpReadChunkSize(HttpConnection *connection)
 
    //No valid conversion could be performed?
    if(end == s || *end != '\0')
+   {
       return ERROR_WRONG_ENCODING;
+   }
 
    //Any chunk whose size is zero terminates the data transfer
    if(!connection->request.byteCount)
@@ -736,14 +788,18 @@ error_t httpReadChunkSize(HttpConnection *connection)
          error = httpReceive(connection, s, sizeof(s) - 1, &n, SOCKET_FLAG_BREAK_CRLF);
          //Unable to read any data?
          if(error)
+         {
             return error;
+         }
 
          //Properly terminate the string with a NULL character
          s[n] = '\0';
 
          //The trailer is terminated by an empty line
          if(osStrcmp(s, "\r\n") == 0)
+         {
             break;
+         }
       }
    }
 
@@ -989,7 +1045,9 @@ error_t httpSend(HttpConnection *connection,
 #else
    //Prevent buffer overflow
    if((connection->bufferLen + length) > HTTP_SERVER_BUFFER_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy user data
    osMemcpy(connection->buffer + connection->bufferLen, data, length);
@@ -1129,7 +1187,9 @@ bool_t httpCompExtension(const char_t *filename, const char_t *extension)
 
    //Check the length of the filename
    if(n < m)
+   {
       return FALSE;
+   }
 
    //Compare extensions
    if(osStrncasecmp(filename + n - m, extension, m) == 0)
@@ -1159,7 +1219,9 @@ error_t httpDecodePercentEncodedString(const char_t *input,
 
    //Check parameters
    if(input == NULL || output == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Decode the percent-encoded string
    for(i = 0; *input != '\0' && i < outputSize; i++)
@@ -1194,7 +1256,9 @@ error_t httpDecodePercentEncodedString(const char_t *input,
 
    //Check whether the output buffer runs out of space
    if(i >= outputSize)
+   {
       return ERROR_FAILURE;
+   }
 
    //Properly terminate the resulting string
    output[i] = '\0';

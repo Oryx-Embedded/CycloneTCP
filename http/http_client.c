@@ -36,7 +36,7 @@
  * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -71,7 +71,9 @@ error_t httpClientInit(HttpClientContext *context)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear HTTP client context
    osMemset(context, 0, sizeof(HttpClientContext));
@@ -84,7 +86,9 @@ error_t httpClientInit(HttpClientContext *context)
    error = tlsInitSessionState(&context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
 #if (HTTP_CLIENT_AUTH_SUPPORT == ENABLED)
@@ -123,7 +127,9 @@ error_t httpClientRegisterTlsInitCallback(HttpClientContext *context,
 {
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->tlsInitCallback = callback;
@@ -150,7 +156,9 @@ error_t httpClientRegisterRandCallback(HttpClientContext *context,
 #if (HTTP_CLIENT_DIGEST_AUTH_SUPPORT == ENABLED)
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->randCallback = callback;
@@ -175,11 +183,15 @@ error_t httpClientSetVersion(HttpClientContext *context, HttpVersion version)
 {
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP version
    if(version != HTTP_VERSION_1_0 && version != HTTP_VERSION_1_1)
+   {
       return ERROR_INVALID_VERSION;
+   }
 
    //Save the protocol version to be used
    context->version = version;
@@ -200,7 +212,9 @@ error_t httpClientSetTimeout(HttpClientContext *context, systime_t timeout)
 {
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
@@ -224,7 +238,9 @@ error_t httpClientSetAllowedAuthModes(HttpClientContext *context,
 #if (HTTP_CLIENT_AUTH_SUPPORT == ENABLED)
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save allowed HTTP authentication modes
    context->authParams.allowedModes = allowedAuthModes;
@@ -259,15 +275,21 @@ error_t httpClientSetAuthInfo(HttpClientContext *context,
 #if (HTTP_CLIENT_AUTH_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || username == NULL || password == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the user name is acceptable
    if(osStrlen(username) > HTTP_CLIENT_MAX_USERNAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the length of the password is acceptable
    if(osStrlen(password) > HTTP_CLIENT_MAX_PASSWORD_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save user name
    osStrcpy(context->authParams.username, username);
@@ -302,7 +324,9 @@ error_t httpClientBindToInterface(HttpClientContext *context,
 {
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the HTTP client with the specified interface
    context->interface = interface;
@@ -327,7 +351,9 @@ error_t httpClientConnect(HttpClientContext *context,
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -422,7 +448,9 @@ error_t httpClientCreateRequest(HttpClientContext *context)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Format default HTTP request header
    error = httpClientFormatRequestHeader(context);
@@ -461,18 +489,24 @@ error_t httpClientSetMethod(HttpClientContext *context, const char_t *method)
 
    //Check parameters
    if(context == NULL || method == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Compute the length of the HTTP method
    n = osStrlen(method);
 
    //Make sure the length of the user name is acceptable
    if(n == 0 || n > HTTP_CLIENT_MAX_METHOD_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the buffer contains a valid HTTP request
    if(context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Properly terminate the string with a NULL character
    context->buffer[context->bufferLen] = '\0';
@@ -481,14 +515,18 @@ error_t httpClientSetMethod(HttpClientContext *context, const char_t *method)
    p = osStrchr(context->buffer, ' ');
    //Any parsing error?
    if(p == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Compute the length of the current method token
    m = p - context->buffer;
 
    //Make sure the buffer is large enough to hold the new HTTP request method
    if((context->bufferLen + n - m) > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Make room for the new method token
    osMemmove(context->buffer + n, p, context->bufferLen + 1 - m);
@@ -522,19 +560,27 @@ error_t httpClientSetUri(HttpClientContext *context, const char_t *uri)
 
    //Check parameters
    if(context == NULL || uri == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The resource name must not be empty
    if(uri[0] == '\0')
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP request state
    if(context->requestState != HTTP_REQ_STATE_FORMAT_HEADER)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //Make sure the buffer contains a valid HTTP request
    if(context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Properly terminate the string with a NULL character
    context->buffer[context->bufferLen] = '\0';
@@ -543,7 +589,9 @@ error_t httpClientSetUri(HttpClientContext *context, const char_t *uri)
    p = osStrchr(context->buffer, ' ');
    //Any parsing error?
    if(p == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The method token is followed by the Request-URI
    p++;
@@ -552,7 +600,9 @@ error_t httpClientSetUri(HttpClientContext *context, const char_t *uri)
    q = strpbrk(p, " ?");
    //Any parsing error?
    if(q == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Compute the length of the current URI
    m = q - p;
@@ -561,7 +611,9 @@ error_t httpClientSetUri(HttpClientContext *context, const char_t *uri)
 
    //Make sure the buffer is large enough to hold the new resource name
    if((context->bufferLen + n - m) > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Make room for the new resource name
    osMemmove(p + n, q, context->buffer + context->bufferLen + 1 - q);
@@ -593,15 +645,21 @@ error_t httpClientSetHost(HttpClientContext *context, const char_t *host,
 
    //Check parameters
    if(context == NULL || host == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP request state
    if(context->requestState != HTTP_REQ_STATE_FORMAT_HEADER)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //Make sure the buffer contains a valid HTTP request
    if(context->bufferLen < 2 || context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Default port number?
    if(port == HTTP_PORT)
@@ -623,7 +681,9 @@ error_t httpClientSetHost(HttpClientContext *context, const char_t *host,
 
    //Make sure the buffer is large enough to hold the new header field
    if((context->bufferLen + n + m + 8) > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //The Host request-header field specifies the Internet host and port number
    //of the resource being requested
@@ -655,15 +715,21 @@ error_t httpClientSetQueryString(HttpClientContext *context,
 
    //Check parameters
    if(context == NULL || queryString == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP request state
    if(context->requestState != HTTP_REQ_STATE_FORMAT_HEADER)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //Make sure the buffer contains a valid HTTP request
    if(context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Properly terminate the string with a NULL character
    context->buffer[context->bufferLen] = '\0';
@@ -672,13 +738,17 @@ error_t httpClientSetQueryString(HttpClientContext *context,
    p = osStrchr(context->buffer, ' ');
    //Any parsing error?
    if(p == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The method token is followed by the Request-URI
    p = strpbrk(p + 1, " ?");
    //Any parsing error?
    if(p == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The question mark is used as a separator
    if(*p == '?')
@@ -687,7 +757,9 @@ error_t httpClientSetQueryString(HttpClientContext *context,
       q = osStrchr(p + 1, ' ');
       //Any parsing error?
       if(q == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Compute the length of the actual query string
       m = q - p;
@@ -715,7 +787,9 @@ error_t httpClientSetQueryString(HttpClientContext *context,
 
       //Make sure the buffer is large enough to hold the new query string
       if((context->bufferLen + n - m) > HTTP_CLIENT_BUFFER_SIZE)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //Make room for the new query string
       osMemmove(p + n, q, context->buffer + context->bufferLen + 1 - q);
@@ -752,19 +826,27 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
 
    //Check parameters
    if(context == NULL || name == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The parameter name must not be empty
    if(name[0] == '\0')
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP request state
    if(context->requestState != HTTP_REQ_STATE_FORMAT_HEADER)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //Make sure the buffer contains a valid HTTP request
    if(context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Properly terminate the string with a NULL character
    context->buffer[context->bufferLen] = '\0';
@@ -773,13 +855,17 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
    p = osStrchr(context->buffer, ' ');
    //Any parsing error?
    if(p == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The method token is followed by the Request-URI
    p = strpbrk(p + 1, " ?");
    //Any parsing error?
    if(p == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The question mark is used as a separator
    if(*p == '?')
@@ -788,7 +874,9 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
       p = osStrchr(p + 1, ' ');
       //Any parsing error?
       if(p == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //multiple query parameters are separated by an ampersand
       separator = '&';
@@ -807,7 +895,9 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
    {
       //Make sure the buffer is large enough to hold the new query parameter
       if((context->bufferLen + nameLen + 1) > HTTP_CLIENT_BUFFER_SIZE)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //Make room for the new query parameter
       osMemmove(p + nameLen + 1, p, context->buffer + context->bufferLen + 1 - p);
@@ -827,7 +917,9 @@ error_t httpClientAddQueryParam(HttpClientContext *context,
 
       //Make sure the buffer is large enough to hold the new query parameter
       if((context->bufferLen + nameLen + valueLen + 2) > HTTP_CLIENT_BUFFER_SIZE)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //Make room for the new query parameter
       osMemmove(p + nameLen + valueLen + 2, p, context->buffer +
@@ -869,11 +961,15 @@ error_t httpClientAddHeaderField(HttpClientContext *context,
 
    //Check parameters
    if(context == NULL || name == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The field name must not be empty
    if(name[0] == '\0')
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP request state
    if(context->requestState != HTTP_REQ_STATE_FORMAT_HEADER &&
@@ -884,7 +980,9 @@ error_t httpClientAddHeaderField(HttpClientContext *context,
 
    //Make sure the buffer contains a valid HTTP request
    if(context->bufferLen < 2 || context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Retrieve the length of the field name and value
    nameLen = osStrlen(name);
@@ -895,7 +993,9 @@ error_t httpClientAddHeaderField(HttpClientContext *context,
 
    //Make sure the buffer is large enough to hold the new header field
    if((context->bufferLen + n) > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Each header field consists of a case-insensitive field name followed
    //by a colon, optional leading whitespace and the field value
@@ -945,7 +1045,7 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
    const char_t *name, const char_t *format, ...)
 {
    error_t error;
-   size_t n;
+   int_t n;
    size_t size;
    size_t nameLen;
    char_t *value;
@@ -953,11 +1053,15 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
 
    //Check parameters
    if(context == NULL || name == NULL || format == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The field name must not be empty
    if(name[0] == '\0')
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP request state
    if(context->requestState != HTTP_REQ_STATE_FORMAT_HEADER &&
@@ -968,14 +1072,18 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
 
    //Make sure the buffer contains a valid HTTP request
    if(context->bufferLen < 2 || context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Retrieve the length of the field name
    nameLen = osStrlen(name);
 
    //Make sure the buffer is large enough to hold the new header field
    if((context->bufferLen + nameLen + 4) > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Point to the buffer where to format the field value
    value = context->buffer + context->bufferLen + nameLen;
@@ -989,9 +1097,12 @@ error_t httpClientFormatHeaderField(HttpClientContext *context,
    //End varying-length argument list processing
    va_end(args);
 
-   //A return value of size or more means that the output was truncated
-   if(n >= size)
+   //A return value larger than or equal to buffer size means that the output
+   //was truncated
+   if(n < 0 || (size_t) n >= size)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Each header field consists of a case-insensitive field name followed
    //by a colon, optional leading whitespace and the field value
@@ -1044,11 +1155,15 @@ error_t httpClientSetContentLength(HttpClientContext *context, size_t length)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP request state
    if(context->requestState != HTTP_REQ_STATE_FORMAT_HEADER)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //The Content-Length header field indicates the size of the body, in
    //decimal number of octets
@@ -1072,7 +1187,9 @@ error_t httpClientWriteHeader(HttpClientContext *context)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1197,11 +1314,15 @@ error_t httpClientWriteBody(HttpClientContext *context, const void *data,
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP connection state
    if(context->state != HTTP_CLIENT_STATE_CONNECTED)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1353,11 +1474,15 @@ error_t httpClientWriteTrailer(HttpClientContext *context)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP connection state
    if(context->state != HTTP_CLIENT_STATE_CONNECTED)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1432,11 +1557,15 @@ error_t httpClientReadHeader(HttpClientContext *context)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP connection state
    if(context->state != HTTP_CLIENT_STATE_CONNECTED)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1659,7 +1788,9 @@ error_t httpClientGetNextHeaderField(HttpClientContext *context,
 
    //Check parameters
    if(context == NULL || name == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP request state
    if(context->requestState != HTTP_REQ_STATE_PARSE_HEADER &&
@@ -1670,7 +1801,9 @@ error_t httpClientGetNextHeaderField(HttpClientContext *context,
 
    //Check whether the end of the HTTP response header has been reached
    if(context->bufferPos >= context->bufferLen)
+   {
       return ERROR_END_OF_STREAM;
+   }
 
    //Calculate the length of the field name
    nameLen = osStrlen(context->buffer + context->bufferPos);
@@ -1708,11 +1841,15 @@ error_t httpClientReadBody(HttpClientContext *context, void *data,
 
    //Check parameters
    if(context == NULL || data == NULL || received == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check HTTP connection state
    if(context->state != HTTP_CLIENT_STATE_CONNECTED)
+   {
       return ERROR_WRONG_STATE;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1872,7 +2009,9 @@ error_t httpClientReadBody(HttpClientContext *context, void *data,
                   //reading data as soon as the specified break character is
                   //encountered
                   if(p[n - 1] == LSB(flags))
+                  {
                      break;
+                  }
                }
                else if((flags & HTTP_FLAG_WAIT_ALL) == 0)
                {
@@ -1944,7 +2083,9 @@ error_t httpClientReadTrailer(HttpClientContext *context)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -2072,7 +2213,9 @@ error_t httpClientCloseBody(HttpClientContext *context)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -2208,7 +2351,9 @@ error_t httpClientDisconnect(HttpClientContext *context)
 
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -2281,7 +2426,9 @@ error_t httpClientClose(HttpClientContext *context)
 {
    //Make sure the HTTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close connection
    httpClientCloseConnection(context);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _MQTT_CLIENT_H
@@ -339,6 +339,7 @@ struct _MqttClientContext
    size_t packetLen;                        ///<Length of the entire MQTT packet
    MqttPacketType packetType;               ///<Control packet type
    uint16_t packetId;                       ///<Packet identifier
+   uint8_t subAckReturnCode;                ///<Return code of the last SUBACK packet
    size_t remainingLen;                     ///<Length of the variable header and payload
    size_t payloadPos;                       ///<Current position within the payload
    size_t fragPos;                          ///<Current position within the current fragment

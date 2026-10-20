@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -156,13 +156,20 @@ void lcpProcessPacket(PppContext *context, const PppPacket *packet, size_t lengt
 {
    //Ensure the length of the incoming LCP packet is valid
    if(length < sizeof(PppPacket))
+   {
       return;
+   }
 
    //Check the length field
    if(ntohs(packet->length) > length)
+   {
       return;
+   }
+
    if(ntohs(packet->length) < sizeof(PppPacket))
+   {
       return;
+   }
 
    //Save the length of the LCP packet
    length = ntohs(packet->length);
@@ -351,7 +358,9 @@ error_t lcpProcessConfigureAck(PppContext *context,
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(configureAckPacket->identifier != context->lcpFsm.identifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //A valid Configure-Ack packet has been received from the peer
    pppRcvConfigureAckEvent(context, &context->lcpFsm, &lcpCallbacks);
@@ -380,7 +389,9 @@ error_t lcpProcessConfigureNak(PppContext *context,
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(configureNakPacket->identifier != context->lcpFsm.identifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Retrieve the length of the option list
    length = ntohs(configureNakPacket->length) - sizeof(PppConfigurePacket);
@@ -392,9 +403,14 @@ error_t lcpProcessConfigureNak(PppContext *context,
    {
       //Check option length
       if(option->length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
+
       if(option->length > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Maximum-Receive-Unit option?
       if(option->type == LCP_OPTION_MRU)
@@ -404,7 +420,9 @@ error_t lcpProcessConfigureNak(PppContext *context,
 
          //Check option length
          if(mruOption->length != sizeof(LcpMruOption))
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Save value
          context->localConfig.mru = ntohs(mruOption->mru);
@@ -419,7 +437,9 @@ error_t lcpProcessConfigureNak(PppContext *context,
 
          //Check option length
          if(accmOption->length != sizeof(LcpAccmOption))
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Save value
          context->localConfig.accm = ntohl(accmOption->accm);
@@ -432,7 +452,9 @@ error_t lcpProcessConfigureNak(PppContext *context,
 
          //Check option length
          if(authProtocolOption->length < sizeof(LcpAuthProtocolOption))
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Check the value provided by the peer
          if(ntohs(authProtocolOption->protocol) == PPP_PROTOCOL_PAP)
@@ -501,7 +523,9 @@ error_t lcpProcessConfigureReject(PppContext *context,
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(configureRejPacket->identifier != context->lcpFsm.identifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Retrieve the length of the option list
    length = ntohs(configureRejPacket->length) - sizeof(PppConfigurePacket);
@@ -513,9 +537,14 @@ error_t lcpProcessConfigureReject(PppContext *context,
    {
       //Check option length
       if(option->length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
+
       if(option->length > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Maximum-Receive-Unit option?
       if(option->type == LCP_OPTION_MRU)
@@ -648,7 +677,9 @@ error_t lcpProcessCodeRej(PppContext *context,
 
    //Make sure the length of the rejected packet is valid
    if(length < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check whether the rejected value is acceptable or catastrophic
    if(packet->code < PPP_CODE_CONFIGURE_REQ ||
@@ -693,7 +724,9 @@ error_t lcpProcessProtocolRej(PppContext *context,
 
    //Make sure the length of the Protocol-Reject packet is valid
    if(length < sizeof(PppProtocolRejPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Convert the Rejected-Protocol field to host byte order
    protocol = ntohs(protocolRejPacket->rejectedProtocol);
@@ -1044,7 +1077,9 @@ error_t lcpSendConfigureReq(PppContext *context)
    buffer = pppAllocBuffer(PPP_MAX_CONF_REQ_SIZE, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Configure-Request packet
    configureReqPacket = netBufferAt(buffer, offset, 0);
@@ -1132,7 +1167,9 @@ error_t lcpSendConfigureReq(PppContext *context)
 
    //The restart counter is decremented each time a Configure-Request is sent
    if(context->lcpFsm.restartCounter > 0)
+   {
       context->lcpFsm.restartCounter--;
+   }
 
    //Save the time at which the packet was sent
    context->lcpFsm.timestamp = osGetSystemTime();
@@ -1223,7 +1260,9 @@ error_t lcpSendTerminateReq(PppContext *context)
 
    //The restart counter is decremented each time a Terminate-Request is sent
    if(context->lcpFsm.restartCounter > 0)
+   {
       context->lcpFsm.restartCounter--;
+   }
 
    //Save the time at which the packet was sent
    context->lcpFsm.timestamp = osGetSystemTime();
@@ -1320,13 +1359,20 @@ error_t lcpParseOption(PppContext *context, PppOption *option,
 
    //Malformed LCP packet?
    if(inPacketLen < sizeof(PppOption))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check option length
    if(option->length < sizeof(PppOption))
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
    if(option->length > inPacketLen)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check option type
    switch(option->type)
@@ -1403,7 +1449,7 @@ error_t lcpParseMruOption(PppContext *context,
          if(outPacket != NULL && outPacket->code == PPP_CODE_CONFIGURE_ACK)
          {
             //Save Maximum-Receive-Unit option
-            context->peerConfig.mru = ntohl(option->mru);
+            context->peerConfig.mru = ntohs(option->mru);
 
             //The options field of the Configure-Ack packet contains the
             //configuration options that the sender is acknowledging
@@ -1781,7 +1827,9 @@ error_t lcpAddAuthProtocolOption(PppConfigurePacket *packet, uint16_t protocol,
 
    //Check the length of the Configure packet
    if(packet->length < sizeof(PppConfigurePacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the length of the option list
    n = packet->length - sizeof(PppConfigurePacket);
@@ -1793,9 +1841,14 @@ error_t lcpAddAuthProtocolOption(PppConfigurePacket *packet, uint16_t protocol,
    {
       //Check option length
       if(option->length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
+
       if(option->length > n)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Authentication-Protocol option?
       if(option->type == LCP_OPTION_AUTH_PROTOCOL)
@@ -1805,11 +1858,15 @@ error_t lcpAddAuthProtocolOption(PppConfigurePacket *packet, uint16_t protocol,
 
          //Check option length
          if(authProtocolOption->length < sizeof(LcpAuthProtocolOption))
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Duplicate Authentication-Protocol option?
          if(ntohs(authProtocolOption->protocol) == protocol)
+         {
             return NO_ERROR;
+         }
       }
 
       //Remaining bytes to process

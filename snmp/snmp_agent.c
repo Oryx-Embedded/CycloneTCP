@@ -41,7 +41,7 @@
  *     SNMP Framework
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -114,11 +114,15 @@ error_t snmpAgentInit(SnmpAgentContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check minimum and maximum SNMP versions
    if(settings->versionMin > settings->versionMax)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear the SNMP agent context
    osMemset(context, 0, sizeof(SnmpAgentContext));
@@ -209,7 +213,9 @@ error_t snmpAgentInit(SnmpAgentContext *context,
          error = settings->randCallback(context->salt, sizeof(context->salt));
          //Any error to report?
          if(error)
+         {
             break;
+         }
       }
 #endif
 
@@ -243,14 +249,18 @@ error_t snmpAgentStart(SnmpAgentContext *context)
 
    //Make sure the SNMP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting SNMP agent...\r\n");
 
    //Make sure the SNMP agent is not already running
    if(context->running)
+   {
       return ERROR_ALREADY_RUNNING;
+   }
 
    //Start of exception handling block
    do
@@ -261,7 +271,6 @@ error_t snmpAgentStart(SnmpAgentContext *context)
       //Failed to open socket?
       if(context->socket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -270,19 +279,25 @@ error_t snmpAgentStart(SnmpAgentContext *context)
       error = socketSetTimeout(context->socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket, context->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
+      {
          break;
+      }
 
       //The SNMP agent listens for messages on port 161
       error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Unable to bind the socket to the desired port?
       if(error)
+      {
          break;
+      }
 
       //Start the SNMP agent
       context->stop = FALSE;
@@ -295,7 +310,6 @@ error_t snmpAgentStart(SnmpAgentContext *context)
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -329,7 +343,9 @@ error_t snmpAgentStop(SnmpAgentContext *context)
 {
    //Make sure the SNMP agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping SNMP agent...\r\n");
@@ -374,9 +390,14 @@ error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module)
 
    //Check parameters
    if(context == NULL || module == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(module->numObjects < 1)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -386,7 +407,9 @@ error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module)
    {
       //Check whether the specified MIB module is already loaded
       if(context->mibTable[i] == module)
+      {
          break;
+      }
    }
 
    //MIB module found?
@@ -402,7 +425,9 @@ error_t snmpAgentLoadMib(SnmpAgentContext *context, const MibModule *module)
       {
          //Check if the current entry is available
          if(context->mibTable[i] == NULL)
+         {
             break;
+         }
       }
 
       //Make sure there is enough room to add the specified MIB
@@ -454,7 +479,9 @@ error_t snmpAgentUnloadMib(SnmpAgentContext *context, const MibModule *module)
 
    //Check parameters
    if(context == NULL || module == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -464,7 +491,9 @@ error_t snmpAgentUnloadMib(SnmpAgentContext *context, const MibModule *module)
    {
       //Check whether the specified MIB module is already loaded
       if(context->mibTable[i] == module)
+      {
          break;
+      }
    }
 
    //MIB module found?
@@ -510,9 +539,14 @@ error_t snmpAgentSetVersion(SnmpAgentContext *context,
 {
    //Check parameters
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(versionMin > versionMax)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -541,9 +575,14 @@ error_t snmpAgentSetEngineBoots(SnmpAgentContext *context, int32_t engineBoots)
 #if (SNMP_V3_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(engineBoots < 0)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -580,7 +619,9 @@ error_t snmpAgentGetEngineBoots(SnmpAgentContext *context, int32_t *engineBoots)
 #if (SNMP_V3_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || engineBoots == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -611,9 +652,14 @@ error_t snmpAgentSetEnterpriseOid(SnmpAgentContext *context,
 {
    //Check parameters
    if(context == NULL || enterpriseOid == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(enterpriseOidLen > SNMP_MAX_OID_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -645,9 +691,14 @@ error_t snmpAgentSetContextEngine(SnmpAgentContext *context,
 #if (SNMP_V3_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || contextEngine == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(contextEngineLen > SNMP_MAX_CONTEXT_ENGINE_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -684,14 +735,18 @@ error_t snmpAgentSetContextName(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || contextName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve the length of the context name
    n = osStrlen(contextName);
 
    //Make sure the context name is valid
    if(n > SNMP_MAX_CONTEXT_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -727,14 +782,18 @@ error_t snmpAgentCreateCommunity(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || community == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve the length of the community string
    n = osStrlen(community);
 
    //Make sure the community string is valid
    if(n == 0 || n > SNMP_MAX_USER_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -799,7 +858,9 @@ error_t snmpAgentDeleteCommunity(SnmpAgentContext *context, const char_t *commun
 
    //Check parameters
    if(context == NULL || community == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -861,7 +922,9 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || userName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Data authentication?
    if(authProtocol != SNMP_AUTH_PROTOCOL_NONE)
@@ -876,7 +939,9 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
 
       //Data authentication requires a key
       if(authKey == NULL)
+      {
          return ERROR_INVALID_PARAMETER;
+      }
    }
 
    //Data confidentiality?
@@ -884,15 +949,21 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
    {
       //Check key format
       if(keyFormat != SNMP_KEY_FORMAT_TEXT && keyFormat != SNMP_KEY_FORMAT_RAW)
+      {
          return ERROR_INVALID_PARAMETER;
+      }
 
       //Data confidentiality requires a key
       if(privKey == NULL)
+      {
          return ERROR_INVALID_PARAMETER;
+      }
 
       //There is no provision for data confidentiality without data authentication
       if(authProtocol == SNMP_AUTH_PROTOCOL_NONE)
+      {
          return ERROR_INVALID_PARAMETER;
+      }
    }
 
    //Retrieve the length of the user name
@@ -900,7 +971,9 @@ error_t snmpAgentCreateUser(SnmpAgentContext *context,
 
    //Make sure the user name is valid
    if(n == 0 || n > SNMP_MAX_USER_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1055,7 +1128,9 @@ error_t snmpAgentDeleteUser(SnmpAgentContext *context, const char_t *userName)
 
    //Check parameters
    if(context == NULL || userName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1111,7 +1186,9 @@ error_t snmpAgentJoinGroup(SnmpAgentContext *context, const char_t *userName,
 
    //Check parameters
    if(context == NULL || userName == NULL || groupName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check security model
    if(securityModel != SNMP_SECURITY_MODEL_V1 &&
@@ -1126,14 +1203,18 @@ error_t snmpAgentJoinGroup(SnmpAgentContext *context, const char_t *userName,
 
    //Make sure the user name is valid
    if(n == 0 || n > SNMP_MAX_USER_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the length of the group name
    n = osStrlen(groupName);
 
    //Make sure the group name is valid
    if(n == 0 || n > SNMP_MAX_GROUP_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1203,7 +1284,9 @@ error_t snmpAgentLeaveGroup(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || userName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1268,9 +1351,14 @@ error_t snmpAgentCreateAccess(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || groupName == NULL || contextPrefix == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(readViewName == NULL || writeViewName == NULL || notifyViewName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check security model
    if(securityModel != SNMP_SECURITY_MODEL_ANY &&
@@ -1301,23 +1389,33 @@ error_t snmpAgentCreateAccess(SnmpAgentContext *context,
 
    //Make sure the group name is valid
    if(n == 0 || n > SNMP_MAX_GROUP_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the context name prefix is valid
    if(osStrlen(contextPrefix) > SNMP_MAX_CONTEXT_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the read view name is valid
    if(osStrlen(readViewName) > SNMP_MAX_VIEW_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the write view name is valid
    if(osStrlen(writeViewName) > SNMP_MAX_VIEW_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the notify view name is valid
    if(osStrlen(notifyViewName) > SNMP_MAX_VIEW_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1400,7 +1498,9 @@ error_t snmpAgentDeleteAccess(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || groupName == NULL || contextPrefix == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1461,7 +1561,9 @@ error_t snmpAgentCreateView(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || viewName == NULL || subtree == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check view type
    if(type != SNMP_VIEW_TYPE_INCLUDED &&
@@ -1475,17 +1577,26 @@ error_t snmpAgentCreateView(SnmpAgentContext *context,
 
    //Make sure the view name is valid
    if(n == 0 || n > SNMP_MAX_VIEW_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the subtree is valid
    if(subtreeLen == 0 || subtreeLen > MIB_MAX_OID_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the bit mask is valid
    if(maskLen > 0 && mask == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(maskLen > SNMP_MAX_BIT_MASK_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1561,7 +1672,9 @@ error_t snmpAgentDeleteView(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || viewName == NULL || subtree == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1621,11 +1734,15 @@ error_t snmpAgentSendTrap(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || destIpAddr == NULL || userName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the list of objects is valid
    if(objectListSize > 0 && objectList == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the SNMP agent context
    osAcquireMutex(&context->mutex);
@@ -1697,11 +1814,15 @@ error_t snmpAgentSendInform(SnmpAgentContext *context,
 
    //Check parameters
    if(context == NULL || destIpAddr == NULL || userName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the list of objects is valid
    if(objectListSize > 0 && objectList == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;

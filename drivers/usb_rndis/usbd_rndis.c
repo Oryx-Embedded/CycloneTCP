@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -302,7 +302,9 @@ uint8_t usbdRndisDataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
       //Increment index and wrap around if necessary
       if(++rndisTxReadIndex >= RNDIS_TX_BUFFER_COUNT)
+      {
          rndisTxReadIndex = 0;
+      }
 
       //Check whether the next buffer is ready
       if(rndisTxBuffer[rndisTxReadIndex].ready)
@@ -377,7 +379,9 @@ uint8_t usbdRndisDataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
             //Increment index and wrap around if necessary
             if(++rndisRxWriteIndex >= RNDIS_RX_BUFFER_COUNT)
+            {
                rndisRxWriteIndex = 0;
+            }
 
             //Suspend reception
             rndisContext.rxState = FALSE;

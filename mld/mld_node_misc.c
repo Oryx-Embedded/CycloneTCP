@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -152,7 +152,9 @@ void mldNodeSendListenerReport(MldNodeContext *context,
    buffer = ipAllocBuffer(sizeof(MldMessage), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return;
+   }
 
    //Point to the beginning of the MLD message
    message = netBufferAt(buffer, offset, 0);
@@ -191,7 +193,9 @@ void mldNodeSendListenerDone(MldNodeContext *context,
    buffer = ipAllocBuffer(sizeof(MldMessage), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return;
+   }
 
    //Point to the beginning of the MLD message
    message = netBufferAt(buffer, offset, 0);
@@ -236,7 +240,9 @@ void mldNodeSendCurrentStateReport(MldNodeContext *context,
    buffer = ipAllocBuffer(MLD_MAX_MSG_SIZE, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return;
+   }
 
    //Point to the beginning of the MLD message
    message = netBufferAt(buffer, offset, 0);
@@ -469,7 +475,9 @@ void mldNodeSendStateChangeReport(MldNodeContext *context,
    buffer = ipAllocBuffer(MLD_MAX_MSG_SIZE, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return;
+   }
 
    //Point to the beginning of the MLD message
    message = netBufferAt(buffer, offset, 0);
@@ -661,7 +669,7 @@ void mldNodeFlushReportRecords(MldNodeContext *context, NetBuffer *buffer,
    MldListenerReportV2 *message;
 
    //Any multicast address records included in the message?
-   if(*length > 0)
+   if(*length > sizeof(MldListenerReportV2))
    {
       //Point to the beginning of the report message
       message = netBufferAt(buffer, offset, 0);
@@ -758,7 +766,9 @@ void mldNodeProcessListenerQuery(MldNodeContext *context,
    //source address set to the unspecified address, it must silently discard
    //the message (refer to RFC 3590, section 4)
    if(!ipv6IsLinkLocalUnicastAddr(&pseudoHeader->srcAddr))
+   {
       return;
+   }
 
    //A General Query is used to learn which multicast addresses have listeners
    //on an attached link. A Multicast-Address-Specific Query is used to learn
@@ -847,14 +857,28 @@ void mldNodeProcessListenerQueryV2(MldNodeContext *context,
    uint16_t maxRespCode;
    MldNodeGroup *group;
 
+   //All MLDv2 Queries must be sent with a valid IPv6 link-local source
+   //address. If a node receives a Query message with the IPv6 source address
+   //set to the unspecified address, or any other address that is not a valid
+   //IPv6 link-local address, it must silently discard the message (refer to
+   //RFC 3810, section 5.1.14)
+   if(!ipv6IsLinkLocalUnicastAddr(&pseudoHeader->srcAddr))
+   {
+      return;
+   }
+
    //When Host Compatibility Mode is MLDv1, a host acts in MLDv1 compatibility
    //mode, using only the MLDv1 protocol, on that interface
    if(context->compatibilityMode < MLD_VERSION_2)
+   {
       return;
+   }
 
    //Check the length of the Version 2 Membership Query message
    if(length < sizeof(MldListenerQueryV2))
+   {
       return;
+   }
 
    //For a General Query, the Multicast Address field is set to zero. For a
    //Multicast Address Specific Query or Multicast Address and Source Specific
@@ -872,7 +896,9 @@ void mldNodeProcessListenerQueryV2(MldNodeContext *context,
 
    //Malformed message?
    if(length < (sizeof(MldListenerQueryV2) + n * sizeof(Ipv6Addr)))
+   {
       return;
+   }
 
    //The Maximum Response Code field specifies the maximum time allowed before
    //sending a responding report
@@ -939,7 +965,7 @@ void mldNodeProcessListenerQueryV2(MldNodeContext *context,
                group->queriedSources.numSources = 0;
 
                //Save the list of queried sources
-               for(j = 0; j < n; j++)
+               for(j = 0; j < n && !error; j++)
                {
                   error = ipv6AddSrcAddr(&group->queriedSources,
                      &message->srcAddr[j]);
@@ -979,7 +1005,7 @@ void mldNodeProcessListenerQueryV2(MldNodeContext *context,
                   //empty source-list, then the group source list is augmented
                   //to contain the list of sources in the new Query and a single
                   //response is scheduled using the group timer
-                  for(j = 0; j < n; j++)
+                  for(j = 0; j < n && !error; j++)
                   {
                      error = ipv6AddSrcAddr(&group->queriedSources,
                         &message->srcAddr[j]);
@@ -1040,12 +1066,16 @@ void mldNodeProcessListenerReport(MldNodeContext *context,
    //When Host Compatibility Mode is MLDv2, a host acts using the MLDv2
    //protocol on that interface
    if(context->compatibilityMode > MLD_VERSION_1)
+   {
       return;
+   }
 
    //In a Report message, the Multicast Address field holds a specific IPv6
    //multicast address to which the message sender is listening
    if(!ipv6IsMulticastAddr(&message->multicastAddr))
+   {
       return;
+   }
 
    //Search the list of groups for the specified multicast address
    group = mldNodeFindGroup(context, &message->multicastAddr);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -808,7 +808,9 @@ error_t mqttSnParseHeader(MqttSnMessage *message, MqttSnMsgType *type)
 {
    //Malformed MQTT-SN message?
    if(message->length == 0)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check whether the first octet is 0x01
    if(message->buffer[0] == 0x01)
@@ -818,11 +820,18 @@ error_t mqttSnParseHeader(MqttSnMessage *message, MqttSnMsgType *type)
       //Point to message header
       header = (MqttSnExtHeader *) message->buffer;
 
-      //Malformed message?
+      //Malformed MQTT-SN message?
       if(message->length < sizeof(MqttSnExtHeader))
+      {
          return ERROR_INVALID_LENGTH;
-      if(message->length < ntohs(header->length))
+      }
+
+      //Make sure the length field is correct
+      if(ntohs(header->length) < sizeof(MqttSnExtHeader) ||
+         ntohs(header->length) > message->length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //The Length field is 3-octet long
       message->length = ntohs(header->length);
@@ -839,11 +848,18 @@ error_t mqttSnParseHeader(MqttSnMessage *message, MqttSnMsgType *type)
       //Point to message header
       header = (MqttSnHeader *) message->buffer;
 
-      //Malformed message?
+      //Malformed MQTT-SN message?
       if(message->length < sizeof(MqttSnHeader))
+      {
          return ERROR_INVALID_LENGTH;
-      if(message->length < header->length)
+      }
+
+      //Make sure the length field is correct
+      if(header->length < sizeof(MqttSnHeader) ||
+         header->length > message->length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //The Length field is 1-octet long
       message->length = header->length;
@@ -881,7 +897,9 @@ error_t mqttSnParseGwInfo(const MqttSnMessage *message, uint8_t *gwId,
 
    //Check the length of the message
    if(n < sizeof(MqttSnGwInfo))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get gateway identifier
    *gwId = gwInfo->gwId;
@@ -916,7 +934,9 @@ error_t mqttSnParseConnAck(const MqttSnMessage *message,
 
    //Check the length of the message
    if(n < sizeof(MqttSnConnAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get return code
    *returnCode = (MqttSnReturnCode) connAck->returnCode;
@@ -974,7 +994,9 @@ error_t mqttSnParseRegister(const MqttSnMessage *message, uint16_t *msgId,
 
    //Check the length of the message
    if(n < sizeof(MqttSnRegister))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get message identifier
    *msgId = ntohs(reg->msgId);
@@ -1010,7 +1032,9 @@ error_t mqttSnParseRegAck(const MqttSnMessage *message, uint16_t *msgId,
 
    //Check the length of the message
    if(n < sizeof(MqttSnRegAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get return code
    *msgId = ntohs(regAck->msgId);
@@ -1048,7 +1072,9 @@ error_t mqttSnParsePublish(const MqttSnMessage *message, MqttSnFlags *flags,
 
    //Check the length of the message
    if(length < sizeof(MqttSnPublish))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get flags
    *flags = publish->flags;
@@ -1089,7 +1115,9 @@ error_t mqttSnParsePubAck(const MqttSnMessage *message, uint16_t *msgId,
 
    //Check the length of the message
    if(length < sizeof(MqttSnPubAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get message identifier
    *msgId = ntohs(pubAck->msgId);
@@ -1122,7 +1150,9 @@ error_t mqttSnParsePubRec(const MqttSnMessage *message, uint16_t *msgId)
 
    //Check the length of the message
    if(length < sizeof(MqttSnPubRec))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get message identifier
    *msgId = ntohs(pubRec->msgId);
@@ -1151,7 +1181,9 @@ error_t mqttSnParsePubRel(const MqttSnMessage *message, uint16_t *msgId)
 
    //Check the length of the message
    if(length < sizeof(MqttSnPubRel))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get message identifier
    *msgId = ntohs(pubRel->msgId);
@@ -1180,7 +1212,9 @@ error_t mqttSnParsePubComp(const MqttSnMessage *message, uint16_t *msgId)
 
    //Check the length of the message
    if(length < sizeof(MqttSnPubComp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get message identifier
    *msgId = ntohs(pubComp->msgId);
@@ -1213,7 +1247,9 @@ error_t mqttSnParseSubAck(const MqttSnMessage *message, MqttSnFlags *flags,
 
    //Check the length of the message
    if(length < sizeof(MqttSnSubAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get flags
    *flags = subAck->flags;
@@ -1248,7 +1284,9 @@ error_t mqttSnParseUnsubAck(const MqttSnMessage *message, uint16_t *msgId)
 
    //Check the length of the message
    if(length < sizeof(MqttSnUnsubAck))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get message identifier
    *msgId = ntohs(unsubAck->msgId);
@@ -1322,7 +1360,9 @@ error_t mqttSnParseDisconnect(const MqttSnMessage *message,
    {
       //Check the length of the message
       if(length < sizeof(MqttSnDisconnect))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Get topic identifier
       *duration = ntohs(disconnect->duration);
@@ -1353,7 +1393,9 @@ error_t mqttSnParseWillTopicResp(const MqttSnMessage *message,
 
    //Check the length of the message
    if(length < sizeof(MqttSnWillTopicResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get return code
    *returnCode = (MqttSnReturnCode) willTopicResp->returnCode;
@@ -1383,7 +1425,9 @@ error_t mqttSnParseWillMsgResp(const MqttSnMessage *message,
 
    //Check the length of the message
    if(length < sizeof(MqttSnWillMsgResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get return code
    *returnCode = (MqttSnReturnCode) willMsgResp->returnCode;

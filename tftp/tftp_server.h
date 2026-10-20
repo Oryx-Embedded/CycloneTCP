@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _TFTP_SERVER_H
@@ -89,18 +89,13 @@
    #error TFTP_SERVER_FINAL_DELAY parameter is not valid
 #endif
 
-//Block size
-#ifndef TFTP_SERVER_BLOCK_SIZE
-   #define TFTP_SERVER_BLOCK_SIZE 512
-#elif (TFTP_SERVER_BLOCK_SIZE < 512)
-   #error TFTP_SERVER_BLOCK_SIZE parameter is not valid
-#endif
-
 //Application specific context
 #ifndef TFTP_SERVER_CONTEXT_PRIVATE
    #define TFTP_SERVER_CONTEXT_PRIVATE
 #endif
 
+//Block size
+#define TFTP_SERVER_BLOCK_SIZE 512
 //Maximum size of TFTP packets
 #define TFTP_SERVER_MAX_PACKET_SIZE (sizeof(TftpDataPacket) + TFTP_SERVER_BLOCK_SIZE)
 
@@ -195,6 +190,7 @@ struct _TftpClientConnection
    Socket *socket;                              ///<Underlying socket
    void *file;                                  ///<File pointer
    uint16_t block;                              ///<Block number
+   size_t offset;                               ///<Offset of the current block in the file
    systime_t timestamp;                         ///<Time stamp to manage retransmissions
    uint_t retransmitCount;                      ///<Retransmission counter
    uint8_t packet[TFTP_SERVER_MAX_PACKET_SIZE]; ///<Outgoing TFTP packet

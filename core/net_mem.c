@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -210,25 +210,37 @@ void memPoolGetStats(uint_t *currentUsage, uint_t *maxUsage, uint_t *size)
 #if (NET_MEM_POOL_SUPPORT == ENABLED)
    //Number of buffers currently allocated
    if(currentUsage != NULL)
+   {
       *currentUsage = memPoolCurrentUsage;
+   }
 
    //Maximum number of buffers that have been allocated so far
    if(maxUsage != NULL)
+   {
       *maxUsage = memPoolMaxUsage;
+   }
 
    //Total number of buffers in the memory pool
    if(size != NULL)
+   {
       *size = NET_MEM_POOL_BUFFER_COUNT;
+   }
 #else
    //Memory pool is not used...
    if(currentUsage != NULL)
+   {
       *currentUsage = 0;
+   }
 
    if(maxUsage != NULL)
+   {
       *maxUsage = 0;
+   }
 
    if(size != NULL)
+   {
       *size = 0;
+   }
 #endif
 }
 
@@ -249,7 +261,9 @@ NetBuffer *netBufferAlloc(size_t length)
    buffer = memPoolAlloc(NET_MEM_POOL_BUFFER_SIZE);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return NULL;
+   }
 
    //The multi-part buffer consists of a single chunk
    buffer->chunkCount = 1;
@@ -388,7 +402,9 @@ error_t netBufferSetLength(NetBuffer *buffer, size_t length)
          chunk->address = memPoolAlloc(NET_MEM_POOL_BUFFER_SIZE);
          //Failed to allocate memory?
          if(!chunk->address)
+         {
             return ERROR_OUT_OF_MEMORY;
+         }
 
          //Allocated memory
          chunk->size = NET_MEM_POOL_BUFFER_SIZE;
@@ -468,7 +484,9 @@ error_t netBufferConcat(NetBuffer *dest,
    {
       //The data at the specified offset resides in the current chunk?
       if(srcOffset < src->chunk[j].length)
+      {
          break;
+      }
 
       //Jump to the next chunk
       srcOffset -= src->chunk[j].length;
@@ -476,7 +494,9 @@ error_t netBufferConcat(NetBuffer *dest,
 
    //Invalid offset?
    if(j >= src->chunkCount)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Position to the end of the destination data
    i = dest->chunkCount;
@@ -491,7 +511,9 @@ error_t netBufferConcat(NetBuffer *dest,
 
       //Limit the number of bytes to copy
       if(length < dest->chunk[i].length)
+      {
          dest->chunk[i].length = length;
+      }
 
       //Decrement the number of remaining bytes
       length -= dest->chunk[i].length;
@@ -533,7 +555,9 @@ error_t netBufferCopy(NetBuffer *dest, size_t destOffset,
    {
       //The data at the specified offset resides in the current chunk?
       if(destOffset < dest->chunk[i].length)
+      {
          break;
+      }
 
       //Jump to the next chunk
       destOffset -= dest->chunk[i].length;
@@ -541,14 +565,18 @@ error_t netBufferCopy(NetBuffer *dest, size_t destOffset,
 
    //Invalid offset?
    if(i >= dest->chunkCount)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Skip the beginning of the source data
    for(j = 0; j < src->chunkCount; j++)
    {
       //The data at the specified offset resides in the current chunk?
       if(srcOffset < src->chunk[j].length)
+      {
          break;
+      }
 
       //Jump to the next chunk
       srcOffset -= src->chunk[j].length;
@@ -556,7 +584,9 @@ error_t netBufferCopy(NetBuffer *dest, size_t destOffset,
 
    //Invalid offset?
    if(j >= src->chunkCount)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    while(length > 0 && i < dest->chunkCount && j < src->chunkCount)
    {
@@ -607,7 +637,9 @@ error_t netBufferAppend(NetBuffer *dest, const void *src, size_t length)
 
    //Make sure there is enough space to add an extra chunk
    if(dest->chunkCount >= dest->maxChunkCount)
+   {
       return ERROR_FAILURE;
+   }
 
    //Position to the end of the buffer
    i = dest->chunkCount;

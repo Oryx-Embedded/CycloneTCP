@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,9 @@ void natTick(NatContext *context)
 
    //Make sure the NAT context has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Get current time
    time = osGetSystemTime();
@@ -198,7 +200,9 @@ error_t natProcessPacket(NatContext *context, NetInterface *inInterface,
 
    //Make sure the NAT context has been properly instantiated
    if(context == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Broadcast and multicast packets are not forwarded by the NAT
    if(ipv4IsBroadcastAddr(packet.interface, packet.destIpAddr) ||
@@ -207,22 +211,24 @@ error_t natProcessPacket(NatContext *context, NetInterface *inInterface,
       return ERROR_INVALID_ADDRESS;
    }
 
-   //Packets with a link-local source or destination address are not routable
-   //off the link
-   if(ipv4IsLinkLocalAddr(packet.srcIpAddr) ||
-      ipv4IsLinkLocalAddr(packet.destIpAddr))
-   {
-      return ERROR_INVALID_ADDRESS;
-   }
-
    //Inbound or outbound traffic?
    if(natIsPublicInterface(context, packet.interface))
    {
+      //Packets with a link-local source or destination address are not routable
+      //off the link
+      if(ipv4IsLinkLocalAddr(packet.srcIpAddr) ||
+         ipv4IsLinkLocalAddr(packet.destIpAddr))
+      {
+         return ERROR_INVALID_ADDRESS;
+      }
+
       //Extract transport identifiers (TCP/UDP ports or ICMP query ID)
       error = natParseTransportHeader(&packet);
       //Unrecognized packet?
       if(error)
+      {
          return error;
+      }
 
       //Debug message
       TRACE_DEBUG("NAT: Packet received on interface %s...\r\n",
@@ -234,7 +240,9 @@ error_t natProcessPacket(NatContext *context, NetInterface *inInterface,
       error = natTranslateInboundPacket(context, &packet);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else if(natIsPrivateInterface(context, packet.interface))
    {
@@ -242,13 +250,25 @@ error_t natProcessPacket(NatContext *context, NetInterface *inInterface,
       error = ipv4CheckDestAddr(packet.interface, packet.destIpAddr);
       //Do not forward packets destined to the host
       if(!error)
+      {
          return ERROR_INVALID_ADDRESS;
+      }
+
+      //Packets with a link-local source or destination address are not routable
+      //off the link
+      if(ipv4IsLinkLocalAddr(packet.srcIpAddr) ||
+         ipv4IsLinkLocalAddr(packet.destIpAddr))
+      {
+         return NO_ERROR;
+      }
 
       //Extract transport identifiers (TCP/UDP ports or ICMP query ID)
       error = natParseTransportHeader(&packet);
       //Unrecognized packet?
       if(error)
+      {
          return NO_ERROR;
+      }
 
       //Debug message
       TRACE_DEBUG("NAT: Packet received on interface %s...\r\n",
@@ -260,7 +280,9 @@ error_t natProcessPacket(NatContext *context, NetInterface *inInterface,
       error = natTranslateOutboundPacket(context, &packet);
       //Any error to report?
       if(error)
+      {
          return NO_ERROR;
+      }
 
       //Check destination IP address
       error = ipv4CheckDestAddr(packet.interface, packet.destIpAddr);
@@ -313,14 +335,14 @@ error_t natProcessPacket(NatContext *context, NetInterface *inInterface,
 error_t natTranslateInboundPacket(NatContext *context, NatIpPacket *packet)
 {
    error_t error;
-   NatPortFwdRule *rule;
+   NatPortForwardingRule *rule;
    NatSession *session;
 
    //Initialize status code
    error = NO_ERROR;
 
    //Check whether the packet matches any port forwarding rule
-   rule = natMatchPortFwdRule(context, packet);
+   rule = natMatchPortForwardingRule(context, packet);
 
    //Matching port forwarding rule found?
    if(rule != NULL)
@@ -380,7 +402,7 @@ error_t natTranslateOutboundPacket(NatContext *context, NatIpPacket *packet)
    error_t error;
    Ipv4Addr publicIpAddr;
    Ipv4Context *ipv4Context;
-   NatPortFwdRule *rule;
+   NatPortForwardingRule *rule;
    NatSession *session;
 
    //Initialize status code
@@ -392,7 +414,7 @@ error_t natTranslateOutboundPacket(NatContext *context, NatIpPacket *packet)
    publicIpAddr = ipv4Context->addrList[context->publicIpAddrIndex].addr;
 
    //Check whether the packet matches any port forwarding rule
-   rule = natMatchPortFwdRule(context, packet);
+   rule = natMatchPortForwardingRule(context, packet);
 
    //Matching port forwarding rule found?
    if(rule != NULL)
@@ -598,20 +620,20 @@ error_t natForwardPacket(NatContext *context, const NatIpPacket *packet)
  * @return Pointer to the matching port forwarding rule, if any
  **/
 
-NatPortFwdRule *natMatchPortFwdRule(NatContext *context,
+NatPortForwardingRule *natMatchPortForwardingRule(NatContext *context,
    const NatIpPacket *packet)
 {
    uint_t i;
-   NatPortFwdRule *rule;
+   NatPortForwardingRule *rule;
 
    //Inbound or outbound traffic?
    if(packet->interface == context->publicInterface)
    {
       //Loop through the list of port redirection rules
-      for(i = 0; i < context->numPortFwdRules; i++)
+      for(i = 0; i < context->numPortForwardingRules; i++)
       {
          //Point to the current rule
-         rule = &context->portFwdRules[i];
+         rule = &context->portForwardingRules[i];
 
          //Check protocol field
          if(rule->protocol == packet->protocol)
@@ -628,10 +650,10 @@ NatPortFwdRule *natMatchPortFwdRule(NatContext *context,
    else
    {
       //Loop through the list of port redirection rules
-      for(i = 0; i < context->numPortFwdRules; i++)
+      for(i = 0; i < context->numPortForwardingRules; i++)
       {
          //Point to the current rule
-         rule = &context->portFwdRules[i];
+         rule = &context->portForwardingRules[i];
 
          //Check protocol field and source IP address
          if(rule->privateInterface == packet->interface &&

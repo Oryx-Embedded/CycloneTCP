@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -96,7 +96,9 @@ error_t igmpRouterSendMembershipQuery(IgmpRouterContext *context,
    buffer = ipAllocBuffer(sizeof(IgmpMessage), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the IGMP message
    message = netBufferAt(buffer, offset, 0);
@@ -259,7 +261,7 @@ void igmpRouterProcessMembershipQuery(IgmpRouterContext *context,
 
                //Set the timer to [Max Response Time] * [Last Member Query Count]
                //if this router is a non-Querier
-               netStartTimer(&group->timer, maxRespTime * 100 *
+               netStartTimer(&group->timer, maxRespTime *
                   IGMP_LAST_MEMBER_QUERY_COUNT);
 
                //Switch to the "Checking Membership" state
@@ -300,7 +302,9 @@ void igmpRouterProcessMembershipReport(IgmpRouterContext *context,
    //The group address in the IGMP header must be a valid multicast group
    //address
    if(!ipv4IsMulticastAddr(message->groupAddr))
+   {
       return;
+   }
 
    //In a Membership Report, the group address field holds the IP multicast
    //group address of the group being reported (refer to RFC 2236, section 2.4)
@@ -370,17 +374,23 @@ void igmpRouterProcessLeaveGroup(IgmpRouterContext *context,
    //When in IGMPv1 mode, routers must ignore Leave Group messages (refer to
    //RFC 2236, section 4)
    if(context->version == IGMP_VERSION_1)
+   {
       return;
+   }
 
    //Non-Queriers must ignore Leave Group messages (refer to RFC 2236,
    //section 3)
    if(context->state != IGMP_ROUTER_STATE_QUERIER)
+   {
       return;
+   }
 
    //The group address in the IGMP header must be a valid multicast group
    //address
    if(!ipv4IsMulticastAddr(message->groupAddr))
+   {
       return;
+   }
 
    //In a Leave Group message, the group address field holds the IP multicast
    //group address of the group being left (refer to RFC 2236, section 2.4)

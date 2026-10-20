@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,9 @@ void dnsDumpMessage(const DnsHeader *message, size_t length)
 
    //Malformed DNS message?
    if(length < sizeof(DnsHeader))
+   {
       return;
+   }
 
    //Dump DNS message header
    TRACE_DEBUG("  Identifier (ID) = %" PRIu16 "\r\n", ntohs(message->id));
@@ -86,7 +88,9 @@ void dnsDumpMessage(const DnsHeader *message, size_t length)
       pos = dnsDumpQuestion(message, length, pos);
       //Any error to report?
       if(pos == 0)
+      {
          return;
+      }
    }
 
    //Debug message
@@ -99,7 +103,9 @@ void dnsDumpMessage(const DnsHeader *message, size_t length)
       pos = dnsDumpResourceRecord(message, length, pos);
       //Any error to report?
       if(pos == 0)
+      {
          return;
+      }
    }
 
    //Debug message
@@ -112,7 +118,9 @@ void dnsDumpMessage(const DnsHeader *message, size_t length)
       pos = dnsDumpResourceRecord(message, length, pos);
       //Any error to report?
       if(pos == 0)
+      {
          return;
+      }
    }
 
    //Debug message
@@ -125,7 +133,9 @@ void dnsDumpMessage(const DnsHeader *message, size_t length)
       pos = dnsDumpResourceRecord(message, length, pos);
       //Any error to report?
       if(pos == 0)
+      {
          return;
+      }
    }
 }
 
@@ -147,11 +157,15 @@ size_t dnsDumpQuestion(const DnsHeader *message, size_t length, size_t pos)
    n = dnsParseName(message, length, pos, 0);
    //Invalid name?
    if(n == 0)
+   {
       return 0;
+   }
 
    //Make sure the DNS question is valid
    if((n + sizeof(DnsQuestion)) > length)
+   {
       return 0;
+   }
 
    //Point to the corresponding entry
    question = DNS_GET_QUESTION(message, n);
@@ -167,7 +181,9 @@ size_t dnsDumpQuestion(const DnsHeader *message, size_t length, size_t pos)
       pos = nbnsParseName((NbnsHeader *) message, length, pos, buffer);
       //Invalid NetBIOS name?
       if(pos == 0)
+      {
          return 0;
+      }
 
       //Dump Name field
       TRACE_DEBUG("    Name (QNAME) = %s\r\n", buffer);
@@ -183,7 +199,9 @@ size_t dnsDumpQuestion(const DnsHeader *message, size_t length, size_t pos)
       pos = dnsDumpName(message, length, pos, 0);
       //Invalid name?
       if(pos == 0)
+      {
          return 0;
+      }
 
       //Terminate with a line feed
       TRACE_DEBUG("\r\n");
@@ -219,16 +237,23 @@ size_t dnsDumpResourceRecord(const DnsHeader *message, size_t length,
    n = dnsParseName(message, length, pos, 0);
    //Invalid name?
    if(n == 0)
+   {
       return 0;
+   }
 
    //Point to the corresponding entry
    record = DNS_GET_RESOURCE_RECORD(message, n);
 
    //Make sure the resource record is valid
    if((n + sizeof(DnsResourceRecord)) > length)
+   {
       return 0;
+   }
+
    if((n + sizeof(DnsResourceRecord) + ntohs(record->rdlength)) > length)
+   {
       return 0;
+   }
 
    //NB resource record found?
    if(ntohs(record->rtype) == DNS_RR_TYPE_NB)
@@ -241,7 +266,9 @@ size_t dnsDumpResourceRecord(const DnsHeader *message, size_t length,
       pos = nbnsParseName((NbnsHeader *) message, length, pos, buffer);
       //Invalid NetBIOS name?
       if(pos == 0)
+      {
          return 0;
+      }
 
       //Dump Name field
       TRACE_DEBUG("    Name (NAME) = %s\r\n", buffer);
@@ -257,7 +284,9 @@ size_t dnsDumpResourceRecord(const DnsHeader *message, size_t length,
       pos = dnsDumpName(message, length, pos, 0);
       //Invalid name?
       if(pos == 0)
+      {
          return 0;
+      }
 
       //Terminate with a line feed
       TRACE_DEBUG("\r\n");
@@ -305,7 +334,9 @@ size_t dnsDumpResourceRecord(const DnsHeader *message, size_t length,
       pos = dnsDumpName(message, length, n + sizeof(DnsResourceRecord), 0);
       //Invalid domain name?
       if(pos == 0)
+      {
          return 0;
+      }
 
       //Terminate with a line feed
       TRACE_DEBUG("\r\n");
@@ -325,7 +356,9 @@ size_t dnsDumpResourceRecord(const DnsHeader *message, size_t length,
       pos = dnsDumpName(message, length, n + sizeof(DnsSrvResourceRecord), 0);
       //Invalid domain name?
       if(pos == 0)
+      {
          return 0;
+      }
       
       //Terminate with a line feed
       TRACE_DEBUG("\r\n");
@@ -363,7 +396,9 @@ size_t dnsDumpName(const DnsHeader *message, size_t length, size_t pos,
 
    //Recursion limit exceeded?
    if(level >= DNS_NAME_MAX_RECURSION)
+   {
       return 0;
+   }
 
    //Cast the input DNS message to byte array
    src = (uint8_t *) message;
@@ -382,7 +417,9 @@ size_t dnsDumpName(const DnsHeader *message, size_t length, size_t pos,
       {
          //Malformed DNS message?
          if((pos + 1) >= length)
+         {
             return 0;
+         }
 
          //Read the most significant byte of the pointer
          pointer = (src[pos] & ~DNS_COMPRESSION_TAG) << 8;
@@ -407,7 +444,9 @@ size_t dnsDumpName(const DnsHeader *message, size_t length, size_t pos,
 
          //Malformed DNS message?
          if((pos + n) > length)
+         {
             return 0;
+         }
 
          //Dump label
          for(; n > 0; n--, pos++)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -57,7 +57,9 @@ void slaacLinkChangeEvent(SlaacContext *context)
 
    //Make sure the SLAAC service has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Point to the underlying network interface
    interface = context->interface;
@@ -115,11 +117,15 @@ void slaacParseRouterAdv(SlaacContext *context,
 
    //Check whether SLAAC is enabled
    if(!context->running)
+   {
       return;
+   }
 
    //Make sure that a valid link-local address has been assigned to the interface
    if(ipv6GetLinkLocalAddrState(interface) != IPV6_ADDR_STATE_PREFERRED)
+   {
       return;
+   }
 
    //Calculate the length of the Options field
    length -= sizeof(NdpRouterAdvMessage);
@@ -139,7 +145,9 @@ void slaacParseRouterAdv(SlaacContext *context,
 
       //No more option of the specified type?
       if(prefixInfoOption == NULL)
+      {
          break;
+      }
 
       //Parse the Prefix Information Option
       slaacParsePrefixInfoOption(context, prefixInfoOption);
@@ -210,31 +218,43 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
 
    //Make sure the Prefix Information option is valid
    if(option == NULL || option->length != 4)
+   {
       return;
+   }
 
    //If the Autonomous flag is not set, silently ignore the Prefix
    //Information option
    if(!option->a)
+   {
       return;
+   }
 
    //If the prefix is the link-local prefix, silently ignore the
    //Prefix Information option
    if(ipv6CompPrefix(&option->prefix, &IPV6_LINK_LOCAL_ADDR_PREFIX, 10))
+   {
       return;
+   }
 
    //Check whether the valid lifetime is zero
    if(ntohl(option->validLifetime) == 0)
+   {
       return;
+   }
 
    //If the preferred lifetime is greater than the valid lifetime,
    //silently ignore the Prefix Information option
    if(ntohl(option->preferredLifetime) > ntohl(option->validLifetime))
+   {
       return;
+   }
 
    //If the sum of the prefix length and interface identifier length does
    //not equal 128 bits, the Prefix Information option must be ignored
    if(option->prefixLength != 64)
+   {
       return;
+   }
 
    //Get current time
    time = osGetSystemTime();
@@ -312,12 +332,19 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
       //Point to the current entry
       entry = &interface->ipv6Context.addrList[i];
 
-      //Check whether the advertised prefix is equal to the prefix of an
-      //address configured by stateless autoconfiguration in the list
-      if(ipv6CompPrefix(&entry->addr, &option->prefix, option->prefixLength))
+      //Check whether the address formed from the advertised prefix is already
+      //assigned to the interface
+      if(ipv6CompAddr(&entry->addr, &addr))
       {
+         //Manually configured address?
+         if(entry->permanent)
+         {
+            //The lifetimes of a manually configured address are not affected
+            //by Router Advertisements
+            found = TRUE;
+         }
          //Valid address?
-         if(entry->state == IPV6_ADDR_STATE_PREFERRED ||
+         else if(entry->state == IPV6_ADDR_STATE_PREFERRED ||
             entry->state == IPV6_ADDR_STATE_DEPRECATED)
          {
             //Set flag
@@ -329,7 +356,13 @@ void slaacParsePrefixInfoOption(SlaacContext *context,
 
             //Compute the remaining time to the valid lifetime expiration
             //of the previously autoconfigured address
-            if(timeCompare(time, entry->timestamp + entry->validLifetime) < 0)
+            if(entry->validLifetime == INFINITE_DELAY)
+            {
+               //An address with an infinite valid lifetime never expires
+               remainingLifetime = INFINITE_DELAY;
+            }
+            else if(timeCompare(time, entry->timestamp +
+               entry->validLifetime) < 0)
             {
                remainingLifetime = entry->timestamp + entry->validLifetime - time;
             }

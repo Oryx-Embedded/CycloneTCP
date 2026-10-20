@@ -34,7 +34,7 @@
  * - RFC 815: IP datagram reassembly algorithms
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -87,8 +87,10 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
    //Allocate a memory buffer to hold IP fragments
    fragment = ipAllocBuffer(0, &fragmentOffset);
    //Failed to allocate memory?
-   if(!fragment)
+   if(fragment == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Determine the maximum payload size for fragmented packets
    maxFragmentSize = interface->ipv4Context.linkMtu - sizeof(Ipv4Header);
@@ -105,7 +107,9 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
       error = netBufferSetLength(fragment, fragmentOffset);
       //Sanity check
       if(error)
+      {
          break;
+      }
 
       //Process the last fragment?
       if((payloadLen - offset) <= maxFragmentSize)
@@ -133,7 +137,9 @@ error_t ipv4FragmentDatagram(NetInterface *interface,
 
       //Failed to send current IP packet?
       if(error)
+      {
          break;
+      }
 
       //Number of IP datagram fragments that have been generated as a result
       //of fragmentation at this entity
@@ -234,73 +240,88 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       return;
    }
 
+   //An empty fragment can never close a hole. Such a fragment causes the whole
+   //datagram being reassembled to be discarded
+   if(dataFirst == dataLast)
+   {
+      //Drop the reconstructed datagram
+      ipv4DropFragDatagram(interface, frag);
+      //Exit immediately
+      return;
+   }
+
+   //The end of the datagram is known as soon as the last fragment has been
+   //received. A last fragment that ends before data already received, or a
+   //fragment located beyond the end of the datagram, causes the whole datagram
+   //to be discarded
+   if(((offset & IPV4_FLAG_MF) == 0 && dataLast < frag->dataLen) ||
+      (frag->lastFragReceived && dataLast > frag->dataLen))
+   {
+      //Drop the reconstructed datagram
+      ipv4DropFragDatagram(interface, frag);
+      //Exit immediately
+      return;
+   }
+
+   //Check whether the fragment overlaps data already received
+   error = ipv4CheckFragOverlap(interface, frag, dataFirst, dataLast);
+   //Any error to report?
+   if(error)
+   {
+      return;
+   }
+
    //The very first fragment requires special handling
    if((offset & IPV4_OFFSET_MASK) == 0)
    {
       //Calculate the length of the IP header including options
-      frag->headerLength = packet->headerLength * 4;
+      frag->headerLen = packet->headerLength * 4;
 
       //Enforce the size of the reconstructed datagram
-      if((frag->headerLength + frag->dataLen) > IPV4_MAX_FRAG_DATAGRAM_SIZE)
+      if((frag->headerLen + frag->dataLen) > IPV4_MAX_FRAG_DATAGRAM_SIZE)
       {
-         //Number of failures detected by the IP reassembly algorithm
-         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
          //Drop the reconstructed datagram
-         netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+         ipv4DropFragDatagram(interface, frag);
          //Exit immediately
          return;
       }
 
       //Make sure the IP header entirely fits in the first chunk
-      if(frag->headerLength > frag->buffer.chunk[0].size)
+      if(frag->headerLen > frag->buffer.chunk[0].size)
       {
-         //Number of failures detected by the IP reassembly algorithm
-         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
          //Drop the reconstructed datagram
-         netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+         ipv4DropFragDatagram(interface, frag);
          //Exit immediately
          return;
       }
 
       //Fix the length of the first chunk
-      frag->buffer.chunk[0].length = (uint16_t) frag->headerLength;
+      frag->buffer.chunk[0].length = (uint16_t) frag->headerLen;
       //Always take the IP header from the first fragment
-      netBufferWrite((NetBuffer *) &frag->buffer, 0, packet, frag->headerLength);
+      netBufferWrite((NetBuffer *) &frag->buffer, 0, packet, frag->headerLen);
    }
 
    //It may be necessary to increase the size of the buffer
    if(dataLast > frag->dataLen)
    {
       //Enforce the size of the reconstructed datagram
-      if((frag->headerLength + dataLast) > IPV4_MAX_FRAG_DATAGRAM_SIZE)
+      if((frag->headerLen + dataLast) > IPV4_MAX_FRAG_DATAGRAM_SIZE)
       {
-         //Number of failures detected by the IP reassembly algorithm
-         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
          //Drop the reconstructed datagram
-         netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+         ipv4DropFragDatagram(interface, frag);
          //Exit immediately
          return;
       }
 
       //Adjust the size of the reconstructed datagram
       error = netBufferSetLength((NetBuffer *) &frag->buffer,
-         frag->headerLength + dataLast + sizeof(Ipv4HoleDesc));
+         frag->headerLen + dataLast + sizeof(Ipv4HoleDesc));
 
       //Any error to report?
       if(error)
       {
-         //Number of failures detected by the IP reassembly algorithm
-         IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-         IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
          //Drop the reconstructed datagram
-         netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+         ipv4DropFragDatagram(interface, frag);
          //Exit immediately
          return;
       }
@@ -325,20 +346,6 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       //some way
       if(dataFirst < holeLast && dataLast > holeFirst)
       {
-#if (IPV4_OVERLAPPING_FRAG_SUPPORT == DISABLED)
-         //Prevent overlapping fragment attacks (refer to RFC 8900, section 3.7)
-         if(dataFirst < holeFirst || dataLast > holeLast)
-         {
-            //Number of failures detected by the IP reassembly algorithm
-            IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-            IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
-            //Drop the reconstructed datagram
-            netBufferSetLength((NetBuffer *) &frag->buffer, 0);
-            //Exit immediately
-            return;
-         }
-#endif
          //The current descriptor is no longer valid. We will destroy it, and in
          //the next two steps, we will determine whether or not it is necessary
          //to create any new hole descriptors
@@ -355,20 +362,15 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
          if(dataFirst > holeFirst)
          {
             //Create a new entry that describes this hole
-            hole = ipv4FindHole(frag, holeFirst);
-            hole->first = holeFirst;
-            hole->last = dataFirst;
+            hole = ipv4InsertHole(frag, prevHole, holeFirst, dataFirst);
 
-            //Insert the newly created entry into the hole descriptor list
-            if(prevHole != NULL)
+            //Make sure the hole descriptor is valid
+            if(hole == NULL)
             {
-               hole->next = prevHole->next;
-               prevHole->next = hole->first;
-            }
-            else
-            {
-               hole->next = frag->firstHole;
-               frag->firstHole = hole->first;
+               //Drop the reconstructed datagram
+               ipv4DropFragDatagram(interface, frag);
+               //Exit immediately
+               return;
             }
 
             //Always keep track of the previous hole
@@ -379,20 +381,15 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
          if(dataLast < holeLast && (offset & IPV4_FLAG_MF) != 0)
          {
             //Create a new entry that describes this hole
-            hole = ipv4FindHole(frag, dataLast);
-            hole->first = dataLast;
-            hole->last = holeLast;
+            hole = ipv4InsertHole(frag, prevHole, dataLast, holeLast);
 
-            //Insert the newly created entry into the hole descriptor list
-            if(prevHole != NULL)
+            //Make sure the hole descriptor is valid
+            if(hole == NULL)
             {
-               hole->next = prevHole->next;
-               prevHole->next = hole->first;
-            }
-            else
-            {
-               hole->next = frag->firstHole;
-               frag->firstHole = hole->first;
+               //Drop the reconstructed datagram
+               ipv4DropFragDatagram(interface, frag);
+               //Exit immediately
+               return;
             }
 
             //Always keep track of the previous hole
@@ -409,9 +406,15 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       hole = ipv4FindHole(frag, prevHole ? prevHole->next : frag->firstHole);
    }
 
+   //Last fragment?
+   if((offset & IPV4_FLAG_MF) == 0)
+   {
+      frag->lastFragReceived = TRUE;
+   }
+
    //Copy data from the fragment to the reassembly buffer
    netBufferWrite((NetBuffer *) &frag->buffer,
-      frag->headerLength + dataFirst, IPV4_DATA(packet), length);
+      frag->headerLen + dataFirst, IPV4_DATA(packet), length);
 
    //Dump hole descriptor list
    ipv4DumpHoleList(frag);
@@ -423,7 +426,7 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
       //Discard the extra hole descriptor that follows the reconstructed
       //datagram
       error = netBufferSetLength((NetBuffer *) &frag->buffer,
-         frag->headerLength + frag->dataLen);
+         frag->headerLen + frag->dataLen);
 
       //Check status code
       if(error)
@@ -438,13 +441,16 @@ void ipv4ReassembleDatagram(NetInterface *interface, const Ipv4Header *packet,
          Ipv4Header *datagram = netBufferAt((NetBuffer *) &frag->buffer, 0, 0);
 
          //Fix IP header
-         datagram->totalLength = htons(frag->headerLength + frag->dataLen);
+         datagram->totalLength = htons(frag->headerLen + frag->dataLen);
          datagram->fragmentOffset = 0;
          datagram->headerChecksum = 0;
 
          //Number of IP datagrams successfully reassembled
          IPV4_SYSTEM_STATS_INC_COUNTER32(reasmOKs, 1);
          IPV4_IF_STATS_INC_COUNTER32(reasmOKs, 1);
+
+         //The IPv4 datagram has been reassembled
+         ancillary->reassembled = TRUE;
 
          //Pass the original IPv4 datagram to the higher protocol layer
          ipv4ProcessDatagram(interface, (NetBuffer *) &frag->buffer, 0,
@@ -507,7 +513,7 @@ void ipv4FragTick(NetInterface *interface)
             {
                //Fix the size of the reconstructed datagram
                error = netBufferSetLength((NetBuffer *) &frag->buffer,
-                  frag->headerLength + hole->first);
+                  frag->headerLen + hole->first);
 
                //Check status code
                if(!error)
@@ -539,8 +545,10 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
 {
    error_t error;
    uint_t i;
+   systime_t time;
    Ipv4Header *datagram;
    Ipv4FragDesc *frag;
+   Ipv4FragDesc *oldestFrag;
    Ipv4HoleDesc *hole;
 
    //Search for a matching IP datagram being reassembled
@@ -557,18 +565,71 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
 
          //Check source and destination addresses
          if(datagram->srcAddr != packet->srcAddr)
+         {
             continue;
+         }
+
          if(datagram->destAddr != packet->destAddr)
+         {
             continue;
+         }
 
          //Compare identification and protocol fields
          if(datagram->identification != packet->identification)
+         {
             continue;
+         }
+
          if(datagram->protocol != packet->protocol)
+         {
             continue;
+         }
 
          //A matching entry has been found in the reassembly queue
          return frag;
+      }
+   }
+
+   //Get current time
+   time = osGetSystemTime();
+   //Keep track of the oldest entry
+   oldestFrag = NULL;
+
+   //Check whether the reassembly queue is full
+   for(i = 0; i < IPV4_MAX_FRAG_DATAGRAMS; i++)
+   {
+      //Point to the current entry in the reassembly queue
+      frag = &interface->ipv4Context.fragQueue[i];
+
+      //Check whether the current entry is free
+      if(frag->buffer.chunkCount == 0)
+      {
+         break;
+      }
+
+      //Keep track of the oldest entry
+      if(oldestFrag == NULL)
+      {
+         oldestFrag = frag;
+      }
+      else if((time - frag->timestamp) > (time - oldestFrag->timestamp))
+      {
+         oldestFrag = frag;
+      }
+      else
+      {
+      }
+   }
+
+   //Reassembly queue full?
+   if(i >= IPV4_MAX_FRAG_DATAGRAMS)
+   {
+      //Evict the oldest datagram being reassembled to make room for the new
+      //one, so that incomplete datagrams cannot block the reassembly process
+      //until they time out
+      if(oldestFrag != NULL)
+      {
+         ipv4DropFragDatagram(interface, oldestFrag);
       }
    }
 
@@ -600,13 +661,14 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
          }
 
          //Initial length of the reconstructed datagram
-         frag->headerLength = packet->headerLength * 4;
+         frag->headerLen = packet->headerLength * 4;
          frag->dataLen = 0;
+         frag->lastFragReceived = FALSE;
 
          //Fix the length of the first chunk
-         frag->buffer.chunk[0].length = (uint16_t) frag->headerLength;
+         frag->buffer.chunk[0].length = (uint16_t) frag->headerLen;
          //Copy IPv4 header from the incoming fragment
-         netBufferWrite((NetBuffer *) &frag->buffer, 0, packet, frag->headerLength);
+         netBufferWrite((NetBuffer *) &frag->buffer, 0, packet, frag->headerLen);
 
          //Save current time
          frag->timestamp = osGetSystemTime();
@@ -615,6 +677,16 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
 
          //Point to first hole descriptor
          hole = ipv4FindHole(frag, frag->firstHole);
+
+         //Make sure the hole descriptor is valid
+         if(hole == NULL)
+         {
+            //Clean up side effects
+            netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+            //Exit immediately
+            return NULL;
+         }
+
          //The entry describes the datagram as being completely missing
          hole->first = 0;
          hole->last = IPV4_INFINITY;
@@ -628,7 +700,7 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
       }
    }
 
-   //The reassembly queue is full
+   //Failed to create a new entry
    return NULL;
 }
 
@@ -652,6 +724,122 @@ void ipv4FlushFragQueue(NetInterface *interface)
 
 
 /**
+ * @brief Drop the datagram being reassembled
+ * @param[in] interface Underlying network interface
+ * @param[in] frag IPv4 fragment descriptor
+ **/
+
+void ipv4DropFragDatagram(NetInterface *interface, Ipv4FragDesc *frag)
+{
+   //Number of failures detected by the IP reassembly algorithm
+   IPV4_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+   IPV4_IF_STATS_INC_COUNTER32(reasmFails, 1);
+
+   //Release the reassembly buffer
+   netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+}
+
+
+/**
+ * @brief Check whether a fragment overlaps data already received
+ * @param[in] interface Underlying network interface
+ * @param[in] frag IPv4 fragment descriptor
+ * @param[in] dataFirst Index of the first byte of the fragment
+ * @param[in] dataLast Index immediately following the last byte of the fragment
+ * @return Error code
+ **/
+
+error_t ipv4CheckFragOverlap(NetInterface *interface, Ipv4FragDesc *frag,
+   uint16_t dataFirst, uint16_t dataLast)
+{
+#if (IPV4_OVERLAPPING_FRAG_SUPPORT == DISABLED)
+   error_t error;
+   Ipv4HoleDesc *hole;
+
+   //Select the first hole descriptor from the list
+   hole = ipv4FindHole(frag, frag->firstHole);
+
+   //Search for a hole the fragment interacts with
+   while(hole != NULL && (dataFirst >= hole->last ||
+      dataLast <= hole->first))
+   {
+      hole = ipv4FindHole(frag, hole->next);
+   }
+
+   //Check whether the fragment interacts with any hole
+   if(hole == NULL)
+   {
+      //A fragment that lies entirely within data already received is silently
+      //dropped so that it cannot overwrite previously received data
+      error = ERROR_INVALID_PACKET;
+   }
+   else if(dataFirst < hole->first || dataLast > hole->last)
+   {
+      //Prevent overlapping fragment attacks (refer RFC 8900, section 3.7)
+      ipv4DropFragDatagram(interface, frag);
+
+      //Report an error
+      error = ERROR_INVALID_PACKET;
+   }
+   else
+   {
+      //The fragment lies entirely within the hole
+      error = NO_ERROR;
+   }
+
+   //Return status code
+   return error;
+#else
+   //Overlapping fragments are accepted
+   return NO_ERROR;
+#endif
+}
+
+
+/**
+ * @brief Insert a new hole descriptor into the list
+ * @param[in] frag IPv4 fragment descriptor
+ * @param[in] prevHole Hole descriptor after which the new entry is inserted
+ *   (NULL to insert the new entry at the head of the list)
+ * @param[in] first Index of the first byte of the hole
+ * @param[in] last Index immediately following the last byte of the hole
+ * @return Pointer to the newly created hole descriptor
+ **/
+
+Ipv4HoleDesc *ipv4InsertHole(Ipv4FragDesc *frag, Ipv4HoleDesc *prevHole,
+   uint16_t first, uint16_t last)
+{
+   Ipv4HoleDesc *hole;
+
+   //Point to the location of the new hole descriptor
+   hole = ipv4FindHole(frag, first);
+
+   //Make sure the hole descriptor is valid
+   if(hole != NULL)
+   {
+      //Save the boundaries of the hole
+      hole->first = first;
+      hole->last = last;
+
+      //Insert the newly created entry into the hole descriptor list
+      if(prevHole != NULL)
+      {
+         hole->next = prevHole->next;
+         prevHole->next = hole->first;
+      }
+      else
+      {
+         hole->next = frag->firstHole;
+         frag->firstHole = hole->first;
+      }
+   }
+
+   //Return a pointer to the newly created hole descriptor
+   return hole;
+}
+
+
+/**
  * @brief Retrieve hole descriptor
  * @param[in] frag IPv4 fragment descriptor
  * @param[in] offset Offset of the hole
@@ -662,7 +850,8 @@ void ipv4FlushFragQueue(NetInterface *interface)
 Ipv4HoleDesc *ipv4FindHole(Ipv4FragDesc *frag, uint16_t offset)
 {
    //Return a pointer to the hole descriptor
-   return netBufferAt((NetBuffer *) &frag->buffer, frag->headerLength + offset, 0);
+   return netBufferAt((NetBuffer *) &frag->buffer, frag->headerLen + offset,
+      sizeof(Ipv4HoleDesc));
 }
 
 

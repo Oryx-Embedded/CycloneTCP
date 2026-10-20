@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -137,8 +137,10 @@ error_t coapServerProcessMessage(CoapServerContext *context,
    CoapMessageType type;
 
    //Check the length of the CoAP message
-   if(length > COAP_MAX_MSG_SIZE)
+   if((length + 1) > COAP_MAX_MSG_SIZE)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Copy the request message
    osMemcpy(context->request.buffer, data, length);
@@ -267,8 +269,18 @@ error_t coapServerProcessRequest(CoapServerContext *context)
       code == COAP_CODE_IPATCH)
    {
       //Reconstruct the path component from Uri-Path options
-      coapJoinRepeatableOption(&context->request, COAP_OPT_URI_PATH,
+      error = coapJoinRepeatableOption(&context->request, COAP_OPT_URI_PATH,
          context->uri, COAP_SERVER_MAX_URI_LEN, '/');
+
+      //Any error to report?
+      if(error)
+      {
+         //Do not process the request for a truncated path
+         context->uri[0] = '\0';
+
+         //Generate a 4.00 piggybacked response
+         return coapSetCode(&context->response, COAP_CODE_BAD_REQUEST);
+      }
 
       //If the resource name is the empty string, set it to a single "/"
       //character (refer to RFC 7252, section 6.5)

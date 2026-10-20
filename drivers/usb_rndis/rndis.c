@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -114,7 +114,9 @@ error_t rndisProcessMsg(const RndisMsg *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_DEBUG("RNDIS message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -170,7 +172,9 @@ error_t rndisProcessInitializeMsg(const RndisInitializeMsg *message, size_t leng
 {
    //Check the length of the message
    if(length < sizeof(RndisInitializeMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_DEBUG("RNDIS Initialize message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -197,7 +201,9 @@ error_t rndisProcessHaltMsg(const RndisHaltMsg *message, size_t length)
 {
    //Check the length of the message
    if(length < sizeof(RndisHaltMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_DEBUG("RNDIS Halt message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -226,7 +232,9 @@ error_t rndisProcessQueryMsg(const RndisQueryMsg *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisQueryMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_DEBUG("RNDIS Query message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -372,7 +380,9 @@ error_t rndisProcessSetMsg(const RndisSetMsg *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisSetMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_DEBUG("RNDIS Set message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -419,7 +429,9 @@ error_t rndisProcessResetMsg(const RndisResetMsg *message, size_t length)
 {
    //Check the length of the message
    if(length < sizeof(RndisResetMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_DEBUG("RNDIS Reset message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -449,7 +461,9 @@ error_t rndisProcessKeepAliveMsg(const RndisKeepAliveMsg *message, size_t length
 {
    //Check the length of the message
    if(length < sizeof(RndisKeepAliveMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_DEBUG("RNDIS Keep-Alive message received (%" PRIuSIZE " bytes)...\r\n", length);

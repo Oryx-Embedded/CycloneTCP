@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -202,11 +202,15 @@ error_t dhcpDumpMessage(const DhcpMessage *message, size_t length)
 
       //Pad option detected?
       if(option->code == DHCP_OPT_PAD)
+      {
          continue;
+      }
 
       //End option detected?
       if(option->code == DHCP_OPT_END)
+      {
          break;
+      }
 
       //Check option length
       if((i + 1) >= length || (i + 1 + option->length) >= length)
@@ -373,7 +377,9 @@ error_t dhcpDumpMessageType(const DhcpOption *option)
 
    //Check option length
    if(option->length != 1)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Get the message type
    type = option->value[0];
@@ -425,7 +431,9 @@ error_t dhcpDumpBoolean(const DhcpOption *option)
 {
    //Check option length
    if(option->length != 1)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Dump option contents
    TRACE_DEBUG("    %" PRIu8 " (%s)\r\n", option->value[0], option->value[0] ? "True" : "False");
@@ -445,7 +453,9 @@ error_t dhcpDumpInt8(const DhcpOption *option)
 {
    //Check option length
    if(option->length != 1)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Dump option contents
    TRACE_DEBUG("    %" PRIu8 "\r\n", option->value[0]);
@@ -467,7 +477,9 @@ error_t dhcpDumpInt16(const DhcpOption *option)
 
    //Check option length
    if(option->length != 2)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Retrieve 16-bit value
    value = LOAD16BE(option->value);
@@ -491,7 +503,9 @@ error_t dhcpDumpInt32(const DhcpOption *option)
 
    //Check option length
    if(option->length != 4)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Retrieve 32-bit value
    value = LOAD32BE(option->value);
@@ -542,7 +556,9 @@ error_t dhcpDumpIpv4Addr(const DhcpOption *option)
 
    //Check option length
    if(option->length != sizeof(Ipv4Addr))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Retrieve IPv4 address
    ipv4CopyAddr(&ipAddr, option->value);
@@ -567,7 +583,9 @@ error_t dhcpDumpIpv4AddrList(const DhcpOption *option)
 
    //Check option length
    if((option->length % sizeof(Ipv4Addr)) != 0)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Parse the list of IPv4 addresses
    for(i = 0; i < option->length; i += sizeof(Ipv4Addr))

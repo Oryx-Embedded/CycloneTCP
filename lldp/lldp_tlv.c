@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -274,11 +274,15 @@ error_t lldpGetNextTlv(LldpDataUnit *lldpdu, LldpTlv *tlv)
 
    //End of LLDPDU detected?
    if(lldpdu->pos >= lldpdu->length)
+   {
       return ERROR_END_OF_STREAM;
+   }
 
    //Check whether the TLV extends past the physical end of the frame
    if((lldpdu->pos + sizeof(LldpTlvHeader)) > lldpdu->length)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Point to the current TLV
    header = (LldpTlvHeader *) (lldpdu->data + lldpdu->pos);
@@ -289,11 +293,15 @@ error_t lldpGetNextTlv(LldpDataUnit *lldpdu, LldpTlv *tlv)
 
    //Check TLV length
    if((lldpdu->pos + sizeof(LldpTlvHeader) + n) > lldpdu->length)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The End Of LLDPDU TLV marks the end of the LLDPDU
    if(header->type == LLDP_TLV_TYPE_END_OF_LLDPDU)
+   {
       return ERROR_END_OF_STREAM;
+   }
 
    //Extract TLV parameters
    tlv->pos = lldpdu->pos;
@@ -385,7 +393,9 @@ error_t lldpDecodeMgmtAddrTlv(const uint8_t *value, size_t length,
 
    //Malformed TLV?
    if(length < sizeof(LldpMgmtAddrTlv1))
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Point to the first part of the Management Address TLV
    part1 = (LldpMgmtAddrTlv1 *) value;

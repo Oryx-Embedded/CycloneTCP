@@ -31,7 +31,7 @@
  * networks. Refer to RFC 791 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -97,11 +97,14 @@ error_t ipv4Init(NetInterface *interface)
 
    //ICMP Echo Request messages are allowed by default
    context->enableEchoReq = TRUE;
-   context->enableBroadcastEchoReq = TRUE;
 
-   //Identification field is primarily used to identify
-   //fragments of an original IP datagram
-   context->identification = 0;
+   //ICMP Echo Request messages sent to a broadcast or multicast address are
+   //ignored by default
+   context->enableBroadcastEchoReq = FALSE;
+
+   //Identification field is used to identify fragments of an original IP
+   //datagram
+   context->identification = (uint16_t) netGenerateRand(interface->netContext);
 
    //Initialize the list of DNS servers
    osMemset(context->dnsServerList, 0, sizeof(context->dnsServerList));
@@ -129,7 +132,9 @@ error_t ipv4SetDefaultTtl(NetInterface *interface, uint8_t ttl)
 {
    //Check parameters
    if(interface == NULL || ttl == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -171,15 +176,21 @@ error_t ipv4SetHostAddrEx(NetInterface *interface, uint_t index, Ipv4Addr addr)
 
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV4_ADDR_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //The IPv4 address must be a valid unicast address
    if(ipv4IsMulticastAddr(addr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -246,7 +257,9 @@ error_t ipv4GetHostAddrEx(NetInterface *interface, uint_t index,
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV4_ADDR_LIST_SIZE)
@@ -310,11 +323,15 @@ error_t ipv4SetSubnetMaskEx(NetInterface *interface, uint_t index,
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV4_ADDR_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -355,7 +372,9 @@ error_t ipv4GetSubnetMaskEx(NetInterface *interface, uint_t index,
 {
    //Check parameters
    if(interface == NULL || mask == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV4_ADDR_LIST_SIZE)
@@ -405,15 +424,21 @@ error_t ipv4SetDefaultGatewayEx(NetInterface *interface, uint_t index,
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV4_ADDR_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //The IPv4 address must be a valid unicast address
    if(ipv4IsMulticastAddr(addr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -454,7 +479,9 @@ error_t ipv4GetDefaultGatewayEx(NetInterface *interface, uint_t index,
 {
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV4_ADDR_LIST_SIZE)
@@ -489,15 +516,21 @@ error_t ipv4SetDnsServer(NetInterface *interface, uint_t index, Ipv4Addr addr)
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV4_DNS_SERVER_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //The IPv4 address must be a valid unicast address
    if(ipv4IsMulticastAddr(addr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -523,7 +556,9 @@ error_t ipv4GetDnsServer(NetInterface *interface, uint_t index, Ipv4Addr *addr)
 {
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV4_DNS_SERVER_LIST_SIZE)
@@ -704,7 +739,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
          buffer.chunkCount = 1;
          buffer.maxChunkCount = 1;
          buffer.chunk[0].address = packet;
-         buffer.chunk[0].length = length;
+         buffer.chunk[0].length = ntohs(packet->totalLength);
 
          //Forward the multicast packet
          ipv4ForwardPacket(interface, (NetBuffer *) &buffer, 0);
@@ -741,7 +776,7 @@ void ipv4ProcessPacket(NetInterface *interface, Ipv4Header *packet,
             buffer.chunkCount = 1;
             buffer.maxChunkCount = 1;
             buffer.chunk[0].address = packet;
-            buffer.chunk[0].length = length;
+            buffer.chunk[0].length = ntohs(packet->totalLength);
 
             //Forward the packet according to the routing table
             ipv4ForwardPacket(interface, (NetBuffer *) &buffer, 0);
@@ -842,7 +877,9 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
    header = netBufferAt(buffer, offset, sizeof(Ipv4Header));
    //Malformed IPv4 datagram?
    if(header == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("IPv4 datagram received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -873,7 +910,9 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
       &pseudoHeader.ipv4Data, buffer, offset, ancillary);
    //Successful address translation?
    if(!error)
+   {
       return;
+   }
 #endif
 
 #if defined(IPV4_DATAGRAM_FORWARD_HOOK)
@@ -891,7 +930,9 @@ void ipv4ProcessDatagram(NetInterface *interface, const NetBuffer *buffer,
       error = ipsecProcessInboundIpv4Packet(interface, header, buffer, offset);
       //Any error to report?
       if(error)
+      {
          return;
+      }
    }
 #endif
 
@@ -1171,12 +1212,16 @@ error_t ipv4SendPacket(NetInterface *interface,
       error = ipv4AddRouterAlertOption(buffer, &offset);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Sanity check
    if(offset < sizeof(Ipv4Header))
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make room for the IPv4 header
    offset -= sizeof(Ipv4Header);
@@ -1230,7 +1275,9 @@ error_t ipv4SendPacket(NetInterface *interface,
    error = ipv4CheckSourceAddr(interface, pseudoHeader->srcAddr);
    //Invalid source address?
    if(error)
+   {
       return error;
+   }
 
    //Check destination address
    if(pseudoHeader->destAddr == IPV4_UNSPECIFIED_ADDR)
@@ -1520,7 +1567,9 @@ char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str)
 
    //If the NULL pointer is given as parameter, then the internal buffer is used
    if(str == NULL)
+   {
       str = buffer;
+   }
 
    //Cast the address to byte array
    p = (uint8_t *) &ipAddr;

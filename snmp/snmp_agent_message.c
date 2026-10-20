@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -246,7 +246,9 @@ error_t snmpComputeMessageOverhead(SnmpMessage *message)
 
    //Sanity check
    if(n > (SNMP_MAX_MSG_SIZE - SNMP_MSG_ENCRYPTION_OVERHEAD))
+   {
       return ERROR_FAILURE;
+   }
 
    //Make room for the message header at the beginning of the buffer
    message->varBindList = message->buffer + n;
@@ -280,7 +282,9 @@ error_t snmpParseMessageHeader(SnmpMessage *message)
    error = asn1ReadSequence(p, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first field of the sequence
    p = tag.value;
@@ -290,7 +294,9 @@ error_t snmpParseMessageHeader(SnmpMessage *message)
    error = asn1ReadInt32(p, length, &tag, &message->version);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Make sure the SNMP version identifier is valid
    if(message->version != SNMP_VERSION_1 &&
@@ -331,7 +337,9 @@ error_t snmpWriteMessageHeader(SnmpMessage *message)
       error = snmpWriteCommunity(message);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    //SNMPv3 version?
    else if(message->version == SNMP_VERSION_3)
@@ -340,13 +348,17 @@ error_t snmpWriteMessageHeader(SnmpMessage *message)
       error = snmpWriteSecurityParameters(message);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Write msgGlobalData field
       error = snmpWriteGlobalData(message);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    //Invalid version?
    else
@@ -359,7 +371,9 @@ error_t snmpWriteMessageHeader(SnmpMessage *message)
    error = asn1WriteInt32(message->version, TRUE, message->pos, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    message->pos -= n;
@@ -377,7 +391,9 @@ error_t snmpWriteMessageHeader(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, message->pos, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    message->pos -= n;
@@ -405,13 +421,17 @@ error_t snmpParseCommunity(SnmpMessage *message)
    error = asn1ReadTag(message->pos, message->length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
    //The tag does not match the criteria?
    if(error)
+   {
       return error;
+   }
 
    //Save community name
    message->community = (char_t *) tag.value;
@@ -455,7 +475,9 @@ error_t snmpWriteCommunity(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, message->pos, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the community name
    message->pos -= n;
@@ -489,7 +511,9 @@ error_t snmpParseGlobalData(SnmpMessage *message)
    error = asn1ReadSequence(message->pos, message->length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Advance pointer over the msgGlobalData field
    message->pos += tag.totalLength;
@@ -505,11 +529,15 @@ error_t snmpParseGlobalData(SnmpMessage *message)
    error = asn1ReadInt32(p, length, &tag, &message->msgId);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Make sure the value is in the range 0..2147483647
    if(message->msgId < 0)
+   {
       return ERROR_WRONG_ENCODING;
+   }
 
    //Point to the next field
    p += tag.totalLength;
@@ -520,11 +548,15 @@ error_t snmpParseGlobalData(SnmpMessage *message)
    error = asn1ReadInt32(p, length, &tag, &message->msgMaxSize);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Make sure the value is in the range 484..2147483647
    if(message->msgMaxSize < 484)
+   {
       return ERROR_WRONG_ENCODING;
+   }
 
    //Point to the next field
    p += tag.totalLength;
@@ -535,17 +567,23 @@ error_t snmpParseGlobalData(SnmpMessage *message)
    error = asn1ReadTag(p, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
    //The tag does not match the criteria?
    if(error)
+   {
       return error;
+   }
 
    //The msgFlags field consists of a single byte
    if(tag.length != sizeof(uint8_t))
+   {
       return ERROR_WRONG_ENCODING;
+   }
 
    //Save the bit field
    message->msgFlags = tag.value[0];
@@ -572,11 +610,15 @@ error_t snmpParseGlobalData(SnmpMessage *message)
    error = asn1ReadInt32(p, length, &tag, &message->msgSecurityModel);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Make sure the value is in the range 1..2147483647
    if(message->msgSecurityModel < 1)
+   {
       return ERROR_WRONG_ENCODING;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -611,7 +653,9 @@ error_t snmpWriteGlobalData(SnmpMessage *message)
    error = asn1WriteInt32(message->msgSecurityModel, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= n;
@@ -629,7 +673,9 @@ error_t snmpWriteGlobalData(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= n;
@@ -640,7 +686,9 @@ error_t snmpWriteGlobalData(SnmpMessage *message)
    error = asn1WriteInt32(message->msgMaxSize, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= n;
@@ -651,7 +699,9 @@ error_t snmpWriteGlobalData(SnmpMessage *message)
    error = asn1WriteInt32(message->msgId, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= n;
@@ -669,7 +719,9 @@ error_t snmpWriteGlobalData(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the msgGlobalData field
    message->pos = p - n;
@@ -703,13 +755,17 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
    error = asn1ReadTag(message->pos, message->length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
    //The tag does not match the criteria?
    if(error)
+   {
       return error;
+   }
 
    //Advance pointer over the msgSecurityParameters field
    message->pos += tag.totalLength;
@@ -727,7 +783,9 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
       error = asn1ReadSequence(p, length, &tag);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //Point to the first field of the sequence
       p = tag.value;
@@ -737,13 +795,17 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
       error = asn1ReadTag(p, length, &tag);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //Enforce encoding, class and type
       error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
       //The tag does not match the criteria?
       if(error)
+      {
          return error;
+      }
 
       //Save authoritative engine identifier
       message->msgAuthEngineId = tag.value;
@@ -758,7 +820,9 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
          &message->msgAuthEngineBoots);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //Point to the next field
       p += tag.totalLength;
@@ -769,7 +833,9 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
          &message->msgAuthEngineTime);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //Point to the next field
       p += tag.totalLength;
@@ -779,17 +845,23 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
       error = asn1ReadTag(p, length, &tag);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //Enforce encoding, class and type
       error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
       //The tag does not match the criteria?
       if(error)
+      {
          return error;
+      }
 
       //Check the length of the user name
       if(tag.length > 32)
+      {
          return ERROR_WRONG_ENCODING;
+      }
 
       //Save user name
       message->msgUserName = (char_t *) tag.value;
@@ -803,13 +875,17 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
       error = asn1ReadTag(p, length, &tag);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //Enforce encoding, class and type
       error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
       //The tag does not match the criteria?
       if(error)
+      {
          return error;
+      }
 
       //Save authentication parameters
       message->msgAuthParameters = (uint8_t *) tag.value;
@@ -823,13 +899,17 @@ error_t snmpParseSecurityParameters(SnmpMessage *message)
       error = asn1ReadTag(p, length, &tag);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //Enforce encoding, class and type
       error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
       //The tag does not match the criteria?
       if(error)
+      {
          return error;
+      }
 
       //Save privacy parameters
       message->msgPrivParameters = tag.value;
@@ -889,7 +969,9 @@ error_t snmpWriteSecurityParameters(SnmpMessage *message)
       error = asn1WriteTag(&tag, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -922,7 +1004,9 @@ error_t snmpWriteSecurityParameters(SnmpMessage *message)
       error = asn1WriteTag(&tag, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -940,7 +1024,9 @@ error_t snmpWriteSecurityParameters(SnmpMessage *message)
       error = asn1WriteTag(&tag, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -951,7 +1037,9 @@ error_t snmpWriteSecurityParameters(SnmpMessage *message)
       error = asn1WriteInt32(message->msgAuthEngineTime, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -962,7 +1050,9 @@ error_t snmpWriteSecurityParameters(SnmpMessage *message)
       error = asn1WriteInt32(message->msgAuthEngineBoots, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -980,7 +1070,9 @@ error_t snmpWriteSecurityParameters(SnmpMessage *message)
       error = asn1WriteTag(&tag, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -998,7 +1090,9 @@ error_t snmpWriteSecurityParameters(SnmpMessage *message)
       error = asn1WriteTag(&tag, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1022,7 +1116,9 @@ error_t snmpWriteSecurityParameters(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the msgSecurityParameters field
    message->pos = p - n;
@@ -1056,7 +1152,9 @@ error_t snmpParseScopedPdu(SnmpMessage *message)
    error = asn1ReadSequence(message->pos, message->length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first field of the sequence
    p = tag.value;
@@ -1066,13 +1164,17 @@ error_t snmpParseScopedPdu(SnmpMessage *message)
    error = asn1ReadTag(p, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
    //The tag does not match the criteria?
    if(error)
+   {
       return error;
+   }
 
    //Save context engine identifier
    message->contextEngineId = tag.value;
@@ -1086,13 +1188,17 @@ error_t snmpParseScopedPdu(SnmpMessage *message)
    error = asn1ReadTag(p, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
    //The tag does not match the criteria?
    if(error)
+   {
       return error;
+   }
 
    //Save context name
    message->contextName = (char_t *) tag.value;
@@ -1143,7 +1249,9 @@ error_t snmpWriteScopedPdu(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= n;
@@ -1161,7 +1269,9 @@ error_t snmpWriteScopedPdu(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= n;
@@ -1179,7 +1289,9 @@ error_t snmpWriteScopedPdu(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the scopedPDU
    message->pos = p - n;
@@ -1212,14 +1324,21 @@ error_t snmpParsePduHeader(SnmpMessage *message)
    error = asn1ReadTag(message->pos, message->length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Check encoding
    if(tag.constructed != TRUE)
+   {
       return ERROR_WRONG_ENCODING;
+   }
+
    //Enforce class
    if(tag.objClass != ASN1_CLASS_CONTEXT_SPECIFIC)
+   {
       return ERROR_INVALID_CLASS;
+   }
 
    //Save PDU type
    message->pduType = (SnmpPduType) tag.objType;
@@ -1233,7 +1352,9 @@ error_t snmpParsePduHeader(SnmpMessage *message)
    error = asn1ReadInt32(p, length, &tag, &message->requestId);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Point to the next field
    p += tag.totalLength;
@@ -1247,7 +1368,9 @@ error_t snmpParsePduHeader(SnmpMessage *message)
       error = asn1ReadInt32(p, length, &tag, &message->nonRepeaters);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //If the value in the non-repeaters field is less than zero, then the
       //value of the field is set to zero
@@ -1264,7 +1387,9 @@ error_t snmpParsePduHeader(SnmpMessage *message)
       error = asn1ReadInt32(p, length, &tag, &message->maxRepetitions);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //If the value in the max-repetitions field is less than zero, then the
       //value of the field is set to zero
@@ -1280,7 +1405,9 @@ error_t snmpParsePduHeader(SnmpMessage *message)
       error = asn1ReadInt32(p, length, &tag, &message->errorStatus);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
 
       //Point to the next field
       p += tag.totalLength;
@@ -1290,7 +1417,9 @@ error_t snmpParsePduHeader(SnmpMessage *message)
       error = asn1ReadInt32(p, length, &tag, &message->errorIndex);
       //Failed to decode ASN.1 tag?
       if(error)
+      {
          return error;
+      }
    }
 
    //Point to the next field
@@ -1301,7 +1430,9 @@ error_t snmpParsePduHeader(SnmpMessage *message)
    error = asn1ReadSequence(p, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Save the location of the variable binding list
    message->varBindList = (uint8_t *) tag.value;
@@ -1342,7 +1473,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= n;
@@ -1361,7 +1494,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = asn1WriteInt32(message->errorIndex, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1372,7 +1507,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = asn1WriteInt32(message->errorStatus, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1383,7 +1520,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = asn1WriteInt32(message->requestId, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1398,7 +1537,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = snmpEncodeUnsignedInt32(message->timestamp, message->buffer, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //The time stamp is encoded in ASN.1 format
       tag.constructed = FALSE;
@@ -1411,7 +1552,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = asn1WriteTag(&tag, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1422,7 +1565,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = asn1WriteInt32(message->specificTrapCode, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1433,7 +1578,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = asn1WriteInt32(message->genericTrapType, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1451,7 +1598,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = asn1WriteTag(&tag, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1469,7 +1618,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
       error = asn1WriteTag(&tag, TRUE, p, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Move backward
       p -= n;
@@ -1495,7 +1646,9 @@ error_t snmpWritePduHeader(SnmpMessage *message)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first byte of the PDU
    message->pos = p - n;
@@ -1523,7 +1676,9 @@ error_t snmpEncodeInt32(int32_t value, uint8_t *dest, size_t *length)
 
    //Check parameters
    if(dest == NULL || length == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The integer is encoded MSB first
    value = (int32_t) htobe32(value);
@@ -1574,7 +1729,9 @@ error_t snmpEncodeUnsignedInt32(uint32_t value, uint8_t *dest, size_t *length)
 
    //Check parameters
    if(dest == NULL || length == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The integer is encoded MSB first
    value = htobe32(value);
@@ -1586,7 +1743,9 @@ error_t snmpEncodeUnsignedInt32(uint32_t value, uint8_t *dest, size_t *length)
    {
       //Check the upper 8 bits
       if(src[i] != 0x00)
+      {
          break;
+      }
    }
 
    //Point to the beginning of the output buffer
@@ -1594,7 +1753,9 @@ error_t snmpEncodeUnsignedInt32(uint32_t value, uint8_t *dest, size_t *length)
 
    //Check the most significant bit
    if(src[i] & 0x80)
+   {
       dest[j++] = 0;
+   }
 
    //Copy integer value
    while(i < 4)
@@ -1626,7 +1787,9 @@ error_t snmpEncodeUnsignedInt64(uint64_t value, uint8_t *dest, size_t *length)
 
    //Check parameters
    if(dest == NULL || length == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The integer is encoded MSB first
    value = htobe64(value);
@@ -1638,7 +1801,9 @@ error_t snmpEncodeUnsignedInt64(uint64_t value, uint8_t *dest, size_t *length)
    {
       //Check the upper 8 bits
       if(src[i] != 0x00)
+      {
          break;
+      }
    }
 
    //Point to the beginning of the output buffer
@@ -1678,9 +1843,14 @@ error_t snmpDecodeInt32(const uint8_t *src, size_t length, int32_t *value)
 
    //Check parameters
    if(src == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(length < 1)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The contents octets shall be a two's complement binary
    //number equal to the integer value
@@ -1714,13 +1884,20 @@ error_t snmpDecodeUnsignedInt32(const uint8_t *src, size_t length, uint32_t *val
 
    //Check parameters
    if(src == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(length < 1)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Only accept non-negative numbers
    if(src[0] & 0x80)
+   {
       return ERROR_FAILURE;
+   }
 
    //Initialize integer value
    *value = 0;
@@ -1753,13 +1930,20 @@ error_t snmpDecodeUnsignedInt64(const uint8_t *src, size_t length, uint64_t *val
 
    //Check parameters
    if(src == NULL || value == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(length < 1)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Only accept non-negative numbers
    if(src[0] & 0x80)
+   {
       return ERROR_FAILURE;
+   }
 
    //Initialize integer value
    *value = 0;

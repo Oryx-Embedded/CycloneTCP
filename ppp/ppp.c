@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -128,11 +128,15 @@ error_t pppInit(PppContext *context, const PppSettings *settings)
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //PPP must be bound to a valid interface
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Underlying network interface
    interface = settings->interface;
@@ -207,11 +211,15 @@ error_t pppSetTimeout(NetInterface *interface, systime_t timeout)
 
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
+   {
       return ERROR_NOT_CONFIGURED;
+   }
 
    //Point to the PPP context
    context = interface->pppContext;
@@ -243,19 +251,27 @@ error_t pppSetAuthInfo(NetInterface *interface, const char_t *username,
 
    //Check parameters
    if(interface == NULL || username == NULL || password == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the user name is acceptable
    if(osStrlen(username) > PPP_MAX_USERNAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the length of the password is acceptable
    if(osStrlen(password) > PPP_MAX_PASSWORD_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
+   {
       return ERROR_NOT_CONFIGURED;
+   }
 
    //Point to the PPP context
    context = interface->pppContext;
@@ -338,11 +354,15 @@ error_t pppSendAtCommand(NetInterface *interface, const char_t *data)
 
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
+   {
       return ERROR_NOT_CONFIGURED;
+   }
 
    //Point to the PPP context
    context = interface->pppContext;
@@ -364,7 +384,9 @@ error_t pppSendAtCommand(NetInterface *interface, const char_t *data)
 
          //Send AT command
          if(!error)
+         {
             error = pppHdlcDriverSendAtCommand(interface, data);
+         }
       }
       else
       {
@@ -403,11 +425,15 @@ error_t pppReceiveAtCommand(NetInterface *interface, char_t *data, size_t size)
 
    //Check parameters
    if(interface == NULL || data == NULL || size == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
+   {
       return ERROR_NOT_CONFIGURED;
+   }
 
    //Point to the PPP context
    context = interface->pppContext;
@@ -486,11 +512,15 @@ error_t pppConnect(NetInterface *interface)
 
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
+   {
       return ERROR_NOT_CONFIGURED;
+   }
 
    //Point to the PPP context
    context = interface->pppContext;
@@ -605,11 +635,15 @@ error_t pppConnect(NetInterface *interface)
 
    //Manual primary DNS configuration?
    if(context->localConfig.primaryDns != IPV4_UNSPECIFIED_ADDR)
+   {
       context->localConfig.primaryDnsRejected = TRUE;
+   }
 
    //Manual secondary DNS configuration?
    if(context->localConfig.secondaryDns != IPV4_UNSPECIFIED_ADDR)
+   {
       context->localConfig.secondaryDnsRejected = TRUE;
+   }
 
    //Default peer's configuration
    context->peerConfig.ipAddr = interface->ipv4Context.addrList[0].defaultGateway;
@@ -635,7 +669,9 @@ error_t pppConnect(NetInterface *interface)
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Save current time
@@ -755,11 +791,15 @@ error_t pppClose(NetInterface *interface)
 
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure PPP has been properly configured
    if(interface->pppContext == NULL)
+   {
       return ERROR_NOT_CONFIGURED;
+   }
 
    //Point to the PPP context
    context = interface->pppContext;
@@ -773,7 +813,9 @@ error_t pppClose(NetInterface *interface)
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (NET_RTOS_SUPPORT == ENABLED)
    //Save current time
@@ -926,7 +968,9 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
 
    //Check the length of the PPP frame
    if(length < PPP_FCS_SIZE)
+   {
       return;
+   }
 
    //Debug message
    TRACE_DEBUG("PPP frame received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -947,7 +991,9 @@ void pppProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
    n = pppParseFrameHeader(frame, length, &protocol);
    //Malformed PPP frame?
    if(n == 0)
+   {
       return;
+   }
 
    //Point to the payload field
    frame += n;
@@ -1050,7 +1096,9 @@ error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
       //Is there enough space in the buffer to store the compressed
       //Protocol field?
       if(offset < 1)
+      {
          return ERROR_FAILURE;
+      }
 
       //Make room for the Protocol field
       offset--;
@@ -1064,7 +1112,9 @@ error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
       //Is there enough space in the buffer to store the uncompressed
       //Protocol field?
       if(offset < 2)
+      {
          return ERROR_FAILURE;
+      }
 
       //Make room for the Protocol field
       offset -= 2;
@@ -1086,7 +1136,9 @@ error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
       //Is there enough space in the buffer to store the uncompressed
       //Address and Control fields?
       if(offset < 2)
+      {
          return ERROR_FAILURE;
+      }
 
       //Make room for the Address and Control fields
       offset -= 2;
@@ -1109,7 +1161,9 @@ error_t pppSendFrame(NetInterface *interface, NetBuffer *buffer, size_t offset,
    error = netBufferAppend(buffer, &fcs, PPP_FCS_SIZE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Adjust frame length
    length += PPP_FCS_SIZE;
@@ -1307,7 +1361,9 @@ NetBuffer *pppAllocBuffer(size_t length, size_t *offset)
    buffer = netBufferAlloc(length + PPP_FRAME_HEADER_SIZE);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return NULL;
+   }
 
    //Offset to the first byte of the payload
    *offset = PPP_FRAME_HEADER_SIZE;

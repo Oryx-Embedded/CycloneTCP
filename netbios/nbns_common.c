@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,9 @@ error_t nbnsInit(NetInterface *interface)
       NULL);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful initialization
    return NO_ERROR;
@@ -88,20 +90,26 @@ void nbnsProcessMessage(NetInterface *interface,
 
    //Make sure the NBNS message was received from an IPv4 peer
    if(pseudoHeader->length != sizeof(Ipv4PseudoHeader))
+   {
       return;
+   }
 
    //Retrieve the length of the NBNS message
    length = netBufferGetLength(buffer) - offset;
 
    //Malformed NBNS message?
    if(length < sizeof(NbnsHeader))
+   {
       return;
+   }
 
    //Point to the NBNS message header
    message = netBufferAt(buffer, offset, length);
    //Malformed NBNS message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("NBNS message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -111,12 +119,16 @@ void nbnsProcessMessage(NetInterface *interface,
    //NBNS messages received with an opcode other than zero must be silently
    //ignored
    if(message->opcode != DNS_OPCODE_QUERY)
+   {
       return;
+   }
 
    //NBNS messages received with non-zero response codes must be silently
    //ignored
    if(message->rcode != DNS_RCODE_NOERROR)
+   {
       return;
+   }
 
    //NBNS query received?
    if(!message->qr)
@@ -232,14 +244,18 @@ size_t nbnsParseName(const NbnsHeader *message, size_t length, size_t pos,
 
    //Malformed NBNS message?
    if((pos + 34) >= length)
+   {
       return 0;
+   }
 
    //Retrieve the length of the first label
    n = src[pos++];
 
    //NetBIOS names must be 32-byte long
    if(n != 32)
+   {
       return 0;
+   }
 
    //The 16 byte NetBIOS name is mapped into a 32 byte wide field using a
    //reversible, half-ASCII, biased encoding (refer to RFC 1001, section 14.1)
@@ -260,7 +276,9 @@ size_t nbnsParseName(const NbnsHeader *message, size_t length, size_t pos,
 
       //Padding character found?
       if(c == ' ')
+      {
          break;
+      }
 
       //Save current ASCII character
       if(dest != NULL)
@@ -291,7 +309,9 @@ size_t nbnsParseName(const NbnsHeader *message, size_t length, size_t pos,
 
    //NetBIOS names are terminated with a zero length count
    if(n != 0)
+   {
       return 0;
+   }
 
    //Properly terminate the string
    if(dest != NULL)
@@ -326,14 +346,18 @@ bool_t nbnsCompareName(const NbnsHeader *message, size_t length, size_t pos,
 
    //Malformed NBNS message?
    if((pos + 34) >= length)
+   {
       return FALSE;
+   }
 
    //Retrieve the length of the first label
    n = src[pos++];
 
    //NetBIOS names must be 32-byte long
    if(n != 32)
+   {
       return FALSE;
+   }
 
    //The 16 byte NetBIOS name is mapped into a 32 byte wide field using a
    //reversible, half-ASCII, biased encoding (refer to RFC 1001, section 14.1)
@@ -354,11 +378,22 @@ bool_t nbnsCompareName(const NbnsHeader *message, size_t length, size_t pos,
 
       //Padding character found?
       if(c == ' ' && *name == '\0')
+      {
          break;
+      }
+
+      //The NetBIOS name is longer than the reference name (any character
+      //following the end of the reference name must be a padding character)
+      if(*name == '\0')
+      {
+         return FALSE;
+      }
 
       //Perform case insensitive comparison
       if(osToupper(c) != osToupper(*name))
+      {
          return FALSE;
+      }
 
       //Advance data pointer
       pos += 2;
@@ -384,7 +419,9 @@ bool_t nbnsCompareName(const NbnsHeader *message, size_t length, size_t pos,
 
    //NetBIOS names are terminated with a zero length count
    if(n != 0)
+   {
       return FALSE;
+   }
 
    //The NetBIOS names match
    return TRUE;

@@ -36,7 +36,7 @@
  * - RFC 9777: Multicast Listener Discovery Version 2 (MLDv2) for IPv6
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -74,14 +74,18 @@ error_t mldInit(NetInterface *interface)
    error = ipv6JoinMulticastGroup(interface, &IPV6_LINK_LOCAL_ALL_NODES_ADDR);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (MLD_NODE_SUPPORT == ENABLED)
    //MLD node initialization
    error = mldNodeInit(interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Successful initialization
@@ -145,7 +149,9 @@ error_t mldSendMessage(NetInterface *interface, const Ipv6Addr *destAddr,
    message = netBufferAt(buffer, offset, length);
    //Malformed MLD message?
    if(message == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check if a valid link-local address is available on the interface
    if(ipv6GetLinkLocalAddrState(interface) == IPV6_ADDR_STATE_PREFERRED)
@@ -232,13 +238,17 @@ void mldProcessMessage(NetInterface *interface,
 
    //To be valid, an MLD message must be at least 24 octets long
    if(length < sizeof(MldMessage))
+   {
       return;
+   }
 
    //Point to the beginning of the MLD message
    message = netBufferAt(buffer, offset, length);
    //Malformed MLD message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("MLD message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -247,7 +257,18 @@ void mldProcessMessage(NetInterface *interface,
 
    //All MLD messages are sent with an IPv6 Hop Limit of 1
    if(ancillary->ttl != MLD_HOP_LIMIT)
+   {
       return;
+   }
+
+   //Upon reception of an MLD message that contains a Query, the node checks
+   //if the Router Alert option is present in the Hop-By-Hop Options header of
+   //the IPv6 packet (refer to RFC 3810, section 6.2)
+   if(message->type == ICMPV6_TYPE_MCAST_LISTENER_QUERY &&
+      !ancillary->routerAlert)
+   {
+      return;
+   }
 
 #if (MLD_NODE_SUPPORT == ENABLED)
    //Pass the message to the MLD node

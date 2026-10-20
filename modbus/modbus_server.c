@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -117,7 +117,9 @@ error_t modbusServerInit(ModbusServerContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -207,14 +209,18 @@ error_t modbusServerStart(ModbusServerContext *context)
 
    //Make sure the Modbus/TCP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting Modbus/TCP server...\r\n");
 
    //Make sure the Modbus/TCP server is not already running
    if(context->running)
+   {
       return ERROR_ALREADY_RUNNING;
+   }
 
    //Start of exception handling block
    do
@@ -225,7 +231,6 @@ error_t modbusServerStart(ModbusServerContext *context)
       //Failed to open socket?
       if(context->socket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -234,25 +239,33 @@ error_t modbusServerStart(ModbusServerContext *context)
       error = socketSetTimeout(context->socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket, context->interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //The Modbus/TCP server listens for connection requests on port 502
       error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Place socket in listening state
       error = socketListen(context->socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Start the Modbus/TCP server
       context->stop = FALSE;
@@ -265,7 +278,6 @@ error_t modbusServerStart(ModbusServerContext *context)
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -301,7 +313,9 @@ error_t modbusServerStop(ModbusServerContext *context)
 
    //Make sure the Modbus/TCP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping Modbus/TCP server...\r\n");

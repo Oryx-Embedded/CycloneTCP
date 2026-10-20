@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -77,7 +77,9 @@ error_t webSocketRegisterRandCallback(WebSocketRandCallback callback)
 {
    //Check parameter
    if(callback == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    webSockRandCallback = callback;
@@ -239,7 +241,9 @@ error_t webSocketRegisterTlsInitCallback(WebSocket *webSocket,
 {
    //Check parameters
    if(webSocket == NULL || callback == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    webSocket->tlsInitCallback = callback;
@@ -262,14 +266,18 @@ error_t webSocketSetTimeout(WebSocket *webSocket, systime_t timeout)
 {
    //Make sure the WebSocket handle is valid
    if(webSocket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    webSocket->timeout = timeout;
 
    //Valid socket?
    if(webSocket->socket != NULL)
+   {
       socketSetTimeout(webSocket->socket, timeout);
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -287,11 +295,15 @@ error_t webSocketSetHost(WebSocket *webSocket, const char_t *host)
 {
    //Check parameters
    if(webSocket == NULL || host == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the hostname is acceptable
    if(osStrlen(host) > WEB_SOCKET_HOST_MAX_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save hostname
    osStrcpy(webSocket->host, host);
@@ -312,11 +324,15 @@ error_t webSocketSetOrigin(WebSocket *webSocket, const char_t *origin)
 {
    //Check parameters
    if(webSocket == NULL || origin == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the origin is acceptable
    if(osStrlen(origin) > WEB_SOCKET_ORIGIN_MAX_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save origin
    osStrcpy(webSocket->origin, origin);
@@ -337,11 +353,15 @@ error_t webSocketSetSubProtocol(WebSocket *webSocket, const char_t *subProtocol)
 {
    //Check parameters
    if(webSocket == NULL || subProtocol == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the sub-protocol is acceptable
    if(osStrlen(subProtocol) > WEB_SOCKET_SUB_PROTOCOL_MAX_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save sub-protocol
    osStrcpy(webSocket->subProtocol, subProtocol);
@@ -368,15 +388,21 @@ error_t webSocketSetAuthInfo(WebSocket *webSocket, const char_t *username,
 
    //Check parameters
    if(webSocket == NULL || username == NULL || password == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the user name is acceptable
    if(osStrlen(username) > WEB_SOCKET_USERNAME_MAX_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the length of the password is acceptable
    if(osStrlen(password) > WEB_SOCKET_PASSWORD_MAX_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the authentication context
    authContext = &webSocket->authContext;
@@ -403,7 +429,9 @@ error_t webSocketBindToInterface(WebSocket *webSocket, NetInterface *interface)
 {
    //Make sure the WebSocket handle is valid
    if(webSocket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the WebSocket with the specified interface
    webSocket->interface = interface;
@@ -432,7 +460,9 @@ error_t webSocketConnect(WebSocket *webSocket, const IpAddr *serverIpAddr,
 
    //Make sure the WebSocket handle is valid
    if(webSocket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the TX context
    txContext = &webSocket->txContext;
@@ -654,7 +684,9 @@ error_t webSocketConnect(WebSocket *webSocket, const IpAddr *serverIpAddr,
 #if (NET_RTOS_SUPPORT == DISABLED)
          //Timeout error?
          if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
+         {
             break;
+         }
 #endif
          //Close connection
          webSocketCloseConnection(webSocket);
@@ -685,14 +717,18 @@ error_t webSocketSetClientKey(WebSocket *webSocket, const char_t *clientKey)
 
    //Check parameters
    if(webSocket == NULL || clientKey == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get the length of the client's key
    n = osStrlen(clientKey);
 
    //Check the length of the key
    if(n > WEB_SOCKET_CLIENT_KEY_SIZE)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Copy client's key
    osStrcpy(webSocket->handshakeContext.clientKey, clientKey);
@@ -716,19 +752,25 @@ error_t webSocketSetClientKey(WebSocket *webSocket, const char_t *clientKey)
    error = webSocketVerifyClientKey(webSocket);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Generate server's key
    error = webSocketGenerateServerKey(webSocket);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format server handshake
    error = webSocketFormatServerHandshake(webSocket);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Update FSM state
    webSocket->state = WS_STATE_SERVER_HANDSHAKE;
@@ -750,7 +792,9 @@ error_t webSocketParseClientHandshake(WebSocket *webSocket)
 
    //Make sure the WebSocket handle is valid
    if(webSocket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //a WebSocket server is a WebSocket endpoint that awaits
    //connections from peers
@@ -819,7 +863,9 @@ error_t webSocketParseClientHandshake(WebSocket *webSocket)
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Return status code
@@ -841,7 +887,9 @@ error_t webSocketSendServerHandshake(WebSocket *webSocket)
 
    //Make sure the WebSocket handle is valid
    if(webSocket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the TX context
    txContext = &webSocket->txContext;
@@ -880,7 +928,9 @@ error_t webSocketSendServerHandshake(WebSocket *webSocket)
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Return status code
@@ -905,7 +955,9 @@ error_t webSocketSendErrorResponse(WebSocket *webSocket,
 
    //Make sure the WebSocket handle is valid
    if(webSocket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the TX context
    txContext = &webSocket->txContext;
@@ -953,7 +1005,9 @@ error_t webSocketSendErrorResponse(WebSocket *webSocket,
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Return status code
@@ -1005,13 +1059,17 @@ error_t webSocketSendEx(WebSocket *webSocket, const void *data, size_t length,
 
    //Check parameters
    if(webSocket == NULL || data == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //A data frame may be transmitted by either the client or the server at
    //any time after opening handshake completion and before that endpoint
    //has sent a Close frame
    if(webSocket->state != WS_STATE_OPEN)
+   {
       return ERROR_NOT_CONNECTED;
+   }
 
    //Point to the TX context
    txContext = &webSocket->txContext;
@@ -1201,7 +1259,9 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
 
    //Make sure the WebSocket handle is valid
    if(webSocket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check the state of the WebSocket connection
    if(webSocket->state != WS_STATE_OPEN &&
@@ -1434,7 +1494,9 @@ error_t webSocketReceiveEx(WebSocket *webSocket, void *data, size_t size,
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Check status code
@@ -1508,7 +1570,9 @@ error_t webSocketShutdown(WebSocket *webSocket)
 
    //Make sure the WebSocket handle is valid
    if(webSocket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the TX context
    txContext = &webSocket->txContext;

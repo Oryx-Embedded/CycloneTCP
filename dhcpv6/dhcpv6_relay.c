@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 8415
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -98,15 +98,19 @@ error_t dhcpv6RelayInit(Dhcpv6RelayContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Invalid network-facing interface?
    if(settings->serverInterface == NULL)
+   {
       return ERROR_INVALID_INTERFACE;
+   }
 
    //Invalid number of client-facing interfaces
    if(settings->numClientInterfaces < 1 ||
-      settings->numClientInterfaces >= DHCPV6_RELAY_MAX_CLIENT_INTERFACES)
+      settings->numClientInterfaces > DHCPV6_RELAY_MAX_CLIENT_INTERFACES)
    {
       return ERROR_INVALID_PARAMETER;
    }
@@ -116,12 +120,16 @@ error_t dhcpv6RelayInit(Dhcpv6RelayContext *context,
    {
       //Invalid client-facing interface?
       if(settings->clientInterfaces[i] == NULL)
+      {
          return ERROR_INVALID_INTERFACE;
+      }
    }
 
    //Check the address to be used when forwarding messages to the server
    if(ipv6CompAddr(&settings->serverIpAddr, &IPV6_UNSPECIFIED_ADDR))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -179,14 +187,18 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context)
 
    //Make sure the DHCPv6 relay agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting DHCPv6 relay agent...\r\n");
 
    //Make sure the DHCPv6 relay agent is not already running
    if(context->running)
+   {
       return ERROR_ALREADY_RUNNING;
+   }
 
    //Start of exception handling block
    do
@@ -195,7 +207,9 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context)
       error = dhcpv6RelayOpenServerSocket(context);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Open the sockets that carry traffic towards the DHCPv6 clients
       for(i = 0; i < context->numClientInterfaces && !error; i++)
@@ -205,7 +219,9 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context)
 
       //Propagate exception if necessary
       if(error)
+      {
          break;
+      }
 
       //Start the DHCPv6 relay agent
       context->stop = FALSE;
@@ -218,7 +234,6 @@ error_t dhcpv6RelayStart(Dhcpv6RelayContext *context)
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -261,7 +276,9 @@ error_t dhcpv6RelayStop(Dhcpv6RelayContext *context)
 
    //Make sure the DHCPv6 relay agent context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping DHCPv6 relay agent...\r\n");

@@ -30,7 +30,7 @@
  * any data it receives. Refer to RFC 862 for complete details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -85,7 +85,9 @@ error_t echoServerInit(EchoServerContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -146,14 +148,18 @@ error_t echoServerStart(EchoServerContext *context)
 
    //Make sure the Echo server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting Echo server...\r\n");
 
    //Make sure the Echo server is not already running
    if(context->running)
+   {
       return ERROR_ALREADY_RUNNING;
+   }
 
    //Start of exception handling block
    do
@@ -165,7 +171,6 @@ error_t echoServerStart(EchoServerContext *context)
       //Failed to open socket?
       if(context->tcpSocket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -174,25 +179,33 @@ error_t echoServerStart(EchoServerContext *context)
       error = socketSetTimeout(context->tcpSocket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->tcpSocket, context->interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //The Echo server listens for TCP connection requests on port 7
       error = socketBind(context->tcpSocket, &IP_ADDR_ANY, context->port);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Place socket in listening state
       error = socketListen(context->tcpSocket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
 #if (ECHO_SERVER_UDP_SUPPORT == ENABLED)
@@ -202,7 +215,6 @@ error_t echoServerStart(EchoServerContext *context)
       //Failed to open socket?
       if(context->udpSocket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -211,19 +223,25 @@ error_t echoServerStart(EchoServerContext *context)
       error = socketSetTimeout(context->udpSocket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->udpSocket, context->interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //The Echo server listens for UDP datagrams on port 7
       error = socketBind(context->udpSocket, &IP_ADDR_ANY, context->port);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
       //Start the Echo server
@@ -237,7 +255,6 @@ error_t echoServerStart(EchoServerContext *context)
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -283,7 +300,9 @@ error_t echoServerStop(EchoServerContext *context)
 
    //Make sure the Echo server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping Echo server...\r\n");

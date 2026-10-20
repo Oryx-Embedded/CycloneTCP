@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -75,7 +75,9 @@ error_t snmpProcessMessage(SnmpAgentContext *context)
    error = snmpParseMessageHeader(&context->request);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The SNMP agent verifies the version number. If there is a mismatch,
    //it discards the datagram and performs no further actions
@@ -172,7 +174,9 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
    error = snmpParseCommunity(&context->request);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Information about the community name is extracted from the local
    //configuration datastore
@@ -201,7 +205,9 @@ error_t snmpv1ProcessMessage(SnmpAgentContext *context)
    error = snmpProcessPdu(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Any response?
    if(context->response.length > 0)
@@ -235,7 +241,9 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
    error = snmpParseCommunity(&context->request);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Information about the community name is extracted from the local
    //configuration datastore
@@ -264,7 +272,9 @@ error_t snmpv2cProcessMessage(SnmpAgentContext *context)
    error = snmpProcessPdu(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Any response?
    if(context->response.length > 0)
@@ -298,13 +308,17 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
    error = snmpParseGlobalData(&context->request);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Parse msgSecurityParameters field
    error = snmpParseSecurityParameters(&context->request);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Start of exception handling block
    do
@@ -329,7 +343,9 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
             context->informContextEngine, context->informContextEngineLen);
          //Invalid security parameters?
          if(error)
+         {
             break;
+         }
 
          //Save the security profile associated with the current user
          context->user = *user;
@@ -344,7 +360,9 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
                &context->user.rawAuthKey, &context->user.localizedAuthKey);
             //Any error to report?
             if(error)
+            {
                break;
+            }
          }
 
          //Localize the privacy key with the engine ID of the remote SNMP device
@@ -356,7 +374,9 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
                &context->user.rawPrivKey, &context->user.localizedPrivKey);
             //Any error to report?
             if(error)
+            {
                break;
+            }
          }
       }
       else
@@ -372,7 +392,9 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
             context->contextEngine, context->contextEngineLen);
          //Invalid security parameters?
          if(error)
+         {
             break;
+         }
 
          //Save the security profile associated with the current user
          context->user = *user;
@@ -385,13 +407,17 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
          error = snmpAuthIncomingMessage(&context->user, &context->request);
          //Data authentication failed?
          if(error)
+         {
             break;
+         }
 
          //Replay protection
          error = snmpCheckEngineTime(context, &context->request);
          //Message outside of the time window?
          if(error)
+         {
             break;
+         }
       }
 
       //Check whether the privFlag is set
@@ -401,20 +427,26 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
          error = snmpDecryptData(&context->user, &context->request);
          //Data decryption failed?
          if(error)
+         {
             break;
+         }
       }
 
       //Parse scopedPDU
       error = snmpParseScopedPdu(&context->request);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Process PDU
       error = snmpProcessPdu(context);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //End of exception handling block
    } while(0);
@@ -432,11 +464,15 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
       //When the reportable flag is used, if its value is one, a Report-PDU
       //must be returned to the sender
       if((context->request.msgFlags & SNMP_MSG_FLAG_REPORTABLE) != 0)
+      {
          error = snmpFormatReportPdu(context, error);
+      }
 
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else if(error == NO_ERROR)
    {
@@ -455,7 +491,9 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
       error = snmpWriteScopedPdu(&context->response);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the privFlag is set
       if((context->response.msgFlags & SNMP_MSG_FLAG_PRIV) != 0)
@@ -465,14 +503,18 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
             context->salt);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
 
       //Format SNMP message header
       error = snmpWriteMessageHeader(&context->response);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the authFlag is set
       if((context->response.msgFlags & SNMP_MSG_FLAG_AUTH) != 0)
@@ -481,7 +523,9 @@ error_t snmpv3ProcessMessage(SnmpAgentContext *context)
          error = snmpAuthOutgoingMessage(&context->user, &context->response);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
    }
 

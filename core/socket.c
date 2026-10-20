@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -167,7 +167,9 @@ error_t socketSetTimeout(Socket *socket, systime_t timeout)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -192,7 +194,9 @@ error_t socketSetTtl(Socket *socket, uint8_t ttl)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -217,7 +221,9 @@ error_t socketSetMulticastTtl(Socket *socket, uint8_t ttl)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -242,11 +248,15 @@ error_t socketSetDscp(Socket *socket, uint8_t dscp)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The DSCP field is 6 bits wide
    if(dscp >= 64)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -272,11 +282,15 @@ error_t socketSetVlanPcp(Socket *socket, uint8_t pcp)
 #if (ETH_VLAN_SUPPORT == ENABLED)
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The PCP field is 3 bits wide
    if(pcp >= 8)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -309,7 +323,9 @@ error_t socketSetVlanDei(Socket *socket, bool_t dei)
 #if (ETH_VLAN_SUPPORT == ENABLED)
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -342,11 +358,15 @@ error_t socketSetVmanPcp(Socket *socket, uint8_t pcp)
 #if (ETH_VMAN_SUPPORT == ENABLED)
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The PCP field is 3 bits wide
    if(pcp >= 8)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -379,7 +399,9 @@ error_t socketSetVmanDei(Socket *socket, bool_t dei)
 #if (ETH_VMAN_SUPPORT == ENABLED)
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -407,17 +429,19 @@ error_t socketSetVmanDei(Socket *socket, bool_t dei)
  * @return Error code
  **/
 
-error_t socketEnableBroadcast(Socket *socket, bool_t enabled)
+error_t socketEnableBroadcast(Socket *socket, bool_t enable)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
 
    //Check whether broadcast messages should be accepted
-   if(enabled)
+   if(enable)
    {
       socket->options |= SOCKET_OPTION_BROADCAST;
    }
@@ -449,7 +473,9 @@ error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 
    //Check parameters
    if(socket == NULL || groupAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connectionless or raw sockets
    if(socket->type != SOCKET_TYPE_DGRAM &&
@@ -460,7 +486,9 @@ error_t socketJoinMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 
    //The group address must be a valid multicast address
    if(!ipIsMulticastAddr(groupAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -517,7 +545,9 @@ error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 
    //Check parameters
    if(socket == NULL || groupAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connectionless or raw sockets
    if(socket->type != SOCKET_TYPE_DGRAM &&
@@ -528,7 +558,9 @@ error_t socketLeaveMulticastGroup(Socket *socket, const IpAddr *groupAddr)
 
    //The group address must be a valid multicast address
    if(!ipIsMulticastAddr(groupAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -587,7 +619,9 @@ error_t socketSetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
 
    //Check parameters
    if(socket == NULL || groupAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connectionless or raw sockets
    if(socket->type != SOCKET_TYPE_DGRAM &&
@@ -598,7 +632,9 @@ error_t socketSetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
 
    //The group address must be a valid multicast address
    if(!ipIsMulticastAddr(groupAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Invalid filter mode?
    if(filterMode != IP_FILTER_MODE_INCLUDE &&
@@ -609,11 +645,15 @@ error_t socketSetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
 
    //Invalid set of source addresses?
    if(numSources != 0 && sources == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The implementation limits the number of source addresses
    if(numSources > SOCKET_MAX_MULTICAST_SOURCES)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -703,7 +743,9 @@ error_t socketGetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
 
    //Check parameters
    if(socket == NULL || groupAddr == NULL || numSources == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connectionless or raw sockets
    if(socket->type != SOCKET_TYPE_DGRAM &&
@@ -714,7 +756,9 @@ error_t socketGetMulticastSourceFilter(Socket *socket, const IpAddr *groupAddr,
 
    //The group address must be a valid multicast address
    if(!ipIsMulticastAddr(groupAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -777,7 +821,9 @@ error_t socketAddMulticastSource(Socket *socket, const IpAddr *groupAddr,
 
    //Check parameters
    if(socket == NULL || groupAddr == NULL || srcAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connectionless or raw sockets
    if(socket->type != SOCKET_TYPE_DGRAM &&
@@ -788,7 +834,9 @@ error_t socketAddMulticastSource(Socket *socket, const IpAddr *groupAddr,
 
    //The group address must be a valid multicast address
    if(!ipIsMulticastAddr(groupAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -864,7 +912,9 @@ error_t socketDropMulticastSource(Socket *socket, const IpAddr *groupAddr,
 
    //Check parameters
    if(socket == NULL || groupAddr == NULL || srcAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connectionless or raw sockets
    if(socket->type != SOCKET_TYPE_DGRAM &&
@@ -875,7 +925,9 @@ error_t socketDropMulticastSource(Socket *socket, const IpAddr *groupAddr,
 
    //The group address must be a valid multicast address
    if(!ipIsMulticastAddr(groupAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -942,7 +994,9 @@ error_t socketBlockMulticastSource(Socket *socket, const IpAddr *groupAddr,
 
    //Check parameters
    if(socket == NULL || groupAddr == NULL || srcAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connectionless or raw sockets
    if(socket->type != SOCKET_TYPE_DGRAM &&
@@ -953,7 +1007,9 @@ error_t socketBlockMulticastSource(Socket *socket, const IpAddr *groupAddr,
 
    //The group address must be a valid multicast address
    if(!ipIsMulticastAddr(groupAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1029,7 +1085,9 @@ error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
 
    //Check parameters
    if(socket == NULL || groupAddr == NULL || srcAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connectionless or raw sockets
    if(socket->type != SOCKET_TYPE_DGRAM &&
@@ -1040,7 +1098,9 @@ error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
 
    //The group address must be a valid multicast address
    if(!ipIsMulticastAddr(groupAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1090,18 +1150,20 @@ error_t socketUnblockMulticastSource(Socket *socket, const IpAddr *groupAddr,
  * @return Error code
  **/
 
-error_t socketEnableKeepAlive(Socket *socket, bool_t enabled)
+error_t socketEnableKeepAlive(Socket *socket, bool_t enable)
 {
 #if (TCP_SUPPORT == ENABLED && TCP_KEEP_ALIVE_SUPPORT == ENABLED)
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
 
    //Check whether TCP keep-alive mechanism should be enabled
-   if(enabled)
+   if(enable)
    {
       //Enable TCP keep-alive mechanism
       socket->keepAliveEnabled = TRUE;
@@ -1186,7 +1248,9 @@ error_t socketSetMaxSegmentSize(Socket *socket, size_t mss)
 #if (TCP_SUPPORT == ENABLED)
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -1223,19 +1287,27 @@ error_t socketSetTxBufferSize(Socket *socket, size_t size)
 #if (TCP_SUPPORT == ENABLED)
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
+   {
       return ERROR_INVALID_SOCKET;
+   }
 
    //The buffer size cannot be changed when the connection is established
    if(tcpGetState(socket) != TCP_STATE_CLOSED)
+   {
       return ERROR_INVALID_SOCKET;
+   }
 
    //Check parameter value
    if(size < 1 || size > TCP_MAX_TX_BUFFER_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Use the specified buffer size
    socket->txBufferSize = size;
@@ -1260,19 +1332,27 @@ error_t socketSetRxBufferSize(Socket *socket, size_t size)
 #if (TCP_SUPPORT == ENABLED)
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
+   {
       return ERROR_INVALID_SOCKET;
+   }
 
    //The buffer size cannot be changed when the connection is established
    if(tcpGetState(socket) != TCP_STATE_CLOSED)
+   {
       return ERROR_INVALID_SOCKET;
+   }
 
    //Check parameter value
    if(size < 1 || size > TCP_MAX_RX_BUFFER_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Use the specified buffer size
    socket->rxBufferSize = size;
@@ -1299,7 +1379,9 @@ error_t socketSetInterface(Socket *socket, NetInterface *interface)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the socket with the specified interface
    socket->interface = interface;
@@ -1343,7 +1425,9 @@ error_t socketBind(Socket *socket, const IpAddr *localIpAddr,
 {
    //Check input parameters
    if(socket == NULL || localIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the socket type is correct
    if(socket->type != SOCKET_TYPE_STREAM &&
@@ -1378,7 +1462,9 @@ error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr,
 
    //Check input parameters
    if(socket == NULL || remoteIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
 #if (TCP_SUPPORT == ENABLED)
    //Connection-oriented socket?
@@ -1442,11 +1528,15 @@ error_t socketListen(Socket *socket, uint_t backlog)
 
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
+   {
       return ERROR_INVALID_SOCKET;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -1481,11 +1571,15 @@ Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr,
 
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return NULL;
+   }
 
    //This function shall be used with connection-oriented sockets
    if(socket->type != SOCKET_TYPE_STREAM)
+   {
       return NULL;
+   }
 
    //Accept an incoming connection attempt
    newSocket = tcpAccept(socket, clientIpAddr, clientPort);
@@ -1543,7 +1637,9 @@ error_t socketSendTo(Socket *socket, const IpAddr *destIpAddr,
 
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -1667,7 +1763,9 @@ error_t socketSendMsg(Socket *socket, const SocketMsg *message, uint_t flags)
 
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -1747,11 +1845,15 @@ error_t socketReceiveFrom(Socket *socket, IpAddr *srcIpAddr, uint16_t *srcPort,
 
    //No data has been received yet
    if(received != NULL)
+   {
       *received = 0;
+   }
 
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -1895,7 +1997,9 @@ error_t socketReceiveMsg(Socket *socket, SocketMsg *message, uint_t flags)
 
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -1950,7 +2054,9 @@ error_t socketGetLocalAddr(Socket *socket, IpAddr *localIpAddr,
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve local IP address
    if(localIpAddr != NULL)
@@ -1982,7 +2088,9 @@ error_t socketGetRemoteAddr(Socket *socket, IpAddr *remoteIpAddr,
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve local IP address
    if(remoteIpAddr != NULL)
@@ -2019,11 +2127,15 @@ error_t socketShutdown(Socket *socket, uint_t how)
 
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the socket type is correct
    if(socket->type != SOCKET_TYPE_STREAM)
+   {
       return ERROR_INVALID_SOCKET;
+   }
 
    //Check flags
    if(how != SOCKET_SD_SEND && how != SOCKET_SD_RECEIVE &&
@@ -2058,7 +2170,9 @@ void socketClose(Socket *socket)
 {
    //Make sure the socket handle is valid
    if(socket == NULL)
+   {
       return;
+   }
 
    //Get exclusive access
    netLock(socket->netContext);
@@ -2153,7 +2267,9 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
 
    //Check parameters
    if(eventDesc == NULL || size == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Try to use the supplied event object to receive notifications
    if(extEvent == NULL)
@@ -2161,7 +2277,6 @@ error_t socketPoll(SocketEventDesc *eventDesc, uint_t size, OsEvent *extEvent,
       //Create an event object only if necessary
       if(!osCreateEvent(&eventObject))
       {
-         //Report an error
          return ERROR_OUT_OF_RESOURCES;
       }
 
@@ -2298,7 +2413,9 @@ error_t getHostByName(NetInterface *interface, const char_t *name,
 
    //Check parameters
    if(name == NULL || ipAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Use default network interface?
    if(interface == NULL)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Dependencies
@@ -192,13 +192,20 @@ error_t lcpDumpPacket(const PppPacket *packet, size_t length)
 
    //Make sure the LCP packet is valid
    if(length < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check the length field
    if(ntohs(packet->length) > length)
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
    if(ntohs(packet->length) < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save the length of the LCP packet
    length = ntohs(packet->length);
@@ -229,7 +236,9 @@ error_t lcpDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(PppConfigurePacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of the option list
       length -= sizeof(PppConfigurePacket);
@@ -238,7 +247,9 @@ error_t lcpDumpPacket(const PppPacket *packet, size_t length)
       error = lcpDumpOptions((PppOption *) p->options, length);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    //Terminate-Request or Terminate-Ack packet?
    else if(packet->code == PPP_CODE_TERMINATE_REQ ||
@@ -249,7 +260,9 @@ error_t lcpDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(PppTerminatePacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of data
       length -= sizeof(PppTerminatePacket);
@@ -270,7 +283,9 @@ error_t lcpDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(PppCodeRejPacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of Rejected-Packet field
       length -= sizeof(PppCodeRejPacket);
@@ -287,7 +302,9 @@ error_t lcpDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(PppProtocolRejPacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of Rejected-Information field
       length -= sizeof(PppProtocolRejPacket);
@@ -308,7 +325,9 @@ error_t lcpDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(PppEchoPacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of data
       length -= sizeof(PppEchoPacket);
@@ -354,13 +373,20 @@ error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
 
    //Make sure the NDP packet is valid
    if(length < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check the length field
    if(ntohs(packet->length) > length)
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
    if(ntohs(packet->length) < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save the length of the NDP packet
    length = ntohs(packet->length);
@@ -391,7 +417,9 @@ error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
 
       //Valid packet length?
       if(length < sizeof(PppConfigurePacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of the option list
       length -= sizeof(PppConfigurePacket);
@@ -403,7 +431,9 @@ error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
          error = ipcpDumpOptions((PppOption *) p->options, length);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
       //IPV6CP protocol?
       else if(protocol == PPP_PROTOCOL_IPV6CP)
@@ -412,7 +442,9 @@ error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
          error = ipv6cpDumpOptions((PppOption *) p->options, length);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
    }
    //Terminate-Request or Terminate-Ack packet?
@@ -424,7 +456,9 @@ error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
 
       //Valid packet length?
       if(length < sizeof(PppTerminatePacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of data
       length -= sizeof(PppTerminatePacket);
@@ -445,7 +479,9 @@ error_t ncpDumpPacket(const PppPacket *packet, size_t length, PppProtocol protoc
 
       //Valid packet length?
       if(length < sizeof(PppCodeRejPacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of Rejected-Packet field
       length -= sizeof(PppCodeRejPacket);
@@ -487,13 +523,20 @@ error_t papDumpPacket(const PppPacket *packet, size_t length)
 
    //Make sure the PAP packet is valid
    if(length < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check the length field
    if(ntohs(packet->length) > length)
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
    if(ntohs(packet->length) < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save the length of the PAP packet
    length = ntohs(packet->length);
@@ -524,14 +567,18 @@ error_t papDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(PapAuthReqPacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Peer-ID-Length field
       TRACE_DEBUG("  Peer-ID-Length = %" PRIu8 "\r\n", p->peerIdLength);
 
       //Check the length of the Peer-ID field
       if(length < (sizeof(PapAuthAckPacket) + 1 + p->peerIdLength))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Peer-ID field
       TRACE_DEBUG("  Peer-ID\r\n");
@@ -545,7 +592,9 @@ error_t papDumpPacket(const PppPacket *packet, size_t length)
 
       //Check the length of the Password field
       if(length < (sizeof(PapAuthAckPacket) + 1 + p->peerIdLength + q[0]))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Password field
       TRACE_DEBUG("  Password\r\n");
@@ -562,14 +611,18 @@ error_t papDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(PapAuthAckPacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Msg-Length field
       TRACE_DEBUG("  Msg-Length = %" PRIu8 "\r\n", p->msgLength);
 
       //Check the length of the Message field
       if(length < (sizeof(PapAuthAckPacket) + p->msgLength))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       if(length > 0)
       {
@@ -611,13 +664,20 @@ error_t chapDumpPacket(const PppPacket *packet, size_t length)
 
    //Make sure the CHAP packet is valid
    if(length < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check the length field
    if(ntohs(packet->length) > length)
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
    if(ntohs(packet->length) < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save the length of the CHAP packet
    length = ntohs(packet->length);
@@ -649,14 +709,18 @@ error_t chapDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(ChapChallengePacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Value-Size field
       TRACE_DEBUG("  Value-Size = %" PRIu8 "\r\n", p->valueSize);
 
       //Check the length of the Value field
       if(length < (sizeof(ChapChallengePacket) + p->valueSize))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Value field
       TRACE_DEBUG("  Value\r\n");
@@ -682,7 +746,9 @@ error_t chapDumpPacket(const PppPacket *packet, size_t length)
 
       //Valid packet length?
       if(length < sizeof(ChapSuccessPacket))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Retrieve the length of Message field
       length -= sizeof(ChapSuccessPacket);
@@ -727,13 +793,20 @@ error_t lcpDumpOptions(const PppOption *option, size_t length)
    {
       //Malformed LCP packet?
       if(length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Check option length
       if(option->length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
+
       if(option->length > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Display the name of the current option
       if(option->type < arraysize(lcpOptionLabel))
@@ -754,7 +827,9 @@ error_t lcpDumpOptions(const PppOption *option, size_t length)
       case LCP_OPTION_MRU:
          //Check length field
          if(option->length != (sizeof(PppOption) + sizeof(uint16_t)))
+         {
             return ERROR_INVALID_OPTION;
+         }
          //Retrieve 16-bit value
          value = LOAD16BE(option->data);
          //Dump option contents
@@ -766,7 +841,9 @@ error_t lcpDumpOptions(const PppOption *option, size_t length)
       case LCP_OPTION_MAGIC_NUMBER:
          //Check length field
          if(option->length != (sizeof(PppOption) + sizeof(uint32_t)))
+         {
             return ERROR_INVALID_OPTION;
+         }
          //Retrieve 32-bit value
          value = LOAD32BE(option->data);
          //Dump option contents
@@ -808,13 +885,20 @@ error_t ipcpDumpOptions(const PppOption *option, size_t length)
    {
       //Malformed IPCP packet?
       if(length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Check option length
       if(option->length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
+
       if(option->length > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Display the name of the current option
       if(option->type < arraysize(ipcpOptionLabel))
@@ -845,7 +929,9 @@ error_t ipcpDumpOptions(const PppOption *option, size_t length)
       case IPCP_OPTION_SECONDARY_NBNS:
          //Check length field
          if(option->length != (sizeof(PppOption) + sizeof(Ipv4Addr)))
+         {
             return ERROR_INVALID_OPTION;
+         }
          //Retrieve IPv4 address
          ipv4CopyAddr(&ipAddr, option->data);
          //Dump option contents
@@ -884,13 +970,20 @@ error_t ipv6cpDumpOptions(const PppOption *option, size_t length)
    {
       //Malformed IPV6CP packet?
       if(length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Check option length
       if(option->length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
+
       if(option->length > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Display the name of the current option
       if(option->type < arraysize(ipv6cpOptionLabel))

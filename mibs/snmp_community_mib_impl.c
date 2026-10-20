@@ -30,7 +30,7 @@
  * of an SNMP entity. Refer to RFC 3418 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -150,17 +150,23 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       SNMP_MAX_USER_NAME_LEN, TRUE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpCommunityMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the community table for the specified community string
    community = snmpFindCommunityEntry(context, index, osStrlen(index));
@@ -170,7 +176,9 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
    {
       //Ensure the length of the community string is valid
       if(valueLen > SNMP_MAX_USER_NAME_LEN)
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Test if the conceptual row exists in the agent
       if(community != NULL)
@@ -178,7 +186,9 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
          //Commit phase?
          if(commit)
          {
-            //Set community string
+            //Erase the existing community string, if any
+            osMemset(community->name, 0, sizeof(community->name));
+            //Save the new community string
             osMemcpy(community->name, value->octetString, valueLen);
             //Properly terminate the string with a NULL character
             community->name[valueLen] = '\0';
@@ -246,19 +256,28 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       {
          //No matching row found?
          if(community == NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Commit phase?
          if(commit)
          {
             //Valid community string specified?
             if(snmpCommunityMibBase.tempCommunity.name[0] != '\0')
+            {
+               //Erase the existing community string, if any
+               osMemset(community->name, 0, sizeof(community->name));
+               //Save the new community string
                osStrcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
+            }
 
             //A newly created row cannot be made active until a value has been
             //set for snmpCommunityName
             if(community->name[0] == '\0')
+            {
                return ERROR_INCONSISTENT_VALUE;
+            }
 
             //Update the status of the conceptual row
             community->status = status;
@@ -268,13 +287,17 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       {
          //Row already instantiated?
          if(community != NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Create a new row
          community = snmpCreateCommunityEntry(context);
          //Row creation failed?
          if(community == NULL)
+         {
             return ERROR_WRITE_FAILED;
+         }
 
          //Commit phase?
          if(commit)
@@ -282,7 +305,9 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
             //Valid community string specified?
             if(snmpCommunityMibBase.tempCommunity.name[0] != '\0')
             {
-               //Save community string
+               //Erase the existing community string, if any
+               osMemset(community->name, 0, sizeof(community->name));
+               //Save the new community string
                osStrcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
                //Set default access rights
                community->mode = SNMP_ACCESS_READ_WRITE;
@@ -301,22 +326,30 @@ error_t snmpCommunityMibSetCommunityEntry(const MibObject *object, const uint8_t
       {
          //Row already instantiated?
          if(community != NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Create a new row
          community = snmpCreateCommunityEntry(context);
          //Row creation failed?
          if(community == NULL)
+         {
             return ERROR_WRITE_FAILED;
+         }
 
          //Commit phase?
          if(commit)
          {
             //Ensure the community string is valid
             if(snmpCommunityMibBase.tempCommunity.name[0] == '\0')
+            {
                return ERROR_INCONSISTENT_VALUE;
+            }
 
-            //Copy the community string
+            //Erase the existing community string, if any
+            osMemset(community->name, 0, sizeof(community->name));
+            //Save the new community string
             osStrcpy(community->name, snmpCommunityMibBase.tempCommunity.name);
             //Set default access rights
             community->mode = SNMP_ACCESS_READ_WRITE;
@@ -387,23 +420,31 @@ error_t snmpCommunityMibGetCommunityEntry(const MibObject *object, const uint8_t
       SNMP_MAX_USER_NAME_LEN, TRUE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpCommunityMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the community table for the specified community string
    community = snmpFindCommunityEntry(context, index, osStrlen(index));
    //Unknown community string?
    if(community == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //snmpCommunityName object?
    if(osStrcmp(object->name, "snmpCommunityName") == 0)
@@ -543,11 +584,15 @@ error_t snmpCommunityMibGetNextCommunityEntry(const MibObject *object, const uin
    context = (SnmpAgentContext *) snmpCommunityMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -568,7 +613,9 @@ error_t snmpCommunityMibGetNextCommunityEntry(const MibObject *object, const uin
          error = mibEncodeString(nextOid, *nextOidLen, &n, entry->name, TRUE);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -591,7 +638,9 @@ error_t snmpCommunityMibGetNextCommunityEntry(const MibObject *object, const uin
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order
             if(acceptable)
+            {
                nextEntry = entry;
+            }
          }
       }
    }
@@ -599,7 +648,9 @@ error_t snmpCommunityMibGetNextCommunityEntry(const MibObject *object, const uin
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -608,7 +659,9 @@ error_t snmpCommunityMibGetNextCommunityEntry(const MibObject *object, const uin
    error = mibEncodeString(nextOid, *nextOidLen, &n, nextEntry->name, TRUE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

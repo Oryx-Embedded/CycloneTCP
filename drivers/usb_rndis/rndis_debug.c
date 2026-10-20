@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -130,7 +130,9 @@ error_t rndisDumpMsg(const RndisMsg *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the name of the RNDIS message
    label = rndisFindName(message->messageType,
@@ -221,7 +223,9 @@ error_t rndisDumpPacketMsg(const RndisPacketMsg *message, size_t length)
 {
    //Check the length of the message
    if(length < sizeof(RndisPacketMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump RNDIS message
    TRACE_DEBUG("  DataOffset = 0x%08" PRIX32 "\r\n", message->dataOffset);
@@ -250,7 +254,9 @@ error_t rndisDumpInitializeMsg(const RndisInitializeMsg *message, size_t length)
 {
    //Check the length of the message
    if(length < sizeof(RndisInitializeMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump RNDIS message
    TRACE_DEBUG("  RequestID = 0x%08" PRIX32 "\r\n", message->requestId);
@@ -274,7 +280,9 @@ error_t rndisDumpHaltMsg(const RndisHaltMsg *message, size_t length)
 {
    //Check the length of the message
    if(length < sizeof(RndisHaltMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump RNDIS message
    TRACE_DEBUG("  RequestID = 0x%08" PRIX32 "\r\n", message->requestId);
@@ -299,7 +307,9 @@ error_t rndisDumpQueryMsg(const RndisQueryMsg *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisQueryMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the corresponding OID
    label = rndisFindName(message->oid,
@@ -344,7 +354,9 @@ error_t rndisDumpSetMsg(const RndisSetMsg *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisSetMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the corresponding OID
    label = rndisFindName(message->oid,
@@ -385,7 +397,9 @@ error_t rndisDumpResetMsg(const RndisResetMsg *message, size_t length)
 {
    //Check the length of the message
    if(length < sizeof(RndisResetMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump RNDIS message
    TRACE_DEBUG("  Reserved = 0x%08" PRIX32 "\r\n", message->reserved);
@@ -411,7 +425,9 @@ error_t rndisDumpIndicateStatusMsg(const RndisIndicateStatusMsg *message, size_t
 
    //Check the length of the message
    if(length < sizeof(RndisIndicateStatusMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the corresponding status string
    label = rndisFindName(message->status,
@@ -461,7 +477,9 @@ error_t rndisDumpKeepAliveMsg(const RndisKeepAliveMsg *message, size_t length)
 {
    //Check the length of the message
    if(length < sizeof(RndisKeepAliveMsg))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump RNDIS message
    TRACE_DEBUG("  RequestID = 0x%08" PRIX32 "\r\n", message->requestId);
@@ -486,7 +504,9 @@ error_t rndisDumpInitializeCmplt(const RndisInitializeCmplt *message, size_t len
 
    //Check the length of the message
    if(length < sizeof(RndisInitializeCmplt))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the corresponding status string
    label = rndisFindName(message->status,
@@ -526,7 +546,9 @@ error_t rndisDumpQueryCmplt(const RndisQueryCmplt *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisQueryCmplt))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the corresponding status string
    label = rndisFindName(message->status,
@@ -570,7 +592,9 @@ error_t rndisDumpSetCmplt(const RndisSetCmplt *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisSetCmplt))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the corresponding status string
    label = rndisFindName(message->status,
@@ -601,7 +625,9 @@ error_t rndisDumpResetCmplt(const RndisResetCmplt *message, size_t length)
 
    //Check the length of the message
    if(length < sizeof(RndisResetCmplt))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the corresponding status string
    label = rndisFindName(message->status,
@@ -632,7 +658,9 @@ error_t rndisDumpKeepAliveCmplt(const RndisKeepAliveCmplt *message, size_t lengt
 
    //Check the length of the message
    if(length < sizeof(RndisKeepAliveCmplt))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the corresponding status string
    label = rndisFindName(message->status,

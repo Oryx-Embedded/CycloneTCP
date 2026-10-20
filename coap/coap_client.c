@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,9 @@ error_t coapClientInit(CoapClientContext *context)
 
    //Make sure the CoAP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -73,7 +75,6 @@ error_t coapClientInit(CoapClientContext *context)
       //Create a mutex to prevent simultaneous access to the context
       if(!osCreateMutex(&context->mutex))
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -81,7 +82,6 @@ error_t coapClientInit(CoapClientContext *context)
       //Create a event object to receive notifications
       if(!osCreateEvent(&context->event))
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -91,7 +91,9 @@ error_t coapClientInit(CoapClientContext *context)
       error = tlsInitSessionState(&context->dtlsSession);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
       //Initialize CoAP client state
@@ -135,7 +137,9 @@ error_t coapClientSetTransportProtocol(CoapClientContext *context,
 {
    //Make sure the CoAP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&context->mutex);
@@ -163,7 +167,9 @@ error_t coapClientRegisterDtlsInitCallback(CoapClientContext *context,
 {
    //Check parameters
    if(context == NULL || callback == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&context->mutex);
@@ -190,7 +196,9 @@ error_t coapClientSetTimeout(CoapClientContext *context, systime_t timeout)
 {
    //Make sure the CoAP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&context->mutex);
@@ -215,11 +223,15 @@ error_t coapClientSetTokenLength(CoapClientContext *context, size_t length)
 {
    //Make sure the CoAP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the token length is acceptable
    if(length > COAP_MAX_TOKEN_LEN)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&context->mutex);
@@ -245,7 +257,9 @@ error_t coapClientBindToInterface(CoapClientContext *context,
 {
    //Make sure the CoAP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&context->mutex);
@@ -275,7 +289,9 @@ error_t coapClientConnect(CoapClientContext *context,
 
    //Check parameters
    if(context == NULL || serverIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&context->mutex);
@@ -379,7 +395,9 @@ error_t coapClientTask(CoapClientContext *context, systime_t timeout)
 
    //Make sure the CoAP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&context->mutex);
@@ -405,7 +423,9 @@ error_t coapClientDisconnect(CoapClientContext *context)
 
    //Make sure the CoAP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;

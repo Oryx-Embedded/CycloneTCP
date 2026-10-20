@@ -40,7 +40,7 @@
  * - RFC 7617: The Basic HTTP Authentication Scheme
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -105,7 +105,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 
    //Make sure the buffer contains a valid HTTP request
    if(context->bufferLen < 2 || context->bufferLen > HTTP_CLIENT_BUFFER_SIZE)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Point to the HTTP authentication parameters
    authParams = &context->authParams;
@@ -123,7 +125,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 
       //Make sure the buffer is large enough
       if((context->bufferLen + n + 22) > HTTP_CLIENT_BUFFER_SIZE)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //Point to the buffer where to format the Authorization header field
       p = context->buffer + context->bufferLen - 2;
@@ -140,7 +144,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 
       //Make sure the buffer is large enough
       if((context->bufferLen + n + k) > HTTP_CLIENT_BUFFER_SIZE)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //The second pass encodes the string using Base64
       base64Encode(p + n, m, p + n, &k);
@@ -149,7 +155,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 
       //Make sure the buffer is large enough
       if((context->bufferLen + n + 2) > HTTP_CLIENT_BUFFER_SIZE)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //Terminate the header field with a CRLF sequence
       osSprintf(p + n, "\r\n\r\n");
@@ -177,7 +185,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
       q = osStrchr(context->buffer, ' ');
       //Any parsing error?
       if(q == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //The method token is followed by the Request-URI
       uri = q + 1;
@@ -186,7 +196,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
       q = osStrchr(uri, ' ');
       //Any parsing error?
       if(q == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Compute the length of the current URI
       uriLen = q - uri;
@@ -197,7 +209,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
       {
          //Make sure that a valid callback function has been registered
          if(context->randCallback == NULL)
+         {
             return ERROR_PRNG_NOT_READY;
+         }
 
          //A cryptographically strong random number generator must be used to
          //generate the cnonce
@@ -205,7 +219,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
             HTTP_CLIENT_CNONCE_SIZE);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Convert the byte array to hex string
          httpEncodeHexString((const uint8_t *) authParams->cnonce,
@@ -221,7 +237,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
          osStrlen(context->method), uri, uriLen, response);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Determine the length of the header field
       n = osStrlen(authParams->username) + osStrlen(authParams->realm) +
@@ -230,7 +248,9 @@ error_t httpClientFormatAuthorizationField(HttpClientContext *context)
 
       //Make sure the buffer is large enough
       if((context->bufferLen + n + 121) > HTTP_CLIENT_BUFFER_SIZE)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //Point to the buffer where to format the Authorization header field
       p = context->buffer + context->bufferLen - 2;
@@ -633,7 +653,9 @@ error_t httpClientComputeDigest(HttpClientAuthParams *authParams,
    hash = authParams->algorithm;
    //Make sure the hash algorithm is valid
    if(hash == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Compute H(A1) = H(username : realm : password)
    hash->init(&hashContext);

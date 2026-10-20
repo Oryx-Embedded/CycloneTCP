@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,9 @@ void ndpRouterAdvTick(NdpRouterAdvContext *context)
 
    //Make sure the RA service has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Point to the underlying network interface
    interface = context->interface;
@@ -118,7 +120,9 @@ void ndpRouterAdvLinkChangeEvent(NdpRouterAdvContext *context)
 
    //Make sure the RA service has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Point to the underlying network interface
    interface = context->interface;
@@ -177,7 +181,9 @@ void ndpProcessRouterSol(NetInterface *interface,
 
    //A host must silently discard any received Router Solicitation
    if(context == NULL)
+   {
       return;
+   }
 
    //Get current time
    time = osGetSystemTime();
@@ -187,13 +193,17 @@ void ndpProcessRouterSol(NetInterface *interface,
 
    //Check the length of the Router Solicitation message
    if(length < sizeof(NdpRouterSolMessage))
+   {
       return;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
    //Malformed message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("Router Solicitation message received (%" PRIuSIZE " bytes)...\r\n",
@@ -205,11 +215,15 @@ void ndpProcessRouterSol(NetInterface *interface,
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
    if(ancillary->ttl != NDP_HOP_LIMIT)
+   {
       return;
+   }
 
    //ICMPv6 Code must be 0
    if(message->code)
+   {
       return;
+   }
 
    //Calculate the length of the Options field
    length -= sizeof(NdpRouterSolMessage);
@@ -218,7 +232,9 @@ void ndpProcessRouterSol(NetInterface *interface,
    error = ndpCheckOptions(message->options, length);
    //All included options must have a length that is greater than zero
    if(error)
+   {
       return;
+   }
 
    //Search for the Source Link-Layer Address option
    option = ndpGetOption(message->options,
@@ -234,7 +250,9 @@ void ndpProcessRouterSol(NetInterface *interface,
       //The Source Link-Layer Address option must not be included when the
       //source IP address is the unspecified address
       if(ipv6CompAddr(&pseudoHeader->srcAddr, &IPV6_UNSPECIFIED_ADDR))
+      {
          return;
+      }
 
       //Search the Neighbor Cache for the source address of the solicitation
       entry = ndpFindNeighborCacheEntry(interface, &pseudoHeader->srcAddr);
@@ -269,8 +287,12 @@ void ndpProcessRouterSol(NetInterface *interface,
          //entry's IsRouter flag must be set to FALSE
          entry->isRouter = FALSE;
 
-         //INCOMPLETE state?
-         if(entry->state == NDP_STATE_INCOMPLETE)
+         //Check the state of the Neighbor cache entry
+         if(entry->state == NDP_STATE_PERMANENT)
+         {
+            //Static Neighbor cache entries are never updated
+         }
+         else if(entry->state == NDP_STATE_INCOMPLETE)
          {
             //Record link-layer address
             entry->macAddr = option->linkLayerAddr;
@@ -292,7 +314,6 @@ void ndpProcessRouterSol(NetInterface *interface,
                ndpChangeState(entry, NDP_STATE_STALE);
             }
          }
-         //REACHABLE, STALE, DELAY or PROBE state?
          else
          {
             //Different link-layer address than cached?
@@ -316,7 +337,9 @@ void ndpProcessRouterSol(NetInterface *interface,
    //multicast Router Advertisement is scheduled to be sent, ignore the random
    //delay and send the advertisement at the already-scheduled time
    if(timeCompare(time + delay, context->timestamp + context->timeout) > 0)
+   {
       return;
+   }
 
    //Check whether the router sent a multicast Router Advertisement (solicited
    //or unsolicited) within the last MIN_DELAY_BETWEEN_RAS seconds
@@ -373,7 +396,9 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
 
    //No link-local address assigned to the interface?
    if(error)
+   {
       return error;
+   }
 
    //Compute the maximum size of the Router Advertisement message
    length = IPV6_DEFAULT_MTU - sizeof(Ipv6Header);
@@ -382,7 +407,9 @@ error_t ndpSendRouterAdv(NdpRouterAdvContext *context, uint16_t routerLifetime)
    buffer = ipAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, 0);

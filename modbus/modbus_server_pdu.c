@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -66,7 +66,9 @@ error_t modbusServerProcessRequest(ModbusClientConnection *connection)
 
    //Malformed request?
    if(requestLen == 0)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Debug message
    TRACE_INFO("Modbus Server: Request PDU received (%" PRIuSIZE " bytes)...\r\n",
@@ -252,7 +254,9 @@ error_t modbusServerProcessReadCoilsReq(ModbusClientConnection *connection,
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadCoilsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the first coil
    address = ntohs(request->startingAddr);
@@ -261,7 +265,9 @@ error_t modbusServerProcessReadCoilsReq(ModbusClientConnection *connection,
 
    //The number of discrete inputs must be in range 1 to 2000
    if(quantity < 1 || quantity > 2000)
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -307,7 +313,9 @@ error_t modbusServerProcessReadCoilsReq(ModbusClientConnection *connection,
 
    //Check whether the read operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Compute the length of the response PDU
    length = sizeof(ModbusReadCoilsResp) + response->byteCount;
@@ -350,7 +358,9 @@ error_t modbusServerProcessReadDiscreteInputsReq(ModbusClientConnection *connect
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadDiscreteInputsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the first coil
    address = ntohs(request->startingAddr);
@@ -359,7 +369,9 @@ error_t modbusServerProcessReadDiscreteInputsReq(ModbusClientConnection *connect
 
    //The number of discrete inputs must be in range 1 to 2000
    if(quantity < 1 || quantity > 2000)
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -405,7 +417,9 @@ error_t modbusServerProcessReadDiscreteInputsReq(ModbusClientConnection *connect
 
    //Check whether the read operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Compute the length of the response PDU
    length = sizeof(ModbusReadDiscreteInputsResp) + response->byteCount;
@@ -448,7 +462,9 @@ error_t modbusServerProcessReadHoldingRegsReq(ModbusClientConnection *connection
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadHoldingRegsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the first register
    address = ntohs(request->startingAddr);
@@ -457,7 +473,9 @@ error_t modbusServerProcessReadHoldingRegsReq(ModbusClientConnection *connection
 
    //The number of registers must be in range 1 to 125
    if(quantity < 1 || quantity > 125)
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -483,7 +501,9 @@ error_t modbusServerProcessReadHoldingRegsReq(ModbusClientConnection *connection
 
    //Check whether the read operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Compute the length of the response PDU
    length = sizeof(ModbusReadHoldingRegsResp) + response->byteCount;
@@ -526,7 +546,9 @@ error_t modbusServerProcessReadInputRegsReq(ModbusClientConnection *connection,
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadInputRegsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the first register
    address = ntohs(request->startingAddr);
@@ -535,7 +557,9 @@ error_t modbusServerProcessReadInputRegsReq(ModbusClientConnection *connection,
 
    //The number of registers must be in range 1 to 125
    if(quantity < 1 || quantity > 125)
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -561,7 +585,9 @@ error_t modbusServerProcessReadInputRegsReq(ModbusClientConnection *connection,
 
    //Check whether the read operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Compute the length of the response PDU
    length = sizeof(ModbusReadInputRegsResp) + response->byteCount;
@@ -599,7 +625,9 @@ error_t modbusServerProcessWriteSingleCoilReq(ModbusClientConnection *connection
 
    //Malformed PDU?
    if(length < sizeof(ModbusWriteSingleCoilReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the coil to be forced
    address = ntohs(request->outputAddr);
@@ -630,7 +658,9 @@ error_t modbusServerProcessWriteSingleCoilReq(ModbusClientConnection *connection
 
    //Check whether the write operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -676,7 +706,9 @@ error_t modbusServerProcessWriteSingleRegReq(ModbusClientConnection *connection,
 
    //Malformed PDU?
    if(length < sizeof(ModbusWriteSingleRegReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the register
    address = ntohs(request->regAddr);
@@ -692,7 +724,9 @@ error_t modbusServerProcessWriteSingleRegReq(ModbusClientConnection *connection,
 
    //Check whether the write operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -742,27 +776,35 @@ error_t modbusServerProcessWriteMultipleCoilsReq(ModbusClientConnection *connect
 
    //Malformed PDU?
    if(length < sizeof(ModbusWriteMultipleCoilsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the data field
    length -= sizeof(ModbusWriteMultipleCoilsReq);
 
    //Malformed PDU?
    if(length < request->byteCount)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the first coil to be forced
    address = ntohs(request->startingAddr);
    //Get the number of coils
    quantity = ntohs(request->quantityOfOutputs);
 
-   //The number of discrete inputs must be in range 1 to 2000
-   if(quantity < 1 || quantity > 2000)
+   //The number of coils must be in range 1 to 1968
+   if(quantity < 1 || quantity > 1968)
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Check byte count field
    if(request->byteCount != ((quantity + 7) / 8))
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Lock access to Modbus table
    modbusServerLock(connection);
@@ -788,7 +830,9 @@ error_t modbusServerProcessWriteMultipleCoilsReq(ModbusClientConnection *connect
 
    //Check whether the write operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -839,14 +883,18 @@ error_t modbusServerProcessWriteMultipleRegsReq(ModbusClientConnection *connecti
 
    //Malformed PDU?
    if(length < sizeof(ModbusWriteMultipleRegsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the data field
    length -= sizeof(ModbusWriteMultipleRegsReq);
 
    //Malformed PDU?
    if(length < request->byteCount)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the first register to be written
    address = ntohs(request->startingAddr);
@@ -855,11 +903,15 @@ error_t modbusServerProcessWriteMultipleRegsReq(ModbusClientConnection *connecti
 
    //The number of registers must be in range 1 to 123
    if(quantity < 1 || quantity > 123)
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Check byte count field
    if(request->byteCount != (quantity * sizeof(uint16_t)))
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Lock access to Modbus table
    modbusServerLock(connection);
@@ -885,7 +937,9 @@ error_t modbusServerProcessWriteMultipleRegsReq(ModbusClientConnection *connecti
 
    //Check whether the write operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -935,7 +989,9 @@ error_t modbusServerProcessMaskWriteRegReq(ModbusClientConnection *connection,
 
    //Malformed PDU?
    if(length < sizeof(ModbusMaskWriteRegReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the register
    address = ntohs(request->referenceAddr);
@@ -964,7 +1020,9 @@ error_t modbusServerProcessMaskWriteRegReq(ModbusClientConnection *connection,
 
    //Check whether the write operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -1018,14 +1076,18 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadWriteMultipleRegsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the data field
-   length -= sizeof(ModbusWriteMultipleRegsReq);
+   length -= sizeof(ModbusReadWriteMultipleRegsReq);
 
    //Malformed PDU?
    if(length < request->writeByteCount)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the address of the first register to be read
    readAddress = ntohs(request->readStartingAddr);
@@ -1038,15 +1100,21 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
 
    //The number of registers to be read must be in range 1 to 125
    if(readQuantity < 1 || readQuantity > 125)
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //The number of registers to be written must be in range 1 to 121
    if(writeQuantity < 1 || writeQuantity > 121)
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Check byte count field
    if(request->writeByteCount != (writeQuantity * sizeof(uint16_t)))
+   {
       return ERROR_INVALID_VALUE;
+   }
 
    //Point to the Modbus response PDU
    response = modbusServerGetResponsePdu(connection);
@@ -1089,7 +1157,9 @@ error_t modbusServerProcessReadWriteMultipleRegsReq(ModbusClientConnection *conn
 
    //Check whether the write operation has failed
    if(error)
+   {
       return error;
+   }
 
    //Compute the length of the response PDU
    length = sizeof(ModbusReadWriteMultipleRegsResp) + response->readByteCount;

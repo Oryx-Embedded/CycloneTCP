@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,31 +60,41 @@ error_t ftpClientOpenChannel(FtpClientContext *context,
       SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(channel->socket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Associate the socket with the relevant interface
    error = socketBindToInterface(channel->socket, context->interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set timeout
    error = socketSetTimeout(channel->socket, context->timeout);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Specify the size of the send buffer
    error = socketSetTxBufferSize(channel->socket, txBufferSize);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Specify the size of the receive buffer
    error = socketSetRxBufferSize(channel->socket, rxBufferSize);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -110,25 +120,33 @@ error_t ftpClientOpenSecureChannel(FtpClientContext *context,
    channel->tlsContext = tlsInit();
    //Failed to allocate TLS context?
    if(channel->tlsContext == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Select client operation mode
    error = tlsSetConnectionEnd(channel->tlsContext, TLS_CONNECTION_END_CLIENT);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Bind TLS to the relevant socket
    error = tlsSetSocket(channel->tlsContext, channel->socket);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set TX and RX buffer size
    error = tlsSetBufferSize(channel->tlsContext, txBufferSize, rxBufferSize);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Data channel?
    if(channel == &context->dataChannel)
@@ -138,14 +156,18 @@ error_t ftpClientOpenSecureChannel(FtpClientContext *context,
          &context->tlsSession);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Restore TLS session
    error = tlsRestoreSessionState(channel->tlsContext, &context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Invoke user-defined callback, if any
    if(context->tlsInitCallback != NULL)
@@ -154,7 +176,9 @@ error_t ftpClientOpenSecureChannel(FtpClientContext *context,
       error = context->tlsInitCallback(context, channel->tlsContext);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing

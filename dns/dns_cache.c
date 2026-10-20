@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -201,19 +201,31 @@ DnsCacheEntry *dnsFindEntry(NetInterface *interface,
 
       //Make sure that the entry is currently in use
       if(entry->state == DNS_STATE_NONE)
+      {
          continue;
+      }
 
       //Filter out entries that do not match the specified criteria
       if(entry->interface != interface)
+      {
          continue;
+      }
+
       if(entry->type != type && type != HOST_TYPE_ANY)
+      {
          continue;
+      }
+
       if(entry->protocol != protocol && protocol != HOST_NAME_RESOLVER_ANY)
+      {
          continue;
+      }
 
       //Does the entry match the specified domain name?
       if(name == NULL || osStrcasecmp(entry->name, name) == 0)
+      {
          return entry;
+      }
    }
 
    //No matching entry in the DNS cache

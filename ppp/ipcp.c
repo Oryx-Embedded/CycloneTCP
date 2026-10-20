@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -152,13 +152,20 @@ void ipcpProcessPacket(PppContext *context, const PppPacket *packet, size_t leng
 {
    //Ensure the length of the incoming IPCP packet is valid
    if(length < sizeof(PppPacket))
+   {
       return;
+   }
 
    //Check the length field
    if(ntohs(packet->length) > length)
+   {
       return;
+   }
+
    if(ntohs(packet->length) < sizeof(PppPacket))
+   {
       return;
+   }
 
    //Save the length of the IPCP packet
    length = ntohs(packet->length);
@@ -327,7 +334,9 @@ error_t ipcpProcessConfigureAck(PppContext *context,
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(configureAckPacket->identifier != context->ipcpFsm.identifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //A valid Configure-Ack packet has been received from the peer
    pppRcvConfigureAckEvent(context, &context->ipcpFsm, &ipcpCallbacks);
@@ -356,7 +365,9 @@ error_t ipcpProcessConfigureNak(PppContext *context,
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(configureNakPacket->identifier != context->ipcpFsm.identifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Retrieve the length of the option list
    length = ntohs(configureNakPacket->length) - sizeof(PppConfigurePacket);
@@ -368,9 +379,14 @@ error_t ipcpProcessConfigureNak(PppContext *context,
    {
       //Check option length
       if(option->length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
+
       if(option->length > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //IP-Address option?
       if(option->type == IPCP_OPTION_IP_ADDRESS)
@@ -380,7 +396,9 @@ error_t ipcpProcessConfigureNak(PppContext *context,
 
          //Check option length
          if(ipAddressOption->length != sizeof(IpcpIpAddressOption))
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Save IP address
          context->localConfig.ipAddr = ipAddressOption->ipAddr;
@@ -393,7 +411,9 @@ error_t ipcpProcessConfigureNak(PppContext *context,
 
          //Check option length
          if(primaryDns->length != sizeof(IpcpPrimaryDnsOption))
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Save primary DNS server address
          context->localConfig.primaryDns = primaryDns->ipAddr;
@@ -406,7 +426,9 @@ error_t ipcpProcessConfigureNak(PppContext *context,
 
          //Check option length
          if(secondaryDns->length != sizeof(IpcpSecondaryDnsOption))
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Save secondary DNS server address
          context->localConfig.secondaryDns = secondaryDns->ipAddr;
@@ -445,7 +467,9 @@ error_t ipcpProcessConfigureReject(PppContext *context,
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(configureRejPacket->identifier != context->ipcpFsm.identifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Retrieve the length of the option list
    length = ntohs(configureRejPacket->length) - sizeof(PppConfigurePacket);
@@ -457,9 +481,14 @@ error_t ipcpProcessConfigureReject(PppContext *context,
    {
       //Check option length
       if(option->length < sizeof(PppOption))
+      {
          return ERROR_INVALID_LENGTH;
+      }
+
       if(option->length > length)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //IP-Address option?
       if(option->type == IPCP_OPTION_IP_ADDRESS)
@@ -562,7 +591,9 @@ error_t ipcpProcessCodeRej(PppContext *context,
 
    //Make sure the length of the rejected packet is valid
    if(length < sizeof(PppPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check whether the rejected value is acceptable or catastrophic
    if(packet->code < PPP_CODE_CONFIGURE_REQ ||
@@ -763,7 +794,9 @@ error_t ipcpSendConfigureReq(PppContext *context)
    buffer = pppAllocBuffer(PPP_MAX_CONF_REQ_SIZE, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Configure-Request packet
    configureReqPacket = netBufferAt(buffer, offset, 0);
@@ -817,7 +850,9 @@ error_t ipcpSendConfigureReq(PppContext *context)
 
    //The restart counter is decremented each time a Configure-Request is sent
    if(context->ipcpFsm.restartCounter > 0)
+   {
       context->ipcpFsm.restartCounter--;
+   }
 
    //Save the time at which the packet was sent
    context->ipcpFsm.timestamp = osGetSystemTime();
@@ -908,7 +943,9 @@ error_t ipcpSendTerminateReq(PppContext *context)
 
    //The restart counter is decremented each time a Terminate-Request is sent
    if(context->ipcpFsm.restartCounter > 0)
+   {
       context->ipcpFsm.restartCounter--;
+   }
 
    //Save the time at which the packet was sent
    context->ipcpFsm.timestamp = osGetSystemTime();
@@ -988,13 +1025,20 @@ error_t ipcpParseOption(PppContext *context, PppOption *option,
 
    //Malformed IPCP packet?
    if(inPacketLen < sizeof(PppOption))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check option length
    if(option->length < sizeof(PppOption))
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
    if(option->length > inPacketLen)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check option type
    switch(option->type)

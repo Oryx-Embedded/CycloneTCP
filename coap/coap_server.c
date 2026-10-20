@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -118,19 +118,27 @@ error_t coapServerInit(CoapServerContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
 #if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
    if(settings->sessions == NULL && settings->numSessions != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 #endif
 
 #if (COAP_SERVER_OBSERVE_SUPPORT == ENABLED)
    if(settings->resources == NULL && settings->numResources != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    if(settings->observers == NULL && settings->numObservers != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 #endif
 
    //Initialize status code
@@ -231,7 +239,9 @@ error_t coapServerInit(CoapServerContext *context,
       error = tlsInitTicketContext(&context->dtlsTicketContext);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 #endif
 
       //End of exception handling block
@@ -267,9 +277,14 @@ error_t coapServerSetCookieSecret(CoapServerContext *context,
 #if (COAP_SERVER_DTLS_SUPPORT == ENABLED)
    //Ensure the parameters are valid
    if(context == NULL || cookieSecret == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(cookieSecretLen > COAP_SERVER_MAX_COOKIE_SECRET_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save the secret key
    osMemcpy(context->cookieSecret, cookieSecret, cookieSecretLen);
@@ -297,14 +312,18 @@ error_t coapServerStart(CoapServerContext *context)
 
    //Make sure the CoAP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting CoAP server...\r\n");
 
    //Make sure the CoAP server is not already running
    if(context->running)
+   {
       return ERROR_ALREADY_RUNNING;
+   }
 
    //Start of exception handling block
    do
@@ -315,7 +334,6 @@ error_t coapServerStart(CoapServerContext *context)
       //Failed to open socket?
       if(context->socket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -324,19 +342,25 @@ error_t coapServerStart(CoapServerContext *context)
       error = socketSetTimeout(context->socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket, context->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
+      {
          break;
+      }
 
       //The CoAP server listens for datagrams on port 5683
       error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Unable to bind the socket to the desired port?
       if(error)
+      {
          break;
+      }
 
       //Any registered callback?
       if(context->udpInitCallback != NULL)
@@ -345,7 +369,9 @@ error_t coapServerStart(CoapServerContext *context)
          error = context->udpInitCallback(context, context->socket);
          //Any error to report?
          if(error)
+         {
             break;
+         }
       }
 
       //Start the CoAP server
@@ -359,7 +385,6 @@ error_t coapServerStart(CoapServerContext *context)
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -397,7 +422,9 @@ error_t coapServerStop(CoapServerContext *context)
 
    //Make sure the CoAP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping CoAP server...\r\n");
@@ -453,11 +480,15 @@ error_t coapServerCreateResource(CoapServerContext *context, const char_t *uri)
 
    //Check parameters
    if(context == NULL || uri == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check the length of the URI
    if(osStrlen(uri) > COAP_SERVER_MAX_URI_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -533,11 +564,15 @@ error_t coapServerUpdateResource(CoapServerContext *context, const char_t *uri,
 
    //Check parameters
    if(context == NULL || uri == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check the length of the resource state
    if(length > COAP_SERVER_MAX_OBS_RESOURCE_SIZE)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -614,7 +649,9 @@ error_t coapServerDeleteResource(CoapServerContext *context, const char_t *uri)
 
    //Check parameters
    if(context == NULL || uri == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;

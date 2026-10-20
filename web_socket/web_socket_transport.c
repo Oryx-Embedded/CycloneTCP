@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -58,20 +58,26 @@ error_t webSocketOpenConnection(WebSocket *webSocket)
       webSocket->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
       //Failed to open socket?
       if(webSocket->socket == NULL)
+      {
          return ERROR_OPEN_FAILED;
+      }
 
       //Associate the WebSocket with the relevant interface
       error = socketBindToInterface(webSocket->socket, webSocket->interface);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Set timeout
    error = socketSetTimeout(webSocket->socket, webSocket->timeout);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (WEB_SOCKET_TLS_SUPPORT == ENABLED)
       //TLS-secured connection?
@@ -83,31 +89,43 @@ error_t webSocketOpenConnection(WebSocket *webSocket)
          webSocket->tlsContext = tlsInit();
          //Failed to allocate TLS context?
          if(webSocket->tlsContext == NULL)
+         {
             return ERROR_OUT_OF_MEMORY;
+         }
 
          //Client or server operation?
          if(webSocket->endpoint == WS_ENDPOINT_CLIENT)
+         {
             connectionEnd = TLS_CONNECTION_END_CLIENT;
+         }
          else
+         {
             connectionEnd = TLS_CONNECTION_END_SERVER;
+         }
 
          //Select the relevant operation mode
          error = tlsSetConnectionEnd(webSocket->tlsContext, connectionEnd);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Bind TLS to the relevant socket
          error = tlsSetSocket(webSocket->tlsContext, webSocket->socket);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Restore TLS session, if any
          error = tlsRestoreSessionState(webSocket->tlsContext, &webSocket->tlsSession);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Invoke user-defined callback, if any
          if(webSocket->tlsInitCallback != NULL)
@@ -116,7 +134,9 @@ error_t webSocketOpenConnection(WebSocket *webSocket)
             error = webSocket->tlsInitCallback(webSocket, webSocket->tlsContext);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
          }
       }
 #endif
@@ -201,7 +221,9 @@ error_t webSocketShutdownConnection(WebSocket *webSocket)
 
    //Check whether the connection has been properly closed
    if(error == ERROR_END_OF_STREAM)
+   {
       error = NO_ERROR;
+   }
 
    //Return status code
    return error;

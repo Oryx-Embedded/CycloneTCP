@@ -34,7 +34,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -131,7 +131,9 @@ error_t ftpServerInit(FtpServerContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Sanity check
    if(settings->passivePortMax <= settings->passivePortMin)
@@ -253,14 +255,18 @@ error_t ftpServerStart(FtpServerContext *context)
 
    //Make sure the FTP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting FTP server...\r\n");
 
    //Make sure the FTP server is not already running
    if(context->running)
+   {
       return ERROR_ALREADY_RUNNING;
+   }
 
    //Start of exception handling block
    do
@@ -271,7 +277,6 @@ error_t ftpServerStart(FtpServerContext *context)
       //Failed to open socket?
       if(context->socket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -280,39 +285,51 @@ error_t ftpServerStart(FtpServerContext *context)
       error = socketSetTimeout(context->socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(context->socket,
          FTP_SERVER_MIN_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(context->socket,
          FTP_SERVER_MIN_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(context->socket, context->interface);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //The FTP server listens for connection requests on port 21
       error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Place socket in listening state
       error = socketListen(context->socket, FTP_SERVER_BACKLOG);
       //Any failure to report?
       if(error)
+      {
          break;
+      }
 
       //Start the FTP server
       context->stop = FALSE;
@@ -325,7 +342,6 @@ error_t ftpServerStart(FtpServerContext *context)
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -361,7 +377,9 @@ error_t ftpServerStop(FtpServerContext *context)
 
    //Make sure the FTP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping FTP server...\r\n");
@@ -413,7 +431,9 @@ error_t ftpServerSetRootDir(FtpClientConnection *connection,
 
    //Check parameters
    if(connection == NULL || rootDir == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the FTP server context
    context = connection->context;
@@ -449,7 +469,9 @@ error_t ftpServerSetHomeDir(FtpClientConnection *connection,
 
    //Check parameters
    if(connection == NULL || homeDir == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the FTP server context
    context = connection->context;

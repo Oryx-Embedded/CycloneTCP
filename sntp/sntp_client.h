@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _SNTP_CLIENT_H
@@ -111,6 +111,7 @@ typedef struct
    systime_t startTime;               ///<Request start time
    systime_t retransmitStartTime;     ///<Time at which the last request was sent
    systime_t retransmitTimeout;       ///<Retransmission timeout
+   NtpTimestamp transmitTimestamp;    ///<Transmit Timestamp of the last request
    uint8_t message[NTP_MAX_MSG_SIZE]; ///<Buffer that holds the NTP request/response
    size_t messageLen;                 ///<Length of the NTP message, in bytes
    uint32_t kissCode;                 ///<Kiss code

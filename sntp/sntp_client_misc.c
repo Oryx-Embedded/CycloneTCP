@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -125,11 +125,15 @@ error_t sntpClientSendRequest(SntpClientContext *context)
    //Time at which the NTP request was sent
    context->retransmitStartTime = osGetSystemTime();
 
-   //The Transmit Timestamp allows a simple calculation to determine the
-   //propagation delay between the server and client and to align the system
-   //clock generally within a few tens of milliseconds relative to the server
-   header->transmitTimestamp.seconds = 0;
-   header->transmitTimestamp.fraction = htonl(context->retransmitStartTime);
+   //The server copies the Transmit Timestamp of the request into the
+   //Originate Timestamp of the reply. Use an unpredictable value, so that an
+   //off-path attacker cannot forge a reply that matches the request
+   context->transmitTimestamp.seconds = netGenerateRand(context->netContext);
+   context->transmitTimestamp.fraction = netGenerateRand(context->netContext);
+
+   //Set the Transmit Timestamp field
+   header->transmitTimestamp.seconds = htonl(context->transmitTimestamp.seconds);
+   header->transmitTimestamp.fraction = htonl(context->transmitTimestamp.fraction);
 
    //Length of the NTP request
    context->messageLen = sizeof(NtpHeader);
@@ -259,7 +263,27 @@ error_t sntpClientCheckResponse(SntpClientContext *context,
 
    //Ensure the NTP packet is valid
    if(length < sizeof(NtpHeader))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
+
+   //When the request was sent to a unicast address, the IP source address of
+   //the reply must match the destination address of the request
+   if(!ipIsMulticastAddr(&context->serverIpAddr) &&
+      !ipIsBroadcastAddr(&context->serverIpAddr))
+   {
+      if(!ipCompAddr(ipAddr, &context->serverIpAddr))
+      {
+         return ERROR_INVALID_MESSAGE;
+      }
+   }
+
+   //The UDP source port of the reply must match the destination port of the
+   //request
+   if(port != context->serverPort)
+   {
+      return ERROR_INVALID_MESSAGE;
+   }
 
    //Point to the NTP response
    header = (NtpHeader *) context->message;
@@ -273,7 +297,9 @@ error_t sntpClientCheckResponse(SntpClientContext *context,
 
    //The server reply should be discarded if the VN field is 0
    if(header->vn == 0)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //The server reply should be discarded if the Transmit Timestamp fields is 0
    if(header->transmitTimestamp.seconds == 0 &&
@@ -285,15 +311,23 @@ error_t sntpClientCheckResponse(SntpClientContext *context,
    //The server reply should be discarded if the Mode field is not 4 (unicast)
    //or 5 (broadcast)
    if(header->mode != NTP_MODE_SERVER && header->mode != NTP_MODE_BROADCAST)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //The Originate Timestamp in the server reply should match the Transmit
    //Timestamp used in the client request
-   if(header->originateTimestamp.seconds != 0)
+   if(header->originateTimestamp.seconds !=
+      htonl(context->transmitTimestamp.seconds))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
-   if(header->originateTimestamp.fraction != htonl(context->retransmitStartTime))
+   if(header->originateTimestamp.fraction !=
+      htonl(context->transmitTimestamp.fraction))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //The NTP response message is acceptable
    return NO_ERROR;
@@ -314,7 +348,9 @@ error_t sntpClientParseResponse(SntpClientContext *context,
 
    //Ensure the NTP packet is valid
    if(context->messageLen < sizeof(NtpHeader))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the NTP response
    header = (NtpHeader *) context->message;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -287,10 +287,16 @@ void echoServerProcessUdpDatagram(EchoServerContext *context)
          " (%" PRIuSIZE " bytes)\r\n",
          ipAddrToString(&clientIpAddr, NULL), clientPort, length);
 
-      //When a datagram is received, the data from it is sent back in an
-      //answering datagram
-      error = socketSendTo(context->udpSocket, &clientIpAddr, clientPort,
-         context->udpBuffer, length, NULL, 0);
+      //Datagrams coming from a well-known port are not echoed, to prevent
+      //endless loops between two services and the use of the device as a
+      //reflector
+      if(clientPort >= 1024)
+      {
+         //When a datagram is received, the data from it is sent back in an
+         //answering datagram
+         error = socketSendTo(context->udpSocket, &clientIpAddr, clientPort,
+            context->udpBuffer, length, NULL, 0);
+      }
    }
 #endif
 }

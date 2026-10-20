@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -62,20 +62,14 @@ void dhcpServerTick(DhcpServerContext *context)
 
    //Make sure the DHCP server has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Get current time
    time = osGetSystemTime();
-
    //Convert the lease time to milliseconds
-   if(context->leaseTime < (MAX_DELAY / 1000))
-   {
-      leaseTime = context->leaseTime * 1000;
-   }
-   else
-   {
-      leaseTime = MAX_DELAY;
-   }
+   leaseTime = context->leaseTime * 1000;
 
    //Loop through the list of bindings
    for(i = 0; i < DHCP_SERVER_MAX_CLIENTS; i++)
@@ -83,19 +77,29 @@ void dhcpServerTick(DhcpServerContext *context)
       //Point to the current binding
       binding = &context->clientBinding[i];
 
-      //Valid binding?
-      if(!macCompAddr(&binding->macAddr, &MAC_UNSPECIFIED_ADDR))
+      //Check the state of the binding
+      if(binding->state == DHCP_SERVER_BINDING_STATE_COMMITTED)
       {
-         //Check whether the network address has been committed
-         if(binding->validLease)
+         //The lease has expired
+         if((time - binding->timestamp) >= leaseTime)
          {
-            //Check whether the lease has expired
-            if(timeCompare(time, binding->timestamp + leaseTime) >= 0)
-            {
-               //The address lease is not more valid
-               binding->validLease = FALSE;
-            }
+            //The address lease is not more valid
+            binding->state = DHCP_SERVER_BINDING_STATE_RESERVED;
          }
+      }
+      else if(binding->state == DHCP_SERVER_BINDING_STATE_DECLINED)
+      {
+         //The declined network address can be reassigned once the hold time
+         //has elapsed
+         if((time - binding->timestamp) >= DHCP_SERVER_DECLINE_HOLD_TIME)
+         {
+            //Remove the binding from the list
+            osMemset(binding, 0, sizeof(DhcpServerBinding));
+         }
+      }
+      else
+      {
+         //Unused or reserved binding
       }
    }
 }
@@ -133,13 +137,17 @@ void dhcpServerProcessMessage(NetInterface *interface,
 
    //Make sure the DHCP message is valid
    if(length < sizeof(DhcpMessage) || length > DHCP_MAX_MSG_SIZE)
+   {
       return;
+   }
 
    //Point to the beginning of the DHCP message
    message = netBufferAt(buffer, offset, length);
    //Sanity check
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_DEBUG("\r\n%s: DHCP message received (%" PRIuSIZE " bytes)...\r\n",
@@ -150,23 +158,43 @@ void dhcpServerProcessMessage(NetInterface *interface,
 
    //Check opcode
    if(message->op != DHCP_OPCODE_BOOTREQUEST)
+   {
       return;
+   }
+
    //Enforce hardware type
    if(message->htype != DHCP_HARDWARE_TYPE_ETH)
+   {
       return;
+   }
+
    //Check the length of the hardware address
    if(message->hlen != sizeof(MacAddr))
+   {
       return;
+   }
+
+   //The client hardware address must be a valid unicast MAC address
+   if(macCompAddr(&message->chaddr, &MAC_UNSPECIFIED_ADDR) ||
+      macIsMulticastAddr(&message->chaddr))
+   {
+      return;
+   }
+
    //Check magic cookie
    if(message->magicCookie != HTONL(DHCP_MAGIC_COOKIE))
+   {
       return;
+   }
 
-   //Retrieve DHCP Message Type option
+   //Search the DHCP message for the DHCP Message Type option
    option = dhcpGetOption(message, length, DHCP_OPT_DHCP_MESSAGE_TYPE);
 
-   //Failed to retrieve specified option?
+   //Missing or malformed DHCP Message Type option?
    if(option == NULL || option->length != 1)
+   {
       return;
+   }
 
    //Retrieve message type
    type = (DhcpMessageType) option->value[0];
@@ -179,7 +207,9 @@ void dhcpServerProcessMessage(NetInterface *interface,
          type);
       //Check status code
       if(error)
+      {
          return;
+      }
    }
 
    //Check message type
@@ -229,6 +259,7 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
 {
    error_t error;
    uint_t i;
+   bool_t rapidCommit;
    NetInterface *interface;
    Ipv4Addr requestedIpAddr;
    DhcpOption *option;
@@ -239,18 +270,20 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
    //Index of the IP address assigned to the DHCP server
    i = context->ipAddrIndex;
 
-   //Retrieve Server Identifier option
+   //Search the DHCP message for the Server Identifier option
    option = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
 
-   //Option found?
+   //Valid option found?
    if(option != NULL && option->length == 4)
    {
       //Unexpected server identifier?
       if(!ipv4CompAddr(option->value, &interface->ipv4Context.addrList[i].addr))
+      {
          return;
+      }
    }
 
-   //Retrieve Requested IP Address option
+   //Search the DHCP message for the Requested IP Address option
    option = dhcpGetOption(message, length, DHCP_OPT_REQUESTED_IP_ADDR);
 
    //The client may include the 'requested IP address' option to suggest
@@ -264,6 +297,20 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
       requestedIpAddr = IPV4_UNSPECIFIED_ADDR;
    }
 
+   //Search the DHCP message for the Rapid Commit option
+   option = dhcpGetOption(message, length, DHCP_OPT_RAPID_COMMIT);
+
+   //The Rapid Commit option is used to indicate the use of the two-message
+   //exchange for address assignment (refer to RFC 4039, section 4)
+   if(option != NULL && option->length == 0)
+   {
+      rapidCommit = context->rapidCommit ? TRUE : FALSE;
+   }
+   else
+   {
+      rapidCommit = FALSE;
+   }
+
    //Search the list for a matching binding
    binding = dhcpServerFindBindingByMacAddr(context, &message->chaddr);
 
@@ -274,18 +321,29 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
       if(requestedIpAddr != binding->ipAddr)
       {
          //Ensure the IP address is in the server's pool of available addresses
-         if(ntohl(requestedIpAddr) >= ntohl(context->ipAddrRangeMin) &&
-            ntohl(requestedIpAddr) <= ntohl(context->ipAddrRangeMax))
+         if(dhcpServerIsIpAddrInPool(context, requestedIpAddr))
          {
             //Make sure the IP address is not already allocated
-            if(!dhcpServerFindBindingByIpAddr(context, requestedIpAddr))
+            if(dhcpServerFindBindingByIpAddr(context, requestedIpAddr) == NULL)
             {
+               //The new network address is only offered to the client. It is
+               //not committed until the server receives a DHCPREQUEST message
+               binding->state = DHCP_SERVER_BINDING_STATE_RESERVED;
+
                //Record IP address
                binding->ipAddr = requestedIpAddr;
-               //Get current time
+               //Save current time
                binding->timestamp = osGetSystemTime();
             }
          }
+      }
+
+      //Address reserved for the client?
+      if(binding->state == DHCP_SERVER_BINDING_STATE_RESERVED)
+      {
+         //Refresh the reservation so that the entry is not recycled while
+         //the client is still active
+         binding->timestamp = osGetSystemTime();
       }
 
       //Successful processing
@@ -296,26 +354,17 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
       //Create a new binding
       binding = dhcpServerCreateBinding(context);
 
-      //Binding successfully created
+      //Binding successfully created?
       if(binding != NULL)
       {
-         //Ensure the IP address is in the server's pool of available addresses
-         if(ntohl(requestedIpAddr) >= ntohl(context->ipAddrRangeMin) &&
-            ntohl(requestedIpAddr) <= ntohl(context->ipAddrRangeMax))
+         //Requested IP address in the pool and not already allocated?
+         if(dhcpServerIsIpAddrInPool(context, requestedIpAddr) &&
+            dhcpServerFindBindingByIpAddr(context, requestedIpAddr) == NULL)
          {
-            //Make sure the IP address is not already allocated
-            if(!dhcpServerFindBindingByIpAddr(context, requestedIpAddr))
-            {
-               //Record IP address
-               binding->ipAddr = requestedIpAddr;
-               //Successful processing
-               error = NO_ERROR;
-            }
-            else
-            {
-               //Retrieve the next available IP address from the pool of addresses
-               error = dhcpServerGetNextIpAddr(context, &binding->ipAddr);
-            }
+            //Record IP address
+            binding->ipAddr = requestedIpAddr;
+            //Successful processing
+            error = NO_ERROR;
          }
          else
          {
@@ -326,9 +375,11 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
          //Check status code
          if(!error)
          {
+            //The network address is reserved for the client
+            binding->state = DHCP_SERVER_BINDING_STATE_RESERVED;
             //Record MAC address
             binding->macAddr = message->chaddr;
-            //Get current time
+            //Save current time
             binding->timestamp = osGetSystemTime();
          }
       }
@@ -342,11 +393,26 @@ void dhcpServerParseDiscover(DhcpServerContext *context,
    //Check status code
    if(!error)
    {
-      //The server responds with a DHCPOFFER message that includes an
-      //available network address in the 'yiaddr' field (and other
-      //configuration parameters in DHCP options)
-      dhcpServerSendReply(context, DHCP_MSG_TYPE_OFFER, binding->ipAddr,
-         message, length);
+      //Two-message exchange?
+      if(rapidCommit)
+      {
+         //Commit network address
+         binding->state = DHCP_SERVER_BINDING_STATE_COMMITTED;
+         //Save lease start time
+         binding->timestamp = osGetSystemTime();
+
+         //The server responds with a DHCPACK message
+         dhcpServerSendReply(context, DHCP_MSG_TYPE_ACK, binding->ipAddr,
+            message, length);
+      }
+      else
+      {
+         //The server responds with a DHCPOFFER message that includes an
+         //available network address in the 'yiaddr' field (and other
+         //configuration parameters in DHCP options)
+         dhcpServerSendReply(context, DHCP_MSG_TYPE_OFFER, binding->ipAddr,
+            message, length);
+      }
    }
 }
 
@@ -362,25 +428,57 @@ void dhcpServerParseRequest(DhcpServerContext *context,
    const DhcpMessage *message, size_t length)
 {
    uint_t i;
+   bool_t initReboot;
+   bool_t knownClient;
    NetInterface *interface;
    Ipv4Addr clientIpAddr;
    DhcpOption *option;
    DhcpServerBinding *binding;
+
+   //Initialize flags
+   initReboot = FALSE;
+   knownClient = FALSE;
 
    //Point to the underlying network interface
    interface = context->interface;
    //Index of the IP address assigned to the DHCP server
    i = context->ipAddrIndex;
 
-   //Retrieve Server Identifier option
+   //Search the DHCP message for the Server Identifier option
    option = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
 
-   //Option found?
+   //Valid option found?
    if(option != NULL && option->length == 4)
    {
       //Unexpected server identifier?
       if(!ipv4CompAddr(option->value, &interface->ipv4Context.addrList[i].addr))
+      {
+         //Servers not selected by the DHCPREQUEST message use the message as
+         //notification that the client has declined that server's offer
+         //(refer to RFC 2131, section 3.1)
+         binding = dhcpServerFindBindingByMacAddr(context, &message->chaddr);
+
+         //Matching binding found?
+         if(binding != NULL)
+         {
+            //Return the offered network address to the pool
+            if(binding->state == DHCP_SERVER_BINDING_STATE_RESERVED)
+            {
+               osMemset(binding, 0, sizeof(DhcpServerBinding));
+            }
+         }
+
+         //Exit immediately
          return;
+      }
+   }
+   else
+   {
+      //Check whether the client is in the INIT-REBOOT state
+      if(message->ciaddr == IPV4_UNSPECIFIED_ADDR)
+      {
+         initReboot = TRUE;
+      }
    }
 
    //Check the 'ciaddr' field
@@ -391,10 +489,10 @@ void dhcpServerParseRequest(DhcpServerContext *context,
    }
    else
    {
-      //Retrieve Requested IP Address option
+      //Search the DHCP message for the Requested IP Address option
       option = dhcpGetOption(message, length, DHCP_OPT_REQUESTED_IP_ADDR);
 
-      //Option found?
+      //Valid option found?
       if(option != NULL && option->length == 4)
       {
          ipv4CopyAddr(&clientIpAddr, option->value);
@@ -414,11 +512,14 @@ void dhcpServerParseRequest(DhcpServerContext *context,
       //Matching binding found?
       if(binding != NULL)
       {
+         //The server has a record of this client
+         knownClient = TRUE;
+
          //Make sure the client's IP address is valid
          if(clientIpAddr == binding->ipAddr)
          {
             //Commit network address
-            binding->validLease = TRUE;
+            binding->state = DHCP_SERVER_BINDING_STATE_COMMITTED;
             //Save lease start time
             binding->timestamp = osGetSystemTime();
 
@@ -434,25 +535,24 @@ void dhcpServerParseRequest(DhcpServerContext *context,
       else
       {
          //Ensure the IP address is in the server's pool of available addresses
-         if(ntohl(clientIpAddr) >= ntohl(context->ipAddrRangeMin) &&
-            ntohl(clientIpAddr) <= ntohl(context->ipAddrRangeMax))
+         if(dhcpServerIsIpAddrInPool(context, clientIpAddr))
          {
             //Make sure the IP address is not already allocated
-            if(!dhcpServerFindBindingByIpAddr(context, clientIpAddr))
+            if(dhcpServerFindBindingByIpAddr(context, clientIpAddr) == NULL)
             {
                //Create a new binding
                binding = dhcpServerCreateBinding(context);
 
-               //Binding successfully created
+               //Binding successfully created?
                if(binding != NULL)
                {
+                  //Commit network address
+                  binding->state = DHCP_SERVER_BINDING_STATE_COMMITTED;
                   //Record MAC address
                   binding->macAddr = message->chaddr;
                   //Record IP address
                   binding->ipAddr = clientIpAddr;
-                  //Commit network address
-                  binding->validLease = TRUE;
-                  //Get current time
+                  //Save current time
                   binding->timestamp = osGetSystemTime();
 
                   //The server responds with a DHCPACK message containing the
@@ -468,10 +568,34 @@ void dhcpServerParseRequest(DhcpServerContext *context,
       }
    }
 
-   //If the server is unable to satisfy the DHCPREQUEST message, the
-   //server should respond with a DHCPNAK message
-   dhcpServerSendReply(context, DHCP_MSG_TYPE_NAK, IPV4_UNSPECIFIED_ADDR,
-      message, length);
+   //Client in INIT-REBOOT state and unknown to the server?
+   if(initReboot && !knownClient)
+   {
+      //Check whether the client is on the wrong network
+      if(clientIpAddr != IPV4_UNSPECIFIED_ADDR &&
+         !ipv4CompSubnet(clientIpAddr, context->ipAddrRangeMin,
+         context->subnetMask))
+      {
+         //If the DHCP server detects that the client is on the wrong network,
+         //then the server should send a DHCPNAK message to the client
+         dhcpServerSendReply(context, DHCP_MSG_TYPE_NAK, IPV4_UNSPECIFIED_ADDR,
+            message, length);
+      }
+      else
+      {
+         //If the DHCP server has no record of this client, then it must remain
+         //silent. This is necessary for peaceful coexistence of
+         //non-communicating DHCP servers on the same wire (refer to RFC 2131,
+         //section 4.3.2)
+      }
+   }
+   else
+   {
+      //If the server is unable to satisfy the DHCPREQUEST message, the
+      //server should respond with a DHCPNAK message
+      dhcpServerSendReply(context, DHCP_MSG_TYPE_NAK, IPV4_UNSPECIFIED_ADDR,
+         message, length);
+   }
 }
 
 
@@ -485,14 +609,39 @@ void dhcpServerParseRequest(DhcpServerContext *context,
 void dhcpServerParseDecline(DhcpServerContext *context,
    const DhcpMessage *message, size_t length)
 {
+   uint_t i;
+   NetInterface *interface;
    DhcpOption *option;
    DhcpServerBinding *binding;
    Ipv4Addr requestedIpAddr;
 
-   //Retrieve Requested IP Address option
+   //Point to the underlying network interface
+   interface = context->interface;
+   //Index of the IP address assigned to the DHCP server
+   i = context->ipAddrIndex;
+
+   //Search the DHCP message for the Server Identifier option
+   option = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
+
+   //Valid option found?
+   if(option != NULL && option->length == 4)
+   {
+      //Unexpected server identifier?
+      if(!ipv4CompAddr(option->value, &interface->ipv4Context.addrList[i].addr))
+      {
+         return;
+      }
+   }
+   else
+   {
+      //The DHCPDECLINE message must include the Server Identifier option
+      return;
+   }
+
+   //Search the DHCP message for the Requested IP Address option
    option = dhcpGetOption(message, length, DHCP_OPT_REQUESTED_IP_ADDR);
 
-   //Option found?
+   //Valid option found?
    if(option != NULL && option->length == 4)
    {
       //Copy the requested IP address
@@ -507,8 +656,10 @@ void dhcpServerParseDecline(DhcpServerContext *context,
          //Check the IP address against the requested IP address
          if(binding->ipAddr == requestedIpAddr)
          {
-            //Remote the binding from the list
-            osMemset(binding, 0, sizeof(DhcpServerBinding));
+            //The server must mark the network address as not available
+            binding->state = DHCP_SERVER_BINDING_STATE_DECLINED;
+            //Save the time at which the network address was declined
+            binding->timestamp = osGetSystemTime();
          }
       }
    }
@@ -525,7 +676,33 @@ void dhcpServerParseDecline(DhcpServerContext *context,
 void dhcpServerParseRelease(DhcpServerContext *context,
    const DhcpMessage *message, size_t length)
 {
+   uint_t i;
+   NetInterface *interface;
+   DhcpOption *option;
    DhcpServerBinding *binding;
+
+   //Point to the underlying network interface
+   interface = context->interface;
+   //Index of the IP address assigned to the DHCP server
+   i = context->ipAddrIndex;
+
+   //Search the DHCP message for the Server Identifier option
+   option = dhcpGetOption(message, length, DHCP_OPT_SERVER_ID);
+
+   //Valid option found?
+   if(option != NULL && option->length == 4)
+   {
+      //Unexpected server identifier?
+      if(!ipv4CompAddr(option->value, &interface->ipv4Context.addrList[i].addr))
+      {
+         return;
+      }
+   }
+   else
+   {
+      //The DHCPRELEASE message must include the Server Identifier option
+      return;
+   }
 
    //Search the list for a matching binding
    binding = dhcpServerFindBindingByMacAddr(context, &message->chaddr);
@@ -537,7 +714,7 @@ void dhcpServerParseRelease(DhcpServerContext *context,
       if(binding->ipAddr == message->ciaddr)
       {
          //Release the network address and cancel remaining lease
-         binding->validLease = FALSE;
+         binding->state = DHCP_SERVER_BINDING_STATE_RESERVED;
       }
    }
 }
@@ -586,6 +763,7 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    NetBuffer *buffer;
    NetInterface *interface;
    DhcpMessage *reply;
+   DhcpOption *option;
    IpAddr srcIpAddr;
    IpAddr destIpAddr;
    uint16_t destPort;
@@ -600,7 +778,9 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    buffer = udpAllocBuffer(DHCP_MAX_MSG_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the DHCP message
    reply = netBufferAt(buffer, offset, 0);
@@ -621,6 +801,27 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    reply->giaddr = request->giaddr;
    reply->chaddr = request->chaddr;
 
+   //DHCPACK message?
+   if(type == DHCP_MSG_TYPE_ACK)
+   {
+      //The 'ciaddr' field of a DHCPACK message is copied from the request
+      //(refer to RFC 2131, section 4.3.1)
+      reply->ciaddr = request->ciaddr;
+   }
+
+   //DHCPNAK message?
+   if(type == DHCP_MSG_TYPE_NAK)
+   {
+      //If 'giaddr' is set in the DHCPREQUEST message, the client is on a
+      //different subnet. The server must set the broadcast bit in the
+      //DHCPNAK, so that the relay agent will broadcast the DHCPNAK to the
+      //client (refer to RFC 2131, section 4.3.2)
+      if(request->giaddr != IPV4_UNSPECIFIED_ADDR)
+      {
+         reply->flags |= HTONS(DHCP_FLAG_BROADCAST);
+      }
+   }
+
    //Write magic cookie before setting any option
    reply->magicCookie = HTONL(DHCP_MAGIC_COOKIE);
    //Properly terminate options field
@@ -636,6 +837,22 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    //Add Server Identifier option
    dhcpAddOption(reply, &replyLen, DHCP_OPT_SERVER_ID,
       &interface->ipv4Context.addrList[i].addr, sizeof(Ipv4Addr));
+
+   //DHCPACK message?
+   if(type == DHCP_MSG_TYPE_ACK)
+   {
+      //Retrieve the type of the request
+      option = dhcpGetOption(request, requestLen, DHCP_OPT_DHCP_MESSAGE_TYPE);
+
+      //DHCPACK message sent in response to a DHCPDISCOVER message?
+      if(option != NULL && option->length == 1 &&
+         option->value[0] == DHCP_MSG_TYPE_DISCOVER)
+      {
+         //A server must include a Rapid Commit option in a DHCPACK message sent
+         //in response to a DHCPDISCOVER message (refer to RFC 4039, section 4)
+         dhcpAddOption(reply, &replyLen, DHCP_OPT_RAPID_COMMIT, NULL, 0);
+      }
+   }
 
    //DHCPOFFER or DHCPACK message?
    if(type == DHCP_MSG_TYPE_OFFER || type == DHCP_MSG_TYPE_ACK)
@@ -671,7 +888,9 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
       {
          //Check whether the current DNS server is valid
          if(context->dnsServer[n] == IPV4_UNSPECIFIED_ADDR)
+         {
             break;
+         }
       }
 
       //Add DNS Server option
@@ -680,6 +899,18 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
          dhcpAddOption(reply, &replyLen, DHCP_OPT_DNS_SERVER,
             context->dnsServer, n * sizeof(Ipv4Addr));
       }
+   }
+
+   //Search the request for the Client Identifier option
+   option = dhcpGetOption(request, requestLen, DHCP_OPT_CLIENT_ID);
+
+   //If the 'client identifier' option is present in a message received from a
+   //client, the server must return the 'client identifier' option, unaltered,
+   //in its response message (refer to RFC 6842, section 3)
+   if(option != NULL)
+   {
+      dhcpAddOption(reply, &replyLen, DHCP_OPT_CLIENT_ID, option->value,
+         option->length);
    }
 
    //Any registered callback?
@@ -700,7 +931,7 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
    //Additional options can be passed to the stack along with the packet
    ancillary = NET_DEFAULT_TX_ANCILLARY;
 
-   //A server with multiple network address (e.g. a multi-homed host) may
+   //A server with multiple network addresses (e.g. a multi-homed host) may
    //use any of its network addresses in outgoing DHCP messages (refer to
    //RFC 2131, section 4.1)
    srcIpAddr.length = sizeof(Ipv4Addr);
@@ -741,16 +972,17 @@ error_t dhcpServerSendReply(DhcpServerContext *context, uint8_t type,
             //Check whether the broadcast bit is set
             if(ntohs(request->flags) & DHCP_FLAG_BROADCAST)
             {
-               //If 'giaddr' is zero and 'ciaddr' is zero, and the broadcast bit is
-               //set, then the server broadcasts DHCPOFFER and DHCPACK messages
+               //If 'giaddr' is zero and 'ciaddr' is zero, and the broadcast
+               //bit is set, then the server broadcasts DHCPOFFER and DHCPACK
+               //messages
                destIpAddr.length = sizeof(Ipv4Addr);
                destIpAddr.ipv4Addr = IPV4_BROADCAST_ADDR;
             }
             else
             {
-               //If 'giaddr' is zero and 'ciaddr' is zero, and the broadcast bit is
-               //not set, then the server unicasts DHCPOFFER and DHCPACK messages
-               //to the client's hardware address and 'yiaddr' address
+               //If 'giaddr' is zero and 'ciaddr' is zero, and the broadcast
+               //bit is not set, then the server unicasts DHCPOFFER and DHCPACK
+               //messages to the client's hardware address and 'yiaddr' address
                ancillary.destMacAddr = request->chaddr;
                destIpAddr.length = sizeof(Ipv4Addr);
                destIpAddr.ipv4Addr = yourIpAddr;
@@ -811,36 +1043,37 @@ DhcpServerBinding *dhcpServerCreateBinding(DhcpServerContext *context)
       //Point to the current binding
       binding = &context->clientBinding[i];
 
-      //Check whether the binding is available
-      if(macCompAddr(&binding->macAddr, &MAC_UNSPECIFIED_ADDR))
+      //Check the state of the binding
+      if(binding->state == DHCP_SERVER_BINDING_STATE_NONE)
       {
-         //Erase contents
+         //Clear the unused entry
          osMemset(binding, 0, sizeof(DhcpServerBinding));
+
          //Return a pointer to the newly created binding
          return binding;
       }
+      else if(binding->state == DHCP_SERVER_BINDING_STATE_RESERVED)
+      {
+         //Keep track of the oldest binding in the list
+         if(oldestBinding == NULL)
+         {
+            oldestBinding = binding;
+         }
+         else if((time - binding->timestamp) > (time - oldestBinding->timestamp))
+         {
+            oldestBinding = binding;
+         }
+      }
       else
       {
-         //Bindings that have been committed cannot be removed
-         if(!binding->validLease)
-         {
-            //Keep track of the oldest binding in the list
-            if(oldestBinding == NULL)
-            {
-               oldestBinding = binding;
-            }
-            else if((time - binding->timestamp) > (time - oldestBinding->timestamp))
-            {
-               oldestBinding = binding;
-            }
-         }
+         //Bindings that have been committed or declined cannot be removed
       }
    }
 
-   //Any binding available in the list?
+   //Any reserved binding that can be recycled?
    if(oldestBinding != NULL)
    {
-      //Erase contents
+      //Discard the previous reservation so that the entry can be reused
       osMemset(oldestBinding, 0, sizeof(DhcpServerBinding));
    }
 
@@ -868,8 +1101,9 @@ DhcpServerBinding *dhcpServerFindBindingByMacAddr(DhcpServerContext *context,
       //Point to the current binding
       binding = &context->clientBinding[i];
 
-      //Valid binding?
-      if(!macCompAddr(&binding->macAddr, &MAC_UNSPECIFIED_ADDR))
+      //Binding associated with a client?
+      if(binding->state == DHCP_SERVER_BINDING_STATE_RESERVED ||
+         binding->state == DHCP_SERVER_BINDING_STATE_COMMITTED)
       {
          //Check whether the current binding matches the specified MAC address
          if(macCompAddr(&binding->macAddr, macAddr))
@@ -880,7 +1114,7 @@ DhcpServerBinding *dhcpServerFindBindingByMacAddr(DhcpServerContext *context,
       }
    }
 
-   //No matching binding...
+   //No matching binding
    return NULL;
 }
 
@@ -904,8 +1138,8 @@ DhcpServerBinding *dhcpServerFindBindingByIpAddr(DhcpServerContext *context,
       //Point to the current binding
       binding = &context->clientBinding[i];
 
-      //Valid binding?
-      if(!macCompAddr(&binding->macAddr, &MAC_UNSPECIFIED_ADDR))
+      //Binding in use?
+      if(binding->state != DHCP_SERVER_BINDING_STATE_NONE)
       {
          //Check whether the current binding matches the specified IP address
          if(binding->ipAddr == ipAddr)
@@ -916,33 +1150,46 @@ DhcpServerBinding *dhcpServerFindBindingByIpAddr(DhcpServerContext *context,
       }
    }
 
-   //No matching binding...
+   //No matching binding
    return NULL;
 }
 
 
 /**
- * @brief Retrieve the next IP address to be used
+ * @brief Retrieve the next available IP address from the pool
  * @param[in] context Pointer to the DHCP server context
- * @param[out] ipAddr Next IP address to be used
+ * @param[out] ipAddr Next available IP address
  * @return Error code
  **/
 
 error_t dhcpServerGetNextIpAddr(DhcpServerContext *context, Ipv4Addr *ipAddr)
 {
+   error_t error;
    uint_t i;
    DhcpServerBinding *binding;
 
+   //Initialize status code
+   error = ERROR_NO_ADDRESS;
+
    //Search the pool for any available IP address
-   for(i = 0; i < DHCP_SERVER_MAX_CLIENTS; i++)
+   for(i = 0; i < (DHCP_SERVER_MAX_CLIENTS + IPV4_ADDR_LIST_SIZE); i++)
    {
-      //Check whether the current IP address is already allocated
+      //Check whether the current IP address is already in use
       binding = dhcpServerFindBindingByIpAddr(context, context->nextIpAddr);
 
-      //If the IP address is available, then it can be assigned to a new client
+      //IP address available for use?
       if(binding == NULL)
       {
-         *ipAddr = context->nextIpAddr;
+         //Check whether the IP address can be assigned to a new client
+         if(dhcpServerIsIpAddrInPool(context, context->nextIpAddr))
+         {
+            //Return the next available IP address
+            *ipAddr = context->nextIpAddr;
+
+            //We are done
+            error = NO_ERROR;
+            break;
+         }
       }
 
       //Compute the next IP address that will be assigned by the DHCP server
@@ -956,14 +1203,61 @@ error_t dhcpServerGetNextIpAddr(DhcpServerContext *context, Ipv4Addr *ipAddr)
          //Increment IP address
          context->nextIpAddr = htonl(ntohl(context->nextIpAddr) + 1);
       }
-
-      //If the IP address is available, we are done
-      if(binding == NULL)
-         return NO_ERROR;
    }
 
-   //No available addresses in the pool
-   return ERROR_NO_ADDRESS;
+   //Return status code
+   return error;
+}
+
+
+/**
+ * @brief Check whether an IP address belongs to the pool of addresses
+ * @param[in] context Pointer to the DHCP server context
+ * @param[in] ipAddr IP address to be checked
+ * @return TRUE if the IP address is in the pool, else FALSE
+ **/
+
+bool_t dhcpServerIsIpAddrInPool(DhcpServerContext *context, Ipv4Addr ipAddr)
+{
+   bool_t res;
+   uint_t i;
+   NetInterface *interface;
+   Ipv4AddrEntry *entry;
+
+   //Point to the underlying network interface
+   interface = context->interface;
+
+   //Check whether the IP address is within the range of addresses managed by
+   //the server
+   if(ntohl(ipAddr) >= ntohl(context->ipAddrRangeMin) &&
+      ntohl(ipAddr) <= ntohl(context->ipAddrRangeMax))
+   {
+      res = TRUE;
+   }
+   else
+   {
+      res = FALSE;
+   }
+
+   //Loop through the list of IPv4 addresses assigned to the interface
+   for(i = 0; i < IPV4_ADDR_LIST_SIZE && res; i++)
+   {
+      //Point to the current entry
+      entry = &interface->ipv4Context.addrList[i];
+
+      //Valid entry?
+      if(entry->state != IPV4_ADDR_STATE_INVALID)
+      {
+         //An address assigned to the host cannot be assigned to a client
+         if(entry->addr == ipAddr)
+         {
+            res = FALSE;
+         }
+      }
+   }
+
+   //Return TRUE if the IP address can be assigned to a client
+   return res;
 }
 
 #endif

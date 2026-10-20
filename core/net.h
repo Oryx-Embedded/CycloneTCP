@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _NET_H
@@ -105,13 +105,13 @@ struct _NetInterface;
 #endif
 
 //Version string
-#define CYCLONE_TCP_VERSION_STRING "2.6.6"
+#define CYCLONE_TCP_VERSION_STRING "2.6.8"
 //Major version
 #define CYCLONE_TCP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_TCP_MINOR_VERSION 6
 //Revision number
-#define CYCLONE_TCP_REV_NUMBER 6
+#define CYCLONE_TCP_REV_NUMBER 8
 
 //RTOS support
 #ifndef NET_RTOS_SUPPORT
@@ -444,11 +444,9 @@ struct _NetContext
    systime_t dhcpv6ClientTickCounter;
 #endif
 #if (TCP_SUPPORT == ENABLED)
-   uint16_t tcpDynamicPort;              ///<TCP ephemeral port number
    systime_t tcpTickCounter;
 #endif
 #if (UDP_SUPPORT == ENABLED)
-   uint16_t udpDynamicPort;              ///<UDP ephemeral port number
    UdpRxCallbackEntry udpCallbackTable[UDP_CALLBACK_TABLE_SIZE];
 #endif
 #if (DNS_CLIENT_SUPPORT == ENABLED || MDNS_CLIENT_SUPPORT == ENABLED || \

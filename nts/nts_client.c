@@ -31,7 +31,7 @@
  * RFC 8915 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -59,7 +59,9 @@ error_t ntsClientInit(NtsClientContext *context)
 
    //Make sure the NTS client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear NTS client context
    osMemset(context, 0, sizeof(NtsClientContext));
@@ -71,7 +73,9 @@ error_t ntsClientInit(NtsClientContext *context)
    error = tlsInitSessionState(&context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Initialize NTS client state
    context->state = NTS_CLIENT_STATE_INIT;
@@ -94,7 +98,9 @@ error_t ntsClientSetTimeout(NtsClientContext *context, systime_t timeout)
 {
    //Make sure the NTS client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
@@ -116,7 +122,9 @@ error_t ntsClientRegisterTlsInitCallback(NtsClientContext *context,
 {
    //Make sure the NTS client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->tlsInitCallback = callback;
@@ -138,7 +146,9 @@ error_t ntsClientRegisterRandCallback(NtsClientContext *context,
 {
    //Make sure the NTS client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->randCallback = callback;
@@ -160,7 +170,9 @@ error_t ntsClientBindToInterface(NtsClientContext *context,
 {
    //Make sure the NTS client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the NTS client with the specified interface
    context->interface = interface;
@@ -183,7 +195,9 @@ error_t ntsClientSetServerAddr(NtsClientContext *context,
 {
    //Check parameters
    if(context == NULL || serverIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save the IP address and the port number of the NTS server
    context->ntsKeServerIpAddr = *serverIpAddr;
@@ -216,7 +230,9 @@ error_t ntsClientGetTimestamp(NtsClientContext *context,
 
    //Check parameters
    if(context == NULL || timestamp == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -363,7 +379,7 @@ error_t ntsClientGetTimestamp(NtsClientContext *context,
          {
             //If the client does not have any cookies that it has not already
             //sent, it should initiate a rerun of the NTS-KE protocol (refer to
-            //RFC 5915, section 5.7)
+            //RFC 8915, section 5.7)
             ntsClientChangeState(context, NTS_CLIENT_STATE_NTS_KE_INIT);
          }
       }

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -74,7 +74,9 @@ void igmpDumpMessage(const IgmpMessage *message, size_t length)
 
    //Malformed message?
    if(length < sizeof(IgmpMessage))
+   {
       return;
+   }
 
    //Convert the Type field to string representation
    name = igmpGetParamName(message->type, igmpMessageTypeList,
@@ -143,7 +145,9 @@ void igmpDumpMembershipQueryV3(const IgmpMembershipQueryV3 *message,
 
    //Malformed message?
    if(length < sizeof(IgmpMembershipQueryV3))
+   {
       return;
+   }
 
    //The Max Resp Code field specifies the maximum time allowed before
    //sending a responding report
@@ -198,7 +202,9 @@ void igmpDumpMembershipQueryV3(const IgmpMembershipQueryV3 *message,
 
    //Malformed message?
    if(length < (sizeof(IgmpMembershipQueryV3) + n * sizeof(Ipv4Addr)))
+   {
       return;
+   }
 
    //Dump Number of Sources field
    TRACE_DEBUG("  Number of Sources = %u\r\n", n);
@@ -229,7 +235,9 @@ void igmpDumpMessageMembershipReportV3(const IgmpMembershipReportV3 *message,
 
    //Malformed message?
    if(length < sizeof(IgmpMembershipReportV3))
+   {
       return;
+   }
 
    //Get the length occupied by the group records
    length -= sizeof(IgmpMembershipReportV3);
@@ -251,18 +259,22 @@ void igmpDumpMessageMembershipReportV3(const IgmpMembershipReportV3 *message,
    {
       //Malformed message?
       if((i + sizeof(IgmpGroupRecord)) > length)
+      {
          break;
+      }
 
       //Point to the current group record
       record = (IgmpGroupRecord *) (message->groupRecords + i);
 
       //Determine the length of the group record
-      n = sizeof(IgmpGroupRecord) + record->auxDataLen +
+      n = sizeof(IgmpGroupRecord) + record->auxDataLen * sizeof(uint32_t) +
          ntohs(record->numOfSources) * sizeof(Ipv4Addr);
 
       //Malformed message?
       if((i + n) > length)
+      {
          break;
+      }
 
       //Debug message
       TRACE_DEBUG("  Group Record %u\r\n", k + 1);
@@ -288,7 +300,9 @@ void igmpDumpGroupRecord(const IgmpGroupRecord *record,
 
    //Malformed group record?
    if(length < sizeof(IgmpGroupRecord))
+   {
       return;
+   }
 
    //Convert the Record Type field to string representation
    name = igmpGetParamName(record->recordType, igmpGroupRecordTypeList,
@@ -307,7 +321,9 @@ void igmpDumpGroupRecord(const IgmpGroupRecord *record,
 
    //Malformed group record?
    if(length < (sizeof(IgmpGroupRecord) + n * sizeof(Ipv4Addr)))
+   {
       return;
+   }
 
    //Dump Number of Sources field
    TRACE_DEBUG("    Number of Sources = %u\r\n", n);
@@ -345,7 +361,9 @@ const char_t *igmpGetParamName(uint_t value, const IgmpParamName *paramList,
    for(i = 0; i < paramListLen; i++)
    {
       if(paramList[i].value == value)
+      {
          return paramList[i].name;
+      }
    }
 
    //Unknown value

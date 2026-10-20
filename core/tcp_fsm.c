@@ -34,7 +34,7 @@
  * - RFC 1122: Requirements for Internet Hosts - Communication Layers
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -97,11 +97,15 @@ void tcpProcessSegment(NetInterface *interface,
    {
       //Ensure the destination address is not a broadcast address
       if(ipv4IsBroadcastAddr(interface, pseudoHeader->ipv4Data.destAddr))
+      {
          return;
+      }
 
       //Ensure the destination address is not a multicast address
       if(ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
+      {
          return;
+      }
    }
    else
 #endif
@@ -110,7 +114,9 @@ void tcpProcessSegment(NetInterface *interface,
    {
       //Ensure the destination address is not a multicast address
       if(ipv6IsMulticastAddr(&pseudoHeader->ipv6Data.destAddr))
+      {
          return;
+      }
    }
    else
 #endif
@@ -140,7 +146,9 @@ void tcpProcessSegment(NetInterface *interface,
    segment = netBufferAt(buffer, offset, sizeof(TcpHeader));
    //Malformed TCP segment?
    if(segment == NULL)
+   {
       return;
+   }
 
    //Check the value of the Data Offset field
    if(segment->dataOffset < 5 || ((size_t) segment->dataOffset * 4) > length)
@@ -160,7 +168,9 @@ void tcpProcessSegment(NetInterface *interface,
    segment = netBufferAt(buffer, offset, segment->dataOffset * 4);
    //Malformed TCP segment?
    if(segment == NULL)
+   {
       return;
+   }
 
    //Check whether TCP checksums should be verified
    if(!ancillary->ignoreTcpChecksum)
@@ -192,15 +202,21 @@ void tcpProcessSegment(NetInterface *interface,
 
       //TCP socket found?
       if(socket->type != SOCKET_TYPE_STREAM)
+      {
          continue;
+      }
 
       //Check whether the socket is bound to a particular interface
       if(socket->interface != NULL && socket->interface != interface)
+      {
          continue;
+      }
 
       //Check destination port number
       if(socket->localPort == 0 || socket->localPort != ntohs(segment->destPort))
+      {
          continue;
+      }
 
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 packet received?
@@ -208,14 +224,18 @@ void tcpProcessSegment(NetInterface *interface,
       {
          //Check whether the socket is restricted to IPv6 communications only
          if((socket->options & SOCKET_OPTION_IPV6_ONLY) != 0)
+         {
             continue;
+         }
 
          //Destination IP address filtering
          if(socket->localIpAddr.length != 0)
          {
             //An IPv4 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv4Addr))
+            {
                continue;
+            }
 
             //Filter out non-matching addresses
             if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
@@ -230,7 +250,9 @@ void tcpProcessSegment(NetInterface *interface,
          {
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
+            {
                continue;
+            }
 
             //Filter out non-matching addresses
             if(socket->remoteIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
@@ -251,7 +273,9 @@ void tcpProcessSegment(NetInterface *interface,
          {
             //An IPv6 address is expected
             if(socket->localIpAddr.length != sizeof(Ipv6Addr))
+            {
                continue;
+            }
 
             //Filter out non-matching addresses
             if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
@@ -266,7 +290,9 @@ void tcpProcessSegment(NetInterface *interface,
          {
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
+            {
                continue;
+            }
 
             //Filter out non-matching addresses
             if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr, &IPV6_UNSPECIFIED_ADDR) &&
@@ -286,11 +312,15 @@ void tcpProcessSegment(NetInterface *interface,
 
       //Keep track of the first matching socket in the LISTEN state
       if(socket->state == TCP_STATE_LISTEN && passiveSocket == NULL)
+      {
          passiveSocket = socket;
+      }
 
       //Source port filtering
       if(socket->remotePort != ntohs(segment->srcPort))
+      {
          continue;
+      }
 
       //A matching socket has been found
       break;
@@ -490,7 +520,9 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
 
    //An incoming RST should be ignored
    if((segment->flags & TCP_FLAG_RST) != 0)
+   {
       return;
+   }
 
    //Any acknowledgment is bad if it arrives on a connection still in the
    //LISTEN state
@@ -507,7 +539,9 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
    {
       //Silently drop duplicate SYN segments
       if(tcpIsDuplicateSyn(socket, pseudoHeader, segment))
+      {
          return;
+      }
 
       //Check whether the SYN queue is empty or not
       if(socket->synQueue != NULL)
@@ -559,7 +593,9 @@ void tcpStateListen(Socket *socket, NetInterface *interface,
 
       //Failed to allocate memory?
       if(queueItem == NULL)
+      {
          return;
+      }
 
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 is currently used?
@@ -815,6 +851,13 @@ void tcpStateSynSent(Socket *socket, const TcpHeader *segment, size_t length)
          //Maximum send window it has seen so far on the connection
          socket->maxSndWnd = segment->window;
 
+         //The remote host may advertise a zero window during the handshake
+         if(socket->sndWnd == 0)
+         {
+            //Start the persist timer
+            tcpStartPersistTimer(socket);
+         }
+
          //Form an ACK segment and send it
          tcpSendSegment(socket, TCP_FLAG_ACK, socket->sndNxt, socket->rcvNxt,
             0, FALSE);
@@ -886,7 +929,9 @@ void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
 
    //First check sequence number
    if(tcpCheckSeqNum(socket, &segment2, length))
+   {
       return;
+   }
 
    //Check the RST bit
    if((segment->flags & TCP_FLAG_RST) != 0)
@@ -905,11 +950,15 @@ void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, &segment2, length))
+   {
       return;
+   }
 
    //If the ACK bit is off drop the segment and return
    if((segment->flags & TCP_FLAG_ACK) == 0)
+   {
       return;
+   }
 
    //Make sure the acknowledgment number is valid
    if(segment->ackNum != socket->sndNxt)
@@ -924,7 +973,7 @@ void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
 
 #if (TCP_WINDOW_SCALE_SUPPORT == ENABLED)
    //The window field (SEG.WND) in the header of every incoming segment, with
-   //the exception of SYN segments, MUST be left-shifted by Snd.Wind.Shift bits
+   //the exception of SYN segments, must be left-shifted by Snd.Wind.Shift bits
    //before updating SND.WND (refer to RFC 7323, section 2.3)
    window = (uint32_t) segment->window << socket->sndWndShift;
 #else
@@ -940,6 +989,13 @@ void tcpStateSynReceived(Socket *socket, const TcpHeader *segment,
 
    //Maximum send window it has seen so far on the connection
    socket->maxSndWnd = window;
+
+   //The remote host may advertise a zero window during the handshake
+   if(socket->sndWnd == 0)
+   {
+      //Start the persist timer
+      tcpStartPersistTimer(socket);
+   }
 
    //Enter ESTABLISHED state
    tcpChangeState(socket, TCP_STATE_ESTABLISHED);
@@ -971,7 +1027,9 @@ void tcpStateEstablished(Socket *socket, const TcpHeader *segment,
 
    //First check sequence number
    if(tcpCheckSeqNum(socket, segment, length))
+   {
       return;
+   }
 
    //Check the RST bit
    if((segment->flags & TCP_FLAG_RST) != 0)
@@ -990,11 +1048,15 @@ void tcpStateEstablished(Socket *socket, const TcpHeader *segment,
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
+   {
       return;
+   }
 
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
+   {
       return;
+   }
 
    //Process the segment text
    if(length > 0)
@@ -1056,7 +1118,9 @@ void tcpStateCloseWait(Socket *socket, const TcpHeader *segment, size_t length)
 
    //First check sequence number
    if(tcpCheckSeqNum(socket, segment, length))
+   {
       return;
+   }
 
    //Check the RST bit
    if((segment->flags & TCP_FLAG_RST) != 0)
@@ -1075,11 +1139,15 @@ void tcpStateCloseWait(Socket *socket, const TcpHeader *segment, size_t length)
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
+   {
       return;
+   }
 
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
+   {
       return;
+   }
 
 #if (TCP_CONGEST_CONTROL_SUPPORT == ENABLED)
    //Duplicate ACK received?
@@ -1113,7 +1181,9 @@ void tcpStateLastAck(Socket *socket, const TcpHeader *segment, size_t length)
 
    //First check sequence number
    if(tcpCheckSeqNum(socket, segment, length))
+   {
       return;
+   }
 
    //Check the RST bit
    if((segment->flags & TCP_FLAG_RST) != 0)
@@ -1126,11 +1196,15 @@ void tcpStateLastAck(Socket *socket, const TcpHeader *segment, size_t length)
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
+   {
       return;
+   }
 
    //If the ACK bit is off drop the segment and return
    if((segment->flags & TCP_FLAG_ACK) == 0)
+   {
       return;
+   }
 
    //The only thing that can arrive in this state is an acknowledgment of
    //our FIN
@@ -1163,7 +1237,9 @@ void tcpStateFinWait1(Socket *socket, const TcpHeader *segment,
 
    //First check sequence number
    if(tcpCheckSeqNum(socket, segment, length))
+   {
       return;
+   }
 
    //Check the RST bit
    if((segment->flags & TCP_FLAG_RST) != 0)
@@ -1176,11 +1252,15 @@ void tcpStateFinWait1(Socket *socket, const TcpHeader *segment,
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
+   {
       return;
+   }
 
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
+   {
       return;
+   }
 
    //Check whether our FIN is now acknowledged
    if(segment->ackNum == socket->sndNxt)
@@ -1252,7 +1332,9 @@ void tcpStateFinWait2(Socket *socket, const TcpHeader *segment,
 
    //First check sequence number
    if(tcpCheckSeqNum(socket, segment, length))
+   {
       return;
+   }
 
    //Check the RST bit
    if((segment->flags & TCP_FLAG_RST) != 0)
@@ -1265,11 +1347,15 @@ void tcpStateFinWait2(Socket *socket, const TcpHeader *segment,
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
+   {
       return;
+   }
 
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
+   {
       return;
+   }
 
    //Process the segment text
    if(length > 0)
@@ -1318,7 +1404,9 @@ void tcpStateClosing(Socket *socket, const TcpHeader *segment, size_t length)
 
    //First check sequence number
    if(tcpCheckSeqNum(socket, segment, length))
+   {
       return;
+   }
 
    //Check the RST bit
    if((segment->flags & TCP_FLAG_RST) != 0)
@@ -1331,11 +1419,15 @@ void tcpStateClosing(Socket *socket, const TcpHeader *segment, size_t length)
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
+   {
       return;
+   }
 
    //Check the ACK field
    if(tcpCheckAck(socket, segment, length))
+   {
       return;
+   }
 
    //If the ACK acknowledges our FIN then enter the TIME-WAIT state, otherwise
    //ignore the segment
@@ -1369,19 +1461,27 @@ void tcpStateTimeWait(Socket *socket, const TcpHeader *segment, size_t length)
 
    //Ignore RST segments in TIME-WAIT state (refer to RFC 1337, section 3)
    if((segment->flags & TCP_FLAG_RST) != 0)
+   {
       return;
+   }
 
    //First check sequence number
    if(tcpCheckSeqNum(socket, segment, length))
+   {
       return;
+   }
 
    //Check the SYN bit
    if(tcpCheckSyn(socket, segment, length))
+   {
       return;
+   }
 
    //If the ACK bit is off drop the segment and return
    if((segment->flags & TCP_FLAG_ACK) == 0)
+   {
       return;
+   }
 
    //The only thing that can arrive in this state is a retransmission of the
    //remote FIN. Acknowledge it and restart the 2 MSL timeout

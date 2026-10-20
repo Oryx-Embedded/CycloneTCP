@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _TFTP_CLIENT_H
@@ -70,18 +70,13 @@
    #error TFTP_CLIENT_FINAL_DELAY parameter is not valid
 #endif
 
-//Block size
-#ifndef TFTP_CLIENT_BLOCK_SIZE
-   #define TFTP_CLIENT_BLOCK_SIZE 512
-#elif (TFTP_CLIENT_BLOCK_SIZE < 512)
-   #error TFTP_CLIENT_BLOCK_SIZE parameter is not valid
-#endif
-
 //Application specific context
 #ifndef TFTP_CLIENT_CONTEXT_PRIVATE
    #define TFTP_CLIENT_CONTEXT_PRIVATE
 #endif
 
+//Block size
+#define TFTP_CLIENT_BLOCK_SIZE 512
 //Maximum size of TFTP packets
 #define TFTP_CLIENT_MAX_PACKET_SIZE (sizeof(TftpDataPacket) + TFTP_CLIENT_BLOCK_SIZE)
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -151,13 +151,20 @@ void papProcessPacket(PppContext *context,
 {
    //Ensure the length of the incoming PAP packet is valid
    if(length < sizeof(PppPacket))
+   {
       return;
+   }
 
    //Check the length field
    if(ntohs(packet->length) > length)
+   {
       return;
+   }
+
    if(ntohs(packet->length) < sizeof(PppPacket))
+   {
       return;
+   }
 
    //Save the length of the PAP packet
    length = ntohs(packet->length);
@@ -223,28 +230,31 @@ error_t papProcessAuthReq(PppContext *context,
 
    //Make sure the Authenticate-Request packet is acceptable
    if(context->localConfig.authProtocol != PPP_PROTOCOL_PAP)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the length of the packet
    if(length < sizeof(PapAuthReqPacket))
+   {
       return ERROR_INVALID_LENGTH;
-
-   //Retrieve the length of the Peer-ID field
-   usernameLen = authReqPacket->peerIdLength;
+   }
 
    //Malformed Authenticate-Request packet?
-   if(length < (sizeof(PapAuthReqPacket) + 1 + usernameLen))
+   if(length < (sizeof(PapAuthReqPacket) + 1 + authReqPacket->peerIdLength))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Limit the length of the string
-   usernameLen = MIN(usernameLen, PPP_MAX_USERNAME_LEN);
+   usernameLen = MIN(authReqPacket->peerIdLength, PPP_MAX_USERNAME_LEN);
    //Copy the name of the peer to be identified
    osMemcpy(context->peerName, authReqPacket->peerId, usernameLen);
    //Properly terminate the string with a NULL character
    context->peerName[usernameLen] = '\0';
 
    //Point to the Passwd-Length field
-   p = authReqPacket->peerId + usernameLen;
+   p = authReqPacket->peerId + authReqPacket->peerIdLength;
 
    //Save the length of Password field
    context->papFsm.passwordLen = p[0];
@@ -252,8 +262,11 @@ error_t papProcessAuthReq(PppContext *context,
    context->papFsm.password = p + 1;
 
    //Malformed Authenticate-Request packet?
-   if(length < (sizeof(PapAuthReqPacket) + 1 + usernameLen + context->papFsm.passwordLen))
+   if(length < (sizeof(PapAuthReqPacket) + 1 + authReqPacket->peerIdLength +
+      context->papFsm.passwordLen))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Invoke user-defined callback, if any
    if(context->settings.authCallback != NULL)
@@ -335,16 +348,22 @@ error_t papProcessAuthAck(PppContext *context,
 
    //Make sure the Authenticate-Ack packet is acceptable
    if(context->peerConfig.authProtocol != PPP_PROTOCOL_PAP)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the length of the packet
    if(length < sizeof(PapAuthAckPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(authAckPacket->identifier != context->papFsm.identifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Switch to the Ack-Rcvd state
    context->papFsm.peerState = PAP_STATE_5_ACK_RCVD;
@@ -392,16 +411,22 @@ error_t papProcessAuthNak(PppContext *context,
 
    //Make sure the Authenticate-Nak packet is acceptable
    if(context->peerConfig.authProtocol != PPP_PROTOCOL_PAP)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the length of the packet
    if(length < sizeof(PapAuthNakPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //When a packet is received with an invalid Identifier field, the
    //packet is silently discarded without affecting the automaton
    if(authNakPacket->identifier != context->papFsm.identifier)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Switch to the Nak-Rcvd state
    context->papFsm.peerState = PAP_STATE_7_NAK_RCVD;
@@ -442,7 +467,9 @@ error_t papSendAuthReq(PppContext *context)
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Authenticate-Request packet
    authReqPacket = netBufferAt(buffer, offset, 0);
@@ -478,7 +505,9 @@ error_t papSendAuthReq(PppContext *context)
 
    //The restart counter is decremented each time a Authenticate-Request is sent
    if(context->papFsm.restartCounter > 0)
+   {
       context->papFsm.restartCounter--;
+   }
 
    //Save the time at which the packet was sent
    context->papFsm.timestamp = osGetSystemTime();
@@ -513,7 +542,9 @@ error_t papSendAuthAck(PppContext *context, uint8_t identifier)
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Authenticate-Ack packet
    authAckPacket = netBufferAt(buffer, offset, 0);
@@ -565,7 +596,9 @@ error_t papSendAuthNak(PppContext *context, uint8_t identifier)
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Authenticate-Nak packet
    authNakPacket = netBufferAt(buffer, offset, 0);
@@ -617,8 +650,10 @@ bool_t papCheckPassword(PppContext *context, const char_t *password)
    if(n == context->papFsm.passwordLen)
    {
       //Check whether the password is valid
-      if(!osMemcmp(password, context->papFsm.password, n))
+      if(osMemcmp(password, context->papFsm.password, n) == 0)
+      {
          status = TRUE;
+      }
    }
 
    //Return TRUE is the password is valid, else FALSE

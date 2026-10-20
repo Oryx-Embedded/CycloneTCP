@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -64,7 +64,9 @@ error_t coapParseMessage(const CoapMessage *message)
    error = coapParseMessageHeader(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += n;
@@ -75,7 +77,9 @@ error_t coapParseMessage(const CoapMessage *message)
    error = coapParseOptions(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the payload
    p += n;
@@ -93,7 +97,9 @@ error_t coapParseMessage(const CoapMessage *message)
       //The presence of a marker followed by a zero-length payload must be
       //processed as a message format error
       if(length == 0)
+      {
          return ERROR_INVALID_MESSAGE;
+      }
    }
 
    //Successful processing
@@ -116,22 +122,30 @@ error_t coapParseMessageHeader(const uint8_t *p, size_t length,
 
    //Malformed CoAP message?
    if(length < sizeof(CoapMessageHeader))
+   {
       return ERROR_INVALID_HEADER;
+   }
 
    //Point to the CoAP message header
    header = (CoapMessageHeader *) p;
 
    //Check version field
    if(header->version != COAP_VERSION_1)
+   {
       return ERROR_INVALID_VERSION;
+   }
 
    //The length of the Token field must 0-8 bytes
    if(header->tokenLen > COAP_MAX_TOKEN_LEN)
+   {
       return ERROR_INVALID_HEADER;
+   }
 
    //Malformed CoAP message?
    if(length < (sizeof(CoapMessageHeader) + header->tokenLen))
+   {
       return ERROR_INVALID_HEADER;
+   }
 
    //Total number of bytes that have been consumed
    *consumed = sizeof(CoapMessageHeader) + header->tokenLen;
@@ -154,7 +168,9 @@ error_t coapSetType(CoapMessage *message, CoapMessageType type)
 
    //Malformed CoAP message?
    if(message->length < sizeof(CoapMessageHeader))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Point to the CoAP message header
    header = (CoapMessageHeader *) message->buffer;
@@ -179,7 +195,9 @@ error_t coapGetType(const CoapMessage *message, CoapMessageType *type)
 
    //Malformed CoAP message?
    if(message->length < sizeof(CoapMessageHeader))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Point to the CoAP message header
    header = (CoapMessageHeader *) message->buffer;
@@ -204,7 +222,9 @@ error_t coapSetCode(CoapMessage *message, CoapCode code)
 
    //Malformed CoAP message?
    if(message->length < sizeof(CoapMessageHeader))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Point to the CoAP message header
    header = (CoapMessageHeader *) message->buffer;
@@ -229,7 +249,9 @@ error_t coapGetCode(const CoapMessage *message, CoapCode *code)
 
    //Malformed CoAP message?
    if(message->length < sizeof(CoapMessageHeader))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Point to the CoAP message header
    header = (CoapMessageHeader *) message->buffer;
@@ -266,7 +288,9 @@ error_t coapSetPayload(CoapMessage *message, const void *payload,
    error = coapParseMessageHeader(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += n;
@@ -277,7 +301,9 @@ error_t coapSetPayload(CoapMessage *message, const void *payload,
    error = coapParseOptions(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the payload
    p += n;
@@ -290,9 +316,12 @@ error_t coapSetPayload(CoapMessage *message, const void *payload,
    //The payload is optional
    if(payloadLen > 0)
    {
-      //Make sure the output buffer is large enough to hold the payload
-      if((message->length + payloadLen + 1) > COAP_MAX_MSG_SIZE)
+      //Make sure the output buffer is large enough to hold the payload marker,
+      //the payload and the terminating NULL character
+      if((message->length + payloadLen + 2) > COAP_MAX_MSG_SIZE)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //The payload is prefixed by a fixed, one-byte payload marker
       p[0] = COAP_PAYLOAD_MARKER;
@@ -338,7 +367,9 @@ error_t coapGetPayload(const CoapMessage *message, const uint8_t **payload,
    error = coapParseMessageHeader(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += n;
@@ -349,7 +380,9 @@ error_t coapGetPayload(const CoapMessage *message, const uint8_t **payload,
    error = coapParseOptions(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the payload
    p += n;
@@ -400,7 +433,9 @@ error_t coapWritePayload(CoapMessage *message, const void *data,
    error = coapParseMessageHeader(p, n, &k);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += k;
@@ -411,7 +446,9 @@ error_t coapWritePayload(CoapMessage *message, const void *data,
    error = coapParseOptions(p, n, &k);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the payload
    p += k;
@@ -425,8 +462,11 @@ error_t coapWritePayload(CoapMessage *message, const void *data,
       if(n == 0)
       {
          //Make sure the output buffer is large enough to hold the payload
-         if((message->length + length + 1) > COAP_MAX_MSG_SIZE)
+         //marker, the data and the terminating NULL character
+         if((message->length + length + 2) > COAP_MAX_MSG_SIZE)
+         {
             return ERROR_BUFFER_OVERFLOW;
+         }
 
          //The payload is prefixed by a fixed, one-byte payload marker
          p[n++] = COAP_PAYLOAD_MARKER;
@@ -436,9 +476,12 @@ error_t coapWritePayload(CoapMessage *message, const void *data,
       }
       else
       {
-         //Make sure the output buffer is large enough to hold the payload
-         if((message->length + length) > COAP_MAX_MSG_SIZE)
+         //Make sure the output buffer is large enough to hold the data and
+         //the terminating NULL character
+         if((message->length + length + 1) > COAP_MAX_MSG_SIZE)
+         {
             return ERROR_BUFFER_OVERFLOW;
+         }
       }
 
       //Copy data
@@ -482,7 +525,9 @@ error_t coapReadPayload(CoapMessage *message, void *data, size_t size,
    error = coapParseMessageHeader(p, n, &k);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += k;
@@ -493,7 +538,9 @@ error_t coapReadPayload(CoapMessage *message, void *data, size_t size,
    error = coapParseOptions(p, n, &k);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the payload
    p += k;
@@ -553,7 +600,7 @@ bool_t coapCompareToken(const CoapMessageHeader *header1,
    if(header1->tokenLen == header2->tokenLen)
    {
       //Compare tokens
-      if(!osMemcmp(header1->token, header2->token, header1->tokenLen))
+      if(osMemcmp(header1->token, header2->token, header1->tokenLen) == 0)
       {
          //The tokens match
          res = TRUE;

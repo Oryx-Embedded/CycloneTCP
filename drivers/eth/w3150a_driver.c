@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -325,7 +325,9 @@ error_t w3150aSendPacket(NetInterface *interface,
 
    //Make sure the TX buffer is available for writing
    if(n < length)
+   {
       return ERROR_FAILURE;
+   }
 
    //Copy user data
    netBufferRead(temp, buffer, offset, length);

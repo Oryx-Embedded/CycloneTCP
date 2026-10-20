@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _NAT_MISC_H
@@ -55,7 +55,7 @@ error_t natTranslateOutboundPacket(NatContext *context, NatIpPacket *packet);
 
 error_t natForwardPacket(NatContext *context, const NatIpPacket *packet);
 
-NatPortFwdRule *natMatchPortFwdRule(NatContext *context,
+NatPortForwardingRule *natMatchPortForwardingRule(NatContext *context,
    const NatIpPacket *packet);
 
 NatSession *natMatchSession(NatContext *context, const NatIpPacket *packet);

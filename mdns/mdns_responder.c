@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -79,11 +79,15 @@ error_t mdnsResponderInit(MdnsResponderContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Invalid network interface?
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = settings->interface;
@@ -127,7 +131,9 @@ error_t mdnsResponderStart(MdnsResponderContext *context)
 {
    //Make sure the mDNS responder context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting mDNS responder...\r\n");
@@ -158,7 +164,9 @@ error_t mdnsResponderStop(MdnsResponderContext *context)
 {
    //Make sure the mDNS responder context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping mDNS responder...\r\n");
@@ -213,11 +221,15 @@ error_t mdnsResponderSetHostname(MdnsResponderContext *context,
 {
    //Check parameters
    if(context == NULL || hostname == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the host name is acceptable
    if(osStrlen(hostname) > MDNS_RESPONDER_MAX_HOSTNAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get exclusive access
    netLock(context->netContext);
@@ -260,7 +272,9 @@ error_t mdnsResponderStartProbing(MdnsResponderContext *context)
 
    //Check whether the mDNS responder has been properly instantiated
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = context->interface;
@@ -379,7 +393,9 @@ void mdnsResponderTick(MdnsResponderContext *context)
 
    //Make sure the mDNS responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Point to the underlying network interface
    interface = context->interface;
@@ -614,7 +630,9 @@ void mdnsResponderLinkChangeEvent(MdnsResponderContext *context)
 {
    //Make sure the mDNS responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //Free any response message pending to be sent

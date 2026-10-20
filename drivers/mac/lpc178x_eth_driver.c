@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -664,7 +664,7 @@ error_t lpc178xEthUpdateMacAddrFilter(NetInterface *interface)
          //Bits [28:23] are used to form the hash
          k = (crc >> 23) & 0x3F;
          //Update hash table contents
-         hashTable[k / 32] |= (1 << (k % 32));
+         hashTable[k / 32] |= (1U << (k % 32));
       }
    }
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _FTP_SERVER_MISC_H
@@ -56,6 +56,9 @@ uint_t ftpServerGetFilePermissions(FtpClientConnection *connection,
 
 size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
    char_t *buffer);
+
+bool_t ftpServerIsPathInRootDir(FtpClientConnection *connection,
+   const char_t *path);
 
 const char_t *ftpServerStripRootDir(FtpServerContext *context,
    const char_t *path);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,40 +60,52 @@ error_t ftpServerOpenSecureChannel(FtpServerContext *context,
    channel->tlsContext = tlsInit();
    //Failed to allocate TLS context?
    if(channel->tlsContext == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Select server operation mode
    error = tlsSetConnectionEnd(channel->tlsContext, TLS_CONNECTION_END_SERVER);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Bind TLS to the relevant socket
    error = tlsSetSocket(channel->tlsContext, channel->socket);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set TX and RX buffer size
    error = tlsSetBufferSize(channel->tlsContext, txBufferSize,
       rxBufferSize);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (TLS_TICKET_SUPPORT == ENABLED)
    //Enable session ticket mechanism
    error = tlsEnableSessionTickets(channel->tlsContext, TRUE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Register ticket encryption/decryption callbacks
    error = tlsSetTicketCallbacks(channel->tlsContext, tlsEncryptTicket,
       tlsDecryptTicket, &context->tlsTicketContext);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Invoke user-defined callback, if any
@@ -103,7 +115,9 @@ error_t ftpServerOpenSecureChannel(FtpServerContext *context,
       error = context->tlsInitCallback(NULL, channel->tlsContext);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing

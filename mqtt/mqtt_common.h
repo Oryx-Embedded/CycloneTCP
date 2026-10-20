@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _MQTT_COMMON_H
@@ -148,13 +148,26 @@ typedef enum
 
 typedef enum
 {
-   MQTT_CONNECT_RET_CODE_ACCEPTED             = 0,
-   MQTT_CONNECT_RET_CODE_UNACCEPTABLE_VERSION = 1,
-   MQTT_CONNECT_RET_CODE_ID_REJECTED          = 2,
-   MQTT_CONNECT_RET_CODE_SERVER_UNAVAILABLE   = 3,
-   MQTT_CONNECT_RET_CODE_BAD_USER_NAME        = 4,
-   MQTT_CONNECT_RET_CODE_NOT_AUTHORIZED       = 5
+   MQTT_CONNECT_RET_CODE_ACCEPTED             = 0x00,
+   MQTT_CONNECT_RET_CODE_UNACCEPTABLE_VERSION = 0x01,
+   MQTT_CONNECT_RET_CODE_ID_REJECTED          = 0x02,
+   MQTT_CONNECT_RET_CODE_SERVER_UNAVAILABLE   = 0x03,
+   MQTT_CONNECT_RET_CODE_BAD_USER_NAME        = 0x04,
+   MQTT_CONNECT_RET_CODE_NOT_AUTHORIZED       = 0x05
 } MqttConnectRetCode;
+
+
+/**
+ * @brief Subscribe return codes
+ **/
+
+typedef enum
+{
+   MQTT_SUBACK_RET_CODE_SUCCESS_QOS_0 = 0x00,
+   MQTT_SUBACK_RET_CODE_SUCCESS_QOS_1 = 0x01,
+   MQTT_SUBACK_RET_CODE_SUCCESS_QOS_2 = 0x02,
+   MQTT_SUBACK_RET_CODE_FAILURE       = 0x80
+} MqttSubAckRetCode;
 
 
 //CC-RX, CodeWarrior or Win32 compiler?

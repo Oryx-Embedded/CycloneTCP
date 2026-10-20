@@ -33,7 +33,7 @@
  * - RFC 4039: Rapid Commit Option for the DHCP version 4
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -110,11 +110,28 @@ error_t dhcpServerInit(DhcpServerContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Invalid network interface?
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
+   //Invalid index of the IP address assigned to the DHCP server?
+   if(settings->ipAddrIndex >= IPV4_ADDR_LIST_SIZE)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
+
+   //Invalid range of IP addresses?
+   if(settings->ipAddrRangeMin == IPV4_UNSPECIFIED_ADDR ||
+      ntohl(settings->ipAddrRangeMin) > ntohl(settings->ipAddrRangeMax))
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = settings->interface;
@@ -142,6 +159,10 @@ error_t dhcpServerInit(DhcpServerContext *context,
    {
       context->dnsServer[i] = settings->dnsServer[i];
    }
+
+   //Clamp the lease time to the range of acceptable values
+   context->leaseTime = MAX(context->leaseTime, DHCP_SERVER_MIN_LEASE_TIME);
+   context->leaseTime = MIN(context->leaseTime, DHCP_SERVER_MAX_LEASE_TIME);
 
    //Next IP address that will be assigned by the DHCP server
    context->nextIpAddr = settings->ipAddrRangeMin;
@@ -172,7 +193,9 @@ error_t dhcpServerStart(DhcpServerContext *context)
 
    //Make sure the DHCP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting DHCP server...\r\n");
@@ -180,7 +203,7 @@ error_t dhcpServerStart(DhcpServerContext *context)
    //Get exclusive access
    netLock(context->netContext);
 
-   //Check the operational state of the DHCP client
+   //Check the operational state of the DHCP server
    if(!context->running)
    {
       //Register the callback function to be called whenever a UDP datagram
@@ -197,7 +220,7 @@ error_t dhcpServerStart(DhcpServerContext *context)
    }
    else
    {
-      //The DHCP client is already running
+      //The DHCP server is already running
       error = ERROR_ALREADY_RUNNING;
    }
 
@@ -219,7 +242,9 @@ error_t dhcpServerStop(DhcpServerContext *context)
 {
    //Make sure the DHCP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping DHCP server...\r\n");
@@ -227,7 +252,7 @@ error_t dhcpServerStop(DhcpServerContext *context)
    //Get exclusive access
    netLock(context->netContext);
 
-   //Check whether the DHCP client is running
+   //Check whether the DHCP server is running
    if(context->running)
    {
       //Unregister callback function

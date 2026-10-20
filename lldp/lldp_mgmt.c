@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -84,7 +84,9 @@ error_t lldpMgmtSetMsgTxInterval(LldpAgentContext *context,
 #if (LLDP_TX_MODE_SUPPORT == ENABLED)
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Check the value of the parameter
    if(msgTxInterval < LLDP_MIN_MSG_TX_INTERVAL ||
@@ -130,7 +132,9 @@ error_t lldpMgmtSetMsgTxHold(LldpAgentContext *context, uint_t msgTxHold,
 #if (LLDP_TX_MODE_SUPPORT == ENABLED)
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Check the value of the parameter
    if(msgTxHold < LLDP_MIN_MSG_TX_HOLD ||
@@ -175,7 +179,9 @@ error_t lldpMgmtSetReinitDelay(LldpAgentContext *context, uint_t reinitDelay,
 #if (LLDP_TX_MODE_SUPPORT == ENABLED)
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Check the value of the parameter
    if(reinitDelay < LLDP_MIN_REINIT_DELAY ||
@@ -216,7 +222,9 @@ error_t lldpMgmtSetTxDelay(LldpAgentContext *context, uint_t txDelay,
 #if (LLDP_TX_MODE_SUPPORT == ENABLED)
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Check the value of the parameter
    if(txDelay < LLDP_MIN_TX_DELAY ||
@@ -257,7 +265,9 @@ error_t lldpMgmtSetNotificationInterval(LldpAgentContext *context,
 #if (LLDP_RX_MODE_SUPPORT == ENABLED)
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Check the value of the parameter
    if(notificationInterval < LLDP_MIN_NOTIFICATION_INTERVAL ||
@@ -302,11 +312,15 @@ error_t lldpMgmtSetAdminStatus(LldpAgentContext *context,
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Check the value of the parameter
    if(adminStatus != LLDP_ADMIN_STATUS_DISABLED &&
@@ -360,11 +374,15 @@ error_t lldpMgmtSetNotificationEnable(LldpAgentContext *context,
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -404,11 +422,15 @@ error_t lldpMgmtSetBasicTlvFilter(LldpAgentContext *context, uint_t portIndex,
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -448,7 +470,9 @@ error_t lldpMgmtGetMsgTxInterval(LldpAgentContext *context,
 #if (LLDP_TX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || msgTxInterval == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the parameter
    *msgTxInterval = context->msgTxInterval;
@@ -475,7 +499,9 @@ error_t lldpMgmtGetMsgTxHold(LldpAgentContext *context, uint_t *msgTxHold)
 #if (LLDP_TX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || msgTxHold == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the parameter
    *msgTxHold = context->msgTxHold;
@@ -501,7 +527,9 @@ error_t lldpMgmtGetReinitDelay(LldpAgentContext *context, uint_t *reinitDelay)
 #if (LLDP_TX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || reinitDelay == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the parameter
    *reinitDelay = context->reinitDelay;
@@ -527,7 +555,9 @@ error_t lldpMgmtGetTxDelay(LldpAgentContext *context, uint_t *txDelay)
 #if (LLDP_TX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || txDelay == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the parameter
    *txDelay = context->txDelay;
@@ -554,7 +584,9 @@ error_t lldpMgmtGetNotificationInterval(LldpAgentContext *context,
 #if (LLDP_RX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || notificationInterval == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the parameter
    *notificationInterval = context->notificationInterval;
@@ -585,11 +617,15 @@ error_t lldpMgmtGetAdminStatus(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || adminStatus == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -623,11 +659,15 @@ error_t lldpMgmtGetNotificationEnable(LldpAgentContext *context,
 
    //Make sure the LLDP agent context is valid
    if(context == NULL)
+   {
       return ERROR_WRITE_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -661,11 +701,15 @@ error_t lldpMgmtGetMibBasicTlvsTxEnable(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || mibBasicTlvsTxEnable == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -769,7 +813,9 @@ error_t lldpMgmtGetLocalPortId(LldpAgentContext *context, uint_t portIndex,
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -825,11 +871,15 @@ error_t lldpMgmtGetLocalPortDesc(LldpAgentContext *context, uint_t portIndex,
 
    //Check parameters
    if(context == NULL || portDesc == NULL || portDescLen == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -985,7 +1035,7 @@ error_t lldpMgmtGetLocalSysCap(LldpAgentContext *context,
    error = lldpGetTlv(&context->txInfo, LLDP_TLV_TYPE_SYS_CAP, 0, &p, &n);
 
    //System Capabilities TLV found?
-   if(!error && n >= sizeof(LldpChassisIdTlv))
+   if(!error && n >= sizeof(LldpSysCapTlv))
    {
       //Point to the System Capabilities TLV
       tlv = (const LldpSysCapTlv *) p;
@@ -1057,7 +1107,9 @@ int_t lldpMgmtFindLocalMgmtAddr(LldpAgentContext *context,
          error = lldpDecodeMgmtAddrTlv(tlv.value, tlv.length, &part1, &part2);
          //Malformed TLV?
          if(error)
+         {
             break;
+         }
 
          //Check the management address against the specified address
          if(part1->mgmtAddrSubtype == mgmtAddrSubtype &&
@@ -1505,7 +1557,7 @@ error_t lldpMgmtGetRemoteSysCap(LldpNeighborEntry *entry,
    error = lldpGetTlv(&entry->rxInfo, LLDP_TLV_TYPE_SYS_CAP, 0, &p, &n);
 
    //System Capabilities TLV found?
-   if(!error && n >= sizeof(LldpChassisIdTlv))
+   if(!error && n >= sizeof(LldpSysCapTlv))
    {
       //Point to the System Capabilities TLV
       tlv = (const LldpSysCapTlv *) p;
@@ -1561,7 +1613,9 @@ int_t lldpMgmtFindRemoteMgmtAddr(LldpNeighborEntry *entry,
          error = lldpDecodeMgmtAddrTlv(tlv.value, tlv.length, &part1, &part2);
          //Malformed TLV?
          if(error)
+         {
             break;
+         }
 
          //Check the management address against the specified address
          if(part1->mgmtAddrSubtype == mgmtAddrSubtype &&
@@ -1729,11 +1783,15 @@ error_t lldpMgmtGetStatsFramesOutTotal(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || statsFramesOutTotal == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -1767,11 +1825,15 @@ error_t lldpMgmtGetStatsFramesDiscardedTotal(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || statsFramesDiscardedTotal == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -1805,11 +1867,15 @@ error_t lldpMgmtGetStatsFramesInErrorsTotal(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || statsFramesInErrorsTotal == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -1843,11 +1909,15 @@ error_t lldpMgmtGetStatsFramesInTotal(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || statsFramesInTotal == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -1881,11 +1951,15 @@ error_t lldpMgmtGetStatsTLVsDiscardedTotal(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || statsTLVsDiscardedTotal == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -1919,11 +1993,15 @@ error_t lldpMgmtGetStatsTLVsUnrecognizedTotal(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || statsTLVsUnrecognizedTotal == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -1956,11 +2034,15 @@ error_t lldpMgmtGetStatsAgeoutsTotal(LldpAgentContext *context,
 
    //Check parameters
    if(context == NULL || statsAgeoutsTotal == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Invalid port index?
    if(portIndex < 1 || portIndex > context->numPorts)
+   {
       return ERROR_INVALID_PORT;
+   }
 
    //Point to the port that matches the specified port index
    port = &context->ports[portIndex - 1];
@@ -1991,7 +2073,9 @@ error_t lldpMgmtGetStatsRemTablesLastChangeTime(LldpAgentContext *context,
 #if (LLDP_RX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || statsRemTablesLastChangeTime == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the statistics counter
    *statsRemTablesLastChangeTime = context->statsRemTablesLastChangeTime;
@@ -2019,7 +2103,9 @@ error_t lldpMgmtGetStatsRemTablesInserts(LldpAgentContext *context,
 #if (LLDP_RX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || statsRemTablesInserts == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the statistics counter
    *statsRemTablesInserts = context->statsRemTablesInserts;
@@ -2047,7 +2133,9 @@ error_t lldpMgmtGetStatsRemTablesDeletes(LldpAgentContext *context,
 #if (LLDP_RX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || statsRemTablesDeletes == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the statistics counter
    *statsRemTablesDeletes = context->statsRemTablesDeletes;
@@ -2076,7 +2164,9 @@ error_t lldpMgmtGetStatsRemTablesDrops(LldpAgentContext *context,
 #if (LLDP_RX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || statsRemTablesDrops == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the statistics counter
    *statsRemTablesDrops = context->statsRemTablesDrops;
@@ -2105,7 +2195,9 @@ error_t lldpMgmtGetStatsRemTablesAgeouts(LldpAgentContext *context,
 #if (LLDP_RX_MODE_SUPPORT == ENABLED)
    //Check parameters
    if(context == NULL || statsRemTablesAgeouts == NULL)
+   {
       return ERROR_READ_FAILED;
+   }
 
    //Retrieve the current value of the statistics counter
    *statsRemTablesAgeouts = context->statsRemTablesAgeouts;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -133,9 +133,6 @@ void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
       return;
    }
 
-   //Point to snooping switch port
-   port = &context->ports[ancillary->port - 1];
-
    //The IGMP version of a Membership Query message is determined as follows
    if(length == sizeof(IgmpMessage) && message->maxRespTime == 0)
    {
@@ -174,8 +171,12 @@ void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
    //routers and the ports on which they are attached. This list can be
    //constructed by checking the arrival port for IGMP Queries (sent by
    //multicast routers) where the source address is not 0.0.0.0
-   if(pseudoHeader->srcAddr != IPV4_UNSPECIFIED_ADDR)
+   if(pseudoHeader->srcAddr != IPV4_UNSPECIFIED_ADDR &&
+      ancillary->port != SWITCH_CPU_PORT)
    {
+      //Point to snooping switch port
+      port = &context->ports[ancillary->port - 1];
+
       //Check whether a new router has been detected
       if(!port->routerPresent)
       {
@@ -240,7 +241,7 @@ void igmpSnoopingProcessMembershipQuery(IgmpSnoopingContext *context,
    }
 
    //Flood all ports except the port the message was received on
-   portMap = ((1 << context->numPorts) - 1) & ~(1 << (ancillary->port - 1));
+   portMap = igmpSnoopingGetFloodPorts(context, ancillary->port);
 
    //Forward the IGMP message
    if(portMap != 0)
@@ -271,7 +272,9 @@ void igmpSnoopingProcessMembershipReport(IgmpSnoopingContext *context,
    //The group address in the IGMP header must be a valid multicast group
    //address
    if(!ipv4IsMulticastAddr(message->groupAddr))
+   {
       return;
+   }
 
    //In a Membership Report, the group address field holds the IP multicast
    //group address of the group being reported (refer to RFC 2236, section 2.4)
@@ -302,12 +305,12 @@ void igmpSnoopingProcessMembershipReport(IgmpSnoopingContext *context,
    //allowing the report messages to be flooded to other ports
    if(context->floodReports)
    {
-      portMap = ((1 << context->numPorts) - 1);
+      portMap = igmpSnoopingGetFloodPorts(context, 0);
    }
 
    //Prevent the message from being forwarded back to the port on which it was
    //originally received
-   portMap &= ~(1 << (ancillary->port - 1));
+   portMap &= igmpSnoopingGetFloodPorts(context, ancillary->port);
 
    //Forward the IGMP message
    if(portMap != 0)
@@ -343,7 +346,9 @@ void igmpSnoopingProcessMembershipReportV3(IgmpSnoopingContext *context,
 
    //Malformed Membership Report message?
    if(length < sizeof(IgmpMembershipReportV3))
+   {
       return;
+   }
 
    //Get the length occupied by the group records
    n = length - sizeof(IgmpMembershipReportV3);
@@ -359,18 +364,30 @@ void igmpSnoopingProcessMembershipReportV3(IgmpSnoopingContext *context,
    {
       //Malformed Membership Report message?
       if((i + sizeof(IgmpGroupRecord)) > n)
+      {
          break;
+      }
 
       //Point to the current group record
       record = (IgmpGroupRecord *) (message->groupRecords + i);
 
       //Determine the length of the group record
-      recordLen = sizeof(IgmpGroupRecord) + record->auxDataLen +
+      recordLen = sizeof(IgmpGroupRecord) +
+         record->auxDataLen * sizeof(uint32_t) +
          ntohs(record->numOfSources) * sizeof(Ipv4Addr);
 
       //Malformed Membership Report message?
       if((i + recordLen) > n)
+      {
          break;
+      }
+
+      //The Multicast Address field must contain a valid multicast group
+      //address
+      if(!ipv4IsMulticastAddr(record->multicastAddr))
+      {
+         continue;
+      }
 
       //The Multicast Address field contains the IP multicast address to which
       //this Group Record pertains
@@ -434,12 +451,12 @@ void igmpSnoopingProcessMembershipReportV3(IgmpSnoopingContext *context,
    //allowing the report messages to be flooded to other ports
    if(context->floodReports)
    {
-      portMap = ((1 << context->numPorts) - 1);
+      portMap = igmpSnoopingGetFloodPorts(context, 0);
    }
 
    //Prevent the message from being forwarded back to the port on which it was
    //originally received
-   portMap &= ~(1 << (ancillary->port - 1));
+   portMap &= igmpSnoopingGetFloodPorts(context, ancillary->port);
 
    //Forward the IGMP message
    if(portMap != 0)
@@ -470,7 +487,9 @@ void igmpSnoopingProcessLeaveGroup(IgmpSnoopingContext *context,
    //The group address in the IGMP header must be a valid multicast group
    //address
    if(!ipv4IsMulticastAddr(message->groupAddr))
+   {
       return;
+   }
 
    //In a Leave Group message, the group address field holds the IP multicast
    //group address of the group being left (refer to RFC 2236, section 2.4)
@@ -493,7 +512,7 @@ void igmpSnoopingProcessLeaveGroup(IgmpSnoopingContext *context,
    }
 
    //Flood all ports except the port the message was received on
-   portMap = ((1 << context->numPorts) - 1) & ~(1 << (ancillary->port - 1));
+   portMap = igmpSnoopingGetFloodPorts(context, ancillary->port);
 
    //Forward the IGMP message
    if(portMap != 0)
@@ -523,7 +542,7 @@ void igmpSnoopingProcessUnknownMessage(IgmpSnoopingContext *context,
    //A switch that supports IGMP snooping must flood all unrecognized IGMP
    //messages to all other ports and must not attempt to make use of any
    //information beyond the end of the network layer header
-   portMap = ((1 << context->numPorts) - 1) & ~(1 << (ancillary->port - 1));
+   portMap = igmpSnoopingGetFloodPorts(context, ancillary->port);
 
    //Forward the IGMP message
    if(portMap != 0)
@@ -766,7 +785,7 @@ void igmpSnoopingUpdateStaticFdbEntry(IgmpSnoopingContext *context,
          //Valid port number?
          if(group->port > 0 && group->port <= context->numPorts)
          {
-            forwardPorts |= (1 << (group->port - 1));
+            forwardPorts |= (1U << (group->port - 1));
          }
          else
          {
@@ -849,6 +868,39 @@ void igmpSnoopingSetUnknownMcastFwdPorts(IgmpSnoopingContext *context,
 }
 
 
+/**
+ * @brief Retrieve the port map used to flood an IGMP message
+ * @param[in] context Pointer to the IGMP snooping switch context
+ * @param[in] port Port the message was received on (0 if no front port is to
+ *   be excluded)
+ * @return Port map identifying all the front ports except the ingress port
+ **/
+
+uint32_t igmpSnoopingGetFloodPorts(IgmpSnoopingContext *context, uint_t port)
+{
+   uint32_t portMap;
+
+   //All the front ports of the switch
+   if(context->numPorts >= 32)
+   {
+      portMap = 0xFFFFFFFF;
+   }
+   else
+   {
+      portMap = (1U << context->numPorts) - 1;
+   }
+
+   //Exclude the port the message was received on
+   if(port >= 1 && port <= 32 && port <= context->numPorts)
+   {
+      portMap &= ~(1U << (port - 1));
+   }
+
+   //Return the port map
+   return portMap;
+}
+
+
 /*
  * @brief Retrieve the port map identifying router ports
  * @param[in] context Pointer to the IGMP snooping switch context
@@ -869,7 +921,7 @@ uint32_t igmpSnoopingGetRouterPorts(IgmpSnoopingContext *context)
       //Check whether any IGMP router is attached to this port
       if(context->ports[i].routerPresent)
       {
-         routerPorts |= (1 << i);
+         routerPorts |= (1U << i);
       }
    }
 

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -460,18 +460,24 @@ error_t modbusClientParseReadCoilsResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadCoilsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the data field
    n = length - sizeof(ModbusReadCoilsResp);
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_READ_COILS)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //Check byte count field
    if(response->byteCount != n || response->byteCount != ((quantity + 7) / 8))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Copy coil values
    osMemcpy(value, response->coilStatus, response->byteCount);
@@ -501,18 +507,24 @@ error_t modbusClientParseReadDiscreteInputsResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadDiscreteInputsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the data field
    n = length - sizeof(ModbusReadDiscreteInputsResp);
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_READ_DISCRETE_INPUTS)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //Check byte count field
    if(response->byteCount != n || response->byteCount != ((quantity + 7) / 8))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Copy discrete input values
    osMemcpy(value, response->inputStatus, response->byteCount);
@@ -543,14 +555,18 @@ error_t modbusClientParseReadHoldingRegsResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadHoldingRegsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the data field
    n = length - sizeof(ModbusReadHoldingRegsResp);
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_READ_HOLDING_REGS)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //Check byte count field
    if(response->byteCount != n ||
@@ -591,14 +607,18 @@ error_t modbusClientParseReadInputRegsResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadInputRegsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the data field
    n = length - sizeof(ModbusReadInputRegsResp);
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_READ_INPUT_REGS)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //Check byte count field
    if(response->byteCount != n ||
@@ -638,11 +658,15 @@ error_t modbusClientParseWriteSingleCoilResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusWriteSingleCoilResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_WRITE_SINGLE_COIL)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //A value of 0xFF00 requests the output to be ON. A value of 0x0000
    //requests it to be OFF
@@ -679,11 +703,15 @@ error_t modbusClientParseWriteSingleRegResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusWriteSingleRegResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_WRITE_SINGLE_REG)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //The normal response is an echo of the request
    if(ntohs(response->regAddr) != address ||
@@ -716,11 +744,15 @@ error_t modbusClientParseWriteMultipleCoilsResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusWriteMultipleCoilsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_WRITE_MULTIPLE_COILS)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //The normal response returns the starting address, and quantity of
    //coils forced
@@ -754,11 +786,15 @@ error_t modbusClientParseWriteMultipleRegsResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusWriteMultipleRegsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_WRITE_MULTIPLE_REGS)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //The normal response returns the starting address, and quantity of
    //registers written
@@ -793,11 +829,15 @@ error_t modbusClientParseMaskWriteRegResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusMaskWriteRegResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_MASK_WRITE_REG)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //The normal response is an echo of the request
    if(ntohs(response->referenceAddr) != address ||
@@ -833,14 +873,18 @@ error_t modbusClientParseReadWriteMultipleRegsResp(ModbusClientContext *context,
 
    //Malformed PDU?
    if(length < sizeof(ModbusReadWriteMultipleRegsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Compute the length of the data field
    n = length - sizeof(ModbusReadInputRegsResp);
 
    //Check function code
    if(response->functionCode != MODBUS_FUNCTION_READ_WRITE_MULTIPLE_REGS)
+   {
       return ERROR_INVALID_RESPONSE;
+   }
 
    //Check byte count field
    if(response->readByteCount != n ||
@@ -876,7 +920,9 @@ error_t modbusClientParseExceptionResp(ModbusClientContext *context)
 
    //Malformed PDU?
    if(length < sizeof(ModbusExceptionResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save exception code
    context->exceptionCode = (ModbusExceptionCode) response->exceptionCode;

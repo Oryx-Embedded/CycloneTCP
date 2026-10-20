@@ -32,7 +32,7 @@
  * Refer to RFC 4861 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -103,7 +103,9 @@ error_t ndpEnable(NetInterface *interface, bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -141,7 +143,9 @@ error_t ndpSetReachableTime(NetInterface *interface, systime_t reachableTime)
 
    //Check parameters
    if(interface == NULL || reachableTime == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -189,7 +193,9 @@ error_t ndpSetRetransTimer(NetInterface *interface, systime_t retransTimer)
 
    //Check parameters
    if(interface == NULL || retransTimer == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -239,7 +245,9 @@ error_t ndpAddStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr,
 
    //Check parameters
    if(interface == NULL || ipAddr == NULL || macAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -312,7 +320,9 @@ error_t ndpRemoveStaticEntry(NetInterface *interface, const Ipv6Addr *ipAddr)
 
    //Check parameters
    if(interface == NULL || ipAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -690,13 +700,17 @@ void ndpProcessRouterAdv(NetInterface *interface,
 
    //Check the length of the Router Advertisement message
    if(length < sizeof(NdpRouterAdvMessage))
+   {
       return;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
    //Malformed message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("Router Advertisement message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -706,17 +720,23 @@ void ndpProcessRouterAdv(NetInterface *interface,
    //Routers must use their link-local address as the source for the
    //Router Advertisement so that hosts can uniquely identify routers
    if(!ipv6IsLinkLocalUnicastAddr(&pseudoHeader->srcAddr))
+   {
       return;
+   }
 
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
    if(ancillary->ttl != NDP_HOP_LIMIT)
+   {
       return;
+   }
 
    //ICMPv6 Code must be 0. An advertisement that passes the validity
    //checks is called a valid advertisement
    if(message->code)
+   {
       return;
+   }
 
    //Calculate the length of the Options field
    length -= sizeof(NdpRouterAdvMessage);
@@ -725,7 +745,9 @@ void ndpProcessRouterAdv(NetInterface *interface,
    error = ndpCheckOptions(message->options, length);
    //All included options must have a length that is greater than zero
    if(error)
+   {
       return;
+   }
 
    //Check the Router Lifetime value
    if(ntohs(message->routerLifetime) != 0)
@@ -925,7 +947,9 @@ void ndpProcessRouterAdv(NetInterface *interface,
 
       //No more option of the specified type?
       if(prefixInfoOption == NULL)
+      {
          break;
+      }
 
       //Hosts use the advertised on-link prefixes to build and maintain a list
       //that is used in deciding when a packet's destination is on-link or
@@ -980,13 +1004,17 @@ void ndpProcessNeighborSol(NetInterface *interface,
 
    //Check the length of the Neighbor Solicitation message
    if(length < sizeof(NdpNeighborSolMessage))
+   {
       return;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
    //Malformed message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("Neighbor Solicitation message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -996,11 +1024,15 @@ void ndpProcessNeighborSol(NetInterface *interface,
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
    if(ancillary->ttl != NDP_HOP_LIMIT)
+   {
       return;
+   }
 
    //ICMPv6 Code must be 0
    if(message->code)
+   {
       return;
+   }
 
    //If the IP source address is the unspecified address, the IP destination
    //address must be a solicited-node multicast address
@@ -1020,7 +1052,9 @@ void ndpProcessNeighborSol(NetInterface *interface,
    error = ndpCheckOptions(message->options, length);
    //All included options must have a length that is greater than zero
    if(error)
+   {
       return;
+   }
 
    //Search for the Source Link-Layer Address option
    option = ndpGetOption(message->options, length,
@@ -1098,7 +1132,9 @@ void ndpProcessNeighborSol(NetInterface *interface,
       //The Source Link-Layer Address option must not be included when the
       //source IP address is the unspecified address
       if(ipv6CompAddr(&pseudoHeader->srcAddr, &IPV6_UNSPECIFIED_ADDR))
+      {
          return;
+      }
 
       //Search the Neighbor Cache for the source address of the solicitation
       neighborCacheEntry = ndpFindNeighborCacheEntry(interface,
@@ -1226,13 +1262,17 @@ void ndpProcessNeighborAdv(NetInterface *interface,
 
    //Check the length of the Neighbor Advertisement message
    if(length < sizeof(NdpNeighborAdvMessage))
+   {
       return;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
    //Malformed message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("Neighbor Advertisement message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -1242,11 +1282,15 @@ void ndpProcessNeighborAdv(NetInterface *interface,
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
    if(ancillary->ttl != NDP_HOP_LIMIT)
+   {
       return;
+   }
 
    //ICMPv6 Code must be 0
    if(message->code)
+   {
       return;
+   }
 
    //The target address must not be a multicast address
    if(ipv6IsMulticastAddr(&message->targetAddr))
@@ -1274,7 +1318,9 @@ void ndpProcessNeighborAdv(NetInterface *interface,
    error = ndpCheckOptions(message->options, length);
    //All included options must have a length that is greater than zero
    if(error)
+   {
       return;
+   }
 
    //Duplicate address detection
    for(i = 0; i < IPV6_ADDR_LIST_SIZE; i++)
@@ -1472,13 +1518,17 @@ void ndpProcessRedirect(NetInterface *interface,
 
    //Check the length of the Redirect message
    if(length < sizeof(NdpRedirectMessage))
+   {
       return;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, length);
    //Malformed message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("Redirect message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -1488,26 +1538,36 @@ void ndpProcessRedirect(NetInterface *interface,
    //The IPv6 Hop Limit field must have a value of 255 to ensure that the
    //packet has not been forwarded by a router
    if(ancillary->ttl != NDP_HOP_LIMIT)
+   {
       return;
+   }
 
    //ICMPv6 Code must be 0
    if(message->code)
+   {
       return;
+   }
 
    //Routers must use their link-local address as the source for Redirect
    //messages so that hosts can uniquely identify routers
    if(!ipv6IsLinkLocalUnicastAddr(&pseudoHeader->srcAddr))
+   {
       return;
+   }
 
    //The IP source address of the Redirect must be the same as the current
    //first-hop router for the specified Destination address
    if(!ndpIsFirstHopRouter(interface, &message->destAddr, &pseudoHeader->srcAddr))
+   {
       return;
+   }
 
    //The Destination Address field in the Redirect message must not
    //contain a multicast address
    if(ipv6IsMulticastAddr(&message->destAddr))
+   {
       return;
+   }
 
    //The Target Address must be either a link-local address (when redirected
    //to a router) or the same as the Destination Address (when redirected to
@@ -1520,13 +1580,15 @@ void ndpProcessRedirect(NetInterface *interface,
    }
 
    //Calculate the length of the Options field
-   length -= sizeof(NdpNeighborAdvMessage);
+   length -= sizeof(NdpRedirectMessage);
 
    //Parse Options field
    error = ndpCheckOptions(message->options, length);
    //All included options must have a length that is greater than zero
    if(error)
+   {
       return;
+   }
 
    //Search the Destination cache for the specified address
    destCacheEntry = ndpFindDestCacheEntry(interface, &message->destAddr);
@@ -1698,7 +1760,9 @@ error_t ndpSendRouterSol(NetInterface *interface)
    buffer = ipAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, 0);
@@ -1823,7 +1887,9 @@ error_t ndpSendNeighborSol(NetInterface *interface,
 
       //No address assigned to the interface?
       if(error)
+      {
          return error;
+      }
    }
 
    //The only defined option that may appear in a Neighbor Solicitation
@@ -1834,7 +1900,9 @@ error_t ndpSendNeighborSol(NetInterface *interface,
    buffer = ipAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, 0);
@@ -1956,7 +2024,9 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
 
       //No address assigned to the interface?
       if(error)
+      {
          return error;
+      }
    }
    else
    {
@@ -1972,7 +2042,9 @@ error_t ndpSendNeighborAdv(NetInterface *interface,
    buffer = ipAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, 0);
@@ -2109,13 +2181,17 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
 
    //Check the length of the IPv6 packet
    if(ipPacketLen < sizeof(Ipv6Header))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the header of the invoking packet
    ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
    //Malformed IPv6 packet?
    if(ipHeader == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //The only defined options that may appear in a Redirect message are the
    //Target Link-Layer Address option and the Redirected Header option
@@ -2126,7 +2202,9 @@ error_t ndpSendRedirect(NetInterface *interface, const Ipv6Addr *targetAddr,
    buffer = ipAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the message
    message = netBufferAt(buffer, offset, 0);

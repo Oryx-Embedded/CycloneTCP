@@ -33,7 +33,7 @@
  * with the latter to obtain configuration parameters. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -118,23 +118,33 @@ Dhcpv6Option *dhcpv6AddOption(void *message, size_t *messageLen,
 
    //Check parameters
    if(message == NULL || messageLen == NULL)
+   {
       return NULL;
+   }
 
    //Check the length of the DHCPv6 message
    if(*messageLen < sizeof(Dhcpv6Message))
+   {
       return NULL;
+   }
 
    //Check the length of the option
    if(optionLen > 0 && optionValue == NULL)
+   {
       return NULL;
+   }
 
    if(optionLen > UINT16_MAX)
+   {
       return NULL;
+   }
 
    //Ensure that the length of the resulting message will not exceed the
    //maximum DHCPv6 message size
    if((*messageLen + sizeof(Dhcpv6Option) + optionLen) > DHCPV6_MAX_MSG_SIZE)
+   {
       return NULL;
+   }
 
    //Point to the end of the DHCPv6 message
    option = (Dhcpv6Option *) ((uint8_t *) message + *messageLen);
@@ -144,7 +154,10 @@ Dhcpv6Option *dhcpv6AddOption(void *message, size_t *messageLen,
    option->length = htons(optionLen);
 
    //Copy option data
-   osMemcpy(option->value, optionValue, optionLen);
+   if(optionLen > 0)
+   {
+      osMemcpy(option->value, optionValue, optionLen);
+   }
 
    //Update the length of the DHCPv6 message
    *messageLen += sizeof(Dhcpv6Option) + optionLen;
@@ -173,23 +186,33 @@ Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLen,
 
    //The pointer to the base option must be valid
    if(baseOption == NULL)
+   {
       return NULL;
+   }
 
    //Check the length of the DHCPv6 message
    if(*messageLen < sizeof(Dhcpv6Message))
+   {
       return NULL;
+   }
 
    //Check the length of the suboption
    if(optionLen > 0 && optionValue == NULL)
+   {
       return NULL;
+   }
 
    if(optionLen > UINT16_MAX)
+   {
       return NULL;
+   }
 
    //Ensure that the length of the resulting message will not exceed the
    //maximum DHCPv6 message size
    if((*messageLen + sizeof(Dhcpv6Option) + optionLen) > DHCPV6_MAX_MSG_SIZE)
+   {
       return NULL;
+   }
 
    //Get the actual length of the base option
    n = ntohs(baseOption->length);
@@ -202,7 +225,10 @@ Dhcpv6Option *dhcpv6AddSubOption(Dhcpv6Option *baseOption, size_t *messageLen,
    option->length = htons(optionLen);
 
    //Copy option data
-   osMemcpy(option->value, optionValue, optionLen);
+   if(optionLen > 0)
+   {
+      osMemcpy(option->value, optionValue, optionLen);
+   }
 
    //Update the length of the base option
    n += sizeof(Dhcpv6Option) + optionLen;
@@ -240,15 +266,21 @@ Dhcpv6Option *dhcpv6GetOption(const uint8_t *options,
 
       //Make sure the option is valid
       if((i + sizeof(Dhcpv6Option)) > optionsLength)
+      {
          break;
+      }
 
       //Check the length of the option data
       if((i + sizeof(Dhcpv6Option) + ntohs(option->length)) > optionsLength)
+      {
          break;
+      }
 
       //Option code matches the specified one?
       if(ntohs(option->code) == optionCode)
+      {
          return option;
+      }
 
       //Jump to the next option
       i += sizeof(Dhcpv6Option) + ntohs(option->length);

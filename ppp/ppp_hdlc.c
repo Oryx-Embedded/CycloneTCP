@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -463,17 +463,18 @@ error_t pppHdlcDriverReceiveAtCommand(NetInterface *interface, char_t *data,
             data[i] = '\0';
             valid = TRUE;
          }
+
          if(data[i] == PPP_FLAG_CHAR)
          {
             //A flag character has been received
             valid = TRUE;
          }
-         else if(i >= 5 && !osMemcmp(data + i - 5, "CLIENT", 6))
+         else if(i >= 5 && osMemcmp(data + i - 5, "CLIENT", 6) == 0)
          {
             //Special processing for null-modem connections
             valid = TRUE;
          }
-         else if(i >= 5 && !osMemcmp(data + i - 5, "SERVER", 6))
+         else if(i >= 5 && osMemcmp(data + i - 5, "SERVER", 6) == 0)
          {
             //Special processing for null-modem connections
             valid = TRUE;
@@ -582,7 +583,9 @@ void pppHdlcDriverWriteTxQueue(PppContext *context, uint8_t c)
 
    //Increment index and wrap around if necessary
    if(++context->txWriteIndex >= PPP_TX_BUFFER_SIZE)
+   {
       context->txWriteIndex = 0;
+   }
 
    //Enter critical section
    __disable_irq();
@@ -608,7 +611,9 @@ uint8_t pppHdlcDriverReadRxQueue(PppContext *context)
 
    //Increment index and wrap around if necessary
    if(++context->rxReadIndex >= PPP_RX_BUFFER_SIZE)
+   {
       context->rxReadIndex = 0;
+   }
 
    //Enter critical section
    __disable_irq();
@@ -647,7 +652,9 @@ bool_t pppHdlcDriverReadTxQueue(NetInterface *interface, int_t *c)
 
       //Increment index and wrap around if necessary
       if(++context->txReadIndex >= PPP_TX_BUFFER_SIZE)
+      {
          context->txReadIndex = 0;
+      }
 
       //Update the length of the queue
       context->txBufferLen--;
@@ -694,7 +701,9 @@ bool_t pppHdlcDriverWriteRxQueue(NetInterface *interface, uint8_t c)
 
       //Increment index and wrap around if necessary
       if(++context->rxWriteIndex >= PPP_RX_BUFFER_SIZE)
+      {
          context->rxWriteIndex = 0;
+      }
 
       //Update the length of the queue
       context->rxBufferLen++;

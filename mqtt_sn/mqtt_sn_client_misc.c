@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -97,11 +97,20 @@ error_t mqttSnClientProcessEvents(MqttSnClientContext *context,
       //Any datagram received?
       if(error == NO_ERROR)
       {
-         //Terminate the payload with a NULL character
-         context->message.buffer[context->message.length] = '\0';
+         //GWINFO messages may be received from any gateway or client during
+         //the gateway discovery process. Otherwise, only accept datagrams from
+         //the MQTT-SN gateway
+         if(context->state == MQTT_SN_CLIENT_STATE_SEARCHING ||
+            (ipCompAddr(&ipAddr, &context->gwIpAddr) &&
+            port == context->gwPort))
+         {
+            //Terminate the payload with a NULL character
+            context->message.buffer[context->message.length] = '\0';
 
-         //Process the received MQTT-SN message
-         mqttSnClientProcessMessage(context, &context->message, &ipAddr, port);
+            //Process the received MQTT-SN message
+            mqttSnClientProcessMessage(context, &context->message, &ipAddr,
+               port);
+         }
       }
       else if(error == ERROR_WOULD_BLOCK || error == ERROR_TIMEOUT)
       {
@@ -248,7 +257,9 @@ error_t mqttSnClientAddTopic(MqttSnClientContext *context,
 
    //Make sure the name of the topic name is acceptable
    if(osStrlen(topicName) > MQTT_SN_CLIENT_MAX_TOPIC_NAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Loop through the topic table
    for(i = 0; i < MQTT_SN_CLIENT_TOPIC_TABLE_SIZE; i++)

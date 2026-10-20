@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -34,6 +34,8 @@
 //Dependencies
 #include "core/net.h"
 #include "core/ip.h"
+#include "core/tcp.h"
+#include "core/udp.h"
 #include "ipv6/ipv6.h"
 #include "ipv6/ipv6_frag.h"
 #include "ipv6/icmpv6.h"
@@ -78,11 +80,14 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
    //Allocate a memory buffer to hold IP fragments
    fragment = ipAllocBuffer(0, &fragmentOffset);
    //Failed to allocate memory?
-   if(!fragment)
+   if(fragment == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
-   //Identification field is used to identify fragments of an original IP datagram
-   id = interface->ipv6Context.identification++;
+   //Identification field is used to identify fragments of an original IP
+   //datagram
+   id = netGenerateRand(interface->netContext);
 
    //The node should never set its PMTU estimate below the IPv6 minimum link MTU
    pathMtu = MAX(pathMtu, IPV6_DEFAULT_MTU);
@@ -102,7 +107,9 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
       error = netBufferSetLength(fragment, fragmentOffset);
       //Sanity check
       if(error)
+      {
          break;
+      }
 
       //Process the last fragment?
       if((payloadLen - offset) <= maxFragmentSize)
@@ -130,7 +137,9 @@ error_t ipv6FragmentDatagram(NetInterface *interface,
 
       //Failed to send current IP fragment?
       if(error)
+      {
          break;
+      }
 
       //Number of IP datagram fragments that have been generated as a result
       //of fragmentation at this entity
@@ -192,6 +201,17 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    IPV6_SYSTEM_STATS_INC_COUNTER32(reasmReqds, 1);
    IPV6_IF_STATS_INC_COUNTER32(reasmReqds, 1);
 
+   //Drop nested fragments
+   if(ancillary->reassembled)
+   {
+      //Number of failures detected by the IP reassembly algorithm
+      IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
+
+      //Drop the incoming fragment
+      return;
+   }
+
    //Remaining bytes to process in the payload
    length = netBufferGetLength(ipPacket) - fragHeaderOffset;
 
@@ -210,14 +230,18 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
    //Malformed IPv6 packet?
    if(ipHeader == NULL)
+   {
       return;
+   }
 
    //Point to the Fragment header
    fragHeader = netBufferAt(ipPacket, fragHeaderOffset,
       sizeof(Ipv6FragmentHeader));
    //Malformed IPv6 packet?
    if(fragHeader == NULL)
+   {
       return;
+   }
 
    //Calculate the length of the fragment
    length -= sizeof(Ipv6FragmentHeader);
@@ -260,6 +284,19 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       return;
    }
 
+   //A Fragment header with the Fragment Offset field and the M flag both
+   //set to zero denotes an atomic fragment
+   if((offset & (IPV6_OFFSET_MASK | IPV6_FLAG_M)) == 0)
+   {
+      //Atomic fragments must be processed in isolation from any other packets
+      //or fragments (refer to RFC 6946, section 4)
+      ipv6ProcessAtomicFragment(interface, ipPacket, ipPacketOffset,
+         fragHeaderOffset, nextHeaderOffset, length, ancillary);
+
+      //Exit immediately
+      return;
+   }
+
    //Search for a matching IP datagram being reassembled
    frag = ipv6SearchFragQueue(interface, ipHeader, fragHeader);
 
@@ -274,21 +311,61 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       return;
    }
 
+   //An empty fragment can never close a hole. Such a fragment causes the whole
+   //datagram being reassembled to be discarded
+   if(dataFirst == dataLast)
+   {
+      //Drop the reconstructed datagram
+      ipv6DropFragDatagram(interface, frag);
+      //Exit immediately
+      return;
+   }
+
+   //The end of the datagram is known as soon as the last fragment has been
+   //received. A last fragment that ends before data already received, or a
+   //fragment located beyond the end of the datagram, causes the whole datagram
+   //to be discarded
+   if(((offset & IPV6_FLAG_M) == 0 && dataLast < frag->fragPartLen) ||
+      (frag->lastFragReceived && dataLast > frag->fragPartLen))
+   {
+      //Drop the reconstructed datagram
+      ipv6DropFragDatagram(interface, frag);
+      //Exit immediately
+      return;
+   }
+
+   //Check whether the fragment overlaps data already received
+   error = ipv6CheckFragOverlap(interface, frag, dataFirst, dataLast);
+   //Any error to report?
+   if(error)
+   {
+      return;
+   }
+
    //The very first fragment requires special handling
    if((offset & IPV6_OFFSET_MASK) == 0)
    {
       uint8_t *p;
 
+      //The first fragment must include the entire IPv6 header chain
+      error = ipv6CheckFragHeaderChain(interface, ipPacket, ipPacketOffset,
+         fragHeaderOffset);
+
+      //Invalid header chain?
+      if(error)
+      {
+         //Drop the reconstructed datagram
+         ipv6DropFragDatagram(interface, frag);
+         //Exit immediately
+         return;
+      }
+
       //Calculate the length of the unfragmentable part
-      frag->unfragPartLength = fragHeaderOffset - ipPacketOffset;
+      frag->unfragPartLen = fragHeaderOffset - ipPacketOffset;
 
       //The size of the reconstructed datagram exceeds the maximum value?
-      if((frag->unfragPartLength + frag->fragPartLength) > IPV6_MAX_FRAG_DATAGRAM_SIZE)
+      if((frag->unfragPartLen + frag->fragPartLen) > IPV6_MAX_FRAG_DATAGRAM_SIZE)
       {
-         //Number of failures detected by the IP reassembly algorithm
-         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
          //Retrieve the offset of the Fragment header within the packet
          n = fragHeaderOffset - ipPacketOffset;
          //Compute the exact offset of the Fragment Offset field
@@ -301,32 +378,28 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
             ICMPV6_CODE_INVALID_HEADER_FIELD, n, ipPacket, ipPacketOffset);
 
          //Drop the reconstructed datagram
-         netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+         ipv6DropFragDatagram(interface, frag);
          //Exit immediately
          return;
       }
 
       //Make sure the unfragmentable part entirely fits in the first chunk
-      if(frag->unfragPartLength > frag->buffer.chunk[0].size)
+      if(frag->unfragPartLen > frag->buffer.chunk[0].size)
       {
-         //Number of failures detected by the IP reassembly algorithm
-         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
          //Drop the reconstructed datagram
-         netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+         ipv6DropFragDatagram(interface, frag);
          //Exit immediately
          return;
       }
 
       //Fix the length of the first chunk
-      frag->buffer.chunk[0].length = (uint16_t) frag->unfragPartLength;
+      frag->buffer.chunk[0].length = (uint16_t) frag->unfragPartLen;
 
       //The unfragmentable part of the reassembled packet consists of all
       //headers up to, but not including, the Fragment header of the first
       //fragment packet
       netBufferCopy((NetBuffer *) &frag->buffer, 0, ipPacket,
-         ipPacketOffset, frag->unfragPartLength);
+         ipPacketOffset, frag->unfragPartLen);
 
       //Point to the Next Header field of the last header
       p = netBufferAt((NetBuffer *) &frag->buffer,
@@ -339,15 +412,11 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
    }
 
    //It may be necessary to increase the size of the buffer
-   if(dataLast > frag->fragPartLength)
+   if(dataLast > frag->fragPartLen)
    {
       //The size of the reconstructed datagram exceeds the maximum value?
-      if((frag->unfragPartLength + dataLast) > IPV6_MAX_FRAG_DATAGRAM_SIZE)
+      if((frag->unfragPartLen + dataLast) > IPV6_MAX_FRAG_DATAGRAM_SIZE)
       {
-         //Number of failures detected by the IP reassembly algorithm
-         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
          //Retrieve the offset of the Fragment header within the packet
          n = fragHeaderOffset - ipPacketOffset;
          //Compute the exact offset of the Fragment Offset field
@@ -360,30 +429,26 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
             ICMPV6_CODE_INVALID_HEADER_FIELD, n, ipPacket, ipPacketOffset);
 
          //Drop the reconstructed datagram
-         netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+         ipv6DropFragDatagram(interface, frag);
          //Exit immediately
          return;
       }
 
       //Adjust the size of the reconstructed datagram
       error = netBufferSetLength((NetBuffer *) &frag->buffer,
-         frag->unfragPartLength + dataLast + sizeof(Ipv6HoleDesc));
+         frag->unfragPartLen + dataLast + sizeof(Ipv6HoleDesc));
 
       //Any error to report?
       if(error)
       {
-         //Number of failures detected by the IP reassembly algorithm
-         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-         IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
          //Drop the reconstructed datagram
-         netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+         ipv6DropFragDatagram(interface, frag);
          //Exit immediately
          return;
       }
 
       //Actual length of the fragmentable part
-      frag->fragPartLength = dataLast;
+      frag->fragPartLen = dataLast;
    }
 
    //Select the first hole descriptor from the list
@@ -402,22 +467,6 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       //in some way
       if(dataFirst < holeLast && dataLast > holeFirst)
       {
-#if (IPV6_OVERLAPPING_FRAG_SUPPORT == DISABLED)
-         //When reassembling an IPv6 datagram, if one or more its constituent
-         //fragments is determined to be an overlapping fragment, the entire
-         //datagram must be silently discarded (refer to RFC 5722, section 4)
-         if(dataFirst < holeFirst || dataLast > holeLast)
-         {
-            //Number of failures detected by the IP reassembly algorithm
-            IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
-            IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
-
-            //Drop the reconstructed datagram
-            netBufferSetLength((NetBuffer *) &frag->buffer, 0);
-            //Exit immediately
-            return;
-         }
-#endif
          //The current descriptor is no longer valid. We will destroy it, and in
          //the next two steps, we will determine whether or not it is necessary
          //to create any new hole descriptors
@@ -434,20 +483,15 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
          if(dataFirst > holeFirst)
          {
             //Create a new entry that describes this hole
-            hole = ipv6FindHole(frag, holeFirst);
-            hole->first = holeFirst;
-            hole->last = dataFirst;
+            hole = ipv6InsertHole(frag, prevHole, holeFirst, dataFirst);
 
-            //Insert the newly created entry into the hole descriptor list
-            if(prevHole != NULL)
+            //Make sure the hole descriptor is valid
+            if(hole == NULL)
             {
-               hole->next = prevHole->next;
-               prevHole->next = hole->first;
-            }
-            else
-            {
-               hole->next = frag->firstHole;
-               frag->firstHole = hole->first;
+               //Drop the reconstructed datagram
+               ipv6DropFragDatagram(interface, frag);
+               //Exit immediately
+               return;
             }
 
             //Always keep track of the previous hole
@@ -458,20 +502,15 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
          if(dataLast < holeLast && (offset & IPV6_FLAG_M) != 0)
          {
             //Create a new entry that describes this hole
-            hole = ipv6FindHole(frag, dataLast);
-            hole->first = dataLast;
-            hole->last = holeLast;
+            hole = ipv6InsertHole(frag, prevHole, dataLast, holeLast);
 
-            //Insert the newly created entry into the hole descriptor list
-            if(prevHole != NULL)
+            //Make sure the hole descriptor is valid
+            if(hole == NULL)
             {
-               hole->next = prevHole->next;
-               prevHole->next = hole->first;
-            }
-            else
-            {
-               hole->next = frag->firstHole;
-               frag->firstHole = hole->first;
+               //Drop the reconstructed datagram
+               ipv6DropFragDatagram(interface, frag);
+               //Exit immediately
+               return;
             }
 
             //Always keep track of the previous hole
@@ -488,8 +527,14 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       hole = ipv6FindHole(frag, prevHole ? prevHole->next : frag->firstHole);
    }
 
+   //Last fragment?
+   if((offset & IPV6_FLAG_M) == 0)
+   {
+      frag->lastFragReceived = TRUE;
+   }
+
    //Copy data from the fragment to the reassembly buffer
-   netBufferCopy((NetBuffer *) &frag->buffer, frag->unfragPartLength + dataFirst,
+   netBufferCopy((NetBuffer *) &frag->buffer, frag->unfragPartLen + dataFirst,
       ipPacket, fragHeaderOffset + sizeof(Ipv6FragmentHeader), length);
 
    //Dump hole descriptor list
@@ -502,7 +547,7 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       //Discard the extra hole descriptor that follows the reconstructed
       //datagram
       error = netBufferSetLength((NetBuffer *) &frag->buffer,
-         frag->unfragPartLength + frag->fragPartLength);
+         frag->unfragPartLen + frag->fragPartLen);
 
       //Check status code
       if(error)
@@ -517,12 +562,19 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
          Ipv6Header *datagram = netBufferAt((NetBuffer *) &frag->buffer, 0, 0);
 
          //Fix the Payload Length field
-         datagram->payloadLen = htons(frag->unfragPartLength +
-            frag->fragPartLength - sizeof(Ipv6Header));
+         datagram->payloadLen = htons(frag->unfragPartLen +
+            frag->fragPartLen - sizeof(Ipv6Header));
 
          //Number of IP datagrams successfully reassembled
          IPV6_SYSTEM_STATS_INC_COUNTER32(reasmOKs, 1);
          IPV6_IF_STATS_INC_COUNTER32(reasmOKs, 1);
+
+         //The IPv6 datagram has been reassembled
+         ancillary->reassembled = TRUE;
+
+         //The Router Alert option is reported only if present in the
+         //Hop-by-Hop Options header of the reassembled datagram
+         ancillary->routerAlert = FALSE;
 
          //Pass the original IPv6 datagram to the higher protocol layer
          ipv6ProcessPacket(interface, (NetBuffer *) &frag->buffer, 0,
@@ -532,6 +584,314 @@ void ipv6ParseFragmentHeader(NetInterface *interface, const NetBuffer *ipPacket,
       //Release previously allocated memory
       netBufferSetLength((NetBuffer *) &frag->buffer, 0);
    }
+}
+
+
+/**
+ * @brief Process an atomic fragment
+ * @param[in] interface Underlying network interface
+ * @param[in] ipPacket Multi-part buffer that holds the IPv6 packet
+ * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
+ * @param[in] fragHeaderOffset Offset to the Fragment header
+ * @param[in] nextHeaderOffset Offset to the Next Header field of the previous
+ *   header
+ * @param[in] length Length of the data that follows the Fragment header
+ * @param[in] ancillary Additional options passed to the stack along with
+ *   the packet
+ **/
+
+void ipv6ProcessAtomicFragment(NetInterface *interface,
+   const NetBuffer *ipPacket, size_t ipPacketOffset, size_t fragHeaderOffset,
+   size_t nextHeaderOffset, size_t length, NetRxAncillary *ancillary)
+{
+   error_t error;
+   size_t unfragPartLen;
+   uint8_t *p;
+   NetBuffer *buffer;
+   Ipv6Header *ipHeader;
+   Ipv6FragmentHeader *fragHeader;
+
+   //Point to the Fragment header
+   fragHeader = netBufferAt(ipPacket, fragHeaderOffset,
+      sizeof(Ipv6FragmentHeader));
+   //Malformed IPv6 packet?
+   if(fragHeader == NULL)
+   {
+      return;
+   }
+
+   //An atomic fragment is also a first fragment, so it must include the
+   //entire IPv6 header chain
+   error = ipv6CheckFragHeaderChain(interface, ipPacket, ipPacketOffset,
+      fragHeaderOffset);
+
+   //Invalid header chain?
+   if(error)
+   {
+      //Number of failures detected by the IP reassembly algorithm
+      IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
+
+      //Drop the incoming fragment
+      return;
+   }
+
+   //Calculate the length of the unfragmentable part
+   unfragPartLen = fragHeaderOffset - ipPacketOffset;
+
+   //Allocate a buffer to hold the unfragmentable part and the data that
+   //follows the Fragment header
+   buffer = netBufferAlloc(unfragPartLen + length);
+
+   //Failed to allocate memory?
+   if(buffer == NULL)
+   {
+      //Number of failures detected by the IP reassembly algorithm
+      IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
+
+      //Exit immediately
+      return;
+   }
+
+   //Copy the unfragmentable part
+   error = netBufferCopy(buffer, 0, ipPacket, ipPacketOffset, unfragPartLen);
+
+   //Check status code
+   if(!error)
+   {
+      //Copy the data that follows the Fragment header
+      error = netBufferCopy(buffer, unfragPartLen, ipPacket,
+         fragHeaderOffset + sizeof(Ipv6FragmentHeader), length);
+   }
+
+   //Check status code
+   if(!error)
+   {
+      //Point to the Next Header field of the last header of the unfragmentable
+      //part
+      p = netBufferAt(buffer, nextHeaderOffset - ipPacketOffset,
+         sizeof(uint8_t));
+
+      //Point to the IPv6 header
+      ipHeader = netBufferAt(buffer, 0, sizeof(Ipv6Header));
+
+      //Sanity check
+      if(p != NULL && ipHeader != NULL)
+      {
+         //The Fragment header is removed from the header chain
+         *p = fragHeader->nextHeader;
+
+         //Fix the Payload Length field
+         ipHeader->payloadLen = htons(unfragPartLen + length -
+            sizeof(Ipv6Header));
+
+         //Number of IP datagrams successfully reassembled
+         IPV6_SYSTEM_STATS_INC_COUNTER32(reasmOKs, 1);
+         IPV6_IF_STATS_INC_COUNTER32(reasmOKs, 1);
+
+         //The Fragment header has been processed
+         ancillary->reassembled = TRUE;
+
+         //The Router Alert option is reported only if present in the Hop-by-Hop
+         //Options header of the resulting packet
+         ancillary->routerAlert = FALSE;
+
+         //Pass the packet to the higher protocol layer
+         ipv6ProcessPacket(interface, buffer, 0, ancillary);
+      }
+      else
+      {
+         //Report an error
+         error = ERROR_INVALID_PACKET;
+      }
+   }
+
+   //Any error to report?
+   if(error)
+   {
+      //Number of failures detected by the IP reassembly algorithm
+      IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+      IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
+   }
+
+   //Release previously allocated memory
+   netBufferFree(buffer);
+}
+
+
+/**
+ * @brief Check the IPv6 header chain of a first fragment
+ * @param[in] interface Underlying network interface
+ * @param[in] ipPacket Multi-part buffer that holds the IPv6 packet
+ * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
+ * @param[in] fragHeaderOffset Offset to the Fragment header
+ * @return Error code (ERROR_INVALID_LENGTH if the header chain is incomplete,
+ *   ERROR_INVALID_HEADER if a Hop-by-Hop Options header is found in the
+ *   fragmentable part, ERROR_INVALID_PACKET if the packet is malformed)
+ **/
+
+error_t ipv6CheckFragHeaderChain(NetInterface *interface,
+   const NetBuffer *ipPacket, size_t ipPacketOffset, size_t fragHeaderOffset)
+{
+   error_t error;
+   size_t i;
+   size_t n;
+   size_t length;
+   size_t nextHeaderOffset;
+   uint8_t type;
+   Ipv6ExtHeader *extHeader;
+
+   //Total length of the packet
+   length = netBufferGetLength(ipPacket);
+
+   //Point to the Fragment header
+   extHeader = netBufferAt(ipPacket, fragHeaderOffset,
+      sizeof(Ipv6FragmentHeader));
+   //Malformed IPv6 packet?
+   if(extHeader == NULL)
+   {
+      return ERROR_INVALID_PACKET;
+   }
+
+   //The Next Header field of the Fragment header identifies the first header
+   //of the fragmentable part
+   type = extHeader->nextHeader;
+
+   //Keep track of the Next Header field that identifies the current header
+   nextHeaderOffset = fragHeaderOffset;
+   //Point to the first header of the fragmentable part
+   i = fragHeaderOffset + sizeof(Ipv6FragmentHeader);
+
+   //Loop through the headers of the fragmentable part
+   while(1)
+   {
+      //Hop-by-Hop Options header?
+      if(type == IPV6_HOP_BY_HOP_OPT_HEADER)
+      {
+         //The Hop-by-Hop Options header, when present, must immediately follow
+         //the IPv6 header
+         error = ERROR_INVALID_HEADER;
+         break;
+      }
+      else if(type == IPV6_DEST_OPT_HEADER ||
+         type == IPV6_ROUTING_HEADER ||
+         type == IPV6_AH_HEADER ||
+         type == IPV6_FRAGMENT_HEADER)
+      {
+         //The Next Header and length fields must be present
+         if((i + sizeof(Ipv6ExtHeader)) > length)
+         {
+            error = ERROR_INVALID_LENGTH;
+            break;
+         }
+
+         //Point to the extension header
+         extHeader = netBufferAt(ipPacket, i, sizeof(Ipv6ExtHeader));
+         //Malformed IPv6 packet?
+         if(extHeader == NULL)
+         {
+            error = ERROR_INVALID_PACKET;
+            break;
+         }
+
+         //Calculate the length of the extension header
+         if(type == IPV6_FRAGMENT_HEADER)
+         {
+            n = sizeof(Ipv6FragmentHeader);
+         }
+         else if(type == IPV6_AH_HEADER)
+         {
+            n = (extHeader->hdrExtLen + 2) * 4;
+         }
+         else
+         {
+            n = (extHeader->hdrExtLen + 1) * 8;
+         }
+
+         //Truncated extension header?
+         if((i + n) > length)
+         {
+            error = ERROR_INVALID_LENGTH;
+            break;
+         }
+
+         //Each extension header is identified by the Next Header field of the
+         //preceding header
+         type = extHeader->nextHeader;
+
+         //Keep track of the Next Header field that identifies the next header
+         nextHeaderOffset = i;
+         //Point to the next header
+         i += n;
+      }
+      else
+      {
+         //Minimum length of the upper-layer header
+         if(type == IPV6_ICMPV6_HEADER)
+         {
+            n = sizeof(Icmpv6Header);
+         }
+         else if(type == IPV6_TCP_HEADER)
+         {
+            n = sizeof(TcpHeader);
+         }
+         else if(type == IPV6_UDP_HEADER)
+         {
+            n = sizeof(UdpHeader);
+         }
+         else if(type == IPV6_NO_NEXT_HEADER)
+         {
+            n = 0;
+         }
+         else
+         {
+            n = 1;
+         }
+
+         //The header chain is complete if the upper-layer header lies within
+         //the fragment
+         if((i + n) <= length)
+         {
+            error = NO_ERROR;
+         }
+         else
+         {
+            error = ERROR_INVALID_LENGTH;
+         }
+
+         //End of the header chain
+         break;
+      }
+   }
+
+   //Check status code
+   if(error == ERROR_INVALID_HEADER)
+   {
+      //Compute the offset of the unrecognized Next Header field within the
+      //packet
+      n = nextHeaderOffset - ipPacketOffset;
+
+      //Send an ICMPv6 Parameter Problem message to the source of the fragment
+      icmpv6SendErrorMessage(interface, ICMPV6_TYPE_PARAM_PROBLEM,
+         ICMPV6_CODE_UNKNOWN_NEXT_HEADER, n, ipPacket, ipPacketOffset);
+   }
+   else if(error == ERROR_INVALID_LENGTH)
+   {
+      //A first fragment that does not include the entire IPv6 header chain
+      //must be discarded, and an ICMPv6 Parameter Problem message with code 3
+      //should be sent to the source of the fragment (refer to RFC 7112,
+      //section 5)
+      icmpv6SendErrorMessage(interface, ICMPV6_TYPE_PARAM_PROBLEM,
+         ICMPV6_CODE_INCOMPLETE_HEADER_CHAIN, 0, ipPacket, ipPacketOffset);
+   }
+   else
+   {
+      //Just for sanity
+   }
+
+   //Return status code
+   return error;
 }
 
 
@@ -585,7 +945,7 @@ void ipv6FragTick(NetInterface *interface)
             {
                //Fix the size of the reconstructed datagram
                error = netBufferSetLength((NetBuffer *) &frag->buffer,
-                  frag->unfragPartLength + hole->first);
+                  frag->unfragPartLen + hole->first);
 
                //Check status code
                if(!error)
@@ -618,8 +978,10 @@ Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
 {
    error_t error;
    uint_t i;
+   systime_t time;
    Ipv6Header *datagram;
    Ipv6FragDesc *frag;
+   Ipv6FragDesc *oldestFrag;
    Ipv6HoleDesc *hole;
 
    //Search for a matching IP datagram being reassembled
@@ -636,21 +998,71 @@ Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
 
          //Check source and destination addresses
          if(!ipv6CompAddr(&datagram->srcAddr, &packet->srcAddr))
+         {
             continue;
+         }
+
          if(!ipv6CompAddr(&datagram->destAddr, &packet->destAddr))
+         {
             continue;
+         }
 
          //Compare fragment identification fields
          if(frag->identification != header->identification)
+         {
             continue;
+         }
 
          //A matching entry has been found in the reassembly queue
          return frag;
       }
    }
 
-   //If the current packet does not match an existing entry
-   //in the reassembly queue, then create a new entry
+   //Get current time
+   time = osGetSystemTime();
+   //Keep track of the oldest entry
+   oldestFrag = NULL;
+
+   //Check whether the reassembly queue is full
+   for(i = 0; i < IPV6_MAX_FRAG_DATAGRAMS; i++)
+   {
+      //Point to the current entry in the reassembly queue
+      frag = &interface->ipv6Context.fragQueue[i];
+
+      //Check whether the current entry is free
+      if(frag->buffer.chunkCount == 0)
+      {
+         break;
+      }
+
+      //Keep track of the oldest entry
+      if(oldestFrag == NULL)
+      {
+         oldestFrag = frag;
+      }
+      else if((time - frag->timestamp) > (time - oldestFrag->timestamp))
+      {
+         oldestFrag = frag;
+      }
+      else
+      {
+      }
+   }
+
+   //Reassembly queue full?
+   if(i >= IPV6_MAX_FRAG_DATAGRAMS)
+   {
+      //Evict the oldest datagram being reassembled to make room for the new
+      //one, so that incomplete datagrams cannot block the reassembly process
+      //until they time out
+      if(oldestFrag != NULL)
+      {
+         ipv6DropFragDatagram(interface, oldestFrag);
+      }
+   }
+
+   //If the current packet does not match an existing entry in the reassembly
+   //queue, then create a new entry
    for(i = 0; i < IPV6_MAX_FRAG_DATAGRAMS; i++)
    {
       //Point to the current entry in the reassembly queue
@@ -677,13 +1089,14 @@ Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
          }
 
          //Initial length of the reconstructed datagram
-         frag->unfragPartLength = sizeof(Ipv6Header);
-         frag->fragPartLength = 0;
+         frag->unfragPartLen = sizeof(Ipv6Header);
+         frag->fragPartLen = 0;
+         frag->lastFragReceived = FALSE;
 
          //Fix the length of the first chunk
-         frag->buffer.chunk[0].length = (uint16_t) frag->unfragPartLength;
+         frag->buffer.chunk[0].length = (uint16_t) frag->unfragPartLen;
          //Copy IPv6 header from the incoming fragment
-         netBufferWrite((NetBuffer *) &frag->buffer, 0, packet, frag->unfragPartLength);
+         netBufferWrite((NetBuffer *) &frag->buffer, 0, packet, frag->unfragPartLen);
 
          //Save current time
          frag->timestamp = osGetSystemTime();
@@ -694,6 +1107,16 @@ Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
 
          //Point to first hole descriptor
          hole = ipv6FindHole(frag, frag->firstHole);
+
+         //Make sure the hole descriptor is valid
+         if(hole == NULL)
+         {
+            //Clean up side effects
+            netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+            //Exit immediately
+            return NULL;
+         }
+
          //The entry describes the datagram as being completely missing
          hole->first = 0;
          hole->last = IPV6_INFINITY;
@@ -707,7 +1130,7 @@ Ipv6FragDesc *ipv6SearchFragQueue(NetInterface *interface,
       }
    }
 
-   //The reassembly queue is full
+   //Failed to create a new entry
    return NULL;
 }
 
@@ -731,6 +1154,124 @@ void ipv6FlushFragQueue(NetInterface *interface)
 
 
 /**
+ * @brief Drop the datagram being reassembled
+ * @param[in] interface Underlying network interface
+ * @param[in] frag IPv6 fragment descriptor
+ **/
+
+void ipv6DropFragDatagram(NetInterface *interface, Ipv6FragDesc *frag)
+{
+   //Number of failures detected by the IP reassembly algorithm
+   IPV6_SYSTEM_STATS_INC_COUNTER32(reasmFails, 1);
+   IPV6_IF_STATS_INC_COUNTER32(reasmFails, 1);
+
+   //Release the reassembly buffer
+   netBufferSetLength((NetBuffer *) &frag->buffer, 0);
+}
+
+
+/**
+ * @brief Check whether a fragment overlaps data already received
+ * @param[in] interface Underlying network interface
+ * @param[in] frag IPv6 fragment descriptor
+ * @param[in] dataFirst Index of the first byte of the fragment
+ * @param[in] dataLast Index immediately following the last byte of the fragment
+ * @return Error code
+ **/
+
+error_t ipv6CheckFragOverlap(NetInterface *interface, Ipv6FragDesc *frag,
+   uint16_t dataFirst, uint16_t dataLast)
+{
+#if (IPV6_OVERLAPPING_FRAG_SUPPORT == DISABLED)
+   error_t error;
+   Ipv6HoleDesc *hole;
+
+   //Select the first hole descriptor from the list
+   hole = ipv6FindHole(frag, frag->firstHole);
+
+   //Search for a hole the fragment interacts with
+   while(hole != NULL && (dataFirst >= hole->last ||
+      dataLast <= hole->first))
+   {
+      hole = ipv6FindHole(frag, hole->next);
+   }
+
+   //Check whether the fragment interacts with any hole
+   if(hole == NULL)
+   {
+      //A fragment that lies entirely within data already received is silently
+      //dropped so that it cannot overwrite previously received data
+      error = ERROR_INVALID_PACKET;
+   }
+   else if(dataFirst < hole->first || dataLast > hole->last)
+   {
+      //When reassembling an IPv6 datagram, if one or more its constituent
+      //fragments is determined to be an overlapping fragment, the entire
+      //datagram must be silently discarded (refer to RFC 5722, section 4)
+      ipv6DropFragDatagram(interface, frag);
+
+      //Report an error
+      error = ERROR_INVALID_PACKET;
+   }
+   else
+   {
+      //The fragment lies entirely within the hole
+      error = NO_ERROR;
+   }
+
+   //Return status code
+   return error;
+#else
+   //Overlapping fragments are accepted
+   return NO_ERROR;
+#endif
+}
+
+
+/**
+ * @brief Insert a new hole descriptor into the list
+ * @param[in] frag IPv6 fragment descriptor
+ * @param[in] prevHole Hole descriptor after which the new entry is inserted
+ *   (NULL to insert the new entry at the head of the list)
+ * @param[in] first Index of the first byte of the hole
+ * @param[in] last Index immediately following the last byte of the hole
+ * @return Pointer to the newly created hole descriptor
+ **/
+
+Ipv6HoleDesc *ipv6InsertHole(Ipv6FragDesc *frag, Ipv6HoleDesc *prevHole,
+   uint16_t first, uint16_t last)
+{
+   Ipv6HoleDesc *hole;
+
+   //Point to the location of the new hole descriptor
+   hole = ipv6FindHole(frag, first);
+
+   //Make sure the hole descriptor is valid
+   if(hole != NULL)
+   {
+      //Save the boundaries of the hole
+      hole->first = first;
+      hole->last = last;
+
+      //Insert the newly created entry into the hole descriptor list
+      if(prevHole != NULL)
+      {
+         hole->next = prevHole->next;
+         prevHole->next = hole->first;
+      }
+      else
+      {
+         hole->next = frag->firstHole;
+         frag->firstHole = hole->first;
+      }
+   }
+
+   //Return a pointer to the newly created hole descriptor
+   return hole;
+}
+
+
+/**
  * @brief Retrieve hole descriptor
  * @param[in] frag IPv6 fragment descriptor
  * @param[in] offset Offset of the hole
@@ -741,7 +1282,8 @@ void ipv6FlushFragQueue(NetInterface *interface)
 Ipv6HoleDesc *ipv6FindHole(Ipv6FragDesc *frag, uint16_t offset)
 {
    //Return a pointer to the hole descriptor
-   return netBufferAt((NetBuffer *) &frag->buffer, frag->unfragPartLength + offset, 0);
+   return netBufferAt((NetBuffer *) &frag->buffer, frag->unfragPartLen + offset,
+      sizeof(Ipv6HoleDesc));
 }
 
 

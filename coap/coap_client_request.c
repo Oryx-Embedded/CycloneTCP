@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -132,7 +132,9 @@ error_t coapClientSetRequestTimeout(CoapClientRequest *request,
 {
    //Make sure the CoAP request handle is valid
    if(request == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&request->context->mutex);
@@ -163,7 +165,9 @@ error_t coapClientSendRequest(CoapClientRequest *request,
 
    //Make sure the CoAP request handle is valid
    if(request == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the CoAP client context
    context = request->context;
@@ -282,7 +286,9 @@ error_t coapClientCancelRequest(CoapClientRequest *request)
 
    //Make sure the CoAP request handle is valid
    if(request == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Acquire exclusive access to the CoAP client context
    osAcquireMutex(&request->context->mutex);
@@ -455,7 +461,9 @@ error_t coapClientSetType(CoapMessage *message, CoapMessageType type)
 {
    //Make sure the CoAP message is valid
    if(message == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Set message type
    return coapSetType(message, type);
@@ -473,7 +481,9 @@ error_t coapClientGetType(const CoapMessage *message, CoapMessageType *type)
 {
    //Check parameters
    if(message == NULL || type == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get message type
    return coapGetType(message, type);
@@ -491,7 +501,9 @@ error_t coapClientSetMethodCode(CoapMessage *message, CoapCode code)
 {
    //Make sure the CoAP message is valid
    if(message == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Set request method
    return coapSetCode(message, code);
@@ -509,7 +521,9 @@ error_t coapClientGetMethodCode(const CoapMessage *message, CoapCode *code)
 {
    //Check parameters
    if(message == NULL || code == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get request method
    return coapGetCode(message, code);
@@ -527,7 +541,9 @@ error_t coapClientGetResponseCode(const CoapMessage *message, CoapCode *code)
 {
    //Check parameters
    if(message == NULL || code == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get response code
    return coapGetCode(message, code);
@@ -545,7 +561,9 @@ error_t coapClientSetUriPath(CoapMessage *message, const char_t *path)
 {
    //Check parameters
    if(message == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Encode the path component into multiple Uri-Path options
    return coapSplitRepeatableOption(message, COAP_OPT_URI_PATH, path, '/');
@@ -565,7 +583,9 @@ error_t coapClientGetUriPath(const CoapMessage *message, char_t *path,
 {
    //Check parameters
    if(message == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Reconstruct the path component from Uri-Path options
    return coapJoinRepeatableOption(message, COAP_OPT_URI_PATH, path,
@@ -584,7 +604,9 @@ error_t coapClientSetUriQuery(CoapMessage *message, const char_t *queryString)
 {
    //Check parameters
    if(message == NULL || queryString == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Encode the query string into multiple Uri-Query options
    return coapSplitRepeatableOption(message, COAP_OPT_URI_QUERY,
@@ -605,7 +627,9 @@ error_t coapClientGetUriQuery(const CoapMessage *message, char_t *queryString,
 {
    //Check parameters
    if(message == NULL || queryString == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Reconstruct the query string from Uri-Query options
    return coapJoinRepeatableOption(message, COAP_OPT_URI_QUERY, queryString,
@@ -626,7 +650,9 @@ error_t coapClientGetLocationPath(const CoapMessage *message, char_t *path,
 {
    //Check parameters
    if(message == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Reconstruct the path component from Location-Path options
    return coapJoinRepeatableOption(message, COAP_OPT_LOCATION_PATH, path,
@@ -647,7 +673,9 @@ error_t coapClientGetLocationQuery(const CoapMessage *message,
 {
    //Check parameters
    if(message == NULL || queryString == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Reconstruct the query string from Location-Query options
    return coapJoinRepeatableOption(message, COAP_OPT_LOCATION_QUERY,
@@ -670,11 +698,15 @@ error_t coapClientSetOpaqueOption(CoapMessage *message, uint16_t optionNum,
 {
    //Make sure the CoAP message is valid
    if(message == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Inconsistent option value?
    if(optionValue == NULL && optionLen != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Add the specified option to the CoAP message
    return coapSetOption(message, optionNum, optionIndex, optionValue,
@@ -698,7 +730,9 @@ error_t coapClientSetStringOption(CoapMessage *message, uint16_t optionNum,
 
    //Check parameters
    if(message == NULL || optionValue == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve the length of the string
    n = osStrlen(optionValue);
@@ -723,7 +757,9 @@ error_t coapClientSetUintOption(CoapMessage *message, uint16_t optionNum,
 {
    //Make sure the CoAP message is valid
    if(message == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Add the specified option to the CoAP message
    return coapSetUintOption(message, optionNum, optionIndex, optionValue);
@@ -745,7 +781,9 @@ error_t coapClientGetOpaqueOption(const CoapMessage *message, uint16_t optionNum
 {
    //Check parameters
    if(message == NULL || optionValue == NULL || optionLen == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Search the CoAP message for the specified option number
    return coapGetOption(message, optionNum, optionIndex, optionValue,
@@ -768,7 +806,9 @@ error_t coapClientGetStringOption(const CoapMessage *message, uint16_t optionNum
 {
    //Check parameters
    if(message == NULL || optionValue == NULL || optionLen == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Search the CoAP message for the specified option number
    return coapGetOption(message, optionNum, optionIndex,
@@ -790,7 +830,9 @@ error_t coapClientGetUintOption(const CoapMessage *message, uint16_t optionNum,
 {
    //Check parameters
    if(message == NULL || optionValue == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Search the CoAP message for the specified option number
    return coapGetUintOption(message, optionNum, optionIndex, optionValue);
@@ -810,7 +852,9 @@ error_t coapClientDeleteOption(CoapMessage *message, uint16_t optionNum,
 {
    //Make sure the CoAP message is valid
    if(message == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Remove the specified option from the CoAP message
    return coapDeleteOption(message, optionNum, optionIndex);
@@ -830,11 +874,15 @@ error_t coapClientSetPayload(CoapMessage *message, const void *payload,
 {
    //Make sure the CoAP message is valid
    if(message == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check parameters
    if(payload == NULL && payloadLen != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Set message payload
    return coapSetPayload(message, payload, payloadLen);
@@ -854,7 +902,9 @@ error_t coapClientGetPayload(const CoapMessage *message, const uint8_t **payload
 {
    //Check parameters
    if(message == NULL || payload == NULL || payloadLen == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get response payload
    return coapGetPayload(message, payload, payloadLen);
@@ -874,7 +924,9 @@ error_t coapClientWritePayload(CoapMessage *message, const void *data,
 {
    //Check parameters
    if(message == NULL || data == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Write payload data
    return coapWritePayload(message, data, length);
@@ -895,7 +947,9 @@ error_t coapClientReadPayload(CoapMessage *message, void *data, size_t size,
 {
    //Check parameters
    if(message == NULL || data == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Read payload data
    return coapReadPayload(message, data, size, length);

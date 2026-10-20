@@ -33,7 +33,7 @@
  * - RFC 2428: FTP Extensions for IPv6 and NATs
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -65,7 +65,9 @@ error_t ftpClientInit(FtpClientContext *context)
 
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear FTP client context
    osMemset(context, 0, sizeof(FtpClientContext));
@@ -78,7 +80,9 @@ error_t ftpClientInit(FtpClientContext *context)
    error = tlsInitSessionState(&context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Initialize FTP client state
@@ -105,7 +109,9 @@ error_t ftpClientRegisterTlsInitCallback(FtpClientContext *context,
 {
    //Check parameters
    if(context == NULL || callback == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->tlsInitCallback = callback;
@@ -128,7 +134,9 @@ error_t ftpClientSetTimeout(FtpClientContext *context, systime_t timeout)
 {
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
@@ -150,7 +158,9 @@ error_t ftpClientBindToInterface(FtpClientContext *context,
 {
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the FTP client with the specified interface
    context->interface = interface;
@@ -176,7 +186,9 @@ error_t ftpClientConnect(FtpClientContext *context,
 
    //Check parameters
    if(context == NULL || serverIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -398,7 +410,9 @@ error_t ftpClientLoginEx(FtpClientContext *context, const char_t *username,
 
    //Check parameters
    if(context == NULL || username == NULL || password == NULL || account == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -548,7 +562,9 @@ error_t ftpClientGetWorkingDir(FtpClientContext *context, char_t *path,
 
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -628,7 +644,9 @@ error_t ftpClientChangeWorkingDir(FtpClientContext *context,
 
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -701,7 +719,9 @@ error_t ftpClientChangeToParentDir(FtpClientContext *context)
 
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -775,7 +795,9 @@ error_t ftpClientOpenDir(FtpClientContext *context, const char_t *path)
 
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -906,7 +928,9 @@ error_t ftpClientReadDir(FtpClientContext *context, FtpDirEntry *dirEntry)
 
    //Check parameters
    if(context == NULL || dirEntry == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -998,7 +1022,9 @@ error_t ftpClientCloseDir(FtpClientContext *context)
 {
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close data connection and get transfer status
    return ftpClientTerminateDataTransfer(context);
@@ -1018,7 +1044,9 @@ error_t ftpClientCreateDir(FtpClientContext *context, const char_t *path)
 
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1092,7 +1120,9 @@ error_t ftpClientDeleteDir(FtpClientContext *context, const char_t *path)
 
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1168,7 +1198,9 @@ error_t ftpClientOpenFile(FtpClientContext *context, const char_t *path,
 
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1327,11 +1359,15 @@ error_t ftpClientWriteFile(FtpClientContext *context, const void *data,
 
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check parameters
    if(data == NULL && length != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Actual number of bytes written
    n = 0;
@@ -1395,7 +1431,9 @@ error_t ftpClientReadFile(FtpClientContext *context, void *data, size_t size,
 
    //Check parameters
    if(context == NULL || data == NULL || received == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check current state
    if(context->state == FTP_CLIENT_STATE_READING_DATA)
@@ -1441,7 +1479,9 @@ error_t ftpClientCloseFile(FtpClientContext *context)
 {
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close data connection and get transfer status
    return ftpClientTerminateDataTransfer(context);
@@ -1463,7 +1503,9 @@ error_t ftpClientRenameFile(FtpClientContext *context, const char_t *oldPath,
 
    //Check parameters
    if(context == NULL || oldPath == NULL || newPath == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1567,7 +1609,9 @@ error_t ftpClientDeleteFile(FtpClientContext *context, const char_t *path)
 
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1667,7 +1711,9 @@ error_t ftpClientDisconnect(FtpClientContext *context)
 
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1754,7 +1800,9 @@ error_t ftpClientClose(FtpClientContext *context)
 {
    //Make sure the FTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close data and control connections
    ftpClientCloseChannel(&context->dataChannel);

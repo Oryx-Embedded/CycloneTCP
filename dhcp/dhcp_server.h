@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _DHCP_SERVER_H
@@ -55,11 +55,32 @@
    #error DHCP_SERVER_MAX_CLIENTS parameter is not valid
 #endif
 
+//Minimum lease time, in seconds
+#ifndef DHCP_SERVER_MIN_LEASE_TIME
+   #define DHCP_SERVER_MIN_LEASE_TIME 60
+#elif (DHCP_SERVER_MIN_LEASE_TIME < 1)
+   #error DHCP_SERVER_MIN_LEASE_TIME parameter is not valid
+#endif
+
 //Default lease time, in seconds
 #ifndef DHCP_SERVER_DEFAULT_LEASE_TIME
    #define DHCP_SERVER_DEFAULT_LEASE_TIME 86400
-#elif (DHCP_SERVER_DEFAULT_LEASE_TIME < 1)
+#elif (DHCP_SERVER_DEFAULT_LEASE_TIME < DHCP_SERVER_MIN_LEASE_TIME)
    #error DHCP_SERVER_DEFAULT_LEASE_TIME parameter is not valid
+#endif
+
+//Maximum lease time, in seconds
+#ifndef DHCP_SERVER_MAX_LEASE_TIME
+   #define DHCP_SERVER_MAX_LEASE_TIME 604800
+#elif (DHCP_SERVER_MAX_LEASE_TIME < DHCP_SERVER_DEFAULT_LEASE_TIME)
+   #error DHCP_SERVER_MAX_LEASE_TIME parameter is not valid
+#endif
+
+//Time during which a declined network address is not reassigned
+#ifndef DHCP_SERVER_DECLINE_HOLD_TIME
+   #define DHCP_SERVER_DECLINE_HOLD_TIME 3600000
+#elif (DHCP_SERVER_DECLINE_HOLD_TIME < 1000)
+   #error DHCP_SERVER_DECLINE_HOLD_TIME parameter is not valid
 #endif
 
 //Maximum number of DNS servers
@@ -101,6 +122,19 @@ typedef error_t (*DhcpServerParseOptionsCallback)(DhcpServerContext *context,
 
 
 /**
+ * @brief DHCP binding states
+ **/
+
+typedef enum
+{
+   DHCP_SERVER_BINDING_STATE_NONE      = 0, ///<Unused entry
+   DHCP_SERVER_BINDING_STATE_RESERVED  = 1, ///<Address offered, released or expired
+   DHCP_SERVER_BINDING_STATE_COMMITTED = 2, ///<Address committed (valid lease)
+   DHCP_SERVER_BINDING_STATE_DECLINED  = 3  ///<Address declined by the client
+} DhcpServerBindingState;
+
+
+/**
  * @brief DHCP binding
  *
  * A binding is a collection of configuration parameters associated
@@ -110,10 +144,10 @@ typedef error_t (*DhcpServerParseOptionsCallback)(DhcpServerContext *context,
 
 typedef struct
 {
-   MacAddr macAddr;     ///<Client's MAC address
-   Ipv4Addr ipAddr;     ///<Client's IPv4 address
-   bool_t validLease;   ///<Valid lease
-   systime_t timestamp; ///<Timestamp
+   DhcpServerBindingState state; ///<Binding state
+   MacAddr macAddr;              ///<Client's MAC address
+   Ipv4Addr ipAddr;              ///<Client's IPv4 address
+   systime_t timestamp;          ///<Timestamp
 } DhcpServerBinding;
 
 

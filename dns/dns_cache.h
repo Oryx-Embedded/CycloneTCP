@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _DNS_CACHE_H
@@ -102,6 +102,7 @@ typedef struct
    HostnameResolver protocol;         ///<Name resolution protocol
    NetInterface *interface;           ///<Underlying network interface
    uint_t dnsServerIndex;             ///<This parameter selects between the primary and secondary DNS server
+   IpAddr serverIpAddr;               ///<IP address of the DNS server the query was sent to
    uint16_t port;                     ///<Port number used by the resolver
    uint16_t id;                       ///<Identifier used to match queries and responses
    char_t name[DNS_MAX_NAME_LEN + 1]; ///<Domain name

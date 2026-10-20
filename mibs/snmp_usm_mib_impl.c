@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -224,32 +224,44 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       SNMP_MAX_CONTEXT_ENGINE_SIZE, &userEngineIdLen, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Accept malformed SNMP engine IDs
    if(n < oidLen && oid[n] == 0)
+   {
       n++;
+   }
 
    //usmUserName is used as 2nd instance identifier
    error = mibDecodeString(oid, oidLen, &n, userName,
       SNMP_MAX_USER_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Make sure the user name is acceptable
    if(userName[0] == '\0')
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpUsmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Retrieve the security profile of the specified user
    user = snmpFindUserEntry(context, userName, osStrlen(userName));
@@ -261,11 +273,15 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
 
       //Check the length of the OID
       if(valueLen <= sizeof(usmUserEntryOid))
+      {
          return ERROR_INCONSISTENT_VALUE;
+      }
 
       //The OID must point to another conceptual row in the usmUserTable
-      if(osMemcmp(value->oid, usmUserEntryOid, sizeof(usmUserEntryOid)))
+      if(osMemcmp(value->oid, usmUserEntryOid, sizeof(usmUserEntryOid)) != 0)
+      {
          return ERROR_INCONSISTENT_VALUE;
+      }
 
       //Point to the instance identifier
       n = sizeof(usmUserEntryOid) + 1;
@@ -275,14 +291,18 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          SNMP_MAX_CONTEXT_ENGINE_SIZE, &userEngineIdLen, FALSE);
       //Invalid instance identifier?
       if(error)
+      {
          return error;
+      }
 
       //usmUserName is used as 2nd instance identifier
       error = mibDecodeString(value->oid, valueLen, &n, userName,
          SNMP_MAX_USER_NAME_LEN, FALSE);
       //Invalid instance identifier?
       if(error)
+      {
          return error;
+      }
 
       //Retrieve the security profile of the clone-from user
       cloneFromUser = snmpFindUserEntry(context, userName, osStrlen(userName));
@@ -291,7 +311,9 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       //conceptual row representing the clone-from user does not exist or
       //is not in an active state when the cloning process is invoked
       if(cloneFromUser == NULL || cloneFromUser->status != MIB_ROW_STATUS_ACTIVE)
+      {
          return ERROR_INCONSISTENT_VALUE;
+      }
 
       //Check whether the row has already been instantiated
       if(user != NULL)
@@ -338,7 +360,9 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          //while the usmUserPrivProtocol value in the same row is not equal to
          //usmNoPrivProtocol, then an inconsistentValue error must be returned
          if(user->privProtocol != SNMP_PRIV_PROTOCOL_NONE)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Commit phase?
          if(commit)
@@ -409,7 +433,9 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
 
       //Unknown user name?
       if(user == NULL)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
 
       //usmUserOwnAuthKeyChange object?
       if(osStrcmp(object->name, "usmUserOwnAuthKeyChange") == 0)
@@ -417,12 +443,16 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          //When the user name of the requester is not the same as the umsUserName
          //that indexes the row, then a noAccess error must be returned
          if(osStrcmp(user->name, context->user.name) != 0)
+         {
             return ERROR_ACCESS_DENIED;
+         }
 
          //When a set is received and the security model in use is not USM, then
          //a noAccess error must be returned
          if(context->request.msgSecurityModel != SNMP_SECURITY_MODEL_USM)
+         {
             return ERROR_ACCESS_DENIED;
+         }
       }
 
       //Get the hash algorithm to be used to update the key
@@ -430,13 +460,17 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
 
       //Invalid authentication protocol?
       if(hashAlgo == NULL)
+      {
          return ERROR_WRITE_FAILED;
+      }
 
       //The value of an instance of this object is the concatenation of
       //two components of fixed length: first a random component and then
       //a delta component
       if(valueLen != (hashAlgo->digestSize * 2))
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Commit phase?
       if(commit)
@@ -510,7 +544,9 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
 
       //Unknown user name?
       if(user == NULL)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
 
       //usmUserOwnPrivKeyChange object?
       if(osStrcmp(object->name, "usmUserOwnPrivKeyChange") == 0)
@@ -518,12 +554,16 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
          //When the user name of the requester is not the same as the umsUserName
          //that indexes the row, then a noAccess error must be returned
          if(osStrcmp(user->name, context->user.name) != 0)
+         {
             return ERROR_ACCESS_DENIED;
+         }
 
          //When a set is received and the security model in use is not USM, then
          //a noAccess error must be returned
          if(context->request.msgSecurityModel != SNMP_SECURITY_MODEL_USM)
+         {
             return ERROR_ACCESS_DENIED;
+         }
       }
 
       //Get the hash algorithm to be used to update the key
@@ -531,13 +571,17 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
 
       //Invalid authentication protocol?
       if(hashAlgo == NULL)
+      {
          return ERROR_WRITE_FAILED;
+      }
 
       //The value of an instance of this object is the concatenation of
       //two components of fixed length: first a random component and then
       //a delta component
       if(valueLen != (hashAlgo->digestSize * 2))
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Commit phase?
       if(commit)
@@ -555,7 +599,9 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
    {
       //Check the length of the public value
       if(valueLen > SNMP_MAX_PUBLIC_VALUE_SIZE)
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Check whether the user name exists
       if(user != NULL)
@@ -615,7 +661,9 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       {
          //Unknown user name?
          if(user == NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Commit phase?
          if(commit)
@@ -636,7 +684,9 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
             //has sufficient information to make the conceptual row available
             //for use by the managed device
             if(user->mode == SNMP_ACCESS_NONE)
+            {
                return ERROR_INCONSISTENT_VALUE;
+            }
 
             //Update the status of the conceptual row
             user->status = status;
@@ -646,13 +696,17 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       {
          //User name already in use?
          if(user != NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Create a security profile for the new user
          user = snmpCreateUserEntry(context);
          //Unable to create a new user?
          if(user == NULL)
+         {
             return ERROR_WRITE_FAILED;
+         }
 
          //Commit phase?
          if(commit)
@@ -693,13 +747,17 @@ error_t snmpUsmMibSetUserEntry(const MibObject *object, const uint8_t *oid,
       {
          //User name already in use?
          if(user != NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Create a security profile for the new user
          user = snmpCreateUserEntry(context);
          //Unable to create a new user?
          if(user == NULL)
+         {
             return ERROR_WRITE_FAILED;
+         }
 
          //Commit phase?
          if(commit)
@@ -809,38 +867,52 @@ error_t snmpUsmMibGetUserEntry(const MibObject *object, const uint8_t *oid,
       SNMP_MAX_CONTEXT_ENGINE_SIZE, &userEngineIdLen, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //usmUserName is used as 2nd instance identifier
    error = mibDecodeString(oid, oidLen, &n, userName,
       SNMP_MAX_USER_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpUsmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check the length of the SNMP engine ID
    if(userEngineIdLen != context->contextEngineLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check SNMP engine ID
-   if(osMemcmp(userEngineId, context->contextEngine, userEngineIdLen))
+   if(osMemcmp(userEngineId, context->contextEngine, userEngineIdLen) != 0)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Retrieve the security profile of the specified user
    user = snmpFindUserEntry(context, userName, osStrlen(userName));
    //Unknown user name?
    if(user == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //usmUserSecurityName object?
    if(osStrcmp(object->name, "usmUserSecurityName") == 0)
@@ -1077,11 +1149,15 @@ error_t snmpUsmMibGetNextUserEntry(const MibObject *object, const uint8_t *oid,
    context = (SnmpAgentContext *) snmpUsmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -1103,13 +1179,17 @@ error_t snmpUsmMibGetNextUserEntry(const MibObject *object, const uint8_t *oid,
             context->contextEngine, context->contextEngineLen, FALSE);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //usmUserName is used as 2nd instance identifier
          error = mibEncodeString(nextOid, *nextOidLen, &n, entry->name, FALSE);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -1140,7 +1220,9 @@ error_t snmpUsmMibGetNextUserEntry(const MibObject *object, const uint8_t *oid,
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order
             if(acceptable)
+            {
                nextEntry = entry;
+            }
          }
       }
    }
@@ -1148,7 +1230,9 @@ error_t snmpUsmMibGetNextUserEntry(const MibObject *object, const uint8_t *oid,
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -1158,13 +1242,17 @@ error_t snmpUsmMibGetNextUserEntry(const MibObject *object, const uint8_t *oid,
       context->contextEngine, context->contextEngineLen, FALSE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //usmUserName is used as 2nd instance identifier
    error = mibEncodeString(nextOid, *nextOidLen, &n, nextEntry->name, FALSE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

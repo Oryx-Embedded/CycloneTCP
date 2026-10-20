@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -348,11 +348,15 @@ error_t lldpMibGetLldpLocPortEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &lldpLocPortNum);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //lldpLocPortIdSubtype object?
    if(osStrcmp(object->name, "lldpLocPortIdSubtype") == 0)
@@ -471,11 +475,15 @@ error_t lldpMibGetNextLldpLocPortEntry(const MibObject *object, const uint8_t *o
    context = lldpMibBase.lldpAgentContext;
    //Make sure the context is valid
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -493,7 +501,9 @@ error_t lldpMibGetNextLldpLocPortEntry(const MibObject *object, const uint8_t *o
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, curPortNum);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
@@ -511,7 +521,9 @@ error_t lldpMibGetNextLldpLocPortEntry(const MibObject *object, const uint8_t *o
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(portNum == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -520,7 +532,9 @@ error_t lldpMibGetNextLldpLocPortEntry(const MibObject *object, const uint8_t *o
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, portNum);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -558,7 +572,9 @@ error_t lldpMibGetLldpLocManAddrEntry(const MibObject *object, const uint8_t *oi
    context = lldpMibBase.lldpAgentContext;
    //Make sure the context is valid
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -567,32 +583,42 @@ error_t lldpMibGetLldpLocManAddrEntry(const MibObject *object, const uint8_t *oi
    error = mibDecodeIndex(oid, oidLen, &n, &lldpLocManAddrSubtype);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpLocManAddr is used as 2nd instance identifier
    error = mibDecodeOctetString(oid, oidLen, &n, lldpLocManAddr,
       LLDP_MAX_MGMT_ADDR_LEN, &lldpLocManAddrLen, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the local system MIB for a matching address
    index = lldpMgmtFindLocalMgmtAddr(context, lldpLocManAddrSubtype,
       lldpLocManAddr, lldpLocManAddrLen);
    //No matching address found?
    if(index < 0)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Extract the management address from the local system MIB
    error = lldpMgmtGetLocalMgmtAddr(context, index, NULL, NULL, NULL,
       &ifNumSubtype, &ifNum, &addrOid, &addrOidLen);
    //No matching address found?
    if(error)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //lldpLocManAddrLen object?
    if(osStrcmp(object->name, "lldpLocManAddrLen") == 0)
@@ -688,11 +714,15 @@ error_t lldpMibGetNextLldpLocManAddrEntry(const MibObject *object, const uint8_t
    context = lldpMibBase.lldpAgentContext;
    //Make sure the context is valid
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -722,14 +752,18 @@ error_t lldpMibGetNextLldpLocManAddrEntry(const MibObject *object, const uint8_t
             addr->mgmtAddrSubtype);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //lldpLocManAddr is used as 5th instance identifier
          error = mibEncodeOctetString(nextOid, *nextOidLen, &n,
             addr->mgmtAddr, addr->mgmtAddrLen - 1, FALSE);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -782,7 +816,9 @@ error_t lldpMibGetNextLldpLocManAddrEntry(const MibObject *object, const uint8_t
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextAddr == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -791,14 +827,18 @@ error_t lldpMibGetNextLldpLocManAddrEntry(const MibObject *object, const uint8_t
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextAddr->mgmtAddrSubtype);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpLocManAddr is used as 5th instance identifier
    error = mibEncodeOctetString(nextOid, *nextOidLen, &n, nextAddr->mgmtAddr,
       nextAddr->mgmtAddrLen - 1, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

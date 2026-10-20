@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -130,14 +130,14 @@ uint16_t ftpServerGetPassivePort(FtpServerContext *context)
 error_t ftpServerGetPath(FtpClientConnection *connection,
    const char_t *inputPath, char_t *outputPath, size_t maxLen)
 {
-   size_t n;
-
    //Relative or absolute path?
    if(pathIsRelative(inputPath))
    {
       //Sanity check
       if(osStrlen(connection->currentDir) > maxLen)
+      {
          return ERROR_FAILURE;
+      }
 
       //Copy current directory
       osStrcpy(outputPath, connection->currentDir);
@@ -148,7 +148,9 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
    {
       //Sanity check
       if(osStrlen(connection->rootDir) > maxLen)
+      {
          return ERROR_FAILURE;
+      }
 
       //Copy root directory
       osStrcpy(outputPath, connection->rootDir);
@@ -160,12 +162,11 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
    pathCanonicalize(outputPath);
    pathRemoveSlash(outputPath);
 
-   //Calculate the length of the root directory
-   n = osStrlen(connection->rootDir);
-
-   //Make sure the pathname is valid
-   if(osStrncmp(outputPath, connection->rootDir, n) != 0)
+   //Make sure the pathname lies within the user's root directory
+   if(!ftpServerIsPathInRootDir(connection, outputPath))
+   {
       return ERROR_INVALID_PATH;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -182,18 +183,14 @@ error_t ftpServerGetPath(FtpClientConnection *connection,
 uint_t ftpServerGetFilePermissions(FtpClientConnection *connection,
    const char_t *path)
 {
-   size_t n;
    uint_t perm;
    FtpServerContext *context;
 
    //Point to the FTP server context
    context = connection->context;
 
-   //Calculate the length of the root directory
-   n = osStrlen(connection->rootDir);
-
-   //Make sure the pathname is valid
-   if(osStrncmp(path, connection->rootDir, n) == 0)
+   //Make sure the pathname lies within the user's root directory
+   if(ftpServerIsPathInRootDir(connection, path))
    {
       //Strip root directory from the pathname
       path = ftpServerStripRootDir(context, path);
@@ -311,6 +308,48 @@ size_t ftpServerFormatDirEntry(const FsDirEntry *dirEntry, uint_t perm,
 
    //Return the length of the resulting string, in bytes
    return n;
+}
+
+
+/**
+ * @brief Check whether a pathname lies within the user's root directory
+ * @param[in] connection Pointer to the client connection
+ * @param[in] path Canonical pathname
+ * @return TRUE if the pathname lies within the root directory, else FALSE
+ **/
+
+bool_t ftpServerIsPathInRootDir(FtpClientConnection *connection,
+   const char_t *path)
+{
+   size_t n;
+   bool_t valid;
+
+   //Calculate the length of the root directory
+   n = osStrlen(connection->rootDir);
+
+   //The pathname must begin with the root directory
+   if(osStrncmp(path, connection->rootDir, n) == 0)
+   {
+      //The root directory must be followed by the end of the pathname or by
+      //a separator (unless the root directory already ends with a separator
+      //or is empty)
+      if(n == 0 || path[n] == '\0' || path[n] == '/' ||
+         connection->rootDir[n - 1] == '/')
+      {
+         valid = TRUE;
+      }
+      else
+      {
+         valid = FALSE;
+      }
+   }
+   else
+   {
+      valid = FALSE;
+   }
+
+   //Return TRUE if the pathname lies within the root directory
+   return valid;
 }
 
 

@@ -30,7 +30,7 @@
  * underlying transport provider
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -88,11 +88,15 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
 
       //Raw socket found?
       if(socket->type != SOCKET_TYPE_RAW_IP)
+      {
          continue;
+      }
 
       //Check whether the socket is bound to a particular interface
       if(socket->interface != NULL && socket->interface != interface)
+      {
          continue;
+      }
 
 #if (IPV4_SUPPORT == ENABLED)
       //IPv4 packet received?
@@ -100,11 +104,15 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       {
          //Check whether the socket is restricted to IPv6 communications only
          if((socket->options & SOCKET_OPTION_IPV6_ONLY) != 0)
+         {
             continue;
+         }
 
          //Check protocol field
          if(socket->protocol != pseudoHeader->ipv4Data.protocol)
+         {
             continue;
+         }
 
          //Check whether the destination address is a unicast, broadcast or
          //multicast address
@@ -112,7 +120,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          {
             //Check whether broadcast datagrams are accepted or not
             if((socket->options & SOCKET_OPTION_BROADCAST) == 0)
+            {
                continue;
+            }
          }
          else if(ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
          {
@@ -140,7 +150,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
             {
                //An IPv4 address is expected
                if(socket->localIpAddr.length != sizeof(Ipv4Addr))
+               {
                   continue;
+               }
 
                //Filter out non-matching addresses
                if(socket->localIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
@@ -156,7 +168,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          {
             //An IPv4 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv4Addr))
+            {
                continue;
+            }
 
             //Filter out non-matching addresses
             if(socket->remoteIpAddr.ipv4Addr != IPV4_UNSPECIFIED_ADDR &&
@@ -174,7 +188,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
       {
          //Check protocol field
          if(socket->protocol != pseudoHeader->ipv6Data.nextHeader)
+         {
             continue;
+         }
 
          //Check whether the destination address is a unicast or multicast
          //address
@@ -204,7 +220,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
             {
                //An IPv6 address is expected
                if(socket->localIpAddr.length != sizeof(Ipv6Addr))
+               {
                   continue;
+               }
 
                //Filter out non-matching addresses
                if(!ipv6CompAddr(&socket->localIpAddr.ipv6Addr,
@@ -222,7 +240,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
          {
             //An IPv6 address is expected
             if(socket->remoteIpAddr.length != sizeof(Ipv6Addr))
+            {
                continue;
+            }
 
             //Filter out non-matching addresses
             if(!ipv6CompAddr(&socket->remoteIpAddr.ipv6Addr,
@@ -248,7 +268,9 @@ error_t rawSocketProcessIpPacket(NetInterface *interface,
 
    //Drop incoming packet if no matching socket was found
    if(i >= SOCKET_MAX_COUNT)
+   {
       return ERROR_PROTOCOL_UNREACHABLE;
+   }
 
    //Empty receive queue?
    if(socket->receiveQueue == NULL)
@@ -406,11 +428,15 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
 
       //Raw socket found?
       if(socket->type != SOCKET_TYPE_RAW_ETH)
+      {
          continue;
+      }
 
       //Check whether the socket is bound to a particular interface
       if(socket->interface != NULL && socket->interface != interface)
+      {
          continue;
+      }
 
       //Check protocol field
       if(socket->protocol == SOCKET_ETH_PROTO_ALL)
@@ -421,13 +447,17 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
       {
          //Only accept LLC frames
          if(ancillary->ethType > ETH_MTU)
+         {
             continue;
+         }
       }
       else
       {
          //Only accept frames with the correct EtherType value
          if(ancillary->ethType != socket->protocol)
+         {
             continue;
+         }
       }
 
       //Empty receive queue?
@@ -471,8 +501,8 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
             //though no errors had been detected
             NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
 
-            //Exit immediately
-            break;
+            //Skip this socket and deliver the frame to the other sockets
+            continue;
          }
 
          //Allocate a memory buffer to hold the data and the associated
@@ -503,8 +533,8 @@ void rawSocketProcessEthPacket(NetInterface *interface, const uint8_t *data,
          //though no errors had been detected
          NET_IF_STATS_INC_COUNTER32(inDiscards, 1);
 
-         //Exit immediately
-         break;
+         //Skip this socket and deliver the frame to the other sockets
+         continue;
       }
 
       //Initialize next field
@@ -565,7 +595,9 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
    buffer = ipAllocBuffer(0, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Start of exception handling block
    do
@@ -574,7 +606,9 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
       error = netBufferAppend(buffer, message->data, message->length);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
 #if (IPV4_SUPPORT == ENABLED)
       //Destination address is an IPv4 address?
@@ -588,7 +622,9 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
             message->destIpAddr.ipv4Addr, &srcIpAddr);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Format IPv4 pseudo header
          pseudoHeader.length = sizeof(Ipv4PseudoHeader);
@@ -610,7 +646,9 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
             &message->destIpAddr.ipv6Addr, &pseudoHeader.ipv6Data.srcAddr);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Format IPv6 pseudo header
          pseudoHeader.length = sizeof(Ipv6PseudoHeader);
@@ -714,7 +752,9 @@ error_t rawSocketSendIpPacket(Socket *socket, const SocketMsg *message,
          &ancillary);
       //Failed to send data?
       if(error)
+      {
          break;
+      }
 
       //End of exception handling block
    } while(0);
@@ -771,7 +811,9 @@ error_t rawSocketSendEthPacket(Socket *socket, const SocketMsg *message,
       buffer = ethAllocBuffer(0, &offset);
       //Failed to allocate buffer?
       if(buffer == NULL)
+      {
          return ERROR_OUT_OF_MEMORY;
+      }
 
       //Copy the raw data
       error = netBufferAppend(buffer, message->data, message->length);
@@ -1039,7 +1081,9 @@ void rawSocketUpdateEvents(Socket *socket)
 
    //The socket is marked as readable if a datagram is pending in the queue
    if(socket->receiveQueue)
+   {
       socket->eventFlags |= SOCKET_EVENT_RX_READY;
+   }
 
    //Check whether the socket is bound to a particular network interface
    if(socket->interface != NULL)

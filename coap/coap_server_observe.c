@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -168,66 +168,98 @@ error_t coapServerProcessRegistrationRequest(CoapServerContext *context)
    //The Observe Option is not critical for processing the request
    if(!error)
    {
-      //Search the list of resources for a matching URI
-      resource = coapServerFindResource(context, context->uri);
-
-      //Matching resource found?
-      if(resource != NULL)
+      //Check the value of the Observe option
+      if(value == COAP_OBSERVE_REGISTER)
       {
-         //The entry in the list of observers is keyed by the client endpoint
-         //and the token specified by the client in the request
-         observer = coapServerFindObserver(context, header->token,
-            header->tokenLen);
+         //Search the list of resources for a matching URI
+         resource = coapServerFindResource(context, context->uri);
 
-         //If an entry with a matching endpoint/token pair is already present
-         //in the list, the server must not add a new entry but must replace or
-         //update the existing one
-         if(observer == NULL)
+         //Matching resource found?
+         if(resource != NULL)
          {
-            //Add an entry with the client endpoint and request token to the
-            //list of observers of the target resource
-            observer = coapServerCreateObserver(context, header->token,
-               header->tokenLen, resource);
-         }
+            //The entry in the list of observers is keyed by the client endpoint
+            //and the token specified by the client in the request
+            observer = coapServerFindObserver(context, header->token,
+               header->tokenLen);
 
-         //Valid entry?
-         if(observer != NULL)
-         {
-            //When included in a response, the Observe Option identifies the
-            //message as a notification. The option value is a sequence number
-            //for reordering detection (refer to RFC 7641, section 2)
-            coapSetUintOption(&context->response, COAP_OPT_OBSERVE, 0,
-               resource->seqNum);
-
-            //Any registered callback?
-            if(context->observeCallback != NULL)
+            //If an entry with a matching endpoint/token pair is already present
+            //in the list, the server must not add a new entry but must replace or
+            //update the existing one (refer to RFC 7641, section 4.1)
+            if(observer != NULL)
             {
-               //Return the current representation of the target resource
-               error = context->observeCallback(context, observer, resource);
+               //Update the existing entry with the target resource
+               observer->resource = resource;
             }
             else
             {
-               //No callback function registered
+               //Add an entry with the client endpoint and request token to the
+               //list of observers of the target resource
+               observer = coapServerCreateObserver(context, header->token,
+                  header->tokenLen, resource);
+            }
+
+            //Valid entry?
+            if(observer != NULL)
+            {
+               //When included in a response, the Observe Option identifies the
+               //message as a notification. The option value is a sequence number
+               //for reordering detection (refer to RFC 7641, section 2)
+               coapSetUintOption(&context->response, COAP_OPT_OBSERVE, 0,
+                  resource->seqNum);
+
+               //Any registered callback?
+               if(context->observeCallback != NULL)
+               {
+                  //Return the current representation of the target resource
+                  error = context->observeCallback(context, observer, resource);
+               }
+               else
+               {
+                  //No callback function registered
+                  error = ERROR_NOT_FOUND;
+               }
+            }
+            else
+            {
+               //If the server is unwilling or unable to add a new entry to the
+               //list of observers, then the request falls back to a normal GET
+               //request and the response does not include the Observe Option
                error = ERROR_NOT_FOUND;
             }
          }
          else
          {
-            //If the server is unwilling or unable to add a new entry to the
-            //list of observers, then the request falls back to a normal GET
-            //request and the response does not include the Observe Option
+            //The target resource does not exist
             error = ERROR_NOT_FOUND;
          }
       }
+      else if(value == COAP_OBSERVE_DEREGISTER)
+      {
+         //A client may explicitly deregister by issuing a GET request that has
+         //the Token field set to the token of the observation to be cancelled
+         //and includes an Observe Option with the value set to 1 (deregister)
+         observer = coapServerFindObserver(context, header->token,
+            header->tokenLen);
+
+         //When the server receives such a request, it will remove any matching
+         //entry from the list of observers (refer to RFC 7641, section 3.6)
+         if(observer != NULL)
+         {
+            coapServerDeleteObserver(observer);
+         }
+
+         //The server then processes the GET request as usual
+         error = ERROR_NOT_FOUND;
+      }
       else
       {
-         //The target resource does not exist
+         //Unknown Observe option value
          error = ERROR_NOT_FOUND;
       }
    }
    else
    {
-      //Process the GET request as usual
+      //The Observe option is not present
       error = ERROR_NOT_FOUND;
    }
 

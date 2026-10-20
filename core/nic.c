@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -62,11 +62,15 @@ NetInterface *nicGetLogicalInterface(NetInterface *interface)
    {
       //Check whether a valid MAC address has been assigned to the interface
       if(!macCompAddr(&interface->macAddr, &MAC_UNSPECIFIED_ADDR))
+      {
          break;
+      }
 
       //Last interface in the list?
       if(interface->parent == NULL)
+      {
          break;
+      }
 
       //Point to the interface on top of which the virtual interface runs
       interface = interface->parent;
@@ -99,7 +103,9 @@ NetInterface *nicGetPhysicalInterface(NetInterface *interface)
    {
       //Physical interface?
       if(interface->nicDriver != NULL || interface->parent == NULL)
+      {
          break;
+      }
 
       //Point to the interface on top of which the virtual interface runs
       interface = interface->parent;
@@ -131,7 +137,9 @@ uint8_t nicGetSwitchPort(NetInterface *interface)
    {
       //Valid switch port identifier?
       if(interface->port != 0 || interface->parent == NULL)
+      {
          break;
+      }
 
       //Point to the interface on top of which the virtual interface runs
       interface = interface->parent;
@@ -166,7 +174,9 @@ uint16_t nicGetVlanId(NetInterface *interface)
    {
       //Valid VLAN identifier?
       if(interface->vlanId != 0 || interface->parent == NULL)
+      {
          break;
+      }
 
       //Point to the interface on top of which the virtual interface runs
       interface = interface->parent;
@@ -201,7 +211,9 @@ uint16_t nicGetVmanId(NetInterface *interface)
    {
       //Valid VMAN identifier?
       if(interface->vmanId != 0 || interface->parent == NULL)
+      {
          break;
+      }
 
       //Point to the interface on top of which the virtual interface runs
       interface = interface->parent;
@@ -246,7 +258,9 @@ bool_t nicIsParentInterface(NetInterface *interface, NetInterface *parent)
 
       //Last interface in the list?
       if(interface->parent == NULL)
+      {
          break;
+      }
 
       //Point to the interface on top of which the virtual interface runs
       interface = interface->parent;

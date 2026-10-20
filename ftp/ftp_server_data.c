@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -280,7 +280,9 @@ error_t ftpServerOpenDataChannel(FtpClientConnection *connection)
 
    //No port specified?
    if(!connection->remotePort)
+   {
       return ERROR_FAILURE;
+   }
 
    //Debug message
    TRACE_INFO("FTP server: Opening data connection with client %s port %" PRIu16 "...\r\n",
@@ -291,7 +293,9 @@ error_t ftpServerOpenDataChannel(FtpClientConnection *connection)
       SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(!connection->dataChannel.socket)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Start of exception handling block
    do
@@ -300,42 +304,54 @@ error_t ftpServerOpenDataChannel(FtpClientConnection *connection)
       error = socketSetTimeout(connection->dataChannel.socket, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Adjust the size of the TX buffer
       error = socketSetTxBufferSize(connection->dataChannel.socket,
          FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Adjust the size of the RX buffer
       error = socketSetRxBufferSize(connection->dataChannel.socket,
          FTP_SERVER_MAX_TCP_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Associate the socket with the relevant interface
       error = socketBindToInterface(connection->dataChannel.socket,
          connection->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
+      {
          break;
+      }
 
       //The server initiates the data connection from port 20
       error = socketBind(connection->dataChannel.socket, &IP_ADDR_ANY,
          context->dataPort);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Establish data connection
       error = socketConnect(connection->dataChannel.socket,
          &connection->remoteIpAddr, connection->remotePort);
       //Any error to report?
       if(error != NO_ERROR && error != ERROR_TIMEOUT)
+      {
          break;
+      }
 
       //Connection is being established
       error = NO_ERROR;
@@ -366,19 +382,44 @@ void ftpServerAcceptDataChannel(FtpClientConnection *connection)
 {
    error_t error;
    Socket *socket;
-   IpAddr clientIpAddr;
+   IpAddr dataIpAddr;
+   IpAddr controlIpAddr;
    uint16_t clientPort;
 
    //Accept incoming connection
-   socket = socketAccept(connection->dataChannel.socket, &clientIpAddr,
+   socket = socketAccept(connection->dataChannel.socket, &dataIpAddr,
       &clientPort);
    //Failure detected?
    if(socket == NULL)
+   {
       return;
+   }
+
+   //Retrieve the IP address of the client
+   error = socketGetRemoteAddr(connection->controlChannel.socket,
+      &controlIpAddr, NULL);
+   //Any error to report?
+   if(error)
+   {
+      //Clean up side effects
+      socketClose(socket);
+      //Exit immediately
+      return;
+   }
+
+   //The server must verify that the data connection originates from the host
+   //that sent the PASV/EPSV command (refer to RFC 2577, section 4)
+   if(!ipCompAddr(&dataIpAddr, &controlIpAddr))
+   {
+      //Close the unexpected connection and keep listening for the client
+      socketClose(socket);
+      //Exit immediately
+      return;
+   }
 
    //Debug message
    TRACE_INFO("FTP server: Data connection established with client %s port %" PRIu16 "...\r\n",
-      ipAddrToString(&clientIpAddr, NULL), clientPort);
+      ipAddrToString(&dataIpAddr, NULL), clientPort);
 
    //Close the listening socket
    socketClose(connection->dataChannel.socket);

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -81,7 +81,9 @@ error_t modbusServerParseCertificate(TlsContext *tlsContext,
          error = x509ParseExtension(data, length, &n, &extension);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Role OID extension found?
          if(OID_COMP(extension.oid.value, extension.oid.length,
@@ -92,7 +94,9 @@ error_t modbusServerParseCertificate(TlsContext *tlsContext,
                extension.data.length);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
          }
 
          //Next extension
@@ -126,14 +130,18 @@ error_t modbusServerParseRoleOid(ModbusClientConnection *connection,
    error = asn1ReadTag(data, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL,
       ASN1_TYPE_UTF8_STRING);
    //Invalid tag?
    if(error)
+   {
       return error;
+   }
 
    //Extract the client role OID from the certificate
    if(tag.length <= MODBUS_SERVER_MAX_ROLE_LEN)
@@ -165,55 +173,71 @@ error_t modbusServerOpenSecureConnection(ModbusServerContext *context,
    connection->tlsContext = tlsInit();
    //Failed to allocate TLS context?
    if(connection->tlsContext == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Devices must provide TLS v1.2 or better
    error = tlsSetVersion(connection->tlsContext, TLS_VERSION_1_2,
       TLS_VERSION_1_3);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Select server operation mode
    error = tlsSetConnectionEnd(connection->tlsContext,
       TLS_CONNECTION_END_SERVER);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Bind TLS to the relevant socket
    error = tlsSetSocket(connection->tlsContext, connection->socket);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set TX and RX buffer size
    error = tlsSetBufferSize(connection->tlsContext,
       MODBUS_SERVER_TLS_TX_BUFFER_SIZE, MODBUS_SERVER_TLS_RX_BUFFER_SIZE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Register certificate verification callback
    error = tlsSetCertificateVerifyCallback(connection->tlsContext,
       modbusServerParseCertificate, connection);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (TLS_TICKET_SUPPORT == ENABLED)
    //Enable session ticket mechanism
    error = tlsEnableSessionTickets(connection->tlsContext, TRUE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Register ticket encryption/decryption callbacks
    error = tlsSetTicketCallbacks(connection->tlsContext, tlsEncryptTicket,
       tlsDecryptTicket, &context->tlsTicketContext);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Invoke user-defined callback, if any
@@ -223,7 +247,9 @@ error_t modbusServerOpenSecureConnection(ModbusServerContext *context,
       error = context->tlsInitCallback(connection, connection->tlsContext);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing

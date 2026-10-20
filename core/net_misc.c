@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -95,7 +95,7 @@ const NetTxAncillary NET_DEFAULT_TX_ANCILLARY =
    FALSE,         //Override port state
 #endif
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
-   -1,            //Unique identifier for hardware time stamping
+   -1             //Unique identifier for hardware time stamping
 #endif
 };
 
@@ -115,8 +115,10 @@ const NetRxAncillary NET_DEFAULT_RX_ANCILLARY =
 #if (ETH_TIMESTAMP_SUPPORT == ENABLED)
    {0},     //Captured time stamp
 #endif
+   FALSE,   //Reassembled IP packet
+   FALSE,   //IP Router Alert option present
    FALSE,   //Disable TCP checksum verification
-   FALSE,   //Disable UDP checksum verification
+   FALSE    //Disable UDP checksum verification
 };
 
 

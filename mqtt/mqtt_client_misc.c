@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -262,7 +262,9 @@ error_t mqttSerializeHeader(uint8_t *buffer, size_t *pos, MqttPacketType type,
 
    //Sanity check
    if(n < (sizeof(MqttPacketHeader) + k))
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Position where to format the header
    n -= sizeof(MqttPacketHeader) + k;
@@ -286,7 +288,9 @@ error_t mqttSerializeHeader(uint8_t *buffer, size_t *pos, MqttPacketType type,
       //The most significant bit is used to indicate that there are
       //following bytes in the representation
       if(remainingLen > 0)
+      {
          header->length[i] |= 0x80;
+      }
    }
 
    //Update current position
@@ -316,7 +320,9 @@ error_t mqttSerializeByte(uint8_t *buffer, size_t bufferLen,
 
    //Make sure the output buffer is large enough
    if((n + sizeof(uint8_t)) > bufferLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Write the byte to the output buffer
    buffer[n++] = value;
@@ -348,7 +354,9 @@ error_t mqttSerializeShort(uint8_t *buffer, size_t bufferLen,
 
    //Make sure the output buffer is large enough
    if((n + sizeof(uint16_t)) > bufferLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Write the short integer to the output buffer
    buffer[n++] = MSB(value);
@@ -382,7 +390,9 @@ error_t mqttSerializeString(uint8_t *buffer, size_t bufferLen,
 
    //Make sure the output buffer is large enough to hold the string
    if((n + sizeof(uint16_t) + stringLen) > bufferLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Encode the length field
    buffer[n++] = MSB(stringLen);
@@ -419,7 +429,9 @@ error_t mqttSerializeData(uint8_t *buffer, size_t bufferLen,
 
    //Make sure the output buffer is large enough to hold the data
    if((n + dataLen) > bufferLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Write the data to the output buffer
    osMemcpy(buffer + n, data, dataLen);
@@ -457,7 +469,9 @@ error_t mqttDeserializeHeader(uint8_t *buffer, size_t bufferLen, size_t *pos,
 
    //Make sure the input buffer is large enough
    if((n + sizeof(MqttPacketHeader)) > bufferLen)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the MQTT packet header
    header = (MqttPacketHeader *) (buffer + n);
@@ -481,7 +495,9 @@ error_t mqttDeserializeHeader(uint8_t *buffer, size_t bufferLen, size_t *pos,
    {
       //Sanity check
       if((n + sizeof(uint8_t)) > bufferLen)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Advance current position
       n += sizeof(uint8_t);
@@ -492,7 +508,9 @@ error_t mqttDeserializeHeader(uint8_t *buffer, size_t bufferLen, size_t *pos,
       {
          //Applications can send control packets of size up to 256 MB
          if(i == 3)
+         {
             return ERROR_INVALID_SYNTAX;
+         }
 
          //The least significant seven bits of each byte encode the data
          *remainingLen |= (header->length[i] & 0x7F) << (7 * i);
@@ -533,7 +551,9 @@ error_t mqttDeserializeByte(uint8_t *buffer, size_t bufferLen,
 
    //Make sure the input buffer is large enough
    if((n + sizeof(uint8_t)) > bufferLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Read the short integer from the input buffer
    *value = buffer[n];
@@ -565,7 +585,9 @@ error_t mqttDeserializeShort(uint8_t *buffer, size_t bufferLen,
 
    //Make sure the input buffer is large enough
    if((n + sizeof(uint16_t)) > bufferLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Read the short integer from the input buffer
    *value = (buffer[n] << 8) | buffer[n + 1];
@@ -598,14 +620,18 @@ error_t mqttDeserializeString(uint8_t *buffer, size_t bufferLen,
 
    //Make sure the input buffer is large enough
    if((n + sizeof(uint16_t)) > bufferLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Decode the length field
    *stringLen = (buffer[n] << 8) | buffer[n + 1];
 
    //Make sure the input buffer is large enough
    if((n + sizeof(uint16_t) + *stringLen) > bufferLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Read the string from the input buffer
    *string = (char_t *) buffer + n + 2;

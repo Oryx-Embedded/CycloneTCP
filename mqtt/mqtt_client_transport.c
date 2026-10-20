@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -588,7 +588,9 @@ error_t mqttClientReceiveData(MqttClientContext *context,
          //any other type of data frame is received the recipient must close the
          //network connection
          if(type != WS_FRAME_TYPE_BINARY && type != WS_FRAME_TYPE_CONTINUATION)
+         {
             error = ERROR_INVALID_TYPE;
+         }
       }
    }
 #endif
@@ -631,7 +633,9 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
    {
       //Sanity check
       if(context->tlsContext == NULL)
+      {
          return ERROR_FAILURE;
+      }
 
       //Check whether some data is pending in the receive buffer
       if(tlsIsRxReady(context->tlsContext))
@@ -656,7 +660,9 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
    {
       //Sanity check
       if(context->webSocket == NULL)
+      {
          return ERROR_FAILURE;
+      }
 
       //Get exclusive access
       netLock(context->webSocket->socket->netContext);
@@ -672,7 +678,9 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
    {
       //Sanity check
       if(context->webSocket == NULL || context->webSocket->tlsContext == NULL)
+      {
          return ERROR_FAILURE;
+      }
 
       //Check whether some data is pending in the receive buffer
       if(tlsIsRxReady(context->webSocket->tlsContext))

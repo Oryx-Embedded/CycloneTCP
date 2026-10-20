@@ -35,7 +35,7 @@
  * - RFC 1784: TFTP Timeout Interval and Transfer Size Options
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -99,7 +99,9 @@ error_t tftpServerInit(TftpServerContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -164,14 +166,18 @@ error_t tftpServerStart(TftpServerContext *context)
 
    //Make sure the TFTP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting TFTP server...\r\n");
 
    //Make sure the TFTP server is not already running
    if(context->running)
+   {
       return ERROR_ALREADY_RUNNING;
+   }
 
    //Start of exception handling block
    do
@@ -182,7 +188,6 @@ error_t tftpServerStart(TftpServerContext *context)
       //Failed to open socket?
       if(context->socket == NULL)
       {
-         //Report an error
          error = ERROR_OPEN_FAILED;
          break;
       }
@@ -191,13 +196,17 @@ error_t tftpServerStart(TftpServerContext *context)
       error = socketBindToInterface(context->socket, context->interface);
       //Unable to bind the socket to the desired interface?
       if(error)
+      {
          break;
+      }
 
       //The TFTP server listens for connection requests on port 69
       error = socketBind(context->socket, &IP_ADDR_ANY, context->port);
       //Unable to bind the socket to the desired port?
       if(error)
+      {
          break;
+      }
 
       //Start the TFTP server
       context->stop = FALSE;
@@ -210,7 +219,6 @@ error_t tftpServerStart(TftpServerContext *context)
       //Failed to create task?
       if(context->taskId == OS_INVALID_TASK_ID)
       {
-         //Report an error
          error = ERROR_OUT_OF_RESOURCES;
          break;
       }
@@ -246,7 +254,9 @@ error_t tftpServerStop(TftpServerContext *context)
 
    //Make sure the TFTP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping TFTP server...\r\n");

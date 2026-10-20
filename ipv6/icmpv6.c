@@ -32,7 +32,7 @@
  * by every IPv6 node. Refer to the RFC 2463 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -67,7 +67,9 @@ error_t icmpv6EnableEchoRequests(NetInterface *interface, bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -96,7 +98,9 @@ error_t icmpv6EnableMulticastEchoRequests(NetInterface *interface,
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -148,7 +152,9 @@ void icmpv6ProcessMessage(NetInterface *interface,
    header = netBufferAt(buffer, offset, sizeof(Icmpv6Header));
    //Malformed ICMPv6 message?
    if(header == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("ICMPv6 message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -281,14 +287,18 @@ void icmpv6ProcessDestUnreachable(NetInterface *interface,
 
    //Ensure the packet length is correct
    if(length < sizeof(Icmpv6DestUnreachableMessage))
+   {
       return;
+   }
 
    //Point to the ICMPv6 header
    icmpHeader = netBufferAt(buffer, offset,
       sizeof(Icmpv6DestUnreachableMessage));
    //Malformed ICMPv6 message?
    if(icmpHeader == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("ICMPv6 Destination Unreachable message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -322,13 +332,17 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
 
    //Ensure the packet length is correct
    if(length < sizeof(Icmpv6PacketTooBigMessage))
+   {
       return;
+   }
 
    //Point to the ICMPv6 header
    icmpHeader = netBufferAt(buffer, offset, sizeof(Icmpv6PacketTooBigMessage));
    //Malformed ICMPv6 message?
    if(icmpHeader == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("ICMPv6 Packet Too Big message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -342,17 +356,29 @@ void icmpv6ProcessPacketTooBig(NetInterface *interface,
 
    //Ensure the packet length is correct
    if(length < sizeof(Ipv6Header))
+   {
       return;
+   }
 
    //Point to the original IPv6 header
    ipHeader = netBufferAt(buffer, offset, sizeof(Ipv6Header));
    //Malformed IPv6 packet?
    if(ipHeader == NULL)
+   {
       return;
+   }
 
-   //The node uses the value in the MTU field in the Packet Too Big
-   //message as a tentative PMTU value
+   //The node uses the value in the MTU field in the Packet Too Big message as
+   //a tentative PMTU value
    tentativePathMtu = ntohl(icmpHeader->mtu);
+
+   //A node must not reduce its estimate of the Path MTU below the IPv6 minimum
+   //link MTU on receipt of a Packet Too Big message (refer to RFC 8201,
+   //section 4)
+   if(tentativePathMtu < IPV6_DEFAULT_MTU)
+   {
+      return;
+   }
 
    //Update the PMTU for the specified destination address
    ipv6UpdatePathMtu(interface, &ipHeader->destAddr, tentativePathMtu);
@@ -386,14 +412,18 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
 
    //Ensure the packet length is correct
    if(requestLength < sizeof(Icmpv6EchoMessage))
+   {
       return;
+   }
 
    //Point to the ICMPv6 header
    requestHeader = netBufferAt(request, requestOffset,
       sizeof(Icmpv6EchoMessage));
    //Malformed ICMPv6 message?
    if(requestHeader == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("ICMPv6 Echo Request message received (%" PRIuSIZE " bytes)...\r\n", requestLength);
@@ -403,7 +433,9 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
    //If support for Echo Request messages has been explicitly disabled, then
    //the host shall not respond to the incoming request
    if(!interface->ipv6Context.enableEchoReq)
+   {
       return;
+   }
 
    //Check whether the destination address of the Echo Request message is
    //a multicast address
@@ -412,7 +444,9 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
       //If support for multicast Echo Request messages has been explicitly
       //disabled, then the host shall not respond to the incoming request
       if(!interface->ipv6Context.enableMulticastEchoReq)
+      {
          return;
+      }
 
       //The source address of the reply must be a unicast address belonging to
       //the interface on which the multicast Echo Request message was received
@@ -420,7 +454,9 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
          &requestPseudoHeader->srcAddr, &replyPseudoHeader.srcAddr);
       //Any error to report?
       if(error)
+      {
          return;
+      }
    }
    else
    {
@@ -432,7 +468,9 @@ void icmpv6ProcessEchoRequest(NetInterface *interface,
    reply = ipAllocBuffer(sizeof(Icmpv6EchoMessage), &replyOffset);
    //Failed to allocate memory?
    if(reply == NULL)
+   {
       return;
+   }
 
    //Point to the Echo Reply header
    replyHeader = netBufferAt(reply, replyOffset, 0);
@@ -520,8 +558,10 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
    size_t ipPacketOffset)
 {
    error_t error;
+   size_t n;
    size_t offset;
    size_t length;
+   uint8_t nextHeader;
    NetBuffer *icmpMessage;
    Icmpv6ErrorMessage *icmpHeader;
    Ipv6Header *ipHeader;
@@ -532,36 +572,47 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
 
    //Check the length of the IPv6 packet
    if(length < sizeof(Ipv6Header))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the header of the invoking packet
    ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
    //Malformed IPv6 packet?
    if(ipHeader == NULL)
-      return ERROR_FAILURE;
-
-   //Check the type of the invoking packet
-   if(ipHeader->nextHeader == IPV6_ICMPV6_HEADER)
    {
-      //Make sure the ICMPv6 message is valid
-      if(length >= (sizeof(Ipv6Header) + sizeof(Icmpv6Header)))
-      {
-         //Point to the ICMPv6 header
-         icmpHeader = netBufferAt(ipPacket, ipPacketOffset + sizeof(Ipv6Header),
-            sizeof(Icmpv6Header));
+      return ERROR_FAILURE;
+   }
 
-         //Sanity check
-         if(icmpHeader != NULL)
+   //Locate the upper-layer header of the invoking packet
+   error = ipv6SkipExtensionHeaders(ipPacket, ipPacketOffset, &nextHeader, &n);
+
+   //Check status code
+   if(!error)
+   {
+      //Check the type of the invoking packet
+      if(nextHeader == IPV6_ICMPV6_HEADER)
+      {
+         //Make sure the ICMPv6 message is valid
+         if(length >= (n + sizeof(Icmpv6Header)))
          {
-            //An ICMPv6 error message must not be originated as a result of
-            //receiving an ICMPv6 error or redirect message
-            if(icmpHeader->type == ICMPV6_TYPE_DEST_UNREACHABLE ||
-               icmpHeader->type == ICMPV6_TYPE_PACKET_TOO_BIG ||
-               icmpHeader->type == ICMPV6_TYPE_TIME_EXCEEDED ||
-               icmpHeader->type == ICMPV6_TYPE_PARAM_PROBLEM ||
-               icmpHeader->type == ICMPV6_TYPE_REDIRECT)
+            //Point to the ICMPv6 header
+            icmpHeader = netBufferAt(ipPacket, ipPacketOffset + n,
+               sizeof(Icmpv6Header));
+
+            //Sanity check
+            if(icmpHeader != NULL)
             {
-               return ERROR_INVALID_TYPE;
+               //An ICMPv6 error message must not be originated as a result of
+               //receiving an ICMPv6 error or redirect message
+               if(icmpHeader->type == ICMPV6_TYPE_DEST_UNREACHABLE ||
+                  icmpHeader->type == ICMPV6_TYPE_PACKET_TOO_BIG ||
+                  icmpHeader->type == ICMPV6_TYPE_TIME_EXCEEDED ||
+                  icmpHeader->type == ICMPV6_TYPE_PARAM_PROBLEM ||
+                  icmpHeader->type == ICMPV6_TYPE_REDIRECT)
+               {
+                  return ERROR_INVALID_TYPE;
+               }
             }
          }
       }
@@ -595,7 +646,9 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
    //the IPv6 unspecified address, an IPv6 multicast address, or an address
    //known by the ICMPv6 message originator to be an IPv6 anycast address)
    if(ipv6IsAnycastAddr(interface, &ipHeader->srcAddr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Return as much of invoking IPv6 packet as possible without the ICMPv6
    //packet exceeding the minimum IPv6 MTU
@@ -607,7 +660,9 @@ error_t icmpv6SendErrorMessage(NetInterface *interface, uint8_t type,
 
    //Failed to allocate memory?
    if(icmpMessage == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the ICMPv6 header
    icmpHeader = netBufferAt(icmpMessage, offset, 0);

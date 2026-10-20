@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -128,11 +128,15 @@ error_t snmpFrameworkMibGetSnmpEngineID(const MibObject *object,
    context = (SnmpAgentContext *) snmpFrameworkMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the entire object
    if(*valueLen < context->contextEngineLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy object value
    osMemcpy(value->octetString, context->contextEngine, context->contextEngineLen);
@@ -163,7 +167,9 @@ error_t snmpFrameworkMibGetSnmpEngineBoots(const MibObject *object,
    context = (SnmpAgentContext *) snmpFrameworkMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Get object value
    value->integer = context->engineBoots;
@@ -192,7 +198,9 @@ error_t snmpFrameworkMibGetSnmpEngineTime(const MibObject *object,
    context = (SnmpAgentContext *) snmpFrameworkMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Get object value
    value->integer = context->engineTime;

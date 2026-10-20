@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -51,7 +51,9 @@ error_t coapServerGetMethodCode(CoapServerContext *context, CoapCode *code)
 {
    //Check parameters
    if(context == NULL || code == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get request method
    return coapGetCode(&context->request, code);
@@ -71,7 +73,9 @@ error_t coapServerGetUriPath(CoapServerContext *context, char_t *path,
 {
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Reconstruct the path component from Uri-Path options
    return coapJoinRepeatableOption(&context->request, COAP_OPT_URI_PATH,
@@ -92,7 +96,9 @@ error_t coapServerGetUriQuery(CoapServerContext *context, char_t *queryString,
 {
    //Check parameters
    if(context == NULL || queryString == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Reconstruct the query string from Uri-Query options
    return coapJoinRepeatableOption(&context->request, COAP_OPT_URI_QUERY,
@@ -115,7 +121,9 @@ error_t coapServerGetOpaqueOption(CoapServerContext *context, uint16_t optionNum
 {
    //Check parameters
    if(context == NULL || optionValue == NULL || optionLen == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Search the CoAP message for the specified option number
    return coapGetOption(&context->request, optionNum, optionIndex, optionValue,
@@ -138,7 +146,9 @@ error_t coapServerGetStringOption(CoapServerContext *context, uint16_t optionNum
 {
    //Check parameters
    if(context == NULL || optionValue == NULL || optionLen == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Search the CoAP message for the specified option number
    return coapGetOption(&context->request, optionNum, optionIndex,
@@ -160,7 +170,9 @@ error_t coapServerGetUintOption(CoapServerContext *context, uint16_t optionNum,
 {
    //Check parameters
    if(context == NULL || optionValue == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Search the CoAP message for the specified option number
    return coapGetUintOption(&context->request, optionNum, optionIndex,
@@ -181,7 +193,9 @@ error_t coapServerGetPayload(CoapServerContext *context, const uint8_t **payload
 {
    //Check parameters
    if(context == NULL || payload == NULL || payloadLen == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get response payload
    return coapGetPayload(&context->request, payload, payloadLen);
@@ -202,7 +216,9 @@ error_t coapServerReadPayload(CoapServerContext *context, void *data, size_t siz
 {
    //Check parameters
    if(context == NULL || data == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Read payload data
    return coapReadPayload(&context->request, data, size, length);
@@ -220,7 +236,9 @@ error_t coapServerSetResponseCode(CoapServerContext *context, CoapCode code)
 {
    //Make sure the CoAP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Set response code
    return coapSetCode(&context->response, code);
@@ -239,7 +257,9 @@ error_t coapServerSetLocationPath(CoapServerContext *context,
 {
    //Check parameters
    if(context == NULL || path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Encode the path component into multiple Location-Path options
    return coapSplitRepeatableOption(&context->response, COAP_OPT_LOCATION_PATH,
@@ -259,7 +279,9 @@ error_t coapServerSetLocationQuery(CoapServerContext *context,
 {
    //Check parameters
    if(context == NULL || queryString == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Encode the query string into multiple Location-Query options
    return coapSplitRepeatableOption(&context->response, COAP_OPT_LOCATION_QUERY,
@@ -282,11 +304,15 @@ error_t coapServerSetOpaqueOption(CoapServerContext *context, uint16_t optionNum
 {
    //Make sure the CoAP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Inconsistent option value?
    if(optionValue == NULL && optionLen != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Add the specified option to the CoAP message
    return coapSetOption(&context->response, optionNum, optionIndex,
@@ -310,7 +336,9 @@ error_t coapServerSetStringOption(CoapServerContext *context, uint16_t optionNum
 
    //Check parameters
    if(context == NULL || optionValue == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve the length of the string
    n = osStrlen(optionValue);
@@ -335,7 +363,9 @@ error_t coapServerSetUintOption(CoapServerContext *context, uint16_t optionNum,
 {
    //Make sure the CoAP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Add the specified option to the CoAP message
    return coapSetUintOption(&context->response, optionNum, optionIndex,
@@ -356,7 +386,9 @@ error_t coapServerDeleteOption(CoapServerContext *context, uint16_t optionNum,
 {
    //Make sure the CoAP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Remove the specified option from the CoAP message
    return coapDeleteOption(&context->response, optionNum, optionIndex);
@@ -376,11 +408,15 @@ error_t coapServerSetPayload(CoapServerContext *context, const void *payload,
 {
    //Make sure the CoAP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check parameters
    if(payload == NULL && payloadLen != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Set message payload
    return coapSetPayload(&context->response, payload, payloadLen);
@@ -400,7 +436,9 @@ error_t coapServerWritePayload(CoapServerContext *context, const void *data,
 {
    //Check parameters
    if(context == NULL || data == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Write payload data
    return coapWritePayload(&context->response, data, length);
@@ -420,11 +458,15 @@ error_t coapServerSetNotificationType(CoapObserver *observer,
 #if (COAP_SERVER_OBSERVE_SUPPORT == ENABLED)
    //Make sure the observer is valid
    if(observer == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //A notification can be confirmable or non-confirmable
    if(type != COAP_TYPE_CON && type != COAP_TYPE_NON)
+   {
       return ERROR_INVALID_TYPE;
+   }
 
    //Save notification type
    observer->type = type;

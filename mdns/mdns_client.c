@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -64,6 +64,19 @@ error_t mdnsClientResolve(NetInterface *interface, const char_t *name,
    //Debug message
    TRACE_INFO("Resolving host name %s (mDNS resolver)...\r\n", name);
 #endif
+
+   //Make sure the host name fits in the cache entry
+   if(osStrlen(name) > DNS_MAX_NAME_LEN)
+   {
+      return ERROR_INVALID_LENGTH;
+   }
+
+   //Make sure the host name is a valid domain name (no empty label, no label
+   //longer than 63 characters)
+   if(dnsEncodeName(name, NULL) == 0)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -245,7 +258,9 @@ error_t mdnsClientSendQuery(DnsCacheEntry *entry)
    error = mdnsCreateMessage(&message, FALSE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Encode the host name using the DNS name notation
    message.length += dnsEncodeName(entry->name, message.dnsHeader->questions);

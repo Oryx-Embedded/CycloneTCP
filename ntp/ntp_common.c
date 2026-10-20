@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -65,8 +65,10 @@ const NtpExtension *ntpGetExtension(const uint8_t *extensions, size_t length,
    for(i = 0; i < length; i += n)
    {
       //Malformed extension?
-      if(length < sizeof(NtpExtension))
+      if((length - i) < sizeof(NtpExtension))
+      {
          break;
+      }
 
       //Point to the current extension
       extension = (NtpExtension *) (extensions + i);
@@ -75,7 +77,9 @@ const NtpExtension *ntpGetExtension(const uint8_t *extensions, size_t length,
 
       //Malformed extension?
       if(n < sizeof(NtpExtension) || (i + n) > length)
+      {
          break;
+      }
 
       //Matching extension type?
       if(ntohs(extension->fieldType) == type)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -62,24 +62,33 @@ void nbnsProcessQuery(NetInterface *interface,
 
    //The NBNS query shall contain one question
    if(ntohs(message->qdcount) != 1)
+   {
       return;
+   }
 
    //Parse NetBIOS name
    pos = nbnsParseName(message, length, sizeof(DnsHeader), NULL);
 
    //Invalid name?
    if(pos == 0)
+   {
       return;
+   }
+
    //Malformed NBNS query message?
    if((pos + sizeof(DnsQuestion)) > length)
+   {
       return;
+   }
 
    //Point to the corresponding entry
    question = DNS_GET_QUESTION(message, pos);
 
    //Check the class of the request
    if(ntohs(question->qclass) != DNS_RR_CLASS_IN)
+   {
       return;
+   }
 
    //A response packet is always sent to the source UDP port and source IP
    //address of the request packet
@@ -141,7 +150,9 @@ error_t nbnsSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
    buffer = udpAllocBuffer(DNS_MESSAGE_MAX_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the NBNS header
    message = netBufferAt(buffer, offset, 0);

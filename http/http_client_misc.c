@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -225,13 +225,17 @@ error_t httpClientParseStatusLine(HttpClientContext *context, char_t *line,
    error = httpCheckCharset(line, length, HTTP_CHARSET_TEXT);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Parse HTTP-Version field
    token = osStrtok_r(line, " ", &p);
    //Any parsing error?
    if(token == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Check protocol version
    if(osStrcasecmp(token, "HTTP/1.0") == 0)
@@ -245,7 +249,9 @@ error_t httpClientParseStatusLine(HttpClientContext *context, char_t *line,
       //In HTTP/1.1, all connections are considered persistent unless declared
       //otherwise
       if(context->version != HTTP_VERSION_1_1)
+      {
          context->keepAlive = FALSE;
+      }
    }
    else
    {
@@ -257,13 +263,17 @@ error_t httpClientParseStatusLine(HttpClientContext *context, char_t *line,
    token = osStrtok_r(NULL, " ", &p);
    //Any parsing error?
    if(token == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The Status-Code element is a 3-digit integer
    context->statusCode = osStrtoul(token, &p, 10);
    //Any parsing error?
    if(*p != '\0')
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The chunked encoding modifies the body of a message in order to transfer
    //it as a series of chunks, each with its own size indicator
@@ -312,7 +322,9 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
    error = httpCheckCharset(line, length, HTTP_CHARSET_TEXT);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Header field values can be folded onto multiple lines if the continuation
    //line begins with a space or horizontal tab
@@ -320,7 +332,9 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
    {
       //A continuation line cannot immediately follows the Status-Line
       if(context->bufferPos == 0)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Remove optional leading and trailing whitespace
       value = strTrimWhitespace(line);
@@ -350,7 +364,9 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
 
       //Any parsing error?
       if(separator == NULL)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Split the line
       *separator = '\0';
@@ -365,7 +381,9 @@ error_t httpClientParseHeaderField(HttpClientContext *context, char_t *line,
 
       //The field name cannot be empty
       if(nameLen == 0)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //Check header field name
       if(osStrcasecmp(name, "Connection") == 0)
@@ -455,7 +473,9 @@ error_t httpClientParseConnectionField(HttpClientContext *context,
 
       //Advance the pointer over the separator
       if(value[n] != '\0')
+      {
          n++;
+      }
 
       //Point to the next token
       value += n;
@@ -518,7 +538,9 @@ error_t httpClientParseContentLengthField(HttpClientContext *context,
 
       //Any parsing error?
       if(*p != '\0')
+      {
          return ERROR_INVALID_SYNTAX;
+      }
    }
 
    //Successful processing
@@ -551,7 +573,9 @@ error_t httpClientParseChunkSize(HttpClientContext *context, char_t *line,
 
    //Any parsing error?
    if(*p != '\0')
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Flush receive buffer
    context->bufferLen = 0;

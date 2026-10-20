@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,7 +56,9 @@ error_t icmpEnableEchoRequests(NetInterface *interface, bool_t enable)
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -84,7 +86,9 @@ error_t icmpEnableBroadcastEchoRequests(NetInterface *interface,
 {
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -134,7 +138,9 @@ void icmpProcessMessage(NetInterface *interface,
    header = netBufferAt(buffer, offset, sizeof(IcmpHeader));
    //Malformed ICMP message?
    if(header == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("ICMP message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -203,13 +209,17 @@ void icmpProcessEchoRequest(NetInterface *interface,
 
    //Ensure the packet length is correct
    if(requestLength < sizeof(IcmpEchoMessage))
+   {
       return;
+   }
 
    //Point to the ICMP header
    requestHeader = netBufferAt(request, requestOffset, sizeof(IcmpEchoMessage));
    //Malformed ICMP message?
    if(requestHeader == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("ICMP Echo Request message received (%" PRIuSIZE " bytes)...\r\n", requestLength);
@@ -219,7 +229,9 @@ void icmpProcessEchoRequest(NetInterface *interface,
    //If support for Echo Request messages has been explicitly disabled, then
    //the host shall not respond to the incoming request
    if(!interface->ipv4Context.enableEchoReq)
+   {
       return;
+   }
 
    //Check whether the destination address of the Echo Request message is
    //a broadcast or a multicast address
@@ -231,7 +243,9 @@ void icmpProcessEchoRequest(NetInterface *interface,
       //If support for broadcast Echo Request messages has been explicitly
       //disabled, then the host shall not respond to the incoming request
       if(!interface->ipv4Context.enableBroadcastEchoReq)
+      {
          return;
+      }
 
       //The source address of the reply must be a unicast address belonging to
       //the interface on which the broadcast Echo Request message was received
@@ -239,7 +253,9 @@ void icmpProcessEchoRequest(NetInterface *interface,
          requestPseudoHeader->srcAddr, &ipAddr);
       //Any error to report?
       if(error)
+      {
          return;
+      }
 
       //Copy the resulting source IP address
       replyPseudoHeader.srcAddr = ipAddr;
@@ -254,7 +270,9 @@ void icmpProcessEchoRequest(NetInterface *interface,
    reply = ipAllocBuffer(sizeof(IcmpEchoMessage), &replyOffset);
    //Failed to allocate memory?
    if(reply == NULL)
+   {
       return;
+   }
 
    //Point to the Echo Reply header
    replyHeader = netBufferAt(reply, replyOffset, 0);
@@ -350,13 +368,17 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
 
    //Check the length of the IPv4 packet
    if(length < sizeof(Ipv4Header))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the header of the invoking packet
    ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv4Header));
    //Malformed IPv4 packet?
    if(ipHeader == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the type of the invoking packet
    if(ipHeader->protocol == IPV4_PROTOCOL_ICMP)
@@ -389,7 +411,6 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
    if(ipv4IsBroadcastAddr(interface, ipHeader->destAddr) ||
       ipv4IsMulticastAddr(ipHeader->destAddr))
    {
-      //Report an error
       return ERROR_INVALID_ADDRESS;
    }
 
@@ -400,7 +421,9 @@ error_t icmpSendErrorMessage(NetInterface *interface, uint8_t type,
    icmpMessage = ipAllocBuffer(sizeof(IcmpErrorMessage), &offset);
    //Failed to allocate memory?
    if(icmpMessage == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the ICMP header
    icmpHeader = netBufferAt(icmpMessage, offset, 0);

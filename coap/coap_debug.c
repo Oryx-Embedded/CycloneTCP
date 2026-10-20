@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -133,7 +133,9 @@ error_t coapDumpMessage(const void *message, size_t length)
    error = coapDumpMessageHeader(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first option of the message
    p += n;
@@ -144,7 +146,9 @@ error_t coapDumpMessage(const void *message, size_t length)
    error = coapDumpOptions(p, length, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the payload
    p += n;
@@ -162,7 +166,6 @@ error_t coapDumpMessage(const void *message, size_t length)
       //Dump payload
       TRACE_DEBUG("  Payload (%" PRIuSIZE " bytes)\r\n", length);
       TRACE_DEBUG_ARRAY("    ", p, length);
-      //TRACE_DEBUG("    %s\r\n", p);
    }
 #endif
 
@@ -185,7 +188,9 @@ error_t coapDumpMessageHeader(const uint8_t *p, size_t length, size_t *consumed)
 
    //Malformed CoAP message?
    if(length < sizeof(CoapMessageHeader))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Point to the CoAP message header
    header = (CoapMessageHeader *) p;
@@ -210,7 +215,9 @@ error_t coapDumpMessageHeader(const uint8_t *p, size_t length, size_t *consumed)
 
    //Malformed CoAP message?
    if(length < (sizeof(CoapMessageHeader) + header->tokenLen))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump token
    TRACE_DEBUG_ARRAY("  Token = ", header->token, header->tokenLen);
@@ -252,19 +259,25 @@ error_t coapDumpOptions(const uint8_t *p, size_t length, size_t *consumed)
    {
       //Payload marker found?
       if(*p == COAP_PAYLOAD_MARKER)
+      {
          break;
+      }
 
       //Parse current option
       error = coapParseOption(p, length, option.number, &option, &n);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Dump current option
       error = coapDumpOption(&option);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Total number of bytes that have been consumed
       *consumed += n;
@@ -411,7 +424,9 @@ const char_t *coapGetParamName(uint_t value, const CoapParamName *paramList,
    for(i = 0; i < paramListLen; i++)
    {
       if(paramList[i].value == value)
+      {
          return paramList[i].name;
+      }
    }
 
    //Unknown value

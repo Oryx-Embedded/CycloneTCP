@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -74,30 +74,40 @@ error_t lldpMibGetLldpRemEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemTimeMark);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemLocalPortNum is used as 2nd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemLocalPortNum);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemIndex is used as 3rd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the remote systems MIB for a matching row
    entry = lldpMgmtFindRemoteTableEntry(lldpMibBase.lldpAgentContext,
       lldpRemTimeMark, lldpRemLocalPortNum, lldpRemIndex);
    //No matching row found?
    if(entry == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //lldpRemChassisIdSubtype object?
    if(osStrcmp(object->name, "lldpRemChassisIdSubtype") == 0)
@@ -395,11 +405,15 @@ error_t lldpMibGetNextLldpRemEntry(const MibObject *object, const uint8_t *oid,
    context = lldpMibBase.lldpAgentContext;
    //Make sure the context is valid
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -420,19 +434,25 @@ error_t lldpMibGetNextLldpRemEntry(const MibObject *object, const uint8_t *oid,
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->timeMark);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //lldpRemLocalPortNum is used as 2nd instance identifier
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->portIndex);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //lldpRemIndex is used as 3rd instance identifier
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->index);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -481,7 +501,9 @@ error_t lldpMibGetNextLldpRemEntry(const MibObject *object, const uint8_t *oid,
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -490,19 +512,25 @@ error_t lldpMibGetNextLldpRemEntry(const MibObject *object, const uint8_t *oid,
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->timeMark);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemLocalPortNum is used as 2nd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->portIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemIndex is used as 3rd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -546,57 +574,75 @@ error_t lldpMibGetLldpRemManAddrEntry(const MibObject *object, const uint8_t *oi
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemTimeMark);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemLocalPortNum is used as 2nd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemLocalPortNum);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemIndex is used as 3rd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemManAddrSubtype is used as 4th instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemManAddrSubtype);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemManAddr is used as 5th instance identifier
    error = mibDecodeOctetString(oid, oidLen, &n, lldpRemManAddr,
       LLDP_MAX_MGMT_ADDR_LEN, &lldpRemManAddrLen, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the remote systems MIB for a matching row
    entry = lldpMgmtFindRemoteTableEntry(lldpMibBase.lldpAgentContext,
       lldpRemTimeMark, lldpRemLocalPortNum, lldpRemIndex);
    //No matching row found?
    if(entry == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the remote systems MIB for a matching address
    index = lldpMgmtFindRemoteMgmtAddr(entry, lldpRemManAddrSubtype,
       lldpRemManAddr, lldpRemManAddrLen);
    //No matching address found?
    if(index < 0)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Extract the management address from the remote systems MIB
    error = lldpMgmtGetRemoteMgmtAddr(entry, index, NULL, NULL, NULL,
       &ifNumSubtype, &ifNum, &addrOid, &addrOidLen);
    //No matching address found?
    if(error)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //lldpRemManAddrIfSubtype object?
    if(osStrcmp(object->name, "lldpRemManAddrIfSubtype") == 0)
@@ -687,11 +733,15 @@ error_t lldpMibGetNextLldpRemManAddrEntry(const MibObject *object, const uint8_t
    context = lldpMibBase.lldpAgentContext;
    //Make sure the context is valid
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -729,33 +779,43 @@ error_t lldpMibGetNextLldpRemManAddrEntry(const MibObject *object, const uint8_t
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->timeMark);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemLocalPortNum is used as 2nd instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->portIndex);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemIndex is used as 3rd instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->index);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemManAddrSubtype is used as 4th instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n,
                   addr->mgmtAddrSubtype);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemManAddr is used as 5th instance identifier
                error = mibEncodeOctetString(nextOid, *nextOidLen, &n,
                   addr->mgmtAddr, addr->mgmtAddrLen - 1, FALSE);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //Check whether the resulting object identifier lexicographically
                //follows the specified OID
@@ -835,7 +895,9 @@ error_t lldpMibGetNextLldpRemManAddrEntry(const MibObject *object, const uint8_t
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL || nextAddr == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -844,32 +906,42 @@ error_t lldpMibGetNextLldpRemManAddrEntry(const MibObject *object, const uint8_t
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->timeMark);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemLocalPortNum is used as 2nd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->portIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemIndex is used as 3rd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemManAddrSubtype is used as 4th instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextAddr->mgmtAddrSubtype);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemManAddr is used as 5th instance identifier
    error = mibEncodeOctetString(nextOid, *nextOidLen, &n, nextAddr->mgmtAddr,
       nextAddr->mgmtAddrLen - 1, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -908,43 +980,57 @@ error_t lldpMibGetLldpRemUnknownTLVEntry(const MibObject *object, const uint8_t 
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemTimeMark);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemLocalPortNum is used as 2nd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemLocalPortNum);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemIndex is used as 3rd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemUnknownTLVType is used as 4th instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemUnknownTLVType);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the remote systems MIB for a matching row
    entry = lldpMgmtFindRemoteTableEntry(lldpMibBase.lldpAgentContext,
       lldpRemTimeMark, lldpRemLocalPortNum, lldpRemIndex);
    //No matching row found?
    if(entry == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the remote systems MIB for a matching TLV
    error = lldpMgmtGetRemoteUnknownTlv(entry, lldpRemUnknownTLVType, 0,
       &info, &infoLen);
    //No matching TLV found?
    if(error)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //lldpRemUnknownTLVInfo object?
    if(osStrcmp(object->name, "lldpRemUnknownTLVInfo") == 0)
@@ -1006,11 +1092,15 @@ error_t lldpMibGetNextLldpRemUnknownTLVEntry(const MibObject *object, const uint
    context = lldpMibBase.lldpAgentContext;
    //Make sure the context is valid
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -1041,25 +1131,33 @@ error_t lldpMibGetNextLldpRemUnknownTLVEntry(const MibObject *object, const uint
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->timeMark);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemLocalPortNum is used as 2nd instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->portIndex);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemIndex is used as 3rd instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->index);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemUnknownTLVType is used as 4th instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, tlv.type);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //Check whether the resulting object identifier lexicographically
                //follows the specified OID
@@ -1122,7 +1220,9 @@ error_t lldpMibGetNextLldpRemUnknownTLVEntry(const MibObject *object, const uint
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL || nextType == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -1131,25 +1231,33 @@ error_t lldpMibGetNextLldpRemUnknownTLVEntry(const MibObject *object, const uint
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->timeMark);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemLocalPortNum is used as 2nd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->portIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemIndex is used as 3rd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemUnknownTLVType is used as 4th instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextType);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -1191,64 +1299,86 @@ error_t lldpMibGetLldpRemOrgDefInfoEntry(const MibObject *object, const uint8_t 
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemTimeMark);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemLocalPortNum is used as 2nd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemLocalPortNum);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemIndex is used as 3rd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemOrgDefInfoOUI is used as 4th instance identifier
    error = mibDecodeOctetString(oid, oidLen, &n, lldpRemOrgDefInfoOUI,
       LLDP_OUI_SIZE, &lldpRemOrgDefInfoOUILen, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemOrgDefInfoSubtype is used as 5th instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemOrgDefInfoSubtype);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemOrgDefInfoIndex is used as 6th instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &lldpRemOrgDefInfoIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check the length of the OUI
    if(lldpRemOrgDefInfoOUILen != LLDP_OUI_SIZE)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index value
    if(lldpRemOrgDefInfoIndex == 0)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the remote systems MIB for a matching row
    entry = lldpMgmtFindRemoteTableEntry(lldpMibBase.lldpAgentContext,
       lldpRemTimeMark, lldpRemLocalPortNum, lldpRemIndex);
    //No matching row found?
    if(entry == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the remote systems MIB for a matching TLV
    error = lldpMgmtGetRemoteOrgDefInfo(entry, LOAD24BE(lldpRemOrgDefInfoOUI),
       lldpRemOrgDefInfoSubtype, lldpRemOrgDefInfoIndex - 1, &info, &infoLen);
    //No matching TLV found?
    if(error)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //lldpRemOrgDefInfo object?
    if(osStrcmp(object->name, "lldpRemOrgDefInfo") == 0)
@@ -1315,11 +1445,15 @@ error_t lldpMibGetNextLldpRemOrgDefInfoEntry(const MibObject *object, const uint
    context = lldpMibBase.lldpAgentContext;
    //Make sure the context is valid
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -1361,33 +1495,43 @@ error_t lldpMibGetNextLldpRemOrgDefInfoEntry(const MibObject *object, const uint
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->timeMark);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemLocalPortNum is used as 2nd instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->portIndex);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemIndex is used as 3rd instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->index);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemOrgDefInfoOUI is used as 4th instance identifier
                error = mibEncodeOctetString(nextOid, *nextOidLen, &n,
                   orgDefTlv->oui, LLDP_OUI_SIZE, FALSE);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemOrgDefInfoSubtype is used as 5th instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n,
                   orgDefTlv->subtype);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //lldpRemOrgDefInfoIndex is used to identify a particular
                //instance of the TLV
@@ -1404,7 +1548,9 @@ error_t lldpMibGetNextLldpRemOrgDefInfoEntry(const MibObject *object, const uint
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
                //Invalid instance identifier?
                if(error)
+               {
                   return error;
+               }
 
                //Check whether the resulting object identifier lexicographically
                //follows the specified OID
@@ -1486,7 +1632,9 @@ error_t lldpMibGetNextLldpRemOrgDefInfoEntry(const MibObject *object, const uint
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL || nextOrgDefTlv == NULL || nextIndex == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -1495,39 +1643,51 @@ error_t lldpMibGetNextLldpRemOrgDefInfoEntry(const MibObject *object, const uint
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->timeMark);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemLocalPortNum is used as 2nd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->portIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemIndex is used as 3rd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemOrgDefInfoOUI is used as 4th instance identifier
    error = mibEncodeOctetString(nextOid, *nextOidLen, &n,
       nextOrgDefTlv->oui, LLDP_OUI_SIZE, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemOrgDefInfoSubtype is used as 5th instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n,
       nextOrgDefTlv->subtype);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //lldpRemOrgDefInfoIndex is used as 6th instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextIndex);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

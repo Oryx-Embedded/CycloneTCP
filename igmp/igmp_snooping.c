@@ -36,7 +36,7 @@
  * - RFC 4541: Considerations for IGMP and MLD Snooping Switches
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -102,18 +102,26 @@ error_t igmpSnoopingInit(IgmpSnoopingContext *context,
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The IGMP router must be bound to a valid interface
    if(settings->interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Sanity check
    if(settings->numPorts < 1 || settings->ports == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    if(settings->numGroups < 1 || settings->groups == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the underlying network interface
    interface = settings->interface;
@@ -165,7 +173,9 @@ error_t igmpSnoopingStart(IgmpSnoopingContext *context)
 {
    //Make sure the IGMP snooping switch context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting IGMP snooping switch...\r\n");
@@ -212,7 +222,9 @@ error_t igmpSnoopingStop(IgmpSnoopingContext *context)
 
    //Make sure the IGMP snooping switch context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Stopping IGMP snooping switch...\r\n");

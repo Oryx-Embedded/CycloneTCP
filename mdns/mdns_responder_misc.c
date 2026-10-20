@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -96,7 +96,9 @@ void mdnsResponderChangeHostname(MdnsResponderContext *context)
    {
       //Check whether the current character is a digit
       if(!osIsdigit(context->hostname[i - 1]))
+      {
          break;
+      }
    }
 
    //Any number following the host name?
@@ -152,7 +154,9 @@ error_t mdnsResponderSendProbe(MdnsResponderContext *context)
    error = mdnsCreateMessage(&message, FALSE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Start of exception handling block
    do
@@ -177,14 +181,18 @@ error_t mdnsResponderSendProbe(MdnsResponderContext *context)
          MDNS_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Generate AAAA resource records
       error = mdnsResponderGenerateIpv6AddrRecords(context, &message, FALSE,
          MDNS_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Number of questions in the Question Section
       message.dnsHeader->qdcount = 1;
@@ -222,7 +230,9 @@ error_t mdnsResponderSendAnnouncement(MdnsResponderContext *context)
    error = mdnsCreateMessage(&message, TRUE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Start of exception handling block
    do
@@ -232,28 +242,36 @@ error_t mdnsResponderSendAnnouncement(MdnsResponderContext *context)
          MDNS_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Generate reverse address mapping PTR resource records (IPv4)
       error = mdnsResponderGenerateIpv4PtrRecords(context, &message, TRUE,
          MDNS_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Generate AAAA resource records
       error = mdnsResponderGenerateIpv6AddrRecords(context, &message, TRUE,
          MDNS_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Generate reverse address mapping PTR resource records (IPv6)
       error = mdnsResponderGenerateIpv6PtrRecords(context, &message, TRUE,
          MDNS_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Send mDNS message
       error = mdnsSendMessage(context->interface, &message, NULL, MDNS_PORT);
@@ -284,7 +302,9 @@ error_t mdnsResponderSendGoodbye(MdnsResponderContext *context)
    error = mdnsCreateMessage(&message, TRUE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Start of exception handling block
    do
@@ -293,25 +313,33 @@ error_t mdnsResponderSendGoodbye(MdnsResponderContext *context)
       error = mdnsResponderGenerateIpv4AddrRecords(context, &message, TRUE, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Generate reverse address mapping PTR resource records (IPv4)
       error = mdnsResponderGenerateIpv4PtrRecords(context, &message, TRUE, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Generate AAAA resource records
       error = mdnsResponderGenerateIpv6AddrRecords(context, &message, TRUE, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Generate reverse address mapping PTR resource records (IPv6)
       error = mdnsResponderGenerateIpv6PtrRecords(context, &message, TRUE, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Send mDNS message
       error = mdnsSendMessage(context->interface, &message, NULL, MDNS_PORT);
@@ -351,7 +379,18 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
    context = interface->mdnsResponderContext;
    //Make sure the mDNS responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
+
+   //Since it is possible for a unicast query to be received from a machine
+   //outside the local link, responders should check that the source address in
+   //the query packet matches the local subnet for that link and silently ignore
+   //the packet if not (refer to RFC 6762, sections 5.5)
+   if(!mdnsCheckSourceAddr(interface, query->pseudoHeader))
+   {
+      return;
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 query received?
@@ -444,7 +483,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
       error = mdnsCreateMessage(response, TRUE);
       //Any error to report?
       if(error)
+      {
          return;
+      }
    }
 
    //Take the identifier from the query message
@@ -463,11 +504,15 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
          n = dnsParseName(query->dnsHeader, query->length, offset, 0);
          //Invalid name?
          if(n == 0)
+         {
             break;
+         }
 
          //Malformed mDNS message?
          if((n + sizeof(DnsQuestion)) > query->length)
+         {
             break;
+         }
 
          //Point to the corresponding entry
          question = DNS_GET_QUESTION(query->dnsHeader, n);
@@ -477,7 +522,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
             response);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
 #if (DNS_SD_RESPONDER_SUPPORT == ENABLED)
          //Parse question
@@ -485,7 +532,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
             question, response);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 #endif
          //Point to the next question
          offset = n + sizeof(DnsQuestion);
@@ -493,7 +542,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
 
       //Any error while parsing the Question Section?
       if(i != ntohs(query->dnsHeader->qdcount))
+      {
          break;
+      }
 
       //Parse the Known-Answer Section
       for(i = 0; i < ntohs(query->dnsHeader->ancount); i++)
@@ -502,7 +553,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
          n = dnsParseName(query->dnsHeader, query->length, offset, 0);
          //Invalid name?
          if(n == 0)
+         {
             break;
+         }
 
          //Point to the associated resource record
          record = DNS_GET_RESOURCE_RECORD(query->dnsHeader, n);
@@ -511,9 +564,14 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
 
          //Make sure the resource record is valid
          if(n > query->length)
+         {
             break;
+         }
+
          if((n + ntohs(record->rdlength)) > query->length)
+         {
             break;
+         }
 
          //Parse resource record
          mdnsResponderParseKnownAnRecord(interface, query, offset, record,
@@ -525,7 +583,9 @@ void mdnsResponderProcessQuery(NetInterface *interface, MdnsMessage *query)
 
       //Any error while parsing the Answer Section?
       if(i != ntohs(query->dnsHeader->ancount))
+      {
          break;
+      }
 
       //When a host that is probing for a record sees another host issue a query
       //for the same record, it consults the Authority Section of that query.
@@ -716,7 +776,9 @@ error_t mdnsResponderParseQuestion(NetInterface *interface,
                cacheFlush, ttl);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
          }
          else
 #endif
@@ -729,7 +791,9 @@ error_t mdnsResponderParseQuestion(NetInterface *interface,
                cacheFlush, ttl);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
          }
          else
 #endif
@@ -741,21 +805,27 @@ error_t mdnsResponderParseQuestion(NetInterface *interface,
                cacheFlush, ttl);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Generate AAAA resource records
             error = mdnsResponderGenerateIpv6AddrRecords(context, response,
                cacheFlush, ttl);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Generate NSEC resource record
             error = mdnsResponderFormatNsecRecord(context, response,
                cacheFlush, ttl);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
          }
          else
          {
@@ -764,7 +834,9 @@ error_t mdnsResponderParseQuestion(NetInterface *interface,
                cacheFlush, ttl);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
          }
       }
 
@@ -787,7 +859,9 @@ error_t mdnsResponderParseQuestion(NetInterface *interface,
                      context->ipv4AddrList[i].reverseName, cacheFlush, ttl);
                   //Any error to report?
                   if(error)
+                  {
                      return error;
+                  }
                }
             }
          }
@@ -809,7 +883,9 @@ error_t mdnsResponderParseQuestion(NetInterface *interface,
                      context->ipv6AddrList[i].reverseName, cacheFlush, ttl);
                   //Any error to report?
                   if(error)
+                  {
                      return error;
+                  }
                }
             }
          }
@@ -854,7 +930,9 @@ void mdnsResponderParseKnownAnRecord(NetInterface *interface,
             responseOffset, 0);
          //Invalid name?
          if(n == 0)
+         {
             break;
+         }
 
          //Point to the associated resource record
          responseRecord = DNS_GET_RESOURCE_RECORD(response->dnsHeader, n);
@@ -863,14 +941,18 @@ void mdnsResponderParseKnownAnRecord(NetInterface *interface,
 
          //Make sure the resource record is valid
          if(n > response->length)
+         {
             break;
+         }
 
          //Point to the end of the resource record
          n += ntohs(responseRecord->rdlength);
 
          //Make sure the resource record is valid
          if(n > response->length)
+         {
             break;
+         }
 
          //Compare resource record names
          if(!dnsCompareEncodedName(query->dnsHeader, query->length, queryOffset,
@@ -894,7 +976,7 @@ void mdnsResponderParseKnownAnRecord(NetInterface *interface,
                   response->dnsHeader->ancount--;
 
                   //Update the number of shared resource records
-                  if(ntohs(queryRecord->rclass) == DNS_RR_TYPE_PTR &&
+                  if(ntohs(queryRecord->rtype) == DNS_RR_TYPE_PTR &&
                      response->sharedRecordCount > 0)
                   {
                      response->sharedRecordCount--;
@@ -938,7 +1020,9 @@ void mdnsResponderParseAnRecord(NetInterface *interface,
    context = interface->mdnsResponderContext;
    //Make sure the mDNS responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 message received?
@@ -977,7 +1061,9 @@ void mdnsResponderParseAnRecord(NetInterface *interface,
          n = dnsParseName(response2->dnsHeader, response2->length, offset2, 0);
          //Invalid name?
          if(n == 0)
+         {
             break;
+         }
 
          //Point to the associated resource record
          record2 = DNS_GET_RESOURCE_RECORD(response2->dnsHeader, n);
@@ -986,14 +1072,18 @@ void mdnsResponderParseAnRecord(NetInterface *interface,
 
          //Make sure the resource record is valid
          if(n > response2->length)
+         {
             break;
+         }
 
          //Point to the end of the resource record
          n += ntohs(record2->rdlength);
 
          //Make sure the resource record is valid
          if(n > response2->length)
+         {
             break;
+         }
 
          //Compare resource record names
          if(!dnsCompareEncodedName(response->dnsHeader, response->length, offset,
@@ -1020,7 +1110,7 @@ void mdnsResponderParseAnRecord(NetInterface *interface,
                   response2->dnsHeader->ancount--;
 
                   //Update the number of shared resource records
-                  if(ntohs(record->rclass) == DNS_RR_TYPE_PTR &&
+                  if(ntohs(record->rtype) == DNS_RR_TYPE_PTR &&
                      response2->sharedRecordCount > 0)
                   {
                      response2->sharedRecordCount--;
@@ -1270,13 +1360,17 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
       offset = dnsParseName(response->dnsHeader, response->length, offset, 0);
       //Invalid name?
       if(!offset)
+      {
          break;
+      }
 
       //Point to the next question
       offset += sizeof(DnsQuestion);
       //Make sure the mDNS message is valid
       if(offset > response->length)
+      {
          break;
+      }
    }
 
    //Save the number of resource records in the Answer Section
@@ -1293,7 +1387,9 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
       n = dnsParseName(response->dnsHeader, response->length, offset, 0);
       //Invalid name?
       if(n == 0)
+      {
          break;
+      }
 
       //Point to the associated resource record
       record = DNS_GET_RESOURCE_RECORD(response->dnsHeader, n);
@@ -1302,9 +1398,14 @@ void mdnsResponderGenerateAdditionalRecords(MdnsResponderContext *context,
 
       //Make sure the resource record is valid
       if(n > response->length)
+      {
          break;
+      }
+
       if((n + ntohs(record->rdlength)) > response->length)
+      {
          break;
+      }
 
       //Convert the record class to host byte order
       rclass = ntohs(record->rclass);
@@ -1588,7 +1689,9 @@ error_t mdnsResponderFormatIpv4AddrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the host name using the DNS name notation
       offset += mdnsEncodeName(context->hostname, "", ".local",
@@ -1599,7 +1702,9 @@ error_t mdnsResponderFormatIpv4AddrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -1666,7 +1771,9 @@ error_t mdnsResponderFormatIpv6AddrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the host name using the DNS name notation
       offset += mdnsEncodeName(context->hostname, "", ".local",
@@ -1677,7 +1784,9 @@ error_t mdnsResponderFormatIpv6AddrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -1744,7 +1853,9 @@ error_t mdnsResponderFormatIpv4PtrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the reverse name using the DNS name notation
       offset += mdnsEncodeName(reverseName, "in-addr", ".arpa",
@@ -1755,7 +1866,9 @@ error_t mdnsResponderFormatIpv4PtrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -1779,7 +1892,9 @@ error_t mdnsResponderFormatIpv4PtrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the host name using DNS notation
       n = mdnsEncodeName("", context->hostname, ".local", record->rdata);
@@ -1834,7 +1949,9 @@ error_t mdnsResponderFormatIpv6PtrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the reverse name using the DNS name notation
       offset += mdnsEncodeName(reverseName, "ip6", ".arpa",
@@ -1845,7 +1962,9 @@ error_t mdnsResponderFormatIpv6PtrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -1869,7 +1988,9 @@ error_t mdnsResponderFormatIpv6PtrRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the host name using DNS notation
       n = mdnsEncodeName("", context->hostname, ".local", record->rdata);
@@ -1949,7 +2070,9 @@ error_t mdnsResponderFormatNsecRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the host name using the DNS name notation
       offset += mdnsEncodeName(context->hostname, "", ".local",
@@ -1957,7 +2080,9 @@ error_t mdnsResponderFormatNsecRecord(MdnsResponderContext *context,
 
       //Consider the length of the resource record itself
       if((offset + sizeof(DnsResourceRecord)) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -1978,7 +2103,9 @@ error_t mdnsResponderFormatNsecRecord(MdnsResponderContext *context,
 
       //Check the length of the resulting mDNS message
       if((offset + n + 2 + bitmapLen) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The Next Domain Name field contains the record's own name
       mdnsEncodeName(context->hostname, "", ".local", record->rdata);
@@ -2128,7 +2255,9 @@ DnsResourceRecord *mdnsResponderGetNextTiebreakerRecord(MdnsResponderContext *co
       n = dnsParseName(query->dnsHeader, query->length, offset, 0);
       //Invalid name?
       if(n == 0)
+      {
          break;
+      }
 
       //Point to the associated resource record
       curRecord = DNS_GET_RESOURCE_RECORD(query->dnsHeader, n);
@@ -2137,9 +2266,14 @@ DnsResourceRecord *mdnsResponderGetNextTiebreakerRecord(MdnsResponderContext *co
 
       //Make sure the resource record is valid
       if(n > query->length)
+      {
          break;
+      }
+
       if((n + ntohs(curRecord->rdlength)) > query->length)
+      {
          break;
+      }
 
       //Matching host name?
       if(!mdnsCompareName(query->dnsHeader, query->length, offset,

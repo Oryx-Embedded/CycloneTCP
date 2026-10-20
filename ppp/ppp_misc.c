@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -73,7 +73,9 @@ error_t pppSendConfigureAckNak(PppContext *context,
    buffer = pppAllocBuffer(length + 1, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the packet
    configureAckNakPacket = netBufferAt(buffer, offset, 0);
@@ -181,7 +183,9 @@ error_t pppSendTerminateReq(PppContext *context,
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Terminate-Request packet
    terminateReqPacket = netBufferAt(buffer, offset, 0);
@@ -231,7 +235,9 @@ error_t pppSendTerminateAck(PppContext *context,
    buffer = pppAllocBuffer(length, &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Terminate-Ack packet
    terminateAckPacket = netBufferAt(buffer, offset, 0);
@@ -278,15 +284,20 @@ error_t pppSendCodeRej(PppContext *context, const PppPacket *packet,
    //Calculate the length of the Code-Reject packet
    length = ntohs(packet->length) + sizeof(PppCodeRejPacket);
 
-   //The rejected packet must be truncated to comply with
-   //the peer's established MRU
+   //The rejected packet must be truncated to comply with the peer's established
+   //MRU
    length = MIN(length, context->peerConfig.mru);
+
+   //The Code-Reject packet cannot be shorter than its header
+   length = MAX(length, sizeof(PppCodeRejPacket));
 
    //Allocate a memory buffer to hold the Code-Reject packet
    buffer = pppAllocBuffer(sizeof(PppCodeRejPacket), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Code-Reject packet
    codeRejPacket = netBufferAt(buffer, offset, 0);
@@ -296,7 +307,8 @@ error_t pppSendCodeRej(PppContext *context, const PppPacket *packet,
    codeRejPacket->identifier = identifier;
    codeRejPacket->length = htons(length);
 
-   //The Rejected-Packet field contains a copy of the packet which is being rejected
+   //The Rejected-Packet field contains a copy of the packet which is being
+   //rejected
    error = netBufferAppend(buffer, packet, length - sizeof(PppCodeRejPacket));
 
    //Check status code
@@ -338,15 +350,20 @@ error_t pppSendProtocolRej(PppContext *context, uint8_t identifier,
    //Calculate the length of the Protocol-Reject packet
    length += sizeof(PppProtocolRejPacket);
 
-   //The Rejected-Information must be truncated to comply with
-   //the peer's established MRU
+   //The rejected packet must be truncated to comply with the peer's established
+   //MRU
    length = MIN(length, context->peerConfig.mru);
+
+   //The Protocol-Reject packet cannot be shorter than its header
+   length = MAX(length, sizeof(PppProtocolRejPacket));
 
    //Allocate a memory buffer to hold the Protocol-Reject packet
    buffer = pppAllocBuffer(sizeof(PppProtocolRejPacket), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Protocol-Reject packet
    protocolRejPacket = netBufferAt(buffer, offset, 0);
@@ -357,8 +374,8 @@ error_t pppSendProtocolRej(PppContext *context, uint8_t identifier,
    protocolRejPacket->length = htons(length);
    protocolRejPacket->rejectedProtocol = htons(protocol);
 
-   //The Rejected-Information field contains a copy of the
-   //packet which is being rejected
+   //The Rejected-Information field contains a copy of the packet which is being
+   //rejected
    error = netBufferAppend(buffer, information,
       length - sizeof(PppProtocolRejPacket));
 
@@ -402,15 +419,22 @@ error_t pppSendEchoRep(PppContext *context,
 
    //Make sure the length is valid
    if(length < sizeof(PppEchoPacket))
+   {
       return ERROR_INVALID_LENGTH;
+   }
+
    if(length > context->peerConfig.mru)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Allocate a memory buffer to hold the Echo-Reply packet
    buffer = pppAllocBuffer(sizeof(PppEchoPacket), &offset);
    //Failed to allocate memory?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the Echo-Reply packet
    echoRepPacket = netBufferAt(buffer, offset, 0);
@@ -459,7 +483,9 @@ error_t pppAddOption(PppConfigurePacket *packet, uint8_t optionType,
 
    //Make sure the length is valid
    if(optionLen > (UINT8_MAX - sizeof(PppOption)))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the end of the Configure packet
    option = (PppOption *) ((uint8_t *) packet + packet->length);

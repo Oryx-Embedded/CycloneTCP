@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -159,7 +159,9 @@ error_t sja1105LoadStaticConfig(NetInterface *interface, const char_t *data,
    //if the CONFIGS flag set, the configuration is locked and cannot be
    //overridden without resetting the device
    if((value & SJA1105_INIT_DEV_CONFIG_FLAG_CONFIGS) != 0)
+   {
       return ERROR_ALREADY_CONFIGURED;
+   }
 
    //The load operation is initiated by writing the device ID to relative
    //address 0 (i.e. relative to the start address 0x20000)
@@ -173,7 +175,9 @@ error_t sja1105LoadStaticConfig(NetInterface *interface, const char_t *data,
       {
          //Check the length of the record
          if((length - i) < 11)
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //The start code is followed by a 1 byte (2 hex digits) of byte count
          buffer[0] = data[i + 1];
@@ -185,11 +189,15 @@ error_t sja1105LoadStaticConfig(NetInterface *interface, const char_t *data,
 
          //Malformed record?
          if(*p != '\0')
+         {
             return ERROR_INVALID_SYNTAX;
+         }
 
          //Check the length of the record
          if((length - i) < (n + 11))
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //The byte count is followed by a 2 byte (4 hex digits) address
          buffer[0] = data[i + 3];
@@ -203,7 +211,9 @@ error_t sja1105LoadStaticConfig(NetInterface *interface, const char_t *data,
 
          //Malformed record?
          if(*p != '\0')
+         {
             return ERROR_INVALID_SYNTAX;
+         }
 
          //The record type is 1 byte (2 hex digits) in size
          buffer[0] = data[i + 7];
@@ -215,14 +225,18 @@ error_t sja1105LoadStaticConfig(NetInterface *interface, const char_t *data,
 
          //Malformed record?
          if(*p != '\0')
+         {
             return ERROR_INVALID_SYNTAX;
+         }
 
          //The record type represents the type of data
          if(type == 0x00)
          {
             //The static configuration is a stream of 32-bit data
             if((n % 4) != 0)
+            {
                return ERROR_INVALID_LENGTH;
+            }
 
             //Parse data
             for(j = 0; j < (2 * n); j += 8)
@@ -243,7 +257,9 @@ error_t sja1105LoadStaticConfig(NetInterface *interface, const char_t *data,
 
                //Malformed record?
                if(*p != '\0')
+               {
                   return ERROR_INVALID_SYNTAX;
+               }
 
                //The load operation is relative to the start address 0x20000
                sja1105WriteSingleReg(interface, SJA1105_ETH_STATIC_BASE + offset, value);
@@ -277,7 +293,9 @@ error_t sja1105LoadStaticConfig(NetInterface *interface, const char_t *data,
 
    //The CONFIGS flag should be checked after loading the static configuration
    if((value & SJA1105_INIT_DEV_CONFIG_FLAG_CONFIGS) == 0)
+   {
       return ERROR_NOT_CONFIGURED;
+   }
 
    //Successful processing
    return NO_ERROR;

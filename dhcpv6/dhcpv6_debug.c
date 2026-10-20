@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -128,7 +128,9 @@ error_t dhcpv6DumpMessage(const void *message, size_t length)
 
    //Empty message?
    if(!length)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve the message type
    type = *((uint8_t *) message);
@@ -229,10 +231,15 @@ error_t dhcpv6DumpOptions(const uint8_t *options, size_t length, uint_t level)
 
       //Make sure the option is valid
       if((i + sizeof(Dhcpv6Option)) > length)
+      {
          return ERROR_INVALID_OPTION;
+      }
+
       //Check the length of the option data
       if((i + sizeof(Dhcpv6Option) + ntohs(option->length)) > length)
+      {
          return ERROR_INVALID_OPTION;
+      }
 
       //Check option code
       switch(ntohs(option->code))
@@ -329,7 +336,9 @@ error_t dhcpv6DumpOptions(const uint8_t *options, size_t length, uint_t level)
 
       //Failed to parse current option?
       if(error)
+      {
          return error;
+      }
 
       //Jump to the next option
       i += sizeof(Dhcpv6Option) + ntohs(option->length);
@@ -408,7 +417,9 @@ error_t dhcpv6DumpIaNaOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) < sizeof(Dhcpv6IaNaOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    iaNaOption = (Dhcpv6IaNaOption *) option->value;
@@ -440,7 +451,9 @@ error_t dhcpv6DumpIaTaOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) < sizeof(Dhcpv6IaTaOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    iaTaOption = (Dhcpv6IaTaOption *) option->value;
@@ -470,7 +483,9 @@ error_t dhcpv6DumpIaAddrOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) < sizeof(Dhcpv6IaAddrOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    iaAddrOption = (Dhcpv6IaAddrOption *) option->value;
@@ -506,7 +521,9 @@ error_t dhcpv6DumpOroOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) % 2)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    oroOption = (Dhcpv6OroOption *) option->value;
@@ -545,7 +562,9 @@ error_t dhcpv6DumpPreferenceOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) != sizeof(Dhcpv6PreferenceOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    preferenceOption = (Dhcpv6PreferenceOption *) option->value;
@@ -573,7 +592,9 @@ error_t dhcpv6DumpElapsedTimeOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) != sizeof(Dhcpv6ElapsedTimeOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    elapsedTimeOption = (Dhcpv6ElapsedTimeOption *) option->value;
@@ -603,7 +624,9 @@ error_t dhcpv6DumpRelayMessageOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(!ntohs(option->length))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Retrieve the message type
    type = option->value[0];
@@ -618,7 +641,9 @@ error_t dhcpv6DumpRelayMessageOption(const Dhcpv6Option *option, uint_t level)
 
       //Ensure the length of the DHCPv6 message is acceptable
       if(ntohs(option->length) < sizeof(Dhcpv6RelayMessage))
+      {
          return ERROR_INVALID_OPTION;
+      }
 
       //Dump message header
       TRACE_DEBUG("%sRelay Message option (%" PRIu16 " bytes)\r\n", prefix[level], ntohs(option->length));
@@ -638,7 +663,9 @@ error_t dhcpv6DumpRelayMessageOption(const Dhcpv6Option *option, uint_t level)
 
       //Ensure the length of the DHCPv6 message is acceptable
       if(ntohs(option->length) < sizeof(Dhcpv6Message))
+      {
          return ERROR_INVALID_OPTION;
+      }
 
       //Dump message header
       TRACE_DEBUG("%sRelay Message option (%" PRIu16 " bytes)\r\n", prefix[level], ntohs(option->length));
@@ -665,7 +692,9 @@ error_t dhcpv6DumpAuthOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) < sizeof(Dhcpv6AuthOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    authOption = (Dhcpv6AuthOption *) option->value;
@@ -700,7 +729,9 @@ error_t dhcpv6DumpServerUnicastOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) != sizeof(Dhcpv6ServerUnicastOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    serverUnicastOption = (Dhcpv6ServerUnicastOption *) option->value;
@@ -729,7 +760,9 @@ error_t dhcpv6DumpStatusCodeOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) < sizeof(Dhcpv6StatusCodeOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    statusCodeOption = (Dhcpv6StatusCodeOption *) option->value;
@@ -759,7 +792,9 @@ error_t dhcpv6DumpRapidCommitOption(const Dhcpv6Option *option, uint_t level)
 {
    //Check the length of the option
    if(ntohs(option->length) != 0)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Dump contents
    TRACE_DEBUG("%sRapid Commit option (%" PRIu16 " bytes)\r\n", prefix[level], ntohs(option->length));
@@ -854,7 +889,9 @@ error_t dhcpv6DumpReconfMessageOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) != sizeof(Dhcpv6ReconfMessageOption))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    reconfMessageOption = (Dhcpv6ReconfMessageOption *) option->value;
@@ -879,7 +916,9 @@ error_t dhcpv6DumpReconfAcceptOption(const Dhcpv6Option *option, uint_t level)
 {
    //Check the length of the option
    if(ntohs(option->length) != 0)
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Dump contents
    TRACE_DEBUG("%sReconfigure Accept option (%" PRIu16 " bytes)\r\n", prefix[level], ntohs(option->length));
@@ -904,7 +943,9 @@ error_t dhcpv6DumpDnsServersOption(const Dhcpv6Option *option, uint_t level)
 
    //Check the length of the option
    if(ntohs(option->length) % sizeof(Ipv6Addr))
+   {
       return ERROR_INVALID_OPTION;
+   }
 
    //Point to the option contents
    dnsServersOption = (Dhcpv6DnsServersOption *) option->value;

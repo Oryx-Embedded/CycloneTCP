@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -126,7 +126,9 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
          error = ethCheckCrc(interface, frame, length);
          //CRC error?
          if(error)
+         {
             break;
+         }
 
          //Retrieve CRC value
          crc = LOAD32BE(frame + length - ETH_CRC_SIZE);
@@ -147,7 +149,9 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
             &length, ancillary);
          //Any error to report?
          if(error)
+         {
             break;
+         }
       }
 #endif
 
@@ -190,7 +194,9 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
          error = ethDecodeVlanTag(data, length, &vmanId, &type);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Advance data pointer over the VMAN tag
          data += sizeof(VlanTag);
@@ -206,7 +212,9 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
          error = ethDecodeVlanTag(data, length, &vlanId, &type);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Advance data pointer over the VLAN tag
          data += sizeof(VlanTag);
@@ -258,7 +266,9 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
       //Check whether the current virtual interface is attached to the
       //physical interface where the packet was received
       if(nicGetPhysicalInterface(virtualInterface) != interface)
+      {
          continue;
+      }
 
 #if (ETH_PORT_TAGGING_SUPPORT == ENABLED)
       //Retrieve switch port identifier
@@ -266,17 +276,23 @@ void ethProcessFrame(NetInterface *interface, uint8_t *frame, size_t length,
 
       //Check switch port identifier
       if(port != 0 && port != ancillary->port)
+      {
          continue;
+      }
 #endif
 #if (ETH_VLAN_SUPPORT == ENABLED)
       //Check VLAN identifier
       if((nicGetVlanId(virtualInterface) & VLAN_VID_MASK) != vlanId)
+      {
          continue;
+      }
 #endif
 #if (ETH_VMAN_SUPPORT == ENABLED)
       //Check VMAN identifier
       if((nicGetVmanId(virtualInterface) & VLAN_VID_MASK) != vmanId)
+      {
          continue;
+      }
 #endif
 
 #if (IPV4_SUPPORT == ENABLED && IGMP_ROUTER_SUPPORT == ENABLED)
@@ -445,7 +461,9 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
          ancillary->vlanDei, type);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //A distinct EtherType has been allocated for use in the TPID field
       type = ETH_TYPE_VLAN;
@@ -464,7 +482,9 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
          ancillary->vmanDei, type);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //A distinct EtherType has been allocated for use in the TPID field
       type = ETH_TYPE_VMAN;
@@ -485,7 +505,9 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
 
    //Sanity check
    if(offset < sizeof(EthHeader))
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make room for the Ethernet header
    offset -= sizeof(EthHeader);
@@ -543,7 +565,9 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
          buffer, &offset, ancillary);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Recalculate the length of the frame
       length = netBufferGetLength(buffer) - offset;
@@ -561,7 +585,9 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
          error = ethPadFrame(buffer, &length);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
 
       //CRC calculation not supported by hardware?
@@ -576,7 +602,9 @@ error_t ethSendFrame(NetInterface *interface, const MacAddr *destAddr,
          error = netBufferAppend(buffer, &crc, sizeof(crc));
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Adjust the length of the frame
          length += sizeof(crc);
@@ -731,7 +759,9 @@ error_t ethAttachLlcRxCallback(NetInterface *interface, LlcRxCallback callback,
 #if (ETH_LLC_SUPPORT == ENABLED)
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Register LLC frame received callback
    interface->llcRxCallback = callback;
@@ -758,7 +788,9 @@ error_t ethDetachLlcRxCallback(NetInterface *interface)
 #if (ETH_LLC_SUPPORT == ENABLED)
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Unregister LLC frame received callback
    interface->llcRxCallback = NULL;
@@ -808,7 +840,9 @@ NetBuffer *ethAllocBuffer(size_t length, size_t *offset)
    buffer = netBufferAlloc(length + n);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return NULL;
+   }
 
    //Offset to the first byte of the payload
    *offset = n;
@@ -839,7 +873,9 @@ error_t macStringToAddr(const char_t *str, MacAddr *macAddr)
       {
          //First digit to be decoded?
          if(value < 0)
+         {
             value = 0;
+         }
 
          //Update the value of the current byte
          if(osIsdigit(*str))

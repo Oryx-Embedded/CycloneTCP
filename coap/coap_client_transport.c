@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,19 +56,25 @@ error_t coapClientOpenConnection(CoapClientContext *context)
       SOCKET_IP_PROTO_UDP);
    //Failed to open socket?
    if(context->socket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Associate the socket with the relevant interface
    error = socketBindToInterface(context->socket, context->interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Force the socket to operate in non-blocking mode
    error = socketSetTimeout(context->socket, 0);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (COAP_CLIENT_DTLS_SUPPORT == ENABLED)
    //DTLS transport protocol?
@@ -78,27 +84,35 @@ error_t coapClientOpenConnection(CoapClientContext *context)
       context->dtlsContext = tlsInit();
       //Failed to allocate DTLS context?
       if(context->dtlsContext == NULL)
+      {
          return ERROR_OPEN_FAILED;
+      }
 
       //Select client operation mode
       error = tlsSetConnectionEnd(context->dtlsContext,
          TLS_CONNECTION_END_CLIENT);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Set the transport protocol to be used (DTLS)
       error = tlsSetTransportProtocol(context->dtlsContext,
          TLS_TRANSPORT_PROTOCOL_DATAGRAM);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Bind DTLS to the relevant socket
       error = tlsSetSocket(context->dtlsContext, context->socket);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
 #if (TLS_ALPN_SUPPORT == ENABLED)
       //For CoAP over DTLS, a short ALPN ID "co" is allocated (refer to
@@ -106,20 +120,26 @@ error_t coapClientOpenConnection(CoapClientContext *context)
       error = tlsSetAlpnProtocolList(context->dtlsContext, "co");
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 #endif
 
       //Force DTLS to operate in non-blocking mode
       error = tlsSetTimeout(context->dtlsContext, 0);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Restore DTLS session, if any
       error = tlsRestoreSessionState(context->dtlsContext, &context->dtlsSession);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Invoke user-defined callback, if any
       if(context->dtlsInitCallback != NULL)
@@ -128,7 +148,9 @@ error_t coapClientOpenConnection(CoapClientContext *context)
          error = context->dtlsInitCallback(context, context->dtlsContext);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
    }
 #endif
@@ -155,7 +177,9 @@ error_t coapClientEstablishConnection(CoapClientContext *context,
    error = socketConnect(context->socket, serverIpAddr, serverPort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (COAP_CLIENT_DTLS_SUPPORT == ENABLED)
    //DTLS transport protocol?
@@ -165,7 +189,9 @@ error_t coapClientEstablishConnection(CoapClientContext *context,
       error = tlsConnect(context->dtlsContext);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //At any time after the server has received the client Finished
       //message, it may send a NewSessionTicket message (refer to RFC 8446,

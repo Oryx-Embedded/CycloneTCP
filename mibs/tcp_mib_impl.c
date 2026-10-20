@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -86,16 +86,20 @@ error_t tcpMibGetTcpCurrEstab(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
    uint_t i;
+   NetContext *context;
    Socket *socket;
 
    //Initialize object value
    value->gauge32 = 0;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -156,7 +160,11 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
    uint16_t localPort;
    IpAddr remoteIpAddr;
    uint16_t remotePort;
+   NetContext *context;
    Socket *socket;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -166,55 +174,79 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIpAddr(oid, oidLen, &n, &localIpAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnectionLocalPort is used as 3rd instance identifier
    error = mibDecodePort(oid, oidLen, &n, &localPort);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnectionRemAddressType and tcpConnectionRemAddress are used
    //as 4th and 5th instance identifiers
    error = mibDecodeIpAddr(oid, oidLen, &n, &remoteIpAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnectionRemPort is used as 6th instance identifier
    error = mibDecodePort(oid, oidLen, &n, &remotePort);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
       {
          //Check local IP address
          if(!ipCompAddr(&socket->localIpAddr, &localIpAddr))
+         {
             continue;
+         }
+
          //Check local port number
          if(socket->localPort != localPort)
+         {
             continue;
+         }
+
          //Check remote IP address
          if(!ipCompAddr(&socket->remoteIpAddr, &remoteIpAddr))
+         {
             continue;
+         }
+
          //Check local port number
          if(socket->remotePort != remotePort)
+         {
             continue;
+         }
+
          //Check current state
          if(socket->state == TCP_STATE_LISTEN)
+         {
             continue;
+         }
 
          //A matching socket has been found
          break;
@@ -223,7 +255,9 @@ error_t tcpMibGetTcpConnectionEntry(const MibObject *object, const uint8_t *oid,
 
    //No matching connection found in socket table?
    if(i >= SOCKET_MAX_COUNT)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //tcpConnectionState object?
    if(osStrcmp(object->name, "tcpConnectionState") == 0)
@@ -308,6 +342,7 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
    uint16_t localPort;
    IpAddr remoteIpAddr;
    uint16_t remotePort;
+   NetContext *context;
    Socket *socket;
 
    //Initialize variables
@@ -316,9 +351,14 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
    remoteIpAddr = IP_ADDR_ANY;
    remotePort = 0;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -327,7 +367,7 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -343,26 +383,34 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &socket->localIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //tcpConnectionLocalPort is used as 3rd instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->localPort);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //tcpConnectionRemAddressType and tcpConnectionRemAddress are used
             //as 4th and 5th instance identifiers
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &socket->remoteIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //tcpConnectionRemPort is used as 6th instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->remotePort);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -423,7 +471,9 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(localPort == 0 && remotePort == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -433,26 +483,34 @@ error_t tcpMibGetNextTcpConnectionEntry(const MibObject *object, const uint8_t *
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &localIpAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnectionLocalPort is used as 3rd instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, localPort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnectionRemAddressType and tcpConnectionRemAddress are used
    //as 4th and 5th instance identifiers
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &remoteIpAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnectionRemPort is used as 6th instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, remotePort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -479,7 +537,11 @@ error_t tcpMibGetTcpListenerEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    IpAddr localIpAddr;
    uint16_t localPort;
+   NetContext *context;
    Socket *socket;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -489,36 +551,50 @@ error_t tcpMibGetTcpListenerEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIpAddr(oid, oidLen, &n, &localIpAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //tcpListenerLocalPort is used as 3rd instance identifier
    error = mibDecodePort(oid, oidLen, &n, &localPort);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
       {
          //Check local IP address
          if(!ipCompAddr(&socket->localIpAddr, &localIpAddr))
+         {
             continue;
+         }
+
          //Check local port number
          if(socket->localPort != localPort)
+         {
             continue;
+         }
+
          //Check current state
          if(socket->state != TCP_STATE_LISTEN)
+         {
             continue;
+         }
 
          //A matching socket has been found
          break;
@@ -527,7 +603,9 @@ error_t tcpMibGetTcpListenerEntry(const MibObject *object, const uint8_t *oid,
 
    //No matching connection found in socket table?
    if(i >= SOCKET_MAX_COUNT)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //tcpListenerProcess object?
    if(osStrcmp(object->name, "tcpListenerProcess") == 0)
@@ -566,15 +644,21 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
    bool_t acceptable;
    IpAddr localIpAddr;
    uint16_t localPort;
+   NetContext *context;
    Socket *socket;
 
    //Initialize variables
    localIpAddr = IP_ADDR_ANY;
    localPort = 0;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -583,7 +667,7 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -599,13 +683,17 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &socket->localIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //tcpListenerLocalPort is used as 3rd instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->localPort);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -648,7 +736,9 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(localPort == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -658,13 +748,17 @@ error_t tcpMibGetNextTcpListenerEntry(const MibObject *object, const uint8_t *oi
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &localIpAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //tcpListenerLocalPort is used as 3rd instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, localPort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

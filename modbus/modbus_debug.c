@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -105,7 +105,9 @@ error_t modbusDumpRequestPdu(const void *pdu, size_t length)
 
    //Sanity check
    if(length == 0)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve function code
    functionCode = *((uint8_t *) pdu);
@@ -218,7 +220,9 @@ error_t modbusDumpResponsePdu(const void *pdu, size_t length)
 
    //Sanity check
    if(length == 0)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Retrieve function code
    functionCode = *((uint8_t *) pdu);
@@ -336,7 +340,9 @@ error_t modbusDumpReadCoilsReq(const ModbusReadCoilsReq *request,
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusReadCoilsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump request PDU
    TRACE_DEBUG("  Starting Address = %" PRIu16 "\r\n", ntohs(request->startingAddr));
@@ -359,7 +365,9 @@ error_t modbusDumpReadCoilsResp(const ModbusReadCoilsResp *response,
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusReadCoilsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Calculate the length of the data field
    length -= sizeof(ModbusReadCoilsResp);
@@ -385,7 +393,9 @@ error_t modbusDumpReadDiscreteInputsReq(const ModbusReadDiscreteInputsReq *reque
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusReadDiscreteInputsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump request PDU
    TRACE_DEBUG("  Starting Address = %" PRIu16 "\r\n", ntohs(request->startingAddr));
@@ -408,7 +418,9 @@ error_t modbusDumpReadDiscreteInputsResp(const ModbusReadDiscreteInputsResp *res
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusReadDiscreteInputsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Calculate the length of the data field
    length -= sizeof(ModbusReadDiscreteInputsResp);
@@ -434,7 +446,9 @@ error_t modbusDumpReadHoldingRegsReq(const ModbusReadHoldingRegsReq *request,
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusReadHoldingRegsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump request PDU
    TRACE_DEBUG("  Starting Address = %" PRIu16 "\r\n", ntohs(request->startingAddr));
@@ -457,7 +471,9 @@ error_t modbusDumpReadHoldingRegsResp(const ModbusReadHoldingRegsResp *response,
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusReadHoldingRegsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Calculate the length of the data field
    length -= sizeof(ModbusReadHoldingRegsResp);
@@ -483,7 +499,9 @@ error_t modbusDumpReadInputRegsReq(const ModbusReadInputRegsReq *request,
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusReadInputRegsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump request PDU
    TRACE_DEBUG("  Starting Address = %" PRIu16 "\r\n", ntohs(request->startingAddr));
@@ -506,7 +524,9 @@ error_t modbusDumpReadInputRegsResp(const ModbusReadInputRegsResp *response,
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusReadInputRegsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Calculate the length of the data field
    length -= sizeof(ModbusReadInputRegsResp);
@@ -532,7 +552,9 @@ error_t modbusDumpWriteSingleCoilReq(const ModbusWriteSingleCoilReq *request,
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusWriteSingleCoilReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump request PDU
    TRACE_DEBUG("  Output Address = %" PRIu16 "\r\n", ntohs(request->outputAddr));
@@ -555,7 +577,9 @@ error_t modbusDumpWriteSingleCoilResp(const ModbusWriteSingleCoilResp *response,
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusWriteSingleCoilResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump response PDU
    TRACE_DEBUG("  Output Address = %" PRIu16 "\r\n", ntohs(response->outputAddr));
@@ -578,7 +602,9 @@ error_t modbusDumpWriteSingleRegReq(const ModbusWriteSingleRegReq *request,
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusWriteSingleRegReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump request PDU
    TRACE_DEBUG("  Register Address = %" PRIu16 "\r\n", ntohs(request->regAddr));
@@ -601,7 +627,9 @@ error_t modbusDumpWriteSingleRegResp(const ModbusWriteSingleRegResp *response,
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusWriteSingleRegResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump response PDU
    TRACE_DEBUG("  Register Address = %" PRIu16 "\r\n", ntohs(response->regAddr));
@@ -624,7 +652,9 @@ error_t modbusDumpWriteMultipleCoilsReq(const ModbusWriteMultipleCoilsReq *reque
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusWriteMultipleCoilsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Calculate the length of the data field
    length -= sizeof(ModbusWriteMultipleCoilsReq);
@@ -652,7 +682,9 @@ error_t modbusDumpWriteMultipleCoilsResp(const ModbusWriteMultipleCoilsResp *res
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusWriteMultipleCoilsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump response PDU
    TRACE_DEBUG("  Starting Address = %" PRIu16 "\r\n", ntohs(response->startingAddr));
@@ -675,7 +707,9 @@ error_t modbusDumpWriteMultipleRegsReq(const ModbusWriteMultipleRegsReq *request
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusWriteMultipleRegsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Calculate the length of the data field
    length -= sizeof(ModbusWriteMultipleRegsReq);
@@ -703,7 +737,9 @@ error_t modbusDumpWriteMultipleRegsResp(const ModbusWriteMultipleRegsResp *respo
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusWriteMultipleRegsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump response PDU
    TRACE_DEBUG("  Starting Address = %" PRIu16 "\r\n", ntohs(response->startingAddr));
@@ -726,7 +762,9 @@ error_t modbusDumpMaskWriteRegReq(const ModbusMaskWriteRegReq *request,
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusMaskWriteRegReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump request PDU
    TRACE_DEBUG("  Reference Address = %" PRIu16 "\r\n", ntohs(request->referenceAddr));
@@ -750,7 +788,9 @@ error_t modbusDumpMaskWriteRegResp(const ModbusMaskWriteRegResp *response,
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusMaskWriteRegResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Dump response PDU
    TRACE_DEBUG("  Reference Address = %" PRIu16 "\r\n", ntohs(response->referenceAddr));
@@ -774,7 +814,9 @@ error_t modbusDumpReadWriteMultipleRegsReq(const ModbusReadWriteMultipleRegsReq 
 {
    //Malformed request PDU?
    if(length < sizeof(ModbusReadWriteMultipleRegsReq))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Calculate the length of the data field
    length -= sizeof(ModbusReadWriteMultipleRegsReq);
@@ -804,7 +846,9 @@ error_t modbusDumpReadWriteMultipleRegsResp(const ModbusReadWriteMultipleRegsRes
 {
    //Malformed response PDU?
    if(length < sizeof(ModbusReadWriteMultipleRegsResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Calculate the length of the data field
    length -= sizeof(ModbusReadWriteMultipleRegsResp);
@@ -833,7 +877,9 @@ error_t modbusDumpExceptionResp(const ModbusExceptionResp *response,
 
    //Malformed response PDU?
    if(length < sizeof(ModbusExceptionResp))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the description of the exception code
    if(response->exceptionCode < arraysize(modbusExceptionCodeLabel))

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _MODBUS_COMMON_H
@@ -55,9 +55,9 @@
 #define MODBUS_EXCEPTION_MASK 0x80
 
 //Set coil value
-#define MODBUS_SET_COIL(a, n) ((a)[(n) / 8] |= (1 << ((n) % 8)))
+#define MODBUS_SET_COIL(a, n) ((a)[(n) / 8] |= (1U << ((n) % 8)))
 //Reset coil value
-#define MODBUS_RESET_COIL(a, n) ((a)[(n) / 8] &= ~(1 << ((n) % 8)))
+#define MODBUS_RESET_COIL(a, n) ((a)[(n) / 8] &= ~(1U << ((n) % 8)))
 //Test coil value
 #define MODBUS_TEST_COIL(a, n) ((a[(n) / 8] >> ((n) % 8)) & 1)
 

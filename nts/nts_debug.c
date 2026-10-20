@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -91,7 +91,9 @@ void ntsDumpNtsKeRecords(const uint8_t *records, size_t length)
    {
       //Malformed record?
       if(length < sizeof(NtsKeRecord))
+      {
          break;
+      }
 
       //Point to the current record
       record = (NtsKeRecord *) (records + i);
@@ -100,7 +102,9 @@ void ntsDumpNtsKeRecords(const uint8_t *records, size_t length)
 
       //Malformed record?
       if((i + sizeof(NtsKeRecord) + n) > length)
+      {
          break;
+      }
 
       //Debug message
       TRACE_DEBUG("  NTS-KE Record (%" PRIu16 " bytes)\r\n",
@@ -127,7 +131,9 @@ void ntsDumpNtsKeRecord(const NtsKeRecord *record, size_t length)
 
    //Malformed record?
    if(length < sizeof(NtsKeRecord))
+   {
       return;
+   }
 
    //Get critical flag
    critical = (ntohs(record->type) & NTS_KE_CRITICAL) ? TRUE : FALSE;
@@ -138,7 +144,9 @@ void ntsDumpNtsKeRecord(const NtsKeRecord *record, size_t length)
 
    //Malformed record?
    if(length < (sizeof(NtsKeRecord) + bodyLen))
+   {
       return;
+   }
 
    //Convert the Record Type field to string representation
    name = ntsGetParamName(recordType, ntsKeRecordTypeList,
@@ -237,7 +245,9 @@ void ntsDumpErrorRecord(const uint8_t *body, size_t length)
 
    //Malformed record?
    if(length < sizeof(uint16_t))
+   {
       return;
+   }
 
    //The body is exactly two octets long, consisting of an unsigned 16-bit
    //integer in network byte order, denoting an error code (refer to RFC 8915,
@@ -265,7 +275,9 @@ void ntsDumpWarningRecord(const uint8_t *body, size_t length)
 
    //Malformed record?
    if(length < sizeof(uint16_t))
+   {
       return;
+   }
 
    //The body is exactly two octets long, consisting of an unsigned 16-bit
    //integer in network byte order, denoting an warning code (refer to RFC 8915,
@@ -344,7 +356,9 @@ void ntsDumpNtpv4PortNegoRecord(const uint8_t *body, size_t length)
 
    //Malformed record?
    if(length < sizeof(uint16_t))
+   {
       return;
+   }
 
    //The body consists of a 16-bit unsigned integer in network byte order,
    //denoting a UDP port number (refer to RFC 8915, section 4.1.8)
@@ -375,7 +389,9 @@ const char_t *ntsGetParamName(uint_t value, const NtsParamName *paramList,
    for(i = 0; i < paramListLen; i++)
    {
       if(paramList[i].value == value)
+      {
          return paramList[i].name;
+      }
    }
 
    //Unknown value

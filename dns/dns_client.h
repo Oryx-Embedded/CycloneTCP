@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _DNS_CLIENT_H
@@ -94,6 +94,9 @@ void dnsProcessResponse(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader,
    const NetBuffer *buffer, size_t offset, const NetRxAncillary *ancillary,
    void *param);
+
+bool_t dnsCheckSourceAddr(const DnsCacheEntry *entry,
+   const IpPseudoHeader *pseudoHeader, const UdpHeader *udpHeader);
 
 void dnsSelectNextServer(DnsCacheEntry *entry);
 

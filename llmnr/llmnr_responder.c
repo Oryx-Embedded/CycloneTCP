@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -58,7 +58,9 @@ error_t llmnrResponderInit(NetInterface *interface)
    error = ipv4JoinMulticastGroup(interface, LLMNR_IPV4_MULTICAST_ADDR);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED)
@@ -66,7 +68,9 @@ error_t llmnrResponderInit(NetInterface *interface)
    error = ipv6JoinMulticastGroup(interface, &LLMNR_IPV6_MULTICAST_ADDR);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //LLMNR responders must listen on UDP port 5355
@@ -74,7 +78,9 @@ error_t llmnrResponderInit(NetInterface *interface)
       NULL);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful initialization
    return NO_ERROR;
@@ -111,13 +117,17 @@ void llmnrProcessQuery(NetInterface *interface,
 
    //Malformed LLMNR message?
    if(length < sizeof(LlmnrHeader))
+   {
       return;
+   }
 
    //Point to the LLMNR message header
    message = netBufferAt(buffer, offset, length);
    //Malformed LLMNR message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("LLMNR message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -131,7 +141,9 @@ void llmnrProcessQuery(NetInterface *interface,
       //Unicast UDP queries must be silently discarded (refer to RFC 4795,
       //section 2.4)
       if(!ipv4IsMulticastAddr(pseudoHeader->ipv4Data.destAddr))
+      {
          return;
+      }
 
       //A responder responds to a multicast query by sending a unicast UDP
       //response to the sender (refer to RFC 4795, section 2)
@@ -147,7 +159,9 @@ void llmnrProcessQuery(NetInterface *interface,
       //Unicast UDP queries must be silently discarded (refer to RFC 4795,
       //section 2.4)
       if(!ipv6IsMulticastAddr(&pseudoHeader->ipv6Data.destAddr))
+      {
          return;
+      }
 
       //A responder responds to a multicast query by sending a unicast UDP
       //response to the sender (refer to RFC 4795, section 2)
@@ -164,27 +178,37 @@ void llmnrProcessQuery(NetInterface *interface,
 
    //Discard LLMNR responses received on port 5355
    if(message->qr)
+   {
       return;
+   }
 
    //LLMNR messages received with an opcode other than zero must be silently
    //ignored
    if(message->opcode != DNS_OPCODE_QUERY)
+   {
       return;
+   }
 
    //LLMNR messages received with non-zero response codes must be silently
    //ignored
    if(message->rcode != DNS_RCODE_NOERROR)
+   {
       return;
+   }
 
    //LLMNR responders must silently discard LLMNR queries with QDCOUNT not
    //equal to one (refer to RFC 4795, section 2.1.1)
    if(ntohs(message->qdcount) != 1)
+   {
       return;
+   }
 
    //LLMNR responders must silently discard LLMNR queries with ANCOUNT or
    //NSCOUNT not equal to zero
    if(ntohs(message->ancount) != 0 || ntohs(message->nscount) != 0)
+   {
       return;
+   }
 
    //Point to the first question
    pos = sizeof(LlmnrHeader);
@@ -193,11 +217,15 @@ void llmnrProcessQuery(NetInterface *interface,
    n = dnsParseName((DnsHeader *) message, length, pos, 0);
    //Invalid name?
    if(n == 0)
+   {
       return;
+   }
 
    //Malformed LLMNR message?
    if((n + sizeof(DnsQuestion)) > length)
+   {
       return;
+   }
 
    //Point to the corresponding entry
    question = DNS_GET_QUESTION(message, n);
@@ -254,7 +282,9 @@ error_t llmnrSendResponse(NetInterface *interface, const IpAddr *destIpAddr,
    buffer = udpAllocBuffer(LLMNR_MESSAGE_MAX_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the LLMNR header
    message = netBufferAt(buffer, offset, 0);
@@ -428,7 +458,9 @@ error_t llmnrFormatIpv4AddrRecord(NetInterface *interface,
 
    //Check the length of the resulting LLMNR message
    if((offset + n) > LLMNR_MESSAGE_MAX_SIZE)
+   {
       return ERROR_MESSAGE_TOO_LONG;
+   }
 
    //The second pass encodes the host name using the DNS name notation
    offset += dnsEncodeName(interface->hostname, (uint8_t *) message + offset);
@@ -438,7 +470,9 @@ error_t llmnrFormatIpv4AddrRecord(NetInterface *interface,
 
    //Check the length of the resulting LLMNR message
    if((offset + n) > LLMNR_MESSAGE_MAX_SIZE)
+   {
       return ERROR_MESSAGE_TOO_LONG;
+   }
 
    //Point to the corresponding resource record
    record = DNS_GET_RESOURCE_RECORD(message, offset);
@@ -488,7 +522,9 @@ error_t llmnrFormatIpv6AddrRecord(NetInterface *interface,
 
    //Check the length of the resulting LLMNR message
    if((offset + n) > LLMNR_MESSAGE_MAX_SIZE)
+   {
       return ERROR_MESSAGE_TOO_LONG;
+   }
 
    //The second pass encodes the host name using the DNS name notation
    offset += dnsEncodeName(interface->hostname, (uint8_t *) message + offset);
@@ -498,7 +534,9 @@ error_t llmnrFormatIpv6AddrRecord(NetInterface *interface,
 
    //Check the length of the resulting LLMNR message
    if((offset + n) > LLMNR_MESSAGE_MAX_SIZE)
+   {
       return ERROR_MESSAGE_TOO_LONG;
+   }
 
    //Point to the corresponding resource record
    record = DNS_GET_RESOURCE_RECORD(message, offset);

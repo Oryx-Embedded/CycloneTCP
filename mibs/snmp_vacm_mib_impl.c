@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -156,21 +156,29 @@ error_t snmpVacmMibGetContextEntry(const MibObject *object,
       SNMP_MAX_CONTEXT_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check context name
    if(osStrcmp(contextName, context->contextName) != 0)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //vacmContextName object?
    if(osStrcmp(object->name, "vacmContextName") == 0)
@@ -230,11 +238,15 @@ error_t snmpVacmMibGetNextContextEntry(const MibObject *object,
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -253,7 +265,9 @@ error_t snmpVacmMibGetNextContextEntry(const MibObject *object,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Check whether the resulting object identifier lexicographically
    //follows the specified OID
@@ -301,18 +315,24 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
    error = mibDecodeIndex(oid, oidLen, &n, &securityModel);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmSecurityName is used as 2nd instance identifier
    error = mibDecodeString(oid, oidLen, &n, securityName,
       SNMP_MAX_USER_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Make sure the security model is valid
    if(securityModel != SNMP_SECURITY_MODEL_V1 &&
@@ -326,13 +346,17 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
 
    //Make sure the security name is valid
    if(securityName[0] == '\0')
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the table for a matching row
    entry = snmpFindGroupEntry(context, securityModel, securityName,
@@ -343,7 +367,9 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
    {
       //Ensure the length of the group name is valid
       if(valueLen > SNMP_MAX_GROUP_NAME_LEN)
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -399,19 +425,25 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
       {
          //No matching row found?
          if(entry == NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Commit phase?
          if(commit)
          {
             //Valid group name specified?
             if(snmpVacmMibBase.tempGroupEntry.groupName[0] != '\0')
+            {
                osStrcpy(entry->groupName, snmpVacmMibBase.tempGroupEntry.groupName);
+            }
 
             //A newly created row cannot be made active until a value has been
             //set for vacmGroupName
             if(entry->groupName[0] == '\0')
+            {
                return ERROR_INCONSISTENT_VALUE;
+            }
 
             //Update the status of the conceptual row
             entry->status = status;
@@ -421,13 +453,17 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
       {
          //Row already instantiated?
          if(entry != NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Create a new row
          entry = snmpCreateGroupEntry(context);
          //Row creation failed?
          if(entry == NULL)
+         {
             return ERROR_WRITE_FAILED;
+         }
 
          //Commit phase?
          if(commit)
@@ -456,13 +492,17 @@ error_t snmpVacmMibSetSecurityToGroupEntry(const MibObject *object, const uint8_
       {
          //Row already instantiated?
          if(entry != NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Create a new row
          entry = snmpCreateGroupEntry(context);
          //Row creation failed?
          if(entry == NULL)
+         {
             return ERROR_WRITE_FAILED;
+         }
 
          //Commit phase?
          if(commit)
@@ -555,31 +595,41 @@ error_t snmpVacmMibGetSecurityToGroupEntry(const MibObject *object,
    error = mibDecodeIndex(oid, oidLen, &n, &securityModel);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmSecurityName is used as 2nd instance identifier
    error = mibDecodeString(oid, oidLen, &n, securityName,
       SNMP_MAX_USER_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the table for a matching row
    entry = snmpFindGroupEntry(context, securityModel, securityName,
       osStrlen(securityName));
    //No matching row found?
    if(entry == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //vacmGroupName object?
    if(osStrcmp(object->name, "vacmGroupName") == 0)
@@ -653,11 +703,15 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -678,14 +732,18 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, entry->securityModel);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //vacmSecurityName is used as 2nd instance identifier
          error = mibEncodeString(nextOid, *nextOidLen, &n, entry->securityName,
             FALSE);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -724,7 +782,9 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order
             if(acceptable)
+            {
                nextEntry = entry;
+            }
          }
       }
    }
@@ -732,7 +792,9 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -741,14 +803,18 @@ error_t snmpVacmMibGetNextSecurityToGroupEntry(const MibObject *object,
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->securityModel);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //vacmSecurityName is used as 2nd instance identifier
    error = mibEncodeString(nextOid, *nextOidLen, &n,
       nextEntry->securityName, FALSE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -790,34 +856,46 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       SNMP_MAX_GROUP_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessContextPrefix is used as 2nd instance identifier
    error = mibDecodeString(oid, oidLen, &n, contextPrefix,
       SNMP_MAX_CONTEXT_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessSecurityModel is used as 3rd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &securityModel);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessSecurityLevel is used as 4th instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &securityLevel);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Make sure the group name is valid
    if(groupName[0] == '\0')
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Make sure the security model is valid
    if(securityModel != SNMP_SECURITY_MODEL_ANY &&
@@ -843,7 +921,9 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the table for a matching row
    entry = snmpFindAccessEntry(context, groupName, contextPrefix,
@@ -884,7 +964,9 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
    {
       //Ensure the length of the read view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -917,7 +999,9 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
    {
       //Ensure the length of the write view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -950,7 +1034,9 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
    {
       //Ensure the length of the notify view name is valid
       if(valueLen > SNMP_MAX_VIEW_NAME_LEN)
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -1006,7 +1092,9 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       {
          //No matching row found?
          if(entry == NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Commit phase?
          if(commit)
@@ -1020,13 +1108,17 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
       {
          //Row already instantiated?
          if(entry != NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Create a new row
          entry = snmpCreateAccessEntry(context);
          //Row creation failed?
          if(entry == NULL)
+         {
             return ERROR_WRITE_FAILED;
+         }
 
          //Commit phase?
          if(commit)
@@ -1048,19 +1140,27 @@ error_t snmpVacmMibSetAccessEntry(const MibObject *object, const uint8_t *oid,
 
             //Valid context match specified?
             if(snmpVacmMibBase.tempAccessEntry.contextMatch != SNMP_CONTEXT_MATCH_INVALID)
+            {
                entry->contextMatch = snmpVacmMibBase.tempAccessEntry.contextMatch;
+            }
 
             //Valid read view name specified?
             if(snmpVacmMibBase.tempAccessEntry.readViewName[0] != '\0')
+            {
                osStrcpy(entry->readViewName, snmpVacmMibBase.tempAccessEntry.readViewName);
+            }
 
             //Valid write view name specified?
             if(snmpVacmMibBase.tempAccessEntry.writeViewName[0] != '\0')
+            {
                osStrcpy(entry->writeViewName, snmpVacmMibBase.tempAccessEntry.writeViewName);
+            }
 
             //Valid notify notify name specified?
             if(snmpVacmMibBase.tempAccessEntry.notifyViewName[0] != '\0')
+            {
                osStrcpy(entry->notifyViewName, snmpVacmMibBase.tempAccessEntry.notifyViewName);
+            }
 
             //The conceptual row has been successfully created
             if(status == MIB_ROW_STATUS_CREATE_AND_GO)
@@ -1138,43 +1238,57 @@ error_t snmpVacmMibGetAccessEntry(const MibObject *object,
       SNMP_MAX_GROUP_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessContextPrefix is used as 2nd instance identifier
    error = mibDecodeString(oid, oidLen, &n, contextPrefix,
       SNMP_MAX_CONTEXT_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessSecurityModel is used as 3rd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &securityModel);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessSecurityLevel is used as 4th instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &securityLevel);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the table for a matching row
    entry = snmpFindAccessEntry(context, groupName, contextPrefix,
       securityModel, securityLevel);
    //No matching row found?
    if(entry == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //vacmAccessContextMatch object?
    if(osStrcmp(object->name, "vacmAccessContextMatch") == 0)
@@ -1294,11 +1408,15 @@ error_t snmpVacmMibGetNextAccessEntry(const MibObject *object,
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -1320,28 +1438,36 @@ error_t snmpVacmMibGetNextAccessEntry(const MibObject *object,
             entry->groupName, FALSE);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //vacmAccessContextPrefix is used as 2nd instance identifier
          error = mibEncodeString(nextOid, *nextOidLen, &n,
             entry->contextPrefix, FALSE);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //vacmAccessSecurityModel is used as 3rd instance identifier
          error = mibEncodeIndex(nextOid, *nextOidLen, &n,
             entry->securityModel);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //vacmAccessSecurityLevel is used as 4th instance identifier
          error = mibEncodeIndex(nextOid, *nextOidLen, &n,
             entry->securityLevel);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -1404,7 +1530,9 @@ error_t snmpVacmMibGetNextAccessEntry(const MibObject *object,
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order
             if(acceptable)
+            {
                nextEntry = entry;
+            }
          }
       }
    }
@@ -1412,7 +1540,9 @@ error_t snmpVacmMibGetNextAccessEntry(const MibObject *object,
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -1422,26 +1552,34 @@ error_t snmpVacmMibGetNextAccessEntry(const MibObject *object,
       nextEntry->groupName, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessContextPrefix is used as 2nd instance identifier
    error = mibEncodeString(nextOid, *nextOidLen, &n,
       nextEntry->contextPrefix, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessSecurityModel is used as 3rd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->securityModel);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmAccessSecurityLevel is used as 4th instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, nextEntry->securityLevel);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -1524,28 +1662,38 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       SNMP_MAX_VIEW_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmViewTreeFamilySubtree is used as 2nd instance identifier
    error = mibDecodeObjectIdentifier(oid, oidLen, &n, subtree,
       SNMP_MAX_OID_SIZE, &subtreeLen, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Make sure the view name is valid
    if(viewName[0] == '\0')
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the table for a matching row
    entry = snmpFindViewEntry(context, viewName, subtree, subtreeLen);
@@ -1555,7 +1703,9 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
    {
       //Ensure the length of the bit mask is valid
       if(valueLen > SNMP_MAX_BIT_MASK_SIZE)
+      {
          return ERROR_WRONG_LENGTH;
+      }
 
       //Test if the conceptual row exists in the agent
       if(entry != NULL)
@@ -1639,7 +1789,9 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       {
          //No matching row found?
          if(entry == NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Commit phase?
          if(commit)
@@ -1653,13 +1805,17 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
       {
          //Row already instantiated?
          if(entry != NULL)
+         {
             return ERROR_INCONSISTENT_VALUE;
+         }
 
          //Create a new row
          entry = snmpCreateViewEntry(context);
          //Row creation failed?
          if(entry == NULL)
+         {
             return ERROR_WRITE_FAILED;
+         }
 
          //Commit phase?
          if(commit)
@@ -1688,7 +1844,9 @@ error_t snmpVacmMibSetViewTreeFamilyEntry(const MibObject *object, const uint8_t
 
             //Valid type specified?
             if(snmpVacmMibBase.tempViewEntry.type != SNMP_VIEW_TYPE_INVALID)
+            {
                entry->type = snmpVacmMibBase.tempViewEntry.type;
+            }
 
             //The conceptual row has been successfully created
             if(status == MIB_ROW_STATUS_CREATE_AND_GO)
@@ -1765,30 +1923,40 @@ error_t snmpVacmMibGetViewTreeFamilyEntry(const MibObject *object,
       SNMP_MAX_VIEW_NAME_LEN, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmViewTreeFamilySubtree is used as 2nd instance identifier
    error = mibDecodeObjectIdentifier(oid, oidLen, &n, subtree,
       SNMP_MAX_OID_SIZE, &subtreeLen, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Search the table for a matching row
    entry = snmpFindViewEntry(context, viewName, subtree, subtreeLen);
    //No matching row found?
    if(entry == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //vacmViewTreeFamilyMask object?
    if(osStrcmp(object->name, "vacmViewTreeFamilyMask") == 0)
@@ -1867,11 +2035,15 @@ error_t snmpVacmMibGetNextViewTreeFamilyEntry(const MibObject *object,
    context = (SnmpAgentContext *) snmpVacmMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -1893,14 +2065,18 @@ error_t snmpVacmMibGetNextViewTreeFamilyEntry(const MibObject *object,
             entry->viewName, FALSE);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //vacmViewTreeFamilySubtree is used as 2nd instance identifier
          error = mibEncodeObjectIdentifier(nextOid, *nextOidLen, &n,
             entry->subtree, entry->subtreeLen, FALSE);
          //Invalid instance identifier?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -1947,7 +2123,9 @@ error_t snmpVacmMibGetNextViewTreeFamilyEntry(const MibObject *object,
             //Save the closest object identifier that follows the specified
             //OID in lexicographic order
             if(acceptable)
+            {
                nextEntry = entry;
+            }
          }
       }
    }
@@ -1955,7 +2133,9 @@ error_t snmpVacmMibGetNextViewTreeFamilyEntry(const MibObject *object,
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(nextEntry == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -1965,14 +2145,18 @@ error_t snmpVacmMibGetNextViewTreeFamilyEntry(const MibObject *object,
       nextEntry->viewName, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //vacmViewTreeFamilySubtree is used as 2nd instance identifier
    error = mibEncodeObjectIdentifier(nextOid, *nextOidLen, &n,
       nextEntry->subtree, nextEntry->subtreeLen, FALSE);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

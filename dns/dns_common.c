@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -68,7 +68,9 @@ size_t dnsEncodeName(const char_t *src, uint8_t *dest)
       {
          //Check label length
          if(i < 1 || i > DNS_LABEL_MAX_SIZE)
+         {
             return 0;
+         }
 
          //Save label length
          if(dest != NULL)
@@ -88,18 +90,24 @@ size_t dnsEncodeName(const char_t *src, uint8_t *dest)
       {
          //Check label length
          if(i < 1 || i > DNS_LABEL_MAX_SIZE)
+         {
             return 0;
+         }
 
          //Save label length
          if(dest != NULL)
+         {
             dest[0] = i;
+         }
 
          //Adjust the length of the resulting string
          length += i + 1;
 
          //Advance write pointer
          if(dest != NULL)
+         {
             dest += i + 1;
+         }
 
          //Prepare to decode the next label
          src += i + 1;
@@ -110,7 +118,9 @@ size_t dnsEncodeName(const char_t *src, uint8_t *dest)
       {
          //Copy current character
          if(dest != NULL)
+         {
             dest[i + 1] = src[i];
+         }
 
          //Point to the next character
          i++;
@@ -137,7 +147,9 @@ size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
 
    //Recursion limit exceeded?
    if(level >= DNS_NAME_MAX_RECURSION)
+   {
       return 0;
+   }
 
    //Cast the input DNS message to byte array
    src = (uint8_t *) message;
@@ -156,7 +168,9 @@ size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
       {
          //Malformed DNS message?
          if((pos + 1) >= length)
+         {
             return 0;
+         }
 
          //Read the most significant byte of the pointer
          pointer = (src[pos] & ~DNS_COMPRESSION_TAG) << 8;
@@ -181,7 +195,9 @@ size_t dnsParseName(const DnsHeader *message, size_t length, size_t pos,
 
          //Malformed DNS message?
          if((pos + n) > length)
+         {
             return 0;
+         }
 
          //Advance read pointer
          pos += n;
@@ -220,7 +236,9 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
    //Recursion limit exceeded?
    if(level >= DNS_NAME_MAX_RECURSION)
+   {
       return -2;
+   }
 
    //Cast the DNS message to byte array
    p = (uint8_t *) message;
@@ -238,7 +256,9 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          //The domain name which still has remaining data is deemed
          //lexicographically later
          if(*name != '\0')
+         {
             return -1;
+         }
 
          //The domain names match each other
          return 0;
@@ -247,7 +267,9 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
       {
          //Malformed DNS message?
          if((pos + 1) >= length)
+         {
             return FALSE;
+         }
 
          //Read the most significant byte of the pointer
          pointer = (p[pos] & ~DNS_COMPRESSION_TAG) << 8;
@@ -267,13 +289,23 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
          //Malformed DNS message?
          if((pos + n) > length)
+         {
             return -2;
+         }
+
+         //A label must not contain a NULL character
+         if(osMemchr(p + pos, '\0', n) != NULL)
+         {
+            return -2;
+         }
 
          //Compare current label
          res = osStrncasecmp((char_t *) p + pos, name, n);
          //Any mismatch?
          if(res)
+         {
             return res;
+         }
 
          //Advance data pointer
          pos += n;
@@ -282,7 +314,9 @@ int_t dnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          //The domain name which still has remaining data is deemed
          //lexicographically later
          if(*name != '\0' && *name != '.')
+         {
             return -1;
+         }
 
          //Skip the separator character, if any
          if(*name == '.')
@@ -331,7 +365,9 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
 
    //Recursion limit exceeded?
    if(level >= DNS_NAME_MAX_RECURSION)
+   {
       return -2;
+   }
    
    //Cast DNS messages to byte array
    p1 = (uint8_t *) message1;
@@ -370,7 +406,9 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
          {
             //Malformed DNS message?
             if((pos1 + 1) >= length1)
+            {
                return -2;
+            }
 
             //Read the most significant byte of the pointer
             pointer1 = (p1[pos1] & ~DNS_COMPRESSION_TAG) << 8;
@@ -388,7 +426,9 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
          {
             //Malformed DNS message?
             if((pos2 + 1) >= length2)
+            {
                return -2;
+            }
 
             //Read the most significant byte of the pointer
             pointer2 = (p2[pos2] & ~DNS_COMPRESSION_TAG) << 8;
@@ -416,7 +456,9 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
 
          //Malformed DNS message?
          if((pos1 + n1) > length1 || (pos2 + n2) > length2)
+         {
             return -2;
+         }
 
          //Compare as much data as possible
          n = MIN(n1, n2);
@@ -425,7 +467,9 @@ int_t dnsCompareEncodedName(const DnsHeader *message1, size_t length1,
          res = osStrncasecmp((char_t *) p1 + pos1, (char_t *) p2 + pos2, n);
          //Any mismatch?
          if(res)
+         {
             return res;
+         }
 
          //The domain name which still has remaining data is deemed
          //lexicographically later

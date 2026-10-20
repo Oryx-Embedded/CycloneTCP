@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,16 +60,20 @@ error_t mib2GetTcpCurrEstab(const MibObject *object, const uint8_t *oid,
    size_t oidLen, MibVariant *value, size_t *valueLen)
 {
    uint_t i;
+   NetContext *context;
    Socket *socket;
 
    //Initialize object value
    value->gauge32 = 0;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -135,7 +139,11 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
    uint16_t localPort;
    Ipv4Addr remoteIpAddr;
    uint16_t remotePort;
+   NetContext *context;
    Socket *socket;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -144,55 +152,82 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIpv4Addr(oid, oidLen, &n, &localIpAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnLocalPort is used as 2nd instance identifier
    error = mibDecodePort(oid, oidLen, &n, &localPort);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnRemAddress is used as 3rd instance identifier
    error = mibDecodeIpv4Addr(oid, oidLen, &n, &remoteIpAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnRemPort is used as 4th instance identifier
    error = mibDecodePort(oid, oidLen, &n, &remotePort);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
       {
          //Check local IP address
          if(socket->localIpAddr.length == sizeof(Ipv6Addr))
+         {
             continue;
+         }
+
          if(socket->localIpAddr.ipv4Addr != localIpAddr)
+         {
             continue;
+         }
+
          //Check local port number
          if(socket->localPort != localPort)
+         {
             continue;
+         }
+
          //Check remote IP address
          if(socket->remoteIpAddr.length == sizeof(Ipv6Addr))
+         {
             continue;
+         }
+
          if(socket->remoteIpAddr.ipv4Addr != remoteIpAddr)
+         {
             continue;
+         }
+
          //Check remote port number
          if(socket->remotePort != remotePort)
+         {
             continue;
+         }
 
          //A matching socket has been found
          break;
@@ -201,7 +236,9 @@ error_t mib2GetTcpConnEntry(const MibObject *object, const uint8_t *oid,
 
    //No matching connection found in socket table?
    if(i >= SOCKET_MAX_COUNT)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //tcpConnState object?
    if(osStrcmp(object->name, "tcpConnState") == 0)
@@ -304,6 +341,7 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    uint16_t localPort;
    Ipv4Addr remoteIpAddr;
    uint16_t remotePort;
+   NetContext *context;
    Socket *socket;
 
    //Initialize variables
@@ -312,9 +350,14 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    remoteIpAddr = IPV4_UNSPECIFIED_ADDR;
    remotePort = 0;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -323,7 +366,7 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      socket = &socketTable[i];
+      socket = &context->socketTable[i];
 
       //TCP socket?
       if(socket->type == SOCKET_TYPE_STREAM)
@@ -339,25 +382,33 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
             error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, socket->localIpAddr.ipv4Addr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //tcpConnLocalPort is used as 2nd instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->localPort);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //tcpConnRemAddress is used as 3rd instance identifier
             error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, socket->remoteIpAddr.ipv4Addr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //tcpConnRemPort is used as 4th instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->remotePort);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -418,7 +469,9 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(localPort == 0 && remotePort == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -427,25 +480,33 @@ error_t mib2GetNextTcpConnEntry(const MibObject *object, const uint8_t *oid,
    error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, localIpAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnLocalPort is used as 2nd instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, localPort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnRemAddress is used as 3rd instance identifier
    error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, remoteIpAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //tcpConnRemPort is used as 4th instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, remotePort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

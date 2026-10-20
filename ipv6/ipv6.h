@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _IPV6_H
@@ -307,6 +307,17 @@ __packed_struct _Ipv6Header
    Ipv6Addr destAddr;         //24-39
    uint8_t payload[];         //40
 };
+
+
+/**
+ * @brief IPv6 extension header
+ **/
+
+typedef __packed_struct
+{
+   uint8_t nextHeader; //0
+   uint8_t hdrExtLen;  //1
+} Ipv6ExtHeader;
 
 
 /**
@@ -593,7 +604,7 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
 
 error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
    const NetBuffer *ipPacket, size_t ipPacketOffset, size_t *headerOffset,
-   size_t *nextHeaderOffset);
+   size_t *nextHeaderOffset, NetRxAncillary *ancillary);
 
 error_t ipv6ParseDestOptHeader(NetInterface *interface,
    const NetBuffer *ipPacket, size_t ipPacketOffset, size_t *headerOffset,
@@ -610,7 +621,11 @@ error_t ipv6ParseEspHeader(NetInterface *interface, const NetBuffer *ipPacket,
    size_t ipPacketOffset, size_t *headerOffset, size_t *nextHeaderOffset);
 
 error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t optionsOffset, size_t optionsLen);
+   size_t ipPacketOffset, size_t optionsOffset, size_t optionsLen,
+   NetRxAncillary *ancillary);
+
+error_t ipv6SkipExtensionHeaders(const NetBuffer *ipPacket,
+   size_t ipPacketOffset, uint8_t *nextHeader, size_t *offset);
 
 error_t ipv6SendDatagram(NetInterface *interface,
    const Ipv6PseudoHeader *pseudoHeader, NetBuffer *buffer, size_t offset,

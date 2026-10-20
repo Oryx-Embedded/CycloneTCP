@@ -30,7 +30,7 @@
  * as the successor to IP version 4 (IPv4). Refer to RFC 2460
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -153,7 +153,9 @@ error_t ipv6SetMtu(NetInterface *interface, size_t mtu)
 
    //Check parameters
    if(interface == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -195,7 +197,9 @@ error_t ipv6GetMtu(NetInterface *interface, size_t *mtu)
 {
    //Check parameters
    if(interface == NULL || mtu == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -220,7 +224,9 @@ error_t ipv6SetDefaultHopLimit(NetInterface *interface, uint8_t hopLimit)
 {
    //Check parameters
    if(interface == NULL || hopLimit == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -250,7 +256,9 @@ error_t ipv6SetLinkLocalAddr(NetInterface *interface, const Ipv6Addr *addr)
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -292,7 +300,9 @@ error_t ipv6GetLinkLocalAddr(NetInterface *interface, Ipv6Addr *addr)
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -361,7 +371,9 @@ error_t ipv6SetGlobalAddr(NetInterface *interface, uint_t index,
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -405,7 +417,9 @@ error_t ipv6GetGlobalAddr(NetInterface *interface, uint_t index,
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if((index + 1) >= IPV6_ADDR_LIST_SIZE)
@@ -487,15 +501,21 @@ error_t ipv6SetAnycastAddr(NetInterface *interface, uint_t index,
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_ANYCAST_ADDR_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //The IPv6 address must be a valid unicast address
    if(ipv6IsMulticastAddr(addr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -561,7 +581,9 @@ error_t ipv6GetAnycastAddr(NetInterface *interface, uint_t index,
 {
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_ANYCAST_ADDR_LIST_SIZE)
@@ -599,15 +621,21 @@ error_t ipv6SetPrefix(NetInterface *interface, uint_t index,
 
    //Check parameters
    if(interface == NULL || prefix == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_PREFIX_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //Make sure the prefix length is valid
    if(length >= 128)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -663,7 +691,9 @@ error_t ipv6GetPrefix(NetInterface *interface, uint_t index, Ipv6Addr *prefix,
 
    //Check parameters
    if(interface == NULL || prefix == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_PREFIX_LIST_SIZE)
@@ -718,15 +748,21 @@ error_t ipv6SetDefaultRouter(NetInterface *interface, uint_t index,
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_ROUTER_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //The IPv6 address must be a valid unicast address
    if(ipv6IsMulticastAddr(addr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -776,7 +812,9 @@ error_t ipv6GetDefaultRouter(NetInterface *interface, uint_t index,
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_ROUTER_LIST_SIZE)
@@ -826,15 +864,21 @@ error_t ipv6SetDnsServer(NetInterface *interface, uint_t index,
 {
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_DNS_SERVER_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //The IPv6 address must be a valid unicast address
    if(ipv6IsMulticastAddr(addr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -860,7 +904,9 @@ error_t ipv6GetDnsServer(NetInterface *interface, uint_t index, Ipv6Addr *addr)
 {
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_DNS_SERVER_LIST_SIZE)
@@ -948,7 +994,7 @@ void ipv6LinkChangeEvent(NetInterface *interface)
       //Point to the current entry
       entry = &context->addrList[i];
 
-      //Check whether the IPv6 address has been manually assigned
+      //Manually configured address?
       if(entry->permanent)
       {
 #if (NDP_SUPPORT == ENABLED)
@@ -1018,7 +1064,9 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
    ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
    //Malformed IPv6 packet?
    if(ipHeader == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("IPv6 packet received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -1139,7 +1187,9 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
       type = netBufferAt(ipPacket, nextHeaderOffset, sizeof(uint8_t));
       //Malformed IPv6 packet?
       if(type == NULL)
+      {
          return;
+      }
 
       //Update IPv6 pseudo header
       pseudoHeader.ipv6Data.length = htonl(length - i);
@@ -1153,7 +1203,7 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
       case IPV6_HOP_BY_HOP_OPT_HEADER:
          //Parse current extension header
          error = ipv6ParseHopByHopOptHeader(interface, ipPacket, ipPacketOffset,
-            &i, &nextHeaderOffset);
+            &i, &nextHeaderOffset, ancillary);
          //Continue processing
          break;
 
@@ -1315,7 +1365,9 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
 
       //Any error while processing the current extension header?
       if(error)
+      {
          return;
+      }
    }
 }
 
@@ -1327,12 +1379,14 @@ void ipv6ProcessPacket(NetInterface *interface, NetBuffer *ipPacket,
  * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
  * @param[in,out] headerOffset Offset to the Hop-by-Hop Options header
  * @param[in,out] nextHeaderOffset Offset to the Next Header field
+ * @param[in,out] ancillary Additional options passed to the stack along with
+ *   the packet
  * @brief Error code
  **/
 
 error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
    const NetBuffer *ipPacket, size_t ipPacketOffset, size_t *headerOffset,
-   size_t *nextHeaderOffset)
+   size_t *nextHeaderOffset, NetRxAncillary *ancillary)
 {
    error_t error;
    size_t n;
@@ -1343,7 +1397,9 @@ error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
    header = netBufferAt(ipPacket, *headerOffset, sizeof(Ipv6HopByHopOptHeader));
    //Malformed extension header?
    if(header == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Calculate the length of the extension header
    length = (header->hdrExtLen * 8) + 8;
@@ -1352,7 +1408,9 @@ error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
    header = netBufferAt(ipPacket, *headerOffset, length);
    //Malformed extension header?
    if(header == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Debug message
    TRACE_DEBUG("  Hop-by-Hop Options header\r\n");
@@ -1378,11 +1436,13 @@ error_t ipv6ParseHopByHopOptHeader(NetInterface *interface,
 
    //Parse options
    error = ipv6ParseOptions(interface, ipPacket, ipPacketOffset,
-      *headerOffset + sizeof(Ipv6HopByHopOptHeader), n);
+      *headerOffset + sizeof(Ipv6HopByHopOptHeader), n, ancillary);
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Keep track of Next Header field
    *nextHeaderOffset = *headerOffset + &header->nextHeader - (uint8_t *) header;
@@ -1417,7 +1477,9 @@ error_t ipv6ParseDestOptHeader(NetInterface *interface,
    header = netBufferAt(ipPacket, *headerOffset, sizeof(Ipv6DestOptHeader));
    //Malformed extension header?
    if(header == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Calculate the length of the extension header
    length = (header->hdrExtLen * 8) + 8;
@@ -1426,7 +1488,9 @@ error_t ipv6ParseDestOptHeader(NetInterface *interface,
    header = netBufferAt(ipPacket, *headerOffset, length);
    //Malformed extension header?
    if(header == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Debug message
    TRACE_DEBUG("  Destination Options header\r\n");
@@ -1436,11 +1500,13 @@ error_t ipv6ParseDestOptHeader(NetInterface *interface,
 
    //Parse options
    error = ipv6ParseOptions(interface, ipPacket, ipPacketOffset,
-      *headerOffset + sizeof(Ipv6DestOptHeader), n);
+      *headerOffset + sizeof(Ipv6DestOptHeader), n, NULL);
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Keep track of Next Header field
    *nextHeaderOffset = *headerOffset + &header->nextHeader - (uint8_t *) header;
@@ -1474,7 +1540,9 @@ error_t ipv6ParseRoutingHeader(NetInterface *interface,
    header = netBufferAt(ipPacket, *headerOffset, sizeof(Ipv6RoutingHeader));
    //Malformed extension header?
    if(header == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Calculate the length of the extension header
    length = (header->hdrExtLen * 8) + 8;
@@ -1483,7 +1551,9 @@ error_t ipv6ParseRoutingHeader(NetInterface *interface,
    header = netBufferAt(ipPacket, *headerOffset, length);
    //Malformed extension header?
    if(header == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Debug message
    TRACE_DEBUG("  Routing header\r\n");
@@ -1567,11 +1637,14 @@ error_t ipv6ParseEspHeader(NetInterface *interface, const NetBuffer *ipPacket,
  * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
  * @param[in] optionsOffset Offset to the first byte of the Options field
  * @param[in] optionsLen Length of the Options field
+ * @param[in,out] ancillary Additional options passed to the stack along with
+ *   the packet
  * @brief Error code
  **/
 
 error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
-   size_t ipPacketOffset, size_t optionsOffset, size_t optionsLen)
+   size_t ipPacketOffset, size_t optionsOffset, size_t optionsLen,
+   NetRxAncillary *ancillary)
 {
    size_t i;
    size_t n;
@@ -1585,7 +1658,9 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
    options = netBufferAt(ipPacket, optionsOffset, optionsLen);
    //Malformed IPv6 packet?
    if(options == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Parse options
    for(i = 0; i < optionsLen; )
@@ -1593,32 +1668,56 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
       //Point to the current option
       option = (Ipv6Option *) (options + i);
       //Get option type
-      type = option->type & IPV6_OPTION_TYPE_MASK;
+      type = option->type;
 
-      //Pad1 option?
+      //Check option type
       if(type == IPV6_OPTION_TYPE_PAD1)
       {
          //Advance data pointer
          i++;
       }
-      //PadN option?
       else if(type == IPV6_OPTION_TYPE_PADN)
       {
          //Malformed IPv6 packet?
          if((i + sizeof(Ipv6Option)) > optionsLen)
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Advance data pointer
          i += sizeof(Ipv6Option) + option->length;
       }
-      //Unrecognized option?
+      else if(type == IPV6_OPTION_TYPE_ROUTER_ALERT)
+      {
+         //Malformed IPv6 packet?
+         if((i + sizeof(Ipv6Option)) > optionsLen)
+         {
+            return ERROR_INVALID_LENGTH;
+         }
+
+         //Check the length ofthe Router Alert option
+         if(option->length == sizeof(uint16_t) &&
+            (i + sizeof(Ipv6RouterAlertOption)) <= optionsLen)
+         {
+            //The packet contains a Router Alert option
+            if(ancillary != NULL)
+            {
+               ancillary->routerAlert = TRUE;
+            }
+         }
+
+         //Advance data pointer
+         i += sizeof(Ipv6Option) + option->length;
+      }
       else
       {
          //Point to the IPv6 header
          ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
          //Malformed IPv6 packet?
          if(ipHeader == NULL)
+         {
             return ERROR_FAILURE;
+         }
 
          //Get the value of the highest-order two bits
          action = option->type & IPV6_ACTION_MASK;
@@ -1671,12 +1770,112 @@ error_t ipv6ParseOptions(NetInterface *interface, const NetBuffer *ipPacket,
 
          //Malformed IPv6 packet?
          if((i + sizeof(Ipv6Option)) > optionsLen)
+         {
             return ERROR_INVALID_LENGTH;
+         }
 
          //Advance data pointer
          i += sizeof(Ipv6Option) + option->length;
       }
    }
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Skip the extension headers of an IPv6 packet
+ * @param[in] ipPacket Multi-part buffer containing the IPv6 packet
+ * @param[in] ipPacketOffset Offset to the first byte of the IPv6 packet
+ * @param[out] nextHeader Type of the header that follows the extension
+ *   headers
+ * @param[out] offset Offset to that header, relative to the first byte of
+ *   the IPv6 packet
+ * @return Error code
+ **/
+
+error_t ipv6SkipExtensionHeaders(const NetBuffer *ipPacket,
+   size_t ipPacketOffset, uint8_t *nextHeader, size_t *offset)
+{
+   size_t n;
+   uint8_t type;
+   const Ipv6ExtHeader *extHeader;
+   const Ipv6FragmentHeader *fragHeader;
+   const Ipv6Header *ipHeader;
+
+   //Point to the IPv6 header
+   ipHeader = netBufferAt(ipPacket, ipPacketOffset, sizeof(Ipv6Header));
+   //Malformed IPv6 packet?
+   if(ipHeader == NULL)
+   {
+      return ERROR_INVALID_HEADER;
+   }
+
+   //Retrieve the first Next Header value
+   type = ipHeader->nextHeader;
+   //Offset of the first extension header
+   n = sizeof(Ipv6Header);
+
+   //Loop through extension headers
+   while(type == IPV6_HOP_BY_HOP_OPT_HEADER ||
+      type == IPV6_DEST_OPT_HEADER ||
+      type == IPV6_ROUTING_HEADER ||
+      type == IPV6_FRAGMENT_HEADER ||
+      type == IPV6_AH_HEADER)
+   {
+      //Point to the current extension header
+      extHeader = netBufferAt(ipPacket, ipPacketOffset + n, 8);
+      //Truncated extension header?
+      if(extHeader == NULL)
+      {
+         return ERROR_INVALID_HEADER;
+      }
+
+      //Check the type of the extension header
+      if(type == IPV6_FRAGMENT_HEADER)
+      {
+         //Point to the Fragment header
+         fragHeader = (const Ipv6FragmentHeader *) extHeader;
+
+         //The headers that follow the Fragment header are only present in
+         //the first fragment
+         if((ntohs(fragHeader->fragmentOffset) & IPV6_OFFSET_MASK) != 0)
+         {
+            return ERROR_NOT_FOUND;
+         }
+
+         //The Fragment header has a fixed length of 8 bytes
+         n += sizeof(Ipv6FragmentHeader);
+      }
+      else if(type == IPV6_AH_HEADER)
+      {
+         //The Payload Len field gives the length of the AH in 4-octet units,
+         //minus 2 (refer to RFC 4302, section 2.2)
+         n += (extHeader->hdrExtLen + 2) * 4;
+      }
+      else
+      {
+         //The Hdr Ext Len field gives the length of the header in 8-octet
+         //units, not including the first 8 octets
+         n += (extHeader->hdrExtLen + 1) * 8;
+      }
+
+      //Each extension header is identified by the Next Header field of the
+      //preceding header
+      type = extHeader->nextHeader;
+   }
+
+   //The last extension header must not extend beyond the end of the packet
+   if(n > (netBufferGetLength(ipPacket) - ipPacketOffset))
+   {
+      return ERROR_INVALID_HEADER;
+   }
+
+   //Return the type and the offset of the header that follows the extension
+   //headers
+   *nextHeader = type;
+   *offset = n;
 
    //Successful processing
    return NO_ERROR;
@@ -1797,7 +1996,9 @@ error_t ipv6SendPacket(NetInterface *interface,
       error = ipv6FormatHopByHopOptHeader(&nextHeader, buffer, &offset);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //The Fragment header is used by an IPv6 source to send a packet larger than
@@ -1809,12 +2010,16 @@ error_t ipv6SendPacket(NetInterface *interface,
          &offset);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Make sure there is sufficient space for the IPv6 header
    if(offset < sizeof(Ipv6Header))
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make room for the IPv6 header
    offset -= sizeof(Ipv6Header);
@@ -1847,7 +2052,9 @@ error_t ipv6SendPacket(NetInterface *interface,
    error = ipv6CheckSourceAddr(interface, &pseudoHeader->srcAddr);
    //Invalid source address?
    if(error)
+   {
       return error;
+   }
 
    //Check destination address
    if(ipv6CompAddr(&pseudoHeader->destAddr, &IPV6_UNSPECIFIED_ADDR))
@@ -2170,23 +2377,48 @@ error_t ipv6FormatFragmentHeader(uint32_t fragId, size_t fragOffset,
 error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
 {
    error_t error;
-   int_t i = 0;
-   int_t j = -1;
-   int_t k = 0;
-   int32_t value = -1;
+   uint_t i;
+   uint_t j;
+   uint_t n;
+   uint_t digits;
+   uint_t value;
+   bool_t compressed;
+   uint16_t words[8];
+
+   //Initialize status code
+   error = NO_ERROR;
+
+   //This flag indicates whether the "::" symbol has been found
+   compressed = FALSE;
+   //Position of the "::" symbol, if any
+   j = 0;
+   //Number of 16-bit words parsed so far
+   n = 0;
+
+   //The address may start with the "::" symbol
+   if(osStrncmp(str, "::", 2) == 0)
+   {
+      //The address starts with the "::" symbol
+      compressed = TRUE;
+      str += 2;
+   }
 
    //Parse input string
-   while(1)
+   while(*str != '\0')
    {
-      //Hexadecimal digit found?
-      if(isxdigit((uint8_t) *str))
+      //An IPv6 address consists of eight 16-bit words
+      if(n >= 8)
       {
-         //First digit to be decoded?
-         if(value < 0)
-         {
-            value = 0;
-         }
+         error = ERROR_INVALID_SYNTAX;
+         break;
+      }
 
+      //Initialize the value of the 16-bit word
+      value = 0;
+
+      //Each 16-bit word is represented by one to four hexadecimal digits
+      for(digits = 0; digits < 4 && isxdigit((uint8_t) *str); digits++)
+      {
          //Update the value of the current 16-bit word
          if(osIsdigit(*str))
          {
@@ -2201,109 +2433,111 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
             value = (value * 16) + (*str - 'a' + 10);
          }
 
-         //Check resulting value
-         if(value > 0xFFFF)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-            break;
-         }
-      }
-      //"::" symbol found?
-      else if(osStrncmp(str, "::", 2) == 0)
-      {
-         //The "::" can only appear once in an IPv6 address
-         if(j >= 0)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-            break;
-         }
-
-         //The "::" symbol is preceded by a number?
-         if(value >= 0)
-         {
-            //Save the current 16-bit word
-            ipAddr->w[i++] = htons(value);
-            //Prepare to decode the next 16-bit word
-            value = -1;
-         }
-
-         //Save the position of the "::" symbol
-         j = i;
-         //Point to the next character
+         //Next digit
          str++;
       }
-      //":" symbol found?
-      else if(*str == ':' && i < 8)
+
+      //Each word must contain at least one digit
+      if(digits == 0)
       {
-         //Each ":" must be preceded by a valid number
-         if(value < 0)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-            break;
-         }
-
-         //Save the current 16-bit word
-         ipAddr->w[i++] = htons(value);
-         //Prepare to decode the next 16-bit word
-         value = -1;
-      }
-      //End of string detected?
-      else if(*str == '\0' && i == 7 && j < 0)
-      {
-         //The NULL character must be preceded by a valid number
-         if(value < 0)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-         }
-         else
-         {
-            //Save the last 16-bit word of the IPv6 address
-            ipAddr->w[i] = htons(value);
-            //The conversion succeeded
-            error = NO_ERROR;
-         }
-
-         //We are done
-         break;
-      }
-      else if(*str == '\0' && i < 7 && j >= 0)
-      {
-         //Save the last 16-bit word of the IPv6 address
-         if(value >= 0)
-         {
-            ipAddr->w[i++] = htons(value);
-         }
-
-         //Move the part of the address that follows the "::" symbol
-         for(k = 0; k < (i - j); k++)
-         {
-            ipAddr->w[7 - k] = ipAddr->w[i - 1 - k];
-         }
-
-         //A sequence of zeroes can now be written in place of "::"
-         for(k = 0; k < (8 - i); k++)
-         {
-            ipAddr->w[j + k] = 0;
-         }
-
-         //The conversion succeeded
-         error = NO_ERROR;
-         break;
-      }
-      //Invalid character...
-      else
-      {
-         //The conversion failed
          error = ERROR_INVALID_SYNTAX;
          break;
       }
 
-      //Point to the next character
-      str++;
+      //Save the current 16-bit word
+      words[n++] = (uint16_t) value;
+
+      //The words are separated by a ":" symbol
+      if(*str == ':')
+      {
+         //Skip the separator
+         str++;
+
+         //"::" symbol found?
+         if(*str == ':')
+         {
+            //The "::" symbol can only appear once in an IPv6 address
+            if(compressed)
+            {
+               error = ERROR_INVALID_SYNTAX;
+               break;
+            }
+            else
+            {
+               //Save the position of the "::" symbol
+               compressed = TRUE;
+               j = n;
+               str++;
+            }
+         }
+         else if(*str == '\0')
+         {
+            //The address must not end with a single ":" symbol
+            error = ERROR_INVALID_SYNTAX;
+            break;
+         }
+         else
+         {
+            //The next 16-bit word follows
+         }
+      }
+      else if(*str == '\0')
+      {
+         //End of string
+      }
+      else
+      {
+         //Invalid character (including a fifth hexadecimal digit)
+         error = ERROR_INVALID_SYNTAX;
+         break;
+      }
+   }
+
+   //Check status code
+   if(!error)
+   {
+      //Check the number of 16-bit words
+      if(compressed)
+      {
+         //The "::" symbol represents one or more 16-bit words of zeros
+         if(n >= 8)
+         {
+            error = ERROR_INVALID_SYNTAX;
+         }
+      }
+      else
+      {
+         //Without "::", all the eight 16-bit words must be present
+         if(n != 8)
+         {
+            error = ERROR_INVALID_SYNTAX;
+         }
+
+         //No word follows the "::" symbol
+         j = n;
+      }
+   }
+
+   //Check status code
+   if(!error)
+   {
+      //Copy the words that precede the "::" symbol
+      for(i = 0; i < j; i++)
+      {
+         ipAddr->w[i] = htons(words[i]);
+      }
+
+      //The "::" symbol represents one or more 16-bit words of zeros
+      for(; i < (j + 8 - n); i++)
+      {
+         ipAddr->w[i] = 0;
+      }
+
+      //Copy the words that follow the "::" symbol
+      for(; i < 8; i++)
+      {
+         ipAddr->w[i] = htons(words[i + n - 8]);
+      }
    }
 
    //Return status code
@@ -2335,7 +2569,9 @@ char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str)
 
    //If the NULL pointer is given as parameter, then the internal buffer is used
    if(str == NULL)
+   {
       str = buffer;
+   }
 
    //Find the longest run of zeros for "::" short-handing
    for(i = 0; i < 8; i++)
@@ -2369,7 +2605,9 @@ char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str)
       {
          //Add a separator between each 16-bit word
          if(i > 0)
+         {
             *(p++) = ':';
+         }
 
          //Convert the current 16-bit word to string
          p += osSprintf(p, "%" PRIx16, ntohs(ipAddr->w[i]));
@@ -2378,7 +2616,9 @@ char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str)
 
    //A trailing run of zeroes has been found?
    if(zeroRunEnd == 8)
+   {
       *(p++) = ':';
+   }
 
    //Properly terminate the string
    *p = '\0';

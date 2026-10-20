@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -39,6 +39,7 @@
 #include "snmp/snmp_agent_object.h"
 #include "mibs/mib2_module.h"
 #include "core/crypto.h"
+#include "core/crypto_mem.h"
 #include "encoding/asn1.h"
 #include "encoding/oid.h"
 #include "debug.h"
@@ -152,7 +153,7 @@ SnmpUserEntry *snmpCreateCommunityEntry(SnmpAgentContext *context)
    entry = NULL;
 
 #if (SNMP_V1_SUPPORT == ENABLED || SNMP_V2C_SUPPORT == ENABLED)
-   //Sanity check
+   //Valid SNMP agent context?
    if(context != NULL)
    {
       uint_t i;
@@ -211,22 +212,30 @@ SnmpUserEntry *snmpFindCommunityEntry(SnmpAgentContext *context,
    entry = NULL;
 
 #if (SNMP_V1_SUPPORT == ENABLED || SNMP_V2C_SUPPORT == ENABLED)
-   //Sanity check
+   //Check parameters
    if(context != NULL && community != NULL)
    {
-      uint_t i;
-
-      //Loop through the list of community string
-      for(i = 0; i < SNMP_AGENT_MAX_COMMUNITIES; i++)
+      //The community string can neither be longer than a name of the community
+      //table, nor contain a NULL character
+      if(length <= SNMP_MAX_USER_NAME_LEN &&
+         osMemchr(community, '\0', length) == NULL)
       {
-         //Check current status
-         if(context->communityTable[i].status != MIB_ROW_STATUS_UNUSED)
+         uint_t i;
+         char_t name[SNMP_MAX_USER_NAME_LEN + 1];
+
+         //Copy the community string
+         osMemset(name, 0, sizeof(name));
+         osMemcpy(name, community, length);
+
+         //Loop through the list of community string
+         for(i = 0; i < SNMP_AGENT_MAX_COMMUNITIES; i++)
          {
-            //Check the length of the community string
-            if(osStrlen(context->communityTable[i].name) == length)
+            //Check current status
+            if(context->communityTable[i].status != MIB_ROW_STATUS_UNUSED)
             {
-               //Compare community strings
-               if(osStrncmp(context->communityTable[i].name, community, length) == 0)
+               //Compare community strings in constant time
+               if(cryptoCompMem(name, context->communityTable[i].name,
+                  SNMP_MAX_USER_NAME_LEN) == 0)
                {
                   //A matching entry has been found
                   entry = &context->communityTable[i];
@@ -263,13 +272,17 @@ error_t snmpParseVarBinding(const uint8_t *p,
    error = asn1ReadTag(p, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, TRUE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_SEQUENCE);
    //The tag does not match the criteria?
    if(error)
+   {
       return error;
+   }
 
    //Total number of bytes that have been consumed
    *consumed = tag.totalLength;
@@ -282,13 +295,17 @@ error_t snmpParseVarBinding(const uint8_t *p,
    error = asn1ReadTag(p, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OBJECT_IDENTIFIER);
    //The tag does not match the criteria?
    if(error)
+   {
       return error;
+   }
 
    //Save object identifier
    var->oid = tag.value;
@@ -302,11 +319,15 @@ error_t snmpParseVarBinding(const uint8_t *p,
    error = asn1ReadTag(p, length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Make sure that the tag is valid
    if(tag.constructed)
+   {
       return ERROR_INVALID_TAG;
+   }
 
    //Save object class
    var->objClass = tag.objClass;
@@ -347,7 +368,9 @@ error_t snmpWriteVarBinding(SnmpAgentContext *context, const SnmpVarBind *var)
    error = asn1WriteTag(&tag, FALSE, NULL, &m);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The object's value is encoded in ASN.1 format
    tag.constructed = FALSE;
@@ -360,7 +383,9 @@ error_t snmpWriteVarBinding(SnmpAgentContext *context, const SnmpVarBind *var)
    error = asn1WriteTag(&tag, FALSE, NULL, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The variable binding is encapsulated within a sequence
    tag.constructed = TRUE;
@@ -373,13 +398,14 @@ error_t snmpWriteVarBinding(SnmpAgentContext *context, const SnmpVarBind *var)
    error = asn1WriteTag(&tag, FALSE, NULL, NULL);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Make sure the buffer is large enough to hold the whole sequence
    if((context->response.varBindListLen + tag.totalLength) >
       context->response.varBindListMaxLen)
    {
-      //Report an error
       return ERROR_BUFFER_OVERFLOW;
    }
 
@@ -398,7 +424,9 @@ error_t snmpWriteVarBinding(SnmpAgentContext *context, const SnmpVarBind *var)
    error = asn1WriteTag(&tag, TRUE, p, &m);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= m;
@@ -414,7 +442,9 @@ error_t snmpWriteVarBinding(SnmpAgentContext *context, const SnmpVarBind *var)
    error = asn1WriteTag(&tag, TRUE, p, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    p -= n;
@@ -430,7 +460,9 @@ error_t snmpWriteVarBinding(SnmpAgentContext *context, const SnmpVarBind *var)
    error = asn1WriteTag(&tag, TRUE, p, NULL);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Update the length of the list
    context->response.varBindListLen += tag.totalLength;
@@ -450,7 +482,9 @@ error_t snmpCopyVarBindingList(SnmpAgentContext *context)
 {
    //Sanity check
    if(context->request.varBindListLen > context->response.varBindListMaxLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy the list of variable bindings to the response buffer
    osMemcpy(context->response.varBindList, context->request.varBindList,
@@ -499,7 +533,9 @@ error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
       error = snmpEncodeUnsignedInt32(time, message->buffer, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //The first two variable bindings in the variable binding list of an
       //SNMPv2-Trap-PDU are sysUpTime.0 and snmpTrapOID.0 respectively
@@ -514,7 +550,9 @@ error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
       error = snmpWriteVarBinding(context, &var);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Generic or enterprise-specific trap?
       if(genericTrapType < SNMP_TRAP_ENTERPRISE_SPECIFIC)
@@ -576,7 +614,9 @@ error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
       error = snmpWriteVarBinding(context, &var);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 #endif
 
@@ -591,13 +631,17 @@ error_t snmpWriteTrapVarBindingList(SnmpAgentContext *context,
       error = snmpGetObjectValue(context, message, &var);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Append variable binding to the list
       error = snmpWriteVarBinding(context, &var);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -62,6 +62,19 @@ error_t llmnrResolve(NetInterface *interface, const char_t *name,
    //Debug message
    TRACE_INFO("Resolving host name %s (LLMNR resolver)...\r\n", name);
 #endif
+
+   //Make sure the host name fits in the cache entry
+   if(osStrlen(name) > DNS_MAX_NAME_LEN)
+   {
+      return ERROR_INVALID_LENGTH;
+   }
+
+   //Make sure the host name is a valid domain name (no empty label, no label
+   //longer than 63 characters)
+   if(dnsEncodeName(name, NULL) == 0)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -296,7 +309,9 @@ error_t llmnrSendQuery(DnsCacheEntry *entry)
    buffer = udpAllocBuffer(LLMNR_MESSAGE_MAX_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the LLMNR header
    message = netBufferAt(buffer, offset, 0);
@@ -412,13 +427,17 @@ void llmnrProcessResponse(NetInterface *interface,
 
    //Malformed LLMNR message?
    if(length < sizeof(LlmnrHeader))
+   {
       return;
+   }
 
    //Point to the LLMNR message header
    message = netBufferAt(buffer, offset, length);
    //Malformed LLMNR message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("LLMNR message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -427,22 +446,30 @@ void llmnrProcessResponse(NetInterface *interface,
 
    //Discard LLMNR queries
    if(!message->qr)
+   {
       return;
+   }
 
    //LLMNR messages received with an opcode other than zero must be silently
    //ignored
    if(message->opcode != DNS_OPCODE_QUERY)
+   {
       return;
+   }
 
    //LLMNR messages received with non-zero response codes must be silently
    //ignored
    if(message->rcode != DNS_RCODE_NOERROR)
+   {
       return;
+   }
 
    //LLMNR senders must silently discard LLMNR responses with QDCOUNT not
    //equal to one (refer to RFC 4795, section 2.1.1)
    if(ntohs(message->qdcount) != 1)
+   {
       return;
+   }
 
    //Loop through DNS cache entries
    for(i = 0; i < DNS_CACHE_SIZE; i++)
@@ -459,7 +486,9 @@ void llmnrProcessResponse(NetInterface *interface,
          {
             //Compare identifier against the expected one
             if(ntohs(message->id) != entry->id)
+            {
                break;
+            }
 
             //Point to the first question
             pos = sizeof(DnsHeader);
@@ -468,10 +497,15 @@ void llmnrProcessResponse(NetInterface *interface,
 
             //Invalid name?
             if(pos == 0)
+            {
                break;
+            }
+
             //Malformed DNS message?
             if((pos + sizeof(DnsQuestion)) > length)
+            {
                break;
+            }
 
             //Compare domain name
             if(dnsCompareName((DnsHeader *) message, length, sizeof(DnsHeader),
@@ -485,7 +519,9 @@ void llmnrProcessResponse(NetInterface *interface,
 
             //Check the class of the query
             if(ntohs(question->qclass) != DNS_RR_CLASS_IN)
+            {
                break;
+            }
 
             //Check the type of the query
             if(entry->type == HOST_TYPE_IPV4 &&
@@ -510,7 +546,9 @@ void llmnrProcessResponse(NetInterface *interface,
                pos = dnsParseName((DnsHeader *) message, length, pos, 0);
                //Invalid name?
                if(pos == 0)
+               {
                   break;
+               }
 
                //Point to the associated resource record
                record = DNS_GET_RESOURCE_RECORD(message, pos);
@@ -519,9 +557,14 @@ void llmnrProcessResponse(NetInterface *interface,
 
                //Make sure the resource record is valid
                if(pos > length)
+               {
                   break;
+               }
+
                if((pos + ntohs(record->rdlength)) > length)
+               {
                   break;
+               }
 
 #if (IPV4_SUPPORT == ENABLED)
                //IPv4 address expected?

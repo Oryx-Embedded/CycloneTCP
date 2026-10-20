@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -84,6 +84,10 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
    IpAddr remoteIpAddr;
    uint16_t remotePort;
    uint32_t instance;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -93,58 +97,81 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIpAddr(oid, oidLen, &n, &localIpAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //udpEndpointLocalPort is used as 3rd instance identifier
    error = mibDecodePort(oid, oidLen, &n, &localPort);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //udpEndpointRemoteAddressType and udpEndpointRemoteAddress are used
    //as 4th and 5th instance identifiers
    error = mibDecodeIpAddr(oid, oidLen, &n, &remoteIpAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //udpEndpointRemotePort is used as 6th instance identifier
    error = mibDecodePort(oid, oidLen, &n, &remotePort);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //udpEndpointInstance is used as 7th instance identifier
    error = mibDecodeUnsigned32(oid, oidLen, &n, &instance);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      Socket *socket = &socketTable[i];
+      Socket *socket = &context->socketTable[i];
 
       //UDP socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
       {
          //Check local IP address
          if(!ipCompAddr(&socket->localIpAddr, &localIpAddr))
+         {
             continue;
+         }
+
          //Check local port number
          if(socket->localPort != localPort)
+         {
             continue;
+         }
+
          //Check remote IP address
          if(!ipCompAddr(&socket->remoteIpAddr, &remoteIpAddr))
+         {
             continue;
+         }
+
          //Check local port number
          if(socket->remotePort != remotePort)
+         {
             continue;
+         }
 
          //A matching socket has been found
          break;
@@ -158,20 +185,24 @@ error_t udpMibGetUdpEndpointEntry(const MibObject *object, const uint8_t *oid,
       for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
       {
          //Point to the current entry
-         UdpRxCallbackEntry *entry = &udpCallbackTable[i];
+         UdpRxCallbackEntry *entry = &context->udpCallbackTable[i];
 
          //Check whether the entry is currently in use
          if(entry->callback != NULL)
          {
             //Check local port number
             if(entry->port == localPort)
+            {
                break;
+            }
          }
       }
 
       //No matching connection found in UDP callback table?
       if(i >= UDP_CALLBACK_TABLE_SIZE)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
    }
 
    //udpEndpointProcess object?
@@ -214,6 +245,7 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    IpAddr remoteIpAddr;
    uint16_t remotePort;
    uint32_t instance;
+   NetContext *context;
 
    //Initialize variables
    localIpAddr = IP_ADDR_ANY;
@@ -222,9 +254,14 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    remotePort = 0;
    instance = 1;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -233,7 +270,7 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      Socket *socket = &socketTable[i];
+      Socket *socket = &context->socketTable[i];
 
       //UDP socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
@@ -246,32 +283,42 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
          error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &socket->localIpAddr);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpEndpointLocalPort is used as 3rd instance identifier
          error = mibEncodePort(nextOid, *nextOidLen, &n, socket->localPort);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpEndpointRemoteAddressType and udpEndpointRemoteAddress are used
          //as 4th and 5th instance identifiers
          error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &socket->remoteIpAddr);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpEndpointRemotePort is used as 6th instance identifier
          error = mibEncodePort(nextOid, *nextOidLen, &n, socket->remotePort);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpEndpointInstance is used as 7th instance identifier
          error = mibEncodeUnsigned32(nextOid, *nextOidLen, &n, instance);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -332,7 +379,7 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      UdpRxCallbackEntry *entry = &udpCallbackTable[i];
+      UdpRxCallbackEntry *entry = &context->udpCallbackTable[i];
 
       //Check whether the entry is currently in use
       if(entry->callback != NULL)
@@ -345,32 +392,42 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
          error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &IP_ADDR_ANY);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpEndpointLocalPort is used as 3rd instance identifier
          error = mibEncodePort(nextOid, *nextOidLen, &n, entry->port);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpEndpointRemoteAddressType and udpEndpointRemoteAddress are used
          //as 4th and 5th instance identifiers
          error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &IP_ADDR_ANY);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpEndpointRemotePort is used as 6th instance identifier
          error = mibEncodePort(nextOid, *nextOidLen, &n, 0);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpEndpointInstance is used as 7th instance identifier
          error = mibEncodeUnsigned32(nextOid, *nextOidLen, &n, instance);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -430,7 +487,9 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(localPort == 0 && remotePort == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -440,32 +499,42 @@ error_t udpMibGetNextUdpEndpointEntry(const MibObject *object, const uint8_t *oi
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &localIpAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //udpEndpointLocalPort is used as 3rd instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, localPort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //udpEndpointRemoteAddressType and udpEndpointRemoteAddress are used
    //as 4th and 5th instance identifiers
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &remoteIpAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //udpEndpointRemotePort is used as 6th instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, remotePort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //udpEndpointInstance is used as 7th instance identifier
    error = mibEncodeUnsigned32(nextOid, *nextOidLen, &n, instance);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

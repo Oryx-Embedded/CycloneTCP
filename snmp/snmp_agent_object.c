@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -66,7 +66,9 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
    error = snmpFindMibObject(context, var->oid, var->oidLen, &object);
    //Cannot found the specified object?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    TRACE_INFO("  %s\r\n", object->name);
@@ -76,7 +78,6 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
       object->access != MIB_ACCESS_READ_WRITE &&
       object->access != MIB_ACCESS_READ_CREATE)
    {
-      //Report an error
       return ERROR_NOT_WRITABLE;
    }
 
@@ -85,15 +86,22 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
    error = snmpIsAccessAllowed(context, message, var->oid, var->oidLen);
    //Access denied?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Check class
    if(var->objClass != object->objClass)
+   {
       return ERROR_WRONG_TYPE;
+   }
+
    //Check type
    if(var->objType != object->objType)
+   {
       return ERROR_WRONG_TYPE;
+   }
 
    //Point to the object value
    value = (MibVariant *) var->value;
@@ -112,7 +120,9 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
          error = snmpDecodeInt32(var->value, n, &val);
          //Conversion failed?
          if(error)
+         {
             return ERROR_WRONG_ENCODING;
+         }
 
          //Point to the scratch buffer
          value = (MibVariant *) context->response.buffer;
@@ -129,7 +139,9 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
       {
          //IpAddress objects have fixed size
          if(n != object->valueSize)
+         {
             return ERROR_WRONG_LENGTH;
+         }
       }
       else if(object->objType == MIB_TYPE_COUNTER32 ||
          object->objType == MIB_TYPE_GAUGE32 ||
@@ -141,7 +153,9 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
          error = snmpDecodeUnsignedInt32(var->value, n, &val);
          //Conversion failed?
          if(error)
+         {
             return ERROR_WRONG_ENCODING;
+         }
 
          //Point to the scratch buffer
          value = (MibVariant *) context->response.buffer;
@@ -159,13 +173,17 @@ error_t snmpSetObjectValue(SnmpAgentContext *context,
          //Counter64 value is ill-formed and shall be discarded (refer
          //to RFC 3584, section 4.2.2.1)
          if(message->version == SNMP_VERSION_1)
+         {
             return ERROR_INVALID_TAG;
+         }
 #endif
          //Counter64 objects use ASN.1 encoding rules
          error = snmpDecodeUnsignedInt64(var->value, n, &val);
          //Conversion failed?
          if(error)
+         {
             return ERROR_WRONG_ENCODING;
+         }
 
          //Point to the scratch buffer
          value = (MibVariant *) context->response.buffer;
@@ -241,7 +259,9 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
    error = snmpFindMibObject(context, var->oid, var->oidLen, &object);
    //Cannot found the specified object?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    TRACE_INFO("  %s\r\n", object->name);
@@ -260,7 +280,6 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
          message->pduType != SNMP_PDU_TRAP_V2 &&
          message->pduType != SNMP_PDU_INFORM_REQUEST)
       {
-         //Report an error
          return ERROR_ACCESS_DENIED;
       }
    }
@@ -275,7 +294,9 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
    error = snmpIsAccessAllowed(context, message, var->oid, var->oidLen);
    //Access denied?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Buffer where to store the object value
@@ -294,7 +315,9 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
       {
          //Make sure the buffer is large enough
          if(n < object->valueSize)
+         {
             return ERROR_BUFFER_OVERFLOW;
+         }
 
          //Integer objects have fixed size
          n = object->valueSize;
@@ -311,7 +334,9 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
       {
          //Make sure the buffer is large enough
          if(n < object->valueSize)
+         {
             return ERROR_BUFFER_OVERFLOW;
+         }
 
          //IpAddress, Counter32, Gauge32, TimeTicks and
          //Counter64 objects have fixed size
@@ -326,7 +351,9 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
       error = object->getValue(object, var->oid, var->oidLen, value, &n);
       //Unable to retrieve object value?
       if(error)
+      {
          return error;
+      }
    }
    //Simple scalar objects can also be attached to a variable
    else if(object->value != NULL)
@@ -336,7 +363,9 @@ error_t snmpGetObjectValue(SnmpAgentContext *context,
       {
          //Make sure the buffer is large enough
          if(n < *object->valueLen)
+         {
             return ERROR_BUFFER_OVERFLOW;
+         }
 
          //Get the length of the object value
          n = *object->valueLen;
@@ -647,7 +676,9 @@ error_t snmpGetNextObject(SnmpAgentContext *context,
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Check status code

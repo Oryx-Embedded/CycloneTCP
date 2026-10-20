@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -189,8 +189,10 @@ void tcpCheckPersistTimer(Socket *socket)
       //Check whether the remote host advertises a window size of zero
       if(socket->sndWnd == 0 && socket->wndProbeInterval != 0)
       {
-         //Persist timer expired?
-         if(netTimerExpired(&socket->persistTimer))
+         //Zero window probes are only needed when data is waiting to be sent.
+         //If no data is queued, the probe is postponed until the application
+         //writes some data (or the peer reopens its window)
+         if(socket->sndUser > 0 && netTimerExpired(&socket->persistTimer))
          {
             //Make sure the maximum number of retransmissions has not been
             //reached
@@ -348,7 +350,9 @@ void tcpCheckOverrideTimer(Socket *socket)
             //The usable window size may become zero or negative, preventing
             //packet transmission
             if((int32_t) u <= 0)
+            {
                break;
+            }
 
             //Calculate the number of bytes to send at a time
             n = MIN(u, socket->sndUser);
@@ -359,7 +363,9 @@ void tcpCheckOverrideTimer(Socket *socket)
                socket->sndNxt, socket->rcvNxt, n, TRUE);
             //Failed to send TCP segment?
             if(error)
+            {
                break;
+            }
 
             //Advance SND.NXT pointer
             socket->sndNxt += n;
@@ -396,13 +402,24 @@ void tcpCheckFinWait2Timer(Socket *socket)
    //Check current TCP state
    if(socket->state == TCP_STATE_FIN_WAIT_2)
    {
-      //FIN-WAIT-2 timer expired?
-      if(netTimerExpired(&socket->finWait2Timer))
+      //The FIN-WAIT-2 timer only applies to connections that are no longer
+      //owned by the application. A half-closed connection still owned by the
+      //application can receive data for as long as the peer sends it
+      if(!socket->ownedFlag)
       {
-         //Debug message
-         TRACE_INFO("TCP FIN-WAIT-2 timer elapsed...\r\n");
-         //Enter CLOSED state
-         tcpChangeState(socket, TCP_STATE_CLOSED);
+         //FIN-WAIT-2 timer expired?
+         if(netTimerExpired(&socket->finWait2Timer))
+         {
+            //Debug message
+            TRACE_INFO("TCP FIN-WAIT-2 timer elapsed...\r\n");
+            //Enter CLOSED state
+            tcpChangeState(socket, TCP_STATE_CLOSED);
+
+            //Delete the TCB
+            tcpDeleteControlBlock(socket);
+            //Mark the socket as closed
+            socket->type = SOCKET_TYPE_UNUSED;
+         }
       }
    }
 }
@@ -430,7 +447,7 @@ void tcpCheckTimeWaitTimer(Socket *socket)
          //Enter CLOSED state
          tcpChangeState(socket, TCP_STATE_CLOSED);
 
-         //Dispose the socket if the user does not have the ownership anymore
+         //Check whether the application no longer owns the socket
          if(!socket->ownedFlag)
          {
             //Delete the TCB

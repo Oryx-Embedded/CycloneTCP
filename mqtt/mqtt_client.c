@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -60,7 +60,9 @@ error_t mqttClientInit(MqttClientContext *context)
 
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear MQTT client context
    osMemset(context, 0, sizeof(MqttClientContext));
@@ -70,7 +72,9 @@ error_t mqttClientInit(MqttClientContext *context)
    error = tlsInitSessionState(&context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Default protocol version
@@ -121,7 +125,9 @@ error_t mqttClientRegisterCallbacks(MqttClientContext *context,
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Attach callback functions
    context->callbacks = *callbacks;
@@ -142,7 +148,9 @@ error_t mqttClientSetVersion(MqttClientContext *context, MqttVersion version)
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save the MQTT protocol version to be used
    context->settings.version = version;
@@ -165,7 +173,9 @@ error_t mqttClientSetTransportProtocol(MqttClientContext *context,
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save the transport protocol to be used
    context->settings.transportProtocol = transportProtocol;
@@ -189,7 +199,9 @@ error_t mqttClientRegisterTlsInitCallback(MqttClientContext *context,
 {
    //Check parameters
    if(context == NULL || callback == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->callbacks.tlsInitCallback = callback;
@@ -214,7 +226,9 @@ error_t mqttClientRegisterPublishCallback(MqttClientContext *context,
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->callbacks.publishCallback = callback;
@@ -235,7 +249,9 @@ error_t mqttClientSetTimeout(MqttClientContext *context, systime_t timeout)
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->settings.timeout = timeout;
@@ -258,7 +274,9 @@ error_t mqttClientSetKeepAlive(MqttClientContext *context, uint16_t keepAlive)
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save keep-alive value
    context->settings.keepAlive = keepAlive;
@@ -279,11 +297,15 @@ error_t mqttClientSetHost(MqttClientContext *context, const char_t *host)
 {
    //Check parameters
    if(context == NULL || host == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the hostname is acceptable
    if(osStrlen(host) > MQTT_CLIENT_MAX_HOST_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
    //Save hostname (for WebSocket connections only)
@@ -306,11 +328,15 @@ error_t mqttClientSetUri(MqttClientContext *context, const char_t *uri)
 {
    //Check parameters
    if(context == NULL || uri == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the resource name is acceptable
    if(osStrlen(uri) > MQTT_CLIENT_MAX_URI_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
    //Save resource name (for WebSocket connections only)
@@ -334,11 +360,15 @@ error_t mqttClientSetIdentifier(MqttClientContext *context,
 {
    //Check parameters
    if(context == NULL || clientId == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the client identifier is acceptable
    if(osStrlen(clientId) > MQTT_CLIENT_MAX_ID_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save client identifier
    osStrcpy(context->settings.clientId, clientId);
@@ -361,15 +391,21 @@ error_t mqttClientSetAuthInfo(MqttClientContext *context,
 {
    //Check parameters
    if(context == NULL || username == NULL || password == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the user name is acceptable
    if(osStrlen(username) > MQTT_CLIENT_MAX_USERNAME_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Make sure the length of the password is acceptable
    if(osStrlen(password) > MQTT_CLIENT_MAX_PASSWORD_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save user name
    osStrcpy(context->settings.username, username);
@@ -399,11 +435,15 @@ error_t mqttClientSetWillMessage(MqttClientContext *context, const char_t *topic
 
    //Check parameters
    if(context == NULL || topic == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the Will topic is acceptable
    if(osStrlen(topic) > MQTT_CLIENT_MAX_WILL_TOPIC_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the Will message
    willMessage = &context->settings.willMessage;
@@ -416,11 +456,15 @@ error_t mqttClientSetWillMessage(MqttClientContext *context, const char_t *topic
    {
       //Sanity check
       if(message == NULL)
+      {
          return ERROR_INVALID_PARAMETER;
+      }
 
       //Make sure the length of the Will message payload is acceptable
       if(length > MQTT_CLIENT_MAX_WILL_PAYLOAD_LEN)
+      {
          return ERROR_INVALID_LENGTH;
+      }
 
       //Save Will message payload
       osMemcpy(willMessage->payload, message, length);
@@ -450,7 +494,9 @@ error_t mqttClientBindToInterface(MqttClientContext *context,
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the MQTT client with the specified interface
    context->interface = interface;
@@ -478,7 +524,9 @@ error_t mqttClientConnect(MqttClientContext *context,
 
    //Check parameters
    if(context == NULL || serverIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -615,7 +663,9 @@ error_t mqttClientSetPacketId(MqttClientContext *context, uint16_t packetId)
 {
    //Check parameters
    if(context == NULL || packetId == 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Restore packet identifier
    if(context->packetId > 1)
@@ -652,7 +702,9 @@ error_t mqttClientPublish(MqttClientContext *context, const char_t *topic,
 
    //Check parameters
    if(context == NULL || topic == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Set PUBLISH packet parameters
    publishInfo.dup = FALSE;
@@ -685,13 +737,19 @@ error_t mqttClientPublishEx(MqttClientContext *context,
 
    //Check parameters
    if(context == NULL || publishInfo == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    if(publishInfo->topicName == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    if(publishInfo->payload == NULL && publishInfo->payloadLen != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -797,7 +855,9 @@ error_t mqttClientPublishEx(MqttClientContext *context,
 
                   //Check whether the fragment is the final one or not
                   if(context->payloadPos < publishInfo->payloadLen)
+                  {
                      break;
+                  }
                }
             }
             else
@@ -909,7 +969,9 @@ error_t mqttClientSubscribe(MqttClientContext *context, const char_t *topic,
 
    //Check parameters
    if(context == NULL || topic == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -944,6 +1006,8 @@ error_t mqttClientSubscribe(MqttClientContext *context, const char_t *topic,
 
                //Save the type of the MQTT packet to be sent
                context->packetType = MQTT_PACKET_TYPE_SUBSCRIBE;
+               //No SUBACK packet received yet
+               context->subAckReturnCode = MQTT_SUBACK_RET_CODE_SUCCESS_QOS_0;
                //Point to the beginning of the packet
                context->packetPos = 0;
 
@@ -957,6 +1021,13 @@ error_t mqttClientSubscribe(MqttClientContext *context, const char_t *topic,
          {
             //Reset packet type
             context->packetType = MQTT_PACKET_TYPE_INVALID;
+
+            //Check whether the server has rejected the subscription
+            if(context->subAckReturnCode == MQTT_SUBACK_RET_CODE_FAILURE)
+            {
+               error = ERROR_UNEXPECTED_STATUS;
+            }
+
             //We are done
             break;
          }
@@ -1024,7 +1095,9 @@ error_t mqttClientUnsubscribe(MqttClientContext *context, const char_t *topic,
 
    //Check parameters
    if(context == NULL || topic == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1137,7 +1210,9 @@ error_t mqttClientPing(MqttClientContext *context, systime_t *rtt)
 
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1251,7 +1326,9 @@ error_t mqttClientTask(MqttClientContext *context, systime_t timeout)
 
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Process MQTT client events
    error = mqttClientProcessEvents(context, timeout);
@@ -1280,7 +1357,9 @@ error_t mqttClientDisconnect(MqttClientContext *context)
 
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1381,7 +1460,9 @@ error_t mqttClientClose(MqttClientContext *context)
 {
    //Make sure the MQTT client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close connection
    mqttClientCloseConnection(context);

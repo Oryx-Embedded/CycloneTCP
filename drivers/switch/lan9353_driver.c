@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -1151,7 +1151,9 @@ error_t lan9353GetStaticFdbEntry(NetInterface *interface, uint_t index,
    {
       //Out of bound index?
       if(index >= LAN9353_ALR_TABLE_SIZE)
+      {
          return ERROR_END_OF_TABLE;
+      }
 
       //First entry?
       if(index == 0)
@@ -1299,7 +1301,9 @@ error_t lan9353GetDynamicFdbEntry(NetInterface *interface, uint_t index,
    {
       //Out of bound index?
       if(index >= LAN9353_ALR_TABLE_SIZE)
+      {
          return ERROR_END_OF_TABLE;
+      }
 
       //First entry?
       if(index == 0)

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -61,6 +61,12 @@ error_t nbnsResolve(NetInterface *interface, const char_t *name, IpAddr *ipAddr)
    //Debug message
    TRACE_INFO("Resolving host name %s (NBNS resolver)...\r\n", name);
 #endif
+
+   //Make sure the host name fits in the cache entry
+   if(osStrlen(name) > DNS_MAX_NAME_LEN)
+   {
+      return ERROR_INVALID_LENGTH;
+   }
 
    //Get exclusive access
    netLock(interface->netContext);
@@ -249,7 +255,9 @@ error_t nbnsSendQuery(DnsCacheEntry *entry)
    buffer = udpAllocBuffer(DNS_MESSAGE_MAX_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the NBNS header
    message = netBufferAt(buffer, offset, 0);
@@ -344,14 +352,18 @@ void nbnsProcessResponse(NetInterface *interface, const Ipv4PseudoHeader *pseudo
    context = interface->netContext;
 
    //The NBNS response shall contain one answer
-   if(ntohs(message->qdcount) != 0 && ntohs(message->ancount) != 1)
+   if(ntohs(message->qdcount) != 0 || ntohs(message->ancount) != 1)
+   {
       return;
+   }
 
    //Parse NetBIOS name
    pos = nbnsParseName(message, length, sizeof(DnsHeader), NULL);
    //Invalid name?
    if(pos == 0)
+   {
       return;
+   }
 
    //Point to the associated resource record
    record = DNS_GET_RESOURCE_RECORD(message, pos);
@@ -360,19 +372,31 @@ void nbnsProcessResponse(NetInterface *interface, const Ipv4PseudoHeader *pseudo
 
    //Make sure the resource record is valid
    if(pos > length)
+   {
       return;
+   }
+
    if((pos + ntohs(record->rdlength)) > length)
+   {
       return;
+   }
 
    //Check the class and the type of the resource record
    if(ntohs(record->rclass) != DNS_RR_CLASS_IN)
+   {
       return;
+   }
+
    if(ntohs(record->rtype) != DNS_RR_TYPE_NB)
+   {
       return;
+   }
 
    //Verify the length of the data field
    if(ntohs(record->rdlength) < sizeof(NbnsAddrEntry))
+   {
       return;
+   }
 
    //Loop through DNS cache entries
    for(i = 0; i < DNS_CACHE_SIZE; i++)

@@ -33,7 +33,7 @@
  * - RFC 3207: SMTP Service Extension for Secure SMTP over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -66,7 +66,9 @@ error_t smtpClientInit(SmtpClientContext *context)
 
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear SMTP client context
    osMemset(context, 0, sizeof(SmtpClientContext));
@@ -79,7 +81,9 @@ error_t smtpClientInit(SmtpClientContext *context)
    error = tlsInitSessionState(&context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Initialize SMTP client state
@@ -107,7 +111,9 @@ error_t smtpClientRegisterTlsInitCallback(SmtpClientContext *context,
 {
    //Check parameters
    if(context == NULL || callback == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->tlsInitCallback = callback;
@@ -130,7 +136,9 @@ error_t smtpClientSetTimeout(SmtpClientContext *context, systime_t timeout)
 {
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
@@ -152,7 +160,9 @@ error_t smtpClientBindToInterface(SmtpClientContext *context,
 {
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the SMTP client with the specified interface
    context->interface = interface;
@@ -178,7 +188,9 @@ error_t smtpClientConnect(SmtpClientContext *context,
 
    //Check parameters
    if(context == NULL || serverIpAddr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
 #if (SMTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Check connection mode
@@ -468,7 +480,9 @@ error_t smtpClientLogin(SmtpClientContext *context, const char_t *username,
 
    //Check parameters
    if(context == NULL || username == NULL || password == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
 #if (SMTP_CLIENT_CRAM_MD5_AUTH_SUPPORT == ENABLED)
    //CRAM-MD5 authentication mechanism supported?
@@ -522,14 +536,18 @@ error_t smtpClientSetContentType(SmtpClientContext *context,
 
    //Check parameters
    if(context == NULL || contentType == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve the length of the boundary string
    n = osStrlen(contentType);
 
    //Check the length of the string
    if(n < 1 || n > SMTP_CLIENT_CONTENT_TYPE_MAX_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save content type
    osStrcpy(context->contentType, contentType);
@@ -558,14 +576,18 @@ error_t smtpClientSetMultipartBoundary(SmtpClientContext *context,
 
    //Check parameters
    if(context == NULL || boundary == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve the length of the boundary string
    n = osStrlen(boundary);
 
    //The boundary parameter consists of 1 to 70 characters
    if(n < 1 || n > SMTP_CLIENT_BOUNDARY_MAX_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save boundary string
    osStrcpy(context->boundary, boundary);
@@ -598,7 +620,9 @@ error_t smtpClientWriteMailHeader(SmtpClientContext *context,
 
    //Check parameters
    if(context == NULL || from == NULL || recipients == NULL || subject == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -765,11 +789,15 @@ error_t smtpClientWriteMailBody(SmtpClientContext *context,
 
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check parameters
    if(data == NULL && length != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Actual number of bytes written
    n = 0;
@@ -839,7 +867,9 @@ error_t smtpClientWriteMultipartHeader(SmtpClientContext *context,
 
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -976,11 +1006,15 @@ error_t smtpClientWriteMultipartBody(SmtpClientContext *context,
 
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check parameters
    if(data == NULL && length != 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1121,7 +1155,9 @@ error_t smtpClientCloseMailBody(SmtpClientContext *context)
 
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1226,7 +1262,9 @@ error_t smtpClientDisconnect(SmtpClientContext *context)
 
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1316,7 +1354,9 @@ error_t smtpClientClose(SmtpClientContext *context)
 {
    //Make sure the SMTP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close connection
    smtpClientCloseConnection(context);

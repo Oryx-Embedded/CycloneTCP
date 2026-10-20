@@ -31,7 +31,7 @@
  * alongside a routing function in a common node. Refer to RFC 3315
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -65,7 +65,7 @@ error_t dhcpv6RelayOpenClientSocket(Dhcpv6RelayContext *context, uint_t index)
       SOCKET_TYPE_DGRAM, SOCKET_IP_PROTO_UDP);
 
    //Valid socket handle?
-   if(context->serverSocket != NULL)
+   if(context->clientSockets[index] != NULL)
    {
       //Explicitly associate the socket with the relevant interface
       error = socketBindToInterface(context->clientSockets[index],
@@ -214,7 +214,9 @@ error_t dhcpv6ForwardClientMessage(Dhcpv6RelayContext *context, uint_t index)
       &inputMessageLen, 0);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    TRACE_INFO("\r\nDHCPv6 message received on client-facing interface %s (%" PRIuSIZE " bytes)...\r\n",
@@ -225,11 +227,15 @@ error_t dhcpv6ForwardClientMessage(Dhcpv6RelayContext *context, uint_t index)
 
    //The source address must be a valid IPv6 address
    if(ipAddr.length != sizeof(Ipv6Addr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Check the length of the DHCPv6 message
    if(inputMessageLen < sizeof(Dhcpv6Message))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //When the relay agent receives a valid message to be relayed, it constructs
    //a new Relay-Forward message
@@ -247,7 +253,9 @@ error_t dhcpv6ForwardClientMessage(Dhcpv6RelayContext *context, uint_t index)
    {
       //Clients use UDP source port 546
       if(port != DHCPV6_CLIENT_PORT)
+      {
          return ERROR_INVALID_PORT;
+      }
 
       //If the relay agent received the message to be relayed from a client,
       //the hop-count in the Relay-Forward message is set to 0
@@ -257,13 +265,17 @@ error_t dhcpv6ForwardClientMessage(Dhcpv6RelayContext *context, uint_t index)
    {
       //Relay agents use UDP source port 547
       if(port != DHCPV6_SERVER_PORT)
+      {
          return ERROR_INVALID_PORT;
+      }
 
       //If the message received by the relay agent is a Relay-Forward message
       //and the hop-count in the message is greater than or equal to
       //HOP_COUNT_LIMIT, the relay agent discards the received message
       if(inputMessage->hopCount >= DHCPV6_RELAY_HOP_COUNT_LIMIT)
+      {
          return ERROR_INVALID_MESSAGE;
+      }
 
       //Set the hop-count field to the value of the hop-count field in the
       //received message incremented by 1
@@ -350,7 +362,9 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
       inputMessage, DHCPV6_MAX_MSG_SIZE, &inputMessageLen, 0);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    TRACE_INFO("\r\nDHCPv6 message received on network-facing interface %s (%" PRIuSIZE " bytes)...\r\n",
@@ -361,22 +375,28 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
 
    //Check the length of the DHCPv6 message
    if(inputMessageLen < sizeof(Dhcpv6RelayMessage))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Inspect the message type and only forward Relay-Reply messages. Other
    //DHCPv6 message types must be silently discarded
    if(inputMessage->msgType != DHCPV6_MSG_TYPE_RELAY_REPL)
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Get the length of the Options field
-   inputMessageLen -= sizeof(Dhcpv6Message);
+   inputMessageLen -= sizeof(Dhcpv6RelayMessage);
 
    //The Relay-Reply message must include a Relay Message option
    option = dhcpv6GetOption(inputMessage->options, inputMessageLen,
       DHCPV6_OPT_RELAY_MSG);
    //Failed to retrieve specified option?
    if(option == NULL || ntohs(option->length) < sizeof(Dhcpv6Message))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //The relay agent extracts the message from the Relay Message option. Relay
    //agents must not modify the message (refer to RFC 8415, section 19.2)
@@ -390,7 +410,9 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
       DHCPV6_OPT_INTERFACE_ID);
    //Failed to retrieve specified option?
    if(option == NULL || ntohs(option->length) != sizeof(interfaceId))
+   {
       return ERROR_INVALID_MESSAGE;
+   }
 
    //Read the Interface ID option contents
    osMemcpy(&interfaceId, option->value, sizeof(interfaceId));
@@ -409,7 +431,9 @@ error_t dhcpv6ForwardRelayReplyMessage(Dhcpv6RelayContext *context)
 
    //Unknown interface identifier?
    if(i >= context->numClientInterfaces)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //Debug message
    TRACE_INFO("Forwarding DHCPv6 message on client-facing interface %s (%" PRIuSIZE " bytes)...\r\n",

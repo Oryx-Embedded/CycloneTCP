@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -57,19 +57,25 @@ error_t mqttSnClientOpenConnection(MqttSnClientContext *context, bool_t secure)
       SOCKET_IP_PROTO_UDP);
    //Failed to open socket?
    if(context->socket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Associate the socket with the relevant interface
    error = socketBindToInterface(context->socket, context->interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set timeout
    error = socketSetTimeout(context->socket, MQTT_SN_CLIENT_TICK_INTERVAL);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (MQTT_SN_CLIENT_DTLS_SUPPORT == ENABLED)
    //DTLS transport protocol?
@@ -79,39 +85,51 @@ error_t mqttSnClientOpenConnection(MqttSnClientContext *context, bool_t secure)
       context->dtlsContext = tlsInit();
       //Failed to allocate DTLS context?
       if(context->dtlsContext == NULL)
+      {
          return ERROR_OPEN_FAILED;
+      }
 
       //Select client operation mode
       error = tlsSetConnectionEnd(context->dtlsContext,
          TLS_CONNECTION_END_CLIENT);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Set the transport protocol to be used (DTLS)
       error = tlsSetTransportProtocol(context->dtlsContext,
          TLS_TRANSPORT_PROTOCOL_DATAGRAM);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Bind DTLS to the relevant socket
       error = tlsSetSocket(context->dtlsContext, context->socket);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Set timeout
       error = tlsSetTimeout(context->dtlsContext, MQTT_SN_CLIENT_TICK_INTERVAL);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Restore DTLS session, if any
       error = tlsRestoreSessionState(context->dtlsContext, &context->dtlsSession);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Invoke user-defined callback, if any
       if(context->dtlsInitCallback != NULL)
@@ -120,7 +138,9 @@ error_t mqttSnClientOpenConnection(MqttSnClientContext *context, bool_t secure)
          error = context->dtlsInitCallback(context, context->dtlsContext);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
    }
 #endif
@@ -149,13 +169,17 @@ error_t mqttSnClientEstablishConnection(MqttSnClientContext *context)
          context->gwPort);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Perform DTLS handshake
       error = tlsConnect(context->dtlsContext);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 #endif
 

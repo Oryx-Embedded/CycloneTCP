@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,19 +56,25 @@ error_t modbusClientOpenConnection(ModbusClientContext *context)
       SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(context->socket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Associate the socket with the relevant interface
    error = socketBindToInterface(context->socket, context->interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set timeout
    error = socketSetTimeout(context->socket, context->timeout);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
    //TLS-secured connection?
@@ -78,46 +84,60 @@ error_t modbusClientOpenConnection(ModbusClientContext *context)
       context->tlsContext = tlsInit();
       //Failed to allocate TLS context?
       if(context->tlsContext == NULL)
+      {
          return ERROR_OPEN_FAILED;
+      }
 
       //Devices must provide TLS v1.2 or better
       error = tlsSetVersion(context->tlsContext, TLS_VERSION_1_2,
          TLS_VERSION_1_3);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Select client operation mode
       error = tlsSetConnectionEnd(context->tlsContext,
          TLS_CONNECTION_END_CLIENT);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Bind TLS to the relevant socket
       error = tlsSetSocket(context->tlsContext, context->socket);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Set TX and RX buffer size
       error = tlsSetBufferSize(context->tlsContext,
          MODBUS_CLIENT_TLS_TX_BUFFER_SIZE, MODBUS_CLIENT_TLS_RX_BUFFER_SIZE);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Restore TLS session
       error = tlsRestoreSessionState(context->tlsContext, &context->tlsSession);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Perform TLS related initialization
       error = context->tlsInitCallback(context, context->tlsContext);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 #endif
 
@@ -144,7 +164,9 @@ error_t modbusClientEstablishConnection(ModbusClientContext *context,
    error = socketConnect(context->socket, serverIpAddr, serverPort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (MODBUS_CLIENT_TLS_SUPPORT == ENABLED)
    //TLS-secured connection?
@@ -154,7 +176,9 @@ error_t modbusClientEstablishConnection(ModbusClientContext *context,
       error = tlsConnect(context->tlsContext);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //At any time after the server has received the client Finished
       //message, it may send a NewSessionTicket message (refer to RFC 8446,

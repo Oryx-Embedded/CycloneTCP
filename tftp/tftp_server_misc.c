@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -437,7 +437,9 @@ void tftpServerProcessRrqPacket(TftpServerContext *context,
 
    //Make sure the length of the RRQ packet is acceptable
    if(length <= sizeof(TftpRrqPacket))
+   {
       return;
+   }
 
    //Compute the number of bytes that follows the 2-byte opcode
    length -= sizeof(TftpRrqPacket);
@@ -447,14 +449,18 @@ void tftpServerProcessRrqPacket(TftpServerContext *context,
 
    //Malformed RRQ packet?
    if(rrqPacket->filename[length - 1] != '\0')
+   {
       return;
+   }
 
    //Compute the length of the mode string
    length -= osStrlen(rrqPacket->filename) + 1;
 
    //Malformed RRQ packet?
    if(length == 0)
+   {
       return;
+   }
 
    //Point to the mode string
    mode = rrqPacket->filename + osStrlen(rrqPacket->filename) + 1;
@@ -503,6 +509,8 @@ void tftpServerProcessRrqPacket(TftpServerContext *context,
             connection->state = TFTP_STATE_READING;
             //Initialize block number
             connection->block = 1;
+            //The first block starts at the beginning of the file
+            connection->offset = 0;
 
             //Send the first DATA packet
             tftpServerSendDataPacket(connection);
@@ -545,7 +553,9 @@ void tftpServerProcessWrqPacket(TftpServerContext *context,
 
    //Make sure the length of the WRQ packet is acceptable
    if(length <= sizeof(TftpWrqPacket))
+   {
       return;
+   }
 
    //Compute the number of bytes that follows the 2-byte opcode
    length -= sizeof(TftpWrqPacket);
@@ -555,14 +565,18 @@ void tftpServerProcessWrqPacket(TftpServerContext *context,
 
    //Malformed WRQ packet?
    if(wrqPacket->filename[length - 1] != '\0')
+   {
       return;
+   }
 
    //Compute the length of the mode string
    length -= osStrlen(wrqPacket->filename) + 1;
 
    //Malformed WRQ packet?
    if(length == 0)
+   {
       return;
+   }
 
    //Point to the mode string
    mode = wrqPacket->filename + osStrlen(wrqPacket->filename) + 1;
@@ -611,6 +625,8 @@ void tftpServerProcessWrqPacket(TftpServerContext *context,
             connection->state = TFTP_STATE_WRITING;
             //Initialize block number
             connection->block = 0;
+            //The first block starts at the beginning of the file
+            connection->offset = 0;
 
             //The positive response to a write request is an acknowledgment
             //packet with block number zero
@@ -645,7 +661,6 @@ void tftpServerProcessDataPacket(TftpClientConnection *connection,
    const TftpDataPacket *dataPacket, size_t length)
 {
    error_t error;
-   size_t offset;
 
    //Debug message
    TRACE_DEBUG("TFTP Server: DATA packet received (%" PRIuSIZE " bytes)...\r\n",
@@ -653,7 +668,9 @@ void tftpServerProcessDataPacket(TftpClientConnection *connection,
 
    //Make sure the length of the DATA packet is acceptable
    if(length < sizeof(TftpDataPacket))
+   {
       return;
+   }
 
    //Calculate the length of the data
    length -= sizeof(TftpDataPacket);
@@ -668,20 +685,27 @@ void tftpServerProcessDataPacket(TftpClientConnection *connection,
       //Check block number
       if(ntohs(dataPacket->block) == connection->block)
       {
-         //Write data to the output file
-         if(connection->context->writeFileCallback != NULL)
+         //Make sure the whole block lies within the range of representable
+         //file offsets
+         if(connection->offset <= (SIZE_MAX - TFTP_SERVER_BLOCK_SIZE))
          {
-            //Calculate the offset relative to the beginning of the file
-            offset = (connection->block - 1) * TFTP_SERVER_BLOCK_SIZE;
-
-            //Invoke user callback function
-            error = connection->context->writeFileCallback(connection->file,
-               offset, dataPacket->data, length);
+            //Write data to the output file
+            if(connection->context->writeFileCallback != NULL)
+            {
+               //Invoke user callback function
+               error = connection->context->writeFileCallback(connection->file,
+                  connection->offset, dataPacket->data, length);
+            }
+            else
+            {
+               //No callback function defined
+               error = ERROR_WRITE_FAILED;
+            }
          }
          else
          {
-            //No callback function defined
-            error = ERROR_WRITE_FAILED;
+            //The file is too large to be transferred
+            error = ERROR_OUT_OF_RANGE;
          }
 
          //Check status code
@@ -713,6 +737,20 @@ void tftpServerProcessDataPacket(TftpClientConnection *connection,
                //Save current time
                connection->timestamp = osGetSystemTime();
             }
+            else
+            {
+               //Offset of the next block
+               connection->offset += TFTP_SERVER_BLOCK_SIZE;
+            }
+         }
+         else if(error == ERROR_OUT_OF_RANGE)
+         {
+            //The file is too large to be transferred
+            tftpServerSendErrorPacket(connection, TFTP_ERROR_DISK_FULL,
+               "File too large");
+
+            //A TFTP server may terminate after sending an error message
+            tftpServerCloseConnection(connection);
          }
          else
          {
@@ -755,7 +793,9 @@ void tftpServerProcessAckPacket(TftpClientConnection *connection,
 
    //Make sure the length of the ACK packet is acceptable
    if(length < sizeof(TftpAckPacket))
+   {
       return;
+   }
 
    //Debug message
    TRACE_DEBUG("  Opcode = %" PRIu16 "\r\n", ntohs(ackPacket->opcode));
@@ -769,6 +809,8 @@ void tftpServerProcessAckPacket(TftpClientConnection *connection,
       {
          //The block number increases by one for each new block of data
          connection->block++;
+         //The file offset is maintained separately
+         connection->offset += TFTP_SERVER_BLOCK_SIZE;
 
          //Send DATA packet
          tftpServerSendDataPacket(connection);
@@ -810,7 +852,9 @@ void tftpServerProcessErrorPacket(TftpClientConnection *connection,
 
    //Make sure the length of the ERROR packet is acceptable
    if(length < sizeof(TftpErrorPacket))
+   {
       return;
+   }
 
    //Debug message
    TRACE_DEBUG("  Opcode = %" PRIu16 "\r\n", ntohs(errorPacket->opcode));
@@ -840,7 +884,6 @@ void tftpServerProcessErrorPacket(TftpClientConnection *connection,
 error_t tftpServerSendDataPacket(TftpClientConnection *connection)
 {
    error_t error;
-   size_t offset;
    TftpDataPacket *dataPacket;
 
    //Point to the buffer where to format the packet
@@ -850,29 +893,37 @@ error_t tftpServerSendDataPacket(TftpClientConnection *connection)
    dataPacket->opcode = HTONS(TFTP_OPCODE_DATA);
    dataPacket->block = htons(connection->block);
 
-   //Read more data from the input file
-   if(connection->context->readFileCallback != NULL)
+   //Make sure the whole block lies within the range of representable file
+   //offsets
+   if(connection->offset <= (SIZE_MAX - TFTP_SERVER_BLOCK_SIZE))
    {
-      //Calculate the offset relative to the beginning of the file
-      offset = (connection->block - 1) * TFTP_SERVER_BLOCK_SIZE;
+      //Read more data from the input file
+      if(connection->context->readFileCallback != NULL)
+      {
+         //Invoke user callback function
+         error = connection->context->readFileCallback(connection->file,
+            connection->offset, dataPacket->data, TFTP_SERVER_BLOCK_SIZE,
+            &connection->packetLen);
 
-      //Invoke user callback function
-      error = connection->context->readFileCallback(connection->file, offset,
-         dataPacket->data, TFTP_SERVER_BLOCK_SIZE, &connection->packetLen);
+         //End of file?
+         if(error == ERROR_END_OF_FILE || error == ERROR_END_OF_STREAM)
+         {
+            //Catch exception
+            error = NO_ERROR;
+            //This is the last block of data
+            connection->packetLen = 0;
+         }
+      }
+      else
+      {
+         //No callback function defined
+         error = ERROR_READ_FAILED;
+      }
    }
    else
    {
-      //No callback function defined
-      error = ERROR_READ_FAILED;
-   }
-
-   //End of file?
-   if(error == ERROR_END_OF_FILE || error == ERROR_END_OF_STREAM)
-   {
-      //Catch exception
-      error = NO_ERROR;
-      //This is the last block of data
-      connection->packetLen = 0;
+      //The file is too large to be transferred
+      error = ERROR_OUT_OF_RANGE;
    }
 
    //Check status code
@@ -912,6 +963,15 @@ error_t tftpServerSendDataPacket(TftpClientConnection *connection)
       connection->timestamp = osGetSystemTime();
       //Reset retransmission counter
       connection->retransmitCount = 0;
+   }
+   else if(error == ERROR_OUT_OF_RANGE)
+   {
+      //The file is too large to be transferred
+      tftpServerSendErrorPacket(connection, TFTP_ERROR_DISK_FULL,
+         "File too large");
+
+      //A TFTP server may terminate after sending an error message
+      tftpServerCloseConnection(connection);
    }
    else
    {
@@ -984,7 +1044,9 @@ error_t tftpServerSendErrorPacket(TftpClientConnection *connection,
 
    //Check the length of the error message
    if(osStrlen(errorMsg) >= TFTP_SERVER_BLOCK_SIZE)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Point to the buffer where to format the packet
    errorPacket = (TftpErrorPacket *) connection->packet;

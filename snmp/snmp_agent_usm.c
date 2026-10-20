@@ -34,7 +34,7 @@
  * - RFC 7860: HMAC-SHA-2 Authentication Protocols in the User-based Security Model
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -45,6 +45,7 @@
 #include "snmp/snmp_agent.h"
 #include "snmp/snmp_agent_usm.h"
 #include "core/crypto.h"
+#include "core/crypto_mem.h"
 #include "encoding/asn1.h"
 #include "mac/hmac.h"
 #include "debug.h"
@@ -186,7 +187,9 @@ error_t snmpGenerateKey(SnmpAuthProtocol authProtocol, const char_t *password,
 
    //Check parameters
    if(password == NULL || key == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Clear SNMP key
    osMemset(key, 0, sizeof(SnmpKey));
@@ -196,7 +199,9 @@ error_t snmpGenerateKey(SnmpAuthProtocol authProtocol, const char_t *password,
 
    //Invalid authentication protocol?
    if(hashAlgo == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Retrieve the length of the password
    passwordLen = osStrlen(password);
@@ -204,7 +209,9 @@ error_t snmpGenerateKey(SnmpAuthProtocol authProtocol, const char_t *password,
    //SNMP implementations must ensure that passwords are at least 8 characters
    //in length (see RFC 3414 11.2)
    if(passwordLen < 8)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Initialize hash context
    hashAlgo->init(&hashContext);
@@ -243,16 +250,23 @@ error_t snmpLocalizeKey(SnmpAuthProtocol authProtocol, const uint8_t *engineId,
 
    //Check parameters
    if(engineId == NULL && engineIdLen > 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
+
    if(key == NULL || localizedKey == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Get the hash algorithm to be used to generate the key
    hashAlgo = snmpGetHashAlgo(authProtocol);
 
    //Invalid authentication protocol?
    if(hashAlgo == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Localize the key with the engine ID
    hashAlgo->init(&hashContext);
@@ -331,17 +345,23 @@ error_t snmpCheckSecurityParameters(const SnmpUserEntry *user,
 {
    //Check the length of the authoritative engine ID
    if(message->msgAuthEngineIdLen != engineIdLen)
+   {
       return ERROR_UNKNOWN_ENGINE_ID;
+   }
 
    //If the value of the msgAuthoritativeEngineID field is unknown, then an
    //error indication (unknownEngineID) is returned to the calling module
-   if(osMemcmp(message->msgAuthEngineId, engineId, engineIdLen))
+   if(osMemcmp(message->msgAuthEngineId, engineId, engineIdLen) != 0)
+   {
       return ERROR_UNKNOWN_ENGINE_ID;
+   }
 
    //If no information is available for the user, then an error indication
    //(unknownSecurityName) is returned to the calling module
    if(user == NULL || user->status != MIB_ROW_STATUS_ACTIVE)
+   {
       return ERROR_UNKNOWN_USER_NAME;
+   }
 
    //Check whether the securityLevel specifies that the message should
    //be authenticated
@@ -349,7 +369,9 @@ error_t snmpCheckSecurityParameters(const SnmpUserEntry *user,
    {
       //Make sure the authFlag is set
       if((message->msgFlags & SNMP_MSG_FLAG_AUTH) == 0)
+      {
          return ERROR_UNSUPPORTED_SECURITY_LEVEL;
+      }
    }
 
    //Check whether the securityLevel specifies that the message should
@@ -358,7 +380,9 @@ error_t snmpCheckSecurityParameters(const SnmpUserEntry *user,
    {
       //Make sure the privFlag is set
       if((message->msgFlags & SNMP_MSG_FLAG_PRIV) == 0)
+      {
          return ERROR_UNSUPPORTED_SECURITY_LEVEL;
+      }
    }
 
    //Security parameters are valid
@@ -419,8 +443,8 @@ error_t snmpCheckEngineTime(SnmpAgentContext *context, SnmpMessage *message)
       //Compare engine IDs
       if(message->msgAuthEngineIdLen == context->informContextEngineLen)
       {
-         if(!osMemcmp(message->msgAuthEngineId, context->informContextEngine,
-            context->informContextEngineLen))
+         if(osMemcmp(message->msgAuthEngineId, context->informContextEngine,
+            context->informContextEngineLen) == 0)
          {
             //We are done
             return NO_ERROR;
@@ -477,14 +501,18 @@ error_t snmpAuthOutgoingMessage(const SnmpUserEntry *user, SnmpMessage *message)
 
    //Invalid authentication protocol?
    if(hashAlgo == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Retrieve the length of the truncated MAC
    macLen = snmpGetMacLength(user->authProtocol);
 
    //Check the length of the msgAuthenticationParameters field
    if(message->msgAuthParametersLen != macLen)
+   {
       return ERROR_FAILURE;
+   }
 
    //The MAC is calculated over the whole message
    hmacInit(&hmacContext, hashAlgo, user->localizedAuthKey.b, hashAlgo->digestSize);
@@ -518,14 +546,18 @@ error_t snmpAuthIncomingMessage(const SnmpUserEntry *user, SnmpMessage *message)
 
    //Invalid authentication protocol?
    if(hashAlgo == NULL)
+   {
       return ERROR_AUTHENTICATION_FAILED;
+   }
 
    //Retrieve the length of the truncated MAC
    macLen = snmpGetMacLength(user->authProtocol);
 
    //Check the length of the msgAuthenticationParameters field
    if(message->msgAuthParametersLen != macLen)
+   {
       return ERROR_AUTHENTICATION_FAILED;
+   }
 
    //The MAC received in the msgAuthenticationParameters field is saved
    osMemcpy(mac, message->msgAuthParameters, macLen);
@@ -542,10 +574,12 @@ error_t snmpAuthIncomingMessage(const SnmpUserEntry *user, SnmpMessage *message)
    //Restore the value of the msgAuthenticationParameters field
    osMemcpy(message->msgAuthParameters, mac, macLen);
 
-   //The newly calculated MAC is compared with the MAC value that was
-   //saved in the first step
-   if(osMemcmp(hmacContext.digest, mac, macLen) != 0)
+   //The newly calculated MAC is compared with the MAC value that was saved
+   //in the first step
+   if(cryptoCompMem(hmacContext.digest, mac, macLen) != 0)
+   {
       return ERROR_AUTHENTICATION_FAILED;
+   }
 
    //Successful message authentication
    return NO_ERROR;
@@ -607,7 +641,9 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
       error = desInit(&desContext, user->localizedPrivKey.b, 8);
       //Initialization failed?
       if(error)
+      {
          return error;
+      }
 
       //The last 8 octets of the 16-octet secret (private privacy key) are
       //used as pre-IV
@@ -624,7 +660,9 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
          message->pos, message->length);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else
 #endif
@@ -652,14 +690,18 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
       error = aesInit(&aesContext, user->localizedPrivKey.b, 16);
       //Initialization failed?
       if(error)
+      {
          return error;
+      }
 
       //Perform CFB-128 encryption
       error = cfbEncrypt(AES_CIPHER_ALGO, &aesContext, 128, iv, message->pos,
          message->pos, message->length);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else
 #endif
@@ -680,7 +722,9 @@ error_t snmpEncryptData(const SnmpUserEntry *user, SnmpMessage *message,
    error = asn1WriteTag(&tag, TRUE, message->pos, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Move backward
    message->pos -= n;
@@ -718,13 +762,17 @@ error_t snmpDecryptData(const SnmpUserEntry *user, SnmpMessage *message)
    error = asn1ReadTag(message->pos, message->length, &tag);
    //Failed to decode ASN.1 tag?
    if(error)
+   {
       return error;
+   }
 
    //Enforce encoding, class and type
    error = asn1CheckTag(&tag, FALSE, ASN1_CLASS_UNIVERSAL, ASN1_TYPE_OCTET_STRING);
    //The tag does not match the criteria?
    if(error)
+   {
       return error;
+   }
 
    //Point to the encryptedPDU
    message->pos = (uint8_t *) tag.value;
@@ -741,17 +789,23 @@ error_t snmpDecryptData(const SnmpUserEntry *user, SnmpMessage *message)
       //Before decryption, the encrypted data length is verified. The length
       //of the encrypted data must be a multiple of 8 octets
       if((message->length % 8) != 0)
+      {
          return ERROR_DECRYPTION_FAILED;
+      }
 
       //Check the length of the msgPrivacyParameters field
       if(message->msgPrivParametersLen != 8)
+      {
          return ERROR_DECRYPTION_FAILED;
+      }
 
       //Initialize DES context
       error = desInit(&desContext, user->localizedPrivKey.b, 8);
       //Initialization failed?
       if(error)
+      {
          return error;
+      }
 
       //The last 8 octets of the 16-octet secret (private privacy key) are
       //used as pre-IV
@@ -768,7 +822,9 @@ error_t snmpDecryptData(const SnmpUserEntry *user, SnmpMessage *message)
          message->pos, message->length);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else
 #endif
@@ -781,7 +837,9 @@ error_t snmpDecryptData(const SnmpUserEntry *user, SnmpMessage *message)
 
       //Check the length of the msgPrivacyParameters field
       if(message->msgPrivParametersLen != 8)
+      {
          return ERROR_DECRYPTION_FAILED;
+      }
 
       //The 32-bit snmpEngineBoots is converted to the first 4 octets of the IV
       STORE32BE(message->msgAuthEngineBoots, iv);
@@ -794,14 +852,18 @@ error_t snmpDecryptData(const SnmpUserEntry *user, SnmpMessage *message)
       error = aesInit(&aesContext, user->localizedPrivKey.b, 16);
       //Initialization failed?
       if(error)
+      {
          return error;
+      }
 
       //Perform CFB-128 encryption
       error = cfbDecrypt(AES_CIPHER_ALGO, &aesContext, 128, iv, message->pos,
          message->pos, message->length);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else
 #endif

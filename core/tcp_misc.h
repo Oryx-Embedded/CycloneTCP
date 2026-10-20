@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _TCP_MISC_H
@@ -84,6 +84,7 @@ void tcpComputeWindowScaleFactor(Socket *socket);
 void tcpUpdateSackBlocks(Socket *socket, uint32_t *leftEdge, uint32_t *rightEdge);
 void tcpUpdateSendWindow(Socket *socket, const TcpHeader *segment);
 void tcpUpdateReceiveWindow(Socket *socket);
+void tcpStartPersistTimer(Socket *socket);
 
 bool_t tcpComputeRto(Socket *socket);
 error_t tcpRetransmitSegment(Socket *socket);

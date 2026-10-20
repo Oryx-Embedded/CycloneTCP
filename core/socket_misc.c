@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -339,7 +339,7 @@ bool_t socketMulticastFilter(Socket *socket, const IpAddr *destAddr,
             //In INCLUDE mode, reception of packets sent to the specified
             //multicast address is requested only from those IP source
             //addresses listed in the source list
-            for(j = 0; j < SOCKET_MAX_MULTICAST_SOURCES && !acceptable; j++)
+            for(j = 0; j < group->numSources && !acceptable; j++)
             {
                //Compare source addresses
                if(ipCompAddr(&group->sources[j], srcAddr))
@@ -549,6 +549,9 @@ void socketRemoveMulticastSrcAddr(SocketMulticastGroup *group,
 
          //Update the length of the list
          group->numSources--;
+
+         //Clear the entry that is no longer used
+         group->sources[group->numSources] = IP_ADDR_UNSPECIFIED;
 
          //We are done
          break;

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _UDP_H
@@ -118,7 +118,9 @@ typedef struct
 
 //UDP related functions
 error_t udpInit(NetContext *context);
+
 uint16_t udpGetDynamicPort(NetContext *context);
+bool_t udpIsPortInUse(NetContext *context, uint16_t port);
 
 error_t udpProcessDatagram(NetInterface *interface,
    const IpPseudoHeader *pseudoHeader, const NetBuffer *buffer, size_t offset,

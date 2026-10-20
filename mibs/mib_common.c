@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Dependencies
@@ -192,7 +192,9 @@ error_t mibEncodeOctetString(uint8_t *oid, size_t maxOidLen, size_t *pos,
       error = oidEncodeSubIdentifier(oid, maxOidLen, pos, dataLen);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Encode the octet string
@@ -202,7 +204,9 @@ error_t mibEncodeOctetString(uint8_t *oid, size_t maxOidLen, size_t *pos,
       error = oidEncodeSubIdentifier(oid, maxOidLen, pos, data[i]);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing
@@ -237,7 +241,9 @@ error_t mibDecodeOctetString(const uint8_t *oid, size_t oidLen, size_t *pos,
       error = oidDecodeSubIdentifier(oid, oidLen, pos, &n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Decode the octet string
@@ -248,28 +254,38 @@ error_t mibDecodeOctetString(const uint8_t *oid, size_t oidLen, size_t *pos,
       {
          //Check loop condition
          if(i >= n)
+         {
             break;
+         }
       }
       else
       {
          //Check loop condition
          if(*pos >= oidLen)
+         {
             break;
+         }
       }
 
       //Decode the current sub-identifier
       error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
       //Invalid sub-identifier?
       if(error)
+      {
          return error;
+      }
 
       //Each byte of the octet string must be in the range 0-255
       if(value > UINT8_MAX)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
 
       //Ensure the output buffer is large enough to hold of the octet string
       if(i >= maxDataLen)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
 
       //Save the current byte
       data[i] = (uint8_t) value;
@@ -316,7 +332,9 @@ error_t mibEncodeObjectIdentifier(uint8_t *oid, size_t maxOidLen, size_t *pos,
                &objectIdPos, &value);
             //Invalid sub-identifier?
             if(error)
+            {
                return error;
+            }
          }
       }
       else
@@ -328,7 +346,9 @@ error_t mibEncodeObjectIdentifier(uint8_t *oid, size_t maxOidLen, size_t *pos,
       error = oidEncodeSubIdentifier(oid, maxOidLen, pos, n);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Check the length of the object identifier
@@ -338,17 +358,23 @@ error_t mibEncodeObjectIdentifier(uint8_t *oid, size_t maxOidLen, size_t *pos,
       error = oidEncodeSubIdentifier(oid, maxOidLen, pos, objectId[0] / 40);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Encode the second sub-identifier
       error = oidEncodeSubIdentifier(oid, maxOidLen, pos, objectId[0] % 40);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Sanity check
       if((*pos + objectIdLen - 1) > maxOidLen)
+      {
          return ERROR_BUFFER_OVERFLOW;
+      }
 
       //Encode the rest of the object identifier
       osMemcpy(oid + *pos, objectId + 1, objectIdLen - 1);
@@ -392,7 +418,9 @@ error_t mibDecodeObjectIdentifier(const uint8_t *oid, size_t oidLen, size_t *pos
       error = oidDecodeSubIdentifier(oid, oidLen, pos, &n);
       //Invalid sub-identifier?
       if(error)
+      {
          return error;
+      }
    }
 
    //Decode object identifier
@@ -403,31 +431,41 @@ error_t mibDecodeObjectIdentifier(const uint8_t *oid, size_t oidLen, size_t *pos
       {
          //Check loop condition
          if(i >= n)
+         {
             break;
+         }
       }
       else
       {
          //Check loop condition
          if(*pos >= oidLen)
+         {
             break;
+         }
       }
 
       //Decode the current sub-identifier
       error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
       //Invalid sub-identifier?
       if(error)
+      {
          return error;
+      }
 
       //First node?
       if(i == 0)
       {
          //Check the value of the first sub-identifier
          if(value > 6)
+         {
             return ERROR_INVALID_SYNTAX;
+         }
 
          //Check the length of the output buffer
          if(maxObjectIdLen == 0)
+         {
             return ERROR_BUFFER_OVERFLOW;
+         }
 
          //Encode the first sub-identifier
          objectId[0] = value * 40;
@@ -439,11 +477,15 @@ error_t mibDecodeObjectIdentifier(const uint8_t *oid, size_t oidLen, size_t *pos
       {
          //Check the value of the second sub-identifier
          if(value > 39)
+         {
             return ERROR_INVALID_SYNTAX;
+         }
 
          //Check the length of the output buffer
          if(maxObjectIdLen == 0)
+         {
             return ERROR_BUFFER_OVERFLOW;
+         }
 
          //Encode the second sub-identifier
          objectId[0] |= value;
@@ -457,7 +499,9 @@ error_t mibDecodeObjectIdentifier(const uint8_t *oid, size_t oidLen, size_t *pos
             objectIdLen, value);
          //Invalid sub-identifier?
          if(error)
+         {
             return error;
+         }
       }
    }
 
@@ -502,11 +546,15 @@ error_t mibDecodePort(const uint8_t *oid, size_t oidLen, size_t *pos,
    error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
    //Invalid sub-identifier?
    if(error)
+   {
       return error;
+   }
 
    //Port number must be in range 0-65535
    if(value > 65535)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Save port number
    *port = value;
@@ -538,7 +586,9 @@ error_t mibEncodeMacAddr(uint8_t *oid, size_t maxOidLen, size_t *pos,
       error = oidEncodeSubIdentifier(oid, maxOidLen, pos, macAddr->b[i]);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing
@@ -569,11 +619,15 @@ error_t mibDecodeMacAddr(const uint8_t *oid, size_t oidLen, size_t *pos,
       error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
       //Invalid sub-identifier?
       if(error)
+      {
          return error;
+      }
 
       //Each byte of the MAC address must be in the range 0-255
       if(value > 255)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
 
       //Save the current byte
       macAddr->b[i] = value & 0xFF;
@@ -678,7 +732,9 @@ error_t mibEncodeIpv4Addr(uint8_t *oid, size_t maxOidLen, size_t *pos,
       error = oidEncodeSubIdentifier(oid, maxOidLen, pos, p[i]);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing
@@ -713,11 +769,15 @@ error_t mibDecodeIpv4Addr(const uint8_t *oid, size_t oidLen, size_t *pos,
       error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
       //Invalid sub-identifier?
       if(error)
+      {
          return error;
+      }
 
       //Each byte of the IPv4 address must be in the range 0-255
       if(value > 255)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
 
       //Save the current byte
       p[i] = value & 0xFF;
@@ -750,7 +810,9 @@ error_t mibEncodeIpv6Addr(uint8_t *oid, size_t maxOidLen, size_t *pos,
       error = oidEncodeSubIdentifier(oid, maxOidLen, pos, ipAddr->b[i]);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing
@@ -781,11 +843,15 @@ error_t mibDecodeIpv6Addr(const uint8_t *oid, size_t oidLen, size_t *pos,
       error = oidDecodeSubIdentifier(oid, oidLen, pos, &value);
       //Invalid sub-identifier?
       if(error)
+      {
          return error;
+      }
 
       //Each byte of the IPv6 address must be in the range 0-255
       if(value > 255)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
 
       //Save the current byte
       ipAddr->b[i] = value & 0xFF;

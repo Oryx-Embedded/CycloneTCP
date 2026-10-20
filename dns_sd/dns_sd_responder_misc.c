@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -103,13 +103,17 @@ void dnsSdResponderChangeInstanceName(DnsSdResponderService *service)
       {
          //Check whether the last character is a bracket
          if(service->instanceName[i - 1] != ')')
+         {
             break;
+         }
       }
       else
       {
          //Check whether the current character is a digit
          if(!osIsdigit(service->instanceName[i - 1]))
+         {
             break;
+         }
       }
    }
 
@@ -178,7 +182,9 @@ error_t dnsSdResponderSendProbe(DnsSdResponderService *service)
    error = mdnsCreateMessage(&message, FALSE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Start of exception handling block
    do
@@ -207,14 +213,18 @@ error_t dnsSdResponderSendProbe(DnsSdResponderService *service)
          FALSE, DNS_SD_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Format TXT resource record
       error = dnsSdResponderFormatTxtRecord(interface, &message, service,
          FALSE, DNS_SD_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //A probe query can be distinguished from a normal query by the fact that
       //a probe query contains a proposed record in the Authority Section that
@@ -259,7 +269,9 @@ error_t dnsSdResponderSendAnnouncement(DnsSdResponderService *service)
    error = mdnsCreateMessage(&message, TRUE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Start of exception handling block
    do
@@ -269,28 +281,36 @@ error_t dnsSdResponderSendAnnouncement(DnsSdResponderService *service)
          service, DNS_SD_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Format PTR resource record
       error = dnsSdResponderFormatPtrRecord(interface, &message, service,
          DNS_SD_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Format SRV resource record
       error = dnsSdResponderFormatSrvRecord(interface, &message, service, TRUE,
          DNS_SD_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Format TXT resource record
       error = dnsSdResponderFormatTxtRecord(interface, &message, service, TRUE,
          DNS_SD_DEFAULT_RR_TTL);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Send mDNS message
       error = mdnsSendMessage(interface, &message, NULL, MDNS_PORT);
@@ -328,7 +348,9 @@ error_t dnsSdResponderSendGoodbye(DnsSdResponderService *service)
    error = mdnsCreateMessage(&message, TRUE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Start of exception handling block
    do
@@ -338,27 +360,35 @@ error_t dnsSdResponderSendGoodbye(DnsSdResponderService *service)
          service, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Format PTR resource record
       error = dnsSdResponderFormatPtrRecord(interface, &message, service, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Format SRV resource record
       error = dnsSdResponderFormatSrvRecord(interface, &message, service,
          TRUE, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Format TXT resource record
       error = dnsSdResponderFormatTxtRecord(interface, &message, service,
          TRUE, 0);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Send mDNS message
       error = mdnsSendMessage(interface, &message, NULL, MDNS_PORT);
@@ -401,7 +431,9 @@ error_t dnsSdResponderParseQuestion(NetInterface *interface,
    context = interface->dnsSdResponderContext;
    //Make sure the DNS-SD responder has been properly instantiated
    if(context == NULL)
+   {
       return NO_ERROR;
+   }
 
    //Convert the query class to host byte order
    qclass = ntohs(question->qclass);
@@ -459,7 +491,9 @@ error_t dnsSdResponderParseQuestion(NetInterface *interface,
                      response, service, ttl);
                   //Any error to report?
                   if(error)
+                  {
                      return error;
+                  }
 
                   //Update the number of shared resource records
                   response->sharedRecordCount++;
@@ -476,7 +510,9 @@ error_t dnsSdResponderParseQuestion(NetInterface *interface,
                      service, ttl);
                   //Any error to report?
                   if(error)
+                  {
                      return error;
+                  }
 
                   //Update the number of shared resource records
                   response->sharedRecordCount++;
@@ -493,7 +529,9 @@ error_t dnsSdResponderParseQuestion(NetInterface *interface,
                      service, cacheFlush, ttl);
                   //Any error to report?
                   if(error)
+                  {
                      return error;
+                  }
                }
 
                //TXT query?
@@ -504,7 +542,9 @@ error_t dnsSdResponderParseQuestion(NetInterface *interface,
                      service, cacheFlush, ttl);
                   //Any error to report?
                   if(error)
+                  {
                      return error;
+                  }
                }
 
                //NSEC query?
@@ -515,7 +555,9 @@ error_t dnsSdResponderParseQuestion(NetInterface *interface,
                      service, cacheFlush, ttl);
                   //Any error to report?
                   if(error)
+                  {
                      return error;
+                  }
                }
             }
          }
@@ -548,7 +590,9 @@ void dnsSdResponderParseNsRecords(NetInterface *interface,
    context = interface->dnsSdResponderContext;
    //Make sure the DNS-SD responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Loop through the list of registered services
    for(i = 0; i < context->numServices; i++)
@@ -656,7 +700,9 @@ void dnsSdResponderParseAnRecord(NetInterface *interface,
    context = interface->dnsSdResponderContext;
    //Make sure the DNS-SD responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Loop through the list of registered services
    for(i = 0; i < context->numServices; i++)
@@ -744,11 +790,15 @@ void dnsSdResponderGenerateAdditionalRecords(NetInterface *interface,
    context = interface->dnsSdResponderContext;
    //Make sure the DNS-SD responder has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //mDNS responses must not contain any questions in the Question Section
    if(response->dnsHeader->qdcount != 0)
+   {
       return;
+   }
 
    //Get the TTL resource record
    ttl = context->ttl;
@@ -783,7 +833,9 @@ void dnsSdResponderGenerateAdditionalRecords(NetInterface *interface,
       n = dnsParseName(response->dnsHeader, response->length, offset, 0);
       //Invalid name?
       if(n == 0)
+      {
          break;
+      }
 
       //Point to the associated resource record
       record = DNS_GET_RESOURCE_RECORD(response->dnsHeader, n);
@@ -792,9 +844,14 @@ void dnsSdResponderGenerateAdditionalRecords(NetInterface *interface,
 
       //Make sure the resource record is valid
       if(n > response->length)
+      {
          break;
+      }
+
       if((n + ntohs(record->rdlength)) > response->length)
+      {
          break;
+      }
 
       //Convert the record class to host byte order
       rclass = ntohs(record->rclass);
@@ -886,7 +943,9 @@ error_t dnsSdResponderFormatServiceEnumPtrRecord(NetInterface *interface,
 
    //Sanity check
    if((message->length + n) > MDNS_MESSAGE_MAX_SIZE)
+   {
       return ERROR_MESSAGE_TOO_LONG;
+   }
 
    //The second pass encodes the service name using DNS notation
    n = mdnsEncodeName("", service->serviceName, ".local", p);
@@ -908,7 +967,9 @@ error_t dnsSdResponderFormatServiceEnumPtrRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the service name using the DNS name notation
       offset += mdnsEncodeName("", "_services._dns-sd._udp", ".local",
@@ -916,7 +977,9 @@ error_t dnsSdResponderFormatServiceEnumPtrRecord(NetInterface *interface,
 
       //Consider the length of the resource record itself
       if((offset + sizeof(DnsResourceRecord)) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -934,7 +997,9 @@ error_t dnsSdResponderFormatServiceEnumPtrRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the service name using DNS notation
       n = mdnsEncodeName("", service->serviceName, ".local", record->rdata);
@@ -981,7 +1046,9 @@ error_t dnsSdResponderFormatPtrRecord(NetInterface *interface,
 
    //Sanity check
    if((message->length + n) > MDNS_MESSAGE_MAX_SIZE)
+   {
       return ERROR_MESSAGE_TOO_LONG;
+   }
 
    //The second pass encodes the instance name using DNS notation
    n = mdnsEncodeName(service->instanceName, service->serviceName, ".local", p);
@@ -1000,14 +1067,18 @@ error_t dnsSdResponderFormatPtrRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the service name using the DNS name notation
       offset += mdnsEncodeName("", service->serviceName, ".local", p);
 
       //Consider the length of the resource record itself
       if((offset + sizeof(DnsResourceRecord)) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -1026,7 +1097,9 @@ error_t dnsSdResponderFormatPtrRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the instance name using DNS notation
       n = mdnsEncodeName(service->instanceName, service->serviceName, ".local",
@@ -1087,7 +1160,9 @@ error_t dnsSdResponderFormatSrvRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the instance name using DNS notation
       offset += mdnsEncodeName(service->instanceName, service->serviceName,
@@ -1095,7 +1170,9 @@ error_t dnsSdResponderFormatSrvRecord(NetInterface *interface,
 
       //Consider the length of the resource record itself
       if((offset + sizeof(DnsSrvResourceRecord)) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = (DnsSrvResourceRecord *) DNS_GET_RESOURCE_RECORD(message->dnsHeader,
@@ -1123,7 +1200,9 @@ error_t dnsSdResponderFormatSrvRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the target name using DNS notation
       n = mdnsEncodeName("", mdnsResponderContext->hostname, ".local",
@@ -1181,7 +1260,9 @@ error_t dnsSdResponderFormatTxtRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the instance name using DNS notation
       offset += mdnsEncodeName(service->instanceName, service->serviceName,
@@ -1189,7 +1270,9 @@ error_t dnsSdResponderFormatTxtRecord(NetInterface *interface,
 
       //Consider the length of the resource record itself
       if((offset + sizeof(DnsResourceRecord)) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -1211,7 +1294,9 @@ error_t dnsSdResponderFormatTxtRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + service->metadataLen) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Copy metadata
       osMemcpy(record->rdata, service->metadata, service->metadataLen);
@@ -1284,7 +1369,9 @@ error_t dnsSdResponderFormatNsecRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The second pass encodes the instance name using the DNS name notation
       offset += mdnsEncodeName(service->instanceName, service->serviceName,
@@ -1292,7 +1379,9 @@ error_t dnsSdResponderFormatNsecRecord(NetInterface *interface,
 
       //Consider the length of the resource record itself
       if((offset + sizeof(DnsResourceRecord)) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //Point to the corresponding resource record
       record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, offset);
@@ -1313,7 +1402,9 @@ error_t dnsSdResponderFormatNsecRecord(NetInterface *interface,
 
       //Check the length of the resulting mDNS message
       if((offset + n + 2) > MDNS_MESSAGE_MAX_SIZE)
+      {
          return ERROR_MESSAGE_TOO_LONG;
+      }
 
       //The Next Domain Name field contains the record's own name
       mdnsEncodeName(service->instanceName, service->serviceName,
@@ -1370,7 +1461,9 @@ DnsResourceRecord *dnsSdResponderGetNextTiebreakerRecord(
       n = dnsParseName(query->dnsHeader, query->length, offset, 0);
       //Invalid name?
       if(n == 0)
+      {
          break;
+      }
 
       //Point to the associated resource record
       curRecord = DNS_GET_RESOURCE_RECORD(query->dnsHeader, n);
@@ -1379,9 +1472,14 @@ DnsResourceRecord *dnsSdResponderGetNextTiebreakerRecord(
 
       //Make sure the resource record is valid
       if(n > query->length)
+      {
          break;
+      }
+
       if((n + ntohs(curRecord->rdlength)) > query->length)
+      {
          break;
+      }
 
       //Matching host name?
       if(!mdnsCompareName(query->dnsHeader, query->length, offset,

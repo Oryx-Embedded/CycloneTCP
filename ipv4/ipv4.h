@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _IPV4_H
@@ -170,6 +170,10 @@ struct _Ipv4PseudoHeader;
 //Compare IPv4 addresses
 #define ipv4CompAddr(ipAddr1, ipAddr2) \
    (!osMemcmp(ipAddr1, ipAddr2, sizeof(Ipv4Addr)))
+
+//Determine whether two IPv4 addresses belong to the same subnet
+#define ipv4CompSubnet(ipAddr1, ipAddr2, subnetMask) \
+   (((ipAddr1) & (subnetMask)) == ((ipAddr2) & (subnetMask)))
 
 //Determine whether an IPv4 address belongs to the subnet
 #define ipv4IsOnSubnet(entry, ipAddr) \

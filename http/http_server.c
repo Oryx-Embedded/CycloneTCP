@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -137,7 +137,9 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 
    //Ensure the parameters are valid
    if(context == NULL || settings == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check settings
    if(settings->connections == NULL || settings->maxConnections < 1 ||
@@ -174,7 +176,9 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 
    //Create a semaphore to limit the number of simultaneous connections
    if(!osCreateSemaphore(&context->semaphore, context->settings.maxConnections))
+   {
       return ERROR_OUT_OF_RESOURCES;
+   }
 
    //Loop through client connections
    for(i = 0; i < context->settings.maxConnections; i++)
@@ -191,7 +195,9 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 
       //Create an event object to manage connection lifetime
       if(!osCreateEvent(&connection->startEvent))
+      {
          return ERROR_OUT_OF_RESOURCES;
+      }
    }
 
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
@@ -199,13 +205,17 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
    error = tlsInitTicketContext(&context->tlsTicketContext);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
    //Create a mutex to prevent simultaneous access to the nonce cache
    if(!osCreateMutex(&context->nonceCacheMutex))
+   {
       return ERROR_OUT_OF_RESOURCES;
+   }
 #endif
 
    //Open a TCP socket
@@ -213,31 +223,41 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
       SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(context->socket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Set timeout for blocking functions
    error = socketSetTimeout(context->socket, INFINITE_DELAY);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Associate the socket with the relevant interface
    error = socketBindToInterface(context->socket, settings->interface);
    //Unable to bind the socket to the desired interface?
    if(error)
+   {
       return error;
+   }
 
    //Bind newly created socket to port 80
    error = socketBind(context->socket, &settings->ipAddr, settings->port);
    //Failed to bind socket to port 80?
    if(error)
+   {
       return error;
+   }
 
    //Place socket in listening state
    error = socketListen(context->socket, settings->backlog);
    //Any failure to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful initialization
    return NO_ERROR;
@@ -257,7 +277,9 @@ error_t httpServerStart(HttpServerContext *context)
 
    //Make sure the HTTP server context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Starting HTTP server...\r\n");
@@ -274,7 +296,9 @@ error_t httpServerStart(HttpServerContext *context)
 
       //Unable to create the task?
       if(connection->taskId == OS_INVALID_TASK_ID)
+      {
          return ERROR_OUT_OF_RESOURCES;
+      }
    }
 
    //Create a task
@@ -283,7 +307,9 @@ error_t httpServerStart(HttpServerContext *context)
 
    //Unable to create the task?
    if(context->taskId == OS_INVALID_TASK_ID)
+   {
       return ERROR_OUT_OF_RESOURCES;
+   }
 
    //The HTTP server has successfully started
    return NO_ERROR;
@@ -423,27 +449,35 @@ void httpConnectionTask(void *param)
                TLS_CONNECTION_END_SERVER);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //Bind TLS to the relevant socket
             error = tlsSetSocket(connection->tlsContext, connection->socket);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
 #if (TLS_TICKET_SUPPORT == ENABLED)
             //Enable session ticket mechanism
             error = tlsEnableSessionTickets(connection->tlsContext, TRUE);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //Register ticket encryption/decryption callbacks
             error = tlsSetTicketCallbacks(connection->tlsContext, tlsEncryptTicket,
                tlsDecryptTicket, &connection->serverContext->tlsTicketContext);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 #endif
             //Invoke user-defined callback, if any
             if(connection->settings->tlsInitCallback != NULL)
@@ -453,14 +487,18 @@ void httpConnectionTask(void *param)
                   connection->tlsContext);
                //Any error to report?
                if(error)
+               {
                   break;
+               }
             }
 
             //Establish a secure session
             error = tlsConnect(connection->tlsContext);
             //Any error to report?
             if(error)
+            {
                break;
+            }
 
             //End of exception handling block
          } while(0);
@@ -745,7 +783,9 @@ error_t httpReadStream(HttpConnection *connection,
       {
          //End of HTTP request body?
          if(connection->request.lastChunk)
+         {
             return ERROR_END_OF_STREAM;
+         }
 
          //Acquire a new chunk when the current chunk
          //has been completely consumed
@@ -755,7 +795,9 @@ error_t httpReadStream(HttpConnection *connection,
             error = httpReadChunkSize(connection);
             //Failed to decode the chunk-size field?
             if(error)
+            {
                return error;
+            }
 
             //Any chunk whose size is zero terminates the data transfer
             if(!connection->request.byteCount)
@@ -772,7 +814,9 @@ error_t httpReadStream(HttpConnection *connection,
          error = httpReceive(connection, p, n, &n, flags);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Total number of data that have been read
          *received += n;
@@ -785,7 +829,9 @@ error_t httpReadStream(HttpConnection *connection,
          {
             //Check whether a break character has been received
             if(p[n - 1] == LSB(flags))
+            {
                break;
+            }
          }
          //The HTTP_FLAG_WAIT_ALL flag causes the function to return
          //only when the requested number of bytes have been read
@@ -803,7 +849,9 @@ error_t httpReadStream(HttpConnection *connection,
    {
       //Return immediately if the end of the request body has been reached
       if(!connection->request.byteCount)
+      {
          return ERROR_END_OF_STREAM;
+      }
 
       //Limit the number of bytes to read
       n = MIN(size, connection->request.byteCount);
@@ -812,7 +860,9 @@ error_t httpReadStream(HttpConnection *connection,
       error = httpReceive(connection, data, n, received, flags);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Decrement the count of remaining bytes to read
       connection->request.byteCount -= *received;
@@ -853,13 +903,17 @@ error_t httpWriteStream(HttpConnection *connection,
          error = httpSend(connection, s, n, HTTP_FLAG_DELAY);
          //Failed to send data?
          if(error)
+         {
             return error;
+         }
 
          //Send the chunk-data
          error = httpSend(connection, data, length, HTTP_FLAG_DELAY);
          //Failed to send data?
          if(error)
+         {
             return error;
+         }
 
          //Terminate the chunk-data by CRLF
          error = httpSend(connection, "\r\n", 2, HTTP_FLAG_DELAY);
@@ -972,7 +1026,9 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
          error = fsGetFileSize(connection->buffer, &length);
          //The specified URI cannot be found?
          if(error)
+         {
             return ERROR_NOT_FOUND;
+         }
       }
    }
    else
@@ -982,14 +1038,18 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
       error = fsGetFileSize(connection->buffer, &length);
       //The specified URI cannot be found?
       if(error)
+      {
          return ERROR_NOT_FOUND;
+      }
    }
 
    //Open the file for reading
    file = fsOpenFile(connection->buffer, FS_FILE_MODE_READ);
    //Failed to open the file?
    if(file == NULL)
+   {
       return ERROR_NOT_FOUND;
+   }
 #else
    error_t error;
    size_t length;
@@ -1037,7 +1097,9 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
          error = resGetData(connection->buffer, &data, &length);
          //The specified URI cannot be found?
          if(error)
+         {
             return error;
+         }
       }
    }
    else
@@ -1047,7 +1109,9 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
       error = resGetData(connection->buffer, &data, &length);
       //The specified URI cannot be found?
       if(error)
+      {
          return error;
+      }
    }
 #endif
 
@@ -1081,13 +1145,17 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
       error = fsReadFile(file, connection->buffer, n, &n);
       //End of input stream?
       if(error)
+      {
          break;
+      }
 
       //Send data to the client
       error = httpWriteStream(connection, connection->buffer, n);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Decrement the count of remaining bytes to be transferred
       length -= n;
@@ -1110,7 +1178,9 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
    error = httpWriteStream(connection, data, length);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Properly close output stream
    error = httpCloseStream(connection);
@@ -1169,7 +1239,9 @@ error_t httpSendErrorResponse(HttpConnection *connection,
    error = httpWriteHeader(connection);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format HTML response
    osSprintf(connection->buffer, template, statusCode, statusCode, message);
@@ -1178,7 +1250,9 @@ error_t httpSendErrorResponse(HttpConnection *connection,
    error = httpWriteStream(connection, connection->buffer, length);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Properly close output stream
    error = httpCloseStream(connection);
@@ -1236,7 +1310,9 @@ error_t httpSendRedirectResponse(HttpConnection *connection,
    error = httpWriteHeader(connection);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format HTML response
    osSprintf(connection->buffer, template, uri, uri);
@@ -1245,7 +1321,9 @@ error_t httpSendRedirectResponse(HttpConnection *connection,
    error = httpWriteStream(connection, connection->buffer, length);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Properly close output stream
    error = httpCloseStream(connection);
@@ -1269,30 +1347,40 @@ bool_t httpCheckWebSocketHandshake(HttpConnection *connection)
    //The request must contain an Upgrade header field whose value
    //must include the "websocket" keyword
    if(!connection->request.upgradeWebSocket)
+   {
       return FALSE;
+   }
 
    //The request must contain a Connection header field whose value
    //must include the "Upgrade" token
    if(!connection->request.connectionUpgrade)
+   {
       return FALSE;
+   }
 
    //Retrieve the length of the client's key
    n = osStrlen(connection->request.clientKey);
 
    //The request must include a header field with the name Sec-WebSocket-Key
    if(n == 0)
+   {
       return FALSE;
+   }
 
    //The value of the Sec-WebSocket-Key header field must be a 16-byte
    //value that has been Base64-encoded
    error = base64Decode(connection->request.clientKey, n, connection->buffer, &n);
    //Decoding failed?
    if(error)
+   {
       return FALSE;
+   }
 
    //Check the length of the resulting value
    if(n != 16)
+   {
       return FALSE;
+   }
 
    //The client's handshake is valid
    return TRUE;

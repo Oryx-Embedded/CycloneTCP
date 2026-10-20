@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -215,27 +215,37 @@ error_t snmpMibGetSysOREntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > SNMP_AGENT_MAX_MIBS)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the SNMP agent context
    context = (SnmpAgentContext *) snmpMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the MIB
    mibModule = context->mibTable[index - 1];
    //Make sure the MIB is properly loaded
    if(mibModule == NULL)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //sysORID object?
    if(osStrcmp(object->name, "sysORID") == 0)
@@ -314,11 +324,15 @@ error_t snmpMibGetNextSysOREntry(const MibObject *object, const uint8_t *oid,
    context = (SnmpAgentContext *) snmpMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -336,7 +350,9 @@ error_t snmpMibGetNextSysOREntry(const MibObject *object, const uint8_t *oid,
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -396,11 +412,15 @@ error_t snmpv2MibGetSnmpTrapEnterprise(const MibObject *object, const uint8_t *o
    context = (SnmpAgentContext *) snmpMibBase.context;
    //Sanity check
    if(context == NULL)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Make sure the buffer is large enough to hold the enterprise OID
    if(*valueLen < context->enterpriseOidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy enterprise OID
    osMemcpy(value->octetString, context->enterpriseOid,

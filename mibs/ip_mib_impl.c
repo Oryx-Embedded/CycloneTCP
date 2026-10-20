@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -152,15 +152,21 @@ error_t ipMibGetIpv4InterfaceEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //ipv4InterfaceReasmMaxSize object?
@@ -217,7 +223,9 @@ error_t ipMibGetNextIpv4InterfaceEntry(const MibObject *object, const uint8_t *o
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -232,7 +240,9 @@ error_t ipMibGetNextIpv4InterfaceEntry(const MibObject *object, const uint8_t *o
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
@@ -300,15 +310,21 @@ error_t ipMibGetIpv6InterfaceEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the underlying interface
    interface = &context->interfaces[index - 1];
@@ -411,7 +427,9 @@ error_t ipMibGetNextIpv6InterfaceEntry(const MibObject *object, const uint8_t *o
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -426,7 +444,9 @@ error_t ipMibGetNextIpv6InterfaceEntry(const MibObject *object, const uint8_t *o
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
@@ -474,11 +494,15 @@ error_t ipMibGetIpSystemStatsEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &version);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
 #if (IPV4_SUPPORT == ENABLED && IPV4_STATS_SUPPORT == ENABLED)
    //IPv4 version?
@@ -768,7 +792,9 @@ error_t ipMibGetNextIpSystemStatsEntry(const MibObject *object, const uint8_t *o
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -800,7 +826,9 @@ error_t ipMibGetNextIpSystemStatsEntry(const MibObject *object, const uint8_t *o
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, version);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
@@ -849,21 +877,29 @@ error_t ipMibGetIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &version);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ipIfStatsIfIndex is used as 2nd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
 #if (IPV4_SUPPORT == ENABLED && IPV4_STATS_SUPPORT == ENABLED)
    //IPv4 version?
@@ -1153,7 +1189,9 @@ error_t ipMibGetNextIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -1188,13 +1226,17 @@ error_t ipMibGetNextIpIfStatsEntry(const MibObject *object, const uint8_t *oid,
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, version);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //ipIfStatsIfIndex is used as 2nd instance identifier
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -1246,28 +1288,38 @@ error_t ipMibGetIpAddressPrefixEntry(const MibObject *object, const uint8_t *oid
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ipAddressPrefixType and ipAddressPrefixPrefix are used as
    //2nd and 3rd instance identifiers
    error = mibDecodeIpAddr(oid, oidLen, &n, &prefix);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ipAddressPrefixLength is used as 4th instance identifier
    error = mibDecodeUnsigned32(oid, oidLen, &n, &prefixLen);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the underlying interface
    interface = &context->interfaces[index - 1];
@@ -1512,7 +1564,9 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -1548,20 +1602,26 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
             error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //ipAddressPrefixType and ipAddressPrefixPrefix are used as
             //2nd and 3rd instance identifiers
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curPrefix);
             //Invalid instance identifier?
             if(error)
+            {
                return error;
+            }
 
             //ipAddressPrefixLength is used as 4th instance identifier
             error = mibEncodeUnsigned32(nextOid, *nextOidLen, &n, curLength);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -1641,20 +1701,26 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
             error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //ipAddressPrefixType and ipAddressPrefixPrefix are used as
             //2nd and 3rd instance identifiers
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curPrefix);
             //Invalid instance identifier?
             if(error)
+            {
                return error;
+            }
 
             //ipAddressPrefixLength is used as 4th instance identifier
             error = mibEncodeUnsigned32(nextOid, *nextOidLen, &n, curLength);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -1707,7 +1773,9 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(index == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -1716,20 +1784,26 @@ error_t ipMibGetNextIpAddressPrefixEntry(const MibObject *object, const uint8_t 
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //ipAddressPrefixType and ipAddressPrefixPrefix are used as
    //2nd and 3rd instance identifiers
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &prefix);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ipAddressPrefixLength is used as 4th instance identifier
    error = mibEncodeUnsigned32(nextOid, *nextOidLen, &n, length);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -1831,11 +1905,15 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIpAddr(oid, oidLen, &n, &ipAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
@@ -1866,7 +1944,9 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
 
          //IPv4 address found?
          if(i < IPV4_ADDR_LIST_SIZE)
+         {
             break;
+         }
       }
 
       //IPv4 address found?
@@ -1905,7 +1985,9 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
 
             //Make sure the buffer is large enough to hold the OID prefix
             if(*valueLen < n)
+            {
                return ERROR_BUFFER_OVERFLOW;
+            }
 
             //Copy OID prefix
             osMemcpy(value->oid, ipAddressPrefixOriginOid, n);
@@ -1914,20 +1996,26 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
             error = mibEncodeIndex(value->oid, *valueLen, &n, index);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //ipAddressPrefixType and ipAddressPrefixPrefix are used as
             //2nd and 3rd instance identifiers
             error = mibEncodeIpAddr(value->oid, *valueLen, &n, &prefix);
             //Invalid instance identifier?
             if(error)
+            {
                return error;
+            }
 
             //ipAddressPrefixLength is used as 4th instance identifier
             error = mibEncodeUnsigned32(value->oid, *valueLen, &n, length);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Return object length
             *valueLen = n;
@@ -2046,7 +2134,9 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
 
          //IPv6 address found?
          if(i < IPV6_ADDR_LIST_SIZE)
+         {
             break;
+         }
       }
 
       //IPv6 address found?
@@ -2073,7 +2163,9 @@ error_t ipMibGetIpAddressEntry(const MibObject *object, const uint8_t *oid,
 
             //Make sure the buffer is large enough to hold the OID prefix
             if(*valueLen < sizeof(unknownOid))
+            {
                return ERROR_BUFFER_OVERFLOW;
+            }
 
             //Copy OID prefix
             osMemcpy(value->oid, unknownOid, sizeof(unknownOid));
@@ -2188,7 +2280,9 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -2222,7 +2316,9 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -2245,7 +2341,9 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order
                if(acceptable)
+               {
                   ipAddr = curIpAddr;
+               }
             }
          }
       }
@@ -2281,7 +2379,9 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -2304,7 +2404,9 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
                //Save the closest object identifier that follows the specified
                //OID in lexicographic order
                if(acceptable)
+               {
                   ipAddr = curIpAddr;
+               }
             }
          }
       }
@@ -2314,7 +2416,9 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(ipAddr.length == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -2323,7 +2427,9 @@ error_t ipMibGetNextIpAddressEntry(const MibObject *object, const uint8_t *oid,
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &ipAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -2382,22 +2488,30 @@ error_t ipMibGetIpNetToPhysicalEntry(const MibObject *object, const uint8_t *oid
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ipNetToPhysicalNetAddressType and ipNetToPhysicalNetAddress are
    //used as 2nd and 3rd instance identifiers
    error = mibDecodeIpAddr(oid, oidLen, &n, &ipAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the network interface
    interface = &context->interfaces[index - 1];
@@ -2607,7 +2721,9 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -2647,14 +2763,18 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
             error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //ipNetToPhysicalNetAddressType and ipNetToPhysicalNetAddress are
             //used as 2nd and 3rd instance identifiers
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -2717,14 +2837,18 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
             error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //ipNetToPhysicalNetAddressType and ipNetToPhysicalNetAddress are
             //used as 2nd and 3rd instance identifiers
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -2768,7 +2892,9 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(index == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -2777,14 +2903,18 @@ error_t ipMibGetNextIpNetToPhysicalEntry(const MibObject *object, const uint8_t 
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //ipNetToPhysicalNetAddressType and ipNetToPhysicalNetAddress are
    //used as 2nd and 3rd instance identifiers
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &ipAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -2821,15 +2951,21 @@ error_t ipMibGetIpv6ScopeZoneIndexEntry(const MibObject *object, const uint8_t *
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //ipv6ScopeZoneIndexLinkLocal object?
    if(osStrcmp(object->name, "ipv6ScopeZoneIndexLinkLocal") == 0)
@@ -2925,7 +3061,9 @@ error_t ipMibGetNextIpv6ScopeZoneIndexEntry(const MibObject *object, const uint8
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -2940,7 +3078,9 @@ error_t ipMibGetNextIpv6ScopeZoneIndexEntry(const MibObject *object, const uint8
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
@@ -2991,21 +3131,29 @@ error_t ipMibGetIpDefaultRouterEntry(const MibObject *object, const uint8_t *oid
    error = mibDecodeIpAddr(oid, oidLen, &n, &ipAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //ipDefaultRouterIfIndex is used as 3rd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the network interface
    interface = &context->interfaces[index - 1];
@@ -3179,7 +3327,9 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -3215,13 +3365,17 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //ipDefaultRouterIfIndex is used as 3rd instance identifier
             error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -3292,13 +3446,17 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
             error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &curIpAddr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //ipDefaultRouterIfIndex is used as 3rd instance identifier
             error = mibEncodeIndex(nextOid, *nextOidLen, &n, curIndex);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -3342,7 +3500,9 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(index == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -3352,13 +3512,17 @@ error_t ipMibGetNextIpDefaultRouterEntry(const MibObject *object, const uint8_t 
    error = mibEncodeIpAddr(nextOid, *nextOidLen, &n, &ipAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //ipDefaultRouterIfIndex is used as 3rd instance identifier
    error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;
@@ -3470,15 +3634,21 @@ error_t ipMibGetIpv6RouterAdvertEntry(const MibObject *object, const uint8_t *oi
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the RA service context
    routerAdvContext = context->interfaces[index - 1].ndpRouterAdvContext;
@@ -3630,7 +3800,9 @@ error_t ipMibGetNextIpv6RouterAdvertEntry(const MibObject *object, const uint8_t
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -3648,7 +3820,9 @@ error_t ipMibGetNextIpv6RouterAdvertEntry(const MibObject *object, const uint8_t
          error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -3698,11 +3872,15 @@ error_t ipMibGetIcmpStatsEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &version);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
 #if (IPV4_SUPPORT == ENABLED && ICMP_STATS_SUPPORT == ENABLED)
    //IPv4 version?
@@ -3787,7 +3965,9 @@ error_t ipMibGetNextIcmpStatsEntry(const MibObject *object, const uint8_t *oid,
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -3819,7 +3999,9 @@ error_t ipMibGetNextIcmpStatsEntry(const MibObject *object, const uint8_t *oid,
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, version);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
@@ -3868,21 +4050,29 @@ error_t ipMibGetIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &version);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //icmpMsgStatsType is used as 2nd instance identifier
    error = mibDecodeIndex(oid, oidLen, &n, &type);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check icmpMsgStatsType value
    if(type >= 256)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
 #if (IPV4_SUPPORT == ENABLED && ICMP_STATS_SUPPORT == ENABLED)
    //IPv4 version?
@@ -3963,7 +4153,9 @@ error_t ipMibGetNextIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oi
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -4012,13 +4204,17 @@ error_t ipMibGetNextIcmpMsgStatsEntry(const MibObject *object, const uint8_t *oi
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, version);
                //Any error to report?
                if(error)
+               {
                   return error;
+               }
 
                //icmpMsgStatsType is used as 2nd instance identifier
                error = mibEncodeIndex(nextOid, *nextOidLen, &n, type);
                //Any error to report?
                if(error)
+               {
                   return error;
+               }
 
                //Check whether the resulting object identifier lexicographically
                //follows the specified OID

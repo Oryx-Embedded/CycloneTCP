@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -2431,10 +2431,14 @@ int_t setipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr grou
 #if (SOCKET_MAX_MULTICAST_SOURCES > 0)
    error_t error;
    uint_t i;
+   NetContext *context;
    Socket *sock;
    IpFilterMode filterMode;
    IpAddr groupAddr;
    IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2443,7 +2447,7 @@ int_t setipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr grou
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Copy group address
    groupAddr.length = sizeof(Ipv4Addr);
@@ -2533,10 +2537,14 @@ int_t getipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr grou
    error_t error;
    uint_t i;
    uint_t numSources;
+   NetContext *context;
    Socket *sock;
    IpFilterMode filterMode;
    IpAddr groupAddr;
    IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2545,7 +2553,7 @@ int_t getipv4sourcefilter(int_t s, struct in_addr interface, struct in_addr grou
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Check parameters
    if(fmode == NULL || numsrc == NULL)
@@ -2628,10 +2636,14 @@ int_t setsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
 #if (SOCKET_MAX_MULTICAST_SOURCES > 0)
    error_t error;
    uint_t i;
+   NetContext *context;
    Socket *sock;
    IpFilterMode filterMode;
    IpAddr groupAddr;
    IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2640,7 +2652,7 @@ int_t setsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 group address?
@@ -2795,10 +2807,14 @@ int_t getsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
    error_t error;
    uint_t i;
    uint_t numSources;
+   NetContext *context;
    Socket *sock;
    IpFilterMode filterMode;
    IpAddr groupAddr;
    IpAddr sources[SOCKET_MAX_MULTICAST_SOURCES];
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Make sure the socket descriptor is valid
    if(s < 0 || s >= SOCKET_MAX_COUNT)
@@ -2807,7 +2823,7 @@ int_t getsourcefilter(int_t s, uint32_t interface, struct sockaddr *group,
    }
 
    //Point to the socket structure
-   sock = &socketTable[s];
+   sock = &context->socketTable[s];
 
    //Check parameters
    if(fmode == NULL || numsrc == NULL)
@@ -3537,7 +3553,9 @@ int_t getaddrinfo(const char_t *node, const char_t *service,
 
    //Check whether both node and service name are NULL
    if(node == NULL && service == NULL)
+   {
       return EAI_NONAME;
+   }
 
    //The hints argument is optional
    if(hints != NULL)
@@ -3799,7 +3817,9 @@ int_t getnameinfo(const struct sockaddr *addr, socklen_t addrlen,
 
    //At least one of host name or service name must be requested
    if(host == NULL && serv == NULL)
+   {
       return EAI_NONAME;
+   }
 
 #if (IPV4_SUPPORT == ENABLED)
    //IPv4 address?
@@ -3817,7 +3837,9 @@ int_t getnameinfo(const struct sockaddr *addr, socklen_t addrlen,
       {
          //Make sure the buffer is large enough to hold the host name
          if(hostlen < 16)
+         {
             return EAI_OVERFLOW;
+         }
 
          //Copy the binary representation of the IPv4 address
          ipv4CopyAddr(&ipv4Addr, &sa->sin_addr.s_addr);
@@ -3846,7 +3868,9 @@ int_t getnameinfo(const struct sockaddr *addr, socklen_t addrlen,
       {
          //Make sure the buffer is large enough to hold the host name
          if(hostlen < 40)
+         {
             return EAI_OVERFLOW;
+         }
 
          //Copy the binary representation of the IPv6 address
          ipv6CopyAddr(&ipv6Addr, sa->sin6_addr.s6_addr);
@@ -3871,7 +3895,9 @@ int_t getnameinfo(const struct sockaddr *addr, socklen_t addrlen,
    {
       //Make sure the buffer is large enough to hold the service name
       if(servlen < 6)
+      {
          return EAI_OVERFLOW;
+      }
 
       //Convert the port number to string representation
       osSprintf(serv, "%" PRIu16, ntohs(port));

@@ -33,7 +33,7 @@
  * - RFC 6763: DNS-Based Service Discovery
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -75,7 +75,9 @@ error_t mdnsInit(NetInterface *interface)
    error = ipv4JoinMulticastGroup(interface, MDNS_IPV4_MULTICAST_ADDR);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
 #if (IPV6_SUPPORT == ENABLED)
@@ -83,7 +85,9 @@ error_t mdnsInit(NetInterface *interface)
    error = ipv6JoinMulticastGroup(interface, &MDNS_IPV6_MULTICAST_ADDR);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Callback function to be called when a mDNS message is received
@@ -91,7 +95,9 @@ error_t mdnsInit(NetInterface *interface)
       NULL);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful initialization
    return NO_ERROR;
@@ -124,13 +130,17 @@ void mdnsProcessMessage(NetInterface *interface,
 
    //Malformed mDNS message?
    if(length < sizeof(DnsHeader))
+   {
       return;
+   }
 
    //Point to the mDNS message header
    dnsHeader = netBufferAt(buffer, offset, length);
    //Malformed mDNS message?
    if(dnsHeader == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("mDNS message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -140,12 +150,16 @@ void mdnsProcessMessage(NetInterface *interface,
    //mDNS messages received with an opcode other than zero must be silently
    //ignored
    if(dnsHeader->opcode != DNS_OPCODE_QUERY)
+   {
       return;
+   }
 
    //mDNS messages received with non-zero response codes must be silently
    //ignored
    if(dnsHeader->rcode != DNS_RCODE_NOERROR)
+   {
       return;
+   }
 
    //Save mDNS message
    message.buffer = (NetBuffer *) buffer;
@@ -188,12 +202,16 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
 
    //Source address check (refer to RFC 6762, section 11)
    if(!mdnsCheckSourceAddr(interface, response->pseudoHeader))
+   {
       return;
+   }
 
    //mDNS implementations must silently ignore any mDNS responses they
    //receive where the source UDP port is not 5353
    if(ntohs(response->udpHeader->srcPort) != MDNS_PORT)
+   {
       return;
+   }
 
    //Point to the question section
    offset = sizeof(DnsHeader);
@@ -206,18 +224,24 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
       offset = dnsParseName(response->dnsHeader, response->length, offset, 0);
       //Invalid name?
       if(!offset)
+      {
          break;
+      }
 
       //Point to the next question
       offset += sizeof(DnsQuestion);
       //Make sure the mDNS message is valid
       if(offset > response->length)
+      {
          break;
+      }
    }
 
    //Malformed mDNS message?
    if(i != ntohs(response->dnsHeader->qdcount))
+   {
       return;
+   }
 
    //Compute the total number of resource records
    k = ntohs(response->dnsHeader->ancount) +
@@ -231,7 +255,9 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
       n = dnsParseName(response->dnsHeader, response->length, offset, 0);
       //Invalid name?
       if(n == 0)
+      {
          break;
+      }
 
       //Point to the associated resource record
       record = DNS_GET_RESOURCE_RECORD(response->dnsHeader, n);
@@ -240,9 +266,14 @@ void mdnsProcessResponse(NetInterface *interface, MdnsMessage *response)
 
       //Make sure the resource record is valid
       if(n > response->length)
+      {
          break;
+      }
+
       if((n + ntohs(record->rdlength)) > response->length)
+      {
          break;
+      }
 
 #if (MDNS_CLIENT_SUPPORT == ENABLED)
       //Parse the resource record
@@ -284,16 +315,16 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
       //Perform source address check (refer to RFC 6762, section 11)
       if(pseudoHeader->ipv4Data.destAddr == MDNS_IPV4_MULTICAST_ADDR)
       {
-         //All responses received with the destination address 224.0.0.251
-         //are necessarily deemed to have originated on the local link,
-         //regardless of source IP address
+         //All packets received with the destination address 224.0.0.251 are
+         //necessarily deemed to have originated on the local link, regardless
+         //of source IP address
          valid = TRUE;
       }
       else if(ipv4IsLinkLocalAddr(pseudoHeader->ipv4Data.srcAddr) ||
          ipv4IsLinkLocalAddr(pseudoHeader->ipv4Data.destAddr))
       {
-         //Packets with a link-local source or destination address
-         //originate from the local link
+         //Packets with a link-local source or destination address originate
+         //from the local link
          valid = TRUE;
       }
       else if(ipv4IsOnLink(interface, pseudoHeader->ipv4Data.srcAddr))
@@ -303,8 +334,8 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
       }
       else
       {
-         //Only accept responses that originate from the local link, and
-         //silently discard any other response packets
+         //Only accept packets that originate from the local link, and silently
+         //discard any other packets
          valid = FALSE;
       }
    }
@@ -317,9 +348,9 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
       //Perform source address check (refer to RFC 6762, section 11)
       if(ipv6CompAddr(&pseudoHeader->ipv6Data.destAddr, &MDNS_IPV6_MULTICAST_ADDR))
       {
-         //All responses received with the destination address ff02::fb
-         //are necessarily deemed to have originated on the local link,
-         //regardless of source IP address
+         //All packets received with the destination address ff02::fb are
+         //necessarily deemed to have originated on the local link, regardless
+         //of source IP address
          valid = TRUE;
       }
       else if(ipv6IsOnLink(interface, &pseudoHeader->ipv6Data.srcAddr))
@@ -329,8 +360,8 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
       }
       else
       {
-         //Only accept responses that originate from the local link, and
-         //silently discard any other response packets
+         //Only accept packets that originate from the local link, and silently
+         //discard any other packets
          valid = FALSE;
       }
    }
@@ -338,7 +369,7 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
 #endif
    //Invalid packet received?
    {
-      //Discard the response packet
+      //Discard the packet
       valid = FALSE;
    }
 
@@ -350,7 +381,8 @@ bool_t mdnsCheckSourceAddr(NetInterface *interface,
 /**
  * @brief Create an empty mDNS message
  * @param[in,out] message Newly created mDNS message
- * @param[in] queryResponse This flag specifies whether the message is a query or a response
+ * @param[in] queryResponse This flag specifies whether the message is a query
+ *   or a response
  * @return Error code
  **/
 
@@ -558,7 +590,9 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
 
       //Failed to encode instance name?
       if(n == 0)
+      {
          return 0;
+      }
 
       //Update the length of the encoded name
       length += n;
@@ -586,7 +620,9 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
 
       //Failed to encode instance name?
       if(n == 0)
+      {
          return 0;
+      }
 
       //Update the length of the encoded name
       length += n;
@@ -620,7 +656,9 @@ size_t mdnsEncodeName(const char_t *instance, const char_t *service,
 
       //Failed to encode instance name?
       if(n == 0)
+      {
          return 0;
+      }
 
       //Update the length of the encoded name
       length += n;
@@ -655,11 +693,15 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
    //Check parameters
    if(instance == NULL || service == NULL || domain == NULL)
+   {
       return -2;
+   }
 
    //Recursion limit exceeded?
    if(level >= DNS_NAME_MAX_RECURSION)
+   {
       return -2;
+   }
 
    //Cast the DNS message to byte array
    p = (uint8_t *) message;
@@ -683,16 +725,21 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
          //The domain name which still has remaining data is deemed
          //lexicographically later
          if(*instance != '\0' || *service != '\0' || *domain != '\0')
+         {
             return -1;
+         }
 
          //The domain names match each other
          return 0;
       }
+
       if(n >= DNS_COMPRESSION_TAG)
       {
          //Malformed DNS message?
          if((pos + 1) >= length)
+         {
             return -2;
+         }
 
          //Read the most significant byte of the pointer
          pointer = (p[pos] & ~DNS_COMPRESSION_TAG) << 8;
@@ -713,7 +760,15 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
 
          //Malformed DNS message?
          if((pos + n) > length)
+         {
             return -2;
+         }
+
+         //A label must not contain a NULL character
+         if(osMemchr(p + pos, '\0', n) != NULL)
+         {
+            return -2;
+         }
 
          //Compare current label
          if(*instance != '\0')
@@ -722,7 +777,9 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
             res = osStrncasecmp((char_t *) p + pos, instance, n);
             //Any mismatch?
             if(res)
+            {
                return res;
+            }
 
             //Advance data pointer
             instance += n;
@@ -730,7 +787,9 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
             //The instance name which still has remaining data is deemed
             //lexicographically later
             if(*instance != '\0' && *instance != '.')
+            {
                return -1;
+            }
 
             //Skip the separator character, if any
             if(*instance == '.')
@@ -744,7 +803,9 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
             res = osStrncasecmp((char_t *) p + pos, service, n);
             //Any mismatch?
             if(res)
+            {
                return res;
+            }
 
             //Advance data pointer
             service += n;
@@ -752,7 +813,9 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
             //The service name which still has remaining data is deemed
             //lexicographically later
             if(*service != '\0' && *service != '.')
+            {
                return -1;
+            }
 
             //Any separator in service name?
             if(*service == '.')
@@ -766,7 +829,9 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
             res = osStrncasecmp((char_t *) p + pos, domain, n);
             //Any mismatch?
             if(res)
+            {
                return res;
+            }
 
             //Advance data pointer
             domain += n;
@@ -774,7 +839,9 @@ int_t mdnsCompareName(const DnsHeader *message, size_t length, size_t pos,
             //The domain name which still has remaining data is deemed
             //lexicographically later
             if(*domain != '\0' && *domain != '.')
+            {
                return -1;
+            }
 
             //Any separator in domain name?
             if(*domain == '.')
@@ -947,13 +1014,17 @@ bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message,
       offset = dnsParseName(message->dnsHeader, message->length, offset, 0);
       //Invalid name?
       if(!offset)
+      {
          break;
+      }
 
       //Point to the next question
       offset += sizeof(DnsQuestion);
       //Make sure the mDNS message is valid
       if(offset > message->length)
+      {
          break;
+      }
    }
 
    //Successful processing?
@@ -970,7 +1041,9 @@ bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message,
          n = dnsParseName(message->dnsHeader, message->length, offset, 0);
          //Invalid name?
          if(n == 0)
+         {
             break;
+         }
 
          //Point to the associated resource record
          record = DNS_GET_RESOURCE_RECORD(message->dnsHeader, n);
@@ -979,9 +1052,14 @@ bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message,
 
          //Make sure the resource record is valid
          if(n > message->length)
+         {
             break;
+         }
+
          if((n + ntohs(record->rdlength)) > message->length)
+         {
             break;
+         }
 
          //Convert the record class to host byte order
          rclass = ntohs(record->rclass);
@@ -1000,7 +1078,7 @@ bool_t mdnsCheckDuplicateRecord(const MdnsMessage *message,
                {
                   //Compare resource record data
                   if(ntohs(record->rdlength) == rdlength &&
-                     !osMemcmp(record->rdata, rdata, rdlength))
+                     osMemcmp(record->rdata, rdata, rdlength) == 0)
                   {
                      //The resource record is already present in the Answer Section
                      duplicate = TRUE;

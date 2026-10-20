@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -389,7 +389,7 @@ void dhcpv6ClientStateConfirm(Dhcpv6ClientContext *context)
             //If the client receives no responses before the message transmission
             //process terminates, the client should continue to use any IP
             //addresses using the last known lifetimes for those addresses
-            dhcpv6ClientChangeState(context, DHCPV6_STATE_INIT, 0);
+            dhcpv6ClientChangeState(context, DHCPV6_STATE_BOUND, 0);
          }
       }
    }

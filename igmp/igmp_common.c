@@ -36,7 +36,7 @@
  * - RFC 9776: Internet Group Management Protocol, Version 3
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -78,14 +78,18 @@ error_t igmpInit(NetInterface *interface)
    error = ipv4JoinMulticastGroup(interface, IGMP_ALL_SYSTEMS_ADDR);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (IGMP_HOST_SUPPORT == ENABLED)
    //IGMP host initialization
    error = igmpHostInit(interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 #endif
 
    //Successful initialization
@@ -168,7 +172,9 @@ error_t igmpSendMessage(NetInterface *interface, Ipv4Addr destAddr,
    message = netBufferAt(buffer, offset, length);
    //Malformed IGMP message?
    if(message == NULL)
+   {
       return ERROR_FAILURE;
+   }
 
    //Select the source IPv4 address to use
    error = ipv4SelectSourceAddr(interface->netContext, &interface, destAddr,
@@ -300,13 +306,17 @@ void igmpProcessMessage(NetInterface *interface,
 
    //To be valid, an IGMP message must be at least 8 octets long
    if(length < sizeof(IgmpMessage))
+   {
       return;
+   }
 
    //Point to the beginning of the IGMP message
    message = netBufferAt(buffer, offset, length);
    //Malformed IGMP message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_INFO("IGMP message received (%" PRIuSIZE " bytes)...\r\n", length);
@@ -333,7 +343,9 @@ void igmpProcessMessage(NetInterface *interface,
 
    //All IGMP messages are sent with an IP TTL of 1
    if(ancillary->ttl != IGMP_TTL)
+   {
       return;
+   }
 
 #if (IGMP_HOST_SUPPORT == ENABLED)
    //Pass the message to the IGMP host

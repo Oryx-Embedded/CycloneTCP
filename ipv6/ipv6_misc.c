@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -124,15 +124,21 @@ error_t ipv6SetAddr(NetInterface *interface, uint_t index,
 
    //Check parameters
    if(interface == NULL || addr == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure that the index is valid
    if(index >= IPV6_ADDR_LIST_SIZE)
+   {
       return ERROR_OUT_OF_RANGE;
+   }
 
    //The IPv6 address must be a valid unicast address
    if(ipv6IsMulticastAddr(addr))
+   {
       return ERROR_INVALID_ADDRESS;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -423,7 +429,9 @@ void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
          {
             //Check whether the current entry matches the specified prefix
             if(ipv6CompPrefix(&entry->prefix, prefix, length))
+            {
                break;
+            }
          }
       }
       else
@@ -442,7 +450,9 @@ void ipv6AddPrefix(NetInterface *interface, const Ipv6Addr *prefix,
 
    //No matching entry found?
    if(i >= IPV6_PREFIX_LIST_SIZE)
+   {
       entry = firstFreeEntry;
+   }
 
    //Update the entry if necessary
    if(entry != NULL)
@@ -579,7 +589,9 @@ void ipv6AddDefaultRouter(NetInterface *interface, const Ipv6Addr *addr,
       {
          //Check whether the current entry matches the specified router address
          if(ipv6CompAddr(&entry->addr, addr))
+         {
             break;
+         }
       }
       else
       {
@@ -597,7 +609,9 @@ void ipv6AddDefaultRouter(NetInterface *interface, const Ipv6Addr *addr,
 
    //No matching entry found?
    if(i >= IPV6_ROUTER_LIST_SIZE)
+   {
       entry = firstFreeEntry;
+   }
 
    //Update the entry if necessary
    if(entry != NULL)
@@ -1231,7 +1245,9 @@ bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2,
 
    //Ensure the prefix length is valid
    if(length > 128)
+   {
       return FALSE;
+   }
 
    //Number of complete bytes
    n = length / 8;
@@ -1241,8 +1257,10 @@ bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2,
    //Compare the first part
    if(n > 0)
    {
-      if(osMemcmp(ipAddr1, ipAddr2, n))
+      if(osMemcmp(ipAddr1, ipAddr2, n) != 0)
+      {
          return FALSE;
+      }
    }
 
    //Compare the remaining bits, if any
@@ -1253,7 +1271,9 @@ bool_t ipv6CompPrefix(const Ipv6Addr *ipAddr1, const Ipv6Addr *ipAddr2,
 
       //Check remaining bits
       if((ipAddr1->b[n] & mask) != (ipAddr2->b[n] & mask))
+      {
          return FALSE;
+      }
    }
 
    //The prefixes match each other

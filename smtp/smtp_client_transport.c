@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -56,19 +56,25 @@ error_t smtpClientOpenConnection(SmtpClientContext *context)
       SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(context->socket == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Associate the socket with the relevant interface
    error = socketBindToInterface(context->socket, context->interface);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set timeout
    error = socketSetTimeout(context->socket, context->timeout);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -107,32 +113,42 @@ error_t smtpClientOpenSecureConnection(SmtpClientContext *context)
    context->tlsContext = tlsInit();
    //Failed to allocate TLS context?
    if(context->tlsContext == NULL)
+   {
       return ERROR_OPEN_FAILED;
+   }
 
    //Select client operation mode
    error = tlsSetConnectionEnd(context->tlsContext, TLS_CONNECTION_END_CLIENT);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Bind TLS to the relevant socket
    error = tlsSetSocket(context->tlsContext, context->socket);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set TX and RX buffer size
    error = tlsSetBufferSize(context->tlsContext,
       SMTP_CLIENT_TLS_TX_BUFFER_SIZE, SMTP_CLIENT_TLS_RX_BUFFER_SIZE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Restore TLS session
    error = tlsRestoreSessionState(context->tlsContext, &context->tlsSession);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Invoke user-defined callback, if any
    if(context->tlsInitCallback != NULL)
@@ -141,7 +157,9 @@ error_t smtpClientOpenSecureConnection(SmtpClientContext *context)
       error = context->tlsInitCallback(context, context->tlsContext);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing

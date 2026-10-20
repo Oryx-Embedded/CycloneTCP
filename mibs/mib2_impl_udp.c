@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -64,6 +64,10 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
    size_t n;
    Ipv4Addr localIpAddr;
    uint16_t localPort;
+   NetContext *context;
+
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
 
    //Point to the instance identifier
    n = object->oidLen;
@@ -72,35 +76,49 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIpv4Addr(oid, oidLen, &n, &localIpAddr);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //udpLocalPort is used as 2nd instance identifier
    error = mibDecodePort(oid, oidLen, &n, &localPort);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Loop through socket descriptors
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      Socket *socket = &socketTable[i];
+      Socket *socket = &context->socketTable[i];
 
       //UDP socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
       {
          //Check local IP address
          if(socket->localIpAddr.length == sizeof(Ipv6Addr))
+         {
             continue;
+         }
+
          if(socket->localIpAddr.ipv4Addr != localIpAddr)
+         {
             continue;
+         }
+
          //Check local port number
          if(socket->localPort != localPort)
+         {
             continue;
+         }
 
          //A matching socket has been found
          break;
@@ -114,20 +132,24 @@ error_t mib2GetUdpEntry(const MibObject *object, const uint8_t *oid,
       for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
       {
          //Point to the current entry
-         UdpRxCallbackEntry *entry = &udpCallbackTable[i];
+         UdpRxCallbackEntry *entry = &context->udpCallbackTable[i];
 
          //Check whether the entry is currently in use
          if(entry->callback != NULL)
          {
             //Check local port number
             if(entry->port == localPort)
+            {
                break;
+            }
          }
       }
 
       //No matching connection found in UDP callback table?
       if(i >= UDP_CALLBACK_TABLE_SIZE)
+      {
          return ERROR_INSTANCE_NOT_FOUND;
+      }
    }
 
    //udpLocalAddress object?
@@ -173,14 +195,20 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    bool_t acceptable;
    Ipv4Addr localIpAddr;
    uint16_t localPort;
+   NetContext *context;
 
    //Initialize variables
    localIpAddr = IPV4_UNSPECIFIED_ADDR;
    localPort = 0;
 
+   //Point to the TCP/IP stack context
+   context = netGetDefaultContext();
+
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -189,7 +217,7 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < SOCKET_MAX_COUNT; i++)
    {
       //Point to current socket
-      Socket *socket = &socketTable[i];
+      Socket *socket = &context->socketTable[i];
 
       //UDP socket?
       if(socket->type == SOCKET_TYPE_DGRAM)
@@ -205,13 +233,17 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
             error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, socket->localIpAddr.ipv4Addr);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //udpLocalPort is used as 2nd instance identifier
             error = mibEncodePort(nextOid, *nextOidLen, &n, socket->localPort);
             //Any error to report?
             if(error)
+            {
                return error;
+            }
 
             //Check whether the resulting object identifier lexicographically
             //follows the specified OID
@@ -255,7 +287,7 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    for(i = 0; i < UDP_CALLBACK_TABLE_SIZE; i++)
    {
       //Point to the current entry
-      UdpRxCallbackEntry *entry = &udpCallbackTable[i];
+      UdpRxCallbackEntry *entry = &context->udpCallbackTable[i];
 
       //Check whether the entry is currently in use
       if(entry->callback != NULL)
@@ -267,13 +299,17 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
          error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, IPV4_UNSPECIFIED_ADDR);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //udpLocalPort is used as 2nd instance identifier
          error = mibEncodePort(nextOid, *nextOidLen, &n, entry->port);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
 
          //Check whether the resulting object identifier lexicographically
          //follows the specified OID
@@ -315,7 +351,9 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    //The specified OID does not lexicographically precede the name
    //of some object?
    if(localPort == 0)
+   {
       return ERROR_OBJECT_NOT_FOUND;
+   }
 
    //Append the instance identifier to the OID prefix
    n = object->oidLen;
@@ -324,13 +362,17 @@ error_t mib2GetNextUdpEntry(const MibObject *object, const uint8_t *oid,
    error = mibEncodeIpv4Addr(nextOid, *nextOidLen, &n, localIpAddr);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //udpLocalPort is used as 2nd instance identifier
    error = mibEncodePort(nextOid, *nextOidLen, &n, localPort);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Save the length of the resulting object identifier
    *nextOidLen = n;

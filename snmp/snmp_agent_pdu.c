@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -68,7 +68,9 @@ error_t snmpProcessPdu(SnmpAgentContext *context)
    error = snmpParsePduHeader(&context->request);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Initialize response message
    snmpInitMessage(&context->response);
@@ -182,7 +184,9 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
    error = snmpInitResponse(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first variable binding of the request
    p = context->request.varBindList;
@@ -198,13 +202,17 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
       error = snmpParseVarBinding(p, length, &var, &n);
       //Failed to parse variable binding?
       if(error)
+      {
          break;
+      }
 
       //Make sure that the object identifier is valid
       error = oidCheck(var.oid, var.oidLen);
       //Invalid object identifier?
       if(error)
+      {
          break;
+      }
 
       //GetRequest-PDU?
       if(context->request.pduType == SNMP_PDU_GET_REQUEST)
@@ -307,7 +315,9 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
       error = snmpWriteVarBinding(context, &var);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Advance data pointer
       p += n;
@@ -324,7 +334,9 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
       error = snmpTranslateStatusCode(&context->response, error, index);
       //If the parsing of the request fails, the SNMP agent discards the message
       if(error)
+      {
          return error;
+      }
 
       //Check whether an alternate Response-PDU should be sent
       if(context->response.version != SNMP_VERSION_1 &&
@@ -342,7 +354,9 @@ error_t snmpProcessGetRequestPdu(SnmpAgentContext *context)
          error = snmpCopyVarBindingList(context);
          //Any error to report?
          if(error)
+         {
             return error;
+         }
       }
    }
 
@@ -402,7 +416,9 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
    error = snmpInitResponse(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Point to the first variable binding of the request
    p = context->request.varBindList;
@@ -432,20 +448,26 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
          //If the max-repetitions field is zero, the list is trimmed to the
          //first non-repeating variable bindings
          if(context->request.maxRepetitions == 0)
+         {
             break;
+         }
       }
 
       //Parse variable binding
       error = snmpParseVarBinding(p, length, &var, &n);
       //Failed to parse variable binding?
       if(error)
+      {
          break;
+      }
 
       //Make sure that the object identifier is valid
       error = oidCheck(var.oid, var.oidLen);
       //Invalid object identifier?
       if(error)
+      {
          break;
+      }
 
       //Search the MIB for the next object
       error = snmpGetNextObject(context, &context->request, &var);
@@ -511,7 +533,9 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
       error = snmpWriteVarBinding(context, &var);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Advance data pointer
       p += n;
@@ -525,10 +549,15 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
 
          //Last iteration?
          if(!context->request.maxRepetitions)
+         {
             break;
+         }
+
          //All variable bindings have the value field set to endOfMibView?
          if(endOfMibView)
+         {
             break;
+         }
 
          //Point to the first variable binding to be processed
          p = next;
@@ -555,14 +584,18 @@ error_t snmpProcessGetBulkRequestPdu(SnmpAgentContext *context)
       error = snmpTranslateStatusCode(&context->response, error, index);
       //If the parsing of the request fails, the SNMP agent discards the message
       if(error)
+      {
          return error;
+      }
 
       //The Response-PDU is re-formatted with the same values in its request-id
       //and variable-bindings fields as the received GetRequest-PDU
       error = snmpCopyVarBindingList(context);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
 
    //Successful processing
@@ -613,7 +646,9 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
    error = snmpInitResponse(context);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The variable bindings are processed as a two phase operation. In the
    //first phase, each variable binding is validated
@@ -630,13 +665,17 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
       error = snmpParseVarBinding(p, length, &var, &n);
       //Failed to parse variable binding?
       if(error)
+      {
          break;
+      }
 
       //Assign object value
       error = snmpSetObjectValue(context, &context->request, &var, FALSE);
       //Any error to report?
       if(error)
+      {
          break;
+      }
 
       //Advance data pointer
       p += n;
@@ -658,13 +697,17 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
          error = snmpParseVarBinding(p, length, &var, &n);
          //Failed to parse variable binding?
          if(error)
+         {
             break;
+         }
 
          //Assign object value
          error = snmpSetObjectValue(context, &context->request, &var, TRUE);
          //Any error to report?
          if(error)
+         {
             break;
+         }
 
          //Total number of MIB objects which have been altered successfully
          //by the SNMP protocol entity as the result of receiving valid
@@ -687,7 +730,9 @@ error_t snmpProcessSetRequestPdu(SnmpAgentContext *context)
       error = snmpTranslateStatusCode(&context->response, error, index);
       //If the parsing of the request fails, the SNMP agent discards the message
       if(error)
+      {
          return error;
+      }
    }
 
    //The SNMP agent sends back a GetResponse-PDU of identical form
@@ -776,7 +821,9 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    error = snmpComputeMessageOverhead(&context->response);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Initialize counter value
    counter = 1;
@@ -883,7 +930,9 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    error = snmpEncodeUnsignedInt32(counter, context->response.buffer, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The counter is encoded in ASN.1 format
    var.objClass = ASN1_CLASS_APPLICATION;
@@ -895,7 +944,9 @@ error_t snmpFormatReportPdu(SnmpAgentContext *context, error_t errorIndication)
    error = snmpWriteVarBinding(context, &var);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Format PDU header
    error = snmpWritePduHeader(&context->response);

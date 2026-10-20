@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _NET_LEGACY_H
@@ -276,5 +276,11 @@
 #define netInitEx netInit
 #define netTaskEx netTask
 #define udpAttachRxCallback udpRegisterRxCallback
+
+#define NatPortFwdRule NatPortForwardingRule
+#define numPortFwdRules numPortForwardingRules
+#define portFwdRules portForwardingRules
+#define natSetPortFwdRule natSetPortForwardingRule
+#define natSetPortRangeFwdRule natSetPortRangeForwardingRule
 
 #endif

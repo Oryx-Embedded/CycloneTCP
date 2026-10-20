@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _IPV4_FRAG_H
@@ -44,7 +44,7 @@
 
 //Support for overlapping fragments
 #ifndef IPV4_OVERLAPPING_FRAG_SUPPORT
-   #define IPV4_OVERLAPPING_FRAG_SUPPORT ENABLED
+   #define IPV4_OVERLAPPING_FRAG_SUPPORT DISABLED
 #elif (IPV4_OVERLAPPING_FRAG_SUPPORT != ENABLED && IPV4_OVERLAPPING_FRAG_SUPPORT != DISABLED)
    #error IPV4_OVERLAPPING_FRAG_SUPPORT parameter is not valid
 #endif
@@ -134,8 +134,9 @@ typedef struct
 typedef struct
 {
    systime_t timestamp;         ///<Time at which the first fragment was received
-   size_t headerLength;         ///<Length of the header
+   size_t headerLen;            ///<Length of the header
    size_t dataLen;              ///<Length of the payload
+   bool_t lastFragReceived;     ///<The last fragment has been received
    uint16_t firstHole;          ///<Index of the first hole
    Ipv4ReassemblyBuffer buffer; ///<Buffer containing the reassembled datagram
 } Ipv4FragDesc;
@@ -155,6 +156,13 @@ Ipv4FragDesc *ipv4SearchFragQueue(NetInterface *interface,
    const Ipv4Header *packet);
 
 void ipv4FlushFragQueue(NetInterface *interface);
+void ipv4DropFragDatagram(NetInterface *interface, Ipv4FragDesc *frag);
+
+error_t ipv4CheckFragOverlap(NetInterface *interface, Ipv4FragDesc *frag,
+   uint16_t dataFirst, uint16_t dataLast);
+
+Ipv4HoleDesc *ipv4InsertHole(Ipv4FragDesc *frag, Ipv4HoleDesc *prevHole,
+   uint16_t first, uint16_t last);
 
 Ipv4HoleDesc *ipv4FindHole(Ipv4FragDesc *frag, uint16_t offset);
 void ipv4DumpHoleList(Ipv4FragDesc *frag);

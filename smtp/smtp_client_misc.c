@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -264,7 +264,9 @@ error_t smtpClientParseEhloReply(SmtpClientContext *context,
 
    //The line must be at least 4 characters long
    if(osStrlen(replyLine) < 4)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Skip the response code and the separator
    replyLine += 4;
@@ -273,7 +275,9 @@ error_t smtpClientParseEhloReply(SmtpClientContext *context,
    token = osStrtok_r(replyLine, " ", &p);
    //Check whether the response line is empty
    if(token == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The response to EHLO is a multiline reply. Each line of the response
    //contains a keyword

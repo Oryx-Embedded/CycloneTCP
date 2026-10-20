@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -177,7 +177,9 @@ void dhcpv6ClientLinkChangeEvent(Dhcpv6ClientContext *context)
 
    //Make sure the DHCPv6 client has been properly instantiated
    if(context == NULL)
+   {
       return;
+   }
 
    //Point to the underlying network interface
    interface = context->interface;
@@ -272,7 +274,9 @@ error_t dhcpv6ClientSendMessage(Dhcpv6ClientContext *context,
    buffer = udpAllocBuffer(DHCPV6_MAX_MSG_SIZE, &offset);
    //Failed to allocate buffer?
    if(buffer == NULL)
+   {
       return ERROR_OUT_OF_MEMORY;
+   }
 
    //Point to the beginning of the DHCPv6 message
    message = netBufferAt(buffer, offset, 0);
@@ -471,13 +475,17 @@ void dhcpv6ClientProcessMessage(NetInterface *interface,
 
    //Make sure the DHCPv6 message is valid
    if(length < sizeof(Dhcpv6Message))
+   {
       return;
+   }
 
    //Point to the beginning of the DHCPv6 message
    message = netBufferAt(buffer, offset, length);
    //Malformed DHCPv6 message?
    if(message == NULL)
+   {
       return;
+   }
 
    //Debug message
    TRACE_DEBUG("\r\n%s: DHCPv6 message received (%" PRIuSIZE " bytes)...\r\n",
@@ -530,11 +538,15 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
    //Make sure that the Advertise message is received in response to
    //a Solicit message
    if(context->state != DHCPV6_STATE_SOLICIT)
+   {
       return;
+   }
 
    //Discard any received packet that does not match the transaction ID
    if(LOAD24BE(message->transactionId) != context->transactionId)
+   {
       return;
+   }
 
    //Get the length of the Options field
    length -= sizeof(Dhcpv6Message);
@@ -544,15 +556,21 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
 
    //Discard any received packet that does not include a Client Identifier option
    if(option == NULL)
+   {
       return;
+   }
 
    //Check the length of the option
    if(ntohs(option->length) != context->clientIdLen)
+   {
       return;
+   }
 
    //Check whether the Client Identifier matches our identifier
-   if(osMemcmp(option->value, context->clientId, context->clientIdLen))
+   if(osMemcmp(option->value, context->clientId, context->clientIdLen) != 0)
+   {
       return;
+   }
 
    //Search for the Server Identifier option
    serverIdOption = dhcpv6GetOption(message->options, length,
@@ -561,14 +579,20 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
    //Discard any received packet that does not include a Server Identifier
    //option
    if(serverIdOption == NULL)
+   {
       return;
+   }
 
    //Check the length of the server DUID
    if(ntohs(serverIdOption->length) == 0)
+   {
       return;
+   }
 
    if(ntohs(serverIdOption->length) > DHCPV6_MAX_DUID_SIZE)
+   {
       return;
+   }
 
    //Get the status code returned by the server
    status = dhcpv6GetStatusCode(message->options, length);
@@ -576,7 +600,9 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
    //If the message contains a Status Code option indicating a failure,
    //then the Advertise message is discarded by the client
    if(status != DHCPV6_STATUS_SUCCESS)
+   {
       return;
+   }
 
    //Any registered callback?
    if(context->parseOptionsCallback != NULL)
@@ -626,7 +652,9 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
 
       //Unable to find the specified option?
       if(option == NULL)
+      {
          break;
+      }
 
       //Make sure the IA_NA option is valid
       if(ntohs(option->length) >= sizeof(Dhcpv6IaNaOption))
@@ -644,7 +672,9 @@ void dhcpv6ClientParseAdvertise(Dhcpv6ClientContext *context,
             //The client must ignore any Advertise message that includes a
             //Status Code option containing the value NoAddrsAvail
             if(status == DHCPV6_STATUS_NO_ADDRS_AVAILABLE)
+            {
                return;
+            }
          }
 
          //Check the server preference value
@@ -709,7 +739,9 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
 
    //Discard any received packet that does not match the transaction ID
    if(LOAD24BE(message->transactionId) != context->transactionId)
+   {
       return;
+   }
 
    //Get the length of the Options field
    length -= sizeof(Dhcpv6Message);
@@ -719,15 +751,21 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
 
    //Discard any received packet that does not include a Client Identifier option
    if(option == NULL)
+   {
       return;
+   }
 
    //Check the length of the option
    if(ntohs(option->length) != context->clientIdLen)
+   {
       return;
+   }
 
    //Check whether the Client Identifier matches our identifier
-   if(osMemcmp(option->value, context->clientId, context->clientIdLen))
+   if(osMemcmp(option->value, context->clientId, context->clientIdLen) != 0)
+   {
       return;
+   }
 
    //Search for the Server Identifier option
    serverIdOption = dhcpv6GetOption(message->options, length,
@@ -736,14 +774,20 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    //Discard any received packet that does not include a Server Identifier
    //option
    if(serverIdOption == NULL)
+   {
       return;
+   }
 
    //Check the length of the server DUID
    if(ntohs(serverIdOption->length) == 0)
+   {
       return;
+   }
 
    if(ntohs(serverIdOption->length) > DHCPV6_MAX_DUID_SIZE)
+   {
       return;
+   }
 
    //Get the status code returned by the server
    status = dhcpv6GetStatusCode(message->options, length);
@@ -753,7 +797,9 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    {
       //A Reply message is not acceptable when rapid commit is disallowed
       if(!context->rapidCommit)
+      {
          return;
+      }
 
       //Search for the Rapid Commit option
       option = dhcpv6GetOption(message->options, length,
@@ -762,14 +808,18 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
       //The client discards any message that does not include a Rapid Commit
       //option
       if(option == NULL || ntohs(option->length) != 0)
+      {
          return;
+      }
    }
    else if(context->state == DHCPV6_STATE_REQUEST)
    {
       //The client must discard the Reply message if the contents of the
       //Server Identifier option do not match the server's DUID
       if(!dhcpv6ClientCheckServerId(context, serverIdOption))
+      {
          return;
+      }
    }
    else if(context->state == DHCPV6_STATE_CONFIRM)
    {
@@ -789,7 +839,9 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
       //The client must discard the Reply message if the contents of the
       //Server Identifier option do not match the server's DUID
       if(!dhcpv6ClientCheckServerId(context, serverIdOption))
+      {
          return;
+      }
    }
    else if(context->state == DHCPV6_STATE_REBIND)
    {
@@ -801,7 +853,9 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
       //The client must discard the Reply message if the contents of the
       //Server Identifier option do not match the server's DUID
       if(!dhcpv6ClientCheckServerId(context, serverIdOption))
+      {
          return;
+      }
 
       //When the client receives a valid Reply message in response to a
       //Release message, the client considers the Release event completed,
@@ -819,7 +873,9 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
       //The client must discard the Reply message if the contents of the
       //Server Identifier option do not match the server's DUID
       if(!dhcpv6ClientCheckServerId(context, serverIdOption))
+      {
          return;
+      }
 
       //When the client receives a valid Reply message in response to a
       //Decline message, the client considers the Decline event completed,
@@ -887,6 +943,17 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
       }
    }
 
+   //Reply message received in response to a Confirm message?
+   if(context->state == DHCPV6_STATE_CONFIRM)
+   {
+      //If the client receives any Reply messages that indicate success
+      //(explicit or implicit), the client can use the addresses in the IA
+      dhcpv6ClientChangeState(context, DHCPV6_STATE_BOUND, 0);
+
+      //Exit immediately
+      return;
+   }
+
    //This flag will be set if a valid IA_NA option is found
    iaNaOptionFound = FALSE;
    //Point to the first option
@@ -901,7 +968,9 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
 
       //Unable to find the specified option?
       if(option == NULL)
+      {
          break;
+      }
 
       //Parse the contents of the IA_NA option
       error = dhcpv6ClientParseIaNaOption(context, option);
@@ -969,7 +1038,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
    //Number of new IPv6 addresses in the IA
    k = 0;
    //Minimum preferred lifetime observed in the IA
-   minPreferredLifetime = 0;
+   minPreferredLifetime = DHCPV6_INFINITE_TIME;
 
    //Loop through the IPv6 addresses recorded by the DHCPv6 client
    for(i = 0; i < DHCPV6_CLIENT_ADDR_LIST_SIZE; i++)
@@ -984,7 +1053,7 @@ void dhcpv6ClientParseReply(Dhcpv6ClientContext *context,
          n++;
 
          //Save the minimum preferred lifetime that has been observed so far
-         if(minPreferredLifetime < entry->preferredLifetime)
+         if(entry->preferredLifetime < minPreferredLifetime)
          {
             minPreferredLifetime = entry->preferredLifetime;
          }
@@ -1088,7 +1157,9 @@ error_t dhcpv6ClientParseIaNaOption(Dhcpv6ClientContext *context,
 
    //Make sure the IA_NA option is valid
    if(ntohs(option->length) < sizeof(Dhcpv6IaNaOption))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Get the parameters associated with the IA_NA
    iaNaOption = (Dhcpv6IaNaOption *) option->value;
@@ -1097,14 +1168,18 @@ error_t dhcpv6ClientParseIaNaOption(Dhcpv6ClientContext *context,
 
    //Check the IA identifier
    if(ntohl(iaNaOption->iaId) != interface->id)
+   {
       return ERROR_WRONG_IDENTIFIER;
+   }
 
    //If a client receives an IA_NA with T1 greater than T2, and both T1 and T2
    //are greater than 0, the client discards the IA_NA option and processes the
    //remainder of the message as though the server had not included the invalid
    //IA_NA option
    if(ntohl(iaNaOption->t1) > ntohl(iaNaOption->t2) && ntohl(iaNaOption->t2) > 0)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The client examines the status code in each IA individually
    status = dhcpv6GetStatusCode(iaNaOption->options, length);
@@ -1148,7 +1223,9 @@ error_t dhcpv6ClientParseIaNaOption(Dhcpv6ClientContext *context,
 
       //Unable to find the specified option?
       if(option == NULL)
+      {
          break;
+      }
 
       //Parse the contents of the IA Address option
       error = dhcpv6ClientParseIaAddrOption(context, option);
@@ -1167,7 +1244,6 @@ error_t dhcpv6ClientParseIaNaOption(Dhcpv6ClientContext *context,
    //No usable addresses in the IA_NA option?
    if(n == 0)
    {
-      //Report an error
       return ERROR_NO_ADDRESS;
    }
 
@@ -1194,7 +1270,9 @@ error_t dhcpv6ClientParseIaAddrOption(Dhcpv6ClientContext *context,
 
    //Make sure the IA Address option is valid
    if(ntohs(option->length) < sizeof(Dhcpv6IaAddrOption))
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Point to the contents of the IA Address option
    iaAddrOption = (Dhcpv6IaAddrOption *) option->value;
@@ -1208,14 +1286,18 @@ error_t dhcpv6ClientParseIaAddrOption(Dhcpv6ClientContext *context,
    //A client discards any addresses for which the preferred lifetime is
    //greater than the valid lifetime
    if(preferredLifetime > validLifetime)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //The client examines the status code in each IA Address
    status = dhcpv6GetStatusCode(iaAddrOption->options, length);
 
    //Any error to report?
    if(status != DHCPV6_STATUS_SUCCESS)
+   {
       return ERROR_FAILURE;
+   }
 
    //Check the value of the Valid Lifetime
    if(iaAddrOption->validLifetime > 0)
@@ -1266,7 +1348,9 @@ void dhcpv6ClientAddAddr(Dhcpv6ClientContext *context, const Ipv6Addr *addr,
       {
          //Check whether the current entry matches the specified address
          if(ipv6CompAddr(&entry->addr, addr))
+         {
             break;
+         }
       }
       else
       {
@@ -1467,8 +1551,8 @@ bool_t dhcpv6ClientCheckServerId(Dhcpv6ClientContext *context,
    if(ntohs(serverIdOption->length) == context->serverIdLen)
    {
       //Check whether the Server Identifier option matches the server's DUID
-      if(!osMemcmp(serverIdOption->value, context->serverId,
-         context->serverIdLen))
+      if(osMemcmp(serverIdOption->value, context->serverId,
+         context->serverIdLen) == 0)
       {
          valid = TRUE;
       }

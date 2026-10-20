@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -123,12 +123,16 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
       if(webSocket->endpoint == WS_ENDPOINT_CLIENT)
       {
          if(webSocket->state == WS_STATE_OPEN)
+         {
             break;
+         }
       }
       else
       {
          if(webSocket->state == WS_STATE_SERVER_HANDSHAKE)
+         {
             break;
+         }
       }
 
       //Check current sub-state
@@ -350,7 +354,9 @@ error_t webSocketParseHandshake(WebSocket *webSocket)
 
       //Any error to report?
       if(error)
+      {
          break;
+      }
    }
 
    //Return status code
@@ -379,17 +385,23 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
    token = osStrtok_r(line, " \r\n", &p);
    //Unable to retrieve the method?
    if(token == NULL)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //The method of the request must be GET
    if(osStrcasecmp(token, "GET") != 0)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //The Request-URI is following the method token
    token = osStrtok_r(NULL, " \r\n", &p);
    //Unable to retrieve the Request-URI?
    if(token == NULL)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //Check whether a query string is present
    s = osStrchr(token, '?');
@@ -405,11 +417,15 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
          webSocket->uri, WEB_SOCKET_URI_MAX_LEN);
       //Any error to report?
       if(error)
+      {
          return ERROR_INVALID_REQUEST;
+      }
 
       //Check the length of the query string
       if(osStrlen(s + 1) > WEB_SOCKET_QUERY_STRING_MAX_LEN)
+      {
          return ERROR_INVALID_REQUEST;
+      }
 
       //Save the query string
       osStrcpy(webSocket->queryString, s + 1);
@@ -421,7 +437,9 @@ error_t webSocketParseRequestLine(WebSocket *webSocket, char_t *line)
          webSocket->uri, WEB_SOCKET_URI_MAX_LEN);
       //Any error to report?
       if(error)
+      {
          return ERROR_INVALID_REQUEST;
+      }
 
       //No query string
       webSocket->queryString[0] = '\0';
@@ -485,19 +503,25 @@ error_t webSocketParseStatusLine(WebSocket *webSocket, char_t *line)
    token = osStrtok_r(line, " ", &p);
    //Any parsing error?
    if(token == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Retrieve the Status-Code field
    token = osStrtok_r(NULL, " ", &p);
    //Any parsing error?
    if(token == NULL)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Convert the status code
    webSocket->handshakeContext.statusCode = osStrtoul(token, &p, 10);
    //Any parsing error?
    if(*p != '\0')
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Successful processing
    return NO_ERROR;
@@ -541,7 +565,9 @@ error_t webSocketParseHeaderField(WebSocket *webSocket, char_t *line)
       if(osStrcasecmp(name, "Upgrade") == 0)
       {
          if(osStrcasecmp(value, "websocket") == 0)
+         {
             handshakeContext->upgradeWebSocket = TRUE;
+         }
 
       }
       //Connection header field found?
@@ -696,7 +722,9 @@ error_t webSocketFormatClientHandshake(WebSocket *webSocket, uint16_t serverPort
 
    //Add Sec-WebSocket-Protocol header field
    if(webSocket->subProtocol[0] != '\0')
+   {
       p += osSprintf(p, "Sec-WebSocket-Protocol: %s\r\n", webSocket->subProtocol);
+   }
 
    //Add Sec-WebSocket-Key header field
    p += osSprintf(p, "Sec-WebSocket-Key: %s\r\n",
@@ -748,7 +776,9 @@ error_t webSocketFormatServerHandshake(WebSocket *webSocket)
 
    //Add Sec-WebSocket-Protocol header field
    if(webSocket->subProtocol[0] != '\0')
+   {
       p += osSprintf(p, "Sec-WebSocket-Protocol: %s\r\n", webSocket->subProtocol);
+   }
 
    //Add Sec-WebSocket-Accept header field
    p += osSprintf(p, "Sec-WebSocket-Accept: %s\r\n",
@@ -869,27 +899,37 @@ error_t webSocketVerifyClientHandshake(WebSocket *webSocket)
 
    //The HTTP version must be at least 1.1
    if(handshakeContext->version < WS_HTTP_VERSION_1_1)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //The request must contain an Upgrade header field whose value
    //must include the "websocket" keyword
    if(!handshakeContext->upgradeWebSocket)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //The request must contain a Connection header field whose value
    //must include the "Upgrade" token
    if(!handshakeContext->connectionUpgrade)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //The request must include a header field with the name Sec-WebSocket-Key
    if(handshakeContext->clientKey[0] == 0)
+   {
       return ERROR_INVALID_REQUEST;
+   }
 
    //Check the Sec-WebSocket-Key header field
    error = webSocketVerifyClientKey(webSocket);
    //Verification failed?
    if(error)
+   {
       return error;
+   }
 
    //Generate the server part of the handshake
    webSocketChangeState(webSocket, WS_STATE_SERVER_HANDSHAKE);
@@ -933,24 +973,32 @@ error_t webSocketVerifyServerHandshake(WebSocket *webSocket)
    //contains a value that is not an ASCII case-insensitive match for the
    //value "websocket", the client must fail the WebSocket connection
    if(!handshakeContext->upgradeWebSocket)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //If the response lacks a Connection header field or the Connection header
    //field doesn't contain a token that is an ASCII case-insensitive match for
    //the value "Upgrade", the client must fail the WebSocket connection
    if(!handshakeContext->connectionUpgrade)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //If the response lacks a Sec-WebSocket-Accept header field, the client
    //must fail the WebSocket connection
    if(osStrlen(handshakeContext->serverKey) == 0)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Check the Sec-WebSocket-Accept header field
    error = webSocketVerifyServerKey(webSocket);
    //Verification failed?
    if(error)
+   {
       return error;
+   }
 
    //If the server's response is validated as provided for above, it is
    //said that the WebSocket connection is established and that the
@@ -993,7 +1041,9 @@ error_t webSocketGenerateClientKey(WebSocket *webSocket)
    error = webSockRandCallback(nonce, sizeof(nonce));
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Encode the client's key
    base64Encode(nonce, sizeof(nonce), handshakeContext->clientKey, &n);
@@ -1076,11 +1126,15 @@ error_t webSocketVerifyClientKey(WebSocket *webSocket)
    error = base64Decode(handshakeContext->clientKey, n, buffer, &n);
    //Decoding failed?
    if(error)
+   {
       return ERROR_INVALID_KEY;
+   }
 
    //Check the length of the resulting value
    if(n != 16)
+   {
       return ERROR_INVALID_KEY;
+   }
 
    //Successful verification
    return NO_ERROR;
@@ -1130,7 +1184,9 @@ error_t webSocketVerifyServerKey(WebSocket *webSocket)
 
    //Check whether the server's key is valid
    if(osStrcmp(handshakeContext->serverKey, buffer) != 0)
+   {
       return ERROR_INVALID_KEY;
+   }
 
    //Successful verification
    return NO_ERROR;
@@ -1191,7 +1247,9 @@ error_t webSocketDecodePercentEncodedString(const char_t *input,
 
    //Check parameters
    if(input == NULL || output == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Decode the percent-encoded string
    for(i = 0; *input != '\0' && i < outputSize; i++)
@@ -1226,7 +1284,9 @@ error_t webSocketDecodePercentEncodedString(const char_t *input,
 
    //Check whether the output buffer runs out of space
    if(i >= outputSize)
+   {
       return ERROR_FAILURE;
+   }
 
    //Properly terminate the resulting string
    output[i] = '\0';
@@ -1328,19 +1388,27 @@ bool_t webSocketCheckUtf8Stream(WebSocketUtf8Context *context,
             {
                //Overlong encoding is not supported
                if((context->utf8CodePoint & ~0x7F) == 0)
+               {
                   valid = FALSE;
+               }
             }
+
             if(context->utf8CharSize == 3 && context->utf8CharIndex < 2)
             {
                //Overlong encoding is not supported
                if((context->utf8CodePoint & ~0x7FF) == 0)
+               {
                   valid = FALSE;
+               }
             }
+
             if(context->utf8CharSize == 4 && context->utf8CharIndex < 3)
             {
                //Overlong encoding is not supported
                if((context->utf8CodePoint & ~0xFFFF) == 0)
+               {
                   valid = FALSE;
+               }
             }
 
             //According to the UTF-8 definition (RFC 3629) the high and low
@@ -1348,11 +1416,15 @@ bool_t webSocketCheckUtf8Stream(WebSocketUtf8Context *context,
             //legal Unicode values, and their UTF-8 encoding should be treated
             //as an invalid byte sequence
             if(context->utf8CodePoint >= 0xD800 && context->utf8CodePoint < 0xE000)
+            {
                valid = FALSE;
+            }
 
             //Code points greater than U+10FFFF are not valid
             if(context->utf8CodePoint >= 0x110000)
+            {
                valid = FALSE;
+            }
          }
          else
          {

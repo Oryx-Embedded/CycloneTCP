@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -122,15 +122,21 @@ error_t mib2GetIfEntry(const MibObject *object, const uint8_t *oid,
    error = mibDecodeIndex(oid, oidLen, &n, &index);
    //Invalid instance identifier?
    if(error)
+   {
       return error;
+   }
 
    //Sanity check
    if(n != oidLen)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Check index range
    if(index < 1 || index > context->numInterfaces)
+   {
       return ERROR_INSTANCE_NOT_FOUND;
+   }
 
    //Point to the underlying interface
    interface = &context->interfaces[index - 1];
@@ -411,7 +417,9 @@ error_t mib2GetNextIfEntry(const MibObject *object, const uint8_t *oid,
 
    //Make sure the buffer is large enough to hold the OID prefix
    if(*nextOidLen < object->oidLen)
+   {
       return ERROR_BUFFER_OVERFLOW;
+   }
 
    //Copy OID prefix
    osMemcpy(nextOid, object->oid, object->oidLen);
@@ -426,7 +434,9 @@ error_t mib2GetNextIfEntry(const MibObject *object, const uint8_t *oid,
       error = mibEncodeIndex(nextOid, *nextOidLen, &n, index);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Check whether the resulting object identifier lexicographically
       //follows the specified OID
